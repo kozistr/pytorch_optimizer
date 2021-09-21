@@ -1,8 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [ main ]
   release:
     branches: [ main ]
     types: [published]
@@ -10,7 +8,6 @@ on:
 jobs:
   deploy:
     name: Deploy
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
     - name: Setup Python 3.8
