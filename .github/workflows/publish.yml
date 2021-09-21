@@ -1,28 +1,48 @@
 name: Publish
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
-  deploy:
-    name: Deploy
+  release:
+    name: Create Release
     runs-on: ubuntu-latest
     steps:
-    - name: Setup Python 3.8
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-    - name: Install dependencies
-      run: |
-        python3 -m pip install -U wheel twine
-    - name: Build package
-      run: |
-        python3 setup.py sdist bdist_wheel
-    - name: Publish package to PyPI
-      run: |
-        python3 -m twine check dist/*
-        python3 -m twine upload dist/*
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+  deploy:
+    name: Deploy
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          python3 -m pip install -r requirements-dev.txt
+          python3 -m pip install -U wheel twine
+      - name: Build package
+        run: |
+          python3 setup.py sdist bdist_wheel
+      - name: Publish package to PyPI
+        run: |
+          python3 -m twine check dist/*
+          python3 -m twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
