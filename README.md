@@ -4,6 +4,12 @@ Bunch of optimizer implementations in PyTorch with clean-code, strict types. Ins
 
 ## Usage
 
+### Install
+
+```
+$ pip3 install pytorch-optimizer
+```
+
 ## Supported Optimizers
 
 | Optimizer | Description | Official Code | Paper |
