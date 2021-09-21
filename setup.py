@@ -47,6 +47,7 @@ KEYWORDS: List[str] = sorted(
         'pytorch',
         'adamp',
         'sgdp',
+        'madgrad',
         'ranger',
         'ranger21',
         'agc',
