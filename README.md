@@ -16,7 +16,6 @@ $ pip3 install pytorch-optimizer
 | :---: | :---: | :---: | :---: |
 | AdamP | *Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights* | [github](https://github.com/clovaai/AdamP) | [https://arxiv.org/abs/2006.08217](https://arxiv.org/abs/2006.08217) |
 | Chebyshev LR Schedules | *Acceleration via Fractal Learning Rate Schedules* | [~~github~~]() | [https://arxiv.org/abs/2103.01338v1](https://arxiv.org/abs/2103.01338v1) |
-| Lookahead | *k steps forward, 1 step back* | [github](https://github.com/alphadl/lookahead.pytorch) | [https://arxiv.org/abs/1907.08610v2](https://arxiv.org/abs/1907.08610v2) |
 | RAdam | *On the Variance of the Adaptive Learning Rate and Beyond* | [github](https://github.com/LiyuanLucasLiu/RAdam) | [https://arxiv.org/abs/1908.03265](https://arxiv.org/abs/1908.03265) |
 | Ranger | *a synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer* | [github](https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer) | |
 | Ranger21 | *a synergistic deep learning optimizer* | [github](https://github.com/lessw2020/Ranger21) | [https://arxiv.org/abs/2106.13731](https://arxiv.org/abs/2106.13731) |
@@ -82,6 +81,12 @@ Gradient Centralization (GC) operates directly on gradients by centralizing the 
 * paper : [arXiv](https://arxiv.org/abs/2003.03977)
 
 ### Lookahead
+
+`k` steps forward, 1 step back. `Lookahead` consisting of keeping an exponential moving average of the weights that is 
+updated and substituted to the current weights every `k_{lookahead}` steps (5 by default).
+
+* github : [code](https://github.com/alphadl/lookahead.pytorch)
+* paper : [arXiv](https://arxiv.org/abs/1907.08610v2)
 
 ## Citations
 
