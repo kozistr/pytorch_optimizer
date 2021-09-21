@@ -10,3 +10,4 @@ PARAMS = Union[Iterable[Dict[str, Any]], Iterable[torch.Tensor]]
 PARAM_GROUP = Dict
 PARAM_GROUPS = List[PARAM_GROUP]
 STATE = Dict[str, Any]
+BUFFER = List[List[Optional[torch.Tensor]]]

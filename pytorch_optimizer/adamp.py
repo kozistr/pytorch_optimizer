@@ -1,9 +1,11 @@
 import math
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, List, Tuple
 
 import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
+
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS
 
 
 class AdamP(Optimizer):
@@ -11,14 +13,14 @@ class AdamP(Optimizer):
         self,
         params,
         lr: float = 1e-3,
-        betas: Tuple[float, float] = (0.9, 0.999),
+        betas: BETAS = (0.9, 0.999),
         eps: float = 1e-8,
         weight_decay: float = 0.0,
         delta: float = 0.1,
         wd_ratio: float = 0.1,
         nesterov: bool = False,
     ):
-        defaults: Dict[str, Any] = dict(
+        defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
             betas=betas,
             eps=eps,
@@ -39,7 +41,10 @@ class AdamP(Optimizer):
 
     @staticmethod
     def cosine_similarity(
-        x: torch.Tensor, y: torch.Tensor, eps: float, view_func: Callable
+        x: torch.Tensor,
+        y: torch.Tensor,
+        eps: float,
+        view_func: Callable[[torch.Tensor], torch.Tensor],
     ):
         x = view_func(x)
         y = view_func(y)
@@ -74,8 +79,8 @@ class AdamP(Optimizer):
 
         return perturb, wd
 
-    def step(self, closure: Optional[Callable] = None) -> float:
-        loss: Optional[float] = None
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
         if closure is not None:
             loss = closure()
 
@@ -114,7 +119,6 @@ class AdamP(Optimizer):
                 else:
                     perturb = exp_avg / denom
 
-                # Projection
                 wd_ratio: float = 1
                 if len(p.shape) > 1:
                     perturb, wd_ratio = self.projection(

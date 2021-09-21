@@ -1,8 +1,9 @@
 import math
-from typing import Any, Callable, Dict, Optional
 
 import torch
 from torch.optim import Optimizer
+
+from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS
 
 
 class MADGRAD(Optimizer):
@@ -26,7 +27,7 @@ class MADGRAD(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: Dict[str, Any] = dict(
+        defaults: DEFAULT_PARAMETERS = dict(
             lr=lr, eps=eps, momentum=momentum, weight_decay=weight_decay
         )
         super().__init__(params, defaults)
@@ -49,15 +50,13 @@ class MADGRAD(Optimizer):
     def supports_flat_params(self) -> bool:
         return True
 
-    def step(
-        self, closure: Optional[Callable[[], float]] = None
-    ) -> Optional[float]:
+    def step(self, closure: CLOSURE = None) -> LOSS:
         """Performs a single optimization step.
         Arguments:
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
         """
-        loss: Optional[float] = None
+        loss: LOSS = None
         if closure is not None:
             loss = closure()
 

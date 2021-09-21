@@ -1,9 +1,11 @@
 import math
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, List, Tuple
 
 import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
+
+from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS
 
 
 class SGDP(Optimizer):
@@ -19,7 +21,7 @@ class SGDP(Optimizer):
         delta: float = 0.1,
         wd_ratio: float = 0.1,
     ):
-        defaults: Dict[str, Any] = dict(
+        defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
             momentum=momentum,
             dampening=dampening,
@@ -41,7 +43,10 @@ class SGDP(Optimizer):
 
     @staticmethod
     def cosine_similarity(
-        x: torch.Tensor, y: torch.Tensor, eps: float, view_func: Callable
+        x: torch.Tensor,
+        y: torch.Tensor,
+        eps: float,
+        view_func: Callable[[torch.Tensor], torch.Tensor],
     ):
         x = view_func(x)
         y = view_func(y)
@@ -76,8 +81,8 @@ class SGDP(Optimizer):
 
         return perturb, wd
 
-    def step(self, closure: Optional[Callable] = None) -> float:
-        loss: Optional[float] = None
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
         if closure is not None:
             loss = closure()
 

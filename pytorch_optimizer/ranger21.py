@@ -9,7 +9,7 @@ __AUTHORS__ = [
 
 import collections
 import math
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
 import torch
@@ -19,6 +19,7 @@ from torch.optim import Optimizer
 from pytorch_optimizer.agc import agc
 from pytorch_optimizer.chebyshev_schedule import get_chebyshev_schedule
 from pytorch_optimizer.gc import centralize_gradient
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS
 from pytorch_optimizer.utils import normalize_gradient, unit_norm
 
 
@@ -43,7 +44,7 @@ class Ranger21(Optimizer):
         use_adaptive_gradient_clipping: bool = True,
         agc_clipping_value: float = 1e-2,
         agc_eps: float = 1e-3,
-        betas: Tuple[float, float] = (0.9, 0.999),
+        betas: BETAS = (0.9, 0.999),
         momentum_type: str = 'pnm',
         pnm_momentum_factor: float = 1.0,
         momentum: float = 0.9,
@@ -62,7 +63,7 @@ class Ranger21(Optimizer):
         warmup_pct_default: float = 0.22,
         logging_active: bool = True,
     ):
-        defaults: Dict[str, Any] = dict(
+        defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
             momentum=momentum,
             betas=betas,
@@ -313,8 +314,8 @@ class Ranger21(Optimizer):
         return beta1, beta2, mean_avg, variance_avg
 
     @torch.no_grad()
-    def step(self, closure: Optional[Callable] = None):
-        loss = None
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
         if closure is not None and isinstance(closure, collections.Callable):
             with torch.enable_grad():
                 loss = closure()

@@ -1,8 +1,16 @@
 import math
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Dict
 
 import torch
 from torch.optim.optimizer import Optimizer
+
+from pytorch_optimizer.types import (
+    BETAS,
+    BUFFER,
+    CLOSURE,
+    DEFAULT_PARAMETERS,
+    LOSS,
+)
 
 
 class Ranger(Optimizer):
@@ -21,7 +29,7 @@ class Ranger(Optimizer):
         alpha: float = 0.5,
         k: int = 6,
         n_sma_threshold: int = 5,
-        betas: Tuple[float, float] = (0.95, 0.999),
+        betas: BETAS = (0.95, 0.999),
         eps: float = 1e-5,
         weight_decay: float = 0.0,
         use_gc: bool = True,
@@ -37,13 +45,11 @@ class Ranger(Optimizer):
         self.use_gc = use_gc
 
         self.gc_gradient_threshold: int = 3 if gc_conv_only else 1
-        self.buffer: List[List[Optional[torch.Tensor]]] = [
-            [None, None, None] for _ in range(10)
-        ]
+        self.buffer: BUFFER = [[None, None, None] for _ in range(10)]
 
         self.check_valid_parameters()
 
-        defaults: Dict[str, Any] = dict(
+        defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
             alpha=alpha,
             k=k,
@@ -72,8 +78,8 @@ class Ranger(Optimizer):
     def __setstate__(self, state: Dict):
         super().__setstate__(state)
 
-    def step(self, _: Optional[Callable] = None) -> float:
-        loss: Optional[float] = None
+    def step(self, _: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
 
         for group in self.param_groups:
             for p in group['params']:
