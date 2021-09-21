@@ -8,6 +8,7 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 
 | Optimizer | Description | Official Code | Paper | Note |
 | :---: | :---: | :---: | :---: | :---: |
+| AdamP | *Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights* | [github](https://github.com/clovaai/AdamP) | [https://arxiv.org/abs/2006.08217](https://arxiv.org/abs/2006.08217) | |
 | Adaptive Gradient Clipping (AGC) | *High-Performance Large-Scale Image Recognition Without Normalization* | [github](https://github.com/deepmind/deepmind-research/tree/master/nfnets) | [https://arxiv.org/abs/2102.06171](https://arxiv.org/abs/2102.06171) | |
 | Chebyshev LR Schedules | *Acceleration via Fractal Learning Rate Schedules* | [~~github~~]() | [https://arxiv.org/abs/2103.01338v1](https://arxiv.org/abs/2103.01338v1) | |
 | Gradient Centralization (GC) | *A New Optimization Technique for Deep Neural Networks* | [github](https://github.com/Yonghongwei/Gradient-Centralization) | [https://arxiv.org/abs/2004.01461](https://arxiv.org/abs/2004.01461) | |
@@ -17,6 +18,17 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 | Ranger21 | *integrating the latest deep learning components into a single optimizer* | [github](https://github.com/lessw2020/Ranger21) | | |
 
 ## Citations
+
+### AdamP
+
+```
+@inproceedings{heo2021adamp,
+    title={AdamP: Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights},
+    author={Heo, Byeongho and Chun, Sanghyuk and Oh, Seong Joon and Han, Dongyoon and Yun, Sangdoo and Kim, Gyuwan and Uh, Youngjung and Ha, Jung-Woo},
+    year={2021},
+    booktitle={International Conference on Learning Representations (ICLR)},
+}
+```
 
 ### Adaptive Gradient Clipping (AGC)
 
