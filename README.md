@@ -6,11 +6,11 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 
 ## Supported Optimizers
 
-| Optimizer | Official Code | Paper | Note |
-| :---: | :---: | :---: | :---: |
-| Lookahead | [github](https://github.com/alphadl/lookahead.pytorch) | [https://arxiv.org/abs/1907.08610v2](https://arxiv.org/abs/1907.08610v2) | |
-| RAdam | [github](https://github.com/LiyuanLucasLiu/RAdam) | [https://arxiv.org/abs/1908.03265](https://arxiv.org/abs/1908.03265) | |
-| Ranger | [github](https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer) | | |
+| Optimizer | Description | Official Code | Paper | Note |
+| :---: | :---: | :---: | :---: | :---: |
+| Lookahead | *k steps forward, 1 step back* | [github](https://github.com/alphadl/lookahead.pytorch) | [https://arxiv.org/abs/1907.08610v2](https://arxiv.org/abs/1907.08610v2) | |
+| RAdam | *On the Variance of the Adaptive Learning Rate and Beyond* | [github](https://github.com/LiyuanLucasLiu/RAdam) | [https://arxiv.org/abs/1908.03265](https://arxiv.org/abs/1908.03265) | |
+| Ranger | *a synergistic optimizer combining RAdam (Rectified Adam) and LookAhead, and now GC (gradient centralization) in one optimizer.* | [github](https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer) | | |
 
 ## Citations
 
