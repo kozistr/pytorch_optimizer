@@ -38,11 +38,10 @@ jobs:
           python3 -m pip install -U wheel twine
       - name: Build package
         run: |
-          python3 setup.py sdist bdist_wheel
+          make build
       - name: Publish package to PyPI
         run: |
-          python3 -m twine check dist/*
-          python3 -m twine upload dist/*
+          make deploy
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
