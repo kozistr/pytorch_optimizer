@@ -76,6 +76,11 @@ Gradient Centralization (GC) operates directly on gradients by centralizing the 
 
 ### Explore-exploit learning-rate schedule
 
+![explore_exploit_lr_schedule](assets/explore_exploit_lr_schedule.png)
+
+* github : [code](https://github.com/nikhil-iyer-97/wide-minima-density-hypothesis)
+* paper : [arXiv](https://arxiv.org/abs/2003.03977)
+
 ### Lookahead
 
 ## Citations
@@ -200,6 +205,21 @@ Gradient Centralization (GC) operates directly on gradients by centralizing the 
   author={Xie, Zeke and Yuan, Li and Zhu, Zhanxing and Sugiyama, Masashi},
   journal={arXiv preprint arXiv:2103.17182},
   year={2021}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Explore-Exploit learning rate schedule</summary>
+
+```
+@article{iyer2020wide,
+  title={Wide-minima Density Hypothesis and the Explore-Exploit Learning Rate Schedule},
+  author={Iyer, Nikhil and Thejas, V and Kwatra, Nipun and Ramjee, Ramachandran and Sivathanu, Muthian},
+  journal={arXiv preprint arXiv:2003.03977},
+  year={2020}
 }
 ```
 
