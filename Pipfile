@@ -7,9 +7,11 @@ verify_ssl = false
 isort = "==5.9.3"
 black = "==21.9b0"
 pylint = "==2.11.1"
+twine = "==3.4.2"
 
 [packages]
 numpy = "==1.21.2"
+torch = "==1.9.0"
 
 [requires]
 python_version = "3"
