@@ -15,7 +15,6 @@ $ pip3 install pytorch-optimizer
 | Optimizer | Description | Official Code | Paper |
 | :---: | :---: | :---: | :---: |
 | AdamP | *Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights* | [github](https://github.com/clovaai/AdamP) | [https://arxiv.org/abs/2006.08217](https://arxiv.org/abs/2006.08217) |
-| Chebyshev LR Schedules | *Acceleration via Fractal Learning Rate Schedules* | [~~github~~]() | [https://arxiv.org/abs/2103.01338v1](https://arxiv.org/abs/2103.01338v1) |
 | RAdam | *On the Variance of the Adaptive Learning Rate and Beyond* | [github](https://github.com/LiyuanLucasLiu/RAdam) | [https://arxiv.org/abs/1908.03265](https://arxiv.org/abs/1908.03265) |
 | Ranger | *a synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer* | [github](https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer) | |
 | Ranger21 | *a synergistic deep learning optimizer* | [github](https://github.com/lessw2020/Ranger21) | [https://arxiv.org/abs/2106.13731](https://arxiv.org/abs/2106.13731) |
@@ -87,6 +86,12 @@ updated and substituted to the current weights every `k_{lookahead}` steps (5 by
 
 * github : [code](https://github.com/alphadl/lookahead.pytorch)
 * paper : [arXiv](https://arxiv.org/abs/1907.08610v2)
+
+### Chebyshev learning rate schedule
+
+Acceleration via Fractal Learning Rate Schedules
+
+* paper : [arXiv](https://arxiv.org/abs/2103.01338v1)
 
 ## Citations
 
