@@ -1,6 +1,6 @@
 # pytorch_optimizer
 
-Bunch of optimizer implementations in PyTorch with clean-code.
+Bunch of optimizer implementations in PyTorch with clean-code, strict types.
 
 ## Usage
 
@@ -19,7 +19,9 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 
 ## Citations
 
-### AdamP
+<details>
+
+<summary>AdamP</summary>
 
 ```
 @inproceedings{heo2021adamp,
@@ -30,7 +32,11 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 }
 ```
 
-### Adaptive Gradient Clipping (AGC)
+</details>
+
+<details>
+
+<summary>Adaptive Gradient Clipping (AGC)</summary>
 
 ```
 @article{brock2021high,
@@ -41,7 +47,11 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 }
 ```
 
-### Chebyshev LR Schedules
+</details>
+
+<details>
+
+<summary>Chebyshev LR Schedules</summary>
 
 ```
 @article{agarwal2021acceleration,
@@ -52,7 +62,11 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 }
 ```
 
-### Gradient Centralization (GC)
+</details>
+
+<details>
+
+<summary>Gradient Centralization (GC)</summary>
 
 ```
 @inproceedings{yong2020gradient,
@@ -65,7 +79,11 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 }
 ```
 
-### Lookahead
+</details>
+
+<details>
+
+<summary>Lookahead</summary>
 
 ```
 @article{zhang2019lookahead,
@@ -76,7 +94,11 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 }
 ```
 
-### RAdam
+</details>
+
+<details>
+
+<summary>RAdam</summary>
 
 ```
 @inproceedings{liu2019radam,
@@ -87,6 +109,8 @@ Bunch of optimizer implementations in PyTorch with clean-code.
  year = {2020}
 }
 ```
+
+</details>
 
 ## Author
 
