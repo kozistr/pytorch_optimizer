@@ -8,11 +8,38 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 
 | Optimizer | Description | Official Code | Paper | Note |
 | :---: | :---: | :---: | :---: | :---: |
+| Chebyshev LR Schedules | *Acceleration via Fractal Learning Rate Schedules* | [~~github~~]() | [https://arxiv.org/abs/2103.01338v1](https://arxiv.org/abs/2103.01338v1) | |
+| Gradient Centralization | *A New Optimization Technique for Deep Neural Networks* | [github](https://github.com/Yonghongwei/Gradient-Centralization) | [https://arxiv.org/abs/2004.01461](https://arxiv.org/abs/2004.01461) | |
 | Lookahead | *k steps forward, 1 step back* | [github](https://github.com/alphadl/lookahead.pytorch) | [https://arxiv.org/abs/1907.08610v2](https://arxiv.org/abs/1907.08610v2) | |
 | RAdam | *On the Variance of the Adaptive Learning Rate and Beyond* | [github](https://github.com/LiyuanLucasLiu/RAdam) | [https://arxiv.org/abs/1908.03265](https://arxiv.org/abs/1908.03265) | |
-| Ranger | *a synergistic optimizer combining RAdam (Rectified Adam) and LookAhead, and now GC (gradient centralization) in one optimizer.* | [github](https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer) | | |
+| Ranger | *a synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer* | [github](https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer) | | |
+| Ranger21 | *integrating the latest deep learning components into a single optimizer* | [github](https://github.com/lessw2020/Ranger21) | | |
 
 ## Citations
+
+### Chebyshev LR Schedules
+
+```
+@article{agarwal2021acceleration,
+  title={Acceleration via Fractal Learning Rate Schedules},
+  author={Agarwal, Naman and Goel, Surbhi and Zhang, Cyril},
+  journal={arXiv preprint arXiv:2103.01338},
+  year={2021}
+}
+```
+
+### Gradient Centralization
+
+```
+@inproceedings{yong2020gradient,
+  title={Gradient centralization: A new optimization technique for deep neural networks},
+  author={Yong, Hongwei and Huang, Jianqiang and Hua, Xiansheng and Zhang, Lei},
+  booktitle={European Conference on Computer Vision},
+  pages={635--652},
+  year={2020},
+  organization={Springer}
+}
+```
 
 ### Lookahead
 
