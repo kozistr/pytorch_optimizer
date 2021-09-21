@@ -30,7 +30,7 @@ jobs:
           make build
   deploy:
     name: Deploy
-    # needs: test
+    needs: test
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
