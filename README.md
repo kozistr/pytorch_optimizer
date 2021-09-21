@@ -1,5 +1,7 @@
 # pytorch-optimizer
 
+![workflow](https://github.com/kozistr/pytorch_optimizer/actions/workflows/ci.yml/badge.svg?branch=main) [![PyPI version](https://badge.fury.io/py/pytorch-optimizer.svg)](https://badge.fury.io/py/pytorch-optimizer)
+
 Bunch of optimizer implementations in PyTorch with clean-code, strict types. Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
 ## Usage
