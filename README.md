@@ -23,7 +23,9 @@ $ pip3 install pytorch-optimizer
 
 ## Useful Resources
 
-Several optimization ideas to regularize & stabilize the training.
+Several optimization ideas to regularize & stabilize the training. Most of the ideas are applied in `Ranger21` optimizer.
+
+Also, most of the captures are taken from `Ranger21` paper.
 
 ### Adaptive Gradient Clipping (AGC)
 
@@ -46,9 +48,24 @@ Gradient Centralization (GC) operates directly on gradients by centralizing the 
 
 ### Norm Loss
 
-### Positive-Negative momentum
+![norm_loss](assets/norm_loss.png)
 
-### Linear learning rate with warm-up
+* paper : [arXiv](https://arxiv.org/abs/2103.06583)
+
+### Positive-Negative Momentum
+
+![positive_negative_momentum](assets/positive_negative_momentum.png)
+
+* github : [code](https://github.com/zeke-xie/Positive-Negative-Momentum)
+* paper : [arXiv](https://arxiv.org/abs/2103.17182)
+
+### Linear learning-rate with warm-up
+
+### Stable weight decay
+
+### Explore-exploit learning-rate schedule
+
+### Lookahead
 
 ## Citations
 
@@ -140,6 +157,38 @@ Gradient Centralization (GC) operates directly on gradients by centralizing the 
  month = {April},
  title = {On the Variance of the Adaptive Learning Rate and Beyond},
  year = {2020}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Norm Loss</summary>
+
+```
+@inproceedings{georgiou2021norm,
+  title={Norm Loss: An efficient yet effective regularization method for deep neural networks},
+  author={Georgiou, Theodoros and Schmitt, Sebastian and B{\"a}ck, Thomas and Chen, Wei and Lew, Michael},
+  booktitle={2020 25th International Conference on Pattern Recognition (ICPR)},
+  pages={8812--8818},
+  year={2021},
+  organization={IEEE}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Positive-Negative Momentum</summary>
+
+```
+@article{xie2021positive,
+  title={Positive-Negative Momentum: Manipulating Stochastic Gradient Noise to Improve Generalization},
+  author={Xie, Zeke and Yuan, Li and Zhu, Zhanxing and Sugiyama, Masashi},
+  journal={arXiv preprint arXiv:2103.17182},
+  year={2021}
 }
 ```
 
