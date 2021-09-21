@@ -1,0 +1,15 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = false
+
+[dev-packages]
+isort = "==5.9.3"
+black = "==21.9b0"
+pylint = "==2.11.1"
+
+[packages]
+numpy = "==1.21.2"
+
+[requires]
+python_version = "3"
