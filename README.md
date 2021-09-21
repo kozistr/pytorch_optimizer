@@ -8,6 +8,7 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 
 | Optimizer | Description | Official Code | Paper | Note |
 | :---: | :---: | :---: | :---: | :---: |
+| Chebyshev LR Schedules | *Acceleration via Fractal Learning Rate Schedules* | [~~github~~]() | [https://arxiv.org/abs/2103.01338v1](https://arxiv.org/abs/2103.01338v1) | |
 | Gradient Centralization | *A New Optimization Technique for Deep Neural Networks* | [github](https://github.com/Yonghongwei/Gradient-Centralization) | [https://arxiv.org/abs/2004.01461](https://arxiv.org/abs/2004.01461) | |
 | Lookahead | *k steps forward, 1 step back* | [github](https://github.com/alphadl/lookahead.pytorch) | [https://arxiv.org/abs/1907.08610v2](https://arxiv.org/abs/1907.08610v2) | |
 | RAdam | *On the Variance of the Adaptive Learning Rate and Beyond* | [github](https://github.com/LiyuanLucasLiu/RAdam) | [https://arxiv.org/abs/1908.03265](https://arxiv.org/abs/1908.03265) | |
@@ -15,6 +16,17 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 | Ranger21 | *integrating the latest deep learning components into a single optimizer* | [github](https://github.com/lessw2020/Ranger21) | | |
 
 ## Citations
+
+### Chebyshev LR Schedules
+
+```
+@article{agarwal2021acceleration,
+  title={Acceleration via Fractal Learning Rate Schedules},
+  author={Agarwal, Naman and Goel, Surbhi and Zhang, Cyril},
+  journal={arXiv preprint arXiv:2103.01338},
+  year={2021}
+}
+```
 
 ### Gradient Centralization
 
