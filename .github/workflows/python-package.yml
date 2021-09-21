@@ -31,14 +31,14 @@ jobs:
   deploy:
     name: Deploy
     needs: test
-    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/v*')
     runs-on: ubuntu-latest
     steps:
     - name: Setup Python 3.8
       uses: actions/setup-python@v2
       with:
         python-version: 3.8
-    - name: Upload PyPI
+    - name: Upload to PyPI
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
