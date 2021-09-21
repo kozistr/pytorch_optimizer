@@ -22,7 +22,7 @@ jobs:
     - name: Install dependencies
       run: |
         make init
-        make requirement
+        make requirements
         pip install -r requirements-dev.txt
     - name: Lint
       run: |
