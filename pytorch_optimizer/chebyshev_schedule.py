@@ -22,7 +22,7 @@ def chebyshev_perm(num_epochs: int) -> np.ndarray:
     return perm
 
 
-def get_chebyshev_lr_schedules(
+def get_chebyshev_schedule(
     num_epochs: int, verbose: bool = False
 ) -> np.ndarray:
     num_epochs: int = num_epochs - 2
