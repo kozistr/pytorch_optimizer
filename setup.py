@@ -67,7 +67,7 @@ setup(
     version=read_version(),
     description='pytorch-optimizer',
     long_description=read_file('README.md'),
-    long_description_content_type='text/x-rst',
+    long_description_content_type='text/markdown',
     classifiers=CLASSIFIERS,
     platforms=['Linux', 'Windows'],
     author='kozistr',
