@@ -6,15 +6,15 @@ Bunch of optimizer implementations in PyTorch with clean-code, strict types.
 
 ## Supported Optimizers
 
-| Optimizer | Description | Official Code | Paper | Note |
-| :---: | :---: | :---: | :---: | :---: |
-| AdamP | *Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights* | [github](https://github.com/clovaai/AdamP) | [https://arxiv.org/abs/2006.08217](https://arxiv.org/abs/2006.08217) | |
-| Adaptive Gradient Clipping (AGC) | *High-Performance Large-Scale Image Recognition Without Normalization* | [github](https://github.com/deepmind/deepmind-research/tree/master/nfnets) | [https://arxiv.org/abs/2102.06171](https://arxiv.org/abs/2102.06171) | |
-| Chebyshev LR Schedules | *Acceleration via Fractal Learning Rate Schedules* | [~~github~~]() | [https://arxiv.org/abs/2103.01338v1](https://arxiv.org/abs/2103.01338v1) | |
-| Gradient Centralization (GC) | *A New Optimization Technique for Deep Neural Networks* | [github](https://github.com/Yonghongwei/Gradient-Centralization) | [https://arxiv.org/abs/2004.01461](https://arxiv.org/abs/2004.01461) | |
-| Lookahead | *k steps forward, 1 step back* | [github](https://github.com/alphadl/lookahead.pytorch) | [https://arxiv.org/abs/1907.08610v2](https://arxiv.org/abs/1907.08610v2) | |
-| RAdam | *On the Variance of the Adaptive Learning Rate and Beyond* | [github](https://github.com/LiyuanLucasLiu/RAdam) | [https://arxiv.org/abs/1908.03265](https://arxiv.org/abs/1908.03265) | |
-| Ranger | *a synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer* | [github](https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer) | | |
+| Optimizer | Description | Official Code | Paper |
+| :---: | :---: | :---: | :---: |
+| AdamP | *Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights* | [github](https://github.com/clovaai/AdamP) | [https://arxiv.org/abs/2006.08217](https://arxiv.org/abs/2006.08217) |
+| Adaptive Gradient Clipping (AGC) | *High-Performance Large-Scale Image Recognition Without Normalization* | [github](https://github.com/deepmind/deepmind-research/tree/master/nfnets) | [https://arxiv.org/abs/2102.06171](https://arxiv.org/abs/2102.06171) |
+| Chebyshev LR Schedules | *Acceleration via Fractal Learning Rate Schedules* | [~~github~~]() | [https://arxiv.org/abs/2103.01338v1](https://arxiv.org/abs/2103.01338v1) |
+| Gradient Centralization (GC) | *A New Optimization Technique for Deep Neural Networks* | [github](https://github.com/Yonghongwei/Gradient-Centralization) | [https://arxiv.org/abs/2004.01461](https://arxiv.org/abs/2004.01461) |
+| Lookahead | *k steps forward, 1 step back* | [github](https://github.com/alphadl/lookahead.pytorch) | [https://arxiv.org/abs/1907.08610v2](https://arxiv.org/abs/1907.08610v2) |
+| RAdam | *On the Variance of the Adaptive Learning Rate and Beyond* | [github](https://github.com/LiyuanLucasLiu/RAdam) | [https://arxiv.org/abs/1908.03265](https://arxiv.org/abs/1908.03265) |
+| Ranger | *a synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer* | [github](https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer) | |
 | Ranger21 | *integrating the latest deep learning components into a single optimizer* | [github](https://github.com/lessw2020/Ranger21) | | |
 
 ## Citations
