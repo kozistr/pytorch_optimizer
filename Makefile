@@ -1,4 +1,4 @@
-.PHONY: init check format requirements build clean
+.PHONY: init check format requirements build deploy
 
 init:
 	python3 -m pip install -U pipenv setuptools wheel
@@ -11,19 +11,10 @@ check:
 
 build:
 	python3 setup.py sdist bdist_wheel
-	twine check dist/*
 
-clean:
-	rm -rf `find . -name __pycache__`
-	rm -f `find . -type f -name '*.py[co]' `
-	rm -f `find . -type f -name '*~' `
-	rm -f `find . -type f -name '.*~' `
-	rm -f `find . -type f -name '@*' `
-	rm -f `find . -type f -name '#*#' `
-	rm -f `find . -type f -name '*.orig' `
-	rm -f `find . -type f -name '*.rej' `
-	rm -rf build
-	rm -rf dist
+deploy:
+	python3 -m twine check dist/*
+	python3 -m twine upload dist/*
 
 format:
 	isort --profile black -l 79 pytorch_optimizer setup.py
