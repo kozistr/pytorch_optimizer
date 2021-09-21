@@ -1,7 +1,7 @@
 .PHONY: init check format requirements build clean
 
 init:
-	python3 -m pip install -U pipenv setuptools
+	python3 -m pip install -U pipenv setuptools wheel
 	python3 -m pipenv install --dev
 
 check:
