@@ -11,7 +11,7 @@ def read_file(filename: str) -> str:
 
 
 def read_version() -> str:
-    regexp = re.compile(r"^__version__\W*=\W*'([\d.abrc]+)'")
+    regexp = re.compile(r"^__VERSION__\W*=\W*'([\d.abrc]+)'")
 
     with open(
         os.path.join(
@@ -38,7 +38,6 @@ CLASSIFIERS: List[str] = [
     'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3.8',
     'Operating System :: OS Independent',
-    'Development Status :: 3 - Alpha',
     'Topic :: Scientific/Engineering :: Artificial Intelligence',
 ]
 
@@ -67,9 +66,7 @@ setup(
     name='pytorch-optimizer',
     version=read_version(),
     description='pytorch-optimizer',
-    long_description='\n\n'.join(
-        (read_file('README.rst'), read_file('CHANGES.rst'))
-    ),
+    long_description=read_file('README.md'),
     long_description_content_type='text/x-rst',
     classifiers=CLASSIFIERS,
     platforms=['Linux', 'Windows'],
