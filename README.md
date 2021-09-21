@@ -65,6 +65,11 @@ Gradient Centralization (GC) operates directly on gradients by centralizing the 
 
 ### Stable weight decay
 
+![stable_weight_decay](assets/stable_weight_decay.png)
+
+* github : [code](https://github.com/zeke-xie/stable-weight-decay-regularization)
+* paper : [arXiv](https://arxiv.org/abs/2011.11152)
+
 ### Explore-exploit learning-rate schedule
 
 ### Lookahead
