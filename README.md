@@ -1,6 +1,6 @@
-# pytorch_optimizer
+# pytorch-optimizer
 
-Bunch of optimizer implementations in PyTorch with clean-code, strict types.
+Bunch of optimizer implementations in PyTorch with clean-code, strict types. Inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
 ## Usage
 
