@@ -37,6 +37,8 @@ AGC (Adaptive Gradient Clipping) clips gradients based on the `unit-wise ratio o
 
 ### Gradient Centralization (GC)
 
+![gradient_centralization](assets/gradient_centralization.png)
+
 Gradient Centralization (GC) operates directly on gradients by centralizing the gradient to have zero mean.
 
 * github : [code](https://github.com/Yonghongwei/Gradient-Centralization)
