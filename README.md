@@ -61,7 +61,11 @@ Gradient Centralization (GC) operates directly on gradients by centralizing the 
 * github : [code](https://github.com/zeke-xie/Positive-Negative-Momentum)
 * paper : [arXiv](https://arxiv.org/abs/2103.17182)
 
-### Linear learning-rate with warm-up
+### Linear learning-rate warm-up
+
+![linear_lr_warmup](assets/linear_lr_warmup.png)
+
+* paper : [arXiv](https://arxiv.org/abs/1910.04209)
 
 ### Stable weight decay
 
