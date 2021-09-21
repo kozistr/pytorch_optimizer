@@ -22,6 +22,7 @@ jobs:
         python3 setup.py sdist bdist_wheel
     - name: Publish package to PyPI
       run: |
+        python3 -m twine check dist/*
         python3 -m twine upload dist/*
       env:
         TWINE_USERNAME: __token__
