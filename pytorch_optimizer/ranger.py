@@ -56,17 +56,17 @@ class Ranger(Optimizer):
         super().__init__(params, defaults)
 
     def check_valid_parameters(self):
-        if not 0.0 <= self.lr:
+        if 0.0 > self.lr:
             raise ValueError(f'Invalid learning rate : {self.lr}')
-        if not 0.0 <= self.eps:
+        if 0.0 > self.eps:
             raise ValueError(f'Invalid eps : {self.eps}')
-        if not 0.0 <= self.weight_decay:
+        if 0.0 > self.weight_decay:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
         if not 0.0 <= self.betas[0] < 1.0:
             raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
         if not 0.0 <= self.betas[1] < 1.0:
             raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
-        if not 1 <= self.k:
+        if 1 > self.k:
             raise ValueError(f'Invalid lookahead step {self.k}')
 
     def __setstate__(self, state: Dict):
