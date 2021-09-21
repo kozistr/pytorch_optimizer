@@ -18,12 +18,14 @@ class RAdam(Optimizer):
         betas: Tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-8,
         weight_decay: float = 0.0,
+        n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = False,
     ):
         self.lr = lr
         self.betas = betas
         self.eps = eps
         self.weight_decay = weight_decay
+        self.n_sma_threshold = n_sma_threshold
         self.degenerated_to_sgd = degenerated_to_sgd
 
         self.check_valid_parameters()
@@ -115,7 +117,7 @@ class RAdam(Optimizer):
                     buffered[1] = n_sma
 
                     # more conservative since it's an approximated value
-                    if n_sma >= 5:
+                    if n_sma >= self.n_sma_threshold:
                         step_size = math.sqrt(
                             (1 - beta2_t)
                             * (n_sma - 4)
@@ -132,7 +134,7 @@ class RAdam(Optimizer):
                     buffered[2] = step_size
 
                 # more conservative since it's an approximated value
-                if n_sma >= 5:
+                if n_sma >= self.n_sma_threshold:
                     if group['weight_decay'] != 0:
                         p_data_fp32.add_(
                             -group['weight_decay'] * group['lr'], p_data_fp32
