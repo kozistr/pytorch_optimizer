@@ -5,13 +5,13 @@ init:
 	python3 -m pipenv install --dev
 
 check:
-	isort --check-only --profile black rubik_cube -l 79
-	black -S -l 79 --check rubik_cube
-	pylint rubik_cube
+	isort --check-only --profile black pytorch_optimizer -l 79
+	black -S -l 79 --check pytorch_optimizer
+	pylint pytorch_optimizer
 
 format:
-	isort --profile black rubik_cube -l 79
-	black -S -l 79 rubik_cube
+	isort --profile black pytorch_optimizer -l 79
+	black -S -l 79 pytorch_optimizer
 
 requirements:
 	python3 -m pipenv lock -r > requirements.txt
