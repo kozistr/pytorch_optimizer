@@ -1,8 +1,10 @@
 import math
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Dict
 
 import torch
 from torch.optim.optimizer import Optimizer
+
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS
 
 
 class RAdam(Optimizer):
@@ -15,7 +17,7 @@ class RAdam(Optimizer):
         self,
         params,
         lr: float = 1e-3,
-        betas: Tuple[float, float] = (0.9, 0.999),
+        betas: BETAS = (0.9, 0.999),
         eps: float = 1e-8,
         weight_decay: float = 0.0,
         n_sma_threshold: int = 5,
@@ -42,7 +44,7 @@ class RAdam(Optimizer):
                 ):
                     param['buffer'] = [[None, None, None] for _ in range(10)]
 
-        defaults: Dict[str, Any] = dict(
+        defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
             betas=betas,
             eps=eps,
@@ -67,8 +69,8 @@ class RAdam(Optimizer):
     def __setstate__(self, state: Dict):
         super().__setstate__(state)
 
-    def step(self, closure: Optional[Callable] = None) -> float:
-        loss: Optional[float] = None
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
         if closure is not None:
             loss = closure()
 

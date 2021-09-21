@@ -17,6 +17,7 @@ $ pip3 install pytorch-optimizer
 | Optimizer | Description | Official Code | Paper |
 | :---: | :---: | :---: | :---: |
 | AdamP | *Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights* | [github](https://github.com/clovaai/AdamP) | [https://arxiv.org/abs/2006.08217](https://arxiv.org/abs/2006.08217) |
+| MADGRAD | *A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic* | [github](https://github.com/facebookresearch/madgrad) | [https://arxiv.org/abs/2101.11075](https://arxiv.org/abs/2101.11075) |
 | RAdam | *On the Variance of the Adaptive Learning Rate and Beyond* | [github](https://github.com/LiyuanLucasLiu/RAdam) | [https://arxiv.org/abs/1908.03265](https://arxiv.org/abs/1908.03265) |
 | Ranger | *a synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer* | [github](https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer) | |
 | Ranger21 | *a synergistic deep learning optimizer* | [github](https://github.com/lessw2020/Ranger21) | [https://arxiv.org/abs/2106.13731](https://arxiv.org/abs/2106.13731) |
@@ -282,6 +283,21 @@ Acceleration via Fractal Learning Rate Schedules
   author={Tong, Qianqian and Liang, Guannan and Bi, Jinbo},
   journal={arXiv preprint arXiv:1908.00700},
   year={2019}
+}
+```
+
+</details>
+
+<details>
+
+<summary>MADGRAD</summary>
+
+```
+@article{defazio2021adaptivity,
+  title={Adaptivity without compromise: a momentumized, adaptive, dual averaged gradient method for stochastic optimization},
+  author={Defazio, Aaron and Jelassi, Samy},
+  journal={arXiv preprint arXiv:2101.11075},
+  year={2021}
 }
 ```
 
