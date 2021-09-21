@@ -42,7 +42,11 @@ Gradient Centralization (GC) operates directly on gradients by centralizing the 
 * github : [code](https://github.com/Yonghongwei/Gradient-Centralization)
 * paper : [arXiv](https://arxiv.org/abs/2004.01461)
 
-### Soft-plus Transformation
+### Softplus Transformation
+
+By running the final variance denom through the softplus function, it lifts extremely tiny values to keep them viable.
+
+* paper : [arXiv](https://arxiv.org/abs/1908.00700)
 
 ### Gradient Normalization
 
@@ -261,6 +265,21 @@ Acceleration via Fractal Learning Rate Schedules
   author={Xie, Zeke and Sato, Issei and Sugiyama, Masashi},
   journal={arXiv preprint arXiv:2011.11152},
   year={2020}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Softplus transformation</summary>
+
+```
+@article{tong2019calibrating,
+  title={Calibrating the adaptive learning rate to improve convergence of adam},
+  author={Tong, Qianqian and Liang, Guannan and Bi, Jinbo},
+  journal={arXiv preprint arXiv:1908.00700},
+  year={2019}
 }
 ```
 
