@@ -225,6 +225,37 @@ Gradient Centralization (GC) operates directly on gradients by centralizing the 
 
 </details>
 
+<details>
+
+<summary>Linear learning-rate warm-up</summary>
+
+```
+@article{ma2019adequacy,
+  title={On the adequacy of untuned warmup for adaptive optimization},
+  author={Ma, Jerry and Yarats, Denis},
+  journal={arXiv preprint arXiv:1910.04209},
+  volume={7},
+  year={2019}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Stable weight decay</summary>
+
+```
+@article{xie2020stable,
+  title={Stable weight decay regularization},
+  author={Xie, Zeke and Sato, Issei and Sugiyama, Masashi},
+  journal={arXiv preprint arXiv:2011.11152},
+  year={2020}
+}
+```
+
+</details>
+
 ## Author
 
 Hyeongchan Kim / [@kozistr](http://kozistr.tech/about)
