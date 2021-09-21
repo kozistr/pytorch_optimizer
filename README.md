@@ -15,13 +15,87 @@ $ pip3 install pytorch-optimizer
 | Optimizer | Description | Official Code | Paper |
 | :---: | :---: | :---: | :---: |
 | AdamP | *Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights* | [github](https://github.com/clovaai/AdamP) | [https://arxiv.org/abs/2006.08217](https://arxiv.org/abs/2006.08217) |
-| Adaptive Gradient Clipping (AGC) | *High-Performance Large-Scale Image Recognition Without Normalization* | [github](https://github.com/deepmind/deepmind-research/tree/master/nfnets) | [https://arxiv.org/abs/2102.06171](https://arxiv.org/abs/2102.06171) |
-| Chebyshev LR Schedules | *Acceleration via Fractal Learning Rate Schedules* | [~~github~~]() | [https://arxiv.org/abs/2103.01338v1](https://arxiv.org/abs/2103.01338v1) |
-| Gradient Centralization (GC) | *A New Optimization Technique for Deep Neural Networks* | [github](https://github.com/Yonghongwei/Gradient-Centralization) | [https://arxiv.org/abs/2004.01461](https://arxiv.org/abs/2004.01461) |
-| Lookahead | *k steps forward, 1 step back* | [github](https://github.com/alphadl/lookahead.pytorch) | [https://arxiv.org/abs/1907.08610v2](https://arxiv.org/abs/1907.08610v2) |
 | RAdam | *On the Variance of the Adaptive Learning Rate and Beyond* | [github](https://github.com/LiyuanLucasLiu/RAdam) | [https://arxiv.org/abs/1908.03265](https://arxiv.org/abs/1908.03265) |
 | Ranger | *a synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer* | [github](https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer) | |
-| Ranger21 | *integrating the latest deep learning components into a single optimizer* | [github](https://github.com/lessw2020/Ranger21) | | |
+| Ranger21 | *a synergistic deep learning optimizer* | [github](https://github.com/lessw2020/Ranger21) | [https://arxiv.org/abs/2106.13731](https://arxiv.org/abs/2106.13731) |
+
+## Useful Resources
+
+Several optimization ideas to regularize & stabilize the training. Most of the ideas are applied in `Ranger21` optimizer.
+
+Also, most of the captures are taken from `Ranger21` paper.
+
+### Adaptive Gradient Clipping (AGC)
+
+This idea originally proposed in `NFNet (Normalized-Free Network)` paper. 
+AGC (Adaptive Gradient Clipping) clips gradients based on the `unit-wise ratio of gradient norms to parameter norms`.
+
+* github : [code](https://github.com/deepmind/deepmind-research/tree/master/nfnets)
+* paper : [arXiv](https://arxiv.org/abs/2102.06171)
+
+### Gradient Centralization (GC)
+
+![gradient_centralization](assets/gradient_centralization.png)
+
+Gradient Centralization (GC) operates directly on gradients by centralizing the gradient to have zero mean.
+
+* github : [code](https://github.com/Yonghongwei/Gradient-Centralization)
+* paper : [arXiv](https://arxiv.org/abs/2004.01461)
+
+### Softplus Transformation
+
+By running the final variance denom through the softplus function, it lifts extremely tiny values to keep them viable.
+
+* paper : [arXiv](https://arxiv.org/abs/1908.00700)
+
+### Gradient Normalization
+
+### Norm Loss
+
+![norm_loss](assets/norm_loss.png)
+
+* paper : [arXiv](https://arxiv.org/abs/2103.06583)
+
+### Positive-Negative Momentum
+
+![positive_negative_momentum](assets/positive_negative_momentum.png)
+
+* github : [code](https://github.com/zeke-xie/Positive-Negative-Momentum)
+* paper : [arXiv](https://arxiv.org/abs/2103.17182)
+
+### Linear learning-rate warm-up
+
+![linear_lr_warmup](assets/linear_lr_warmup.png)
+
+* paper : [arXiv](https://arxiv.org/abs/1910.04209)
+
+### Stable weight decay
+
+![stable_weight_decay](assets/stable_weight_decay.png)
+
+* github : [code](https://github.com/zeke-xie/stable-weight-decay-regularization)
+* paper : [arXiv](https://arxiv.org/abs/2011.11152)
+
+### Explore-exploit learning-rate schedule
+
+![explore_exploit_lr_schedule](assets/explore_exploit_lr_schedule.png)
+
+* github : [code](https://github.com/nikhil-iyer-97/wide-minima-density-hypothesis)
+* paper : [arXiv](https://arxiv.org/abs/2003.03977)
+
+### Lookahead
+
+`k` steps forward, 1 step back. `Lookahead` consisting of keeping an exponential moving average of the weights that is 
+updated and substituted to the current weights every `k_{lookahead}` steps (5 by default).
+
+* github : [code](https://github.com/alphadl/lookahead.pytorch)
+* paper : [arXiv](https://arxiv.org/abs/1907.08610v2)
+
+### Chebyshev learning rate schedule
+
+Acceleration via Fractal Learning Rate Schedules
+
+* paper : [arXiv](https://arxiv.org/abs/2103.01338v1)
 
 ## Citations
 
@@ -113,6 +187,99 @@ $ pip3 install pytorch-optimizer
  month = {April},
  title = {On the Variance of the Adaptive Learning Rate and Beyond},
  year = {2020}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Norm Loss</summary>
+
+```
+@inproceedings{georgiou2021norm,
+  title={Norm Loss: An efficient yet effective regularization method for deep neural networks},
+  author={Georgiou, Theodoros and Schmitt, Sebastian and B{\"a}ck, Thomas and Chen, Wei and Lew, Michael},
+  booktitle={2020 25th International Conference on Pattern Recognition (ICPR)},
+  pages={8812--8818},
+  year={2021},
+  organization={IEEE}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Positive-Negative Momentum</summary>
+
+```
+@article{xie2021positive,
+  title={Positive-Negative Momentum: Manipulating Stochastic Gradient Noise to Improve Generalization},
+  author={Xie, Zeke and Yuan, Li and Zhu, Zhanxing and Sugiyama, Masashi},
+  journal={arXiv preprint arXiv:2103.17182},
+  year={2021}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Explore-Exploit learning rate schedule</summary>
+
+```
+@article{iyer2020wide,
+  title={Wide-minima Density Hypothesis and the Explore-Exploit Learning Rate Schedule},
+  author={Iyer, Nikhil and Thejas, V and Kwatra, Nipun and Ramjee, Ramachandran and Sivathanu, Muthian},
+  journal={arXiv preprint arXiv:2003.03977},
+  year={2020}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Linear learning-rate warm-up</summary>
+
+```
+@article{ma2019adequacy,
+  title={On the adequacy of untuned warmup for adaptive optimization},
+  author={Ma, Jerry and Yarats, Denis},
+  journal={arXiv preprint arXiv:1910.04209},
+  volume={7},
+  year={2019}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Stable weight decay</summary>
+
+```
+@article{xie2020stable,
+  title={Stable weight decay regularization},
+  author={Xie, Zeke and Sato, Issei and Sugiyama, Masashi},
+  journal={arXiv preprint arXiv:2011.11152},
+  year={2020}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Softplus transformation</summary>
+
+```
+@article{tong2019calibrating,
+  title={Calibrating the adaptive learning rate to improve convergence of adam},
+  author={Tong, Qianqian and Liang, Guannan and Bi, Jinbo},
+  journal={arXiv preprint arXiv:1908.00700},
+  year={2019}
 }
 ```
 
