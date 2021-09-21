@@ -8,9 +8,21 @@ Bunch of optimizer implementations in PyTorch with clean-code.
 
 | Optimizer | Official Code | Paper | Note |
 | :---: | :---: | :---: | :---: |
+| Lookahead | [github](https://github.com/alphadl/lookahead.pytorch) | [https://arxiv.org/abs/1907.08610v2](https://arxiv.org/abs/1907.08610v2)
 | RAdam | [github](https://github.com/LiyuanLucasLiu/RAdam) | [https://arxiv.org/abs/1908.03265](https://arxiv.org/abs/1908.03265) |
 
 ## Citations
+
+### Lookahead
+
+```
+@article{zhang2019lookahead,
+  title={Lookahead optimizer: k steps forward, 1 step back},
+  author={Zhang, Michael R and Lucas, James and Hinton, Geoffrey and Ba, Jimmy},
+  journal={arXiv preprint arXiv:1907.08610},
+  year={2019}
+}
+```
 
 ### RAdam
 

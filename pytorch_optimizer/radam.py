@@ -65,8 +65,8 @@ class RAdam(Optimizer):
     def __setstate__(self, state: Dict):
         super().__setstate__(state)
 
-    def step(self, closure: Optional[Callable] = None) -> torch.Tensor:
-        loss: Optional[torch.Tensor] = None
+    def step(self, closure: Optional[Callable] = None) -> float:
+        loss: Optional[float] = None
         if closure is not None:
             loss = closure()
 
