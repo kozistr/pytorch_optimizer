@@ -28,16 +28,16 @@ class AdaHessian(Optimizer):
         average_conv_kernel: bool = False,
         seed: int = 2147483647,
     ):
-        """Implements the AdaHessian algorithm from "ADAHESSIAN: An Adaptive Second OrderOptimizer for Machine Learning"
+        """
         :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param hessian_power: float. exponent of the hessian trace
-        :param update_each: int. compute the hessian trace approximation only after *this* number of steps (to save time)
+        :param update_each: int. compute the hessian trace approximation only after *this* number of steps
         :param n_samples: int. how many times to sample `z` for the approximation of the hessian trace
-        :param average_conv_kernel: bool.
+        :param average_conv_kernel: bool. average out the hessian traces of convolutional kernels as in the paper.
         :param seed: int.
         """
         self.lr = lr
