@@ -10,6 +10,7 @@ from pytorch_optimizer.madgrad import MADGRAD
 from pytorch_optimizer.radam import RAdam
 from pytorch_optimizer.ranger import Ranger
 from pytorch_optimizer.ranger21 import Ranger21
+from pytorch_optimizer.sam import SAM
 from pytorch_optimizer.sgdp import SGDP
 
 __VERSION__ = '0.0.6'
