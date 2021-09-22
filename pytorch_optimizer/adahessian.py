@@ -107,7 +107,7 @@ class AdaHessian(Optimizer):
     def set_hessian(self):
         """Computes the Hutchinson approximation of the hessian trace and accumulates it for each trainable parameter"""
         params = []
-        for p in filter(lambda p: p.grad is not None, self.get_params()):
+        for p in filter(lambda param: param.grad is not None, self.get_params()):
             # compute the trace only each `update_each` step
             if self.state[p]['hessian_step'] % self.update_each == 0:
                 params.append(p)
