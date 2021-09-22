@@ -33,6 +33,7 @@ for input, output in data:
 
 | Optimizer | Description | Official Code | Paper |
 | :---: | :---: | :---: | :---: |
+| AdaBound | *Adaptive Gradient Methods with Dynamic Bound of Learning Rate* | [github](https://github.com/Luolc/AdaBound) | [https://openreview.net/forum?id=Bkg3g2R9FX](https://openreview.net/forum?id=Bkg3g2R9FX) |
 | AdaHessian | *An Adaptive Second Order Optimizer for Machine Learning* | [github](https://github.com/amirgholami/adahessian) | [https://arxiv.org/abs/2006.00719](https://arxiv.org/abs/2006.00719) |
 | AdamP | *Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights* | [github](https://github.com/clovaai/AdamP) | [https://arxiv.org/abs/2006.08217](https://arxiv.org/abs/2006.08217) |
 | MADGRAD | *A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic* | [github](https://github.com/facebookresearch/madgrad) | [https://arxiv.org/abs/2101.11075](https://arxiv.org/abs/2101.11075) |
@@ -336,6 +337,22 @@ Acceleration via Fractal Learning Rate Schedules
 
 </details>
 
+<details>
+
+<summary>AdaBound</summary>
+
+```
+@inproceedings{Luo2019AdaBound,
+  author = {Luo, Liangchen and Xiong, Yuanhao and Liu, Yan and Sun, Xu},
+  title = {Adaptive Gradient Methods with Dynamic Bound of Learning Rate},
+  booktitle = {Proceedings of the 7th International Conference on Learning Representations},
+  month = {May},
+  year = {2019},
+  address = {New Orleans, Louisiana}
+}
+```
+
+</details>
 
 ## Author
 
