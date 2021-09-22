@@ -32,6 +32,17 @@ from pytorch_optimizer.utils import normalize_gradient, unit_norm
 class Ranger21(Optimizer):
     """
     Reference : https://github.com/lessw2020/Ranger21/blob/main/ranger21/ranger21.py
+    Example :
+        from pytorch_optimizer import Ranger21
+        ...
+        model = YourModel()
+        optimizer = Ranger21(model.parameters())
+        ...
+        for input, output in data:
+          optimizer.zero_grad()
+          loss = loss_function(output, model(input))
+          loss.backward()
+          optimizer.step()
     """
 
     def __init__(

@@ -11,6 +11,17 @@ from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
 class SGDP(Optimizer):
     """
     Reference : https://github.com/clovaai/AdamP/blob/master/adamp/sgdp.py
+    Example :
+        from pytorch_optimizer import SGDP
+        ...
+        model = YourModel()
+        optimizer = SGDP(model.parameters())
+        ...
+        for input, output in data:
+          optimizer.zero_grad()
+          loss = loss_function(output, model(input))
+          loss.backward()
+          optimizer.step()
     """
 
     def __init__(

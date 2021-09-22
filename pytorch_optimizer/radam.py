@@ -16,6 +16,17 @@ from pytorch_optimizer.types import (
 class RAdam(Optimizer):
     """
     Reference : https://github.com/LiyuanLucasLiu/RAdam/blob/master/radam/radam.py#L5
+    Example :
+        from pytorch_optimizer import RAdam
+        ...
+        model = YourModel()
+        optimizer = RAdam(model.parameters())
+        ...
+        for input, output in data:
+          optimizer.zero_grad()
+          loss = loss_function(output, model(input))
+          loss.backward()
+          optimizer.step()
     """
 
     def __init__(

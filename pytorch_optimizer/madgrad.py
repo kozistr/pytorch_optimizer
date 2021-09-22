@@ -14,6 +14,17 @@ from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
 class MADGRAD(Optimizer):
     """
     Reference : https://github.com/facebookresearch/madgrad/blob/main/madgrad/madgrad.py
+    Example :
+        from pytorch_optimizer import MADGRAD
+        ...
+        model = YourModel()
+        optimizer = MADGRAD(model.parameters())
+        ...
+        for input, output in data:
+          optimizer.zero_grad()
+          loss = loss_function(output, model(input))
+          loss.backward()
+          optimizer.step()
     """
 
     def __init__(

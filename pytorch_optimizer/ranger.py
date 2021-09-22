@@ -17,6 +17,17 @@ from pytorch_optimizer.types import (
 class Ranger(Optimizer):
     """
     Reference : https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer/blob/master/ranger/ranger.py
+    Example :
+        from pytorch_optimizer import Ranger
+        ...
+        model = YourModel()
+        optimizer = Ranger(model.parameters())
+        ...
+        for input, output in data:
+          optimizer.zero_grad()
+          loss = loss_function(output, model(input))
+          loss.backward()
+          optimizer.step()
     """
 
     def __init__(
