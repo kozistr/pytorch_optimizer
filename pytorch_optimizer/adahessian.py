@@ -13,6 +13,17 @@ from pytorch_optimizer.types import (
 class AdaHessian(Optimizer):
     """
     Reference : https://github.com/davda54/ada-hessian/blob/master/ada_hessian.py
+    Example :
+        from pytorch_optimizer import AdaHessian
+        ...
+        model = YourModel()
+        optimizer = AdaHessian(model.parameters())
+        ...
+        for input, output in data:
+          optimizer.zero_grad()
+          loss = loss_function(output, model(input))
+          loss.backward(create_graph=True)  # this is the important line!
+          optimizer.step()
     """
 
     def __init__(
