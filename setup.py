@@ -57,6 +57,8 @@ KEYWORDS: List[str] = sorted(
         'adabound',
         'adahessian',
         'adabelief',
+        'sam',
+        'asam',
     ]
 )
 
