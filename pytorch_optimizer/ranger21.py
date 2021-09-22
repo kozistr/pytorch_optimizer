@@ -82,7 +82,7 @@ class Ranger21(Optimizer):
         decay_type: str = 'stable',
         warmup_type: str = 'linear',
         warmup_pct_default: float = 0.22,
-        logging_active: bool = True,
+        logging_active: bool = False,
     ):
         """Ranger optimizer (RAdam + Lookahead + Gradient Centralization, combined into one optimizer)
         :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
@@ -361,10 +361,8 @@ class Ranger21(Optimizer):
                 if p.grad is None:
                     continue
 
-                # if not self.param_size:
                 param_size += p.numel()
 
-                # apply agc if enabled
                 if self.agc_active:
                     agc(
                         p, agc_eps=self.agc_eps, agc_clip_val=self.agc_clip_val
@@ -377,43 +375,27 @@ class Ranger21(Optimizer):
 
                 state = self.state[p]
 
-                # State initialization
                 if len(state) == 0:
                     state['step'] = 0
-
-                    # Exponential moving average of gradient values
-                    state['grad_ma'] = torch.zeros_like(
-                        p, memory_format=torch.preserve_format
-                    )
-                    # Exponential moving average of squared gradient values
-                    state['variance_ma'] = torch.zeros_like(
-                        p, memory_format=torch.preserve_format
-                    )
+                    state['grad_ma'] = torch.zeros_like(p)
+                    state['variance_ma'] = torch.zeros_like(p)
 
                     if self.lookahead_active:
                         state['lookahead_params'] = torch.zeros_like(p.data)
                         state['lookahead_params'].copy_(p.data)
 
                     if self.use_adabelief:
-                        state['variance_ma_belief'] = torch.zeros_like(
-                            p, memory_format=torch.preserve_format
-                        )
+                        state['variance_ma_belief'] = torch.zeros_like(p)
                     if self.momentum_pnm:
-                        state['neg_grad_ma'] = torch.zeros_like(
-                            p, memory_format=torch.preserve_format
-                        )
+                        state['neg_grad_ma'] = torch.zeros_like(p)
+                        state['max_variance_ma'] = torch.zeros_like(p)
 
-                        # Maintains max of all exp. moving avg. of sq. grad. values
-                        state['max_variance_ma'] = torch.zeros_like(
-                            p, memory_format=torch.preserve_format
-                        )
-
-                # centralize gradients
                 if self.use_gc:
                     grad = centralize_gradient(
                         grad,
                         gc_conv_only=self.gc_conv_only,
                     )
+
                 if self.use_gc_norm:
                     grad = normalize_gradient(grad)
 
