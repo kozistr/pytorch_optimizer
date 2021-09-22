@@ -73,10 +73,8 @@ Also, most of the captures are taken from ``Ranger21`` paper.
 Adaptive Gradient Clipping (AGC)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| This idea originally proposed in ``NFNet (Normalized-Free Network)``
-paper.
-| AGC (Adaptive Gradient Clipping) clips gradients based on the
-``unit-wise ratio of gradient norms to parameter norms``.
+| This idea originally proposed in ``NFNet (Normalized-Free Network)`` paper.
+| AGC (Adaptive Gradient Clipping) clips gradients based on the ``unit-wise ratio of gradient norms to parameter norms``.
 
 -  code :
    `github <https://github.com/deepmind/deepmind-research/tree/master/nfnets>`__
@@ -99,8 +97,7 @@ centralizing the gradient to have zero mean.
 Softplus Transformation
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-By running the final variance denom through the softplus function, it
-lifts extremely tiny values to keep them viable.
+By running the final variance denom through the softplus function, it lifts extremely tiny values to keep them viable.
 
 -  paper : `arXiv <https://arxiv.org/abs/1908.00700>`__
 
@@ -123,8 +120,7 @@ Positive-Negative Momentum
 | .. image:: https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/positive_negative_momentum.png  |
 +--------------------------------------------------------------------------------------------------------------------+
 
--  code :
-   `github <https://github.com/zeke-xie/Positive-Negative-Momentum>`__
+-  code : `github <https://github.com/zeke-xie/Positive-Negative-Momentum>`__
 -  paper : `arXiv <https://arxiv.org/abs/2103.17182>`__
 
 Linear learning-rate warm-up
@@ -143,8 +139,7 @@ Stable weight decay
 | .. image:: https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/stable_weight_decay.png  |
 +-------------------------------------------------------------------------------------------------------------+
 
--  code :
-   `github <https://github.com/zeke-xie/stable-weight-decay-regularization>`__
+-  code : `github <https://github.com/zeke-xie/stable-weight-decay-regularization>`__
 -  paper : `arXiv <https://arxiv.org/abs/2011.11152>`__
 
 Explore-exploit learning-rate schedule
@@ -154,18 +149,14 @@ Explore-exploit learning-rate schedule
 | .. image:: https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/explore_exploit_lr_schedule.png  |
 +---------------------------------------------------------------------------------------------------------------------+
 
-
--  code :
-   `github <https://github.com/nikhil-iyer-97/wide-minima-density-hypothesis>`__
+-  code : `github <https://github.com/nikhil-iyer-97/wide-minima-density-hypothesis>`__
 -  paper : `arXiv <https://arxiv.org/abs/2003.03977>`__
 
 Lookahead
 ~~~~~~~~~
 
-| ``k`` steps forward, 1 step back. ``Lookahead`` consisting of keeping
-an exponential moving average of the weights that is
-| updated and substituted to the current weights every ``k_{lookahead}``
-steps (5 by default).
+| ``k`` steps forward, 1 step back. ``Lookahead`` consisting of keeping an exponential moving average of the weights that is
+| updated and substituted to the current weights every ``k_{lookahead}`` steps (5 by default).
 
 -  code : `github <https://github.com/alphadl/lookahead.pytorch>`__
 -  paper : `arXiv <https://arxiv.org/abs/1907.08610v2>`__
@@ -180,10 +171,8 @@ Acceleration via Fractal Learning Rate Schedules
 (Adaptive) Sharpness-Aware Minimization (A/SAM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| Sharpness-Aware Minimization (SAM) simultaneously minimizes loss value
-and loss sharpness.
-| In particular, it seeks parameters that lie in neighborhoods having
-uniformly low loss.
+| Sharpness-Aware Minimization (SAM) simultaneously minimizes loss value and loss sharpness.
+| In particular, it seeks parameters that lie in neighborhoods having uniformly low loss.
 
 -  SAM paper : `paper <https://arxiv.org/abs/2010.01412>`__
 -  ASAM paper : `paper <https://arxiv.org/abs/2102.11600>`__
