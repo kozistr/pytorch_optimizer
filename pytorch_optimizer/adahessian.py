@@ -147,6 +147,7 @@ class AdaHessian(Optimizer):
                 - 1.0
                 for p in params
             ]
+            # note that, possible memory leak due to retrain_graph=True
             h_zs = torch.autograd.grad(
                 grads,
                 params,
