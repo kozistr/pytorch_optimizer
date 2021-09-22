@@ -52,6 +52,7 @@ class AdaBelief(Optimizer):
         :param n_sma_threshold: (recommended is 5)
         :param amsgrad: bool. whether to use the AMSBound variant
         :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
+        :param fixed_decay: bool.
         :param rectify: bool. perform the rectified update similar to RAdam
         :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high
         """
