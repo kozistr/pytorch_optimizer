@@ -15,7 +15,6 @@ from pytorch_optimizer.types import (
 
 class RAdam(Optimizer):
     """
-    Rectified Adam optimizer
     Reference : https://github.com/LiyuanLucasLiu/RAdam/blob/master/radam/radam.py#L5
     """
 
@@ -29,6 +28,15 @@ class RAdam(Optimizer):
         n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = False,
     ):
+        """Rectified Adam optimizer
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param lr: float. learning rate.
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator to improve numerical stability
+        :param weight_decay: float. weight decay (L2 penalty)
+        :param n_sma_threshold: int. (recommended is 5)
+        :param degenerated_to_sgd: float.
+        """
         self.lr = lr
         self.betas = betas
         self.eps = eps
@@ -124,7 +132,6 @@ class RAdam(Optimizer):
                     )
                     buffered[1] = n_sma
 
-                    # more conservative since it's an approximated value
                     if n_sma >= self.n_sma_threshold:
                         step_size = math.sqrt(
                             (1 - beta2_t)
@@ -141,7 +148,6 @@ class RAdam(Optimizer):
                         step_size = -1
                     buffered[2] = step_size
 
-                # more conservative since it's an approximated value
                 if n_sma >= self.n_sma_threshold:
                     if group['weight_decay'] != 0:
                         p_data_fp32.add_(
