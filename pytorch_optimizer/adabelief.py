@@ -125,7 +125,7 @@ class AdaBelief(Optimizer):
                 grad = p.grad.data
                 if grad.is_sparse:
                     raise RuntimeError(
-                        'AdaBelief does not support sparse gradients, please consider SparseAdam instead'
+                        'AdaBelief does not support sparse gradients'
                     )
 
                 amsgrad = group['amsgrad']
