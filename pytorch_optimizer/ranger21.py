@@ -481,11 +481,11 @@ class Ranger21(Optimizer):
                     p.data.mul_(1 - decay * _lambda / variance_normalized)
 
             if self.norm_loss_active:
-                unorm = unit_norm(p.data)
+                u_norm = unit_norm(p.data)
                 correction = (
                     2
                     * self.norm_loss_factor
-                    * (1 - torch.div(1, unorm + self.eps))
+                    * (1 - torch.div(1, u_norm + self.eps))
                 )
                 p.mul_(1 - lr * correction)
 
@@ -534,10 +534,8 @@ class Ranger21(Optimizer):
                     if self.softplus:
                         rms = F.softplus(rms, beta=self.beta_softplus)
 
-                    # Update s
                     s.data.add_(inner_grad, alpha=_lambda)
 
-                    # Step
                     if momentum == 0:
                         p.data.copy_(x0.addcdiv(s, rms, value=-1))
                     else:
@@ -545,13 +543,11 @@ class Ranger21(Optimizer):
 
                         # p is a moving average of z
                         p.data.mul_(1 - ck).add_(z, alpha=ck)
-                else:  # adam with pnm core
+                else:
                     grad = p.grad
                     beta1, beta2 = group['betas']
                     grad_ma = state['grad_ma']
                     variance_ma = state['variance_ma']
-                    if self.use_adabelief:
-                        variance_ma_belief = state['variance_ma_belief']
 
                     if self.momentum_pnm:
                         max_variance_ma = state['max_variance_ma']
