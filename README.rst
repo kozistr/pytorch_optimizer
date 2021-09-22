@@ -3,10 +3,8 @@ pytorch-optimizer
 
 | |workflow| |Documentation Status| |PyPI version|
 
-| Bunch of optimizer implementations in PyTorch with clean-code, strict
-types. Also, including useful optimization ideas.
-| Highly inspired by
-`pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
+| Bunch of optimizer implementations in PyTorch with clean-code, strict types. Also, including useful optimization ideas.
+| Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
 Documentation
 -------------
