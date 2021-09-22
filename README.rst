@@ -1,7 +1,7 @@
 pytorch-optimizer
 =================
 
-| |workflow| |Documentation Status| |PyPI version|
+| |workflow| |Documentation Status| |PyPI version| |black|
 
 | Bunch of optimizer implementations in PyTorch with clean-code, strict types. Also, including useful optimization ideas.
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
@@ -408,3 +408,4 @@ Hyeongchan Kim / `@kozistr <http://kozistr.tech/about>`__
    :target: https://pytorch-optimizers.readthedocs.io/en/latest/?badge=latest
 .. |PyPI version| image:: https://badge.fury.io/py/pytorch-optimizer.svg
    :target: https://badge.fury.io/py/pytorch-optimizer
+.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
