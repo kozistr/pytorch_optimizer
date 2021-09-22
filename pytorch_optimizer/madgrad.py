@@ -3,7 +3,7 @@ import math
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS
+from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
 
 
 class MADGRAD(Optimizer):
@@ -14,7 +14,7 @@ class MADGRAD(Optimizer):
 
     def __init__(
         self,
-        params,
+        params: PARAMS,
         lr: float = 1e-3,
         momentum: float = 0.9,
         weight_decay: float = 0.0,

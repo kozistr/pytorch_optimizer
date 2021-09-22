@@ -5,13 +5,19 @@ import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS
+from pytorch_optimizer.types import (
+    BETAS,
+    CLOSURE,
+    DEFAULT_PARAMETERS,
+    LOSS,
+    PARAMS,
+)
 
 
 class AdamP(Optimizer):
     def __init__(
         self,
-        params,
+        params: PARAMS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         eps: float = 1e-8,

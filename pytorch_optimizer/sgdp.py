@@ -5,13 +5,13 @@ import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS
+from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
 
 
 class SGDP(Optimizer):
     def __init__(
         self,
-        params,
+        params: PARAMS,
         lr: float = 1e-3,
         momentum: float = 0.0,
         dampening: float = 0.0,

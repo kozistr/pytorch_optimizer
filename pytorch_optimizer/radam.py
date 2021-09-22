@@ -4,7 +4,13 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS
+from pytorch_optimizer.types import (
+    BETAS,
+    CLOSURE,
+    DEFAULT_PARAMETERS,
+    LOSS,
+    PARAMS,
+)
 
 
 class RAdam(Optimizer):
@@ -15,7 +21,7 @@ class RAdam(Optimizer):
 
     def __init__(
         self,
-        params,
+        params: PARAMS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         eps: float = 1e-8,

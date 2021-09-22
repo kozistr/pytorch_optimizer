@@ -10,6 +10,7 @@ from pytorch_optimizer.types import (
     CLOSURE,
     DEFAULT_PARAMETERS,
     LOSS,
+    PARAMS,
 )
 
 
@@ -24,7 +25,7 @@ class Ranger(Optimizer):
 
     def __init__(
         self,
-        params,
+        params: PARAMS,
         lr: float = 1e-3,
         alpha: float = 0.5,
         k: int = 6,
