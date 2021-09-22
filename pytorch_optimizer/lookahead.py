@@ -18,7 +18,7 @@ class Lookahead(Optimizer):
     """
     Reference : https://github.com/alphadl/lookahead.pytorch/blob/master/lookahead.py
     Example :
-        from pytorch_optimizer import Ranger21, Lookahead
+        from pytorch_optimizer import AdamP, Lookahead
         ...
         model = YourModel()
         base_optimizer = AdamP(model.parameters())
