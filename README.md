@@ -33,6 +33,7 @@ for input, output in data:
 
 | Optimizer | Description | Official Code | Paper |
 | :---: | :---: | :---: | :---: |
+| AdaBelief | *Adapting Stepsizes by the Belief in Observed Gradients* | [github](https://github.com/juntang-zhuang/Adabelief-Optimizer) | [https://arxiv.org/abs/2010.07468](https://arxiv.org/abs/2010.07468) |
 | AdaBound | *Adaptive Gradient Methods with Dynamic Bound of Learning Rate* | [github](https://github.com/Luolc/AdaBound/blob/master/adabound/adabound.py) | [https://openreview.net/forum?id=Bkg3g2R9FX](https://openreview.net/forum?id=Bkg3g2R9FX) |
 | AdaHessian | *An Adaptive Second Order Optimizer for Machine Learning* | [github](https://github.com/amirgholami/adahessian) | [https://arxiv.org/abs/2006.00719](https://arxiv.org/abs/2006.00719) |
 | AdamP | *Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights* | [github](https://github.com/clovaai/AdamP) | [https://arxiv.org/abs/2006.08217](https://arxiv.org/abs/2006.08217) |
@@ -349,6 +350,21 @@ Acceleration via Fractal Learning Rate Schedules
   month = {May},
   year = {2019},
   address = {New Orleans, Louisiana}
+}
+```
+
+</details>
+
+<details>
+
+<summary>AdaBelief</summary>
+
+```
+@article{zhuang2020adabelief,
+  title={Adabelief optimizer: Adapting stepsizes by the belief in observed gradients},
+  author={Zhuang, Juntang and Tang, Tommy and Ding, Yifan and Tatikonda, Sekhar and Dvornek, Nicha and Papademetris, Xenophon and Duncan, James S},
+  journal={arXiv preprint arXiv:2010.07468},
+  year={2020}
 }
 ```
 
