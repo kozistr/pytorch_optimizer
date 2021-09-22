@@ -1,5 +1,5 @@
 from pytorch_optimizer.adabelief import AdaBelief
-from pytorch_optimizer.adabound import AdaBound, AdaBoundW
+from pytorch_optimizer.adabound import AdaBound
 from pytorch_optimizer.adahessian import AdaHessian
 from pytorch_optimizer.adamp import AdamP
 from pytorch_optimizer.agc import agc
