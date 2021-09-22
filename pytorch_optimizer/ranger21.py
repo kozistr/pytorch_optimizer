@@ -19,14 +19,35 @@ from torch.optim import Optimizer
 from pytorch_optimizer.agc import agc
 from pytorch_optimizer.chebyshev_schedule import get_chebyshev_schedule
 from pytorch_optimizer.gc import centralize_gradient
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS
+from pytorch_optimizer.types import (
+    BETAS,
+    CLOSURE,
+    DEFAULT_PARAMETERS,
+    LOSS,
+    PARAMS,
+)
 from pytorch_optimizer.utils import normalize_gradient, unit_norm
 
 
 class Ranger21(Optimizer):
+    """
+    Reference : https://github.com/lessw2020/Ranger21/blob/main/ranger21/ranger21.py
+    Example :
+        from pytorch_optimizer import Ranger21
+        ...
+        model = YourModel()
+        optimizer = Ranger21(model.parameters())
+        ...
+        for input, output in data:
+          optimizer.zero_grad()
+          loss = loss_function(output, model(input))
+          loss.backward()
+          optimizer.step()
+    """
+
     def __init__(
         self,
-        params,
+        params: PARAMS,
         lr: float = 1e-3,
         lookahead_active: bool = True,
         lookahead_merge_time: int = 5,
@@ -49,8 +70,8 @@ class Ranger21(Optimizer):
         pnm_momentum_factor: float = 1.0,
         momentum: float = 0.9,
         eps: float = 1e-8,
-        num_batches_per_epoch=None,
-        num_epochs=None,
+        num_batches_per_epoch: Optional[int] = None,
+        num_epochs: Optional[int] = None,
         use_chebyshev_schedule: bool = False,
         use_warmup: bool = True,
         num_warmup_iterations=None,
@@ -63,6 +84,15 @@ class Ranger21(Optimizer):
         warmup_pct_default: float = 0.22,
         logging_active: bool = True,
     ):
+        """Ranger optimizer (RAdam + Lookahead + Gradient Centralization, combined into one optimizer)
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param lr: float. learning rate.
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator to improve numerical stability
+        :param weight_decay: float. weight decay (L2 penalty)
+        :param use_gc: bool. use Gradient Centralization (both convolution & fc layers)
+        :param gc_conv_only: bool. use Gradient Centralization (only convolution layer)
+        """
         defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
             momentum=momentum,

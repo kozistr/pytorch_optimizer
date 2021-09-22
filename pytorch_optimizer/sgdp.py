@@ -5,22 +5,50 @@ import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS
+from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
 
 
 class SGDP(Optimizer):
+    """
+    Reference : https://github.com/clovaai/AdamP/blob/master/adamp/sgdp.py
+    Example :
+        from pytorch_optimizer import SGDP
+        ...
+        model = YourModel()
+        optimizer = SGDP(model.parameters())
+        ...
+        for input, output in data:
+          optimizer.zero_grad()
+          loss = loss_function(output, model(input))
+          loss.backward()
+          optimizer.step()
+    """
+
     def __init__(
         self,
-        params,
+        params: PARAMS,
         lr: float = 1e-3,
         momentum: float = 0.0,
         dampening: float = 0.0,
         weight_decay: float = 0.0,
-        nesterov: bool = False,
         eps: float = 1e-8,
         delta: float = 0.1,
         wd_ratio: float = 0.1,
+        nesterov: bool = False,
     ):
+        """
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param lr: float. learning rate.
+        :param momentum: float. momentum factor
+        :param dampening: float. dampening for momentum
+        :param eps: float. term added to the denominator to improve numerical stability
+        :param weight_decay: float. weight decay (L2 penalty)
+        :param delta: float. threshold that determines whether a set of parameters is scale invariant or not
+        :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
+                                on scale-variant parameters
+        :param nesterov: bool. enables Nesterov momentum
+        """
+
         defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
             momentum=momentum,

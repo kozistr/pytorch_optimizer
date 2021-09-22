@@ -10,21 +10,29 @@ from pytorch_optimizer.types import (
     CLOSURE,
     DEFAULT_PARAMETERS,
     LOSS,
+    PARAMS,
 )
 
 
 class Ranger(Optimizer):
     """
-    Ranger optimizer (RAdam + Lookahead + Gradient Centralization, combined into one optimizer)
     Reference : https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer/blob/master/ranger/ranger.py
-
-    :param use_gc: bool. use Gradient Centralization (both convolution & fc layers)
-    :param gc_conv_only: bool. use Gradient Centralization (only convolution layer)
+    Example :
+        from pytorch_optimizer import Ranger
+        ...
+        model = YourModel()
+        optimizer = Ranger(model.parameters())
+        ...
+        for input, output in data:
+          optimizer.zero_grad()
+          loss = loss_function(output, model(input))
+          loss.backward()
+          optimizer.step()
     """
 
     def __init__(
         self,
-        params,
+        params: PARAMS,
         lr: float = 1e-3,
         alpha: float = 0.5,
         k: int = 6,
@@ -35,6 +43,16 @@ class Ranger(Optimizer):
         use_gc: bool = True,
         gc_conv_only: bool = False,
     ):
+        """Ranger optimizer (RAdam + Lookahead + Gradient Centralization, combined into one optimizer)
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param lr: float. learning rate.
+        :param n_sma_threshold: int. (recommended is 5)
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator to improve numerical stability
+        :param weight_decay: float. weight decay (L2 penalty)
+        :param use_gc: bool. use Gradient Centralization (both convolution & fc layers)
+        :param gc_conv_only: bool. use Gradient Centralization (only convolution layer)
+        """
         self.lr = lr
         self.alpha = alpha
         self.k = k

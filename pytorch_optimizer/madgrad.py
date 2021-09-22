@@ -1,25 +1,46 @@
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
 import math
 
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS
+from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
 
 
 class MADGRAD(Optimizer):
     """
-    A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic
     Reference : https://github.com/facebookresearch/madgrad/blob/main/madgrad/madgrad.py
+    Example :
+        from pytorch_optimizer import MADGRAD
+        ...
+        model = YourModel()
+        optimizer = MADGRAD(model.parameters())
+        ...
+        for input, output in data:
+          optimizer.zero_grad()
+          loss = loss_function(output, model(input))
+          loss.backward()
+          optimizer.step()
     """
 
     def __init__(
         self,
-        params,
+        params: PARAMS,
         lr: float = 1e-3,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
         eps: float = 1e-6,
     ):
+        """A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param lr: float. learning rate.
+        :param eps: float. term added to the denominator to improve numerical stability
+        :param weight_decay: float. weight decay (L2 penalty)
+        """
         self.lr = lr
         self.momentum = momentum
         self.weight_decay = weight_decay
