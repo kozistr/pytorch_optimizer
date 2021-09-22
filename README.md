@@ -126,8 +126,8 @@ Sharpness-Aware Minimization (SAM) simultaneously minimizes loss value and loss 
 In particular, it seeks parameters that lie in neighborhoods having uniformly low loss.
 
 * SAM paper : [paper](https://arxiv.org/abs/2010.01412)
-* SAM code : [github](https://github.com/davda54/sam)
 * ASAM paper : [paper](https://arxiv.org/abs/2102.11600)
+* A/SAM code : [github](https://github.com/davda54/sam)
 
 ## Citations
 
