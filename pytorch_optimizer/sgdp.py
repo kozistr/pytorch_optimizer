@@ -9,6 +9,9 @@ from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
 
 
 class SGDP(Optimizer):
+    """
+        Reference : https://github.com/clovaai/AdamP/blob/master/adamp/sgdp.py
+    """
     def __init__(
         self,
         params: PARAMS,

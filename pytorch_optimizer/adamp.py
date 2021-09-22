@@ -15,6 +15,9 @@ from pytorch_optimizer.types import (
 
 
 class AdamP(Optimizer):
+    """
+        Reference : https://github.com/clovaai/AdamP/blob/master/adamp/adamp.py
+    """
     def __init__(
         self,
         params: PARAMS,
@@ -26,6 +29,17 @@ class AdamP(Optimizer):
         wd_ratio: float = 0.1,
         nesterov: bool = False,
     ):
+        """
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param lr: float. learning rate.
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator to improve numerical stability
+        :param weight_decay: float. weight decay (L2 penalty)
+        :param delta: float.
+        :param wd_ratio: float.
+        :param nesterov: bool.
+        """
+
         defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
             betas=betas,
