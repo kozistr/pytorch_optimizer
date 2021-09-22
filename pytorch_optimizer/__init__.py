@@ -12,4 +12,4 @@ from pytorch_optimizer.ranger import Ranger
 from pytorch_optimizer.ranger21 import Ranger21
 from pytorch_optimizer.sgdp import SGDP
 
-__VERSION__ = '0.0.5'
+__VERSION__ = '0.0.6'
