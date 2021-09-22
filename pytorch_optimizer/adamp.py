@@ -21,7 +21,7 @@ class AdamP(Optimizer):
         from pytorch_optimizer import AdamP
         ...
         model = YourModel()
-        optimizer = AdaHessian(model.parameters())
+        optimizer = AdamP(model.parameters())
         ...
         for input, output in data:
           optimizer.zero_grad()
