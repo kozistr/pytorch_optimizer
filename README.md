@@ -53,7 +53,7 @@ Also, most of the captures are taken from `Ranger21` paper.
 This idea originally proposed in `NFNet (Normalized-Free Network)` paper. 
 AGC (Adaptive Gradient Clipping) clips gradients based on the `unit-wise ratio of gradient norms to parameter norms`.
 
-* github : [code](https://github.com/deepmind/deepmind-research/tree/master/nfnets)
+* code : [github](https://github.com/deepmind/deepmind-research/tree/master/nfnets)
 * paper : [arXiv](https://arxiv.org/abs/2102.06171)
 
 ### Gradient Centralization (GC)
@@ -62,7 +62,7 @@ AGC (Adaptive Gradient Clipping) clips gradients based on the `unit-wise ratio o
 
 Gradient Centralization (GC) operates directly on gradients by centralizing the gradient to have zero mean.
 
-* github : [code](https://github.com/Yonghongwei/Gradient-Centralization)
+* code : [github](https://github.com/Yonghongwei/Gradient-Centralization)
 * paper : [arXiv](https://arxiv.org/abs/2004.01461)
 
 ### Softplus Transformation
@@ -83,7 +83,7 @@ By running the final variance denom through the softplus function, it lifts extr
 
 ![positive_negative_momentum](assets/positive_negative_momentum.png)
 
-* github : [code](https://github.com/zeke-xie/Positive-Negative-Momentum)
+* code : [github](https://github.com/zeke-xie/Positive-Negative-Momentum)
 * paper : [arXiv](https://arxiv.org/abs/2103.17182)
 
 ### Linear learning-rate warm-up
@@ -96,14 +96,14 @@ By running the final variance denom through the softplus function, it lifts extr
 
 ![stable_weight_decay](assets/stable_weight_decay.png)
 
-* github : [code](https://github.com/zeke-xie/stable-weight-decay-regularization)
+* code : [github](https://github.com/zeke-xie/stable-weight-decay-regularization)
 * paper : [arXiv](https://arxiv.org/abs/2011.11152)
 
 ### Explore-exploit learning-rate schedule
 
 ![explore_exploit_lr_schedule](assets/explore_exploit_lr_schedule.png)
 
-* github : [code](https://github.com/nikhil-iyer-97/wide-minima-density-hypothesis)
+* code : [github](https://github.com/nikhil-iyer-97/wide-minima-density-hypothesis)
 * paper : [arXiv](https://arxiv.org/abs/2003.03977)
 
 ### Lookahead
@@ -111,7 +111,7 @@ By running the final variance denom through the softplus function, it lifts extr
 `k` steps forward, 1 step back. `Lookahead` consisting of keeping an exponential moving average of the weights that is 
 updated and substituted to the current weights every `k_{lookahead}` steps (5 by default).
 
-* github : [code](https://github.com/alphadl/lookahead.pytorch)
+* code : [github](https://github.com/alphadl/lookahead.pytorch)
 * paper : [arXiv](https://arxiv.org/abs/1907.08610v2)
 
 ### Chebyshev learning rate schedule
@@ -119,6 +119,15 @@ updated and substituted to the current weights every `k_{lookahead}` steps (5 by
 Acceleration via Fractal Learning Rate Schedules
 
 * paper : [arXiv](https://arxiv.org/abs/2103.01338v1)
+
+### (Adaptive) Sharpness-Aware Minimization (A/SAM)
+
+Sharpness-Aware Minimization (SAM) simultaneously minimizes loss value and loss sharpness. 
+In particular, it seeks parameters that lie in neighborhoods having uniformly low loss.
+
+* SAM paper : [paper](https://arxiv.org/abs/2010.01412)
+* SAM code : [github](https://github.com/davda54/sam)
+* ASAM paper : [paper](https://arxiv.org/abs/2102.11600)
 
 ## Citations
 
@@ -365,6 +374,36 @@ Acceleration via Fractal Learning Rate Schedules
   author={Zhuang, Juntang and Tang, Tommy and Ding, Yifan and Tatikonda, Sekhar and Dvornek, Nicha and Papademetris, Xenophon and Duncan, James S},
   journal={arXiv preprint arXiv:2010.07468},
   year={2020}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Sharpness-Aware Minimization</summary>
+
+```
+@article{foret2020sharpness,
+  title={Sharpness-aware minimization for efficiently improving generalization},
+  author={Foret, Pierre and Kleiner, Ariel and Mobahi, Hossein and Neyshabur, Behnam},
+  journal={arXiv preprint arXiv:2010.01412},
+  year={2020}
+}
+```
+
+</details>
+
+<details>
+
+<summary>Adaptive Sharpness-Aware Minimization</summary>
+
+```
+@article{kwon2021asam,
+  title={ASAM: Adaptive Sharpness-Aware Minimization for Scale-Invariant Learning of Deep Neural Networks},
+  author={Kwon, Jungmin and Kim, Jeongseop and Park, Hyunseo and Choi, In Kwon},
+  journal={arXiv preprint arXiv:2102.11600},
+  year={2021}
 }
 ```
 
