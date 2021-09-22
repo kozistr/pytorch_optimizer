@@ -1,68 +1,92 @@
 import torch
+from torch.optim import Optimizer
+
+from pytorch_optimizer.types import (
+    BETAS,
+    CLOSURE,
+    DEFAULT_PARAMETERS,
+    LOSS,
+    PARAMS,
+)
 
 
-class AdaHessian(torch.optim.Optimizer):
+class AdaHessian(Optimizer):
     """
-    Implements the AdaHessian algorithm from "ADAHESSIAN: An Adaptive Second OrderOptimizer for Machine Learning"
-    Arguments:
-        params (iterable) -- iterable of parameters to optimize or dicts defining parameter groups
-        lr (float, optional) -- learning rate (default: 0.1)
-        betas ((float, float), optional) -- coefficients used for computing running averages of gradient and the squared hessian trace (default: (0.9, 0.999))
-        eps (float, optional) -- term added to the denominator to improve numerical stability (default: 1e-8)
-        weight_decay (float, optional) -- weight decay (L2 penalty) (default: 0.0)
-        hessian_power (float, optional) -- exponent of the hessian trace (default: 1.0)
-        update_each (int, optional) -- compute the hessian trace approximation only after *this* number of steps (to save time) (default: 1)
-        n_samples (int, optional) -- how many times to sample `z` for the approximation of the hessian trace (default: 1)
+    Reference : https://github.com/davda54/ada-hessian/blob/master/ada_hessian.py
     """
 
     def __init__(
         self,
-        params,
-        lr=0.1,
-        betas=(0.9, 0.999),
-        eps=1e-8,
-        weight_decay=0.0,
-        hessian_power=1.0,
-        update_each=1,
-        n_samples=1,
-        average_conv_kernel=False,
+        params: PARAMS,
+        lr: float = 1e-3,
+        betas: BETAS = (0.9, 0.999),
+        eps: float = 1e-8,
+        weight_decay: float = 0.0,
+        hessian_power: float = 1.0,
+        update_each: int = 1,
+        n_samples: int = 1,
+        average_conv_kernel: bool = False,
+        seed: int = 2147483647,
     ):
-        if not 0.0 <= lr:
-            raise ValueError(f"Invalid learning rate: {lr}")
-        if not 0.0 <= eps:
-            raise ValueError(f"Invalid epsilon value: {eps}")
-        if not 0.0 <= betas[0] < 1.0:
-            raise ValueError(f"Invalid beta parameter at index 0: {betas[0]}")
-        if not 0.0 <= betas[1] < 1.0:
-            raise ValueError(f"Invalid beta parameter at index 1: {betas[1]}")
-        if not 0.0 <= hessian_power <= 1.0:
-            raise ValueError(f"Invalid Hessian power value: {hessian_power}")
-
+        """Implements the AdaHessian algorithm from "ADAHESSIAN: An Adaptive Second OrderOptimizer for Machine Learning"
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param lr: float. learning rate.
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator to improve numerical stability
+        :param weight_decay: float. weight decay (L2 penalty)
+        :param hessian_power: float. exponent of the hessian trace
+        :param update_each: int. compute the hessian trace approximation only after *this* number of steps (to save time)
+        :param n_samples: int. how many times to sample `z` for the approximation of the hessian trace
+        :param average_conv_kernel: bool.
+        :param seed: int.
+        """
+        self.lr = lr
+        self.eps = eps
+        self.betas = betas
+        self.weight_decay = weight_decay
+        self.hessian_power = hessian_power
         self.n_samples = n_samples
         self.update_each = update_each
         self.average_conv_kernel = average_conv_kernel
+        self.seed = seed
 
-        # use a separate generator that deterministically generates the same `z`s across all GPUs in case of distributed training
-        self.generator = torch.Generator().manual_seed(2147483647)
+        self.check_valid_parameters()
 
-        defaults = dict(
+        # use a separate generator that deterministically generates the same `z`s across all GPUs
+        # in case of distributed training
+        self.generator: torch.Generator = torch.Generator().manual_seed(
+            self.seed
+        )
+
+        defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
             betas=betas,
             eps=eps,
             weight_decay=weight_decay,
             hessian_power=hessian_power,
         )
-        super(AdaHessian, self).__init__(params, defaults)
+        super().__init__(params, defaults)
 
         for p in self.get_params():
             p.hess = 0.0
-            self.state[p]["hessian step"] = 0
+            self.state[p]['hessian_step'] = 0
+
+    def check_valid_parameters(self):
+        if 0.0 > self.lr:
+            raise ValueError(f'Invalid learning rate : {self.lr}')
+        if 0.0 > self.eps:
+            raise ValueError(f'Invalid eps : {self.eps}')
+        if 0.0 > self.weight_decay:
+            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
+        if not 0.0 <= self.betas[0] < 1.0:
+            raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
+        if not 0.0 <= self.betas[1] < 1.0:
+            raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
+        if not 0.0 <= self.hessian_power < 1.0:
+            raise ValueError(f'Invalid hessian_power : {self.hessian_power}')
 
     def get_params(self):
-        """
-        Gets all parameters in all param_groups with gradients
-        """
-
+        """Gets all parameters in all param_groups with gradients"""
         return (
             p
             for group in self.param_groups
@@ -71,44 +95,37 @@ class AdaHessian(torch.optim.Optimizer):
         )
 
     def zero_hessian(self):
-        """
-        Zeros out the accumalated hessian traces.
-        """
-
+        """Zeros out the accumulated hessian traces."""
         for p in self.get_params():
             if (
                 not isinstance(p.hess, float)
-                and self.state[p]["hessian step"] % self.update_each == 0
+                and self.state[p]['hessian_step'] % self.update_each == 0
             ):
                 p.hess.zero_()
 
     @torch.no_grad()
     def set_hessian(self):
-        """
-        Computes the Hutchinson approximation of the hessian trace and accumulates it for each trainable parameter.
-        """
-
+        """Computes the Hutchinson approximation of the hessian trace and accumulates it for each trainable parameter"""
         params = []
         for p in filter(lambda p: p.grad is not None, self.get_params()):
-            if (
-                self.state[p]["hessian step"] % self.update_each == 0
-            ):  # compute the trace only each `update_each` step
+            # compute the trace only each `update_each` step
+            if self.state[p]['hessian_step'] % self.update_each == 0:
                 params.append(p)
-            self.state[p]["hessian step"] += 1
+            self.state[p]['hessian_step'] += 1
 
         if len(params) == 0:
             return
 
-        if (
-            self.generator.device != params[0].device
-        ):  # hackish way of casting the generator to the right device
+        if self.generator.device != params[0].device:
+            # hackish way of casting the generator to the right device
             self.generator = torch.Generator(params[0].device).manual_seed(
-                2147483647
+                self.seed
             )
 
         grads = [p.grad for p in params]
 
         for i in range(self.n_samples):
+            # Rademacher distribution {-1.0, 1.0}
             zs = [
                 torch.randint(
                     0, 2, p.size(), generator=self.generator, device=p.device
@@ -116,7 +133,7 @@ class AdaHessian(torch.optim.Optimizer):
                 * 2.0
                 - 1.0
                 for p in params
-            ]  # Rademacher distribution {-1.0, 1.0}
+            ]
             h_zs = torch.autograd.grad(
                 grads,
                 params,
@@ -125,19 +142,12 @@ class AdaHessian(torch.optim.Optimizer):
                 retain_graph=i < self.n_samples - 1,
             )
             for h_z, z, p in zip(h_zs, zs, params):
-                p.hess += (
-                    h_z * z / self.n_samples
-                )  # approximate the expected values of z*(H@z)
+                # approximate the expected values of z * (H@z)
+                p.hess += h_z * z / self.n_samples
 
     @torch.no_grad()
-    def step(self, closure=None):
-        """
-        Performs a single optimization step.
-        Arguments:
-            closure (callable, optional) -- a closure that reevaluates the model and returns the loss (default: None)
-        """
-
-        loss = None
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
         if closure is not None:
             loss = closure()
 
@@ -157,20 +167,17 @@ class AdaHessian(torch.optim.Optimizer):
                         .clone()
                     )
 
-                # Perform correct stepweight decay as in AdamW
+                # Perform correct step-weight decay as in AdamW
                 p.mul_(1 - group['lr'] * group['weight_decay'])
 
                 state = self.state[p]
 
-                # State initialization
                 if len(state) == 1:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(
-                        p.data
-                    )  # Exponential moving average of gradient values
-                    state['exp_hessian_diag_sq'] = torch.zeros_like(
-                        p.data
-                    )  # Exponential moving average of Hessian diagonal square values
+                    # Exponential moving average of gradient values
+                    state['exp_avg'] = torch.zeros_like(p.data)
+                    # Exponential moving average of Hessian diagonal square values
+                    state['exp_hessian_diag_sq'] = torch.zeros_like(p.data)
 
                 exp_avg, exp_hessian_diag_sq = (
                     state['exp_avg'],
@@ -195,7 +202,6 @@ class AdaHessian(torch.optim.Optimizer):
                     .add_(group['eps'])
                 )
 
-                # make update
                 step_size = group['lr'] / bias_correction1
                 p.addcdiv_(exp_avg, denom, value=-step_size)
 
