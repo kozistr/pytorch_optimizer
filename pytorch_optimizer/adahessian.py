@@ -187,9 +187,7 @@ class AdaHessian(Optimizer):
 
                 if len(state) == 1:
                     state['step'] = 0
-                    # Exponential moving average of gradient values
                     state['exp_avg'] = torch.zeros_like(p.data)
-                    # Exponential moving average of Hessian diagonal square values
                     state['exp_hessian_diag_sq'] = torch.zeros_like(p.data)
 
                 exp_avg, exp_hessian_diag_sq = (
