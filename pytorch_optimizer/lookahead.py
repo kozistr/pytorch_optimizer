@@ -17,6 +17,19 @@ from pytorch_optimizer.types import (
 class Lookahead(Optimizer):
     """
     Reference : https://github.com/alphadl/lookahead.pytorch/blob/master/lookahead.py
+    Example :
+    Example :
+        from pytorch_optimizer import Ranger21, Lookahead
+        ...
+        model = YourModel()
+        base_optimizer = AdamP(model.parameters())
+        optimizer = Lookahead(base_optimizer)
+        ...
+        for input, output in data:
+          optimizer.zero_grad()
+          loss = loss_function(output, model(input))
+          loss.backward()
+          optimizer.step()
     """
 
     def __init__(
