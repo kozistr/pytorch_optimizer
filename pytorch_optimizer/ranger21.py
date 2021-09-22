@@ -30,6 +30,10 @@ from pytorch_optimizer.utils import normalize_gradient, unit_norm
 
 
 class Ranger21(Optimizer):
+    """
+    Reference : https://github.com/lessw2020/Ranger21/blob/main/ranger21/ranger21.py
+    """
+
     def __init__(
         self,
         params: PARAMS,
@@ -55,8 +59,8 @@ class Ranger21(Optimizer):
         pnm_momentum_factor: float = 1.0,
         momentum: float = 0.9,
         eps: float = 1e-8,
-        num_batches_per_epoch=None,
-        num_epochs=None,
+        num_batches_per_epoch: Optional[int] = None,
+        num_epochs: Optional[int] = None,
         use_chebyshev_schedule: bool = False,
         use_warmup: bool = True,
         num_warmup_iterations=None,
@@ -69,6 +73,15 @@ class Ranger21(Optimizer):
         warmup_pct_default: float = 0.22,
         logging_active: bool = True,
     ):
+        """Ranger optimizer (RAdam + Lookahead + Gradient Centralization, combined into one optimizer)
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param lr: float. learning rate.
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator to improve numerical stability
+        :param weight_decay: float. weight decay (L2 penalty)
+        :param use_gc: bool. use Gradient Centralization (both convolution & fc layers)
+        :param gc_conv_only: bool. use Gradient Centralization (only convolution layer)
+        """
         defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
             momentum=momentum,
