@@ -144,24 +144,26 @@ class Ranger21(Optimizer):
         self.total_iterations: int = num_epochs * num_batches_per_epoch
         if not self.total_iterations:
             raise ValueError(
-                'missing total iterations, which is calculated from num epochs and num iterations per epoch param'
+                'missing total iterations, '
+                'calculated from num epochs and num iterations per epoch param'
             )
 
-        # lr
         self.starting_lr = lr
         self.current_lr = lr
 
-        # warmup - we'll use default recommended in Ma/Yarats unless user specifies num iterations
+        # warmup - we'll use default recommended in Ma/Yarats
+        # unless user specifies num iterations
         self.use_warmup = use_warmup
-        self.warmup_complete = False
         self.warmup_type = warmup_type
         self.warmup_pct_default = warmup_pct_default
+        self.warmup_complete: bool = False
 
         if num_warmup_iterations is None:
             beta_warmup_iterations: int = math.ceil((2 / (1 - betas[1])))
             beta_pct: float = beta_warmup_iterations / self.total_iterations
 
-            # this can be unreasonable for short runs...so let's compare vs warmup pct % of total epochs
+            # this can be unreasonable for short runs...
+            # so let's compare vs warmup pct % of total epochs
             if beta_pct > 0.45:
                 warmup_auto_pct = int(
                     self.warmup_pct_default * self.total_iterations
@@ -351,7 +353,7 @@ class Ranger21(Optimizer):
                 loss = closure()
 
         param_size: float = 0
-        variance_ma_sum: float = 0.0
+        variance_ma_sum: float = 1.0
 
         # phase 1 - accumulate all of the variance_ma_sum to use in stable weight decay
         for i, group in enumerate(self.param_groups):
