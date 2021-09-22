@@ -1,3 +1,4 @@
+from pytorch_optimizer.adabelief import AdaBelief
 from pytorch_optimizer.adabound import AdaBound, AdaBoundW
 from pytorch_optimizer.adahessian import AdaHessian
 from pytorch_optimizer.adamp import AdamP
@@ -11,4 +12,4 @@ from pytorch_optimizer.ranger import Ranger
 from pytorch_optimizer.ranger21 import Ranger21
 from pytorch_optimizer.sgdp import SGDP
 
-__VERSION__ = '0.0.4'
+__VERSION__ = '0.0.5'
