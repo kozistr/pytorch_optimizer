@@ -12,6 +12,45 @@ from pytorch_optimizer.types import (
 
 
 class SAM(Optimizer):
+    """
+    Reference : https://github.com/davda54/sam
+    Example :
+        from pytorch_optimizer import SAM
+        ...
+        model = YourModel()
+        base_optimizer =  Ranger21
+        optimizer = SAM(model.parameters(), base_optimizer)
+        ...
+        for input, output in data:
+            # first forward-backward pass
+            loss = loss_function(output, model(input))  # use this loss for any training statistics
+            loss.backward()
+            optimizer.first_step(zero_grad=True)
+
+            # second forward-backward pass
+            loss_function(output, model(input)).backward()  # make sure to do a full forward pass
+            optimizer.second_step(zero_grad=True)
+
+    Alternative Example with a single closure-based step function:
+        from pytorch_optimizer import SAM
+        ...
+        model = YourModel()
+        base_optimizer =  Ranger21
+        optimizer = SAM(model.parameters(), base_optimizer)
+
+        def closure():
+            loss = loss_function(output, model(input))
+            loss.backward()
+            return loss
+        ...
+
+        for input, output in data:
+            loss = loss_function(output, model(input))
+            loss.backward()
+            optimizer.step(closure)
+            optimizer.zero_grad()
+    """
+
     def __init__(
         self,
         params: PARAMS,
@@ -20,6 +59,13 @@ class SAM(Optimizer):
         adaptive: bool = False,
         **kwargs,
     ):
+        """(Adaptive) Sharpness-Aware Minimization
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param base_optimizer:
+        :param rho: float. 	size of the neighborhood for computing the max loss
+        :param adaptive: bool. element-wise Adaptive SAM
+        :param kwargs: Dict. parameters for optimizer.
+        """
         self.rho = rho
 
         self.check_valid_parameters()
