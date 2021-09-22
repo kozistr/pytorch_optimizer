@@ -12,6 +12,23 @@ Bunch of optimizer implementations in PyTorch with clean-code, strict types. Hig
 $ pip3 install pytorch-optimizer
 ```
 
+### Simple Usage
+
+```
+from pytorch_optimizer import Ranger21
+
+...
+model = YourModel()
+optimizer = Ranger21(model.parameters())
+...
+
+for input, output in data:
+  optimizer.zero_grad()
+  loss = loss_function(output, model(input))
+  loss.backward()
+  optimizer.step()
+```
+
 ## Supported Optimizers
 
 | Optimizer | Description | Official Code | Paper |
