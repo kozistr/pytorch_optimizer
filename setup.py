@@ -63,6 +63,7 @@ KEYWORDS: List[str] = sorted(
 )
 
 PROJECT_URLS: Dict[str, str] = {
+    'Documentation': 'https://pytorch-optimizers.readthedocs.io/en/latest/',
     'Website': 'https://github.com/kozistr/pytorch_optimizer',
     'Issues': 'https://github.com/kozistr/pytorch_optimizer/issues',
 }
