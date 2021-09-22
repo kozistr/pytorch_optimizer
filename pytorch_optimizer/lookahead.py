@@ -6,6 +6,7 @@ from torch.optim import Optimizer
 
 from pytorch_optimizer.types import (
     CLOSURE,
+    DEFAULT_PARAMETERS,
     LOSS,
     PARAM_GROUP,
     PARAM_GROUPS,
@@ -14,7 +15,16 @@ from pytorch_optimizer.types import (
 
 
 class Lookahead(Optimizer):
+    """
+    Reference : https://github.com/alphadl/lookahead.pytorch/blob/master/lookahead.py
+    """
+
     def __init__(self, optimizer: Optimizer, k: int = 5, alpha: float = 0.5):
+        """
+        :param optimizer: Optimizer.
+        :param k: int. number of lookahead steps
+        :param alpha: float. linear interpolation factor
+        """
         self.optimizer = optimizer
         self.k = k
         self.alpha = alpha
@@ -25,6 +35,10 @@ class Lookahead(Optimizer):
 
         for group in self.param_groups:
             group['counter'] = 0
+
+        self.defaults: DEFAULT_PARAMETERS = dict(
+            k=k, alpha=alpha, **optimizer.defaults
+        )
 
     def update(self, group: Dict):
         for fast in group['params']:
