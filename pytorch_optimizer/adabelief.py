@@ -47,7 +47,7 @@ class AdaBelief(Optimizer):
         :param rectify: bool. perform the rectified update similar to RAdam
         :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high
         :param amsgrad: bool. whether to use the AMSBound variant
-        :param eps: float. term added to the denominatorto improve numerical stability
+        :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
         self.betas = betas
