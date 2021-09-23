@@ -1,3 +1,5 @@
+from typing import Dict, Iterable
+
 import torch
 from torch.optim import Optimizer
 
@@ -12,7 +14,7 @@ from pytorch_optimizer.types import (
 
 class AdaHessian(Optimizer):
     """
-    Reference : https://github.com/davda54/ada-hessian/blob/master/ada_hessian.py
+    Reference : https://github.com/davda54/ada-hessian
     Example :
         from pytorch_optimizer import AdaHessian
         ...
@@ -40,15 +42,21 @@ class AdaHessian(Optimizer):
         seed: int = 2147483647,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param params: PARAMS. iterable of parameters to optimize
+            or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator to improve numerical stability
+        :param betas: BETAS. coefficients used for computing running averages
+            of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator
+            to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param hessian_power: float. exponent of the hessian trace
-        :param update_each: int. compute the hessian trace approximation only after *this* number of steps
-        :param n_samples: int. how many times to sample `z` for the approximation of the hessian trace
-        :param average_conv_kernel: bool. average out the hessian traces of convolutional kernels as in the paper.
+        :param update_each: int. compute the hessian trace approximation
+            only after *this* number of steps
+        :param n_samples: int. how many times to sample `z`
+            for the approximation of the hessian trace
+        :param average_conv_kernel: bool. average out the hessian traces
+            of convolutional kernels as in the paper.
         :param seed: int.
         """
         self.lr = lr
@@ -63,8 +71,8 @@ class AdaHessian(Optimizer):
 
         self.check_valid_parameters()
 
-        # use a separate generator that deterministically generates the same `z`s across all GPUs
-        # in case of distributed training
+        # use a separate generator that deterministically generates
+        # the same `z`s across all GPUs in case of distributed training
         self.generator: torch.Generator = torch.Generator().manual_seed(
             self.seed
         )
@@ -83,11 +91,11 @@ class AdaHessian(Optimizer):
             self.state[p]['hessian_step'] = 0
 
     def check_valid_parameters(self):
-        if 0.0 > self.lr:
+        if self.lr < 0.0:
             raise ValueError(f'Invalid learning rate : {self.lr}')
-        if 0.0 > self.eps:
+        if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
-        if 0.0 > self.weight_decay:
+        if self.weight_decay < 0.0:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
         if not 0.0 <= self.betas[0] < 1.0:
             raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
@@ -96,7 +104,7 @@ class AdaHessian(Optimizer):
         if not 0.0 <= self.hessian_power < 1.0:
             raise ValueError(f'Invalid hessian_power : {self.hessian_power}')
 
-    def get_params(self):
+    def get_params(self) -> Iterable[Dict]:
         """Gets all parameters in all param_groups with gradients"""
         return (
             p
@@ -116,7 +124,9 @@ class AdaHessian(Optimizer):
 
     @torch.no_grad()
     def set_hessian(self):
-        """Computes the Hutchinson approximation of the hessian trace and accumulates it for each trainable parameter"""
+        """Computes the Hutchinson approximation of the hessian trace
+        and accumulates it for each trainable parameter
+        """
         params = []
         for p in filter(
             lambda param: param.grad is not None, self.get_params()

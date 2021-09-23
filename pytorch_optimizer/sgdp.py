@@ -10,7 +10,7 @@ from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
 
 class SGDP(Optimizer):
     """
-    Reference : https://github.com/clovaai/AdamP/blob/master/adamp/sgdp.py
+    Reference : https://github.com/clovaai/AdamP
     Example :
         from pytorch_optimizer import SGDP
         ...
@@ -37,15 +37,19 @@ class SGDP(Optimizer):
         nesterov: bool = False,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param params: PARAMS. iterable of parameters
+            to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
         :param momentum: float. momentum factor
         :param dampening: float. dampening for momentum
-        :param eps: float. term added to the denominator to improve numerical stability
+        :param eps: float. term added to the denominator
+            to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
-        :param delta: float. threshold that determines whether a set of parameters is scale invariant or not
-        :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
-                                on scale-variant parameters
+        :param delta: float. threshold that determines
+            whether a set of parameters is scale invariant or not
+        :param wd_ratio: float. relative weight decay applied
+            on scale-invariant parameters compared to that applied
+            on scale-variant parameters
         :param nesterov: bool. enables Nesterov momentum
         """
 

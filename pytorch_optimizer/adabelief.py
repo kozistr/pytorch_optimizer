@@ -44,17 +44,22 @@ class AdaBelief(Optimizer):
         degenerated_to_sgd: bool = True,
     ):
         """AdaBelief optimizer
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param params: PARAMS. iterable of parameters to optimize
+            or dicts defining parameter groups
         :param lr: float. learning rate
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator to improve numerical stability
+        :param betas: BETAS. coefficients used for computing running averages
+            of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator
+            to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param n_sma_threshold: (recommended is 5)
         :param amsgrad: bool. whether to use the AMSBound variant
-        :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
+        :param weight_decouple: bool. the optimizer uses decoupled weight decay
+            as in AdamW
         :param fixed_decay: bool.
         :param rectify: bool. perform the rectified update similar to RAdam
-        :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high
+        :param degenerated_to_sgd: bool. perform SGD update
+            when variance of gradient is high
         """
         self.lr = lr
         self.betas = betas

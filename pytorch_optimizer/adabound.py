@@ -15,7 +15,7 @@ from pytorch_optimizer.types import (
 
 class AdaBound(Optimizer):
     """
-    Reference : https://github.com/Luolc/AdaBound/blob/master/adabound/adabound.py
+    Reference : https://github.com/Luolc/AdaBound
     Example :
         from pytorch_optimizer import AdaBound
         ...
@@ -43,14 +43,18 @@ class AdaBound(Optimizer):
         amsbound: bool = False,
     ):
         """AdaBound optimizer
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param params: PARAMS. iterable of parameters to optimize
+            or dicts defining parameter groups
         :param lr: float. learning rate
         :param final_lr: float. final learning rate
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param betas: BETAS. coefficients used for computing running averages
+            of gradient and the squared hessian trace
         :param gamma: float. convergence speed of the bound functions
-        :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
+        :param weight_decouple: bool. the optimizer uses decoupled weight decay
+            as in AdamW
         :param fixed_decay: bool.
-        :param eps: float. term added to the denominator to improve numerical stability
+        :param eps: float. term added to the denominator
+            to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param amsbound: bool. whether to use the AMSBound variant
         """
@@ -75,11 +79,11 @@ class AdaBound(Optimizer):
         self.base_lrs = [group['lr'] for group in self.param_groups]
 
     def check_valid_parameters(self):
-        if 0.0 > self.lr:
+        if self.lr < 0.0:
             raise ValueError(f'Invalid learning rate : {self.lr}')
-        if 0.0 > self.eps:
+        if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
-        if 0.0 > self.weight_decay:
+        if self.weight_decay < 0.0:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
         if not 0.0 <= self.betas[0] < 1.0:
             raise ValueError(f'Invalid beta_0 : {self.betas[0]}')

@@ -15,7 +15,7 @@ from pytorch_optimizer.types import (
 
 class RAdam(Optimizer):
     """
-    Reference : https://github.com/LiyuanLucasLiu/RAdam/blob/master/radam/radam.py#L5
+    Reference : https://github.com/LiyuanLucasLiu/RAdam/
     Example :
         from pytorch_optimizer import RAdam
         ...
@@ -40,10 +40,13 @@ class RAdam(Optimizer):
         degenerated_to_sgd: bool = False,
     ):
         """Rectified Adam optimizer
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param params: PARAMS. iterable of parameters to optimize
+            or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator to improve numerical stability
+        :param betas: BETAS. coefficients used for computing running averages
+            of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator
+            to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param n_sma_threshold: int. (recommended is 5)
         :param degenerated_to_sgd: float.
@@ -80,11 +83,11 @@ class RAdam(Optimizer):
         super().__init__(params, defaults)
 
     def check_valid_parameters(self):
-        if 0.0 > self.lr:
+        if self.lr < 0.0:
             raise ValueError(f'Invalid learning rate : {self.lr}')
-        if 0.0 > self.eps:
+        if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
-        if 0.0 > self.weight_decay:
+        if self.weight_decay < 0.0:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
         if not 0.0 <= self.betas[0] < 1.0:
             raise ValueError(f'Invalid beta_0 : {self.betas[0]}')

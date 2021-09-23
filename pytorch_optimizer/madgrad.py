@@ -13,8 +13,8 @@ from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
 
 class MADGRAD(Optimizer):
     """
-    Reference 1 : https://github.com/facebookresearch/madgrad/blob/main/madgrad/madgrad.py
-    Reference 2 : https://github.com/lessw2020/Best-Deep-Learning-Optimizers/blob/master/madgrad/madgrad_wd.py
+    Reference 1 : https://github.com/facebookresearch/madgrad
+    Reference 2 : https://github.com/lessw2020/Best-Deep-Learning-Optimizers
     Example :
         from pytorch_optimizer import MADGRAD
         ...
@@ -36,12 +36,16 @@ class MADGRAD(Optimizer):
         weight_decay: float = 0.0,
         eps: float = 1e-6,
     ):
-        """A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified)
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        """A Momentumized, Adaptive, Dual Averaged Gradient Method
+        for Stochastic (slightly modified)
+        :param params: PARAMS. iterable of parameters to optimize
+            or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param eps: float. term added to the denominator to improve numerical stability
+        :param eps: float. term added to the denominator
+            to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
-            MADGRAD optimizer requires less weight decay than other methods, often as little as zero
+            MADGRAD optimizer requires less weight decay than other methods,
+            often as little as zero
             On sparse problems both weight_decay and momentum should be set to 0.
         """
         self.lr = lr
@@ -57,13 +61,13 @@ class MADGRAD(Optimizer):
         super().__init__(params, defaults)
 
     def check_valid_parameters(self):
-        if 0.0 > self.lr:
+        if self.lr < 0.0:
             raise ValueError(f'Invalid learning rate : {self.lr}')
-        if 0.0 > self.eps:
+        if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
-        if 0.0 > self.weight_decay:
+        if self.weight_decay < 0.0:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if 0.0 > self.momentum or 1.0 <= self.momentum:
+        if not 0.0 < self.momentum <= 1.0:
             raise ValueError(f'Invalid momentum : {self.momentum}')
 
     @property
@@ -79,8 +83,8 @@ class MADGRAD(Optimizer):
         if closure is not None:
             loss = closure()
 
-        # step counter must be stored in state to ensure correct behavior under
-        # optimizer sharding
+        # step counter must be stored in state to
+        # ensure correct behavior under optimizer sharding
         if 'k' not in self.state:
             self.state['k'] = torch.tensor([0], dtype=torch.long)
 

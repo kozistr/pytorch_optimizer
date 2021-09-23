@@ -22,18 +22,11 @@ def chebyshev_perm(num_epochs: int) -> np.ndarray:
     return perm
 
 
-def get_chebyshev_schedule(
-    num_epochs: int, verbose: bool = False
-) -> np.ndarray:
+def get_chebyshev_schedule(num_epochs: int) -> np.ndarray:
     num_epochs: int = num_epochs - 2
 
     steps = chebyshev_steps(0.1, 1, num_epochs)
     perm = chebyshev_perm(num_epochs)
     chebyshev_schedule = steps[perm]
-
-    if verbose:
-        print(
-            f'[*] chebyshev lr schedule made with length {len(chebyshev_schedule)}'
-        )
 
     return chebyshev_schedule

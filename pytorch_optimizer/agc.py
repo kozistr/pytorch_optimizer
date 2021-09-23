@@ -8,7 +8,8 @@ def agc(p, agc_eps: float, agc_clip_val: float, eps: float = 1e-6):
     :param p: parameter.
     :param agc_eps: float.
     :param agc_clip_val: float.
-    :param eps: float. simple stop from div by zero and no relation to standard optimizer eps
+    :param eps: float. simple stop from div by zero
+        and no relation to standard optimizer eps
     """
     p_norm = unit_norm(p).clamp_(agc_eps)
     g_norm = unit_norm(p.grad)

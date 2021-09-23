@@ -27,8 +27,7 @@ def unit_norm(x: torch.Tensor) -> torch.Tensor:
     keep_dim: bool = True
     dim: Optional[Union[int, Tuple[int, ...]]] = None
 
-    x_len = len(x.shape)
-
+    x_len: int = len(x.shape)
     if x_len <= 1:
         keep_dim = False
     elif x_len in (2, 3):  # linear layers
@@ -36,6 +35,6 @@ def unit_norm(x: torch.Tensor) -> torch.Tensor:
     elif x_len == 4:  # conv kernels
         dim = (1, 2, 3)
     else:
-        dim = tuple([x for x in range(1, x_len)])
+        dim = tuple(range(1, x_len))
 
     return x.norm(dim=dim, keepdim=keep_dim, p=2.0)

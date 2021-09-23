@@ -4,6 +4,7 @@ pytorch-optimizer
 | |workflow| |Documentation Status| |PyPI version| |PyPi download| |black|
 
 | Bunch of optimizer implementations in PyTorch with clean-code, strict types. Also, including useful optimization ideas.
+| Most of the implementations are based on the original paper, but I added some tweaks.
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
 Documentation
@@ -53,6 +54,8 @@ Supported Optimizers
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | AdamP        | *Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights*         | `github <https://github.com/clovaai/AdamP>`__                                     | `https://arxiv.org/abs/2006.08217 <https://arxiv.org/abs/2006.08217>`__                       |
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| diffGrad     | *An Optimization Method for Convolutional Neural Networks*                             | `github <https://github.com/shivram1987/diffGrad>`__                              | `https://arxiv.org/abs/1909.11015v3 <https://arxiv.org/abs/1909.11015v3>`__                   |
++--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | MADGRAD      | *A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic*               | `github <https://github.com/facebookresearch/madgrad>`__                          | `https://arxiv.org/abs/2101.11075 <https://arxiv.org/abs/2101.11075>`__                       |
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | RAdam        | *On the Variance of the Adaptive Learning Rate and Beyond*                             | `github <https://github.com/LiyuanLucasLiu/RAdam>`__                              | `https://arxiv.org/abs/1908.03265 <https://arxiv.org/abs/1908.03265>`__                       |
@@ -70,42 +73,51 @@ of the ideas are applied in ``Ranger21`` optimizer.
 
 Also, most of the captures are taken from ``Ranger21`` paper.
 
-Adaptive Gradient Clipping (AGC)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++------------------------------------------+-------------------------------------+--------------------------------------------+
+| `Adaptive Gradient Clipping`_            | `Gradient Centralization`_          | `Softplus Transformation`_                 |
++------------------------------------------+-------------------------------------+--------------------------------------------+
+| `Gradient Normalization`_                | `Norm Loss`_                        | `Positive-Negative Momentum`_              |
++------------------------------------------+-------------------------------------+--------------------------------------------+
+| `Linear learning rate warmup`_           | `Stable weight decay`_              | `Explore-exploit learning rate schedule`_  |
++------------------------------------------+-------------------------------------+--------------------------------------------+
+| `Lookahead`_                             | `Chebyshev learning rate schedule`_ | `(Adaptive) Sharpness-Aware Minimization`_ |
++------------------------------------------+-------------------------------------+--------------------------------------------+
+| `On the Convergence of Adam and Beyond`_ |                                     |                                            |
++------------------------------------------+-------------------------------------+--------------------------------------------+
+
+Adaptive Gradient Clipping
+--------------------------
 
 | This idea originally proposed in ``NFNet (Normalized-Free Network)`` paper.
-| AGC (Adaptive Gradient Clipping) clips gradients based on the ``unit-wise ratio of gradient norms to parameter norms``.
+| ``AGC (Adaptive Gradient Clipping)`` clips gradients based on the ``unit-wise ratio of gradient norms to parameter norms``.
 
--  code :
-   `github <https://github.com/deepmind/deepmind-research/tree/master/nfnets>`__
+-  code : `github <https://github.com/deepmind/deepmind-research/tree/master/nfnets>`__
 -  paper : `arXiv <https://arxiv.org/abs/2102.06171>`__
 
-Gradient Centralization (GC)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Gradient Centralization
+-----------------------
 
 +-----------------------------------------------------------------------------------------------------------------+
 | .. image:: https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/gradient_centralization.png  |
 +-----------------------------------------------------------------------------------------------------------------+
 
-Gradient Centralization (GC) operates directly on gradients by
-centralizing the gradient to have zero mean.
+``Gradient Centralization (GC)`` operates directly on gradients by centralizing the gradient to have zero mean.
 
--  code :
-   `github <https://github.com/Yonghongwei/Gradient-Centralization>`__
+-  code : `github <https://github.com/Yonghongwei/Gradient-Centralization>`__
 -  paper : `arXiv <https://arxiv.org/abs/2004.01461>`__
 
 Softplus Transformation
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 
 By running the final variance denom through the softplus function, it lifts extremely tiny values to keep them viable.
 
 -  paper : `arXiv <https://arxiv.org/abs/1908.00700>`__
 
 Gradient Normalization
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 Norm Loss
-~~~~~~~~~
+---------
 
 +---------------------------------------------------------------------------------------------------+
 | .. image:: https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/norm_loss.png  |
@@ -114,7 +126,7 @@ Norm Loss
 -  paper : `arXiv <https://arxiv.org/abs/2103.06583>`__
 
 Positive-Negative Momentum
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------
 
 +--------------------------------------------------------------------------------------------------------------------+
 | .. image:: https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/positive_negative_momentum.png  |
@@ -123,8 +135,8 @@ Positive-Negative Momentum
 -  code : `github <https://github.com/zeke-xie/Positive-Negative-Momentum>`__
 -  paper : `arXiv <https://arxiv.org/abs/2103.17182>`__
 
-Linear learning-rate warm-up
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Linear learning rate warmup
+---------------------------
 
 +----------------------------------------------------------------------------------------------------------+
 | .. image:: https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/linear_lr_warmup.png  |
@@ -133,7 +145,7 @@ Linear learning-rate warm-up
 -  paper : `arXiv <https://arxiv.org/abs/1910.04209>`__
 
 Stable weight decay
-~~~~~~~~~~~~~~~~~~~
+-------------------
 
 +-------------------------------------------------------------------------------------------------------------+
 | .. image:: https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/stable_weight_decay.png  |
@@ -142,8 +154,8 @@ Stable weight decay
 -  code : `github <https://github.com/zeke-xie/stable-weight-decay-regularization>`__
 -  paper : `arXiv <https://arxiv.org/abs/2011.11152>`__
 
-Explore-exploit learning-rate schedule
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Explore-exploit learning rate schedule
+--------------------------------------
 
 +---------------------------------------------------------------------------------------------------------------------+
 | .. image:: https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/explore_exploit_lr_schedule.png  |
@@ -153,7 +165,7 @@ Explore-exploit learning-rate schedule
 -  paper : `arXiv <https://arxiv.org/abs/2003.03977>`__
 
 Lookahead
-~~~~~~~~~
+---------
 
 | ``k`` steps forward, 1 step back. ``Lookahead`` consisting of keeping an exponential moving average of the weights that is
 | updated and substituted to the current weights every ``k_{lookahead}`` steps (5 by default).
@@ -162,14 +174,14 @@ Lookahead
 -  paper : `arXiv <https://arxiv.org/abs/1907.08610v2>`__
 
 Chebyshev learning rate schedule
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------
 
 Acceleration via Fractal Learning Rate Schedules
 
 -  paper : `arXiv <https://arxiv.org/abs/2103.01338v1>`__
 
-(Adaptive) Sharpness-Aware Minimization (A/SAM)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+(Adaptive) Sharpness-Aware Minimization
+---------------------------------------
 
 | Sharpness-Aware Minimization (SAM) simultaneously minimizes loss value and loss sharpness.
 | In particular, it seeks parameters that lie in neighborhoods having uniformly low loss.
@@ -177,6 +189,11 @@ Acceleration via Fractal Learning Rate Schedules
 -  SAM paper : `paper <https://arxiv.org/abs/2010.01412>`__
 -  ASAM paper : `paper <https://arxiv.org/abs/2102.11600>`__
 -  A/SAM code : `github <https://github.com/davda54/sam>`__
+
+On the Convergence of Adam and Beyond
+-------------------------------------
+
+- paper : `paper <https://openreview.net/forum?id=ryQu7f-RZ>`__
 
 Citations
 ---------
@@ -385,6 +402,32 @@ Adaptive Sharpness-Aware Minimization
       author={Kwon, Jungmin and Kim, Jeongseop and Park, Hyunseo and Choi, In Kwon},
       journal={arXiv preprint arXiv:2102.11600},
       year={2021}
+    }
+
+diffGrad
+
+::
+
+    @article{dubey2019diffgrad,
+      title={diffgrad: An optimization method for convolutional neural networks},
+      author={Dubey, Shiv Ram and Chakraborty, Soumendu and Roy, Swalpa Kumar and Mukherjee, Snehasis and Singh, Satish Kumar and Chaudhuri, Bidyut Baran},
+      journal={IEEE transactions on neural networks and learning systems},
+      volume={31},
+      number={11},
+      pages={4500--4511},
+      year={2019},
+      publisher={IEEE}
+    }
+
+On the Convergence of Adam and Beyond
+
+::
+
+    @article{reddi2019convergence,
+      title={On the convergence of adam and beyond},
+      author={Reddi, Sashank J and Kale, Satyen and Kumar, Sanjiv},
+      journal={arXiv preprint arXiv:1904.09237},
+      year={2019}
     }
 
 Author

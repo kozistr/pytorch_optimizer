@@ -7,7 +7,6 @@ __AUTHORS__ = [
     '@TheZothen',
 ]
 
-import collections
 import math
 from typing import Dict, List, Optional
 
@@ -31,7 +30,7 @@ from pytorch_optimizer.utils import normalize_gradient, unit_norm
 
 class Ranger21(Optimizer):
     """
-    Reference : https://github.com/lessw2020/Ranger21/blob/main/ranger21/ranger21.py
+    Reference : https://github.com/lessw2020/Ranger21
     Example :
         from pytorch_optimizer import Ranger21
         ...
@@ -82,16 +81,18 @@ class Ranger21(Optimizer):
         decay_type: str = 'stable',
         warmup_type: str = 'linear',
         warmup_pct_default: float = 0.22,
-        logging_active: bool = False,
     ):
-        """Ranger optimizer (RAdam + Lookahead + Gradient Centralization, combined into one optimizer)
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        """
+        :param params: PARAMS. iterable of parameters to optimize
+            or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator to improve numerical stability
+        :param betas: BETAS. coefficients used for computing running averages
+            of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator
+            to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
-        :param use_gc: bool. use Gradient Centralization (both convolution & fc layers)
-        :param gc_conv_only: bool. use Gradient Centralization (only convolution layer)
+        :param use_gc: bool. use GC both convolution & fc layers
+        :param gc_conv_only: bool. use GC only convolution layer
         """
         defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
@@ -101,8 +102,6 @@ class Ranger21(Optimizer):
             weight_decay=weight_decay,
         )
         super().__init__(params, defaults)
-
-        self.logging = logging_active
 
         self.use_madgrad = use_madgrad
         self.core_engine: str = self.get_core_engine(self.use_madgrad)
@@ -207,9 +206,6 @@ class Ranger21(Optimizer):
         self.param_size: int = 0
 
         self.tracking_lr: List[float] = []
-        if self.logging:
-            self.tracking_variance_sum: List[float] = []
-            self.tracking_variance_normalized = []
 
     @staticmethod
     def get_core_engine(use_madgrad: bool = False) -> str:
@@ -255,16 +251,7 @@ class Ranger21(Optimizer):
 
         if step > warmup:
             if not self.warmup_complete:
-                if not self.warmup_curr_pct == 1.0:
-                    print(
-                        f'Error | lr did not achieve full set point from warmup, currently {self.warmup_curr_pct}'
-                    )
-
                 self.warmup_complete = True
-                print(
-                    f'\n** Ranger21 update | Warmup complete - lr set to {lr}\n'
-                )
-
             return lr
 
         if style == 'linear':
@@ -272,10 +259,10 @@ class Ranger21(Optimizer):
             new_lr: float = lr * self.warmup_curr_pct
             self.current_lr = new_lr
             return new_lr
-        else:
-            raise NotImplementedError(
-                f'warmup style {style} is not supported yet :('
-            )
+
+        raise NotImplementedError(
+            f'warmup style {style} is not supported yet :('
+        )
 
     def get_warm_down(self, lr: float, iteration: int) -> float:
         if iteration < self.start_warm_down:
@@ -284,21 +271,18 @@ class Ranger21(Optimizer):
         if iteration > self.start_warm_down - 1:
             # start iteration from 1, not 0
             warm_down_iteration: int = (iteration + 1) - self.start_warm_down
-            if warm_down_iteration < 1:
-                warm_down_iteration = 1
+            warm_down_iteration = max(warm_down_iteration, 1)
 
             warm_down_pct: float = warm_down_iteration / (
                 self.warm_down_total_iterations + 1
             )
-            if warm_down_pct > 1.00:
-                warm_down_pct = 1.00
+            warm_down_pct = min(warm_down_pct, 1.0)
 
             lr_range: float = self.warm_down_lr_delta
             reduction: float = lr_range * warm_down_pct
-            new_lr: float = self.starting_lr - reduction
-            if new_lr < self.min_lr:
-                new_lr = self.min_lr
 
+            new_lr: float = self.starting_lr - reduction
+            new_lr = max(new_lr, self.min_lr)
             self.current_lr = new_lr
 
             return new_lr
@@ -323,20 +307,12 @@ class Ranger21(Optimizer):
         self.current_epoch = current_epoch
 
         index: int = current_epoch - 2
-        if index < 0:
-            index = 0
-        if index > len(self.chebyshev_schedule) - 1:
-            index = len(self.chebyshev_schedule) - 1
+        index = max(0, index)
+        index = min(index, len(self.chebyshev_schedule) - 1)
 
         chebyshev_value = self.chebyshev_schedule[index]
 
-        if self.cheb_logging[:-1] != chebyshev_value:
-            self.cheb_logging.append(chebyshev_value)
-
         return lr * chebyshev_value
-
-    def get_variance(self):
-        return self.tracking_variance_sum
 
     @staticmethod
     def get_state_values(group, state):
@@ -348,7 +324,7 @@ class Ranger21(Optimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
-        if closure is not None and isinstance(closure, collections.Callable):
+        if closure is not None:
             with torch.enable_grad():
                 loss = closure()
 
@@ -356,8 +332,8 @@ class Ranger21(Optimizer):
         variance_ma_sum: float = 1.0
 
         # phase 1 - accumulate all of the variance_ma_sum to use in stable weight decay
-        for i, group in enumerate(self.param_groups):
-            for j, p in enumerate(group['params']):
+        for group in self.param_groups:
+            for p in group['params']:
                 if p.grad is None:
                     continue
 
@@ -369,7 +345,6 @@ class Ranger21(Optimizer):
                     )
 
                 grad = p.grad
-
                 if grad.is_sparse:
                     raise RuntimeError('sparse matrix not supported atm')
 
@@ -443,11 +418,6 @@ class Ranger21(Optimizer):
         if math.isnan(variance_normalized):
             raise RuntimeError('hit nan for variance_normalized')
 
-        # debugging/logging
-        if self.logging:
-            self.tracking_variance_sum.append(variance_ma_sum.item())
-            self.tracking_variance_normalized.append(variance_normalized)
-
         # phase 2 - apply weight decay and step
         for group in self.param_groups:
             step = state['step']
@@ -464,7 +434,7 @@ class Ranger21(Optimizer):
             # warm-down
             if self.warm_down_active:
                 lr = self.get_warm_down(lr, step)
-                if 0 > lr:
+                if lr < 0.0:
                     raise ValueError(f'{lr} went negative')
 
             # MADGRAD outer
