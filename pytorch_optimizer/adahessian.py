@@ -102,7 +102,9 @@ class AdaHessian(Optimizer):
 
     @torch.no_grad()
     def set_hessian(self):
-        """Computes the Hutchinson approximation of the hessian trace and accumulates it for each trainable parameter"""
+        """Computes the Hutchinson approximation of the hessian trace
+        and accumulates it for each trainable parameter
+        """
         params = []
         for p in filter(lambda param: param.grad is not None, self.get_params()):
             # compute the trace only each `update_each` step
