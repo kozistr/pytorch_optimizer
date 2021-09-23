@@ -77,8 +77,7 @@ class MADGRAD(Optimizer):
         if closure is not None:
             loss = closure()
 
-        # step counter must be stored in state to
-        # ensure correct behavior under optimizer sharding
+        # step counter must be stored in state to ensure correct behavior under optimizer sharding
         if 'k' not in self.state:
             self.state['k'] = torch.tensor([0], dtype=torch.long)
 
@@ -124,31 +123,30 @@ class MADGRAD(Optimizer):
 
                 if grad.is_sparse:
                     grad = grad.coalesce()
-                    grad_val = grad._values()
 
                     p_masked = p.sparse_mask(grad)
                     grad_sum_sq_masked = grad_sum_sq.sparse_mask(grad)
                     s_masked = s.sparse_mask(grad)
 
                     # Compute x_0 from other known quantities
-                    rms_masked_vals = grad_sum_sq_masked._values().pow(1 / 3).add_(eps)
-                    x0_masked_vals = p_masked._values().addcdiv(s_masked._values(), rms_masked_vals, value=1)
+                    rms_masked_vals = grad_sum_sq_masked.data.pow(1 / 3).add_(eps)
+                    x0_masked_vals = p_masked.data.addcdiv(s_masked.data, rms_masked_vals, value=1)
 
                     # Dense + sparse op
                     grad_sq = grad * grad
                     grad_sum_sq.add_(grad_sq, alpha=_lambda)
                     grad_sum_sq_masked.add_(grad_sq, alpha=_lambda)
 
-                    rms_masked_vals = grad_sum_sq_masked._values().pow_(1 / 3).add_(eps)
+                    rms_masked_vals = grad_sum_sq_masked.data.pow_(1 / 3).add_(eps)
 
                     s.add_(grad, alpha=_lambda)
-                    s_masked._values().add_(grad_val, alpha=_lambda)
+                    s_masked.data.add_(grad.data, alpha=_lambda)
 
                     # update masked copy of p
-                    p_kp1_masked_values = x0_masked_vals.addcdiv(s_masked._values(), rms_masked_vals, value=-1)
+                    p_kp1_masked_values = x0_masked_vals.addcdiv(s_masked.data, rms_masked_vals, value=-1)
 
                     # Copy updated masked p to dense p using an add operation
-                    p_masked._values().add_(p_kp1_masked_values, alpha=-1)
+                    p_masked.data.add_(p_kp1_masked_values, alpha=-1)
                     p.data.add_(p_masked, alpha=-1)
                 else:
                     if momentum == 0:
