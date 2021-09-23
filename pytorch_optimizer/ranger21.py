@@ -18,13 +18,7 @@ from torch.optim import Optimizer
 from pytorch_optimizer.agc import agc
 from pytorch_optimizer.chebyshev_schedule import get_chebyshev_schedule
 from pytorch_optimizer.gc import centralize_gradient
-from pytorch_optimizer.types import (
-    BETAS,
-    CLOSURE,
-    DEFAULT_PARAMETERS,
-    LOSS,
-    PARAMS,
-)
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.utils import normalize_gradient, unit_norm
 
 
@@ -46,7 +40,7 @@ class Ranger21(Optimizer):
 
     def __init__(
         self,
-        params: PARAMS,
+        params: PARAMETERS,
         lr: float = 1e-3,
         lookahead_active: bool = True,
         lookahead_merge_time: int = 5,
@@ -83,18 +77,15 @@ class Ranger21(Optimizer):
         warmup_pct_default: float = 0.22,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize
-            or dicts defining parameter groups
+        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param betas: BETAS. coefficients used for computing running averages
-            of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator
-            to improve numerical stability
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param use_gc: bool. use GC both convolution & fc layers
         :param gc_conv_only: bool. use GC only convolution layer
         """
-        defaults: DEFAULT_PARAMETERS = dict(
+        defaults: DEFAULTS = dict(
             lr=lr,
             momentum=momentum,
             betas=betas,
@@ -135,16 +126,13 @@ class Ranger21(Optimizer):
         self.chebyshev_schedule: Optional[np.ndarray] = None
         if self.use_chebyshev_schedule:
             if num_epochs is None:
-                raise ValueError(
-                    'cannot produce chebyshev without num epochs info being passed in'
-                )
+                raise ValueError('cannot produce chebyshev without num epochs info being passed in')
             self.chebyshev_schedule = get_chebyshev_schedule(num_epochs)
 
         self.total_iterations: int = num_epochs * num_batches_per_epoch
         if not self.total_iterations:
             raise ValueError(
-                'missing total iterations, '
-                'calculated from num epochs and num iterations per epoch param'
+                'missing total iterations, ' 'calculated from num epochs and num iterations per epoch param'
             )
 
         self.starting_lr = lr
@@ -164,9 +152,7 @@ class Ranger21(Optimizer):
             # this can be unreasonable for short runs...
             # so let's compare vs warmup pct % of total epochs
             if beta_pct > 0.45:
-                warmup_auto_pct = int(
-                    self.warmup_pct_default * self.total_iterations
-                )
+                warmup_auto_pct = int(self.warmup_pct_default * self.total_iterations)
                 self.num_warmup_iterations = warmup_auto_pct
             else:
                 self.num_warmup_iterations = beta_warmup_iterations
@@ -180,12 +166,8 @@ class Ranger21(Optimizer):
 
         if self.warm_down_active:
             self.warm_down_start_pct = warm_down_start_pct
-            self.start_warm_down = int(
-                self.warm_down_start_pct * num_epochs * num_batches_per_epoch
-            )
-            self.warm_down_total_iterations = (
-                self.total_iterations - self.start_warm_down
-            )
+            self.start_warm_down = int(self.warm_down_start_pct * num_epochs * num_batches_per_epoch)
+            self.warm_down_total_iterations = self.total_iterations - self.start_warm_down
             self.warmup_curr_pct: float = 0.01
 
         self.current_epoch = 0
@@ -260,9 +242,7 @@ class Ranger21(Optimizer):
             self.current_lr = new_lr
             return new_lr
 
-        raise NotImplementedError(
-            f'warmup style {style} is not supported yet :('
-        )
+        raise NotImplementedError(f'warmup style {style} is not supported yet :(')
 
     def get_warm_down(self, lr: float, iteration: int) -> float:
         if iteration < self.start_warm_down:
@@ -273,9 +253,7 @@ class Ranger21(Optimizer):
             warm_down_iteration: int = (iteration + 1) - self.start_warm_down
             warm_down_iteration = max(warm_down_iteration, 1)
 
-            warm_down_pct: float = warm_down_iteration / (
-                self.warm_down_total_iterations + 1
-            )
+            warm_down_pct: float = warm_down_iteration / (self.warm_down_total_iterations + 1)
             warm_down_pct = min(warm_down_pct, 1.0)
 
             lr_range: float = self.warm_down_lr_delta
@@ -340,9 +318,7 @@ class Ranger21(Optimizer):
                 param_size += p.numel()
 
                 if self.agc_active:
-                    agc(
-                        p, agc_eps=self.agc_eps, agc_clip_val=self.agc_clip_val
-                    )
+                    agc(p, agc_eps=self.agc_eps, agc_clip_val=self.agc_clip_val)
 
                 grad = p.grad
                 if grad.is_sparse:
@@ -392,9 +368,7 @@ class Ranger21(Optimizer):
                 if self.use_adabelief:
                     grad_ma.mul_(beta1).add_(grad, alpha=1 - beta1)
                     grad_residual = grad - grad_ma
-                    variance_ma_belief.mul_(beta2).addcmul(
-                        grad_residual, grad_residual, value=1 - beta2
-                    )
+                    variance_ma_belief.mul_(beta2).addcmul(grad_residual, grad_residual, value=1 - beta2)
 
                 variance_ma.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
                 variance_ma_de_biased = variance_ma / bias_correction2
@@ -409,9 +383,7 @@ class Ranger21(Optimizer):
 
         # stable weight decay
         if self.use_madgrad:
-            variance_normalized = torch.pow(
-                variance_ma_sum / param_size, 1 / 3
-            )
+            variance_normalized = torch.pow(variance_ma_sum / param_size, 1 / 3)
         else:
             variance_normalized = math.sqrt(variance_ma_sum / param_size)
 
@@ -452,11 +424,7 @@ class Ranger21(Optimizer):
 
             if self.norm_loss_active:
                 u_norm = unit_norm(p.data)
-                correction = (
-                    2
-                    * self.norm_loss_factor
-                    * (1 - torch.div(1, u_norm + self.eps))
-                )
+                correction = 2 * self.norm_loss_factor * (1 - torch.div(1, u_norm + self.eps))
                 p.mul_(1 - lr * correction)
 
             for p in group['params']:
@@ -468,17 +436,13 @@ class Ranger21(Optimizer):
 
                 if self.use_madgrad:
                     if 'grad_sum_sq' not in state:
-                        state['grad_sum_sq'] = torch.zeros_like(
-                            p.data
-                        ).detach()
+                        state['grad_sum_sq'] = torch.zeros_like(p.data).detach()
                         state['s'] = torch.zeros_like(p.data).detach()
                         if momentum != 0:
                             state['x0'] = torch.clone(p.data).detach()
 
                     if momentum != 0.0 and grad.is_sparse:
-                        raise RuntimeError(
-                            'momentum != 0 is not compatible with sparse gradients'
-                        )
+                        raise RuntimeError('momentum != 0 is not compatible with sparse gradients')
 
                     # centralize gradients
                     if self.use_gc:
@@ -538,13 +502,9 @@ class Ranger21(Optimizer):
 
                     if self.momentum_pnm:
                         # Maintains the maximum of all 2nd moment running avg. till now
-                        torch.max(
-                            max_variance_ma, variance_ma, out=variance_ma
-                        )
+                        torch.max(max_variance_ma, variance_ma, out=variance_ma)
                         # Use the max. for normalizing running avg. of gradient
-                        denom = (
-                            variance_ma.sqrt() / math.sqrt(bias_correction2)
-                        ).add_(group['eps'])
+                        denom = (variance_ma.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
                     if self.use_gc:
                         grad = centralize_gradient(
@@ -556,13 +516,9 @@ class Ranger21(Optimizer):
                         grad = normalize_gradient(grad)
 
                     if not self.use_adabelief:
-                        grad_ma.mul_(beta1 ** 2).add_(
-                            grad, alpha=1 - beta1 ** 2
-                        )
+                        grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1 - beta1 ** 2)
 
-                    noise_norm: float = math.sqrt(
-                        (1 + beta2) ** 2 + beta2 ** 2
-                    )
+                    noise_norm: float = math.sqrt((1 + beta2) ** 2 + beta2 ** 2)
                     step_size: float = lr / bias_correction1
 
                     if self.softplus:

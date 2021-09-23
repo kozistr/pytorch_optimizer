@@ -8,7 +8,7 @@ import math
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
+from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class MADGRAD(Optimizer):
@@ -30,22 +30,18 @@ class MADGRAD(Optimizer):
 
     def __init__(
         self,
-        params: PARAMS,
+        params: PARAMETERS,
         lr: float = 1e-3,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
         eps: float = 1e-6,
     ):
-        """A Momentumized, Adaptive, Dual Averaged Gradient Method
-        for Stochastic (slightly modified)
-        :param params: PARAMS. iterable of parameters to optimize
-            or dicts defining parameter groups
+        """A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified)
+        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param eps: float. term added to the denominator
-            to improve numerical stability
+        :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
-            MADGRAD optimizer requires less weight decay than other methods,
-            often as little as zero
+            MADGRAD optimizer requires less weight decay than other methods, often as little as zero
             On sparse problems both weight_decay and momentum should be set to 0.
         """
         self.lr = lr
@@ -55,20 +51,18 @@ class MADGRAD(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: DEFAULT_PARAMETERS = dict(
-            lr=lr, eps=eps, momentum=momentum, weight_decay=weight_decay
-        )
+        defaults: DEFAULTS = dict(lr=lr, eps=eps, momentum=momentum, weight_decay=weight_decay)
         super().__init__(params, defaults)
 
     def check_valid_parameters(self):
         if self.lr < 0.0:
             raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
         if self.weight_decay < 0.0:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
         if not 0.0 < self.momentum <= 1.0:
             raise ValueError(f'Invalid momentum : {self.momentum}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     @property
     def supports_memory_efficient_fp16(self) -> bool:
@@ -83,8 +77,7 @@ class MADGRAD(Optimizer):
         if closure is not None:
             loss = closure()
 
-        # step counter must be stored in state to
-        # ensure correct behavior under optimizer sharding
+        # step counter must be stored in state to ensure correct behavior under optimizer sharding
         if 'k' not in self.state:
             self.state['k'] = torch.tensor([0], dtype=torch.long)
 
@@ -113,18 +106,14 @@ class MADGRAD(Optimizer):
                         state['x0'] = torch.clone(p.data).detach()
 
                 if momentum != 0.0 and grad.is_sparse:
-                    raise RuntimeError(
-                        'momentum != 0 is not compatible with sparse gradients'
-                    )
+                    raise RuntimeError('momentum != 0 is not compatible with sparse gradients')
 
                 grad_sum_sq = state['grad_sum_sq']
                 s = state['s']
 
                 if decay != 0:
                     if grad.is_sparse:
-                        raise RuntimeError(
-                            'weight_decay option is not compatible with sparse gradients'
-                        )
+                        raise RuntimeError('weight_decay option is not compatible with sparse gradients')
 
                     # original implementation
                     # grad.add_(p.data, alpha=decay)
@@ -134,39 +123,30 @@ class MADGRAD(Optimizer):
 
                 if grad.is_sparse:
                     grad = grad.coalesce()
-                    grad_val = grad._values()
 
                     p_masked = p.sparse_mask(grad)
                     grad_sum_sq_masked = grad_sum_sq.sparse_mask(grad)
                     s_masked = s.sparse_mask(grad)
 
                     # Compute x_0 from other known quantities
-                    rms_masked_vals = (
-                        grad_sum_sq_masked._values().pow(1 / 3).add_(eps)
-                    )
-                    x0_masked_vals = p_masked._values().addcdiv(
-                        s_masked._values(), rms_masked_vals, value=1
-                    )
+                    rms_masked_vals = grad_sum_sq_masked.data.pow(1 / 3).add_(eps)
+                    x0_masked_vals = p_masked.data.addcdiv(s_masked.data, rms_masked_vals, value=1)
 
                     # Dense + sparse op
                     grad_sq = grad * grad
                     grad_sum_sq.add_(grad_sq, alpha=_lambda)
                     grad_sum_sq_masked.add_(grad_sq, alpha=_lambda)
 
-                    rms_masked_vals = (
-                        grad_sum_sq_masked._values().pow_(1 / 3).add_(eps)
-                    )
+                    rms_masked_vals = grad_sum_sq_masked.data.pow_(1 / 3).add_(eps)
 
                     s.add_(grad, alpha=_lambda)
-                    s_masked._values().add_(grad_val, alpha=_lambda)
+                    s_masked.data.add_(grad.data, alpha=_lambda)
 
                     # update masked copy of p
-                    p_kp1_masked_values = x0_masked_vals.addcdiv(
-                        s_masked._values(), rms_masked_vals, value=-1
-                    )
+                    p_kp1_masked_values = x0_masked_vals.addcdiv(s_masked.data, rms_masked_vals, value=-1)
 
                     # Copy updated masked p to dense p using an add operation
-                    p_masked._values().add_(p_kp1_masked_values, alpha=-1)
+                    p_masked.data.add_(p_kp1_masked_values, alpha=-1)
                     p.data.add_(p_masked, alpha=-1)
                 else:
                     if momentum == 0:

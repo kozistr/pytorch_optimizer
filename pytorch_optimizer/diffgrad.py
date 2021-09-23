@@ -3,14 +3,7 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import (
-    BETAS,
-    CLOSURE,
-    DEFAULT_PARAMETERS,
-    LOSS,
-    PARAMS,
-    STATE,
-)
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
 
 
 class DiffGrad(Optimizer):
@@ -31,23 +24,19 @@ class DiffGrad(Optimizer):
 
     def __init__(
         self,
-        params: PARAMS,
+        params: PARAMETERS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         eps: float = 1e-8,
         weight_decay: float = 0.0,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize
-            or dicts defining parameter groups
+        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param betas: BETAS. coefficients used for computing running averages
-            of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator
-            to improve numerical stability
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         """
-
         self.lr = lr
         self.eps = eps
         self.betas = betas
@@ -55,22 +44,20 @@ class DiffGrad(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: DEFAULT_PARAMETERS = dict(
-            lr=lr, betas=betas, eps=eps, weight_decay=weight_decay
-        )
+        defaults: DEFAULTS = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
         super().__init__(params, defaults)
 
     def check_valid_parameters(self):
         if self.lr < 0.0:
             raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
         if self.weight_decay < 0.0:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
         if not 0.0 <= self.betas[0] < 1.0:
             raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
         if not 0.0 <= self.betas[1] < 1.0:
             raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     def __setstate__(self, state: STATE):
         super().__setstate__(state)
@@ -87,9 +74,7 @@ class DiffGrad(Optimizer):
 
                 grad = p.grad.data
                 if grad.is_sparse:
-                    raise RuntimeError(
-                        'diffGrad does not support sparse gradients'
-                    )
+                    raise RuntimeError('diffGrad does not support sparse gradients')
 
                 state = self.state[p]
 
@@ -127,11 +112,7 @@ class DiffGrad(Optimizer):
                 # update momentum with dfc
                 exp_avg1 = exp_avg * dfc
 
-                step_size = (
-                    group['lr']
-                    * math.sqrt(bias_correction2)
-                    / bias_correction1
-                )
+                step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
 
                 p.data.addcdiv_(-step_size, exp_avg1, denom)
 

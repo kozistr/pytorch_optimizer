@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
+from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class SGDP(Optimizer):
@@ -26,7 +26,7 @@ class SGDP(Optimizer):
 
     def __init__(
         self,
-        params: PARAMS,
+        params: PARAMETERS,
         lr: float = 1e-3,
         momentum: float = 0.0,
         dampening: float = 0.0,
@@ -37,23 +37,24 @@ class SGDP(Optimizer):
         nesterov: bool = False,
     ):
         """
-        :param params: PARAMS. iterable of parameters
-            to optimize or dicts defining parameter groups
+        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
         :param momentum: float. momentum factor
         :param dampening: float. dampening for momentum
-        :param eps: float. term added to the denominator
-            to improve numerical stability
+        :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
-        :param delta: float. threshold that determines
-            whether a set of parameters is scale invariant or not
-        :param wd_ratio: float. relative weight decay applied
-            on scale-invariant parameters compared to that applied
+        :param delta: float. threshold that determines whether a set of parameters is scale invariant or not
+        :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
             on scale-variant parameters
         :param nesterov: bool. enables Nesterov momentum
         """
+        self.lr = lr
+        self.weight_decay = weight_decay
+        self.eps = eps
 
-        defaults: DEFAULT_PARAMETERS = dict(
+        self.check_valid_parameters()
+
+        defaults: DEFAULTS = dict(
             lr=lr,
             momentum=momentum,
             dampening=dampening,
@@ -64,6 +65,14 @@ class SGDP(Optimizer):
             wd_ratio=wd_ratio,
         )
         super().__init__(params, defaults)
+
+    def check_valid_parameters(self):
+        if self.lr < 0.0:
+            raise ValueError(f'Invalid learning rate : {self.lr}')
+        if self.weight_decay < 0.0:
+            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     @staticmethod
     def channel_view(x: torch.Tensor) -> torch.Tensor:
@@ -98,15 +107,9 @@ class SGDP(Optimizer):
         for view_func in (self.channel_view, self.layer_view):
             cosine_sim = self.cosine_similarity(grad, p.data, eps, view_func)
 
-            if cosine_sim.max() < delta / math.sqrt(
-                view_func(p.data).size()[1]
-            ):
-                p_n = p.data / view_func(p.data).norm(dim=1).view(
-                    expand_size
-                ).add_(eps)
-                perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(
-                    expand_size
-                )
+            if cosine_sim.max() < delta / math.sqrt(view_func(p.data).size()[1]):
+                p_n = p.data / view_func(p.data).norm(dim=1).view(expand_size).add_(eps)
+                perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(expand_size)
                 wd = wd_ratio
 
                 return perturb, wd
@@ -153,13 +156,7 @@ class SGDP(Optimizer):
                     )
 
                 if group['weight_decay'] > 0:
-                    p.data.mul_(
-                        1
-                        - group['lr']
-                        * group['weight_decay']
-                        * wd_ratio
-                        / (1 - momentum)
-                    )
+                    p.data.mul_(1 - group['lr'] * group['weight_decay'] * wd_ratio / (1 - momentum))
 
                 p.data.add_(d_p, alpha=-group['lr'])
 

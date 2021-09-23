@@ -3,14 +3,7 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import (
-    BETAS,
-    CLOSURE,
-    DEFAULT_PARAMETERS,
-    LOSS,
-    PARAMS,
-    STATE,
-)
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
 
 
 class AdaBelief(Optimizer):
@@ -31,60 +24,47 @@ class AdaBelief(Optimizer):
 
     def __init__(
         self,
-        params: PARAMS,
+        params: PARAMETERS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
-        eps: float = 1e-16,
         weight_decay: float = 0.0,
         n_sma_threshold: int = 5,
-        amsgrad: bool = False,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         rectify: bool = True,
         degenerated_to_sgd: bool = True,
+        amsgrad: bool = False,
+        eps: float = 1e-16,
     ):
-        """AdaBelief optimizer
-        :param params: PARAMS. iterable of parameters to optimize
-            or dicts defining parameter groups
+        """
+        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate
-        :param betas: BETAS. coefficients used for computing running averages
-            of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator
-            to improve numerical stability
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
         :param n_sma_threshold: (recommended is 5)
-        :param amsgrad: bool. whether to use the AMSBound variant
-        :param weight_decouple: bool. the optimizer uses decoupled weight decay
-            as in AdamW
+        :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
         :param fixed_decay: bool.
         :param rectify: bool. perform the rectified update similar to RAdam
-        :param degenerated_to_sgd: bool. perform SGD update
-            when variance of gradient is high
+        :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high
+        :param amsgrad: bool. whether to use the AMSBound variant
+        :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
         self.betas = betas
-        self.eps = eps
         self.weight_decay = weight_decay
         self.n_sma_threshold = n_sma_threshold
-        self.degenerated_to_sgd = degenerated_to_sgd
         self.weight_decouple = weight_decouple
-        self.rectify = rectify
         self.fixed_decay = fixed_decay
+        self.rectify = rectify
         self.degenerated_to_sgd = degenerated_to_sgd
+        self.eps = eps
 
-        if (
-            isinstance(params, (list, tuple))
-            and len(params) > 0
-            and isinstance(params[0], dict)
-        ):
+        if isinstance(params, (list, tuple)) and len(params) > 0 and isinstance(params[0], dict):
             for param in params:
-                if 'betas' in param and (
-                    param['betas'][0] != betas[0]
-                    or param['betas'][1] != betas[1]
-                ):
+                if 'betas' in param and (param['betas'][0] != betas[0] or param['betas'][1] != betas[1]):
                     param['buffer'] = [[None, None, None] for _ in range(10)]
 
-        defaults: DEFAULT_PARAMETERS = dict(
+        defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
             eps=eps,
@@ -129,9 +109,7 @@ class AdaBelief(Optimizer):
 
                 grad = p.grad.data
                 if grad.is_sparse:
-                    raise RuntimeError(
-                        'AdaBelief does not support sparse gradients'
-                    )
+                    raise RuntimeError('AdaBelief does not support sparse gradients')
 
                 amsgrad = group['amsgrad']
 
@@ -163,9 +141,7 @@ class AdaBelief(Optimizer):
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
                 grad_residual = grad - exp_avg
-                exp_avg_var.mul_(beta2).addcmul_(
-                    grad_residual, grad_residual, value=1 - beta2
-                )
+                exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1 - beta2)
 
                 if amsgrad:
                     max_exp_avg_var = state['max_exp_avg_var']
@@ -176,14 +152,9 @@ class AdaBelief(Optimizer):
                         out=max_exp_avg_var,
                     )
 
-                    denom = (
-                        max_exp_avg_var.sqrt() / math.sqrt(bias_correction2)
-                    ).add_(group['eps'])
+                    denom = (max_exp_avg_var.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
                 else:
-                    denom = (
-                        exp_avg_var.add_(group['eps']).sqrt()
-                        / math.sqrt(bias_correction2)
-                    ).add_(group['eps'])
+                    denom = (exp_avg_var.add_(group['eps']).sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
                 if not self.rectify:
                     step_size = group['lr'] / bias_correction1
@@ -196,9 +167,7 @@ class AdaBelief(Optimizer):
                         buffered[0] = state['step']
                         beta2_t = beta2 ** state['step']
                         n_sma_max = 2 / (1 - beta2) - 1
-                        n_sma = n_sma_max - 2 * state['step'] * beta2_t / (
-                            1 - beta2_t
-                        )
+                        n_sma = n_sma_max - 2 * state['step'] * beta2_t / (1 - beta2_t)
                         buffered[1] = n_sma
 
                         if n_sma >= self.n_sma_threshold:
@@ -219,9 +188,7 @@ class AdaBelief(Optimizer):
 
                     if n_sma >= self.n_sma_threshold:
                         denom = exp_avg_var.sqrt().add_(group['eps'])
-                        p.data.addcdiv_(
-                            exp_avg, denom, value=-step_size * group['lr']
-                        )
+                        p.data.addcdiv_(exp_avg, denom, value=-step_size * group['lr'])
                     elif step_size > 0:
                         p.data.add_(exp_avg, alpha=-step_size * group['lr'])
 

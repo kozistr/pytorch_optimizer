@@ -4,14 +4,7 @@ from typing import Dict
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import (
-    CLOSURE,
-    DEFAULT_PARAMETERS,
-    LOSS,
-    PARAM_GROUP,
-    PARAM_GROUPS,
-    STATE,
-)
+from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, STATE
 
 
 class Lookahead(Optimizer):
@@ -42,8 +35,7 @@ class Lookahead(Optimizer):
         :param optimizer: Optimizer.
         :param k: int. number of lookahead steps
         :param alpha: float. linear interpolation factor
-        :param pullback_momentum: str. change to inner optimizer momentum
-            on interpolation update
+        :param pullback_momentum: str. change to inner optimizer momentum on interpolation update
         """
         self.optimizer = optimizer
         self.k = k
@@ -52,14 +44,14 @@ class Lookahead(Optimizer):
 
         self.check_valid_parameters()
 
-        self.param_groups: PARAM_GROUPS = self.optimizer.param_groups
+        self.param_groups = self.optimizer.param_groups
         self.fast_state: STATE = self.optimizer.state
         self.state: STATE = defaultdict(dict)
 
         for group in self.param_groups:
             group['counter'] = 0
 
-        self.defaults: DEFAULT_PARAMETERS = dict(
+        self.defaults: DEFAULTS = dict(
             k=k,
             alpha=alpha,
             pullback_momentum=pullback_momentum,
@@ -72,9 +64,7 @@ class Lookahead(Optimizer):
         if not 0.0 < self.alpha <= 1.0:
             raise ValueError(f'Invalid alpha : {self.alpha}')
         if self.pullback_momentum not in ('none', 'reset', 'pullback'):
-            raise ValueError(
-                f'Invalid pullback_momentum : {self.pullback_momentum}'
-            )
+            raise ValueError(f'Invalid pullback_momentum : {self.pullback_momentum}')
 
     def update(self, group: Dict):
         for fast in group['params']:
@@ -90,21 +80,13 @@ class Lookahead(Optimizer):
             fast.data.copy_(slow)
 
             if self.pullback_momentum == 'pullback':
-                internal_momentum = self.optimizer.state[fast][
-                    'momentum_buffer'
-                ]
-                self.optimizer.state[fast][
-                    'momentum_buffer'
-                ] = internal_momentum.mul_(self.alpha).add_(
+                internal_momentum = self.optimizer.state[fast]['momentum_buffer']
+                self.optimizer.state[fast]['momentum_buffer'] = internal_momentum.mul_(self.alpha).add_(
                     1.0 - self.alpha, param_state['slow_mom']
                 )
-                param_state['slow_mom'] = self.optimizer.state[fast][
-                    'momentum_buffer'
-                ]
+                param_state['slow_mom'] = self.optimizer.state[fast]['momentum_buffer']
             elif self.pullback_momentum == 'reset':
-                self.optimizer.state[fast][
-                    'momentum_buffer'
-                ] = torch.zeros_like(fast.data)
+                self.optimizer.state[fast]['momentum_buffer'] = torch.zeros_like(fast.data)
 
     def update_lookahead(self):
         for group in self.param_groups:
@@ -124,10 +106,7 @@ class Lookahead(Optimizer):
         fast_state = fast_state_dict['state']
         param_groups = fast_state_dict['param_groups']
 
-        slow_state: STATE = {
-            (id(k) if isinstance(k, torch.Tensor) else k): v
-            for k, v in self.state.items()
-        }
+        slow_state: STATE = {(id(k) if isinstance(k, torch.Tensor) else k): v for k, v in self.state.items()}
 
         return {
             'fast_state': fast_state,
@@ -149,6 +128,6 @@ class Lookahead(Optimizer):
         self.optimizer.load_state_dict(fast_state_dict)
         self.fast_state = self.optimizer.state
 
-    def add_param_group(self, param_group: PARAM_GROUP):
+    def add_param_group(self, param_group):
         param_group['counter'] = 0
         self.optimizer.add_param_group(param_group)

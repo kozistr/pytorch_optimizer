@@ -15,7 +15,7 @@ ignore=
 ignore-patterns=ner_dependencies_codes
 
 # Use multiple processes to speed up Pylint.
-jobs=6
+jobs=8
 
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
@@ -203,7 +203,7 @@ indent-after-paren=4
 indent-string='    '
 
 # Maximum number of characters on a single line.
-max-line-length=79
+max-line-length=119
 
 # Maximum number of lines in a module
 max-module-lines=800
@@ -378,7 +378,7 @@ max-bool-expr=5
 max-branches=10
 
 # Maximum number of locals for function / method body
-max-locals=20
+max-locals=30
 
 # Maximum number of parents for a class (see R0901).
 max-parents=10

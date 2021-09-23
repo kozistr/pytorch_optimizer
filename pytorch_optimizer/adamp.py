@@ -5,13 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import (
-    BETAS,
-    CLOSURE,
-    DEFAULT_PARAMETERS,
-    LOSS,
-    PARAMS,
-)
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class AdamP(Optimizer):
@@ -32,33 +26,35 @@ class AdamP(Optimizer):
 
     def __init__(
         self,
-        params: PARAMS,
+        params: PARAMETERS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
-        eps: float = 1e-8,
         weight_decay: float = 0.0,
         delta: float = 0.1,
         wd_ratio: float = 0.1,
         nesterov: bool = False,
+        eps: float = 1e-8,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize
-            or dicts defining parameter groups
+        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param betas: BETAS. coefficients used for computing running averages
-            of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator
-            to improve numerical stability
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
-        :param delta: float. threshold that determines
-            whether a set of parameters is scale invariant or not
-        :param wd_ratio: float. relative weight decay applied
-            on scale-invariant parameters compared to that applied
+        :param delta: float. threshold that determines whether a set of parameters is scale invariant or not
+        :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
             on scale-variant parameters
         :param nesterov: bool. enables Nesterov momentum
+        :param eps: float. term added to the denominator to improve numerical stability
         """
+        self.lr = lr
+        self.betas = betas
+        self.weight_decay = weight_decay
+        self.wd_ratio = wd_ratio
+        self.eps = eps
 
-        defaults: DEFAULT_PARAMETERS = dict(
+        self.check_valid_parameters()
+
+        defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
             eps=eps,
@@ -68,6 +64,20 @@ class AdamP(Optimizer):
             nesterov=nesterov,
         )
         super().__init__(params, defaults)
+
+    def check_valid_parameters(self):
+        if self.lr < 0.0:
+            raise ValueError(f'Invalid learning rate : {self.lr}')
+        if self.weight_decay < 0.0:
+            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
+        if not 0.0 <= self.betas[0] < 1.0:
+            raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
+        if not 0.0 <= self.betas[1] < 1.0:
+            raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
+        if not 0.0 <= self.wd_ratio < 1.0:
+            raise ValueError(f'Invalid wd_ratio : {self.wd_ratio}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     @staticmethod
     def channel_view(x: torch.Tensor) -> torch.Tensor:
@@ -102,15 +112,9 @@ class AdamP(Optimizer):
         for view_func in (self.channel_view, self.layer_view):
             cosine_sim = self.cosine_similarity(grad, p.data, eps, view_func)
 
-            if cosine_sim.max() < delta / math.sqrt(
-                view_func(p.data).size()[1]
-            ):
-                p_n = p.data / view_func(p.data).norm(dim=1).view(
-                    expand_size
-                ).add_(eps)
-                perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(
-                    expand_size
-                )
+            if cosine_sim.max() < delta / math.sqrt(view_func(p.data).size()[1]):
+                p_n = p.data / view_func(p.data).norm(dim=1).view(expand_size).add_(eps)
+                perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(expand_size)
                 wd = wd_ratio
 
                 return perturb, wd
@@ -147,9 +151,7 @@ class AdamP(Optimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
 
-                denom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(
-                    group['eps']
-                )
+                denom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
                 step_size = group['lr'] / bias_correction1
 
                 if nesterov:
@@ -169,9 +171,7 @@ class AdamP(Optimizer):
                     )
 
                 if group['weight_decay'] > 0:
-                    p.data.mul_(
-                        1 - group['lr'] * group['weight_decay'] * wd_ratio
-                    )
+                    p.data.mul_(1 - group['lr'] * group['weight_decay'] * wd_ratio)
 
                 p.data.add_(perturb, alpha=-step_size)
 

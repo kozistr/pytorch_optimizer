@@ -3,12 +3,7 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import (
-    CLOSURE,
-    DEFAULT_PARAMETERS,
-    PARAM_GROUPS,
-    PARAMS,
-)
+from pytorch_optimizer.types import CLOSURE, DEFAULTS, PARAMETERS
 
 
 class SAM(Optimizer):
@@ -56,15 +51,14 @@ class SAM(Optimizer):
 
     def __init__(
         self,
-        params: PARAMS,
+        params: PARAMETERS,
         base_optimizer,
         rho: float = 0.05,
         adaptive: bool = False,
         **kwargs,
     ):
-        """(Adaptive) Sharpness-Aware Minimization
-        :param params: PARAMS. iterable of parameters to optimize
-            or dicts defining parameter groups
+        """
+        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param base_optimizer: Optimizer.
         :param rho: float. size of the neighborhood for computing the max loss
         :param adaptive: bool. element-wise Adaptive SAM
@@ -74,13 +68,11 @@ class SAM(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: DEFAULT_PARAMETERS = dict(
-            rho=rho, adaptive=adaptive, **kwargs
-        )
+        defaults: DEFAULTS = dict(rho=rho, adaptive=adaptive, **kwargs)
         super().__init__(params, defaults)
 
         self.base_optimizer = base_optimizer(self.param_groups, **kwargs)
-        self.param_groups: PARAM_GROUPS = self.base_optimizer.param_groups
+        self.param_groups = self.base_optimizer.param_groups
 
     def check_valid_parameters(self):
         if self.rho < 0.0:
@@ -96,11 +88,7 @@ class SAM(Optimizer):
                 if p.grad is None:
                     continue
                 self.state[p]['old_p'] = p.data.clone()
-                e_w = (
-                    (torch.pow(p, 2) if group['adaptive'] else 1.0)
-                    * p.grad
-                    * scale.to(p)
-                )
+                e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * p.grad * scale.to(p)
                 # climb to the local maximum "w + e(w)"
                 p.add_(e_w)
 
@@ -140,9 +128,7 @@ class SAM(Optimizer):
         norm = torch.norm(
             torch.stack(
                 [
-                    ((torch.abs(p) if group['adaptive'] else 1.0) * p.grad)
-                    .norm(p=2)
-                    .to(shared_device)
+                    ((torch.abs(p) if group['adaptive'] else 1.0) * p.grad).norm(p=2).to(shared_device)
                     for group in self.param_groups
                     for p in group['params']
                     if p.grad is not None

@@ -33,3 +33,6 @@ jobs:
     - name: Lint
       run: |
           make format
+    - name: Check Lint
+      run: |
+          make check
