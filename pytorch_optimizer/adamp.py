@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMETERS
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class AdamP(Optimizer):
@@ -54,7 +54,7 @@ class AdamP(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: DEFAULT_PARAMETERS = dict(
+        defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
             eps=eps,

@@ -4,7 +4,7 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMETERS
+from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class Ranger(Optimizer):
@@ -60,7 +60,7 @@ class Ranger(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: DEFAULT_PARAMETERS = dict(
+        defaults: DEFAULTS = dict(
             lr=lr,
             alpha=alpha,
             k=k,

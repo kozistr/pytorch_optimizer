@@ -3,7 +3,7 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMETERS, STATE
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
 
 
 class DiffGrad(Optimizer):
@@ -44,7 +44,7 @@ class DiffGrad(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: DEFAULT_PARAMETERS = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
+        defaults: DEFAULTS = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
         super().__init__(params, defaults)
 
     def check_valid_parameters(self):

@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMETERS
+from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class SGDP(Optimizer):
@@ -54,7 +54,7 @@ class SGDP(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: DEFAULT_PARAMETERS = dict(
+        defaults: DEFAULTS = dict(
             lr=lr,
             momentum=momentum,
             dampening=dampening,

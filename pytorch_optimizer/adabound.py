@@ -4,7 +4,7 @@ from typing import List
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMETERS, STATE
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
 
 
 class AdaBound(Optimizer):
@@ -55,7 +55,7 @@ class AdaBound(Optimizer):
         self.weight_decouple = weight_decouple
         self.fixed_decay = fixed_decay
 
-        defaults: DEFAULT_PARAMETERS = dict(
+        defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
             final_lr=final_lr,

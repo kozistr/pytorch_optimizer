@@ -4,7 +4,7 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMETERS
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class RAdam(Optimizer):
@@ -56,7 +56,7 @@ class RAdam(Optimizer):
                 if 'betas' in param and (param['betas'][0] != betas[0] or param['betas'][1] != betas[1]):
                     param['buffer'] = [[None, None, None] for _ in range(10)]
 
-        defaults: DEFAULT_PARAMETERS = dict(
+        defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
             eps=eps,

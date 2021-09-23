@@ -3,7 +3,7 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, PARAM_GROUPS, PARAMETERS
+from pytorch_optimizer.types import CLOSURE, DEFAULTS, PARAM_GROUPS, PARAMETERS
 
 
 class SAM(Optimizer):
@@ -68,7 +68,7 @@ class SAM(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: DEFAULT_PARAMETERS = dict(rho=rho, adaptive=adaptive, **kwargs)
+        defaults: DEFAULTS = dict(rho=rho, adaptive=adaptive, **kwargs)
         super().__init__(params, defaults)
 
         self.base_optimizer = base_optimizer(self.param_groups, **kwargs)

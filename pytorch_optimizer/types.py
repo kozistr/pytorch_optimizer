@@ -5,7 +5,7 @@ import torch
 CLOSURE = Optional[Callable[[], float]]
 LOSS = Optional[float]
 BETAS = Tuple[float, float]
-DEFAULT_PARAMETERS = Dict[str, Any]
+DEFAULTS = Dict[str, Any]
 PARAMETERS = Union[Iterable[Dict[str, Any]], Iterable[torch.Tensor]]
 PARAM_GROUP = Dict
 PARAM_GROUPS = List[PARAM_GROUP]

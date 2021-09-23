@@ -3,7 +3,7 @@ from typing import Dict, Iterable
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMETERS
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class AdaHessian(Optimizer):
@@ -63,7 +63,7 @@ class AdaHessian(Optimizer):
         # the same `z`s across all GPUs in case of distributed training
         self.generator: torch.Generator = torch.Generator().manual_seed(self.seed)
 
-        defaults: DEFAULT_PARAMETERS = dict(
+        defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
             eps=eps,

@@ -8,7 +8,7 @@ import math
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMETERS
+from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class MADGRAD(Optimizer):
@@ -51,7 +51,7 @@ class MADGRAD(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: DEFAULT_PARAMETERS = dict(lr=lr, eps=eps, momentum=momentum, weight_decay=weight_decay)
+        defaults: DEFAULTS = dict(lr=lr, eps=eps, momentum=momentum, weight_decay=weight_decay)
         super().__init__(params, defaults)
 
     def check_valid_parameters(self):
