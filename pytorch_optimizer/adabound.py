@@ -4,7 +4,7 @@ from typing import List
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS, STATE
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMETERS, STATE
 
 
 class AdaBound(Optimizer):
@@ -25,7 +25,7 @@ class AdaBound(Optimizer):
 
     def __init__(
         self,
-        params: PARAMS,
+        params: PARAMETERS,
         lr: float = 1e-3,
         final_lr: float = 1e-1,
         betas: BETAS = (0.9, 0.999),
@@ -37,7 +37,7 @@ class AdaBound(Optimizer):
         eps: float = 1e-8,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate
         :param final_lr: float. final learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace

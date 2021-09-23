@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
+from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMETERS
 
 
 class SGDP(Optimizer):
@@ -26,7 +26,7 @@ class SGDP(Optimizer):
 
     def __init__(
         self,
-        params: PARAMS,
+        params: PARAMETERS,
         lr: float = 1e-3,
         momentum: float = 0.0,
         dampening: float = 0.0,
@@ -37,7 +37,7 @@ class SGDP(Optimizer):
         nesterov: bool = False,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
         :param momentum: float. momentum factor
         :param dampening: float. dampening for momentum

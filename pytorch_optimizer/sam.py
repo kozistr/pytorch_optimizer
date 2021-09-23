@@ -3,7 +3,7 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, PARAM_GROUPS, PARAMS
+from pytorch_optimizer.types import CLOSURE, DEFAULT_PARAMETERS, PARAM_GROUPS, PARAMETERS
 
 
 class SAM(Optimizer):
@@ -51,14 +51,14 @@ class SAM(Optimizer):
 
     def __init__(
         self,
-        params: PARAMS,
+        params: PARAMETERS,
         base_optimizer,
         rho: float = 0.05,
         adaptive: bool = False,
         **kwargs,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param base_optimizer: Optimizer.
         :param rho: float. size of the neighborhood for computing the max loss
         :param adaptive: bool. element-wise Adaptive SAM

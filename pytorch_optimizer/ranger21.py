@@ -18,7 +18,7 @@ from torch.optim import Optimizer
 from pytorch_optimizer.agc import agc
 from pytorch_optimizer.chebyshev_schedule import get_chebyshev_schedule
 from pytorch_optimizer.gc import centralize_gradient
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMETERS
 from pytorch_optimizer.utils import normalize_gradient, unit_norm
 
 
@@ -40,7 +40,7 @@ class Ranger21(Optimizer):
 
     def __init__(
         self,
-        params: PARAMS,
+        params: PARAMETERS,
         lr: float = 1e-3,
         lookahead_active: bool = True,
         lookahead_merge_time: int = 5,
@@ -77,7 +77,7 @@ class Ranger21(Optimizer):
         warmup_pct_default: float = 0.22,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param eps: float. term added to the denominator to improve numerical stability
