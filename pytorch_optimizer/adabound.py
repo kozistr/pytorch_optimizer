@@ -3,14 +3,7 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import (
-    BETAS,
-    CLOSURE,
-    DEFAULT_PARAMETERS,
-    LOSS,
-    PARAMS,
-    STATE,
-)
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS, STATE
 
 
 class AdaBound(Optimizer):
@@ -107,9 +100,7 @@ class AdaBound(Optimizer):
 
                 grad = p.grad.data
                 if grad.is_sparse:
-                    raise RuntimeError(
-                        'AdaBound does not support sparse gradients'
-                    )
+                    raise RuntimeError('AdaBound does not support sparse gradients')
 
                 amsbound = group['amsbound']
 
@@ -149,23 +140,13 @@ class AdaBound(Optimizer):
 
                 bias_correction1 = 1 - beta1 ** state['step']
                 bias_correction2 = 1 - beta2 ** state['step']
-                step_size = (
-                    group['lr']
-                    * math.sqrt(bias_correction2)
-                    / bias_correction1
-                )
+                step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
 
                 final_lr = group['final_lr'] * group['lr'] / base_lr
-                lower_bound = final_lr * (
-                    1 - 1 / (group['gamma'] * state['step'] + 1)
-                )
-                upper_bound = final_lr * (
-                    1 + 1 / (group['gamma'] * state['step'])
-                )
+                lower_bound = final_lr * (1 - 1 / (group['gamma'] * state['step'] + 1))
+                upper_bound = final_lr * (1 + 1 / (group['gamma'] * state['step']))
                 step_size = torch.full_like(denom, step_size)
-                step_size.div_(denom).clamp_(lower_bound, upper_bound).mul_(
-                    exp_avg
-                )
+                step_size.div_(denom).clamp_(lower_bound, upper_bound).mul_(exp_avg)
 
                 p.data.add_(-step_size)
 

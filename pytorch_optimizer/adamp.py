@@ -5,13 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import (
-    BETAS,
-    CLOSURE,
-    DEFAULT_PARAMETERS,
-    LOSS,
-    PARAMS,
-)
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
 
 
 class AdamP(Optimizer):
@@ -102,15 +96,9 @@ class AdamP(Optimizer):
         for view_func in (self.channel_view, self.layer_view):
             cosine_sim = self.cosine_similarity(grad, p.data, eps, view_func)
 
-            if cosine_sim.max() < delta / math.sqrt(
-                view_func(p.data).size()[1]
-            ):
-                p_n = p.data / view_func(p.data).norm(dim=1).view(
-                    expand_size
-                ).add_(eps)
-                perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(
-                    expand_size
-                )
+            if cosine_sim.max() < delta / math.sqrt(view_func(p.data).size()[1]):
+                p_n = p.data / view_func(p.data).norm(dim=1).view(expand_size).add_(eps)
+                perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(expand_size)
                 wd = wd_ratio
 
                 return perturb, wd
@@ -147,9 +135,7 @@ class AdamP(Optimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
 
-                denom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(
-                    group['eps']
-                )
+                denom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
                 step_size = group['lr'] / bias_correction1
 
                 if nesterov:
@@ -169,9 +155,7 @@ class AdamP(Optimizer):
                     )
 
                 if group['weight_decay'] > 0:
-                    p.data.mul_(
-                        1 - group['lr'] * group['weight_decay'] * wd_ratio
-                    )
+                    p.data.mul_(1 - group['lr'] * group['weight_decay'] * wd_ratio)
 
                 p.data.add_(perturb, alpha=-step_size)
 

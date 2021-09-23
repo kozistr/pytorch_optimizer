@@ -1,9 +1,7 @@
 import numpy as np
 
 
-def chebyshev_steps(
-    small_m: float, big_m: float, num_epochs: int
-) -> np.ndarray:
+def chebyshev_steps(small_m: float, big_m: float, num_epochs: int) -> np.ndarray:
     """
     :param small_m: float. stands for 'm' notation.
     :param big_m:  float. stands for 'M' notation.

@@ -55,9 +55,7 @@ class MADGRAD(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: DEFAULT_PARAMETERS = dict(
-            lr=lr, eps=eps, momentum=momentum, weight_decay=weight_decay
-        )
+        defaults: DEFAULT_PARAMETERS = dict(lr=lr, eps=eps, momentum=momentum, weight_decay=weight_decay)
         super().__init__(params, defaults)
 
     def check_valid_parameters(self):
@@ -113,18 +111,14 @@ class MADGRAD(Optimizer):
                         state['x0'] = torch.clone(p.data).detach()
 
                 if momentum != 0.0 and grad.is_sparse:
-                    raise RuntimeError(
-                        'momentum != 0 is not compatible with sparse gradients'
-                    )
+                    raise RuntimeError('momentum != 0 is not compatible with sparse gradients')
 
                 grad_sum_sq = state['grad_sum_sq']
                 s = state['s']
 
                 if decay != 0:
                     if grad.is_sparse:
-                        raise RuntimeError(
-                            'weight_decay option is not compatible with sparse gradients'
-                        )
+                        raise RuntimeError('weight_decay option is not compatible with sparse gradients')
 
                     # original implementation
                     # grad.add_(p.data, alpha=decay)
@@ -141,29 +135,21 @@ class MADGRAD(Optimizer):
                     s_masked = s.sparse_mask(grad)
 
                     # Compute x_0 from other known quantities
-                    rms_masked_vals = (
-                        grad_sum_sq_masked._values().pow(1 / 3).add_(eps)
-                    )
-                    x0_masked_vals = p_masked._values().addcdiv(
-                        s_masked._values(), rms_masked_vals, value=1
-                    )
+                    rms_masked_vals = grad_sum_sq_masked._values().pow(1 / 3).add_(eps)
+                    x0_masked_vals = p_masked._values().addcdiv(s_masked._values(), rms_masked_vals, value=1)
 
                     # Dense + sparse op
                     grad_sq = grad * grad
                     grad_sum_sq.add_(grad_sq, alpha=_lambda)
                     grad_sum_sq_masked.add_(grad_sq, alpha=_lambda)
 
-                    rms_masked_vals = (
-                        grad_sum_sq_masked._values().pow_(1 / 3).add_(eps)
-                    )
+                    rms_masked_vals = grad_sum_sq_masked._values().pow_(1 / 3).add_(eps)
 
                     s.add_(grad, alpha=_lambda)
                     s_masked._values().add_(grad_val, alpha=_lambda)
 
                     # update masked copy of p
-                    p_kp1_masked_values = x0_masked_vals.addcdiv(
-                        s_masked._values(), rms_masked_vals, value=-1
-                    )
+                    p_kp1_masked_values = x0_masked_vals.addcdiv(s_masked._values(), rms_masked_vals, value=-1)
 
                     # Copy updated masked p to dense p using an add operation
                     p_masked._values().add_(p_kp1_masked_values, alpha=-1)

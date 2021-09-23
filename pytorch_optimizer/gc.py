@@ -1,9 +1,7 @@
 import torch
 
 
-def centralize_gradient(
-    x: torch.Tensor, gc_conv_only: bool = False
-) -> torch.Tensor:
+def centralize_gradient(x: torch.Tensor, gc_conv_only: bool = False) -> torch.Tensor:
     """Gradient Centralization (GC)
     :param x: torch.Tensor. gradient.
     :param gc_conv_only: bool. 'False' for both conv & fc layers.

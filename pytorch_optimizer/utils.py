@@ -3,9 +3,7 @@ from typing import Optional, Tuple, Union
 import torch
 
 
-def normalize_gradient(
-    x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8
-) -> torch.Tensor:
+def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> torch.Tensor:
     """normalize gradient with stddev
     :param x: torch.Tensor. gradient.
     :param use_channels: bool. channel-wise normalization.

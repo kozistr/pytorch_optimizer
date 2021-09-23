@@ -3,14 +3,7 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import (
-    BETAS,
-    CLOSURE,
-    DEFAULT_PARAMETERS,
-    LOSS,
-    PARAMS,
-    STATE,
-)
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS, STATE
 
 
 class DiffGrad(Optimizer):
@@ -55,9 +48,7 @@ class DiffGrad(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: DEFAULT_PARAMETERS = dict(
-            lr=lr, betas=betas, eps=eps, weight_decay=weight_decay
-        )
+        defaults: DEFAULT_PARAMETERS = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
         super().__init__(params, defaults)
 
     def check_valid_parameters(self):
@@ -87,9 +78,7 @@ class DiffGrad(Optimizer):
 
                 grad = p.grad.data
                 if grad.is_sparse:
-                    raise RuntimeError(
-                        'diffGrad does not support sparse gradients'
-                    )
+                    raise RuntimeError('diffGrad does not support sparse gradients')
 
                 state = self.state[p]
 
@@ -127,11 +116,7 @@ class DiffGrad(Optimizer):
                 # update momentum with dfc
                 exp_avg1 = exp_avg * dfc
 
-                step_size = (
-                    group['lr']
-                    * math.sqrt(bias_correction2)
-                    / bias_correction1
-                )
+                step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
 
                 p.data.addcdiv_(-step_size, exp_avg1, denom)
 

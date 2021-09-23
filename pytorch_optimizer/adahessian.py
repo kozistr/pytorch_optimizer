@@ -3,13 +3,7 @@ from typing import Dict, Iterable
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import (
-    BETAS,
-    CLOSURE,
-    DEFAULT_PARAMETERS,
-    LOSS,
-    PARAMS,
-)
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
 
 
 class AdaHessian(Optimizer):
@@ -73,9 +67,7 @@ class AdaHessian(Optimizer):
 
         # use a separate generator that deterministically generates
         # the same `z`s across all GPUs in case of distributed training
-        self.generator: torch.Generator = torch.Generator().manual_seed(
-            self.seed
-        )
+        self.generator: torch.Generator = torch.Generator().manual_seed(self.seed)
 
         defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
@@ -106,20 +98,12 @@ class AdaHessian(Optimizer):
 
     def get_params(self) -> Iterable[Dict]:
         """Gets all parameters in all param_groups with gradients"""
-        return (
-            p
-            for group in self.param_groups
-            for p in group['params']
-            if p.requires_grad
-        )
+        return (p for group in self.param_groups for p in group['params'] if p.requires_grad)
 
     def zero_hessian(self):
         """Zeros out the accumulated hessian traces."""
         for p in self.get_params():
-            if (
-                not isinstance(p.hess, float)
-                and self.state[p]['hessian_step'] % self.update_each == 0
-            ):
+            if not isinstance(p.hess, float) and self.state[p]['hessian_step'] % self.update_each == 0:
                 p.hess.zero_()
 
     @torch.no_grad()
@@ -128,9 +112,7 @@ class AdaHessian(Optimizer):
         and accumulates it for each trainable parameter
         """
         params = []
-        for p in filter(
-            lambda param: param.grad is not None, self.get_params()
-        ):
+        for p in filter(lambda param: param.grad is not None, self.get_params()):
             # compute the trace only each `update_each` step
             if self.state[p]['hessian_step'] % self.update_each == 0:
                 params.append(p)
@@ -141,22 +123,13 @@ class AdaHessian(Optimizer):
 
         if self.generator.device != params[0].device:
             # hackish way of casting the generator to the right device
-            self.generator = torch.Generator(params[0].device).manual_seed(
-                self.seed
-            )
+            self.generator = torch.Generator(params[0].device).manual_seed(self.seed)
 
         grads = [p.grad for p in params]
 
         for i in range(self.n_samples):
             # Rademacher distribution {-1.0, 1.0}
-            zs = [
-                torch.randint(
-                    0, 2, p.size(), generator=self.generator, device=p.device
-                )
-                * 2.0
-                - 1.0
-                for p in params
-            ]
+            zs = [torch.randint(0, 2, p.size(), generator=self.generator, device=p.device) * 2.0 - 1.0 for p in params]
             # note that, possible memory leak due to retrain_graph=True
             h_zs = torch.autograd.grad(
                 grads,
@@ -184,12 +157,7 @@ class AdaHessian(Optimizer):
                     continue
 
                 if self.average_conv_kernel and p.dim() == 4:
-                    p.hess = (
-                        torch.abs(p.hess)
-                        .mean(dim=[2, 3], keepdim=True)
-                        .expand_as(p.hess)
-                        .clone()
-                    )
+                    p.hess = torch.abs(p.hess).mean(dim=[2, 3], keepdim=True).expand_as(p.hess).clone()
 
                 # Perform correct step-weight decay as in AdamW
                 p.mul_(1 - group['lr'] * group['weight_decay'])
@@ -210,19 +178,13 @@ class AdaHessian(Optimizer):
 
                 # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(p.grad, alpha=1 - beta1)
-                exp_hessian_diag_sq.mul_(beta2).addcmul_(
-                    p.hess, p.hess, value=1 - beta2
-                )
+                exp_hessian_diag_sq.mul_(beta2).addcmul_(p.hess, p.hess, value=1 - beta2)
 
                 bias_correction1 = 1 - beta1 ** state['step']
                 bias_correction2 = 1 - beta2 ** state['step']
 
                 k = group['hessian_power']
-                denom = (
-                    (exp_hessian_diag_sq / bias_correction2)
-                    .pow_(k / 2)
-                    .add_(group['eps'])
-                )
+                denom = (exp_hessian_diag_sq / bias_correction2).pow_(k / 2).add_(group['eps'])
 
                 step_size = group['lr'] / bias_correction1
                 p.addcdiv_(exp_avg, denom, value=-step_size)

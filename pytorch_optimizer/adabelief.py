@@ -3,14 +3,7 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import (
-    BETAS,
-    CLOSURE,
-    DEFAULT_PARAMETERS,
-    LOSS,
-    PARAMS,
-    STATE,
-)
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS, STATE
 
 
 class AdaBelief(Optimizer):
@@ -72,16 +65,9 @@ class AdaBelief(Optimizer):
         self.fixed_decay = fixed_decay
         self.degenerated_to_sgd = degenerated_to_sgd
 
-        if (
-            isinstance(params, (list, tuple))
-            and len(params) > 0
-            and isinstance(params[0], dict)
-        ):
+        if isinstance(params, (list, tuple)) and len(params) > 0 and isinstance(params[0], dict):
             for param in params:
-                if 'betas' in param and (
-                    param['betas'][0] != betas[0]
-                    or param['betas'][1] != betas[1]
-                ):
+                if 'betas' in param and (param['betas'][0] != betas[0] or param['betas'][1] != betas[1]):
                     param['buffer'] = [[None, None, None] for _ in range(10)]
 
         defaults: DEFAULT_PARAMETERS = dict(
@@ -129,9 +115,7 @@ class AdaBelief(Optimizer):
 
                 grad = p.grad.data
                 if grad.is_sparse:
-                    raise RuntimeError(
-                        'AdaBelief does not support sparse gradients'
-                    )
+                    raise RuntimeError('AdaBelief does not support sparse gradients')
 
                 amsgrad = group['amsgrad']
 
@@ -163,9 +147,7 @@ class AdaBelief(Optimizer):
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
                 grad_residual = grad - exp_avg
-                exp_avg_var.mul_(beta2).addcmul_(
-                    grad_residual, grad_residual, value=1 - beta2
-                )
+                exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1 - beta2)
 
                 if amsgrad:
                     max_exp_avg_var = state['max_exp_avg_var']
@@ -176,14 +158,9 @@ class AdaBelief(Optimizer):
                         out=max_exp_avg_var,
                     )
 
-                    denom = (
-                        max_exp_avg_var.sqrt() / math.sqrt(bias_correction2)
-                    ).add_(group['eps'])
+                    denom = (max_exp_avg_var.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
                 else:
-                    denom = (
-                        exp_avg_var.add_(group['eps']).sqrt()
-                        / math.sqrt(bias_correction2)
-                    ).add_(group['eps'])
+                    denom = (exp_avg_var.add_(group['eps']).sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
                 if not self.rectify:
                     step_size = group['lr'] / bias_correction1
@@ -196,9 +173,7 @@ class AdaBelief(Optimizer):
                         buffered[0] = state['step']
                         beta2_t = beta2 ** state['step']
                         n_sma_max = 2 / (1 - beta2) - 1
-                        n_sma = n_sma_max - 2 * state['step'] * beta2_t / (
-                            1 - beta2_t
-                        )
+                        n_sma = n_sma_max - 2 * state['step'] * beta2_t / (1 - beta2_t)
                         buffered[1] = n_sma
 
                         if n_sma >= self.n_sma_threshold:
@@ -219,9 +194,7 @@ class AdaBelief(Optimizer):
 
                     if n_sma >= self.n_sma_threshold:
                         denom = exp_avg_var.sqrt().add_(group['eps'])
-                        p.data.addcdiv_(
-                            exp_avg, denom, value=-step_size * group['lr']
-                        )
+                        p.data.addcdiv_(exp_avg, denom, value=-step_size * group['lr'])
                     elif step_size > 0:
                         p.data.add_(exp_avg, alpha=-step_size * group['lr'])
 

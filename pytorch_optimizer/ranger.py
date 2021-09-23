@@ -4,14 +4,7 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import (
-    BETAS,
-    BUFFER,
-    CLOSURE,
-    DEFAULT_PARAMETERS,
-    LOSS,
-    PARAMS,
-)
+from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULT_PARAMETERS, LOSS, PARAMS
 
 
 class Ranger(Optimizer):
@@ -109,9 +102,7 @@ class Ranger(Optimizer):
                 grad = p.grad.data.float()
 
                 if grad.is_sparse:
-                    raise RuntimeError(
-                        'Ranger optimizer does not support sparse gradients'
-                    )
+                    raise RuntimeError('Ranger optimizer does not support sparse gradients')
 
                 p_data_fp32 = p.data.float()
 
@@ -126,19 +117,13 @@ class Ranger(Optimizer):
                     state['slow_buffer'].copy_(p.data)
                 else:
                     state['exp_avg'] = state['exp_avg'].type_as(p_data_fp32)
-                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(
-                        p_data_fp32
-                    )
+                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_data_fp32)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
 
                 if grad.dim() > self.gc_gradient_threshold:
-                    grad.add_(
-                        -grad.mean(
-                            dim=tuple(range(1, grad.dim())), keepdim=True
-                        )
-                    )
+                    grad.add_(-grad.mean(dim=tuple(range(1, grad.dim())), keepdim=True))
 
                 state['step'] += 1
 
@@ -153,9 +138,7 @@ class Ranger(Optimizer):
                     buffered[0] = state['step']
                     beta2_t = beta2 ** state['step']
                     n_sma_max = 2 / (1 - beta2) - 1
-                    n_sma = n_sma_max - 2 * state['step'] * beta2_t / (
-                        1 - beta2_t
-                    )
+                    n_sma = n_sma_max - 2 * state['step'] * beta2_t / (1 - beta2_t)
                     buffered[1] = n_sma
                     if n_sma > self.n_sma_threshold:
                         step_size = math.sqrt(
@@ -172,15 +155,11 @@ class Ranger(Optimizer):
                     buffered[2] = step_size
 
                 if group['weight_decay'] != 0:
-                    p_data_fp32.add_(
-                        -group['weight_decay'] * group['lr'], p_data_fp32
-                    )
+                    p_data_fp32.add_(-group['weight_decay'] * group['lr'], p_data_fp32)
 
                 if n_sma > self.n_sma_threshold:
                     denom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p_data_fp32.addcdiv_(
-                        -step_size * group['lr'], exp_avg, denom
-                    )
+                    p_data_fp32.addcdiv_(-step_size * group['lr'], exp_avg, denom)
                 else:
                     p_data_fp32.add_(-step_size * group['lr'], exp_avg)
 
