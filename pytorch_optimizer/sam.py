@@ -23,12 +23,15 @@ class SAM(Optimizer):
         ...
         for input, output in data:
             # first forward-backward pass
-            loss = loss_function(output, model(input))  # use this loss for any training statistics
+
+            # use this loss for any training statistics
+            loss = loss_function(output, model(input))
             loss.backward()
             optimizer.first_step(zero_grad=True)
 
             # second forward-backward pass
-            loss_function(output, model(input)).backward()  # make sure to do a full forward pass
+            # make sure to do a full forward pass
+            loss_function(output, model(input)).backward()
             optimizer.second_step(zero_grad=True)
 
     Alternative Example with a single closure-based step function:
@@ -60,9 +63,10 @@ class SAM(Optimizer):
         **kwargs,
     ):
         """(Adaptive) Sharpness-Aware Minimization
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
-        :param base_optimizer:
-        :param rho: float. 	size of the neighborhood for computing the max loss
+        :param params: PARAMS. iterable of parameters to optimize
+            or dicts defining parameter groups
+        :param base_optimizer: Optimizer.
+        :param rho: float. size of the neighborhood for computing the max loss
         :param adaptive: bool. element-wise Adaptive SAM
         :param kwargs: Dict. parameters for optimizer.
         """
@@ -79,7 +83,7 @@ class SAM(Optimizer):
         self.param_groups: PARAM_GROUPS = self.base_optimizer.param_groups
 
     def check_valid_parameters(self):
-        if 0.0 > self.rho:
+        if self.rho < 0.0:
             raise ValueError(f'Invalid rho : {self.rho}')
 
     @torch.no_grad()
@@ -97,7 +101,8 @@ class SAM(Optimizer):
                     * p.grad
                     * scale.to(p)
                 )
-                p.add_(e_w)  # climb to the local maximum "w + e(w)"
+                # climb to the local maximum "w + e(w)"
+                p.add_(e_w)
 
         if zero_grad:
             self.zero_grad()
@@ -108,11 +113,11 @@ class SAM(Optimizer):
             for p in group['params']:
                 if p.grad is None:
                     continue
-                p.data = self.state[p][
-                    'old_p'
-                ]  # get back to "w" from "w + e(w)"
+                # get back to "w" from "w + e(w)"
+                p.data = self.state[p]['old_p']
 
-        self.base_optimizer.step()  # do the actual "sharpness-aware" update
+        # do the actual "sharpness-aware" update
+        self.base_optimizer.step()
 
         if zero_grad:
             self.zero_grad()
@@ -120,9 +125,7 @@ class SAM(Optimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None):
         if closure is None:
-            raise RuntimeError(
-                'Sharpness Aware Minimization requires closure, but it was not provided'
-            )
+            raise RuntimeError('Sharpness Aware Minimization requires closure')
 
         # the closure should do a full forward-backward pass
         closure = torch.enable_grad()(closure)
@@ -132,9 +135,8 @@ class SAM(Optimizer):
         self.second_step()
 
     def grad_norm(self) -> torch.Tensor:
-        shared_device = self.param_groups[0]['params'][
-            0
-        ].device  # put everything on the same device, in case of model parallelism
+        # put everything on the same device, in case of model parallelism
+        shared_device = self.param_groups[0]['params'][0].device
         norm = torch.norm(
             torch.stack(
                 [
