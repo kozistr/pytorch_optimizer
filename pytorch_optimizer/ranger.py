@@ -16,7 +16,7 @@ from pytorch_optimizer.types import (
 
 class Ranger(Optimizer):
     """
-    Reference : https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer/blob/master/ranger/ranger.py
+    Reference : https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer
     Example :
         from pytorch_optimizer import Ranger
         ...
@@ -43,11 +43,13 @@ class Ranger(Optimizer):
         use_gc: bool = True,
         gc_conv_only: bool = False,
     ):
-        """Ranger optimizer (RAdam + Lookahead + Gradient Centralization, combined into one optimizer)
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        """RAdam + Lookahead + Gradient Centralization, combined into one optimizer
+        :param params: PARAMS. iterable of parameters to optimize
+            or dicts defining parameter groups
         :param lr: float. learning rate.
         :param n_sma_threshold: int. (recommended is 5)
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param betas: BETAS. coefficients used for computing running averages
+            of gradient and the squared hessian trace
         :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param use_gc: bool. use Gradient Centralization (both convolution & fc layers)
@@ -80,17 +82,17 @@ class Ranger(Optimizer):
         super().__init__(params, defaults)
 
     def check_valid_parameters(self):
-        if 0.0 > self.lr:
+        if self.lr < 0.0:
             raise ValueError(f'Invalid learning rate : {self.lr}')
-        if 0.0 > self.eps:
+        if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
-        if 0.0 > self.weight_decay:
+        if self.weight_decay < 0.0:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
         if not 0.0 <= self.betas[0] < 1.0:
             raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
         if not 0.0 <= self.betas[1] < 1.0:
             raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
-        if 1 > self.k:
+        if self.k < 1:
             raise ValueError(f'Invalid lookahead step {self.k}')
 
     def __setstate__(self, state: Dict):
