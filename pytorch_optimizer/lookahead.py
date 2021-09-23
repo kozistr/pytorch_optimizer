@@ -16,7 +16,7 @@ from pytorch_optimizer.types import (
 
 class Lookahead(Optimizer):
     """
-    Reference : https://github.com/alphadl/lookahead.pytorch/blob/master/lookahead.py
+    Reference : https://github.com/alphadl/lookahead.pytorch
     Example :
         from pytorch_optimizer import AdamP, Lookahead
         ...
@@ -42,7 +42,8 @@ class Lookahead(Optimizer):
         :param optimizer: Optimizer.
         :param k: int. number of lookahead steps
         :param alpha: float. linear interpolation factor
-        :param pullback_momentum: str. change to inner optimizer momentum on interpolation update
+        :param pullback_momentum: str. change to inner optimizer momentum
+            on interpolation update
         """
         self.optimizer = optimizer
         self.k = k
@@ -66,7 +67,7 @@ class Lookahead(Optimizer):
         )
 
     def check_valid_parameters(self):
-        if 1 > self.k:
+        if self.k < 1:
             raise ValueError(f'Invalid k : {self.k}')
         if not 0.0 < self.alpha <= 1.0:
             raise ValueError(f'Invalid alpha : {self.alpha}')
