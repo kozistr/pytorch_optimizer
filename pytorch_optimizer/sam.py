@@ -57,9 +57,8 @@ class SAM(Optimizer):
         adaptive: bool = False,
         **kwargs,
     ):
-        """(Adaptive) Sharpness-Aware Minimization
-        :param params: PARAMS. iterable of parameters to optimize
-            or dicts defining parameter groups
+        """
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
         :param base_optimizer: Optimizer.
         :param rho: float. size of the neighborhood for computing the max loss
         :param adaptive: bool. element-wise Adaptive SAM

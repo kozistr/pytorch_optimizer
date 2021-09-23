@@ -77,13 +77,10 @@ class Ranger21(Optimizer):
         warmup_pct_default: float = 0.22,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize
-            or dicts defining parameter groups
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param betas: BETAS. coefficients used for computing running averages
-            of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator
-            to improve numerical stability
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param use_gc: bool. use GC both convolution & fc layers
         :param gc_conv_only: bool. use GC only convolution layer

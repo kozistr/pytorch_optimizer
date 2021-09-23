@@ -1,4 +1,5 @@
 import math
+from typing import List
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -26,30 +27,26 @@ class AdaBound(Optimizer):
         self,
         params: PARAMS,
         lr: float = 1e-3,
+        final_lr: float = 1e-1,
         betas: BETAS = (0.9, 0.999),
-        final_lr: float = 0.1,
         gamma: float = 1e-3,
-        eps: float = 1e-8,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         amsbound: bool = False,
+        eps: float = 1e-8,
     ):
-        """AdaBound optimizer
-        :param params: PARAMS. iterable of parameters to optimize
-            or dicts defining parameter groups
+        """
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate
         :param final_lr: float. final learning rate
-        :param betas: BETAS. coefficients used for computing running averages
-            of gradient and the squared hessian trace
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param gamma: float. convergence speed of the bound functions
-        :param weight_decouple: bool. the optimizer uses decoupled weight decay
-            as in AdamW
-        :param fixed_decay: bool.
-        :param eps: float. term added to the denominator
-            to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
+        :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
+        :param fixed_decay: bool.
         :param amsbound: bool. whether to use the AMSBound variant
+        :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
         self.betas = betas
@@ -69,19 +66,19 @@ class AdaBound(Optimizer):
         )
         super().__init__(params, defaults)
 
-        self.base_lrs = [group['lr'] for group in self.param_groups]
+        self.base_lrs: List[float] = [group['lr'] for group in self.param_groups]
 
     def check_valid_parameters(self):
         if self.lr < 0.0:
             raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
         if self.weight_decay < 0.0:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
         if not 0.0 <= self.betas[0] < 1.0:
             raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
         if not 0.0 <= self.betas[1] < 1.0:
             raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     def __setstate__(self, state: STATE):
         super().__setstate__(state)
@@ -116,6 +113,7 @@ class AdaBound(Optimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 if amsbound:
                     max_exp_avg_sq = state['max_exp_avg_sq']
+
                 beta1, beta2 = group['betas']
 
                 state['step'] += 1
@@ -129,7 +127,6 @@ class AdaBound(Optimizer):
                     if group['weight_decay'] != 0:
                         grad.add_(p.data, alpha=group['weight_decay'])
 
-                # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(1 - beta1, grad)
                 exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
                 if amsbound:
@@ -145,6 +142,7 @@ class AdaBound(Optimizer):
                 final_lr = group['final_lr'] * group['lr'] / base_lr
                 lower_bound = final_lr * (1 - 1 / (group['gamma'] * state['step'] + 1))
                 upper_bound = final_lr * (1 + 1 / (group['gamma'] * state['step']))
+
                 step_size = torch.full_like(denom, step_size)
                 step_size.div_(denom).clamp_(lower_bound, upper_bound).mul_(exp_avg)
 

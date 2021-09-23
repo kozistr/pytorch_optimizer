@@ -11,7 +11,6 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
     :return: torch.Tensor. normalized gradient.
     """
     size: int = x.dim()
-
     if size > 1 and use_channels:
         s = x.std(dim=tuple(range(1, size)), keepdim=True) + epsilon
         x.div_(s)

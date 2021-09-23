@@ -37,25 +37,23 @@ class Ranger(Optimizer):
         gc_conv_only: bool = False,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize
-            or dicts defining parameter groups
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param n_sma_threshold: int. (recommended is 5)
-        :param betas: BETAS. coefficients used for computing running averages
-            of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator to improve numerical stability
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
+        :param n_sma_threshold: int. (recommended is 5)
         :param use_gc: bool. use Gradient Centralization (both convolution & fc layers)
         :param gc_conv_only: bool. use Gradient Centralization (only convolution layer)
+        :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
         self.alpha = alpha
         self.k = k
         self.n_sma_threshold = n_sma_threshold
         self.betas = betas
-        self.eps = eps
         self.weight_decay = weight_decay
         self.use_gc = use_gc
+        self.eps = eps
 
         self.gc_gradient_threshold: int = 3 if gc_conv_only else 1
         self.buffer: BUFFER = [[None, None, None] for _ in range(10)]
@@ -77,16 +75,16 @@ class Ranger(Optimizer):
     def check_valid_parameters(self):
         if self.lr < 0.0:
             raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
+        if self.k < 1:
+            raise ValueError(f'Invalid lookahead step {self.k}')
         if self.weight_decay < 0.0:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
         if not 0.0 <= self.betas[0] < 1.0:
             raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
         if not 0.0 <= self.betas[1] < 1.0:
             raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
-        if self.k < 1:
-            raise ValueError(f'Invalid lookahead step {self.k}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     def __setstate__(self, state: Dict):
         super().__setstate__(state)

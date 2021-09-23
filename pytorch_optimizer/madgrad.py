@@ -36,16 +36,12 @@ class MADGRAD(Optimizer):
         weight_decay: float = 0.0,
         eps: float = 1e-6,
     ):
-        """A Momentumized, Adaptive, Dual Averaged Gradient Method
-        for Stochastic (slightly modified)
-        :param params: PARAMS. iterable of parameters to optimize
-            or dicts defining parameter groups
+        """A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified)
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param eps: float. term added to the denominator
-            to improve numerical stability
+        :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
-            MADGRAD optimizer requires less weight decay than other methods,
-            often as little as zero
+            MADGRAD optimizer requires less weight decay than other methods, often as little as zero
             On sparse problems both weight_decay and momentum should be set to 0.
         """
         self.lr = lr
@@ -61,12 +57,12 @@ class MADGRAD(Optimizer):
     def check_valid_parameters(self):
         if self.lr < 0.0:
             raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
         if self.weight_decay < 0.0:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
         if not 0.0 < self.momentum <= 1.0:
             raise ValueError(f'Invalid momentum : {self.momentum}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     @property
     def supports_memory_efficient_fp16(self) -> bool:

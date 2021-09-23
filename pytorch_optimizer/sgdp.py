@@ -37,21 +37,22 @@ class SGDP(Optimizer):
         nesterov: bool = False,
     ):
         """
-        :param params: PARAMS. iterable of parameters
-            to optimize or dicts defining parameter groups
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
         :param momentum: float. momentum factor
         :param dampening: float. dampening for momentum
-        :param eps: float. term added to the denominator
-            to improve numerical stability
+        :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
-        :param delta: float. threshold that determines
-            whether a set of parameters is scale invariant or not
-        :param wd_ratio: float. relative weight decay applied
-            on scale-invariant parameters compared to that applied
+        :param delta: float. threshold that determines whether a set of parameters is scale invariant or not
+        :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
             on scale-variant parameters
         :param nesterov: bool. enables Nesterov momentum
         """
+        self.lr = lr
+        self.weight_decay = weight_decay
+        self.eps = eps
+
+        self.check_valid_parameters()
 
         defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
@@ -64,6 +65,14 @@ class SGDP(Optimizer):
             wd_ratio=wd_ratio,
         )
         super().__init__(params, defaults)
+
+    def check_valid_parameters(self):
+        if self.lr < 0.0:
+            raise ValueError(f'Invalid learning rate : {self.lr}')
+        if self.weight_decay < 0.0:
+            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     @staticmethod
     def channel_view(x: torch.Tensor) -> torch.Tensor:

@@ -29,28 +29,30 @@ class AdamP(Optimizer):
         params: PARAMS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
-        eps: float = 1e-8,
         weight_decay: float = 0.0,
         delta: float = 0.1,
         wd_ratio: float = 0.1,
         nesterov: bool = False,
+        eps: float = 1e-8,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize
-            or dicts defining parameter groups
+        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param betas: BETAS. coefficients used for computing running averages
-            of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator
-            to improve numerical stability
+        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
-        :param delta: float. threshold that determines
-            whether a set of parameters is scale invariant or not
-        :param wd_ratio: float. relative weight decay applied
-            on scale-invariant parameters compared to that applied
+        :param delta: float. threshold that determines whether a set of parameters is scale invariant or not
+        :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
             on scale-variant parameters
         :param nesterov: bool. enables Nesterov momentum
+        :param eps: float. term added to the denominator to improve numerical stability
         """
+        self.lr = lr
+        self.betas = betas
+        self.weight_decay = weight_decay
+        self.wd_ratio = wd_ratio
+        self.eps = eps
+
+        self.check_valid_parameters()
 
         defaults: DEFAULT_PARAMETERS = dict(
             lr=lr,
@@ -62,6 +64,20 @@ class AdamP(Optimizer):
             nesterov=nesterov,
         )
         super().__init__(params, defaults)
+
+    def check_valid_parameters(self):
+        if self.lr < 0.0:
+            raise ValueError(f'Invalid learning rate : {self.lr}')
+        if self.weight_decay < 0.0:
+            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
+        if not 0.0 <= self.betas[0] < 1.0:
+            raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
+        if not 0.0 <= self.betas[1] < 1.0:
+            raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
+        if not 0.0 <= self.wd_ratio < 1.0:
+            raise ValueError(f'Invalid wd_ratio : {self.wd_ratio}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     @staticmethod
     def channel_view(x: torch.Tensor) -> torch.Tensor:

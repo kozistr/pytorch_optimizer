@@ -54,14 +54,14 @@ class DiffGrad(Optimizer):
     def check_valid_parameters(self):
         if self.lr < 0.0:
             raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
         if self.weight_decay < 0.0:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
         if not 0.0 <= self.betas[0] < 1.0:
             raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
         if not 0.0 <= self.betas[1] < 1.0:
             raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     def __setstate__(self, state: STATE):
         super().__setstate__(state)
