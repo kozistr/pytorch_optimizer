@@ -53,7 +53,8 @@ class AdaBound(Optimizer):
         :param weight_decouple: bool. the optimizer uses decoupled weight decay
             as in AdamW
         :param fixed_decay: bool.
-        :param eps: float. term added to the denominator to improve numerical stability
+        :param eps: float. term added to the denominator
+            to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param amsbound: bool. whether to use the AMSBound variant
         """

@@ -47,7 +47,8 @@ class AdaHessian(Optimizer):
         :param lr: float. learning rate.
         :param betas: BETAS. coefficients used for computing running averages
             of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator to improve numerical stability
+        :param eps: float. term added to the denominator
+            to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param hessian_power: float. exponent of the hessian trace
         :param update_each: int. compute the hessian trace approximation
