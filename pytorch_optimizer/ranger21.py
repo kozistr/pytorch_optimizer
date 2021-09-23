@@ -104,7 +104,6 @@ class Ranger21(Optimizer):
 
         defaults: DEFAULTS = dict(
             lr=lr,
-            beta0=beta0,
             betas=betas,
             eps=eps,
             weight_decay=weight_decay,
@@ -222,6 +221,8 @@ class Ranger21(Optimizer):
 
                 bias_correction2 = 1 - beta2 ** state['step']
 
+                # second moment estimation
+                # using positive-negative momentum and bias correction
                 variance_ma = state['variance_ma']
                 variance_ma.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
                 variance_ma_sum += (variance_ma / bias_correction2).sum()
