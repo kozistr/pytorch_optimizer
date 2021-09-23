@@ -13,11 +13,7 @@ def read_file(filename: str) -> str:
 def read_version() -> str:
     regexp = re.compile(r"^__VERSION__\W*=\W*'([\d.abrc]+)'")
 
-    with open(
-        os.path.join(
-            os.path.dirname(__file__), 'pytorch_optimizer', '__init__.py'
-        )
-    ) as f:
+    with open(os.path.join(os.path.dirname(__file__), 'pytorch_optimizer', '__init__.py')) as f:
         for line in f:
             match = regexp.match(line)
             if match is not None:
