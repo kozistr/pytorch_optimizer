@@ -4,6 +4,7 @@ from pytorch_optimizer.adahessian import AdaHessian
 from pytorch_optimizer.adamp import AdamP
 from pytorch_optimizer.agc import agc
 from pytorch_optimizer.chebyshev_schedule import get_chebyshev_schedule
+from pytorch_optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.gc import centralize_gradient
 from pytorch_optimizer.lookahead import Lookahead
 from pytorch_optimizer.madgrad import MADGRAD
