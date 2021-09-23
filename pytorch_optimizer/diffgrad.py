@@ -15,7 +15,7 @@ from pytorch_optimizer.types import (
 
 class DiffGrad(Optimizer):
     """
-    Reference : https://github.com/shivram1987/diffGrad/blob/master/diffGrad_v2.py
+    Reference : https://github.com/shivram1987/diffGrad
     Example :
         from pytorch_optimizer import DiffGrad
         ...
@@ -38,9 +38,11 @@ class DiffGrad(Optimizer):
         weight_decay: float = 0.0,
     ):
         """
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param params: PARAMS. iterable of parameters to optimize
+            or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param betas: BETAS. coefficients used for computing running averages
+            of gradient and the squared hessian trace
         :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         """
