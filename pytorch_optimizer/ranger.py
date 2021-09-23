@@ -43,7 +43,7 @@ class Ranger(Optimizer):
         use_gc: bool = True,
         gc_conv_only: bool = False,
     ):
-        """RAdam + Lookahead + Gradient Centralization, combined into one optimizer
+        """
         :param params: PARAMS. iterable of parameters to optimize
             or dicts defining parameter groups
         :param lr: float. learning rate.
