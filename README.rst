@@ -181,6 +181,11 @@ Acceleration via Fractal Learning Rate Schedules
 -  ASAM paper : `paper <https://arxiv.org/abs/2102.11600>`__
 -  A/SAM code : `github <https://github.com/davda54/sam>`__
 
+On the Convergence of Adam and Beyond
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- paper : `paper <https://openreview.net/forum?id=ryQu7f-RZ>`__
+
 Citations
 ---------
 
