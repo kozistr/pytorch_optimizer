@@ -15,7 +15,7 @@ from pytorch_optimizer.types import (
 
 class RAdam(Optimizer):
     """
-    Reference : https://github.com/LiyuanLucasLiu/RAdam/blob/master/radam/radam.py#L5
+    Reference : https://github.com/LiyuanLucasLiu/RAdam/
     Example :
         from pytorch_optimizer import RAdam
         ...
@@ -40,9 +40,11 @@ class RAdam(Optimizer):
         degenerated_to_sgd: bool = False,
     ):
         """Rectified Adam optimizer
-        :param params: PARAMS. iterable of parameters to optimize or dicts defining parameter groups
+        :param params: PARAMS. iterable of parameters to optimize
+            or dicts defining parameter groups
         :param lr: float. learning rate.
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param betas: BETAS. coefficients used for computing running averages
+            of gradient and the squared hessian trace
         :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param n_sma_threshold: int. (recommended is 5)
