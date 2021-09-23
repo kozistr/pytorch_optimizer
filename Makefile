@@ -1,4 +1,4 @@
-.PHONY: init check format requirements build deploy
+.PHONY: init format check build deploy requirements
 
 init:
 	python3 -m pip install -U pipenv setuptools wheel
@@ -9,8 +9,8 @@ format:
 	black -S -l 119 pytorch_optimizer setup.py lint.py
 
 check:
-	isort --check-only --profile black -l 119 pytorch_optimizer setup.py
-	black -S -l 119 --check pytorch_optimizer setup.py
+	isort --check-only --profile black -l 119 pytorch_optimizer setup.py lint.py
+	black -S -l 119 --check pytorch_optimizer setup.py lint.py
 	python3 lint.py
 
 build:
