@@ -28,19 +28,19 @@ class RAdam(Optimizer):
         params: PARAMETERS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
-        eps: float = 1e-8,
         weight_decay: float = 0.0,
         n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = False,
+        eps: float = 1e-8,
     ):
         """
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param n_sma_threshold: int. (recommended is 5)
         :param degenerated_to_sgd: float.
+        :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
         self.betas = betas
