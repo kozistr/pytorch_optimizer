@@ -5,8 +5,8 @@ init:
 	python3 -m pipenv install --dev
 
 check:
-	isort --check-only --profile black -l 79 pytorch_optimizer setup.py
-	black -S -l 79 --check pytorch_optimizer setup.py
+	isort --check-only --profile black -l 119 pytorch_optimizer setup.py
+	black -S -l 119 --check pytorch_optimizer setup.py
 	pylint pytorch_optimizer
 
 build:
@@ -17,8 +17,8 @@ deploy:
 	python3 -m twine upload dist/*
 
 format:
-	isort --profile black -l 79 pytorch_optimizer setup.py
-	black -S -l 79 pytorch_optimizer setup.py
+	isort --profile black -l 119 pytorch_optimizer setup.py
+	black -S -l 119 pytorch_optimizer setup.py
 
 requirements:
 	python3 -m pipenv lock -r > requirements.txt
