@@ -1,20 +1,21 @@
 import math
-from typing import Dict
 
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
 
 
-class RAdam(Optimizer):
+class DiffRGrad(Optimizer):
     """
-    Reference : https://github.com/LiyuanLucasLiu/RAdam/
+    Reference 1 : https://github.com/shivram1987/diffGrad
+    Reference 2 : https://github.com/LiyuanLucasLiu/RAdam
+    Reference 3 : https://github.com/lessw2020/Best-Deep-Learning-Optimizers/blob/master/diffgrad/diff_rgrad.py
     Example :
-        from pytorch_optimizer import RAdam
+        from pytorch_optimizer import DiffRGrad
         ...
         model = YourModel()
-        optimizer = RAdam(model.parameters())
+        optimizer = DiffRGrad(model.parameters())
         ...
         for input, output in data:
           optimizer.zero_grad()
@@ -30,10 +31,10 @@ class RAdam(Optimizer):
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
         n_sma_threshold: int = 5,
-        degenerated_to_sgd: bool = False,
+        degenerated_to_sgd: bool = True,
         eps: float = 1e-8,
     ):
-        """
+        """Blend RAdam with DiffGrad
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate.
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
@@ -78,7 +79,7 @@ class RAdam(Optimizer):
         if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
 
-    def __setstate__(self, state: Dict):
+    def __setstate__(self, state: STATE):
         super().__setstate__(state)
 
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -93,27 +94,39 @@ class RAdam(Optimizer):
 
                 grad = p.grad.data.float()
                 if grad.is_sparse:
-                    raise RuntimeError('RAdam does not support sparse gradients')
+                    raise RuntimeError('diffGrad does not support sparse gradients')
 
                 p_data_fp32 = p.data.float()
-
                 state = self.state[p]
 
                 if len(state) == 0:
                     state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p_data_fp32)
                     state['exp_avg_sq'] = torch.zeros_like(p_data_fp32)
+                    state['previous_grad'] = torch.zeros_like(p_data_fp32)
                 else:
                     state['exp_avg'] = state['exp_avg'].type_as(p_data_fp32)
                     state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_data_fp32)
+                    state['previous_grad'] = state['previous_grad'].type_as(p_data_fp32)
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+                exp_avg, exp_avg_sq, previous_grad = (
+                    state['exp_avg'],
+                    state['exp_avg_sq'],
+                    state['previous_grad'],
+                )
                 beta1, beta2 = group['betas']
 
-                exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
-                exp_avg.mul_(beta1).add_(1 - beta1, grad)
-
                 state['step'] += 1
+
+                exp_avg.mul_(beta1).add_(1 - beta1, grad)
+                exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
+
+                # compute diffGrad coefficient (dfc)
+                diff = abs(previous_grad - grad)
+                dfc = 1.0 / (1.0 + torch.exp(-diff))
+
+                state['previous_grad'] = grad.clone()
+
                 buffered = group['buffer'][int(state['step'] % 10)]
                 if state['step'] == buffered[0]:
                     n_sma, step_size = buffered[1], buffered[2]
@@ -143,12 +156,16 @@ class RAdam(Optimizer):
                 if n_sma >= self.n_sma_threshold:
                     if group['weight_decay'] != 0:
                         p_data_fp32.add_(-group['weight_decay'] * group['lr'], p_data_fp32)
+
                     denom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p_data_fp32.addcdiv_(-step_size * group['lr'], exp_avg, denom)
+
+                    # update momentum with dfc
+                    p_data_fp32.addcdiv_(-step_size * group['lr'], exp_avg * dfc.float(), denom)
                     p.data.copy_(p_data_fp32)
                 elif step_size > 0:
                     if group['weight_decay'] != 0:
                         p_data_fp32.add_(-group['weight_decay'] * group['lr'], p_data_fp32)
+
                     p_data_fp32.add_(-step_size * group['lr'], exp_avg)
                     p.data.copy_(p_data_fp32)
 
