@@ -4,7 +4,7 @@ from typing import Dict
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAM_GROUP, PARAM_GROUPS, STATE
+from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, STATE
 
 
 class Lookahead(Optimizer):
@@ -26,7 +26,7 @@ class Lookahead(Optimizer):
 
     def __init__(
         self,
-        optimizer,
+        optimizer: Optimizer,
         k: int = 5,
         alpha: float = 0.5,
         pullback_momentum: str = 'none',
@@ -44,7 +44,7 @@ class Lookahead(Optimizer):
 
         self.check_valid_parameters()
 
-        self.param_groups: PARAM_GROUPS = self.optimizer.param_groups
+        self.param_groups = self.optimizer.param_groups
         self.fast_state: STATE = self.optimizer.state
         self.state: STATE = defaultdict(dict)
 
@@ -128,6 +128,6 @@ class Lookahead(Optimizer):
         self.optimizer.load_state_dict(fast_state_dict)
         self.fast_state = self.optimizer.state
 
-    def add_param_group(self, param_group: PARAM_GROUP):
+    def add_param_group(self, param_group):
         param_group['counter'] = 0
         self.optimizer.add_param_group(param_group)
