@@ -5,26 +5,19 @@ from torch.optim.optimizer import Optimizer
 
 
 class DiffGrad(Optimizer):
-    r"""Implements diffGrad algorithm. It is modified from the pytorch implementation of Adam.
-    It has been proposed in `diffGrad: An Optimization Method for Convolutional Neural Networks`_.
-    Arguments:
-        params (iterable): iterable of parameters to optimize or dicts defining
-            parameter groups
-        lr (float, optional): learning rate (default: 1e-3)
-        betas (Tuple[float, float], optional): coefficients used for computing
-            running averages of gradient and its square (default: (0.9, 0.999))
-        eps (float, optional): term added to the denominator to improve
-            numerical stability (default: 1e-8)
-        weight_decay (float, optional): weight decay (L2 penalty) (default: 0)
-        amsgrad (boolean, optional): whether to use the AMSGrad variant of this
-            algorithm from the paper `On the Convergence of Adam and Beyond`_
-            (default: False)
-    .. _diffGrad: An Optimization Method for Convolutional Neural Networks:
-        https://arxiv.org/abs/1909.11015
-    .. _Adam\: A Method for Stochastic Optimization:
-        https://arxiv.org/abs/1412.6980
-    .. _On the Convergence of Adam and Beyond:
-        https://openreview.net/forum?id=ryQu7f-RZ
+    """
+    Reference : https://github.com/shivram1987/diffGrad/blob/master/diffGrad_v2.py
+    Example :
+        from pytorch_optimizer import DiffGrad
+        ...
+        model = YourModel()
+        optimizer = DiffGrad(model.parameters())
+        ...
+        for input, output in data:
+          optimizer.zero_grad()
+          loss = loss_function(output, model(input))
+          loss.backward()
+          optimizer.step()
     """
 
     def __init__(
