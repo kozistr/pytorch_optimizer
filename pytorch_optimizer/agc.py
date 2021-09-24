@@ -3,7 +3,7 @@ import torch
 from pytorch_optimizer.utils import unit_norm
 
 
-def agc(p, agc_eps: float, agc_clip_val: float, eps: float = 1e-6):
+def agc(p: torch.Tensor, agc_eps: float, agc_clip_val: float, eps: float = 1e-6):
     """Clip gradient values in excess of the unit-wise norm.
     :param p: parameter.
     :param agc_eps: float.

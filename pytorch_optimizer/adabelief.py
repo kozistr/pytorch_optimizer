@@ -3,7 +3,8 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
+from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
+from pytorch_optimizer.utils import is_valid_parameters
 
 
 class AdaBelief(Optimizer):
@@ -59,10 +60,12 @@ class AdaBelief(Optimizer):
         self.degenerated_to_sgd = degenerated_to_sgd
         self.eps = eps
 
-        if isinstance(params, (list, tuple)) and len(params) > 0 and isinstance(params[0], dict):
+        buffer: BUFFER = [[None, None, None] for _ in range(10)]
+
+        if is_valid_parameters(params):
             for param in params:
                 if 'betas' in param and (param['betas'][0] != betas[0] or param['betas'][1] != betas[1]):
-                    param['buffer'] = [[None, None, None] for _ in range(10)]
+                    param['buffer'] = buffer
 
         defaults: DEFAULTS = dict(
             lr=lr,
@@ -70,7 +73,7 @@ class AdaBelief(Optimizer):
             eps=eps,
             weight_decay=weight_decay,
             amsgrad=amsgrad,
-            buffer=[[None, None, None] for _ in range(10)],
+            buffer=buffer,
         )
         super().__init__(params, defaults)
 
@@ -114,9 +117,6 @@ class AdaBelief(Optimizer):
                 amsgrad = group['amsgrad']
 
                 state = self.state[p]
-
-                beta1, beta2 = group['betas']
-
                 if len(state) == 0:
                     state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p.data)
@@ -136,12 +136,14 @@ class AdaBelief(Optimizer):
                 exp_avg, exp_avg_var = state['exp_avg'], state['exp_avg_var']
 
                 state['step'] += 1
-                bias_correction1 = 1 - beta1 ** state['step']
-                bias_correction2 = 1 - beta2 ** state['step']
+                beta1, beta2 = group['betas']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
+                bias_correction1 = 1.0 - beta1 ** state['step']
+                bias_correction2 = 1.0 - beta2 ** state['step']
+
+                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 grad_residual = grad - exp_avg
-                exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1 - beta2)
+                exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2)
 
                 if amsgrad:
                     max_exp_avg_var = state['max_exp_avg_var']
@@ -181,9 +183,10 @@ class AdaBelief(Optimizer):
                                 / (n_sma_max - 2)
                             ) / (1 - beta1 ** state['step'])
                         elif self.degenerated_to_sgd:
-                            step_size = 1.0 / (1 - beta1 ** state['step'])
+                            step_size = 1.0 / (1.0 - beta1 ** state['step'])
                         else:
                             step_size = -1
+
                         buffered[2] = step_size
 
                     if n_sma >= self.n_sma_threshold:

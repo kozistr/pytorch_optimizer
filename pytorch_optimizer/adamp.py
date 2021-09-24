@@ -116,7 +116,6 @@ class AdamP(Optimizer):
                 p_n = p.data / view_func(p.data).norm(dim=1).view(expand_size).add_(eps)
                 perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(expand_size)
                 wd = wd_ratio
-
                 return perturb, wd
 
         return perturb, wd
@@ -131,12 +130,7 @@ class AdamP(Optimizer):
                 if p.grad is None:
                     continue
 
-                grad = p.grad.data
-                beta1, beta2 = group['betas']
-                nesterov = group['nesterov']
-
                 state = self.state[p]
-
                 if len(state) == 0:
                     state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p.data)
@@ -145,8 +139,12 @@ class AdamP(Optimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 state['step'] += 1
+                beta1, beta2 = group['betas']
+
                 bias_correction1 = 1 - beta1 ** state['step']
                 bias_correction2 = 1 - beta2 ** state['step']
+
+                grad = p.grad.data
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
@@ -154,6 +152,7 @@ class AdamP(Optimizer):
                 denom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
                 step_size = group['lr'] / bias_correction1
 
+                nesterov = group['nesterov']
                 if nesterov:
                     perturb = (beta1 * exp_avg + (1 - beta1) * grad) / denom
                 else:
@@ -171,7 +170,7 @@ class AdamP(Optimizer):
                     )
 
                 if group['weight_decay'] > 0:
-                    p.data.mul_(1 - group['lr'] * group['weight_decay'] * wd_ratio)
+                    p.data.mul_(1.0 - group['lr'] * group['weight_decay'] * wd_ratio)
 
                 p.data.add_(perturb, alpha=-step_size)
 

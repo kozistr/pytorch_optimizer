@@ -50,19 +50,19 @@ class AdaBound(Optimizer):
         """
         self.lr = lr
         self.betas = betas
-        self.eps = eps
         self.weight_decay = weight_decay
         self.weight_decouple = weight_decouple
         self.fixed_decay = fixed_decay
+        self.eps = eps
 
         defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
             final_lr=final_lr,
             gamma=gamma,
-            eps=eps,
             weight_decay=weight_decay,
             amsbound=amsbound,
+            eps=eps,
         )
         super().__init__(params, defaults)
 
@@ -114,8 +114,6 @@ class AdaBound(Optimizer):
                 if amsbound:
                     max_exp_avg_sq = state['max_exp_avg_sq']
 
-                beta1, beta2 = group['betas']
-
                 state['step'] += 1
 
                 if self.weight_decouple:
@@ -127,10 +125,12 @@ class AdaBound(Optimizer):
                     if group['weight_decay'] != 0:
                         grad.add_(p.data, alpha=group['weight_decay'])
 
+                beta1, beta2 = group['betas']
+
                 exp_avg.mul_(beta1).add_(1 - beta1, grad)
                 exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
                 if amsbound:
-                    torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
+                    max_exp_avg_sq = torch.max(max_exp_avg_sq, exp_avg_sq)
                     denom = max_exp_avg_sq.sqrt().add_(group['eps'])
                 else:
                     denom = exp_avg_sq.sqrt().add_(group['eps'])

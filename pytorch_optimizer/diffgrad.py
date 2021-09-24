@@ -77,24 +77,19 @@ class DiffGrad(Optimizer):
                     raise RuntimeError('diffGrad does not support sparse gradients')
 
                 state = self.state[p]
-
                 if len(state) == 0:
                     state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p.data)
                     state['exp_avg_sq'] = torch.zeros_like(p.data)
                     state['previous_grad'] = torch.zeros_like(p.data)
 
-                exp_avg, exp_avg_sq, previous_grad = (
-                    state['exp_avg'],
-                    state['exp_avg_sq'],
-                    state['previous_grad'],
-                )
-                beta1, beta2 = group['betas']
-
-                state['step'] += 1
+                exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
 
                 if group['weight_decay'] != 0:
                     grad.add_(group['weight_decay'], p.data)
+
+                state['step'] += 1
+                beta1, beta2 = group['betas']
 
                 # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(1 - beta1, grad)

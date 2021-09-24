@@ -2,6 +2,12 @@ from typing import Optional, Tuple, Union
 
 import torch
 
+from pytorch_optimizer.types import PARAMETERS
+
+
+def is_valid_parameters(parameters: PARAMETERS) -> bool:
+    return isinstance(parameters, (list, tuple)) and len(parameters) > 0 and isinstance(parameters[0], dict)
+
 
 def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> torch.Tensor:
     """normalize gradient with stddev

@@ -87,6 +87,7 @@ class SAM(Optimizer):
             for p in group['params']:
                 if p.grad is None:
                     continue
+
                 self.state[p]['old_p'] = p.data.clone()
                 e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * p.grad * scale.to(p)
                 # climb to the local maximum "w + e(w)"
@@ -125,7 +126,7 @@ class SAM(Optimizer):
     def grad_norm(self) -> torch.Tensor:
         # put everything on the same device, in case of model parallelism
         shared_device = self.param_groups[0]['params'][0].device
-        norm = torch.norm(
+        return torch.norm(
             torch.stack(
                 [
                     ((torch.abs(p) if group['adaptive'] else 1.0) * p.grad).norm(p=2).to(shared_device)
@@ -136,7 +137,6 @@ class SAM(Optimizer):
             ),
             p=2,
         )
-        return norm
 
     def load_state_dict(self, state_dict: Dict):
         super().load_state_dict(state_dict)
