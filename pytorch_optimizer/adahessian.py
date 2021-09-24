@@ -1,4 +1,4 @@
-from typing import Dict, Iterable
+from typing import Iterable, List
 
 import torch
 from torch.optim import Optimizer
@@ -90,7 +90,7 @@ class AdaHessian(Optimizer):
         if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
 
-    def get_params(self) -> Iterable[Dict]:
+    def get_params(self) -> Iterable:
         """Gets all parameters in all param_groups with gradients"""
         return (p for group in self.param_groups for p in group['params'] if p.requires_grad)
 
@@ -119,11 +119,12 @@ class AdaHessian(Optimizer):
             # hackish way of casting the generator to the right device
             self.generator = torch.Generator(params[0].device).manual_seed(self.seed)
 
-        grads = [p.grad for p in params]
+        grads: List[torch.Tensor] = [p.grad for p in params]
 
         for i in range(self.num_samples):
             # Rademacher distribution {-1.0, 1.0}
             zs = [torch.randint(0, 2, p.size(), generator=self.generator, device=p.device) * 2.0 - 1.0 for p in params]
+
             # note that, possible memory leak due to retrain_graph=True
             h_zs = torch.autograd.grad(
                 grads,
@@ -155,21 +156,18 @@ class AdaHessian(Optimizer):
                     p.hess = torch.abs(p.hess).mean(dim=[2, 3], keepdim=True).expand_as(p.hess).clone()
 
                 # Perform correct step-weight decay as in AdamW
-                p.mul_(1 - group['lr'] * group['weight_decay'])
+                p.mul_(1.0 - group['lr'] * group['weight_decay'])
 
                 state = self.state[p]
-
                 if len(state) == 1:
                     state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p.data)
                     state['exp_hessian_diag_sq'] = torch.zeros_like(p.data)
 
-                exp_avg, exp_hessian_diag_sq = (
-                    state['exp_avg'],
-                    state['exp_hessian_diag_sq'],
-                )
-                beta1, beta2 = group['betas']
+                exp_avg, exp_hessian_diag_sq = state['exp_avg'], state['exp_hessian_diag_sq']
+
                 state['step'] += 1
+                beta1, beta2 = group['betas']
 
                 # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(p.grad, alpha=1 - beta1)
@@ -178,8 +176,8 @@ class AdaHessian(Optimizer):
                 bias_correction1 = 1 - beta1 ** state['step']
                 bias_correction2 = 1 - beta2 ** state['step']
 
-                k = group['hessian_power']
-                denom = (exp_hessian_diag_sq / bias_correction2).pow_(k / 2).add_(group['eps'])
+                hessian_power = group['hessian_power']
+                denom = (exp_hessian_diag_sq / bias_correction2).pow_(hessian_power / 2).add_(group['eps'])
 
                 step_size = group['lr'] / bias_correction1
                 p.addcdiv_(exp_avg, denom, value=-step_size)

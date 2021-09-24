@@ -131,8 +131,8 @@ class SGDP(Optimizer):
                     continue
 
                 grad = p.grad.data
-                state = self.state[p]
 
+                state = self.state[p]
                 if len(state) == 0:
                     state['momentum'] = torch.zeros_like(p.data)
 

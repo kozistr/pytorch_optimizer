@@ -3,7 +3,8 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
+from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
+from pytorch_optimizer.utils import is_valid_parameters
 
 
 class DiffRGrad(Optimizer):
@@ -52,19 +53,20 @@ class DiffRGrad(Optimizer):
 
         self.check_valid_parameters()
 
-        if isinstance(params, (list, tuple)) and len(params) > 0 and isinstance(params[0], dict):
+        buffer: BUFFER = [[None, None, None] for _ in range(10)]
+
+        if is_valid_parameters(params):
             for param in params:
                 if 'betas' in param and (param['betas'][0] != betas[0] or param['betas'][1] != betas[1]):
-                    param['buffer'] = [[None, None, None] for _ in range(10)]
+                    param['buffer'] = buffer
 
         defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
             eps=eps,
             weight_decay=weight_decay,
-            buffer=[[None, None, None] for _ in range(10)],
+            buffer=buffer,
         )
-
         super().__init__(params, defaults)
 
     def check_valid_parameters(self):
@@ -97,8 +99,8 @@ class DiffRGrad(Optimizer):
                     raise RuntimeError('diffGrad does not support sparse gradients')
 
                 p_data_fp32 = p.data.float()
-                state = self.state[p]
 
+                state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p_data_fp32)
@@ -109,14 +111,10 @@ class DiffRGrad(Optimizer):
                     state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_data_fp32)
                     state['previous_grad'] = state['previous_grad'].type_as(p_data_fp32)
 
-                exp_avg, exp_avg_sq, previous_grad = (
-                    state['exp_avg'],
-                    state['exp_avg_sq'],
-                    state['previous_grad'],
-                )
-                beta1, beta2 = group['betas']
+                exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
 
                 state['step'] += 1
+                beta1, beta2 = group['betas']
 
                 exp_avg.mul_(beta1).add_(1 - beta1, grad)
                 exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
@@ -151,6 +149,7 @@ class DiffRGrad(Optimizer):
                         step_size = 1.0 / (1 - beta1 ** state['step'])
                     else:
                         step_size = -1
+
                     buffered[2] = step_size
 
                 if n_sma >= self.n_sma_threshold:

@@ -4,7 +4,8 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.utils import is_valid_parameters
 
 
 class RAdam(Optimizer):
@@ -51,17 +52,19 @@ class RAdam(Optimizer):
 
         self.check_valid_parameters()
 
-        if isinstance(params, (list, tuple)) and len(params) > 0 and isinstance(params[0], dict):
+        buffer: BUFFER = [[None, None, None] for _ in range(10)]
+
+        if is_valid_parameters(params):
             for param in params:
                 if 'betas' in param and (param['betas'][0] != betas[0] or param['betas'][1] != betas[1]):
-                    param['buffer'] = [[None, None, None] for _ in range(10)]
+                    param['buffer'] = buffer
 
         defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
             eps=eps,
             weight_decay=weight_decay,
-            buffer=[[None, None, None] for _ in range(10)],
+            buffer=buffer,
         )
 
         super().__init__(params, defaults)
