@@ -4,19 +4,17 @@ from pylint.lint import Run
 
 
 def get_configuration() -> Namespace:
-    parser = ArgumentParser(prog='LINT')
+    parser = ArgumentParser(description='pylint configuration')
     parser.add_argument(
         '-p',
         '--path',
-        help='path to directory you want to run pylint | ' 'Default: %(default)s | ' 'Type: %(type)s ',
         default='pytorch_optimizer',
         type=str,
     )
     parser.add_argument(
         '-t',
         '--threshold',
-        help='score threshold to fail pylint runner | ' 'Default: %(default)s | ' 'Type: %(type)s ',
-        default=9.5,
+        default=9.75,
         type=float,
     )
 
