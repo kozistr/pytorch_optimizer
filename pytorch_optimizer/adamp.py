@@ -5,6 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 
+from pytorch_optimizer.gc import centralize_gradient
 from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
@@ -32,6 +33,7 @@ class AdamP(Optimizer):
         weight_decay: float = 0.0,
         delta: float = 0.1,
         wd_ratio: float = 0.1,
+        use_gc: bool = False,
         nesterov: bool = False,
         eps: float = 1e-8,
     ):
@@ -43,6 +45,7 @@ class AdamP(Optimizer):
         :param delta: float. threshold that determines whether a set of parameters is scale invariant or not
         :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
             on scale-variant parameters
+        :param use_gc: bool. use gradient centralization
         :param nesterov: bool. enables Nesterov momentum
         :param eps: float. term added to the denominator to improve numerical stability
         """
@@ -50,6 +53,7 @@ class AdamP(Optimizer):
         self.betas = betas
         self.weight_decay = weight_decay
         self.wd_ratio = wd_ratio
+        self.use_gc = use_gc
         self.eps = eps
 
         self.check_valid_parameters()
@@ -145,6 +149,9 @@ class AdamP(Optimizer):
                 bias_correction2 = 1 - beta2 ** state['step']
 
                 grad = p.grad.data
+
+                if self.use_gc:
+                    grad = centralize_gradient(grad, gc_conv_only=False)
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
