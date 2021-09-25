@@ -32,10 +32,9 @@ def main():
 
     final_score: float = results.linter.stats['global_note']
     if final_score < threshold:
-        print(f'PyLint Failed | score: {final_score:.2f} | threshold: {threshold:.2f}')
-        raise Exception
-    else:
-        print(f'PyLint Passed | score: {final_score:.2f} | threshold: {threshold:.2f}')
+        raise Exception(f'PyLint Failed | score {final_score:.2f} < threshold {threshold:.2f}')
+
+    print(f'[+] PyLint Passed | score {final_score:.2f} > threshold {threshold:.2f}')
 
 
 if __name__ == '__main__':
