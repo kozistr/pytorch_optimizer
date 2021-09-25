@@ -4,6 +4,7 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
+from pytorch_optimizer.gc import centralize_gradient
 from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
@@ -117,8 +118,8 @@ class Ranger(Optimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
 
-                if grad.dim() > self.gc_gradient_threshold:
-                    grad.add_(-grad.mean(dim=tuple(range(1, grad.dim())), keepdim=True))
+                if self.use_gc and grad.dim() > self.gc_gradient_threshold:
+                    grad = centralize_gradient(grad, gc_conv_only=False)
 
                 state['step'] += 1
 
