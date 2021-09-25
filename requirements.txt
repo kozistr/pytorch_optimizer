@@ -8,5 +8,5 @@
 -i https://pypi.org/simple
 --trusted-host pypi.org
 numpy==1.21.2
-torch==1.9.0
+torch==1.9.1
 typing-extensions==3.10.0.2
