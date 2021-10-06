@@ -67,7 +67,7 @@ class AdamP(Optimizer):
             nesterov=nesterov,
             eps=eps,
         )
-        super().__init__(params=params, default=defaults)
+        super().__init__(params, defaults)
 
     def check_valid_parameters(self):
         if self.lr < 0.0:
