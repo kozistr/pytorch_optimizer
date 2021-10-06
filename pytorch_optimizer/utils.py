@@ -26,7 +26,7 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
     return x
 
 
-def unit_norm(x: torch.Tensor) -> torch.Tensor:
+def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
     keep_dim: bool = True
     dim: Optional[Union[int, Tuple[int, ...]]] = None
 
@@ -40,4 +40,4 @@ def unit_norm(x: torch.Tensor) -> torch.Tensor:
     else:
         dim = tuple(range(1, x_len))
 
-    return x.norm(dim=dim, keepdim=keep_dim, p=2.0)
+    return x.norm(dim=dim, keepdim=keep_dim, p=norm)
