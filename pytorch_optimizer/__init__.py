@@ -17,4 +17,4 @@ from pytorch_optimizer.ranger21 import Ranger21
 from pytorch_optimizer.sam import SAM
 from pytorch_optimizer.sgdp import SGDP
 
-__VERSION__ = '0.0.11'
+__VERSION__ = '0.1.0'
