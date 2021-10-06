@@ -82,7 +82,7 @@ Also, most of the captures are taken from ``Ranger21`` paper.
 +------------------------------------------+---------------------------------------------+--------------------------------------------+
 | `Lookahead`_                             | `Chebyshev learning rate schedule`_         | `(Adaptive) Sharpness-Aware Minimization`_ |
 +------------------------------------------+---------------------------------------------+--------------------------------------------+
-| `On the Convergence of Adam and Beyond`_ | `Gradient Surgery for Multi-Task Learning`_ |                                            |                                            |
+| `On the Convergence of Adam and Beyond`_ | `Gradient Surgery for Multi-Task Learning`_ |                                            |
 +------------------------------------------+---------------------------------------------+--------------------------------------------+
 
 Adaptive Gradient Clipping
