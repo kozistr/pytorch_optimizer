@@ -73,17 +73,17 @@ of the ideas are applied in ``Ranger21`` optimizer.
 
 Also, most of the captures are taken from ``Ranger21`` paper.
 
-+------------------------------------------+-------------------------------------+--------------------------------------------+
-| `Adaptive Gradient Clipping`_            | `Gradient Centralization`_          | `Softplus Transformation`_                 |
-+------------------------------------------+-------------------------------------+--------------------------------------------+
-| `Gradient Normalization`_                | `Norm Loss`_                        | `Positive-Negative Momentum`_              |
-+------------------------------------------+-------------------------------------+--------------------------------------------+
-| `Linear learning rate warmup`_           | `Stable weight decay`_              | `Explore-exploit learning rate schedule`_  |
-+------------------------------------------+-------------------------------------+--------------------------------------------+
-| `Lookahead`_                             | `Chebyshev learning rate schedule`_ | `(Adaptive) Sharpness-Aware Minimization`_ |
-+------------------------------------------+-------------------------------------+--------------------------------------------+
-| `On the Convergence of Adam and Beyond`_ |                                     |                                            |
-+------------------------------------------+-------------------------------------+--------------------------------------------+
++------------------------------------------+---------------------------------------------+--------------------------------------------+
+| `Adaptive Gradient Clipping`_            | `Gradient Centralization`_                  | `Softplus Transformation`_                 |
++------------------------------------------+---------------------------------------------+--------------------------------------------+
+| `Gradient Normalization`_                | `Norm Loss`_                                | `Positive-Negative Momentum`_              |
++------------------------------------------+---------------------------------------------+--------------------------------------------+
+| `Linear learning rate warmup`_           | `Stable weight decay`_                      | `Explore-exploit learning rate schedule`_  |
++------------------------------------------+---------------------------------------------+--------------------------------------------+
+| `Lookahead`_                             | `Chebyshev learning rate schedule`_         | `(Adaptive) Sharpness-Aware Minimization`_ |
++------------------------------------------+---------------------------------------------+--------------------------------------------+
+| `On the Convergence of Adam and Beyond`_ | `Gradient Surgery for Multi-Task Learning`_ |                                            |                                            |
++------------------------------------------+---------------------------------------------+--------------------------------------------+
 
 Adaptive Gradient Clipping
 --------------------------
@@ -194,6 +194,11 @@ On the Convergence of Adam and Beyond
 -------------------------------------
 
 - paper : `paper <https://openreview.net/forum?id=ryQu7f-RZ>`__
+
+Gradient Surgery for Multi-Task Learning
+----------------------------------------
+
+- paper : `paper <https://arxiv.org/abs/2001.06782>`__
 
 Citations
 ---------
@@ -428,6 +433,17 @@ On the Convergence of Adam and Beyond
       author={Reddi, Sashank J and Kale, Satyen and Kumar, Sanjiv},
       journal={arXiv preprint arXiv:1904.09237},
       year={2019}
+    }
+
+Gradient Surgery for Multi-Task Learning
+
+::
+
+    @article{yu2020gradient,
+      title={Gradient surgery for multi-task learning},
+      author={Yu, Tianhe and Kumar, Saurabh and Gupta, Abhishek and Levine, Sergey and Hausman, Karol and Finn, Chelsea},
+      journal={arXiv preprint arXiv:2001.06782},
+      year={2020}
     }
 
 Author
