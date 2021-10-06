@@ -61,15 +61,41 @@ class PCGrad:
                 p.grad = grads[idx]
                 idx += 1
 
-    def pc_backward(self, objectives: Iterable[nn.Module]):
-        """Calculate the gradient of the parameters
-        :param objectives: Iterable[nn.Module]. a list of objectives
+    def retrieve_grad(self):
+        """get the gradient of the parameters of the network with specific objective"""
+        grad, shape, has_grad = [], [], []
+        for group in self.optimizer.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    shape.append(p.shape)
+                    grad.append(torch.zeros_like(p).to(p.device))
+                    has_grad.append(torch.zeros_like(p).to(p.device))
+                    continue
+
+                shape.append(p.grad.shape)
+                grad.append(p.grad.clone())
+                has_grad.append(torch.ones_like(p).to(p.device))
+
+        return grad, shape, has_grad
+
+    def pack_grad(self, objectives: Iterable[nn.Module]):
+        """pack the gradient of the parameters of the network for each objective
+        :param objectives: Iterable[float]. a list of objectives
         :return:
         """
-        grads, shapes, has_grads = self.pack_grad(objectives)
-        pc_grad = self.project_conflicting(grads, has_grads)
-        pc_grad = self.un_flatten_grad(pc_grad, shapes[0])
-        self.set_grad(pc_grad)
+        grads, shapes, has_grads = [], [], []
+        for objective in objectives:
+            self.zero_grad()
+
+            objective.backward(retain_graph=True)
+
+            grad, shape, has_grad = self.retrieve_grad()
+
+            grads.append(self.flatten_grad(grad))
+            has_grads.append(self.flatten_grad(has_grad))
+            shapes.append(shape)
+
+        return grads, shapes, has_grads
 
     def project_conflicting(self, grads, has_grads) -> torch.Tensor:
         """
@@ -99,40 +125,13 @@ class PCGrad:
 
         return merged_grad
 
-    def retrieve_grad(self):
-        """Get the gradient of the parameters of the network with specific objective
+    def pc_backward(self, objectives: Iterable[nn.Module]):
+        """calculate the gradient of the parameters
+        :param objectives: Iterable[nn.Module]. a list of objectives
         :return:
         """
-        grad, shape, has_grad = [], [], []
-        for group in self.optimizer.param_groups:
-            for p in group['params']:
-                if p.grad is None:
-                    shape.append(p.shape)
-                    grad.append(torch.zeros_like(p).to(p.device))
-                    has_grad.append(torch.zeros_like(p).to(p.device))
-                    continue
+        grads, shapes, has_grads = self.pack_grad(objectives)
+        pc_grad = self.project_conflicting(grads, has_grads)
+        pc_grad = self.un_flatten_grad(pc_grad, shapes[0])
 
-                shape.append(p.grad.shape)
-                grad.append(p.grad.clone())
-                has_grad.append(torch.ones_like(p).to(p.device))
-
-        return grad, shape, has_grad
-
-    def pack_grad(self, objectives: Iterable[nn.Module]):
-        """Pack the gradient of the parameters of the network for each objective
-        :param objectives: Iterable[float]. a list of objectives
-        :return:
-        """
-        grads, shapes, has_grads = [], [], []
-        for objective in objectives:
-            self.zero_grad()
-
-            objective.backward(retain_graph=True)
-
-            grad, shape, has_grad = self.retrieve_grad()
-
-            grads.append(self.flatten_grad(grad))
-            has_grads.append(self.flatten_grad(has_grad))
-            shapes.append(shape)
-
-        return grads, shapes, has_grads
+        self.set_grad(pc_grad)
