@@ -1,6 +1,7 @@
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import torch
+from torch import nn
 
 from pytorch_optimizer.types import PARAMETERS
 
@@ -41,3 +42,17 @@ def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
         dim = tuple(range(1, x_len))
 
     return x.norm(dim=dim, keepdim=keep_dim, p=norm)
+
+
+def get_optimizer_parameters(
+    model: nn.Module, weight_decay: float, wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight')
+) -> PARAMETERS:
+    param_optimizer: List[Tuple[str, nn.Parameter]] = list(model.named_parameters())
+
+    return [
+        {
+            'params': [p for n, p in param_optimizer if not any(nd in n for nd in wd_ban_list)],
+            'weight_decay': weight_decay,
+        },
+        {'params': [p for n, p in param_optimizer if any(nd in n for nd in wd_ban_list)], 'weight_decay': 0.0},
+    ]
