@@ -27,18 +27,24 @@ Simple Usage
 
 ::
 
-    from pytorch_optimizer import Ranger21
+    from pytorch_optimizer import AdamP
 
     ...
     model = YourModel()
-    optimizer = Ranger21(model.parameters())
+    optimizer = AdamP(model.parameters())
     ...
 
-    for input, output in data:
-      optimizer.zero_grad()
-      loss = loss_function(output, model(input))
-      loss.backward()
-      optimizer.step()
+or you can use optimizer loader, simply passing a name of the optimizer.
+
+::
+
+    from pytorch_optimizer import load_optimizers
+
+    ...
+    model = YourModel()
+    opt = load_optimizers(optimizer='adamp', use_fp16=True)
+    optimizer = opt(model.parameters())
+    ...
 
 Supported Optimizers
 --------------------
