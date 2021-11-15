@@ -13,7 +13,7 @@ def is_valid_parameters(parameters: PARAMETERS) -> bool:
 
 def has_overflow(grad_norm: torch.Tensor) -> bool:
     """Detect inf and NaN in grad_norm."""
-    return grad_norm == float('inf') or grad_norm != grad_norm
+    return grad_norm == float('inf') or grad_norm != grad_norm  # pylint: disable=comparison-with-itself
 
 
 def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> torch.Tensor:
