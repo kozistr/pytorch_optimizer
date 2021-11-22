@@ -454,6 +454,17 @@ Gradient Surgery for Multi-Task Learning
       year={2020}
     }
 
+AdamD: Improved bias-correction in Adam
+
+::
+
+    @article{john2021adamd,
+      title={AdamD: Improved bias-correction in Adam},
+      author={John, John St},
+      journal={arXiv preprint arXiv:2110.10828},
+      year={2021}
+    }
+
 Author
 ------
 
