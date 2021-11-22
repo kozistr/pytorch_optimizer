@@ -193,9 +193,8 @@ class AdaBelief(Optimizer):
                                 step_size = rt
                             else:
                                 step_size = rt / bias_correction1
-
                         elif self.degenerated_to_sgd:
-                            step_size = 1.0 / (1.0 - beta1 ** state['step'])
+                            step_size = 1.0 / bias_correction1
                         else:
                             step_size = -1
 
