@@ -29,6 +29,7 @@ class DiffGrad(Optimizer):
         betas: BETAS = (0.9, 0.999),
         eps: float = 1e-8,
         weight_decay: float = 0.0,
+        adamd_debias_term: bool = False,
     ):
         """
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
@@ -36,6 +37,7 @@ class DiffGrad(Optimizer):
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
+        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
         """
         self.lr = lr
         self.eps = eps
@@ -44,7 +46,9 @@ class DiffGrad(Optimizer):
 
         self.check_valid_parameters()
 
-        defaults: DEFAULTS = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
+        defaults: DEFAULTS = dict(
+            lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, adamd_debias_term=adamd_debias_term
+        )
         super().__init__(params, defaults)
 
     def check_valid_parameters(self):
@@ -107,7 +111,10 @@ class DiffGrad(Optimizer):
                 # update momentum with dfc
                 exp_avg1 = exp_avg * dfc
 
-                step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
+                if group['adamd_debias_term']:
+                    step_size = group['lr'] * math.sqrt(bias_correction2)
+                else:
+                    step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
 
                 p.data.addcdiv_(-step_size, exp_avg1, denom)
 

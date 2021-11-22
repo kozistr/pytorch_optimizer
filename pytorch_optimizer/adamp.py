@@ -35,6 +35,7 @@ class AdamP(Optimizer):
         wd_ratio: float = 0.1,
         use_gc: bool = False,
         nesterov: bool = False,
+        adamd_debias_term: bool = False,
         eps: float = 1e-8,
     ):
         """
@@ -47,6 +48,7 @@ class AdamP(Optimizer):
             on scale-variant parameters
         :param use_gc: bool. use gradient centralization
         :param nesterov: bool. enables Nesterov momentum
+        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
         :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
@@ -65,6 +67,7 @@ class AdamP(Optimizer):
             delta=delta,
             wd_ratio=wd_ratio,
             nesterov=nesterov,
+            adamd_debias_term=adamd_debias_term,
             eps=eps,
         )
         super().__init__(params, defaults)
@@ -157,10 +160,12 @@ class AdamP(Optimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
 
                 denom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
-                step_size = group['lr'] / bias_correction1
+                if group['adamd_debias_term']:
+                    step_size = group['lr']
+                else:
+                    step_size = group['lr'] / bias_correction1
 
-                nesterov = group['nesterov']
-                if nesterov:
+                if group['nesterov']:
                     perturb = (beta1 * exp_avg + (1 - beta1) * grad) / denom
                 else:
                     perturb = exp_avg / denom

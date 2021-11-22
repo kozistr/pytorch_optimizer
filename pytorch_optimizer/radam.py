@@ -32,6 +32,7 @@ class RAdam(Optimizer):
         weight_decay: float = 0.0,
         n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = False,
+        adamd_debias_term: bool = False,
         eps: float = 1e-8,
     ):
         """
@@ -41,6 +42,7 @@ class RAdam(Optimizer):
         :param weight_decay: float. weight decay (L2 penalty)
         :param n_sma_threshold: int. (recommended is 5)
         :param degenerated_to_sgd: float.
+        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
         :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
@@ -64,6 +66,7 @@ class RAdam(Optimizer):
             betas=betas,
             eps=eps,
             weight_decay=weight_decay,
+            adamd_debias_term=adamd_debias_term,
             buffer=buffer,
         )
 
@@ -113,6 +116,8 @@ class RAdam(Optimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
 
+                bias_correction1 = 1 - beta1 ** state['step']
+
                 exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
                 exp_avg.mul_(beta1).add_(1 - beta1, grad)
 
@@ -128,7 +133,7 @@ class RAdam(Optimizer):
                     buffered[1] = n_sma
 
                     if n_sma >= self.n_sma_threshold:
-                        step_size = math.sqrt(
+                        rt = math.sqrt(
                             (1 - beta2_t)
                             * (n_sma - 4)
                             / (n_sma_max - 4)
@@ -136,9 +141,14 @@ class RAdam(Optimizer):
                             / n_sma
                             * n_sma_max
                             / (n_sma_max - 2)
-                        ) / (1.0 - beta1 ** state['step'])
+                        )
+
+                        if group['adamd_debias_term']:
+                            step_size = rt
+                        else:
+                            step_size = rt / bias_correction1
                     elif self.degenerated_to_sgd:
-                        step_size = 1.0 / (1 - beta1 ** state['step'])
+                        step_size = 1.0 / bias_correction1
                     else:
                         step_size = -1
                     buffered[2] = step_size
