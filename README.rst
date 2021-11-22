@@ -58,6 +58,8 @@ Supported Optimizers
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | AdaHessian   | *An Adaptive Second Order Optimizer for Machine Learning*                              | `github <https://github.com/amirgholami/adahessian>`__                            | `https://arxiv.org/abs/2006.00719 <https://arxiv.org/abs/2006.00719>`__                       |
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| AdamD        | *Improved bias-correction in Adam*                                                     |                                                                                   | `https://arxiv.org/abs/2110.10828 <https://arxiv.org/abs/2110.10828>`__                       |
++--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | AdamP        | *Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights*         | `github <https://github.com/clovaai/AdamP>`__                                     | `https://arxiv.org/abs/2006.08217 <https://arxiv.org/abs/2006.08217>`__                       |
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | diffGrad     | *An Optimization Method for Convolutional Neural Networks*                             | `github <https://github.com/shivram1987/diffGrad>`__                              | `https://arxiv.org/abs/1909.11015v3 <https://arxiv.org/abs/1909.11015v3>`__                   |
@@ -450,6 +452,17 @@ Gradient Surgery for Multi-Task Learning
       author={Yu, Tianhe and Kumar, Saurabh and Gupta, Abhishek and Levine, Sergey and Hausman, Karol and Finn, Chelsea},
       journal={arXiv preprint arXiv:2001.06782},
       year={2020}
+    }
+
+AdamD: Improved bias-correction in Adam
+
+::
+
+    @article{john2021adamd,
+      title={AdamD: Improved bias-correction in Adam},
+      author={John, John St},
+      journal={arXiv preprint arXiv:2110.10828},
+      year={2021}
     }
 
 Author

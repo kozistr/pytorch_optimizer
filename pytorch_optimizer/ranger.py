@@ -36,6 +36,7 @@ class Ranger(Optimizer):
         weight_decay: float = 0.0,
         use_gc: bool = True,
         gc_conv_only: bool = False,
+        adamd_debias_term: bool = False,
     ):
         """
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
@@ -45,6 +46,7 @@ class Ranger(Optimizer):
         :param n_sma_threshold: int. (recommended is 5)
         :param use_gc: bool. use Gradient Centralization (both convolution & fc layers)
         :param gc_conv_only: bool. use Gradient Centralization (only convolution layer)
+        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
         :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
@@ -70,6 +72,7 @@ class Ranger(Optimizer):
             n_sma_threshold=n_sma_threshold,
             eps=eps,
             weight_decay=weight_decay,
+            adamd_debias_term=adamd_debias_term,
         )
         super().__init__(params, defaults)
 
@@ -118,6 +121,8 @@ class Ranger(Optimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
 
+                bias_correction1 = 1 - beta1 ** state['step']
+
                 if self.use_gc and grad.dim() > self.gc_gradient_threshold:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
@@ -137,7 +142,7 @@ class Ranger(Optimizer):
                     n_sma = n_sma_max - 2 * state['step'] * beta2_t / (1 - beta2_t)
                     buffered[1] = n_sma
                     if n_sma > self.n_sma_threshold:
-                        step_size = math.sqrt(
+                        rt = math.sqrt(
                             (1 - beta2_t)
                             * (n_sma - 4)
                             / (n_sma_max - 4)
@@ -145,9 +150,14 @@ class Ranger(Optimizer):
                             / n_sma
                             * n_sma_max
                             / (n_sma_max - 2)
-                        ) / (1 - beta1 ** state['step'])
+                        )
+
+                        if group['adamd_debias_term']:
+                            step_size = rt
+                        else:
+                            step_size = rt / bias_correction1
                     else:
-                        step_size = 1.0 / (1 - beta1 ** state['step'])
+                        step_size = 1.0 / bias_correction1
 
                     buffered[2] = step_size
 

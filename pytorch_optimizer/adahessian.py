@@ -32,6 +32,7 @@ class AdaHessian(Optimizer):
         update_each: int = 1,
         num_samples: int = 1,
         average_conv_kernel: bool = False,
+        adamd_debias_term: bool = False,
         eps: float = 1e-8,
         seed: int = 2147483647,
     ):
@@ -44,6 +45,7 @@ class AdaHessian(Optimizer):
         :param update_each: int. compute the hessian trace approximation only after *this* number of steps
         :param num_samples: int. how many times to sample `z` for the approximation of the hessian trace
         :param average_conv_kernel: bool. average out the hessian traces of convolutional kernels as in the paper.
+        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
         :param eps: float. term added to the denominator to improve numerical stability
         :param seed: int.
         """
@@ -69,6 +71,7 @@ class AdaHessian(Optimizer):
             eps=eps,
             weight_decay=weight_decay,
             hessian_power=hessian_power,
+            adamd_debias_term=adamd_debias_term,
         )
         super().__init__(params, defaults)
 
@@ -179,7 +182,11 @@ class AdaHessian(Optimizer):
                 hessian_power = group['hessian_power']
                 denom = (exp_hessian_diag_sq / bias_correction2).pow_(hessian_power / 2).add_(group['eps'])
 
-                step_size = group['lr'] / bias_correction1
+                if group['adamd_debias_term']:
+                    step_size = group['lr']
+                else:
+                    step_size = group['lr'] / bias_correction1
+
                 p.addcdiv_(exp_avg, denom, value=-step_size)
 
         return loss

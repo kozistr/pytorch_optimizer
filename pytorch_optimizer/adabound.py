@@ -34,6 +34,7 @@ class AdaBound(Optimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         amsbound: bool = False,
+        adamd_debias_term: bool = False,
         eps: float = 1e-8,
     ):
         """
@@ -46,6 +47,7 @@ class AdaBound(Optimizer):
         :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
         :param fixed_decay: bool.
         :param amsbound: bool. whether to use the AMSBound variant
+        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
         :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
@@ -62,6 +64,7 @@ class AdaBound(Optimizer):
             gamma=gamma,
             weight_decay=weight_decay,
             amsbound=amsbound,
+            adamd_debias_term=adamd_debias_term,
             eps=eps,
         )
         super().__init__(params, defaults)
@@ -84,6 +87,7 @@ class AdaBound(Optimizer):
         super().__setstate__(state)
         for group in self.param_groups:
             group.setdefault('amsbound', False)
+            group.setdefault('adamd_debias_term', False)
 
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
@@ -99,19 +103,17 @@ class AdaBound(Optimizer):
                 if grad.is_sparse:
                     raise RuntimeError('AdaBound does not support sparse gradients')
 
-                amsbound = group['amsbound']
-
                 state = self.state[p]
 
                 if len(state) == 0:
                     state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
-                    if amsbound:
+                    if group['amsbound']:
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                if amsbound:
+                if group['amsbound']:
                     max_exp_avg_sq = state['max_exp_avg_sq']
 
                 state['step'] += 1
@@ -129,7 +131,7 @@ class AdaBound(Optimizer):
 
                 exp_avg.mul_(beta1).add_(1 - beta1, grad)
                 exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
-                if amsbound:
+                if group['amsbound']:
                     max_exp_avg_sq = torch.max(max_exp_avg_sq, exp_avg_sq)
                     denom = max_exp_avg_sq.sqrt().add_(group['eps'])
                 else:
@@ -137,7 +139,11 @@ class AdaBound(Optimizer):
 
                 bias_correction1 = 1 - beta1 ** state['step']
                 bias_correction2 = 1 - beta2 ** state['step']
-                step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
+
+                if group['adamd_debias_term']:
+                    step_size = group['lr'] * math.sqrt(bias_correction2)
+                else:
+                    step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
 
                 final_lr = group['final_lr'] * group['lr'] / base_lr
                 lower_bound = final_lr * (1 - 1 / (group['gamma'] * state['step'] + 1))
