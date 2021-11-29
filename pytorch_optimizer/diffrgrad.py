@@ -33,7 +33,7 @@ class DiffRGrad(Optimizer):
         weight_decay: float = 0.0,
         n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = True,
-        adamd_debias_term: bool = adamd_debias_term,
+        adamd_debias_term: bool = False,
         eps: float = 1e-8,
     ):
         """Blend RAdam with DiffGrad
