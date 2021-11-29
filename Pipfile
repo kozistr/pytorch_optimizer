@@ -6,7 +6,7 @@ verify_ssl = false
 [dev-packages]
 isort = "==5.10.1"
 black = "==21.11b1"
-pylint = "==2.12.1"
+pylint = "==3.0.0a4"
 
 [packages]
 numpy = "==1.21.4"
