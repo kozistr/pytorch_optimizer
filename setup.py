@@ -89,5 +89,5 @@ setup(
     zip_safe=True,
     include_package_data=True,
     project_urls=PROJECT_URLS,
-    python_requires='>=3.7.0',
+    python_requires='>=3.6.0',
 )
