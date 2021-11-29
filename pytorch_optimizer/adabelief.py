@@ -161,11 +161,9 @@ class AdaBelief(Optimizer):
                     denom = (exp_avg_var.add_(group['eps']).sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
                 if not self.rectify:
-                    if group['adamd_debias_term']:
-                        step_size = group['lr']
-                    else:
-                        step_size = group['lr'] / bias_correction1
-
+                    step_size = group['lr']
+                    if not group['adamd_debias_term']:
+                        step_size /= bias_correction1
                     p.data.addcdiv_(exp_avg, denom, value=-step_size)
                 else:
                     buffered = group['buffer'][int(state['step'] % 10)]
@@ -189,10 +187,9 @@ class AdaBelief(Optimizer):
                                 / (n_sma_max - 2)
                             )
 
-                            if group['adamd_debias_term']:
-                                step_size = rt
-                            else:
-                                step_size = rt / bias_correction1
+                            step_size = rt
+                            if not group['adamd_debias_term']:
+                                step_size /= bias_correction1
                         elif self.degenerated_to_sgd:
                             step_size = 1.0 / bias_correction1
                         else:

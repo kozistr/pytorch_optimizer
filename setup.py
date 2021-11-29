@@ -33,6 +33,7 @@ CLASSIFIERS: List[str] = [
     'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
     'Operating System :: OS Independent',
     'Topic :: Scientific/Engineering :: Artificial Intelligence',
 ]
@@ -88,5 +89,5 @@ setup(
     zip_safe=True,
     include_package_data=True,
     project_urls=PROJECT_URLS,
-    python_requires='>=3.7.0',
+    python_requires='>=3.6.0',
 )

@@ -4,14 +4,13 @@ url = "https://pypi.org/simple"
 verify_ssl = false
 
 [dev-packages]
-isort = "==5.9.3"
-black = "==21.9b0"
-pylint = "==2.11.1"
-twine = "==3.4.2"
+isort = "==5.10.1"
+black = "==21.11b1"
+pylint = "==3.0.0a4"
 
 [packages]
-numpy = "==1.21.2"
-torch = "==1.9.1"
+numpy = "==1.21.4"
+torch = "==1.10.0"
 
 [requires]
 python_version = "3"
