@@ -20,4 +20,4 @@ from pytorch_optimizer.sam import SAM
 from pytorch_optimizer.sgdp import SGDP
 from pytorch_optimizer.utils import clip_grad_norm, get_optimizer_parameters, normalize_gradient, unit_norm
 
-__VERSION__ = '0.2.1'
+__VERSION__ = '0.2.2'
