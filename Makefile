@@ -1,7 +1,7 @@
 .PHONY: init format check build deploy requirements
 
 init:
-	python3 -m pip install -U pipenv setuptools wheel
+	python3 -m pip install -U pipenv setuptools
 	python3 -m pipenv install --dev
 
 format:
