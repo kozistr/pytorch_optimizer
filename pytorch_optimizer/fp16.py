@@ -30,11 +30,11 @@ class DynamicLossScaler:
         tolerance: float = 0.00,
         threshold: Optional[float] = None,
     ):
-        """
-        :param init_scale: Initial loss scale.
-        :param scale_factor: Factor by which to increase or decrease loss scale.
+        """Dynamic Loss Scaler for fp16 training
+        :param init_scale: Initial loss scale
+        :param scale_factor: Factor by which to increase or decrease loss scale
         :param scale_window: If we do not experience overflow in scale_window iterations,
-            loss scale will increase by scale_factor.
+            loss scale will increase by scale_factor
         :param tolerance: Pct of iterations that have overflowed after which we must decrease the loss scale
         :param threshold: If not None, loss scale will decrease below this threshold
         """
@@ -122,9 +122,9 @@ class SafeFP16Optimizer(Optimizer):
 
             offset: int = 0
             for p in parameters:
-                numel = p.data.numel()
-                fp32_params[offset : offset + numel].copy_(p.data.view(-1))
-                offset += numel
+                p_num_el = p.data.numel()
+                fp32_params[offset : offset + p_num_el].copy_(p.data.view(-1))
+                offset += p_num_el
 
             fp32_params = torch.nn.Parameter(fp32_params)
             fp32_params.grad = fp32_params.data.new(total_param_size)
@@ -139,7 +139,7 @@ class SafeFP16Optimizer(Optimizer):
         return fp32_params
 
     def state_dict(self) -> Dict:
-        """Return the optimizer's state dict."""
+        """Return the optimizer state dict."""
         state_dict = self.optimizer.state_dict()
         if self.scaler is not None:
             state_dict['loss_scaler'] = self.scaler.loss_scale
@@ -147,7 +147,7 @@ class SafeFP16Optimizer(Optimizer):
 
     def load_state_dict(self, state_dict: Dict):
         """Load an optimizer state dict.
-        In general we should prefer the configuration of the existing optimizer instance
+        In general, we should prefer the configuration of the existing optimizer instance
         (e.g., learning rate) over that found in the state_dict. This allows us to
         resume training from a checkpoint using a new set of optimizer args.
         """
