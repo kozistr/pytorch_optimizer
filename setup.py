@@ -13,20 +13,22 @@ def read_file(filename: str) -> str:
 def read_version() -> str:
     regexp = re.compile(r"^__VERSION__\W*=\W*'([\d.abrc]+)'")
 
-    with open(os.path.join(os.path.dirname(__file__), 'pytorch_optimizer', '__init__.py')) as f:
+    with open(os.path.join(os.path.dirname(__file__), 'pytorch_optimizer', 'version.py')) as f:
         for line in f:
             match = regexp.match(line)
             if match is not None:
                 return match.group(1)
 
-    raise RuntimeError('Cannot find version in pytorch_optimizer/__init__.py')
+    raise RuntimeError('Cannot find version in pytorch_optimizer/version.py')
 
 
-INSTALL_REQUIRES: List[str] = ['torch>=1.5.0']
+INSTALL_REQUIRES: List[str] = ['torch>=1.4.0']
 
 
 CLASSIFIERS: List[str] = [
     'License :: OSI Approved :: Apache Software License',
+    'Development Status :: 3 - Alpha',
+    'Intended Audience :: Education',
     'Intended Audience :: Developers',
     'Intended Audience :: Science/Research',
     'Programming Language :: Python :: 3',
@@ -35,7 +37,11 @@ CLASSIFIERS: List[str] = [
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Operating System :: OS Independent',
+    'Topic :: Scientific/Engineering',
     'Topic :: Scientific/Engineering :: Artificial Intelligence',
+    'Topic :: Software Development',
+    'Topic :: Software Development :: Libraries',
+    'Topic :: Software Development :: Libraries :: Python Modules',
 ]
 
 KEYWORDS: List[str] = sorted(
