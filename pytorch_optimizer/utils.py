@@ -18,9 +18,9 @@ def has_overflow(grad_norm: torch.Tensor) -> bool:
 
 def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> torch.Tensor:
     """normalize gradient with stddev
-    :param x: torch.Tensor. gradient.
-    :param use_channels: bool. channel-wise normalization.
-    :param epsilon: float. eps.
+    :param x: torch.Tensor. gradient
+    :param use_channels: bool. channel-wise normalization
+    :param epsilon: float. eps
     :return: torch.Tensor. normalized gradient.
     """
     size: int = x.dim()
@@ -36,12 +36,12 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
 def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> torch.Tensor:
     """Clips grad norms.
     During combination with FSDP, will also ensure that grad norms are aggregated
-    across all workers, since each worker only stores their shard of the gradients.
+    across all workers, since each worker only stores their shard of the gradients
     :param parameters: Parameters whose gradients we wish to clip
     :param max_norm: Maximum norm we wish the gradients to have. If non-positive, then
-        we will not perform clipping.
+        we will not perform clipping
     :param sync: Boolean indicating whether we should aggregate across the distributed
-        group. Used only in combination with FSDP.
+        group. Used only in combination with FSDP
     :returns: The gradient norm across all parameters, before clipping.
     """
     if isinstance(parameters, torch.Tensor):
