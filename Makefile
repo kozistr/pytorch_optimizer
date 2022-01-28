@@ -5,8 +5,8 @@ init:
 	python3 -m pipenv install --dev
 
 format:
-	isort --profile black -l 119 pytorch_optimizer setup.py lint.py
-	black -S -l 119 pytorch_optimizer setup.py lint.py
+	isort --profile black -l 119 pytorch_optimizer tests setup.py lint.py
+	black -S -l 119 pytorch_optimizer tests setup.py lint.py
 
 check:
 	isort --check-only --profile black -l 119 pytorch_optimizer tests setup.py lint.py
