@@ -121,8 +121,8 @@ class DiffRGrad(Optimizer):
 
                 bias_correction1 = 1 - beta1 ** state['step']
 
-                exp_avg.mul_(beta1).add_(1 - beta1, grad)
-                exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
+                exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
 
                 # compute diffGrad coefficient (dfc)
                 diff = abs(previous_grad - grad)
@@ -164,18 +164,18 @@ class DiffRGrad(Optimizer):
 
                 if n_sma >= self.n_sma_threshold:
                     if group['weight_decay'] != 0:
-                        p_data_fp32.add_(-group['weight_decay'] * group['lr'], p_data_fp32)
+                        p_data_fp32.add_(p_data_fp32, alpha=-group['weight_decay'] * group['lr'])
 
                     denom = exp_avg_sq.sqrt().add_(group['eps'])
 
                     # update momentum with dfc
-                    p_data_fp32.addcdiv_(-step_size * group['lr'], exp_avg * dfc.float(), denom)
+                    p_data_fp32.addcdiv_(exp_avg * dfc.float(), denom, value=-step_size * group['lr'])
                     p.data.copy_(p_data_fp32)
                 elif step_size > 0:
                     if group['weight_decay'] != 0:
-                        p_data_fp32.add_(-group['weight_decay'] * group['lr'], p_data_fp32)
+                        p_data_fp32.add_(p_data_fp32, alpha=-group['weight_decay'] * group['lr'])
 
-                    p_data_fp32.add_(-step_size * group['lr'], exp_avg)
+                    p_data_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
                     p.data.copy_(p_data_fp32)
 
         return loss
