@@ -67,6 +67,7 @@ KEYWORDS: List[str] = sorted(
         'diffrgrad',
         'pcgrad',
         'adamd',
+        'lamb',
     ]
 )
 
