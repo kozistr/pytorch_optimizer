@@ -121,15 +121,15 @@ class Ranger(Optimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
 
-                bias_correction1 = 1 - beta1 ** state['step']
-
                 if self.use_gc and grad.dim() > self.gc_gradient_threshold:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
                 state['step'] += 1
 
-                exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
-                exp_avg.mul_(beta1).add_(1 - beta1, grad)
+                exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
+
+                bias_correction1 = 1 - beta1 ** state['step']
 
                 buffered = self.buffer[int(state['step'] % 10)]
 
@@ -166,15 +166,15 @@ class Ranger(Optimizer):
 
                 if n_sma > self.n_sma_threshold:
                     denom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p_data_fp32.addcdiv_(-step_size * group['lr'], exp_avg, denom)
+                    p_data_fp32.addcdiv_(exp_avg, denom, value=-step_size * group['lr'])
                 else:
-                    p_data_fp32.add_(-step_size * group['lr'], exp_avg)
+                    p_data_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
 
                 p.data.copy_(p_data_fp32)
 
                 if state['step'] % group['k'] == 0:
                     slow_p = state['slow_buffer']
-                    slow_p.add_(self.alpha, p.data - slow_p)
+                    slow_p.add_(p.data - slow_p, alpha=self.alpha)
                     p.data.copy_(slow_p)
 
         return loss
