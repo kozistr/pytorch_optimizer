@@ -11,7 +11,6 @@ from pytorch_optimizer import (
     SGDP,
     AdaBelief,
     AdaBound,
-    AdaHessian,
     AdamP,
     DiffGrad,
     DiffRGrad,
@@ -19,8 +18,8 @@ from pytorch_optimizer import (
     Lookahead,
     RAdam,
     Ranger,
+    Ranger21,
 )
-from pytorch_optimizer.types import BETAS
 
 __REFERENCE__ = 'https://github.com/jettify/pytorch-optimizer/blob/master/tests/test_optimizer_with_nn.py'
 
@@ -67,7 +66,7 @@ def build_lookahead(*parameters, **kwargs):
     return Lookahead(AdamP(*parameters, **kwargs))
 
 
-OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int, BETAS]], int]] = [
+OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
     (AdaBelief, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
     (AdaBound, {'lr': 1e-2, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
@@ -79,6 +78,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int, BETAS]], int]] = [
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (SGDP, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (Ranger, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
+    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 1000}, 500),
     # (AdaHessian, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
 ]
 
