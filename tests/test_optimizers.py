@@ -78,7 +78,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int, BETAS]], int]] = [
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (SGDP, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    # (Ranger, {'lr': 1e-3, 'weight_decay': 1e-3, 'betas': (0.99, 0.999)}, 200),
+    (Ranger, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     # (AdaHessian, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
 ]
 
