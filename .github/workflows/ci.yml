@@ -30,7 +30,7 @@ jobs:
     - name: install dependencies
       run: |
         pip install -r requirements-dev.txt
-    - name: Check Lint
+    - name: check Lint
       run: |
           make check
     - name: check codecov
