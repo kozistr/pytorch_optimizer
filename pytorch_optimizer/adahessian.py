@@ -88,7 +88,7 @@ class AdaHessian(Optimizer):
             raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
         if not 0.0 <= self.betas[1] < 1.0:
             raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
-        if not 0.0 <= self.hessian_power < 1.0:
+        if not 0.0 <= self.hessian_power <= 1.0:
             raise ValueError(f'Invalid hessian_power : {self.hessian_power}')
         if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
