@@ -9,7 +9,7 @@ def ids(v) -> str:
     return f'{v[0].__name__}_{v[1:]}'
 
 
-OPTIMIZER_NAMES: List[str] = [
+VALID_OPTIMIZER_NAMES: List[str] = [
     'adamp',
     'sgdp',
     'madgrad',
@@ -25,7 +25,6 @@ OPTIMIZER_NAMES: List[str] = [
 ]
 
 INVALID_OPTIMIZER_NAMES: List[str] = [
-    'invalid',
     'asam',
     'sam',
     'pcgrad',
@@ -35,7 +34,7 @@ INVALID_OPTIMIZER_NAMES: List[str] = [
 ]
 
 
-@pytest.mark.parametrize('valid_optimizer_names', OPTIMIZER_NAMES)
+@pytest.mark.parametrize('valid_optimizer_names', VALID_OPTIMIZER_NAMES)
 def test_load_optimizers_valid(valid_optimizer_names):
     load_optimizers(valid_optimizer_names)
 
