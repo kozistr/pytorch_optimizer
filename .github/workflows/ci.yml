@@ -37,7 +37,5 @@ jobs:
       uses: codecov/codecov-action@v2
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        directory: ./coverage/reports/
-        path_to_write_report: ./coverage/codecov_report.txt
         fail_ci_if_error: true
         verbose: true
