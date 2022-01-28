@@ -4,7 +4,6 @@ import pytest
 
 from pytorch_optimizer import load_optimizers
 
-
 VALID_OPTIMIZER_NAMES: List[str] = [
     'adamp',
     'sgdp',
