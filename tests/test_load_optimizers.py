@@ -5,10 +5,6 @@ import pytest
 from pytorch_optimizer import load_optimizers
 
 
-def ids(v) -> str:
-    return f'{v[0].__name__}_{v[1:]}'
-
-
 VALID_OPTIMIZER_NAMES: List[str] = [
     'adamp',
     'sgdp',
