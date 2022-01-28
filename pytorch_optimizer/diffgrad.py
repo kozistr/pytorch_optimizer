@@ -90,14 +90,14 @@ class DiffGrad(Optimizer):
                 exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
 
                 if group['weight_decay'] != 0:
-                    grad.add_(group['weight_decay'], p.data)
+                    grad.add_(p.data, alpha=group['weight_decay'])
 
                 state['step'] += 1
                 beta1, beta2 = group['betas']
 
                 # Decay the first and second moment running average coefficient
-                exp_avg.mul_(beta1).add_(1 - beta1, grad)
-                exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
+                exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
                 denom = exp_avg_sq.sqrt().add_(group['eps'])
 
                 bias_correction1 = 1 - beta1 ** state['step']
@@ -116,6 +116,6 @@ class DiffGrad(Optimizer):
                 else:
                     step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
 
-                p.data.addcdiv_(-step_size, exp_avg1, denom)
+                p.data.addcdiv_(exp_avg1, denom, value=-step_size)
 
         return loss
