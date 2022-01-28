@@ -29,8 +29,10 @@ jobs:
           ${{ runner.os }}-
     - name: install dependencies
       run: pip install -r requirements-dev.txt
-    - name: check lint & test
+    - name: check lint
       run: make check
+    - name: check test
+      run: make test
     - name: check codecov
       uses: codecov/codecov-action@v2
       with:
