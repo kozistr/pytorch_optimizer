@@ -1,10 +1,10 @@
-from typing import Callable, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pytest
 import torch
 from torch import nn
-from torch.optim import Optimizer
+from torch.nn import functional as F
 
 from pytorch_optimizer import (
     MADGRAD,
@@ -27,10 +27,14 @@ __REFERENCE__ = 'https://github.com/jettify/pytorch-optimizer/blob/master/tests/
 class LogisticRegression(nn.Module):
     def __init__(self):
         super().__init__()
-        self.fc1 = nn.Linear(2, 1)
+        self.fc1 = nn.Linear(2, 2)
+        self.fc2 = nn.Linear(2, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.fc1(x)
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        return x
 
 
 def make_dataset(num_samples: int = 100, dims: int = 2, seed: int = 42) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -62,7 +66,7 @@ def build_lookahead(*parameters, **kwargs):
     return Lookahead(AdamP(*parameters, **kwargs))
 
 
-optimizers: List[Tuple[Optimizer, Dict[str, float]], int] = [
+optimizers: List[Tuple[Any, Dict[str, float], int]] = [
     (build_lookahead, {'lr': 0.1, 'weight_decay': 1e-3}, 200),
     (AdaBelief, {'lr': 0.1, 'weight_decay': 1e-3}, 200),
     (AdaBound, {'lr': 1.5, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
@@ -101,8 +105,10 @@ def test_optimizers(optimizer_config):
         if init_loss == np.inf:
             init_loss = loss
 
-        loss.backward(create_graph=True)
+        loss.backward()
 
         optimizer.step()
+
+    print(init_loss, loss)
 
     assert init_loss > 2.0 * loss
