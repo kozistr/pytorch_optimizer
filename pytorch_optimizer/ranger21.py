@@ -237,8 +237,8 @@ class Ranger21(Optimizer):
 
         # Phase 2 - Apply weight decay and step
         for group in self.param_groups:
-            step = group['step']
             lr = group['lr']
+            step = self.state[group['params'][0]]['step']
 
             # warm up
             lr = self.warm_up_dampening(lr, step)
