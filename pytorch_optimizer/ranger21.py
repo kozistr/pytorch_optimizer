@@ -59,20 +59,20 @@ class Ranger21(Optimizer):
         norm_loss_factor: float = 1e-4,
         eps: float = 1e-8,
     ):
-        """
+        """Ranger21
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate.
-        :param beta0: float. Manages the amplitude of the noise introduced by positive negative momentum.
-            While 0.9 is a recommended default value, you can use -0.5 to minimize the noise.
+        :param lr: float. learning rate
+        :param beta0: float. Manages the amplitude of the noise introduced by positive negative momentum
+            While 0.9 is a recommended default value, you can use -0.5 to minimize the noise
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param use_softplus: bool. use softplus to smooth
         :param beta_softplus: float. beta
-        :param agc_clipping_value: float.
-        :param agc_eps: float.
+        :param agc_clipping_value: float
+        :param agc_eps: float
         :param centralize_gradients: bool. use GC both convolution & fc layers
         :param normalize_gradients: bool. use gradient normalization
-        :param lookahead_merge_time: int.
-        :param lookahead_blending_alpha: float.
+        :param lookahead_merge_time: int. merge time
+        :param lookahead_blending_alpha: float. blending alpha
         :param weight_decay: float. weight decay (L2 penalty)
         :param norm_loss_factor: float. norm loss factor
         :param eps: float. term added to the denominator to improve numerical stability
