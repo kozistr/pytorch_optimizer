@@ -10,7 +10,7 @@ pylint = "==3.0.0a4"
 
 [packages]
 numpy = "==1.21.4"
-torch = "==1.10.0"
+torch = "==1.10.1"
 
 [requires]
 python_version = "3"
