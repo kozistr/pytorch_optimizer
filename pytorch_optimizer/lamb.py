@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch.optim import Optimizer
 
@@ -31,14 +33,16 @@ class Lamb(Optimizer):
         weight_decay: float = 0.0,
         adam: bool = False,
         adamd_debias_term: bool = False,
+        pre_norm: bool = False,
     ):
         """
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
+        :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
         :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
-        :param eps: float. term added to the denominator to improve numerical stability
+        :param pre_norm: bool. perform pre-normalization of all gradients
         """
         self.lr = lr
         self.betas = betas
@@ -46,6 +50,7 @@ class Lamb(Optimizer):
         self.eps = eps
         self.adam = adam
         self.adamd_debias_term = adamd_debias_term
+        self.pre_norm = pre_norm
 
         self.check_valid_parameters()
 
@@ -65,15 +70,35 @@ class Lamb(Optimizer):
         if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
 
+    def get_gradient_norm(self) -> float:
+        norm_sq: float = 0.0
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                norm_sq += torch.linalg.norm(p.grad).item() ** 2
+
+        norm = math.sqrt(norm_sq)
+
+        return norm
+
     def step(self, closure: CLOSURE = None) -> float:
         loss = None
         if closure is not None:
             loss = closure()
 
+        grad_norm: float = 1.0
+        if self.pre_norm:
+            grad_norm = self.get_gradient_norm()
+
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
                     continue
+
+                if self.pre_norm:
+                    p.grad /= grad_norm
 
                 grad = p.grad.data
                 if grad.is_sparse:
