@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import pytest
@@ -20,6 +20,7 @@ from pytorch_optimizer import (
     RAdam,
     Ranger,
 )
+from pytorch_optimizer.types import BETAS
 
 __REFERENCE__ = 'https://github.com/jettify/pytorch-optimizer/blob/master/tests/test_optimizer_with_nn.py'
 
@@ -66,23 +67,23 @@ def build_lookahead(*parameters, **kwargs):
     return Lookahead(AdamP(*parameters, **kwargs))
 
 
-optimizers: List[Tuple[Any, Dict[str, float], int]] = [
-    (build_lookahead, {'lr': 0.1, 'weight_decay': 1e-3}, 200),
-    (AdaBelief, {'lr': 0.1, 'weight_decay': 1e-3}, 200),
-    (AdaBound, {'lr': 1.5, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
-    (AdamP, {'lr': 0.045, 'weight_decay': 1e-3}, 800),
-    (DiffGrad, {'lr': 0.5, 'weight_decay': 1e-3}, 200),
-    (DiffRGrad, {'lr': 0.5, 'weight_decay': 1e-3}, 200),
-    (Lamb, {'lr': 0.0151, 'weight_decay': 1e-3}, 1000),
-    (MADGRAD, {'lr': 1.0, 'weight_decay': 1e-3}, 200),
-    (RAdam, {'lr': 1.0, 'weight_decay': 1e-3}, 200),
-    (Ranger, {'lr': 0.1, 'weight_decay': 1e-3}, 200),
-    (SGDP, {'lr': 1.0, 'weight_decay': 1e-3}, 200),
-    (AdaHessian, {'lr': 0.1, 'weight_decay': 1e-3}, 200),
+OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int, BETAS]], int]] = [
+    (build_lookahead, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
+    (AdaBelief, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
+    (AdaBound, {'lr': 1e-2, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
+    (AdamP, {'lr': 1e-3, 'weight_decay': 1e-3}, 800),
+    (DiffGrad, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
+    (DiffRGrad, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
+    (Lamb, {'lr': 1e-2, 'weight_decay': 1e-3}, 1000),
+    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
+    (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
+    (Ranger, {'lr': 1e-3, 'weight_decay': 1e-3, 'betas': (0.99, 0.999)}, 200),
+    (SGDP, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
+    (AdaHessian, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
 ]
 
 
-@pytest.mark.parametrize('optimizer_config', optimizers, ids=ids)
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 def test_optimizers(optimizer_config):
     torch.manual_seed(42)
 
@@ -108,7 +109,5 @@ def test_optimizers(optimizer_config):
         loss.backward()
 
         optimizer.step()
-
-    print(init_loss, loss)
 
     assert init_loss > 2.0 * loss
