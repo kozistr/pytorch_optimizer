@@ -19,6 +19,7 @@ class Lamb(Optimizer):
           loss.backward()
           optimizer.step()
     """
+
     clamp: float = 10.0
 
     def __init__(
