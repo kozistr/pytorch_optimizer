@@ -28,11 +28,13 @@ jobs:
           ${{ runner.os }}-pip-
           ${{ runner.os }}-
     - name: install dependencies
-      run: |
-        pip install -r requirements-dev.txt
+      run: pip install -r requirements-dev.txt
     - name: check Lint
+      run: make check
+    - name: check tests
       run: |
-          make check
+        export PYTHONDONTWRITEBYTECODE=1
+        pytest -vv --forked --durations=0 ./tests
     - name: check codecov
       uses: codecov/codecov-action@v2
       with:
