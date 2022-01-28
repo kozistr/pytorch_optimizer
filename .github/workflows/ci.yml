@@ -15,11 +15,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Cache pip
+    - name: cache pip
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
@@ -27,12 +27,17 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
           ${{ runner.os }}-
-    - name: Install dependencies
+    - name: install dependencies
       run: |
         pip install -r requirements-dev.txt
-    - name: Lint
-      run: |
-          make format
     - name: Check Lint
       run: |
           make check
+    - name: check codecov
+      uses: codecov/codecov-action@v2
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        directory: ./coverage/reports/
+        path_to_write_report: ./coverage/codecov_report.txt
+        fail_ci_if_error: true
+        verbose: true
