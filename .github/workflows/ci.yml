@@ -32,10 +32,14 @@ jobs:
     - name: check lint
       run: make check
     - name: check test
-      run: make test
+      run: |
+        make test
     - name: check codecov
       uses: codecov/codecov-action@v2
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        directory: ./
+        files: ./coverage.xml
+        env_vars: OS,PYTHON
         fail_ci_if_error: true
         verbose: true
