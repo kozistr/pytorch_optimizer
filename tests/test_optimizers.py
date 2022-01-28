@@ -58,8 +58,8 @@ def ids(v) -> str:
     return f'{v[0].__name__}_{v[1:]}'
 
 
-def build_lookahead(*a, **kwargs):
-    return Lookahead(AdamP(*a, **kwargs))
+def build_lookahead(*parameters, **kwargs):
+    return Lookahead(AdamP(*parameters, **kwargs))
 
 
 optimizers: List[Tuple[Optimizer, Dict[str, float]], int] = [
