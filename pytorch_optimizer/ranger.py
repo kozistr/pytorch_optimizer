@@ -38,9 +38,9 @@ class Ranger(Optimizer):
         gc_conv_only: bool = False,
         adamd_debias_term: bool = False,
     ):
-        """
+        """Ranger optimizer
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate.
+        :param lr: float. learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
         :param n_sma_threshold: int. (recommended is 5)
