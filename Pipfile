@@ -9,6 +9,7 @@ black = "==21.12b0"
 pylint = "==3.0.0a4"
 pytest = "==6.2.5"
 pytest-cov = "==3.0.0"
+pytest-xdist = "==2.5.0"
 
 [packages]
 numpy = "==1.21.4"
