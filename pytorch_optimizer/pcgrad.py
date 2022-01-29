@@ -78,9 +78,7 @@ class PCGrad:
 
         return grad, shape, has_grad
 
-    def pack_grad(
-        self, objectives: Iterable
-    ) -> Tuple[List[torch.Tensor], List[List[int]], List[torch.Tensor]]:
+    def pack_grad(self, objectives: Iterable) -> Tuple[List[torch.Tensor], List[List[int]], List[torch.Tensor]]:
         """pack the gradient of the parameters of the network for each objective
         :param objectives: Iterable[nn.Module]. a list of objectives
         :return:
