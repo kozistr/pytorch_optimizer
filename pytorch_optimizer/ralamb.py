@@ -4,6 +4,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULTS, PARAMETERS
+from pytorch_optimizer.utils import is_valid_parameters
 
 
 class RaLamb(Optimizer):
@@ -58,9 +59,16 @@ class RaLamb(Optimizer):
 
         self.check_valid_parameters()
 
-        self.buffer: BUFFER = [[None, None, None] for ind in range(10)]
+        buffer: BUFFER = [[None, None, None] for _ in range(10)]
 
-        defaults: DEFAULTS = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
+        if is_valid_parameters(params):
+            for param in params:
+                if 'betas' in param and (param['betas'][0] != betas[0] or param['betas'][1] != betas[1]):
+                    param['buffer'] = buffer
+
+        defaults: DEFAULTS = dict(
+            lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, adamd_debias_term=adamd_debias_term, buffer=buffer
+        )
 
         super().__init__(params, defaults)
 
@@ -128,10 +136,12 @@ class RaLamb(Optimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 state['step'] += 1
-                buffered = self.buffer[int(state['step'] % 10)]
+                buffered = group['buffer'][int(state['step'] % 10)]
+
+                bias_correction1 = 1 - beta1 ** state['step']
 
                 if state['step'] == buffered[0]:
-                    n_sma, radam_step_size = buffered[1], buffered[2]
+                    n_sma, step_size = buffered[1], buffered[2]
                 else:
                     buffered[0] = state['step']
                     beta2_t = beta2 ** state['step']
@@ -141,23 +151,26 @@ class RaLamb(Optimizer):
 
                     # more conservative since it's an approximated value
                     if n_sma >= self.n_sma_threshold:
-                        radam_step_size = (
-                            group['lr']
-                            * math.sqrt(
-                                (1 - beta2_t)
-                                * (n_sma - 4)
-                                / (n_sma_max - 4)
-                                * (n_sma - 2)
-                                / n_sma
-                                * n_sma_max
-                                / (n_sma_max - 2)
-                            )
-                            / (1 - beta1 ** state['step'])
+                        rt = math.sqrt(
+                            (1 - beta2_t)
+                            * (n_sma - 4)
+                            / (n_sma_max - 4)
+                            * (n_sma - 2)
+                            / n_sma
+                            * n_sma_max
+                            / (n_sma_max - 2)
                         )
-                    else:
-                        radam_step_size = group['lr'] / (1 - beta1 ** state['step'])
 
-                    buffered[2] = radam_step_size
+                        if group['adamd_debias_term']:
+                            step_size = rt
+                        else:
+                            step_size = rt / bias_correction1
+                    elif self.degenerated_to_sgd:
+                        step_size = 1.0 / bias_correction1
+                    else:
+                        step_size = group['lr'] / bias_correction1
+
+                    buffered[2] = step_size
 
                 if group['weight_decay'] != 0:
                     p_data_fp32.add_(p_data_fp32, alpha=-group['weight_decay'] * group['lr'])
@@ -165,9 +178,9 @@ class RaLamb(Optimizer):
                 radam_step = p_data_fp32.clone()
                 if n_sma >= self.n_sma_threshold:
                     denom = exp_avg_sq.sqrt().add_(group['eps'])
-                    radam_step.addcdiv_(-radam_step_size, exp_avg, denom)
+                    radam_step.addcdiv_(exp_avg, denom, value=-step_size)
                 else:
-                    radam_step.add_(-radam_step_size, exp_avg)
+                    radam_step.add_(exp_avg, alpha=-step_size)
 
                 radam_step = radam_step.pow(2).sum().sqrt()
                 weight_norm = p.data.pow(2).sum().sqrt().clamp(0, self.clamp)
@@ -181,8 +194,8 @@ class RaLamb(Optimizer):
                 state['trust_ratio'] = trust_ratio
 
                 if n_sma >= self.n_sma_threshold:
-                    p_data_fp32.addcdiv_(exp_avg, denom, value=-radam_step_size * trust_ratio)
+                    p_data_fp32.addcdiv_(exp_avg, denom, value=-step_size * trust_ratio)
                 else:
-                    p_data_fp32.add_(exp_avg, alpha=-radam_step_size * trust_ratio)
+                    p_data_fp32.add_(exp_avg, alpha=-step_size * trust_ratio)
 
         return loss
