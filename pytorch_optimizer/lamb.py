@@ -35,7 +35,7 @@ class Lamb(Optimizer):
         adamd_debias_term: bool = False,
         pre_norm: bool = False,
     ):
-        """
+        """Lamb
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
