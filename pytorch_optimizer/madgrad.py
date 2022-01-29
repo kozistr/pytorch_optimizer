@@ -59,8 +59,6 @@ class MADGRAD(Optimizer):
             raise ValueError(f'Invalid learning rate : {self.lr}')
         if self.weight_decay < 0.0:
             raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if not 0.0 < self.momentum <= 1.0:
-            raise ValueError(f'Invalid momentum : {self.momentum}')
         if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
 
