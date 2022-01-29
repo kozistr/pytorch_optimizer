@@ -57,6 +57,8 @@ class AdaBound(Optimizer):
         self.fixed_decay = fixed_decay
         self.eps = eps
 
+        self.check_valid_parameters()
+
         defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
