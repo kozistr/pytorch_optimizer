@@ -36,8 +36,5 @@ def test_load_optimizers_valid(valid_optimizer_names):
 
 @pytest.mark.parametrize('invalid_optimizer_names', INVALID_OPTIMIZER_NAMES)
 def test_load_optimizers_invalid(invalid_optimizer_names):
-    try:
+    with pytest.raises(NotImplementedError):
         load_optimizers(invalid_optimizer_names)
-    except NotImplementedError:
-        return True
-    return False
