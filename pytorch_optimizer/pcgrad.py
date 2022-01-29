@@ -39,9 +39,9 @@ class PCGrad:
         return torch.cat([g.flatten() for g in grads])
 
     @staticmethod
-    def un_flatten_grad(grads, shapes) -> List[torch.Tensor]:
-        un_flatten_grad: List[torch.Tensor] = []
+    def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor]:
         idx: int = 0
+        un_flatten_grad: List[torch.Tensor] = []
         for shape in shapes:
             length = np.prod(shape)
             un_flatten_grad.append(grads[idx : idx + length].view(shape).clone())
@@ -79,7 +79,7 @@ class PCGrad:
         return grad, shape, has_grad
 
     def pack_grad(
-        self, objectives: Iterable[nn.Module]
+        self, objectives: Iterable
     ) -> Tuple[List[torch.Tensor], List[List[int]], List[torch.Tensor]]:
         """pack the gradient of the parameters of the network for each objective
         :param objectives: Iterable[nn.Module]. a list of objectives
