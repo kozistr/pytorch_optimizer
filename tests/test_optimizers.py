@@ -197,8 +197,9 @@ def test_f16_optimizers(optimizer_fp16_config):
     assert init_loss - 0.01 > loss
 
 
+@pytest.mark.parametrize('adaptive', (False, True))
 @pytest.mark.parametrize('optimizer_sam_config', FP32_OPTIMIZERS, ids=ids)
-def test_sam_optimizers(optimizer_sam_config):
+def test_sam_optimizers(adaptive_type, optimizer_sam_config):
     torch.manual_seed(42)
 
     x_data, y_data = make_dataset()
@@ -207,7 +208,7 @@ def test_sam_optimizers(optimizer_sam_config):
     loss_fn: nn.Module = nn.BCEWithLogitsLoss()
 
     optimizer_class, config, iterations = optimizer_sam_config
-    optimizer = SAM(model.parameters(), optimizer_class, **config)
+    optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
     loss: float = np.inf
     init_loss: float = np.inf
