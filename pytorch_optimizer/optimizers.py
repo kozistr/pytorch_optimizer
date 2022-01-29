@@ -1,7 +1,3 @@
-from typing import Type
-
-from torch.optim.optimizer import Optimizer
-
 from pytorch_optimizer.adabelief import AdaBelief
 from pytorch_optimizer.adabound import AdaBound
 from pytorch_optimizer.adahessian import AdaHessian
@@ -18,11 +14,11 @@ from pytorch_optimizer.ranger21 import Ranger21
 from pytorch_optimizer.sgdp import SGDP
 
 
-def load_optimizers(optimizer: str, use_fp16: bool = False) -> Type[Optimizer]:
+def load_optimizers(optimizer: str, use_fp16: bool = False):
     optimizer: str = optimizer.lower()
 
     if optimizer == 'adamp':
-        opt: Type[Optimizer] = AdamP
+        opt = AdamP
     elif optimizer == 'ranger':
         opt = Ranger
     elif optimizer == 'ranger21':
