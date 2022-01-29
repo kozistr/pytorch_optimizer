@@ -35,7 +35,7 @@ class Lamb(Optimizer):
         adamd_debias_term: bool = False,
         pre_norm: bool = False,
     ):
-        """
+        """Lamb
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
@@ -121,13 +121,12 @@ class Lamb(Optimizer):
 
                 step_size = group['lr']
 
-                weight_norm = p.data.pow(2).sum().sqrt().clamp(0, self.clamp)
-
                 adam_step = exp_avg / exp_avg_sq.sqrt().add(group['eps'])
                 if group['weight_decay'] != 0:
                     adam_step.add_(p.data, alpha=group['weight_decay'])
 
                 adam_norm = adam_step.pow(2).sum().sqrt()
+                weight_norm = p.data.pow(2).sum().sqrt().clamp(0, self.clamp)
                 if weight_norm == 0 or adam_norm == 0:
                     trust_ratio = 1.0
                 else:

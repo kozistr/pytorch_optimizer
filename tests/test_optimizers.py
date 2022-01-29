@@ -19,6 +19,7 @@ from pytorch_optimizer import (
     Lookahead,
     PCGrad,
     RAdam,
+    RaLamb,
     Ranger,
     Ranger21,
     SafeFP16Optimizer,
@@ -86,10 +87,12 @@ FP32_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
     (AdaBelief, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
     (AdaBound, {'lr': 1e-2, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
+    (AdaBound, {'lr': 1e-2, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 200),
     (AdamP, {'lr': 1e-3, 'weight_decay': 1e-3}, 800),
     (DiffGrad, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
     (DiffRGrad, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (Lamb, {'lr': 1e-2, 'weight_decay': 1e-3}, 1000),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
+    (RaLamb, {'lr': 1e-3, 'weight_decay': 1e-3}, 500),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (SGDP, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
@@ -101,14 +104,30 @@ FP16_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 500),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
+    (AdaBound, {'lr': 1e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 200),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 500),
-    (DiffGrad, {'lr': 15 - 1, 'weight_decay': 1e-3}, 500),
+    (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 500),
     (DiffRGrad, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
+    (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (SGDP, {'lr': 5e-1, 'weight_decay': 1e-3}, 500),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 500),
+]
+
+ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
+    (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 500),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
+    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
+    (AdaBound, {'lr': 1e-2, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True, 'adamd_debias_term': True}, 200),
+    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 500),
+    (DiffGrad, {'lr': 15 - 1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 500),
+    (DiffRGrad, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 300),
+    (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 500),
+    (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
+    (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
 ]
 
 
@@ -172,8 +191,8 @@ def test_f16_optimizers(optimizer_fp16_config):
     assert init_loss - 0.01 > loss
 
 
-@pytest.mark.parametrize('optimizer_config', FP32_OPTIMIZERS, ids=ids)
-def test_sam_optimizers(optimizer_config):
+@pytest.mark.parametrize('optimizer_sam_config', FP32_OPTIMIZERS, ids=ids)
+def test_sam_optimizers(optimizer_sam_config):
     torch.manual_seed(42)
 
     x_data, y_data = make_dataset()
@@ -181,7 +200,7 @@ def test_sam_optimizers(optimizer_config):
     model: nn.Module = LogisticRegression()
     loss_fn: nn.Module = nn.BCEWithLogitsLoss()
 
-    optimizer_class, config, iterations = optimizer_config
+    optimizer_class, config, iterations = optimizer_sam_config
     optimizer = SAM(model.parameters(), optimizer_class, **config)
 
     loss: float = np.inf
@@ -200,8 +219,8 @@ def test_sam_optimizers(optimizer_config):
     assert init_loss > 2.0 * loss
 
 
-@pytest.mark.parametrize('optimizer_config', FP32_OPTIMIZERS, ids=ids)
-def test_pc_grad_optimizers(optimizer_config):
+@pytest.mark.parametrize('optimizer_pc_grad_config', FP32_OPTIMIZERS, ids=ids)
+def test_pc_grad_optimizers(optimizer_pc_grad_config):
     torch.manual_seed(42)
 
     x_data, y_data = make_dataset()
@@ -210,7 +229,7 @@ def test_pc_grad_optimizers(optimizer_config):
     loss_fn_1: nn.Module = nn.BCEWithLogitsLoss()
     loss_fn_2: nn.Module = nn.L1Loss()
 
-    optimizer_class, config, iterations = optimizer_config
+    optimizer_class, config, iterations = optimizer_pc_grad_config
     optimizer = PCGrad(optimizer_class(model.parameters(), **config))
 
     loss: float = np.inf
@@ -225,6 +244,36 @@ def test_pc_grad_optimizers(optimizer_config):
             init_loss = loss
 
         optimizer.pc_backward([loss1, loss2])
+        optimizer.step()
+
+    assert init_loss > 2.0 * loss
+
+
+@pytest.mark.parametrize('optimizer_adamd_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
+def test_adamd_optimizers(optimizer_adamd_config):
+    torch.manual_seed(42)
+
+    x_data, y_data = make_dataset()
+
+    model: nn.Module = LogisticRegression()
+    loss_fn: nn.Module = nn.BCEWithLogitsLoss()
+
+    optimizer_class, config, iterations = optimizer_adamd_config
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    loss: float = np.inf
+    init_loss: float = np.inf
+    for _ in range(iterations):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward()
+
         optimizer.step()
 
     assert init_loss > 2.0 * loss
