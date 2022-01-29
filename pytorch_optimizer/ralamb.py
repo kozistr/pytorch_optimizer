@@ -3,7 +3,7 @@ import math
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, PARAMETERS
+from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULTS, PARAMETERS
 
 
 class RaLamb(Optimizer):
@@ -31,9 +31,10 @@ class RaLamb(Optimizer):
         betas: BETAS = (0.9, 0.999),
         eps: float = 1e-8,
         weight_decay: float = 0.0,
-        adam: bool = False,
         adamd_debias_term: bool = False,
         pre_norm: bool = False,
+        n_sma_threshold: int = 5,
+        degenerated_to_sgd: bool = False,
     ):
         """RaLamb
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
@@ -43,16 +44,21 @@ class RaLamb(Optimizer):
         :param weight_decay: float. weight decay (L2 penalty)
         :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
         :param pre_norm: bool. perform pre-normalization of all gradients
+        :param n_sma_threshold: int. (recommended is 5)
+        :param degenerated_to_sgd: float. degenerated to SGD
         """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
         self.eps = eps
-        self.adam = adam
         self.adamd_debias_term = adamd_debias_term
         self.pre_norm = pre_norm
+        self.n_sma_threshold = n_sma_threshold
+        self.degenerated_to_sgd = degenerated_to_sgd
 
         self.check_valid_parameters()
+
+        self.buffer: BUFFER = [[None, None, None] for ind in range(10)]
 
         defaults: DEFAULTS = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
 
@@ -104,42 +110,79 @@ class RaLamb(Optimizer):
                 if grad.is_sparse:
                     raise RuntimeError('[-] Lamb does not support sparse gradients, consider SparseAdam instead.')
 
+                p_data_fp32 = p.data.float()
                 state = self.state[p]
 
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p.data)
-                    state['exp_avg_sq'] = torch.zeros_like(p.data)
+                    state['exp_avg'] = torch.zeros_like(p_data_fp32)
+                    state['exp_avg_sq'] = torch.zeros_like(p_data_fp32)
+                else:
+                    state['exp_avg'] = state['exp_avg'].type_as(p_data_fp32)
+                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_data_fp32)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
 
-                state['step'] += 1
-
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                step_size = group['lr']
+                state['step'] += 1
+                buffered = self.buffer[int(state['step'] % 10)]
 
-                weight_norm = p.data.pow(2).sum().sqrt().clamp(0, self.clamp)
+                if state['step'] == buffered[0]:
+                    n_sma, radam_step_size = buffered[1], buffered[2]
+                else:
+                    buffered[0] = state['step']
+                    beta2_t = beta2 ** state['step']
+                    n_sma_max = 2 / (1 - beta2) - 1
+                    n_sma = n_sma_max - 2 * state['step'] * beta2_t / (1 - beta2_t)
+                    buffered[1] = n_sma
 
-                adam_step = exp_avg / exp_avg_sq.sqrt().add(group['eps'])
+                    # more conservative since it's an approximated value
+                    if n_sma >= self.n_sma_threshold:
+                        radam_step_size = (
+                            group['lr']
+                            * math.sqrt(
+                                (1 - beta2_t)
+                                * (n_sma - 4)
+                                / (n_sma_max - 4)
+                                * (n_sma - 2)
+                                / n_sma
+                                * n_sma_max
+                                / (n_sma_max - 2)
+                            )
+                            / (1 - beta1 ** state['step'])
+                        )
+                    else:
+                        radam_step_size = group['lr'] / (1 - beta1 ** state['step'])
+
+                    buffered[2] = radam_step_size
+
                 if group['weight_decay'] != 0:
-                    adam_step.add_(p.data, alpha=group['weight_decay'])
+                    p_data_fp32.add_(p_data_fp32, alpha=-group['weight_decay'] * group['lr'])
 
-                adam_norm = adam_step.pow(2).sum().sqrt()
-                if weight_norm == 0 or adam_norm == 0:
+                radam_step = p_data_fp32.clone()
+                if n_sma >= self.n_sma_threshold:
+                    denom = exp_avg_sq.sqrt().add_(group['eps'])
+                    radam_step.addcdiv_(-radam_step_size, exp_avg, denom)
+                else:
+                    radam_step.add_(-radam_step_size, exp_avg)
+
+                radam_step = radam_step.pow(2).sum().sqrt()
+                weight_norm = p.data.pow(2).sum().sqrt().clamp(0, self.clamp)
+                if weight_norm == 0 or radam_step == 0:
                     trust_ratio = 1.0
                 else:
-                    trust_ratio = weight_norm / adam_norm
+                    trust_ratio = weight_norm / radam_step
 
                 state['weight_norm'] = weight_norm
-                state['adam_norm'] = adam_norm
+                state['adam_norm'] = radam_step
                 state['trust_ratio'] = trust_ratio
 
-                if self.adam:
-                    trust_ratio = 1.0
-
-                p.data.add_(adam_step, alpha=-step_size * trust_ratio)
+                if n_sma >= self.n_sma_threshold:
+                    p_data_fp32.addcdiv_(exp_avg, denom, value=-radam_step_size * trust_ratio)
+                else:
+                    p_data_fp32.add_(exp_avg, alpha=-radam_step_size * trust_ratio)
 
         return loss
