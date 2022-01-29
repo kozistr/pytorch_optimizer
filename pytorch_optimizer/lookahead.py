@@ -31,12 +31,13 @@ class Lookahead(Optimizer):
         alpha: float = 0.5,
         pullback_momentum: str = 'none',
     ):
-        """
-        :param optimizer: Optimizer.
+        """Lookahead
+        :param optimizer: Optimizer. base optimizer
         :param k: int. number of lookahead steps
         :param alpha: float. linear interpolation factor
         :param pullback_momentum: str. change to inner optimizer momentum on interpolation update
         """
+
         self.optimizer = optimizer
         self.k = k
         self.alpha = alpha
@@ -57,6 +58,7 @@ class Lookahead(Optimizer):
             pullback_momentum=pullback_momentum,
             **optimizer.defaults,
         )
+        super().__init__(self.param_groups, self.defaults)
 
     def check_valid_parameters(self):
         if self.k < 1:
