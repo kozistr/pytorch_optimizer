@@ -151,7 +151,7 @@ class AdaBound(Optimizer):
                 lower_bound = final_lr * (1 - 1 / (group['gamma'] * state['step'] + 1))
                 upper_bound = final_lr * (1 + 1 / (group['gamma'] * state['step']))
 
-                step_size = torch.full_like(denom, step_size, device=step_size.device)
+                step_size = torch.full_like(denom, step_size)
                 step_size.div_(denom).clamp_(lower_bound, upper_bound).mul_(exp_avg)
 
                 p.data.add_(-step_size)
