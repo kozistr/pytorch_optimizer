@@ -1,12 +1,3 @@
-__AUTHORS__ = [
-    '@lessw2020',
-    '@NestorDemeure',
-    # with contributions from :
-    '@BrianPugh',
-    '@Kayuksel',
-    '@TheZothen',
-]
-
 import math
 from typing import Optional
 
@@ -18,6 +9,15 @@ from pytorch_optimizer.agc import agc
 from pytorch_optimizer.gc import centralize_gradient
 from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
 from pytorch_optimizer.utils import normalize_gradient, unit_norm
+
+__AUTHORS__ = [
+    '@lessw2020',
+    '@NestorDemeure',
+    # with contributions from :
+    '@BrianPugh',
+    '@Kayuksel',
+    '@TheZothen',
+]
 
 
 class Ranger21(Optimizer):
@@ -185,7 +185,7 @@ class Ranger21(Optimizer):
         param_size: int = 0
         variance_ma_sum: float = 1.0
 
-        # Phase 1 - Accumulate all of the variance_ma_sum to use in stable weight decay
+        # Phase 1 - Accumulate all the variance_ma_sum to use in stable weight decay
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
