@@ -21,10 +21,8 @@ def chebyshev_perm(num_epochs: int) -> np.ndarray:
 
 
 def get_chebyshev_schedule(num_epochs: int) -> np.ndarray:
-    num_epochs: int = num_epochs - 2
-
-    steps: np.ndarray = chebyshev_steps(0.1, 1, num_epochs)
-    perm: np.ndarray = chebyshev_perm(num_epochs)
+    steps: np.ndarray = chebyshev_steps(0.1, 1, num_epochs - 2)
+    perm: np.ndarray = chebyshev_perm(num_epochs - 2)
     chebyshev_schedule = steps[perm]
 
     return chebyshev_schedule
