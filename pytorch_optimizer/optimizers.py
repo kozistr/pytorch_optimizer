@@ -18,8 +18,8 @@ from pytorch_optimizer.ranger21 import Ranger21
 from pytorch_optimizer.sgdp import SGDP
 
 
-def load_optimizers(optimizer_name: str, use_fp16: bool = False) -> Type[Optimizer]:
-    optimizer: str = optimizer_name.lower()
+def load_optimizers(optimizer: str, use_fp16: bool = False) -> Type[Optimizer]:
+    optimizer: str = optimizer.lower()
 
     if optimizer == 'adamp':
         opt: Type[Optimizer] = AdamP
