@@ -31,10 +31,9 @@ def test_sparse_not_supported(no_sparse_optimizer):
     grad = torch.randn(1, 1).to_sparse(1)
     param.grad = grad
 
-    optimizer = load_optimizers(optimizer=no_sparse_optimizer)([param])
-    optimizer.zero_grad()
-
     with pytest.raises(RuntimeError):
+        optimizer = load_optimizers(optimizer=no_sparse_optimizer)([param])
+        optimizer.zero_grad()
         optimizer.step()
 
 
@@ -47,3 +46,8 @@ def test_sparse_supported(sparse_optimizer):
     optimizer = load_optimizers(optimizer=sparse_optimizer)([param], momentum=0.0)
     optimizer.zero_grad()
     optimizer.step()
+
+    with pytest.raises(RuntimeError):
+        optimizer = load_optimizers(optimizer=sparse_optimizer)([param], momentum=0.0, weight_decay=1e-3)
+        optimizer.zero_grad()
+        optimizer.step()

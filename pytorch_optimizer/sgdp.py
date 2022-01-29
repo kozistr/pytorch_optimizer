@@ -36,9 +36,9 @@ class SGDP(Optimizer):
         wd_ratio: float = 0.1,
         nesterov: bool = False,
     ):
-        """
+        """SGDP optimizer
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate.
+        :param lr: float. learning rate
         :param momentum: float. momentum factor
         :param dampening: float. dampening for momentum
         :param eps: float. term added to the denominator to improve numerical stability

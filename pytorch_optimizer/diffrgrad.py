@@ -38,11 +38,11 @@ class DiffRGrad(Optimizer):
     ):
         """Blend RAdam with DiffGrad
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate.
+        :param lr: float. learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
         :param n_sma_threshold: int. (recommended is 5)
-        :param degenerated_to_sgd: bool..
+        :param degenerated_to_sgd: bool. degenerated to SGD
         :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
         :param eps: float. term added to the denominator to improve numerical stability
         """

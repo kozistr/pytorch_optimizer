@@ -31,8 +31,8 @@ class Lookahead(Optimizer):
         alpha: float = 0.5,
         pullback_momentum: str = 'none',
     ):
-        """
-        :param optimizer: Optimizer.
+        """Lookahead
+        :param optimizer: Optimizer. base optimizer
         :param k: int. number of lookahead steps
         :param alpha: float. linear interpolation factor
         :param pullback_momentum: str. change to inner optimizer momentum on interpolation update
