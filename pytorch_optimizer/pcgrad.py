@@ -54,7 +54,7 @@ class PCGrad:
     def step(self):
         return self.optimizer.step()
 
-    def set_grad(self, grads: List[torch.Tensor]):
+    def set_grad(self, grads):
         idx: int = 0
         for group in self.optimizer.param_groups:
             for p in group['params']:
