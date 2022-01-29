@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Union
 
 import torch
 from torch.optim import Optimizer
@@ -86,9 +86,9 @@ class DynamicLossScaler:
 
 
 class SafeFP16Optimizer(Optimizer):
-    def __init__(self, optimizer, aggregate_gnorms: bool = False):
+    def __init__(self, optimizer, aggregate_g_norms: bool = False):
         self.optimizer = optimizer
-        self.aggregate_gnorms = aggregate_gnorms
+        self.aggregate_g_norms = aggregate_g_norms
 
         self.fp16_params = self.get_parameters(optimizer)
         self.fp32_params = self.build_fp32_params(self.fp16_params, flatten=False)
@@ -114,7 +114,7 @@ class SafeFP16Optimizer(Optimizer):
         return params
 
     @classmethod
-    def build_fp32_params(cls, parameters, flatten: bool = True):
+    def build_fp32_params(cls, parameters, flatten: bool = True) -> Union[torch.Tensor, List[torch.Tensor]]:
         # create FP32 copy of parameters and grads
         if flatten:
             total_param_size = sum(p.data.numel() for p in parameters)
@@ -203,7 +203,7 @@ class SafeFP16Optimizer(Optimizer):
         """Clips gradient norm and updates dynamic loss scaler."""
         self.sync_fp16_grads_to_fp32()
 
-        grad_norm = clip_grad_norm(self.fp32_params, max_norm, sync=self.aggregate_gnorms)
+        grad_norm = clip_grad_norm(self.fp32_params, max_norm, sync=self.aggregate_g_norms)
 
         # detect overflow and adjust loss scale
         if self.scaler is not None:
