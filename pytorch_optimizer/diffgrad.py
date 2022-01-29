@@ -31,9 +31,9 @@ class DiffGrad(Optimizer):
         weight_decay: float = 0.0,
         adamd_debias_term: bool = False,
     ):
-        """
+        """DiffGrad
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate.
+        :param lr: float. learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
