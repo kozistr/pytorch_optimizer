@@ -199,7 +199,7 @@ def test_f16_optimizers(optimizer_fp16_config):
 
 @pytest.mark.parametrize('adaptive', (False, True))
 @pytest.mark.parametrize('optimizer_sam_config', FP32_OPTIMIZERS, ids=ids)
-def test_sam_optimizers(adaptive_type, optimizer_sam_config):
+def test_sam_optimizers(adaptive, optimizer_sam_config):
     torch.manual_seed(42)
 
     x_data, y_data = make_dataset()
