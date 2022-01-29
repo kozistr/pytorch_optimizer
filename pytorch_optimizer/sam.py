@@ -57,9 +57,9 @@ class SAM(Optimizer):
         adaptive: bool = False,
         **kwargs,
     ):
-        """
+        """SAM
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param base_optimizer: Optimizer.
+        :param base_optimizer: Optimizer. base optimizer
         :param rho: float. size of the neighborhood for computing the max loss
         :param adaptive: bool. element-wise Adaptive SAM
         :param kwargs: Dict. parameters for optimizer.
