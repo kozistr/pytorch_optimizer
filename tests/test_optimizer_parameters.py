@@ -23,7 +23,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'adabelief',
     'adabound',
     'adahessian',
-    'admap',
+    'adamp',
     'diffgrad',
     'diffrgrad',
     'lamb',
