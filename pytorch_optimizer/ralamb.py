@@ -119,6 +119,7 @@ class RaLamb(Optimizer):
                     raise RuntimeError('[-] Lamb does not support sparse gradients, consider SparseAdam instead.')
 
                 p_data_fp32 = p.data.float()
+
                 state = self.state[p]
 
                 if len(state) == 0:
