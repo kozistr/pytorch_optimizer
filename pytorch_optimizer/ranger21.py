@@ -92,6 +92,8 @@ class Ranger21(Optimizer):
         self.norm_loss_factor = norm_loss_factor
         self.eps = eps
 
+        self.check_valid_parameters()
+
         # lookahead
         self.lookahead_step: int = 0
 
@@ -123,6 +125,18 @@ class Ranger21(Optimizer):
         )
         self.start_warm_down: int = num_iterations - self.num_warm_down_iterations
         self.warm_down_lr_delta: float = self.starting_lr - self.min_lr
+
+    def check_valid_parameters(self):
+        if self.lr < 0.0:
+            raise ValueError(f'Invalid learning rate : {self.lr}')
+        if not 0.0 <= self.betas[0] < 1.0:
+            raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
+        if not 0.0 <= self.betas[1] < 1.0:
+            raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
+        if self.weight_decay < 0.0:
+            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     def __setstate__(self, state: STATE):
         super().__setstate__(state)
