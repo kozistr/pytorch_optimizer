@@ -34,17 +34,17 @@ class AdaHessian(Optimizer):
         average_conv_kernel: bool = False,
         adamd_debias_term: bool = False,
         eps: float = 1e-8,
-        seed: int = 2147483647,
+        seed: int = 1337,
     ):
-        """
+        """AdaHessian
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate.
+        :param lr: float. learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
         :param hessian_power: float. exponent of the hessian trace
         :param update_each: int. compute the hessian trace approximation only after *this* number of steps
         :param num_samples: int. how many times to sample `z` for the approximation of the hessian trace
-        :param average_conv_kernel: bool. average out the hessian traces of convolutional kernels as in the paper.
+        :param average_conv_kernel: bool. average out the hessian traces of convolutional kernels as in the paper
         :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
         :param eps: float. term added to the denominator to improve numerical stability
         :param seed: int.
@@ -103,16 +103,17 @@ class AdaHessian(Optimizer):
             if not isinstance(p.hess, float) and self.state[p]['hessian_step'] % self.update_each == 0:
                 p.hess.zero_()
 
-    @torch.no_grad()
     def set_hessian(self):
-        """Computes the Hutchinson approximation of the hessian trace
-        and accumulates it for each trainable parameter
-        """
+        """Computes the Hutchinson approximation of the hessian trace and accumulates it for each trainable parameter"""
         params = []
-        for p in filter(lambda param: param.grad is not None, self.get_params()):
+        for p in self.get_params():
+            if p.grad is None:
+                continue
+
             # compute the trace only each `update_each` step
             if self.state[p]['hessian_step'] % self.update_each == 0:
                 params.append(p)
+
             self.state[p]['hessian_step'] += 1
 
         if len(params) == 0:
@@ -126,7 +127,7 @@ class AdaHessian(Optimizer):
 
         for i in range(self.num_samples):
             # Rademacher distribution {-1.0, 1.0}
-            zs = [torch.randint(0, 2, p.size(), generator=self.generator, device=p.device) * 2.0 - 1.0 for p in params]
+            zs = [2.0 * torch.randint(0, 2, p.size()).float().requires_grad_(True) - 1.0 for p in params]
 
             # note that, possible memory leak due to retrain_graph=True
             h_zs = torch.autograd.grad(
@@ -141,7 +142,6 @@ class AdaHessian(Optimizer):
                 # approximate the expected values of z * (H@z)
                 p.hess += h_z * z / self.num_samples
 
-    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
@@ -156,7 +156,7 @@ class AdaHessian(Optimizer):
                     continue
 
                 if self.average_conv_kernel and p.dim() == 4:
-                    p.hess = torch.abs(p.hess).mean(dim=[2, 3], keepdim=True).expand_as(p.hess).clone()
+                    p.hess = torch.abs(p.hess).mean(dim=(2, 3), keepdim=True).expand_as(p.hess).clone()
 
                 # Perform correct step-weight decay as in AdamW
                 p.mul_(1.0 - group['lr'] * group['weight_decay'])
