@@ -38,9 +38,9 @@ class AdamP(Optimizer):
         adamd_debias_term: bool = False,
         eps: float = 1e-8,
     ):
-        """
+        """AdamP optimizer
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate.
+        :param lr: float. learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
         :param delta: float. threshold that determines whether a set of parameters is scale invariant or not
