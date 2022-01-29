@@ -79,7 +79,6 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SGDP, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (Ranger, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 1000}, 500),
-    # (AdaHessian, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
 ]
 
 
