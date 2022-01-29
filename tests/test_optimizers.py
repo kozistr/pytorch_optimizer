@@ -86,6 +86,9 @@ def build_lookahead(*parameters, **kwargs):
 FP32_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
     (AdaBelief, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
+    (AdaBelief, {'lr': 1e-2, 'weight_decay': 1e-3, 'amsgrad': True}, 200),
+    (AdaBelief, {'lr': 1e-2, 'weight_decay': 1e-3, 'weight_decouple': False}, 200),
+    (AdaBelief, {'lr': 1e-2, 'weight_decay': 1e-3, 'rectify': False}, 200),
     (AdaBound, {'lr': 1e-2, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
     (AdaBound, {'lr': 1e-2, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 200),
     (AdamP, {'lr': 1e-3, 'weight_decay': 1e-3}, 800),
@@ -103,6 +106,9 @@ FP32_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
 FP16_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 500),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'amsgrad': True}, 200),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 200),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': False}, 200),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
     (AdaBound, {'lr': 1e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 200),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 500),
