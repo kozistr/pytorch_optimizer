@@ -67,7 +67,7 @@ def test_betas(optimizer_names):
         optimizer(None, betas=(0.1, -0.1))
 
 
-def test_rho():
+def test_sam_parameters():
     with pytest.raises(ValueError):
         SAM(None, load_optimizers('adamp'), rho=-0.1)
 
