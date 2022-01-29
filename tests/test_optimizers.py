@@ -17,6 +17,7 @@ from pytorch_optimizer import (
     DiffRGrad,
     Lamb,
     Lookahead,
+    PCGrad,
     RAdam,
     Ranger,
     Ranger21,
@@ -179,5 +180,29 @@ def test_sam_optimizers(optimizer_config):
 
         loss_fn(y_data, model(x_data)).backward()
         optimizer.second_step(zero_grad=True)
+
+    assert init_loss > 2.0 * loss
+
+
+@pytest.mark.parametrize('optimizer_config', FP32_OPTIMIZERS, ids=ids)
+def test_pc_grad_optimizers(optimizer_config):
+    torch.manual_seed(42)
+
+    x_data, y_data = make_dataset()
+
+    model: nn.Module = LogisticRegression()
+    loss_fn_1: nn.Module = nn.BCEWithLogitsLoss()
+    loss_fn_2: nn.Module = nn.BCEWithLogitsLoss()
+
+    optimizer_class, config, iterations = optimizer_config
+    optimizer = PCGrad(optimizer_class(model.parameters(), **config))
+
+    loss: float = np.inf
+    init_loss: float = np.inf
+    for _ in range(iterations):
+        optimizer.zero_grad()
+        y_pred = model(x_data)
+        loss1, loss2 = loss_fn_1(y_pred, y_data), loss_fn_2(y_pred, y_data)
+        optimizer.pc_backward([loss1, loss2])
 
     assert init_loss > 2.0 * loss
