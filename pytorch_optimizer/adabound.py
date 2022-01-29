@@ -37,7 +37,7 @@ class AdaBound(Optimizer):
         adamd_debias_term: bool = False,
         eps: float = 1e-8,
     ):
-        """
+        """AdaBound
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate
         :param final_lr: float. final learning rate
@@ -45,7 +45,7 @@ class AdaBound(Optimizer):
         :param gamma: float. convergence speed of the bound functions
         :param weight_decay: float. weight decay (L2 penalty)
         :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
-        :param fixed_decay: bool.
+        :param fixed_decay: bool. fix weight decay
         :param amsbound: bool. whether to use the AMSBound variant
         :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
         :param eps: float. term added to the denominator to improve numerical stability
