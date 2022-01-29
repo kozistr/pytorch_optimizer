@@ -205,6 +205,10 @@ class Ranger21(Optimizer):
                 if p.grad is None:
                     continue
 
+                grad = p.grad.data
+                if grad.is_sparse:
+                    raise RuntimeError('Ranger21 does not support sparse gradients')
+
                 param_size += p.numel()
 
                 # Apply Adaptive Gradient Clipping (AGC)
