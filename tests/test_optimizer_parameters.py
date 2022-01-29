@@ -2,7 +2,7 @@ from typing import List
 
 import pytest
 
-from pytorch_optimizer import load_optimizers
+from pytorch_optimizer import SAM, load_optimizers
 
 OPTIMIZER_NAMES: List[str] = [
     'adamp',
@@ -65,3 +65,8 @@ def test_betas(optimizer_names):
     with pytest.raises(ValueError):
         optimizer = load_optimizers(optimizer_names)
         optimizer(None, betas=(0.1, -0.1))
+
+
+def test_rho():
+    with pytest.raises(ValueError):
+        SAM(None, load_optimizers('adamp'), rho=-0.1)
