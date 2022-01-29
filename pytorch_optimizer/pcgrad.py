@@ -98,7 +98,7 @@ class PCGrad:
         return grads, shapes, has_grads
 
     def project_conflicting(self, grads, has_grads) -> torch.Tensor:
-        """
+        """project conflicting
         :param grads: a list of the gradient of the parameters
         :param has_grads: a list of mask represent whether the parameter has gradient
         :return:
