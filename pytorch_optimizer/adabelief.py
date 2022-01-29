@@ -38,14 +38,14 @@ class AdaBelief(Optimizer):
         adamd_debias_term: bool = False,
         eps: float = 1e-16,
     ):
-        """
+        """AdaBelief
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
         :param n_sma_threshold: (recommended is 5)
         :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
-        :param fixed_decay: bool.
+        :param fixed_decay: bool. fix weight decay
         :param rectify: bool. perform the rectified update similar to RAdam
         :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high
         :param amsgrad: bool. whether to use the AMSBound variant
@@ -62,6 +62,8 @@ class AdaBelief(Optimizer):
         self.degenerated_to_sgd = degenerated_to_sgd
         self.adamd_debias_term = adamd_debias_term
         self.eps = eps
+
+        self.check_valid_parameters()
 
         buffer: BUFFER = [[None, None, None] for _ in range(10)]
 
@@ -80,6 +82,18 @@ class AdaBelief(Optimizer):
             buffer=buffer,
         )
         super().__init__(params, defaults)
+
+    def check_valid_parameters(self):
+        if self.lr < 0.0:
+            raise ValueError(f'Invalid learning rate : {self.lr}')
+        if not 0.0 <= self.betas[0] < 1.0:
+            raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
+        if not 0.0 <= self.betas[1] < 1.0:
+            raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
+        if self.weight_decay < 0.0:
+            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     def __setstate__(self, state: STATE):
         super().__setstate__(state)
