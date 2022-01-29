@@ -38,3 +38,10 @@ def test_load_optimizers_valid(valid_optimizer_names):
 def test_load_optimizers_invalid(invalid_optimizer_names):
     with pytest.raises(NotImplementedError):
         load_optimizers(invalid_optimizer_names)
+
+
+@pytest.mark.parametrize('optimizer_names', VALID_OPTIMIZER_NAMES)
+def test_learning_rate(optimizer_names):
+    with pytest.raises(ValueError):
+        optimizer = load_optimizers(optimizer_names)
+        optimizer(None, lr=-1e-2)
