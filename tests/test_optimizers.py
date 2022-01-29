@@ -78,7 +78,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (SGDP, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (Ranger, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 1000}, 500),
+    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 500),
 ]
 
 
