@@ -38,7 +38,7 @@ class MADGRAD(Optimizer):
     ):
         """A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified)
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate.
+        :param lr: float. learning rate
         :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
             MADGRAD optimizer requires less weight decay than other methods, often as little as zero
