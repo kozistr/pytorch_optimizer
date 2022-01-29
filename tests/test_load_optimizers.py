@@ -17,6 +17,7 @@ VALID_OPTIMIZER_NAMES: List[str] = [
     'diffgrad',
     'diffrgrad',
     'lamb',
+    'ralamb',
 ]
 
 INVALID_OPTIMIZER_NAMES: List[str] = [
