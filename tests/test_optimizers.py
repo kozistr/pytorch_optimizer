@@ -91,7 +91,7 @@ FP32_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (DiffGrad, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
     (DiffRGrad, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
-    (RaLamb, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
+    (RaLamb, {'lr': 1e-3, 'weight_decay': 1e-3}, 500),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (SGDP, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
