@@ -185,7 +185,7 @@ class Ranger21(Optimizer):
         param_size: int = 0
         variance_ma_sum: float = 1.0
 
-        # Phase 1 - Accumulate all of the variance_ma_sum to use in stable weight decay
+        # Phase 1 - Accumulate all the variance_ma_sum to use in stable weight decay
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
