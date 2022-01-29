@@ -1,6 +1,6 @@
 import random
 from copy import deepcopy
-from typing import Iterable, List
+from typing import Iterable, List, Tuple
 
 import numpy as np
 import torch
@@ -35,12 +35,12 @@ class PCGrad:
             raise ValueError(f'invalid reduction : {self.reduction}')
 
     @staticmethod
-    def flatten_grad(grads) -> torch.Tensor:
+    def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:
         return torch.cat([g.flatten() for g in grads])
 
     @staticmethod
     def un_flatten_grad(grads, shapes) -> List[torch.Tensor]:
-        un_flatten_grad = []
+        un_flatten_grad: List[torch.Tensor] = []
         idx: int = 0
         for shape in shapes:
             length = np.prod(shape)
@@ -54,39 +54,40 @@ class PCGrad:
     def step(self):
         return self.optimizer.step()
 
-    def set_grad(self, grads):
+    def set_grad(self, grads: List[torch.Tensor]):
         idx: int = 0
         for group in self.optimizer.param_groups:
             for p in group['params']:
                 p.grad = grads[idx]
                 idx += 1
 
-    def retrieve_grad(self):
+    def retrieve_grad(self) -> Tuple[List[torch.Tensor], List[int], List[torch.Tensor]]:
         """get the gradient of the parameters of the network with specific objective"""
         grad, shape, has_grad = [], [], []
         for group in self.optimizer.param_groups:
             for p in group['params']:
                 if p.grad is None:
                     shape.append(p.shape)
-                    grad.append(torch.zeros_like(p).to(p.device))
-                    has_grad.append(torch.zeros_like(p).to(p.device))
+                    grad.append(torch.zeros_like(p, device=p.device))
+                    has_grad.append(torch.zeros_like(p, device=p.device))
                     continue
 
                 shape.append(p.grad.shape)
                 grad.append(p.grad.clone())
-                has_grad.append(torch.ones_like(p).to(p.device))
+                has_grad.append(torch.ones_like(p, device=p.device))
 
         return grad, shape, has_grad
 
-    def pack_grad(self, objectives: Iterable[nn.Module]):
+    def pack_grad(
+        self, objectives: Iterable[nn.Module]
+    ) -> Tuple[List[torch.Tensor], List[List[int]], List[torch.Tensor]]:
         """pack the gradient of the parameters of the network for each objective
-        :param objectives: Iterable[float]. a list of objectives
+        :param objectives: Iterable[nn.Module]. a list of objectives
         :return:
         """
         grads, shapes, has_grads = [], [], []
         for objective in objectives:
-            self.zero_grad()
-
+            self.optimizer.zero_grad(set_to_none=True)
             objective.backward(retain_graph=True)
 
             grad, shape, has_grad = self.retrieve_grad()
@@ -98,7 +99,7 @@ class PCGrad:
         return grads, shapes, has_grads
 
     def project_conflicting(self, grads, has_grads) -> torch.Tensor:
-        """
+        """project conflicting
         :param grads: a list of the gradient of the parameters
         :param has_grads: a list of mask represent whether the parameter has gradient
         :return:
@@ -114,12 +115,10 @@ class PCGrad:
                     g_i -= g_i_g_j * g_j / (g_j.norm() ** 2)
 
         merged_grad = torch.zeros_like(grads[0]).to(grads[0].device)
-        merged_grad[shared] = torch.stack([g[shared] for g in pc_grad])
-
         if self.reduction == 'mean':
-            merged_grad = merged_grad.mean(dim=0)
-        else:  # self.reduction == 'sum'
-            merged_grad = merged_grad.sum(dim=0)
+            merged_grad[shared] = torch.stack([g[shared] for g in pc_grad]).mean(dim=0)
+        else:
+            merged_grad[shared] = torch.stack([g[shared] for g in pc_grad]).sum(dim=0)
 
         merged_grad[~shared] = torch.stack([g[~shared] for g in pc_grad]).sum(dim=0)
 
