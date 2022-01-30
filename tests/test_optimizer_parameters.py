@@ -75,12 +75,12 @@ def test_weight_decay(optimizer_names):
 
 @pytest.mark.parametrize('optimizer_names', BETA_OPTIMIZER_NAMES)
 def test_betas(optimizer_names):
+    optimizer = load_optimizers(optimizer_names)
+
     with pytest.raises(ValueError):
-        optimizer = load_optimizers(optimizer_names)
         optimizer(None, betas=(-0.1, 0.1))
 
     with pytest.raises(ValueError):
-        optimizer = load_optimizers(optimizer_names)
         optimizer(None, betas=(0.1, -0.1))
 
 
