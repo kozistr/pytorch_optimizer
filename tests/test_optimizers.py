@@ -92,8 +92,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (DiffRGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
-    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (Lamb, {'lr': 2e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 500),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 500),
     (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 500),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
@@ -260,7 +260,7 @@ def test_pc_grad_optimizers(optimizer_pc_grad_config):
         optimizer.pc_backward([loss1, loss2])
         optimizer.step()
 
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
