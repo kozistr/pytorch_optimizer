@@ -93,7 +93,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (DiffRGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True}, 500),
+    (Lamb, {'lr': 2e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 500),
     (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 500),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
@@ -115,6 +115,10 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
 ]
+
+
+def tensor_to_numpy(x: torch.Tensor) -> np.ndarray:
+    return x.detach().cpu().numpy()
 
 
 def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.Tensor], nn.Module, nn.Module]:
@@ -139,8 +143,7 @@ def test_f32_optimizers(optimizer_fp32_config):
     optimizer_class, config, iterations = optimizer_fp32_config
     optimizer = optimizer_class(model.parameters(), **config)
 
-    loss: float = np.inf
-    init_loss: float = np.inf
+    init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
         optimizer.zero_grad()
 
@@ -154,7 +157,7 @@ def test_f32_optimizers(optimizer_fp32_config):
 
         optimizer.step()
 
-    assert init_loss > 2.0 * loss
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_fp16_config', OPTIMIZERS, ids=ids)
@@ -167,8 +170,7 @@ def test_f16_optimizers(optimizer_fp16_config):
 
     optimizer = SafeFP16Optimizer(optimizer_class(model.parameters(), **config))
 
-    loss: float = np.inf
-    init_loss: float = np.inf
+    init_loss, loss = np.inf, np.inf
     for _ in range(1000):
         optimizer.zero_grad()
 
@@ -182,7 +184,7 @@ def test_f16_optimizers(optimizer_fp16_config):
 
         optimizer.step()
 
-    assert init_loss - 0.01 > loss
+    assert tensor_to_numpy(init_loss) - 0.01 > tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('adaptive', (False, True))
@@ -193,8 +195,7 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
     optimizer_class, config, iterations = optimizer_sam_config
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
-    loss: float = np.inf
-    init_loss: float = np.inf
+    init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
         loss = loss_fn(y_data, model(x_data))
         loss.backward()
@@ -206,7 +207,7 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
         if init_loss == np.inf:
             init_loss = loss
 
-    assert init_loss > 2.0 * loss
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_adamd_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
@@ -216,8 +217,7 @@ def test_adamd_optimizers(optimizer_adamd_config):
     optimizer_class, config, iterations = optimizer_adamd_config
     optimizer = optimizer_class(model.parameters(), **config)
 
-    loss: float = np.inf
-    init_loss: float = np.inf
+    init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
         optimizer.zero_grad()
 
@@ -231,7 +231,7 @@ def test_adamd_optimizers(optimizer_adamd_config):
 
         optimizer.step()
 
-    assert init_loss > 2.0 * loss
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_pc_grad_config', OPTIMIZERS, ids=ids)
@@ -247,8 +247,7 @@ def test_pc_grad_optimizers(optimizer_pc_grad_config):
     optimizer_class, config, iterations = optimizer_pc_grad_config
     optimizer = PCGrad(optimizer_class(model.parameters(), **config))
 
-    loss: float = np.inf
-    init_loss: float = np.inf
+    init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
         optimizer.zero_grad()
         y_pred_1, y_pred_2 = model(x_data)
@@ -261,7 +260,7 @@ def test_pc_grad_optimizers(optimizer_pc_grad_config):
         optimizer.pc_backward([loss1, loss2])
         optimizer.step()
 
-    assert init_loss > 2.0 * loss
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
@@ -274,8 +273,7 @@ def test_no_gradients(optimizer_config):
     optimizer_class, config, iterations = optimizer_config
     optimizer = optimizer_class(model.parameters(), **config)
 
-    loss: float = np.inf
-    init_loss: float = np.inf
+    init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
         optimizer.zero_grad()
 
@@ -289,4 +287,4 @@ def test_no_gradients(optimizer_config):
 
         optimizer.step()
 
-    assert init_loss >= loss
+    assert tensor_to_numpy(init_loss) >= tensor_to_numpy(loss)
