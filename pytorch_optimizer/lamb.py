@@ -98,7 +98,7 @@ class Lamb(Optimizer):
                     continue
 
                 if self.pre_norm:
-                    p.grad /= grad_norm
+                    p.grad /= (grad_norm + self.eps)
 
                 grad = p.grad.data
                 if grad.is_sparse:
