@@ -89,8 +89,10 @@ def test_lookahead_parameters():
     parameters = model.parameters()
     optimizer = load_optimizers('adamp')(parameters)
 
-    Lookahead(optimizer, pullback_momentum='reset')
-    Lookahead(optimizer, pullback_momentum='pullback')
+    pullback_momentum_list: List[str] = ['none', 'reset', 'pullback']
+    for pullback_momentum in pullback_momentum_list:
+        opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
+        opt.load_state_dict(opt.state_dict())
 
     with pytest.raises(ValueError):
         Lookahead(optimizer, k=0)
