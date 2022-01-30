@@ -62,14 +62,6 @@ class MADGRAD(Optimizer):
         if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
 
-    @property
-    def supports_memory_efficient_fp16(self) -> bool:
-        return False
-
-    @property
-    def supports_flat_params(self) -> bool:
-        return True
-
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:

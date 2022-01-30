@@ -1,8 +1,20 @@
 from typing import List
 
 import pytest
+import torch
+from torch import nn
 
 from pytorch_optimizer import SAM, Lookahead, load_optimizers
+
+
+class Example(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(1, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.fc1(x)
+
 
 OPTIMIZER_NAMES: List[str] = [
     'adamp',
@@ -58,12 +70,12 @@ def test_weight_decay(optimizer_names):
 
 @pytest.mark.parametrize('optimizer_names', BETA_OPTIMIZER_NAMES)
 def test_betas(optimizer_names):
+    optimizer = load_optimizers(optimizer_names)
+
     with pytest.raises(ValueError):
-        optimizer = load_optimizers(optimizer_names)
         optimizer(None, betas=(-0.1, 0.1))
 
     with pytest.raises(ValueError):
-        optimizer = load_optimizers(optimizer_names)
         optimizer(None, betas=(0.1, -0.1))
 
 
@@ -73,11 +85,20 @@ def test_sam_parameters():
 
 
 def test_lookahead_parameters():
-    with pytest.raises(ValueError):
-        Lookahead(load_optimizers('adamp'), k=0)
+    model: nn.Module = Example()
+    parameters = model.parameters()
+    optimizer = load_optimizers('adamp')(parameters)
+
+    pullback_momentum_list: List[str] = ['none', 'reset', 'pullback']
+    for pullback_momentum in pullback_momentum_list:
+        opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
+        opt.load_state_dict(opt.state_dict())
 
     with pytest.raises(ValueError):
-        Lookahead(load_optimizers('adamp'), alpha=0)
+        Lookahead(optimizer, k=0)
 
     with pytest.raises(ValueError):
-        Lookahead(load_optimizers('adamp'), pullback_momentum='asdf')
+        Lookahead(optimizer, alpha=0)
+
+    with pytest.raises(ValueError):
+        Lookahead(optimizer, pullback_momentum='invalid')

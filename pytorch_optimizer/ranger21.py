@@ -255,6 +255,9 @@ class Ranger21(Optimizer):
 
         # Phase 2 - Apply weight decay and step
         for group in self.param_groups:
+            if group['params'][0].grad is None:
+                continue
+
             lr = group['lr']
             step = self.state[group['params'][0]]['step']
 

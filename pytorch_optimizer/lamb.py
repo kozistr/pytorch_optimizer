@@ -90,7 +90,7 @@ class Lamb(Optimizer):
 
         grad_norm: float = 1.0
         if self.pre_norm:
-            grad_norm = self.get_gradient_norm()
+            grad_norm = self.get_gradient_norm() + self.eps
 
         for group in self.param_groups:
             for p in group['params']:
