@@ -116,16 +116,15 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
 ]
 
 
-def build_environment() -> Tuple[Tuple[torch.Tensor, torch.Tensor], nn.Module, nn.Module]:
+def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.Tensor], nn.Module, nn.Module]:
     torch.manual_seed(42)
 
     x_data, y_data = make_dataset()
     model: nn.Module = LogisticRegression()
     loss_fn: nn.Module = nn.BCEWithLogitsLoss()
 
-    if torch.cuda.is_available():
-        x_data = x_data.cuda()
-        y_data = y_data.cuda()
+    if use_gpu and torch.cuda.is_available():
+        x_data, y_data = x_data.cuda(), y_data.cuda()
         model = model.cuda()
         loss_fn = loss_fn.cuda()
 
