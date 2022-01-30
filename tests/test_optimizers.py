@@ -25,8 +25,6 @@ from pytorch_optimizer import (
     SafeFP16Optimizer,
 )
 
-__REFERENCE__ = 'https://github.com/jettify/pytorch-optimizer/blob/master/tests/test_optimizer_with_nn.py'
-
 
 class LogisticRegression(nn.Module):
     def __init__(self):
@@ -83,41 +81,22 @@ def build_lookahead(*parameters, **kwargs):
     return Lookahead(AdamP(*parameters, **kwargs))
 
 
-FP32_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
-    (build_lookahead, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
-    (AdaBelief, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
-    (AdaBelief, {'lr': 1e-2, 'weight_decay': 1e-3, 'amsgrad': True}, 200),
-    (AdaBelief, {'lr': 1e-2, 'weight_decay': 1e-3, 'weight_decouple': False}, 200),
-    (AdaBelief, {'lr': 1e-2, 'weight_decay': 1e-3, 'rectify': False}, 200),
-    (AdaBound, {'lr': 1e-2, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
-    (AdaBound, {'lr': 1e-2, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 200),
-    (AdamP, {'lr': 1e-3, 'weight_decay': 1e-3}, 800),
-    (DiffGrad, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
-    (DiffRGrad, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
-    (RaLamb, {'lr': 1e-3, 'weight_decay': 1e-3}, 500),
-    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
-    (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (SGDP, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (Ranger, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 500),
-]
-
-FP16_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
-    (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 500),
+OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
+    (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'amsgrad': True}, 200),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 200),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': False}, 200),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
-    (AdaBound, {'lr': 1e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 200),
-    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 500),
-    (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 500),
-    (DiffRGrad, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
+    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 200),
+    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
+    (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
+    (DiffRGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
+    (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
+    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 500),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (SGDP, {'lr': 5e-1, 'weight_decay': 1e-3}, 500),
+    (SGDP, {'lr': 2e-1, 'weight_decay': 1e-3}, 500),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 500),
 ]
@@ -137,7 +116,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
 ]
 
 
-@pytest.mark.parametrize('optimizer_fp32_config', FP32_OPTIMIZERS, ids=ids)
+@pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
 def test_f32_optimizers(optimizer_fp32_config):
     torch.manual_seed(42)
 
@@ -167,7 +146,7 @@ def test_f32_optimizers(optimizer_fp32_config):
     assert init_loss > 2.0 * loss
 
 
-@pytest.mark.parametrize('optimizer_fp16_config', FP16_OPTIMIZERS, ids=ids)
+@pytest.mark.parametrize('optimizer_fp16_config', OPTIMIZERS, ids=ids)
 def test_f16_optimizers(optimizer_fp16_config):
     torch.manual_seed(42)
 
@@ -177,6 +156,9 @@ def test_f16_optimizers(optimizer_fp16_config):
     loss_fn: nn.Module = nn.BCEWithLogitsLoss()
 
     optimizer_class, config, iterations = optimizer_fp16_config
+    if optimizer_class.__name__ == 'MADGRAD':
+        return True
+
     optimizer = SafeFP16Optimizer(optimizer_class(model.parameters(), **config))
 
     loss: float = np.inf
@@ -198,7 +180,7 @@ def test_f16_optimizers(optimizer_fp16_config):
 
 
 @pytest.mark.parametrize('adaptive', (False, True))
-@pytest.mark.parametrize('optimizer_sam_config', FP32_OPTIMIZERS, ids=ids)
+@pytest.mark.parametrize('optimizer_sam_config', OPTIMIZERS, ids=ids)
 def test_sam_optimizers(adaptive, optimizer_sam_config):
     torch.manual_seed(42)
 
@@ -226,7 +208,7 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
     assert init_loss > 2.0 * loss
 
 
-@pytest.mark.parametrize('optimizer_pc_grad_config', FP32_OPTIMIZERS, ids=ids)
+@pytest.mark.parametrize('optimizer_pc_grad_config', OPTIMIZERS, ids=ids)
 def test_pc_grad_optimizers(optimizer_pc_grad_config):
     torch.manual_seed(42)
 
