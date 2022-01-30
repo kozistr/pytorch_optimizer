@@ -82,7 +82,7 @@ class Lookahead(Optimizer):
             if self.pullback_momentum == 'pullback':
                 internal_momentum = self.optimizer.state[fast]['momentum_buffer']
                 self.optimizer.state[fast]['momentum_buffer'] = internal_momentum.mul_(self.alpha).add_(
-                    1.0 - self.alpha, param_state['slow_mom']
+                    param_state['slow_mom'], alpha=1.0 - self.alpha
                 )
                 param_state['slow_mom'] = self.optimizer.state[fast]['momentum_buffer']
             elif self.pullback_momentum == 'reset':
