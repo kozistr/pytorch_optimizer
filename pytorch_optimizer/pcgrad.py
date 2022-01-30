@@ -30,6 +30,8 @@ class PCGrad:
         self.optimizer = optimizer
         self.reduction = reduction
 
+        self.check_valid_parameters()
+
     def check_valid_parameters(self):
         if self.reduction not in ('mean', 'sum'):
             raise ValueError(f'invalid reduction : {self.reduction}')
