@@ -92,15 +92,16 @@ def test_sam_parameters():
 def test_lookahead_parameters():
     model: nn.Module = LogisticRegression()
     parameters = model.parameters()
+    optimizer = load_optimizers('adamp')(parameters)
 
-    Lookahead(load_optimizers('adamp')(parameters), pullback_momentum='reset')
-    Lookahead(load_optimizers('adamp')(parameters), pullback_momentum='pullback')
-
-    with pytest.raises(ValueError):
-        Lookahead(load_optimizers('adamp')(parameters), k=0)
+    Lookahead(optimizer, pullback_momentum='reset')
+    Lookahead(optimizer, pullback_momentum='pullback')
 
     with pytest.raises(ValueError):
-        Lookahead(load_optimizers('adamp')(parameters), alpha=0)
+        Lookahead(optimizer, k=0)
 
     with pytest.raises(ValueError):
-        Lookahead(load_optimizers('adamp')(parameters), pullback_momentum='asdf')
+        Lookahead(optimizer, alpha=0)
+
+    with pytest.raises(ValueError):
+        Lookahead(optimizer, pullback_momentum='invalid')
