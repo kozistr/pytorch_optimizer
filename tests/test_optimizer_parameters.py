@@ -3,22 +3,17 @@ from typing import List
 import pytest
 import torch
 from torch import nn
-from torch.nn import functional as F
 
 from pytorch_optimizer import SAM, Lookahead, load_optimizers
 
 
-class LogisticRegression(nn.Module):
+class Example(nn.Module):
     def __init__(self):
         super().__init__()
-        self.fc1 = nn.Linear(2, 2)
-        self.fc2 = nn.Linear(2, 1)
+        self.fc1 = nn.Linear(1, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.fc2(x)
-        return x
+        return self.fc1(x)
 
 
 OPTIMIZER_NAMES: List[str] = [
@@ -90,7 +85,7 @@ def test_sam_parameters():
 
 
 def test_lookahead_parameters():
-    model: nn.Module = LogisticRegression()
+    model: nn.Module = Example()
     parameters = model.parameters()
     optimizer = load_optimizers('adamp')(parameters)
 
