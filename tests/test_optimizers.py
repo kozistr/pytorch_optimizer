@@ -116,14 +116,25 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
 ]
 
 
-@pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
-def test_f32_optimizers(optimizer_fp32_config):
+def build_environment() -> Tuple[Tuple[torch.Tensor, torch.Tensor], nn.Module, nn.Module]:
     torch.manual_seed(42)
 
     x_data, y_data = make_dataset()
-
     model: nn.Module = LogisticRegression()
     loss_fn: nn.Module = nn.BCEWithLogitsLoss()
+
+    if torch.cuda.is_available():
+        x_data = x_data.cuda()
+        y_data = y_data.cuda()
+        model = model.cuda()
+        loss_fn = loss_fn.cuda()
+
+    return (x_data, y_data), model, loss_fn
+
+
+@pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
+def test_f32_optimizers(optimizer_fp32_config):
+    (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_fp32_config
     optimizer = optimizer_class(model.parameters(), **config)
@@ -148,12 +159,7 @@ def test_f32_optimizers(optimizer_fp32_config):
 
 @pytest.mark.parametrize('optimizer_fp16_config', OPTIMIZERS, ids=ids)
 def test_f16_optimizers(optimizer_fp16_config):
-    torch.manual_seed(42)
-
-    x_data, y_data = make_dataset()
-
-    model: nn.Module = LogisticRegression()
-    loss_fn: nn.Module = nn.BCEWithLogitsLoss()
+    (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_fp16_config
     if optimizer_class.__name__ == 'MADGRAD':
@@ -182,12 +188,7 @@ def test_f16_optimizers(optimizer_fp16_config):
 @pytest.mark.parametrize('adaptive', (False, True))
 @pytest.mark.parametrize('optimizer_sam_config', OPTIMIZERS, ids=ids)
 def test_sam_optimizers(adaptive, optimizer_sam_config):
-    torch.manual_seed(42)
-
-    x_data, y_data = make_dataset()
-
-    model: nn.Module = LogisticRegression()
-    loss_fn: nn.Module = nn.BCEWithLogitsLoss()
+    (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_sam_config
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
@@ -204,6 +205,31 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
 
         if init_loss == np.inf:
             init_loss = loss
+
+    assert init_loss > 2.0 * loss
+
+
+@pytest.mark.parametrize('optimizer_adamd_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
+def test_adamd_optimizers(optimizer_adamd_config):
+    (x_data, y_data), model, loss_fn = build_environment()
+
+    optimizer_class, config, iterations = optimizer_adamd_config
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    loss: float = np.inf
+    init_loss: float = np.inf
+    for _ in range(iterations):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward()
+
+        optimizer.step()
 
     assert init_loss > 2.0 * loss
 
@@ -233,36 +259,6 @@ def test_pc_grad_optimizers(optimizer_pc_grad_config):
             init_loss = loss
 
         optimizer.pc_backward([loss1, loss2])
-        optimizer.step()
-
-    assert init_loss > 2.0 * loss
-
-
-@pytest.mark.parametrize('optimizer_adamd_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adamd_optimizers(optimizer_adamd_config):
-    torch.manual_seed(42)
-
-    x_data, y_data = make_dataset()
-
-    model: nn.Module = LogisticRegression()
-    loss_fn: nn.Module = nn.BCEWithLogitsLoss()
-
-    optimizer_class, config, iterations = optimizer_adamd_config
-    optimizer = optimizer_class(model.parameters(), **config)
-
-    loss: float = np.inf
-    init_loss: float = np.inf
-    for _ in range(iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
         optimizer.step()
 
     assert init_loss > 2.0 * loss
