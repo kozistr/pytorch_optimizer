@@ -261,3 +261,31 @@ def test_pc_grad_optimizers(optimizer_pc_grad_config):
         optimizer.step()
 
     assert init_loss > 2.0 * loss
+
+
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_no_gradients(optimizer_config):
+    (x_data, y_data), model, loss_fn = build_environment()
+
+    model.fc1.weight.requires_grad = False
+    model.fc1.bias.requires_grad = False
+
+    optimizer_class, config, iterations = optimizer_config
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    loss: float = np.inf
+    init_loss: float = np.inf
+    for _ in range(iterations):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward()
+
+        optimizer.step()
+
+    assert init_loss >= loss
