@@ -1,8 +1,25 @@
 from typing import List
 
 import pytest
+import torch
+from torch import nn
+from torch.nn import functional as F
 
 from pytorch_optimizer import SAM, Lookahead, load_optimizers
+
+
+class LogisticRegression(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(2, 2)
+        self.fc2 = nn.Linear(2, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        return x
+
 
 OPTIMIZER_NAMES: List[str] = [
     'adamp',
@@ -73,11 +90,17 @@ def test_sam_parameters():
 
 
 def test_lookahead_parameters():
-    with pytest.raises(ValueError):
-        Lookahead(load_optimizers('adamp'), k=0)
+    model: nn.Module = LogisticRegression()
+    parameters = model.parameters()
+
+    Lookahead(load_optimizers('adamp')(parameters), pullback_momentum='reset')
+    Lookahead(load_optimizers('adamp')(parameters), pullback_momentum='pullback')
 
     with pytest.raises(ValueError):
-        Lookahead(load_optimizers('adamp'), alpha=0)
+        Lookahead(load_optimizers('adamp')(parameters), k=0)
 
     with pytest.raises(ValueError):
-        Lookahead(load_optimizers('adamp'), pullback_momentum='asdf')
+        Lookahead(load_optimizers('adamp')(parameters), alpha=0)
+
+    with pytest.raises(ValueError):
+        Lookahead(load_optimizers('adamp')(parameters), pullback_momentum='asdf')
