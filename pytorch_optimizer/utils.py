@@ -1,3 +1,4 @@
+import math
 from typing import List, Optional, Tuple, Union
 
 import torch
@@ -33,7 +34,7 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
     return x
 
 
-def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> torch.Tensor:
+def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> Union[torch.Tensor, float]:
     """Clips grad norms.
     During combination with FSDP, will also ensure that grad norms are aggregated
     across all workers, since each worker only stores their shard of the gradients
@@ -59,7 +60,7 @@ def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = Fal
         # also need to get the norms from all the other sharded works in FSDP
         all_reduce(norm_sq)
 
-    grad_norm = norm_sq.sqrt()
+    grad_norm = math.sqrt(norm_sq)
     if max_norm > 0:
         clip_coef = max_norm / (grad_norm + 1e-6)
         for p in parameters:
