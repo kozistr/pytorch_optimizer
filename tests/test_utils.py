@@ -32,8 +32,8 @@ def test_clip_grad_norm():
     x = torch.arange(0, 10, dtype=torch.float32, requires_grad=True)
     x.grad = torch.arange(0, 10, dtype=torch.float32)
 
-    np.testing.assert_approx_equal(float(clip_grad_norm(x)), 16.881943016134134, significant=4)
-    np.testing.assert_approx_equal(float(clip_grad_norm(x, max_norm=2)), 16.881943016134134, significant=4)
+    np.testing.assert_approx_equal(clip_grad_norm(x), 16.881943016134134, significant=4)
+    np.testing.assert_approx_equal(clip_grad_norm(x, max_norm=2), 16.881943016134134, significant=4)
 
 
 def test_unit_norm():
