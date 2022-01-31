@@ -1,3 +1,4 @@
+import math
 from typing import List, Optional, Tuple, Union
 
 import torch
@@ -59,7 +60,7 @@ def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = Fal
         # also need to get the norms from all the other sharded works in FSDP
         all_reduce(norm_sq)
 
-    grad_norm = norm_sq.sqrt()
+    grad_norm = math.sqrt(norm_sq)
     if max_norm > 0:
         clip_coef = max_norm / (grad_norm + 1e-6)
         for p in parameters:
