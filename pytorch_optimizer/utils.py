@@ -34,7 +34,7 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
     return x
 
 
-def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> torch.Tensor:
+def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> Union[torch.Tensor, float]:
     """Clips grad norms.
     During combination with FSDP, will also ensure that grad norms are aggregated
     across all workers, since each worker only stores their shard of the gradients
