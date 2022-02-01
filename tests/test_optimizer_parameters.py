@@ -30,6 +30,7 @@ OPTIMIZER_NAMES: List[str] = [
     'diffrgrad',
     'lamb',
     'ralamb',
+    'lars',
 ]
 
 BETA_OPTIMIZER_NAMES: List[str] = [
