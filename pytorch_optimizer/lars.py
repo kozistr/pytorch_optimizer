@@ -1,7 +1,7 @@
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import DEFAULTS, PARAMETERS
+from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class LARS(Optimizer):
@@ -61,19 +61,24 @@ class LARS(Optimizer):
             raise ValueError(f'Invalid trust_coefficient : {self.trust_coefficient}')
 
     @torch.no_grad()
-    def step(self):
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
+        if closure is not None:
+            loss = closure()
+
         for g in self.param_groups:
             for p in g['params']:
-                dp = p.grad
-
-                if dp is None:
+                if p.grad is None:
                     continue
+
+                dp = p.grad
 
                 if p.ndim > 1:  # if not normalization gamma/beta or bias
                     dp = dp.add(p, alpha=g['weight_decay'])
                     param_norm = torch.norm(p)
                     update_norm = torch.norm(dp)
                     one = torch.ones_like(param_norm)
+
                     q = torch.where(
                         param_norm > 0.0,
                         torch.where(update_norm > 0, (g['trust_coefficient'] * param_norm / update_norm), one),
@@ -89,3 +94,5 @@ class LARS(Optimizer):
                 mu.mul_(g['momentum']).add_(dp)
 
                 p.add_(mu, alpha=-g['lr'])
+
+        return loss
