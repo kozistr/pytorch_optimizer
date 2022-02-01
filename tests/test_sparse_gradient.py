@@ -22,6 +22,7 @@ NO_SPARSE_OPTIMIZERS: List[str] = [
     'diffrgrad',
     'lamb',
     'ralamb',
+    'lars',
 ]
 
 
