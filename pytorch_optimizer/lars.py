@@ -71,6 +71,9 @@ class LARS(Optimizer):
                 if p.grad is None:
                     continue
 
+                if p.grad.data.is_sparse:
+                    raise RuntimeError('LARS does not support sparse gradients')
+
                 dp = p.grad
 
                 if p.ndim > 1:  # if not normalization gamma/beta or bias
