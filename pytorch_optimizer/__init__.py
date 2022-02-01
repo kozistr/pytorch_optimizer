@@ -10,6 +10,7 @@ from pytorch_optimizer.diffrgrad import DiffRGrad
 from pytorch_optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
 from pytorch_optimizer.gc import centralize_gradient
 from pytorch_optimizer.lamb import Lamb
+from pytorch_optimizer.lars import LARS
 from pytorch_optimizer.lookahead import Lookahead
 from pytorch_optimizer.madgrad import MADGRAD
 from pytorch_optimizer.optimizers import load_optimizers
