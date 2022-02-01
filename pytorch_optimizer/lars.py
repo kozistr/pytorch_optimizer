@@ -27,6 +27,7 @@ class LARS(Optimizer):
         weight_decay: float = 0.0,
         momentum: float = 0.9,
         trust_coefficient: float = 0.001,
+        eps: float = 1e-6,
     ):
         """LARS optimizer, no rate scaling or weight decay for parameters <= 1D
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
@@ -34,11 +35,13 @@ class LARS(Optimizer):
         :param weight_decay: float. weight decay (L2 penalty)
         :param momentum: float. momentum
         :param trust_coefficient: float. trust_coefficient
+        :param eps: float. epsilon
         """
         self.lr = lr
         self.weight_decay = weight_decay
         self.momentum = momentum
         self.trust_coefficient = trust_coefficient
+        self.eps = eps
 
         self.check_valid_parameters()
 
@@ -59,6 +62,8 @@ class LARS(Optimizer):
             raise ValueError(f'Invalid momentum : {self.momentum}')
         if self.trust_coefficient < 0.0:
             raise ValueError(f'Invalid trust_coefficient : {self.trust_coefficient}')
+        if self.eps < 0.0:
+            raise ValueError(f'Invalid eps : {self.eps}')
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -84,7 +89,7 @@ class LARS(Optimizer):
 
                     q = torch.where(
                         param_norm > 0.0,
-                        torch.where(update_norm > 0, (g['trust_coefficient'] * param_norm / update_norm), one),
+                        torch.where(update_norm > 0.0, (g['trust_coefficient'] * param_norm / update_norm), one),
                         one,
                     )
                     dp = dp.mul(q)
