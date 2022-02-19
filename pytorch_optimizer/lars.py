@@ -69,22 +69,22 @@ class LARS(Optimizer):
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         for g in self.param_groups:
             for p in g['params']:
                 if p.grad is None:
                     continue
 
-                if p.grad.data.is_sparse:
+                grad = p.grad
+                if grad.is_sparse:
                     raise RuntimeError('LARS does not support sparse gradients')
 
-                dp = p.grad
-
                 if p.ndim > 1:  # if not normalization gamma/beta or bias
-                    dp = dp.add(p, alpha=g['weight_decay'])
+                    grad = grad.add(p, alpha=g['weight_decay'])
                     param_norm = torch.norm(p)
-                    update_norm = torch.norm(dp)
+                    update_norm = torch.norm(grad)
                     one = torch.ones_like(param_norm)
 
                     q = torch.where(
@@ -92,14 +92,14 @@ class LARS(Optimizer):
                         torch.where(update_norm > 0.0, (g['trust_coefficient'] * param_norm / update_norm), one),
                         one,
                     )
-                    dp = dp.mul(q)
+                    grad = grad.mul(q)
 
                 param_state = self.state[p]
                 if 'mu' not in param_state:
                     param_state['mu'] = torch.zeros_like(p)
 
                 mu = param_state['mu']
-                mu.mul_(g['momentum']).add_(dp)
+                mu.mul_(g['momentum']).add_(grad)
 
                 p.add_(mu, alpha=-g['lr'])
 
