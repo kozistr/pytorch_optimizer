@@ -76,6 +76,13 @@ def test_wd_ratio(optimizer_names):
         optimizer(None, wd_ratio=-1e-3)
 
 
+@pytest.mark.parametrize('optimizer_names', ['adahessian'])
+def test_hessian_power(optimizer_names):
+    with pytest.raises(ValueError):
+        optimizer = load_optimizers(optimizer_names)
+        optimizer(None, hessian_power=-1e-3)
+
+
 @pytest.mark.parametrize('optimizer_names', BETA_OPTIMIZER_NAMES)
 def test_betas(optimizer_names):
     optimizer = load_optimizers(optimizer_names)
