@@ -70,14 +70,14 @@ class Lookahead(Optimizer):
         for fast in group['params']:
             param_state = self.state[fast]
             if 'slow_param' not in param_state:
-                param_state['slow_param'] = torch.zeros_like(fast.data)
-                param_state['slow_param'].copy_(fast.data)
+                param_state['slow_param'] = torch.zeros_like(fast)
+                param_state['slow_param'].copy_(fast)
                 if self.pullback_momentum == 'pullback':
-                    param_state['slow_mom'] = torch.zeros_like(fast.data)
+                    param_state['slow_mom'] = torch.zeros_like(fast)
 
             slow = param_state['slow_param']
             slow += (fast.data - slow) * self.alpha
-            fast.data.copy_(slow)
+            fast.copy_(slow)
 
             if self.pullback_momentum == 'pullback':
                 internal_momentum = self.optimizer.state[fast]['momentum_buffer']
@@ -86,7 +86,7 @@ class Lookahead(Optimizer):
                 )
                 param_state['slow_mom'] = self.optimizer.state[fast]['momentum_buffer']
             elif self.pullback_momentum == 'reset':
-                self.optimizer.state[fast]['momentum_buffer'] = torch.zeros_like(fast.data)
+                self.optimizer.state[fast]['momentum_buffer'] = torch.zeros_like(fast)
 
     def update_lookahead(self):
         for group in self.param_groups:
