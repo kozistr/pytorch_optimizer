@@ -65,13 +65,6 @@ class AdaBelief(Optimizer):
 
         self.check_valid_parameters()
 
-        buffer: BUFFER = [[None, None, None] for _ in range(10)]
-
-        if is_valid_parameters(params):
-            for param in params:
-                if 'betas' in param and (param['betas'][0] != betas[0] or param['betas'][1] != betas[1]):
-                    param['buffer'] = buffer
-
         defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
@@ -79,7 +72,7 @@ class AdaBelief(Optimizer):
             weight_decay=weight_decay,
             amsgrad=amsgrad,
             adamd_debias_term=adamd_debias_term,
-            buffer=buffer,
+            buffer=[[None, None, None] for _ in range(10)],
         )
         super().__init__(params, defaults)
 
@@ -101,53 +94,57 @@ class AdaBelief(Optimizer):
             group.setdefault('amsgrad', False)
             group.setdefault('adamd_debias_term', False)
 
+    @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
 
                 state['step'] = 0
-                state['exp_avg'] = torch.zeros_like(p.data)
-                state['exp_avg_var'] = torch.zeros_like(p.data)
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_var'] = torch.zeros_like(p)
                 if group['amsgrad']:
-                    state['max_exp_avg_var'] = torch.zeros_like(p.data)
+                    state['max_exp_avg_var'] = torch.zeros_like(p)
 
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
                     continue
 
-                half_precision: bool = False
-                if p.data.dtype == torch.float16:
-                    half_precision = True
-                    p.data = p.data.float()
-                    p.grad = p.grad.float()
-
-                grad = p.grad.data
+                grad = p.grad
                 if grad.is_sparse:
                     raise RuntimeError('AdaBelief does not support sparse gradients')
+
+                if grad.dtype in (torch.float16, torch.bfloat16):
+                    grad = grad.float()
+
+                p_fp32 = p
+                if p.dtype in {torch.float16, torch.bfloat16}:
+                    p_fp32 = p_fp32.float()
 
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p.data)
-                    state['exp_avg_var'] = torch.zeros_like(p.data)
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_var'] = torch.zeros_like(p)
                     if group['amsgrad']:
-                        state['max_exp_avg_var'] = torch.zeros_like(p.data)
+                        state['max_exp_avg_var'] = torch.zeros_like(p)
 
                 if self.weight_decouple:
                     if not self.fixed_decay:
-                        p.data.mul_(1.0 - group['lr'] * group['weight_decay'])
+                        p_fp32.mul_(1.0 - group['lr'] * group['weight_decay'])
                     else:
-                        p.data.mul_(1.0 - group['weight_decay'])
+                        p_fp32.mul_(1.0 - group['weight_decay'])
                 else:
                     if group['weight_decay'] != 0:
-                        grad.add_(p.data, alpha=group['weight_decay'])
+                        grad.add_(p_fp32, alpha=group['weight_decay'])
 
                 exp_avg, exp_avg_var = state['exp_avg'], state['exp_avg_var']
 
@@ -170,15 +167,15 @@ class AdaBelief(Optimizer):
                         out=max_exp_avg_var,
                     )
 
-                    denom = (max_exp_avg_var.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
+                    de_nom = (max_exp_avg_var.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
                 else:
-                    denom = (exp_avg_var.add_(group['eps']).sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
+                    de_nom = (exp_avg_var.add_(group['eps']).sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
                 if not self.rectify:
                     step_size = group['lr']
                     if not group['adamd_debias_term']:
                         step_size /= bias_correction1
-                    p.data.addcdiv_(exp_avg, denom, value=-step_size)
+                    p_fp32.addcdiv_(exp_avg, de_nom, value=-step_size)
                 else:
                     buffered = group['buffer'][int(state['step'] % 10)]
                     if state['step'] == buffered[0]:
@@ -212,13 +209,12 @@ class AdaBelief(Optimizer):
                         buffered[2] = step_size
 
                     if n_sma >= self.n_sma_threshold:
-                        denom = exp_avg_var.sqrt().add_(group['eps'])
-                        p.data.addcdiv_(exp_avg, denom, value=-step_size * group['lr'])
+                        de_nom = exp_avg_var.sqrt().add_(group['eps'])
+                        p_fp32.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
                     elif step_size > 0:
-                        p.data.add_(exp_avg, alpha=-step_size * group['lr'])
+                        p_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
 
-                if half_precision:
-                    p.data = p.data.half()
-                    p.grad = p.grad.half()
+                if p.dtype in {torch.float16, torch.bfloat16}:
+                    p.copy_(p_fp32)
 
         return loss
