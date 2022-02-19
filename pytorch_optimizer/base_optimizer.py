@@ -37,6 +37,11 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] trust_coefficient {trust_coefficient} must be non-negative')
 
     @staticmethod
+    def validate_momentum(momentum: float):
+        if not 0.0 <= momentum < 1.0:
+            raise ValueError(f'[-] momentum {momentum} must be in the range [0, 1)')
+
+    @staticmethod
     def validate_epsilon(epsilon: float):
         if epsilon < 0.0:
             raise ValueError(f'[-] epsilon {epsilon} must be non-negative')
