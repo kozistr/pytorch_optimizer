@@ -52,6 +52,11 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] k {k} must be non-negative')
 
     @staticmethod
+    def validate_rho(rho: float):
+        if rho < 0.0:
+            raise ValueError(f'[-] rho {rho} must be non-negative')
+
+    @staticmethod
     def validate_epsilon(epsilon: float):
         if epsilon < 0.0:
             raise ValueError(f'[-] epsilon {epsilon} must be non-negative')
