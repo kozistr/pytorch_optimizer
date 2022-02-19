@@ -102,6 +102,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (DiffRGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adam': True, 'eps': 1e-8}, 500),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 500),
     (LARS, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
     (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
