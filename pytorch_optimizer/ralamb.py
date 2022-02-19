@@ -198,7 +198,7 @@ class RaLamb(Optimizer, BaseOptimizer):
                 else:
                     p_fp32.add_(exp_avg, alpha=-step_size * trust_ratio)
 
-                if p.dtype in {torch.float16, torch.bfloat16}:
+                if p.dtype in (torch.float16, torch.bfloat16):
                     p.copy_(p_fp32)
 
         return loss
