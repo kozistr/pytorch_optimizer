@@ -147,7 +147,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
                     p_masked._values().add_(p_kp1_masked_values, alpha=-1)
                     p.data.add_(p_masked, alpha=-1)
                 else:
-                    if momentum == 0:
+                    if momentum == 0.0:
                         # Compute x_0 from other known quantities
                         rms = grad_sum_sq.pow(1 / 3).add_(eps)
                         x0 = p.addcdiv(s, rms, value=1)
@@ -166,7 +166,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
                     if decay != 0 and self.decouple_decay:
                         p_old = p.clone()
 
-                    if momentum == 0:
+                    if momentum == 0.0:
                         p.copy_(x0.addcdiv(s, rms, value=-1))
                     else:
                         z = x0.addcdiv(s, rms, value=-1)
