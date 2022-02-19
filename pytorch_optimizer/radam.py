@@ -4,8 +4,7 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.utils import is_valid_parameters
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class RAdam(Optimizer):
@@ -54,20 +53,13 @@ class RAdam(Optimizer):
 
         self.check_valid_parameters()
 
-        buffer: BUFFER = [[None, None, None] for _ in range(10)]
-
-        if is_valid_parameters(params):
-            for param in params:
-                if 'betas' in param and (param['betas'][0] != betas[0] or param['betas'][1] != betas[1]):
-                    param['buffer'] = buffer
-
         defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
             eps=eps,
             weight_decay=weight_decay,
             adamd_debias_term=adamd_debias_term,
-            buffer=buffer,
+            buffer=[[None, None, None] for _ in range(10)],
         )
 
         super().__init__(params, defaults)
@@ -87,39 +79,46 @@ class RAdam(Optimizer):
     def __setstate__(self, state: Dict):
         super().__setstate__(state)
 
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
                     continue
 
-                grad = p.grad.data.float()
+                grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('RAdam does not support sparse gradients')
+                    raise RuntimeError('AdaBelief does not support sparse gradients')
 
-                p_data_fp32 = p.data.float()
+                if grad.dtype in (torch.float16, torch.bfloat16):
+                    grad = grad.float()
+
+                p_fp32 = p
+                if p.dtype in {torch.float16, torch.bfloat16}:
+                    p_fp32 = p_fp32.float()
 
                 state = self.state[p]
 
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p_data_fp32)
-                    state['exp_avg_sq'] = torch.zeros_like(p_data_fp32)
+                    state['exp_avg'] = torch.zeros_like(p_fp32)
+                    state['exp_avg_sq'] = torch.zeros_like(p_fp32)
                 else:
-                    state['exp_avg'] = state['exp_avg'].type_as(p_data_fp32)
-                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_data_fp32)
+                    state['exp_avg'] = state['exp_avg'].type_as(p_fp32)
+                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_fp32)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
 
-                bias_correction1 = 1 - beta1 ** state['step']
+                bias_correction1 = 1.0 - beta1 ** state['step']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
+                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 state['step'] += 1
                 buffered = group['buffer'][int(state['step'] % 10)]
@@ -143,10 +142,9 @@ class RAdam(Optimizer):
                             / (n_sma_max - 2)
                         )
 
-                        if group['adamd_debias_term']:
-                            step_size = rt
-                        else:
-                            step_size = rt / bias_correction1
+                        step_size = rt
+                        if not group['adamd_debias_term']:
+                            step_size /= bias_correction1
                     elif self.degenerated_to_sgd:
                         step_size = 1.0 / bias_correction1
                     else:
@@ -155,14 +153,15 @@ class RAdam(Optimizer):
 
                 if n_sma >= self.n_sma_threshold:
                     if group['weight_decay'] != 0:
-                        p_data_fp32.add_(p_data_fp32, alpha=-group['weight_decay'] * group['lr'])
-                    denom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p_data_fp32.addcdiv_(exp_avg, denom, value=-step_size * group['lr'])
-                    p.data.copy_(p_data_fp32)
+                        p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
+                    de_nom = exp_avg_sq.sqrt().add_(group['eps'])
+                    p_fp32.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
                 elif step_size > 0:
                     if group['weight_decay'] != 0:
-                        p_data_fp32.add_(p_data_fp32, alpha=-group['weight_decay'] * group['lr'])
-                    p_data_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
-                    p.data.copy_(p_data_fp32)
+                        p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
+                    p_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
+
+                if p.dtype in {torch.float16, torch.bfloat16}:
+                    p.copy_(p_fp32)
 
         return loss
