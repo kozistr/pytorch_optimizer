@@ -117,58 +117,58 @@ class AdamP(Optimizer):
         wd: float = 1.0
         expand_size: List[int] = [-1] + [1] * (len(p.shape) - 1)
         for view_func in (self.channel_view, self.layer_view):
-            cosine_sim = self.cosine_similarity(grad, p.data, eps, view_func)
+            cosine_sim = self.cosine_similarity(grad, p, eps, view_func)
 
-            if cosine_sim.max() < delta / math.sqrt(view_func(p.data).size()[1]):
-                p_n = p.data / view_func(p.data).norm(dim=1).view(expand_size).add_(eps)
+            if cosine_sim.max() < delta / math.sqrt(view_func(p).size()[1]):
+                p_n = p / view_func(p).norm(dim=1).view(expand_size).add_(eps)
                 perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(expand_size)
                 wd = wd_ratio
                 return perturb, wd
 
         return perturb, wd
 
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
                     continue
 
+                grad = p.grad
+                if grad.is_sparse:
+                    raise RuntimeError('AdamP does not support sparse gradients')
+
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p.data)
-                    state['exp_avg_sq'] = torch.zeros_like(p.data)
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 state['step'] += 1
                 beta1, beta2 = group['betas']
 
-                bias_correction1 = 1 - beta1 ** state['step']
-                bias_correction2 = 1 - beta2 ** state['step']
-
-                grad = p.grad.data
+                bias_correction1 = 1.0 - beta1 ** state['step']
+                bias_correction2 = 1.0 - beta2 ** state['step']
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                denom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
-                if group['adamd_debias_term']:
-                    step_size = group['lr']
-                else:
-                    step_size = group['lr'] / bias_correction1
+                de_nom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
                 if group['nesterov']:
-                    perturb = (beta1 * exp_avg + (1 - beta1) * grad) / denom
+                    perturb = (beta1 * exp_avg + (1.0 - beta1) * grad) / de_nom
                 else:
-                    perturb = exp_avg / denom
+                    perturb = exp_avg / de_nom
 
                 wd_ratio: float = 1
                 if len(p.shape) > 1:
@@ -182,8 +182,12 @@ class AdamP(Optimizer):
                     )
 
                 if group['weight_decay'] > 0:
-                    p.data.mul_(1.0 - group['lr'] * group['weight_decay'] * wd_ratio)
+                    p.mul_(1.0 - group['lr'] * group['weight_decay'] * wd_ratio)
 
-                p.data.add_(perturb, alpha=-step_size)
+                step_size = group['lr']
+                if not group['adamd_debias_term']:
+                    step_size /= bias_correction1
+
+                p.add_(perturb, alpha=-step_size)
 
         return loss

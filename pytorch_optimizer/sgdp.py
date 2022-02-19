@@ -2,7 +2,7 @@ import math
 from typing import Callable, List, Tuple
 
 import torch
-import torch.nn.functional as F
+from torch.nn import functional as F
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
@@ -105,10 +105,10 @@ class SGDP(Optimizer):
         wd: float = 1.0
         expand_size: List[int] = [-1] + [1] * (len(p.shape) - 1)
         for view_func in (self.channel_view, self.layer_view):
-            cosine_sim = self.cosine_similarity(grad, p.data, eps, view_func)
+            cosine_sim = self.cosine_similarity(grad, p, eps, view_func)
 
-            if cosine_sim.max() < delta / math.sqrt(view_func(p.data).size()[1]):
-                p_n = p.data / view_func(p.data).norm(dim=1).view(expand_size).add_(eps)
+            if cosine_sim.max() < delta / math.sqrt(view_func(p).size()[1]):
+                p_n = p / view_func(p).norm(dim=1).view(expand_size).add_(eps)
                 perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(expand_size)
                 wd = wd_ratio
 
@@ -116,30 +116,32 @@ class SGDP(Optimizer):
 
         return perturb, wd
 
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         for group in self.param_groups:
             momentum = group['momentum']
-            dampening = group['dampening']
-            nesterov = group['nesterov']
 
             for p in group['params']:
                 if p.grad is None:
                     continue
 
-                grad = p.grad.data
+                grad = p.grad
+                if grad.is_sparse:
+                    raise RuntimeError('SGDP does not support sparse gradients')
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['momentum'] = torch.zeros_like(p.data)
+                    state['momentum'] = torch.zeros_like(p)
 
                 buf = state['momentum']
-                buf.mul_(momentum).add_(grad, alpha=1 - dampening)
+                buf.mul_(momentum).add_(grad, alpha=1.0 - group['dampening'])
 
-                if nesterov:
+                if group['nesterov']:
                     d_p = grad + momentum * buf
                 else:
                     d_p = buf
@@ -156,8 +158,8 @@ class SGDP(Optimizer):
                     )
 
                 if group['weight_decay'] > 0:
-                    p.data.mul_(1 - group['lr'] * group['weight_decay'] * wd_ratio / (1 - momentum))
+                    p.mul_(1.0 - group['lr'] * group['weight_decay'] * wd_ratio / (1.0 - momentum))
 
-                p.data.add_(d_p, alpha=-group['lr'])
+                p.add_(d_p, alpha=-group['lr'])
 
         return loss

@@ -6,8 +6,8 @@ verify_ssl = false
 [dev-packages]
 isort = "==5.10.1"
 black = "==21.12b0"
-pylint = "==3.0.0a4"
-pytest = "==6.2.5"
+pylint = "==2.11.1"
+pytest = "==7.0.1"
 pytest-cov = "==3.0.0"
 
 [packages]

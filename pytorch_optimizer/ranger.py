@@ -93,30 +93,39 @@ class Ranger(Optimizer):
     def __setstate__(self, state: Dict):
         super().__setstate__(state)
 
-    def step(self, _: CLOSURE = None) -> LOSS:
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
 
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
                     continue
 
-                grad = p.grad.data.float()
+                grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('Ranger optimizer does not support sparse gradients')
+                    raise RuntimeError('Ranger does not support sparse gradients')
 
-                p_data_fp32 = p.data.float()
+                if grad.dtype in (torch.float16, torch.bfloat16):
+                    grad = grad.float()
+
+                p_fp32 = p
+                if p.dtype in {torch.float16, torch.bfloat16}:
+                    p_fp32 = p_fp32.float()
 
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p_data_fp32)
-                    state['exp_avg_sq'] = torch.zeros_like(p_data_fp32)
-                    state['slow_buffer'] = torch.empty_like(p.data)
-                    state['slow_buffer'].copy_(p.data)
+                    state['exp_avg'] = torch.zeros_like(p_fp32)
+                    state['exp_avg_sq'] = torch.zeros_like(p_fp32)
+                    state['slow_buffer'] = torch.empty_like(p_fp32)
+                    state['slow_buffer'].copy_(p_fp32)
                 else:
-                    state['exp_avg'] = state['exp_avg'].type_as(p_data_fp32)
-                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_data_fp32)
+                    state['exp_avg'] = state['exp_avg'].type_as(p_fp32)
+                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_fp32)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
@@ -126,10 +135,10 @@ class Ranger(Optimizer):
 
                 state['step'] += 1
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
+                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                bias_correction1 = 1 - beta1 ** state['step']
+                bias_correction1 = 1.0 - beta1 ** state['step']
 
                 buffered = self.buffer[int(state['step'] % 10)]
 
@@ -152,29 +161,28 @@ class Ranger(Optimizer):
                             / (n_sma_max - 2)
                         )
 
-                        if group['adamd_debias_term']:
-                            step_size = rt
-                        else:
-                            step_size = rt / bias_correction1
+                        step_size = rt
+                        if not group['adamd_debias_term']:
+                            step_size /= bias_correction1
                     else:
                         step_size = 1.0 / bias_correction1
 
                     buffered[2] = step_size
 
                 if group['weight_decay'] != 0:
-                    p_data_fp32.add_(p_data_fp32, alpha=-group['weight_decay'] * group['lr'])
+                    p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
 
                 if n_sma > self.n_sma_threshold:
-                    denom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p_data_fp32.addcdiv_(exp_avg, denom, value=-step_size * group['lr'])
+                    de_nom = exp_avg_sq.sqrt().add_(group['eps'])
+                    p_fp32.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
                 else:
-                    p_data_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
+                    p_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
 
-                p.data.copy_(p_data_fp32)
+                p.copy_(p_fp32)
 
                 if state['step'] % group['k'] == 0:
                     slow_p = state['slow_buffer']
-                    slow_p.add_(p.data - slow_p, alpha=self.alpha)
-                    p.data.copy_(slow_p)
+                    slow_p.add_(p - slow_p, alpha=self.alpha)
+                    p.copy_(slow_p)
 
         return loss

@@ -3,8 +3,7 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
-from pytorch_optimizer.utils import is_valid_parameters
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
 
 
 class DiffRGrad(Optimizer):
@@ -55,20 +54,13 @@ class DiffRGrad(Optimizer):
 
         self.check_valid_parameters()
 
-        buffer: BUFFER = [[None, None, None] for _ in range(10)]
-
-        if is_valid_parameters(params):
-            for param in params:
-                if 'betas' in param and (param['betas'][0] != betas[0] or param['betas'][1] != betas[1]):
-                    param['buffer'] = buffer
-
         defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
             eps=eps,
             weight_decay=weight_decay,
             adamd_debias_term=adamd_debias_term,
-            buffer=buffer,
+            buffer=[[None, None, None] for _ in range(10)],
         )
         super().__init__(params, defaults)
 
@@ -87,47 +79,53 @@ class DiffRGrad(Optimizer):
     def __setstate__(self, state: STATE):
         super().__setstate__(state)
 
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
                     continue
 
-                grad = p.grad.data.float()
+                grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('diffGrad does not support sparse gradients')
+                    raise RuntimeError('AdaBelief does not support sparse gradients')
 
-                p_data_fp32 = p.data.float()
+                if grad.dtype in (torch.float16, torch.bfloat16):
+                    grad = grad.float()
+
+                p_fp32 = p
+                if p.dtype in {torch.float16, torch.bfloat16}:
+                    p_fp32 = p_fp32.float()
 
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p_data_fp32)
-                    state['exp_avg_sq'] = torch.zeros_like(p_data_fp32)
-                    state['previous_grad'] = torch.zeros_like(p_data_fp32)
+                    state['exp_avg'] = torch.zeros_like(p_fp32)
+                    state['exp_avg_sq'] = torch.zeros_like(p_fp32)
+                    state['previous_grad'] = torch.zeros_like(p_fp32)
                 else:
-                    state['exp_avg'] = state['exp_avg'].type_as(p_data_fp32)
-                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_data_fp32)
-                    state['previous_grad'] = state['previous_grad'].type_as(p_data_fp32)
+                    state['exp_avg'] = state['exp_avg'].type_as(p_fp32)
+                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_fp32)
+                    state['previous_grad'] = state['previous_grad'].type_as(p_fp32)
 
                 exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
 
                 state['step'] += 1
                 beta1, beta2 = group['betas']
 
-                bias_correction1 = 1 - beta1 ** state['step']
+                bias_correction1 = 1.0 - beta1 ** state['step']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
+                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 # compute diffGrad coefficient (dfc)
                 diff = abs(previous_grad - grad)
                 dfc = 1.0 / (1.0 + torch.exp(-diff))
-
                 state['previous_grad'] = grad.clone()
 
                 buffered = group['buffer'][int(state['step'] % 10)]
@@ -164,18 +162,19 @@ class DiffRGrad(Optimizer):
 
                 if n_sma >= self.n_sma_threshold:
                     if group['weight_decay'] != 0:
-                        p_data_fp32.add_(p_data_fp32, alpha=-group['weight_decay'] * group['lr'])
+                        p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
 
-                    denom = exp_avg_sq.sqrt().add_(group['eps'])
+                    de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
                     # update momentum with dfc
-                    p_data_fp32.addcdiv_(exp_avg * dfc.float(), denom, value=-step_size * group['lr'])
-                    p.data.copy_(p_data_fp32)
+                    p_fp32.addcdiv_(exp_avg * dfc.float(), de_nom, value=-step_size * group['lr'])
                 elif step_size > 0:
                     if group['weight_decay'] != 0:
-                        p_data_fp32.add_(p_data_fp32, alpha=-group['weight_decay'] * group['lr'])
+                        p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
 
-                    p_data_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
-                    p.data.copy_(p_data_fp32)
+                    p_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
+
+                if p.dtype in {torch.float16, torch.bfloat16}:
+                    p.copy_(p_fp32)
 
         return loss

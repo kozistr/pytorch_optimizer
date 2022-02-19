@@ -62,16 +62,20 @@ class MADGRAD(Optimizer):
         if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
 
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
+        # pylint: disable=W0212
+
         loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         # step counter must be stored in state to ensure correct behavior under optimizer sharding
         if 'k' not in self.state:
-            self.state['k'] = torch.tensor([0], dtype=torch.long)
+            self.state['k'] = torch.tensor([0], dtype=torch.long, requires_grad=False)
 
-        k = self.state['k'].item()
+        k = self.state['k']
 
         for group in self.param_groups:
             eps = group['eps']
@@ -86,14 +90,14 @@ class MADGRAD(Optimizer):
                 if p.grad is None:
                     continue
 
-                grad = p.grad.data
+                grad = p.grad
                 state = self.state[p]
 
                 if 'grad_sum_sq' not in state:
-                    state['grad_sum_sq'] = torch.zeros_like(p.data).detach()
-                    state['s'] = torch.zeros_like(p.data).detach()
+                    state['grad_sum_sq'] = torch.zeros_like(p, requires_grad=False)
+                    state['s'] = torch.zeros_like(p, requires_grad=False)
                     if momentum != 0:
-                        state['x0'] = torch.clone(p.data).detach()
+                        state['x0'] = torch.clone(p).detach()
 
                 if momentum != 0.0 and grad.is_sparse:
                     raise RuntimeError('momentum != 0 is not compatible with sparse gradients')
@@ -106,10 +110,10 @@ class MADGRAD(Optimizer):
                         raise RuntimeError('weight_decay option is not compatible with sparse gradients')
 
                     # original implementation
-                    # grad.add_(p.data, alpha=decay)
+                    # grad.add_(p, alpha=decay)
 
                     # Apply weight decay - L2 / AdamW style
-                    p.data.mul_(1 - lr * decay)
+                    p.mul_(1.0 - lr * decay)
 
                 if grad.is_sparse:
                     grad = grad.coalesce()
@@ -142,7 +146,7 @@ class MADGRAD(Optimizer):
                     if momentum == 0:
                         # Compute x_0 from other known quantities
                         rms = grad_sum_sq.pow(1 / 3).add_(eps)
-                        x0 = p.data.addcdiv(s, rms, value=1)
+                        x0 = p.addcdiv(s, rms, value=1)
                     else:
                         x0 = state['x0']
 
@@ -150,14 +154,13 @@ class MADGRAD(Optimizer):
                     grad_sum_sq.addcmul_(grad, grad, value=_lambda)
                     rms = grad_sum_sq.pow(1 / 3).add_(eps)
 
-                    s.data.add_(grad, alpha=_lambda)
+                    s.add_(grad, alpha=_lambda)
 
                     if momentum == 0:
-                        p.data.copy_(x0.addcdiv(s, rms, value=-1))
+                        p.copy_(x0.addcdiv(s, rms, value=-1))
                     else:
                         z = x0.addcdiv(s, rms, value=-1)
-
-                        p.data.mul_(1 - ck).add_(z, alpha=ck)
+                        p.mul_(1.0 - ck).add_(z, alpha=ck)
 
         self.state['k'] += 1
 

@@ -142,10 +142,12 @@ class AdaHessian(Optimizer):
                 # approximate the expected values of z * (H@z)
                 p.hess += h_z * z / self.num_samples
 
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         self.zero_hessian()
         self.set_hessian()
@@ -164,8 +166,8 @@ class AdaHessian(Optimizer):
                 state = self.state[p]
                 if len(state) == 1:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p.data)
-                    state['exp_hessian_diag_sq'] = torch.zeros_like(p.data)
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_hessian_diag_sq'] = torch.zeros_like(p)
 
                 exp_avg, exp_hessian_diag_sq = state['exp_avg'], state['exp_hessian_diag_sq']
 
@@ -180,13 +182,12 @@ class AdaHessian(Optimizer):
                 bias_correction2 = 1 - beta2 ** state['step']
 
                 hessian_power = group['hessian_power']
-                denom = (exp_hessian_diag_sq / bias_correction2).pow_(hessian_power / 2).add_(group['eps'])
+                de_nom = (exp_hessian_diag_sq / bias_correction2).pow_(hessian_power / 2.0).add_(group['eps'])
 
-                if group['adamd_debias_term']:
-                    step_size = group['lr']
-                else:
-                    step_size = group['lr'] / bias_correction1
+                step_size = group['lr']
+                if not group['adamd_debias_term']:
+                    step_size /= bias_correction1
 
-                p.addcdiv_(exp_avg, denom, value=-step_size)
+                p.addcdiv_(exp_avg, de_nom, value=-step_size)
 
         return loss

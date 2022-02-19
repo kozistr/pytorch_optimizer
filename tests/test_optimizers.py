@@ -25,6 +25,7 @@ from pytorch_optimizer import (
     Ranger21,
     SafeFP16Optimizer,
 )
+from pytorch_optimizer.types import LOSS
 
 
 class LogisticRegression(nn.Module):
@@ -78,6 +79,10 @@ def ids(v) -> str:
     return f'{v[0].__name__}_{v[1:]}'
 
 
+def dummy_closure() -> LOSS:
+    return 1.0
+
+
 def build_lookahead(*parameters, **kwargs):
     return Lookahead(AdamP(*parameters, **kwargs))
 
@@ -87,13 +92,17 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'amsgrad': True}, 200),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 200),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'fixed_decay': True}, 200),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': False}, 200),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 200),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
+    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 200),
+    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'nesterov': True}, 200),
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (DiffRGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adam': True, 'eps': 1e-8}, 500),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 500),
     (LARS, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
     (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
@@ -136,6 +145,20 @@ def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.
         loss_fn = loss_fn.cuda()
 
     return (x_data, y_data), model, loss_fn
+
+
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_closure(optimizer_config):
+    if optimizer_config[0] == Ranger21:
+        return True
+
+    _, model, _ = build_environment()
+
+    optimizer_class, config, _ = optimizer_config
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    optimizer.zero_grad()
+    optimizer.step(closure=dummy_closure)
 
 
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)

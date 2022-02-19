@@ -3,8 +3,7 @@ import math
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULTS, PARAMETERS
-from pytorch_optimizer.utils import is_valid_parameters
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class RaLamb(Optimizer):
@@ -59,15 +58,13 @@ class RaLamb(Optimizer):
 
         self.check_valid_parameters()
 
-        buffer: BUFFER = [[None, None, None] for _ in range(10)]
-
-        if is_valid_parameters(params):
-            for param in params:
-                if 'betas' in param and (param['betas'][0] != betas[0] or param['betas'][1] != betas[1]):
-                    param['buffer'] = buffer
-
         defaults: DEFAULTS = dict(
-            lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, adamd_debias_term=adamd_debias_term, buffer=buffer
+            lr=lr,
+            betas=betas,
+            eps=eps,
+            weight_decay=weight_decay,
+            adamd_debias_term=adamd_debias_term,
+            buffer=[[None, None, None] for _ in range(10)],
         )
 
         super().__init__(params, defaults)
@@ -84,6 +81,7 @@ class RaLamb(Optimizer):
         if self.eps < 0.0:
             raise ValueError(f'Invalid eps : {self.eps}')
 
+    @torch.no_grad()
     def get_gradient_norm(self) -> float:
         norm_sq: float = 0.0
         for group in self.param_groups:
@@ -97,10 +95,12 @@ class RaLamb(Optimizer):
 
         return norm
 
-    def step(self, closure: CLOSURE = None) -> float:
-        loss = None
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         grad_norm: float = 1.0
         if self.pre_norm:
@@ -114,21 +114,26 @@ class RaLamb(Optimizer):
                 if self.pre_norm:
                     p.grad /= grad_norm
 
-                grad = p.grad.data
+                grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('[-] Lamb does not support sparse gradients, consider SparseAdam instead.')
+                    raise RuntimeError('AdaBelief does not support sparse gradients')
 
-                p_data_fp32 = p.data.float()
+                if grad.dtype in (torch.float16, torch.bfloat16):
+                    grad = grad.float()
+
+                p_fp32 = p
+                if p.dtype in {torch.float16, torch.bfloat16}:
+                    p_fp32 = p_fp32.float()
 
                 state = self.state[p]
 
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p_data_fp32)
-                    state['exp_avg_sq'] = torch.zeros_like(p_data_fp32)
+                    state['exp_avg'] = torch.zeros_like(p_fp32)
+                    state['exp_avg_sq'] = torch.zeros_like(p_fp32)
                 else:
-                    state['exp_avg'] = state['exp_avg'].type_as(p_data_fp32)
-                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_data_fp32)
+                    state['exp_avg'] = state['exp_avg'].type_as(p_fp32)
+                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_fp32)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
@@ -139,7 +144,7 @@ class RaLamb(Optimizer):
                 state['step'] += 1
                 buffered = group['buffer'][int(state['step'] % 10)]
 
-                bias_correction1 = 1 - beta1 ** state['step']
+                bias_correction1 = 1.0 - beta1 ** state['step']
 
                 if state['step'] == buffered[0]:
                     n_sma, step_size = buffered[1], buffered[2]
@@ -162,10 +167,9 @@ class RaLamb(Optimizer):
                             / (n_sma_max - 2)
                         )
 
-                        if group['adamd_debias_term']:
-                            step_size = rt
-                        else:
-                            step_size = rt / bias_correction1
+                        step_size = rt
+                        if not group['adamd_debias_term']:
+                            step_size /= bias_correction1
                     elif self.degenerated_to_sgd:
                         step_size = 1.0 / bias_correction1
                     else:
@@ -174,17 +178,17 @@ class RaLamb(Optimizer):
                     buffered[2] = step_size
 
                 if group['weight_decay'] != 0:
-                    p_data_fp32.add_(p_data_fp32, alpha=-group['weight_decay'] * group['lr'])
+                    p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
 
-                radam_step = p_data_fp32.clone()
+                radam_step = p_fp32.clone()
                 if n_sma >= self.n_sma_threshold:
-                    denom = exp_avg_sq.sqrt().add_(group['eps'])
-                    radam_step.addcdiv_(exp_avg, denom, value=-step_size)
+                    de_nom = exp_avg_sq.sqrt().add_(group['eps'])
+                    radam_step.addcdiv_(exp_avg, de_nom, value=-step_size)
                 else:
                     radam_step.add_(exp_avg, alpha=-step_size)
 
                 radam_step = radam_step.pow(2).sum().sqrt()
-                weight_norm = p.data.pow(2).sum().sqrt().clamp(0, self.clamp)
+                weight_norm = p.pow(2).sum().sqrt().clamp(0.0, self.clamp)
                 if weight_norm == 0 or radam_step == 0:
                     trust_ratio = 1.0
                 else:
@@ -195,8 +199,11 @@ class RaLamb(Optimizer):
                 state['trust_ratio'] = trust_ratio
 
                 if n_sma >= self.n_sma_threshold:
-                    p_data_fp32.addcdiv_(exp_avg, denom, value=-step_size * trust_ratio)
+                    p_fp32.addcdiv_(exp_avg, de_nom, value=-step_size * trust_ratio)
                 else:
-                    p_data_fp32.add_(exp_avg, alpha=-step_size * trust_ratio)
+                    p_fp32.add_(exp_avg, alpha=-step_size * trust_ratio)
+
+                if p.dtype in {torch.float16, torch.bfloat16}:
+                    p.copy_(p_fp32)
 
         return loss

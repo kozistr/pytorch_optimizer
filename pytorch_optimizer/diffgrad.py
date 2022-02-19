@@ -66,42 +66,44 @@ class DiffGrad(Optimizer):
     def __setstate__(self, state: STATE):
         super().__setstate__(state)
 
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
                     continue
 
-                grad = p.grad.data
+                grad = p.grad
                 if grad.is_sparse:
                     raise RuntimeError('diffGrad does not support sparse gradients')
 
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p.data)
-                    state['exp_avg_sq'] = torch.zeros_like(p.data)
-                    state['previous_grad'] = torch.zeros_like(p.data)
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
+                    state['previous_grad'] = torch.zeros_like(p)
 
                 exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
 
                 if group['weight_decay'] != 0:
-                    grad.add_(p.data, alpha=group['weight_decay'])
+                    grad.add_(p, alpha=group['weight_decay'])
 
                 state['step'] += 1
                 beta1, beta2 = group['betas']
 
                 # Decay the first and second moment running average coefficient
-                exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
-                denom = exp_avg_sq.sqrt().add_(group['eps'])
+                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+                de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
-                bias_correction1 = 1 - beta1 ** state['step']
-                bias_correction2 = 1 - beta2 ** state['step']
+                bias_correction1 = 1.0 - beta1 ** state['step']
+                bias_correction2 = 1.0 - beta2 ** state['step']
 
                 # compute diffGrad coefficient (dfc)
                 diff = abs(previous_grad - grad)
@@ -111,11 +113,10 @@ class DiffGrad(Optimizer):
                 # update momentum with dfc
                 exp_avg1 = exp_avg * dfc
 
-                if group['adamd_debias_term']:
-                    step_size = group['lr'] * math.sqrt(bias_correction2)
-                else:
-                    step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
+                step_size = group['lr'] * math.sqrt(bias_correction2)
+                if not group['adamd_debias_term']:
+                    step_size /= bias_correction1
 
-                p.data.addcdiv_(exp_avg1, denom, value=-step_size)
+                p.addcdiv_(exp_avg1, de_nom, value=-step_size)
 
         return loss
