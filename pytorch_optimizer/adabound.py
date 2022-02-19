@@ -91,17 +91,19 @@ class AdaBound(Optimizer):
             group.setdefault('amsbound', False)
             group.setdefault('adamd_debias_term', False)
 
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         for group, base_lr in zip(self.param_groups, self.base_lrs):
             for p in group['params']:
                 if p.grad is None:
                     continue
 
-                grad = p.grad.data
+                grad = p.grad
                 if grad.is_sparse:
                     raise RuntimeError('AdaBound does not support sparse gradients')
 
@@ -114,46 +116,42 @@ class AdaBound(Optimizer):
                     if group['amsbound']:
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                if group['amsbound']:
-                    max_exp_avg_sq = state['max_exp_avg_sq']
-
                 state['step'] += 1
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 if self.weight_decouple:
                     if not self.fixed_decay:
-                        p.data.mul_(1.0 - group['lr'] * group['weight_decay'])
+                        p.mul_(1.0 - group['lr'] * group['weight_decay'])
                     else:
-                        p.data.mul_(1.0 - group['weight_decay'])
+                        p.mul_(1.0 - group['weight_decay'])
                 else:
                     if group['weight_decay'] != 0:
-                        grad.add_(p.data, alpha=group['weight_decay'])
+                        grad.add_(p, alpha=group['weight_decay'])
 
                 beta1, beta2 = group['betas']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
+                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                 if group['amsbound']:
-                    max_exp_avg_sq = torch.max(max_exp_avg_sq, exp_avg_sq)
-                    denom = max_exp_avg_sq.sqrt().add_(group['eps'])
+                    max_exp_avg_sq = torch.max(state['max_exp_avg_sq'], exp_avg_sq)
+                    de_nom = max_exp_avg_sq.sqrt().add_(group['eps'])
                 else:
-                    denom = exp_avg_sq.sqrt().add_(group['eps'])
+                    de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
                 bias_correction1 = 1 - beta1 ** state['step']
                 bias_correction2 = 1 - beta2 ** state['step']
 
-                if group['adamd_debias_term']:
-                    step_size = group['lr'] * math.sqrt(bias_correction2)
-                else:
-                    step_size = group['lr'] * math.sqrt(bias_correction2) / bias_correction1
+                step_size = group['lr'] * math.sqrt(bias_correction2)
+                if not group['adamd_debias_term']:
+                    step_size / bias_correction1
 
                 final_lr = group['final_lr'] * group['lr'] / base_lr
                 lower_bound = final_lr * (1 - 1 / (group['gamma'] * state['step'] + 1))
                 upper_bound = final_lr * (1 + 1 / (group['gamma'] * state['step']))
 
-                step_size = torch.full_like(denom, step_size)
-                step_size.div_(denom).clamp_(lower_bound, upper_bound).mul_(exp_avg)
+                step_size = torch.full_like(de_nom, step_size)
+                step_size.div_(de_nom).clamp_(lower_bound, upper_bound).mul_(exp_avg)
 
-                p.data.add_(-step_size)
+                p.add_(-step_size)
 
         return loss
