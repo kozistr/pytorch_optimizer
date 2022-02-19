@@ -6,7 +6,7 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.gc import centralize_gradient
-from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class Ranger(Optimizer, BaseOptimizer):
