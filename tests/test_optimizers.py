@@ -5,7 +5,6 @@ import pytest
 import torch
 from torch import nn
 from torch.nn import functional as F
-from pytorch_optimizer.types import LOSS
 
 from pytorch_optimizer import (
     LARS,
@@ -26,6 +25,7 @@ from pytorch_optimizer import (
     Ranger21,
     SafeFP16Optimizer,
 )
+from pytorch_optimizer.types import LOSS
 
 
 class LogisticRegression(nn.Module):
