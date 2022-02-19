@@ -59,8 +59,12 @@ class RaLamb(Optimizer):
         self.check_valid_parameters()
 
         defaults: DEFAULTS = dict(
-            lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, adamd_debias_term=adamd_debias_term,
-            buffer=[[None, None, None] for _ in range(10)]
+            lr=lr,
+            betas=betas,
+            eps=eps,
+            weight_decay=weight_decay,
+            adamd_debias_term=adamd_debias_term,
+            buffer=[[None, None, None] for _ in range(10)],
         )
 
         super().__init__(params, defaults)
@@ -163,10 +167,9 @@ class RaLamb(Optimizer):
                             / (n_sma_max - 2)
                         )
 
-                        if group['adamd_debias_term']:
-                            step_size = rt
-                        else:
-                            step_size = rt / bias_correction1
+                        step_size = rt
+                        if not group['adamd_debias_term']:
+                            step_size /= bias_correction1
                     elif self.degenerated_to_sgd:
                         step_size = 1.0 / bias_correction1
                     else:
@@ -185,7 +188,7 @@ class RaLamb(Optimizer):
                     radam_step.add_(exp_avg, alpha=-step_size)
 
                 radam_step = radam_step.pow(2).sum().sqrt()
-                weight_norm = p.data.pow(2).sum().sqrt().clamp(0.0, self.clamp)
+                weight_norm = p.pow(2).sum().sqrt().clamp(0.0, self.clamp)
                 if weight_norm == 0 or radam_step == 0:
                     trust_ratio = 1.0
                 else:
@@ -196,9 +199,9 @@ class RaLamb(Optimizer):
                 state['trust_ratio'] = trust_ratio
 
                 if n_sma >= self.n_sma_threshold:
-                    de_nom.addcdiv_(exp_avg, de_nom, value=-step_size * trust_ratio)
+                    p_fp32.addcdiv_(exp_avg, de_nom, value=-step_size * trust_ratio)
                 else:
-                    de_nom.add_(exp_avg, alpha=-step_size * trust_ratio)
+                    p_fp32.add_(exp_avg, alpha=-step_size * trust_ratio)
 
                 if p.dtype in {torch.float16, torch.bfloat16}:
                     p.copy_(p_fp32)
