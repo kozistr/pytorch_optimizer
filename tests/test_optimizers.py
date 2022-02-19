@@ -5,6 +5,7 @@ import pytest
 import torch
 from torch import nn
 from torch.nn import functional as F
+from pytorch_optimizer.types import LOSS
 
 from pytorch_optimizer import (
     LARS,
@@ -78,6 +79,10 @@ def ids(v) -> str:
     return f'{v[0].__name__}_{v[1:]}'
 
 
+def dummy_closure() -> LOSS:
+    return 1.0
+
+
 def build_lookahead(*parameters, **kwargs):
     return Lookahead(AdamP(*parameters, **kwargs))
 
@@ -87,6 +92,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'amsgrad': True}, 200),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 200),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'fixed_decay': True}, 200),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': False}, 200),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 200),
@@ -138,6 +144,17 @@ def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.
         loss_fn = loss_fn.cuda()
 
     return (x_data, y_data), model, loss_fn
+
+
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_closure(optimizer_config):
+    _, model, _ = build_environment()
+
+    optimizer_class, config, _ = optimizer_config
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    optimizer.zero_grad()
+    optimizer.step(closure=dummy_closure)
 
 
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
