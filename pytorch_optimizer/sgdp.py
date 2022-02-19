@@ -5,10 +5,11 @@ import torch
 from torch.nn import functional as F
 from torch.optim.optimizer import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class SGDP(Optimizer):
+class SGDP(Optimizer, BaseOptimizer):
     """
     Reference : https://github.com/clovaai/AdamP
     Example :
@@ -46,13 +47,14 @@ class SGDP(Optimizer):
         :param delta: float. threshold that determines whether a set of parameters is scale invariant or not
         :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
             on scale-variant parameters
-        :param nesterov: bool. enables Nesterov momentum
+        :param nesterov: bool. enables nesterov momentum
         """
         self.lr = lr
         self.weight_decay = weight_decay
+        self.wd_ratio = wd_ratio
         self.eps = eps
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         defaults: DEFAULTS = dict(
             lr=lr,
@@ -66,13 +68,11 @@ class SGDP(Optimizer):
         )
         super().__init__(params, defaults)
 
-    def check_valid_parameters(self):
-        if self.lr < 0.0:
-            raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.weight_decay < 0.0:
-            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_weight_decay_ratio(self.wd_ratio)
+        self.validate_epsilon(self.eps)
 
     @staticmethod
     def channel_view(x: torch.Tensor) -> torch.Tensor:
