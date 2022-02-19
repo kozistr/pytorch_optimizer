@@ -5,11 +5,12 @@ import torch
 import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.gc import centralize_gradient
 from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class AdamP(Optimizer):
+class AdamP(Optimizer, BaseOptimizer):
     """
     Reference : https://github.com/clovaai/AdamP
     Example :
@@ -58,7 +59,7 @@ class AdamP(Optimizer):
         self.wd_ratio = wd_ratio
         self.use_gc = use_gc
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         defaults: DEFAULTS = dict(
             lr=lr,
@@ -72,19 +73,12 @@ class AdamP(Optimizer):
         )
         super().__init__(params, defaults)
 
-    def check_valid_parameters(self):
-        if self.lr < 0.0:
-            raise ValueError(f'Invalid learning rate : {self.lr}')
-        if not 0.0 <= self.betas[0] < 1.0:
-            raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
-        if not 0.0 <= self.betas[1] < 1.0:
-            raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
-        if self.weight_decay < 0.0:
-            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
-        if not 0.0 <= self.wd_ratio < 1.0:
-            raise ValueError(f'Invalid wd_ratio : {self.wd_ratio}')
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_betas(self.betas)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_weight_decay_ratio(self.wd_ratio)
+        self.validate_epsilon(self.eps)
 
     @staticmethod
     def channel_view(x: torch.Tensor) -> torch.Tensor:

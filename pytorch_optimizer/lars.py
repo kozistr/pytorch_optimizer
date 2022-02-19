@@ -1,10 +1,11 @@
 import torch
 from torch.optim import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class LARS(Optimizer):
+class LARS(Optimizer, BaseOptimizer):
     """
     Reference : https://github.com/facebookresearch/mae/blob/main/util/lars.py
     Example :
@@ -43,7 +44,7 @@ class LARS(Optimizer):
         self.trust_coefficient = trust_coefficient
         self.eps = eps
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         defaults: DEFAULTS = dict(
             lr=lr,
@@ -53,17 +54,12 @@ class LARS(Optimizer):
         )
         super().__init__(params, defaults)
 
-    def check_valid_parameters(self):
-        if self.lr < 0.0:
-            raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.weight_decay < 0.0:
-            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if self.momentum < 0.0:
-            raise ValueError(f'Invalid momentum : {self.momentum}')
-        if self.trust_coefficient < 0.0:
-            raise ValueError(f'Invalid trust_coefficient : {self.trust_coefficient}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_momentum(self.momentum)
+        self.validate_trust_coefficient(self.trust_coefficient)
+        self.validate_epsilon(self.eps)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:

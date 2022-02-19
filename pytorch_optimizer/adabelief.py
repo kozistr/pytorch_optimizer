@@ -3,10 +3,11 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
 
 
-class AdaBelief(Optimizer):
+class AdaBelief(Optimizer, BaseOptimizer):
     """
     Reference : https://github.com/juntang-zhuang/Adabelief-Optimizer
     Example :
@@ -37,7 +38,7 @@ class AdaBelief(Optimizer):
         adamd_debias_term: bool = False,
         eps: float = 1e-16,
     ):
-        """AdaBelief
+        """AdaBelief optimizer
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
@@ -62,7 +63,7 @@ class AdaBelief(Optimizer):
         self.adamd_debias_term = adamd_debias_term
         self.eps = eps
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         defaults: DEFAULTS = dict(
             lr=lr,
@@ -75,17 +76,11 @@ class AdaBelief(Optimizer):
         )
         super().__init__(params, defaults)
 
-    def check_valid_parameters(self):
-        if self.lr < 0.0:
-            raise ValueError(f'Invalid learning rate : {self.lr}')
-        if not 0.0 <= self.betas[0] < 1.0:
-            raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
-        if not 0.0 <= self.betas[1] < 1.0:
-            raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
-        if self.weight_decay < 0.0:
-            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_betas(self.betas)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_epsilon(self.eps)
 
     def __setstate__(self, state: STATE):
         super().__setstate__(state)
@@ -125,7 +120,7 @@ class AdaBelief(Optimizer):
                     grad = grad.float()
 
                 p_fp32 = p
-                if p.dtype in {torch.float16, torch.bfloat16}:
+                if p.dtype in (torch.float16, torch.bfloat16):
                     p_fp32 = p_fp32.float()
 
                 state = self.state[p]
@@ -158,14 +153,7 @@ class AdaBelief(Optimizer):
                 exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2)
 
                 if group['amsgrad']:
-                    max_exp_avg_var = state['max_exp_avg_var']
-
-                    torch.max(
-                        max_exp_avg_var,
-                        exp_avg_var.add_(group['eps']),
-                        out=max_exp_avg_var,
-                    )
-
+                    max_exp_avg_var = torch.max(state['max_exp_avg_var'], exp_avg_var.add_(group['eps']))
                     de_nom = (max_exp_avg_var.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
                 else:
                     de_nom = (exp_avg_var.add_(group['eps']).sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
@@ -176,7 +164,7 @@ class AdaBelief(Optimizer):
                         step_size /= bias_correction1
                     p_fp32.addcdiv_(exp_avg, de_nom, value=-step_size)
                 else:
-                    buffered = group['buffer'][int(state['step'] % 10)]
+                    buffered = group['buffer'][state['step'] % 10]
                     if state['step'] == buffered[0]:
                         n_sma, step_size = buffered[1], buffered[2]
                     else:
@@ -213,7 +201,7 @@ class AdaBelief(Optimizer):
                     elif step_size > 0:
                         p_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
 
-                if p.dtype in {torch.float16, torch.bfloat16}:
+                if p.dtype in (torch.float16, torch.bfloat16):
                     p.copy_(p_fp32)
 
         return loss

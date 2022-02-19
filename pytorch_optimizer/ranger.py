@@ -4,11 +4,12 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.gc import centralize_gradient
-from pytorch_optimizer.types import BETAS, BUFFER, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class Ranger(Optimizer):
+class Ranger(Optimizer, BaseOptimizer):
     """
     Reference : https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer
     Example :
@@ -59,9 +60,8 @@ class Ranger(Optimizer):
         self.eps = eps
 
         self.gc_gradient_threshold: int = 3 if gc_conv_only else 1
-        self.buffer: BUFFER = [[None, None, None] for _ in range(10)]
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         defaults: DEFAULTS = dict(
             lr=lr,
@@ -73,22 +73,16 @@ class Ranger(Optimizer):
             eps=eps,
             weight_decay=weight_decay,
             adamd_debias_term=adamd_debias_term,
+            buffer=[[None, None, None] for _ in range(10)],
         )
         super().__init__(params, defaults)
 
-    def check_valid_parameters(self):
-        if self.lr < 0.0:
-            raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.k < 1:
-            raise ValueError(f'Invalid lookahead step {self.k}')
-        if self.weight_decay < 0.0:
-            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if not 0.0 <= self.betas[0] < 1.0:
-            raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
-        if not 0.0 <= self.betas[1] < 1.0:
-            raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_betas(self.betas)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_lookahead_k(self.k)
+        self.validate_epsilon(self.eps)
 
     def __setstate__(self, state: Dict):
         super().__setstate__(state)
@@ -140,8 +134,7 @@ class Ranger(Optimizer):
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
 
-                buffered = self.buffer[int(state['step'] % 10)]
-
+                buffered = group['buffer'][state['step'] % 10]
                 if state['step'] == buffered[0]:
                     n_sma, step_size = buffered[1], buffered[2]
                 else:

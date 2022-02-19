@@ -69,11 +69,47 @@ def test_weight_decay(optimizer_names):
         optimizer(None, weight_decay=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_names', ['adamp'])
+@pytest.mark.parametrize('optimizer_names', ['adamp', 'sgdp'])
 def test_wd_ratio(optimizer_names):
     with pytest.raises(ValueError):
         optimizer = load_optimizers(optimizer_names)
         optimizer(None, wd_ratio=-1e-3)
+
+
+@pytest.mark.parametrize('optimizer_names', ['lars'])
+def test_trust_coefficient(optimizer_names):
+    with pytest.raises(ValueError):
+        optimizer = load_optimizers(optimizer_names)
+        optimizer(None, trust_coefficient=-1e-3)
+
+
+@pytest.mark.parametrize('optimizer_names', ['madgrad', 'lars'])
+def test_momentum(optimizer_names):
+    with pytest.raises(ValueError):
+        optimizer = load_optimizers(optimizer_names)
+        optimizer(None, momentum=-1e-3)
+
+
+@pytest.mark.parametrize('optimizer_names', ['ranger'])
+def test_lookahead_k(optimizer_names):
+    with pytest.raises(ValueError):
+        optimizer = load_optimizers(optimizer_names)
+        optimizer(None, k=-1)
+
+
+@pytest.mark.parametrize('optimizer_names', ['adahessian'])
+def test_hessian_power(optimizer_names):
+    with pytest.raises(ValueError):
+        optimizer = load_optimizers(optimizer_names)
+        optimizer(None, hessian_power=-1e-3)
+
+
+@pytest.mark.parametrize('optimizer_names', ['ranger21'])
+def test_beta0(optimizer_names):
+    optimizer = load_optimizers(optimizer_names)
+
+    with pytest.raises(ValueError):
+        optimizer(None, num_iterations=200, beta0=-0.1)
 
 
 @pytest.mark.parametrize('optimizer_names', BETA_OPTIMIZER_NAMES)

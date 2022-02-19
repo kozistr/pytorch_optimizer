@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from torch.optim import Optimizer
 
 from pytorch_optimizer.agc import agc
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.gc import centralize_gradient
 from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
 from pytorch_optimizer.utils import normalize_gradient, unit_norm
@@ -20,7 +21,7 @@ __AUTHORS__ = [
 ]
 
 
-class Ranger21(Optimizer):
+class Ranger21(Optimizer, BaseOptimizer):
     """
     Reference 1 : https://github.com/lessw2020/Ranger21
     Reference 2 : https://github.com/nestordemeure/flaxOptimizers/blob/main/flaxOptimizers/ranger21.py
@@ -59,7 +60,7 @@ class Ranger21(Optimizer):
         norm_loss_factor: float = 1e-4,
         eps: float = 1e-8,
     ):
-        """Ranger21
+        """Ranger21 optimizer
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate
         :param beta0: float. Manages the amplitude of the noise introduced by positive negative momentum
@@ -92,7 +93,7 @@ class Ranger21(Optimizer):
         self.norm_loss_factor = norm_loss_factor
         self.eps = eps
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         # lookahead
         self.lookahead_step: int = 0
@@ -124,17 +125,12 @@ class Ranger21(Optimizer):
         self.start_warm_down: int = num_iterations - self.num_warm_down_iterations
         self.warm_down_lr_delta: float = self.starting_lr - self.min_lr
 
-    def check_valid_parameters(self):
-        if self.lr < 0.0:
-            raise ValueError(f'Invalid learning rate : {self.lr}')
-        if not 0.0 <= self.betas[0] < 1.0:
-            raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
-        if not 0.0 <= self.betas[1] < 1.0:
-            raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
-        if self.weight_decay < 0.0:
-            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_betas(self.betas)
+        self.validate_beta0(self.beta0)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_epsilon(self.eps)
 
     def __setstate__(self, state: STATE):
         super().__setstate__(state)

@@ -8,10 +8,11 @@ import math
 import torch
 from torch.optim import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class MADGRAD(Optimizer):
+class MADGRAD(Optimizer, BaseOptimizer):
     """
     Reference 1 : https://github.com/facebookresearch/madgrad
     Reference 2 : https://github.com/lessw2020/Best-Deep-Learning-Optimizers
@@ -34,6 +35,7 @@ class MADGRAD(Optimizer):
         lr: float = 1e-3,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
+        decouple_decay: bool = False,
         eps: float = 1e-6,
     ):
         """A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified)
@@ -42,25 +44,25 @@ class MADGRAD(Optimizer):
         :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
             MADGRAD optimizer requires less weight decay than other methods, often as little as zero
-            On sparse problems both weight_decay and momentum should be set to 0.
+            On sparse problems both weight_decay and momentum should be set to 0
+        :param decouple_decay: float. Apply AdamW style decoupled weight decay
         """
         self.lr = lr
         self.momentum = momentum
         self.weight_decay = weight_decay
+        self.decouple_decay = decouple_decay
         self.eps = eps
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         defaults: DEFAULTS = dict(lr=lr, eps=eps, momentum=momentum, weight_decay=weight_decay)
         super().__init__(params, defaults)
 
-    def check_valid_parameters(self):
-        if self.lr < 0.0:
-            raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.weight_decay < 0.0:
-            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_momentum(self.momentum)
+        self.validate_epsilon(self.eps)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -105,15 +107,15 @@ class MADGRAD(Optimizer):
                 grad_sum_sq = state['grad_sum_sq']
                 s = state['s']
 
-                if decay != 0:
+                if decay != 0 and not self.decouple_decay:
                     if grad.is_sparse:
                         raise RuntimeError('weight_decay option is not compatible with sparse gradients')
 
                     # original implementation
-                    # grad.add_(p, alpha=decay)
+                    grad.add_(p, alpha=decay)
 
                     # Apply weight decay - L2 / AdamW style
-                    p.mul_(1.0 - lr * decay)
+                    # p.mul_(1.0 - lr * decay)
 
                 if grad.is_sparse:
                     grad = grad.coalesce()
@@ -132,6 +134,8 @@ class MADGRAD(Optimizer):
                     grad_sum_sq_masked.add_(grad_sq, alpha=_lambda)
 
                     rms_masked_values = grad_sum_sq_masked._values().pow_(1 / 3).add_(eps)
+                    if eps == 0.0:
+                        rms_masked_values[rms_masked_values == 0] = float('inf')
 
                     s.add_(grad, alpha=_lambda)
                     s_masked._values().add_(grad._values(), alpha=_lambda)
@@ -143,7 +147,7 @@ class MADGRAD(Optimizer):
                     p_masked._values().add_(p_kp1_masked_values, alpha=-1)
                     p.data.add_(p_masked, alpha=-1)
                 else:
-                    if momentum == 0:
+                    if momentum == 0.0:
                         # Compute x_0 from other known quantities
                         rms = grad_sum_sq.pow(1 / 3).add_(eps)
                         x0 = p.addcdiv(s, rms, value=1)
@@ -154,13 +158,22 @@ class MADGRAD(Optimizer):
                     grad_sum_sq.addcmul_(grad, grad, value=_lambda)
                     rms = grad_sum_sq.pow(1 / 3).add_(eps)
 
+                    if eps == 0.0:
+                        rms[rms == 0] = float('inf')
+
                     s.add_(grad, alpha=_lambda)
 
-                    if momentum == 0:
+                    if decay != 0 and self.decouple_decay:
+                        p_old = p.clone()
+
+                    if momentum == 0.0:
                         p.copy_(x0.addcdiv(s, rms, value=-1))
                     else:
                         z = x0.addcdiv(s, rms, value=-1)
                         p.mul_(1.0 - ck).add_(z, alpha=ck)
+
+                    if decay != 0 and self.decouple_decay:
+                        p.add_(p_old, alpha=-lr * decay)
 
         self.state['k'] += 1
 
