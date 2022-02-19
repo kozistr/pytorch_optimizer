@@ -3,10 +3,11 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import CLOSURE, DEFAULTS, PARAMETERS
 
 
-class SAM(Optimizer):
+class SAM(Optimizer, BaseOptimizer):
     """
     Reference : https://github.com/davda54/sam
     Example :
@@ -66,7 +67,7 @@ class SAM(Optimizer):
         """
         self.rho = rho
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         defaults: DEFAULTS = dict(rho=rho, adaptive=adaptive, **kwargs)
         super().__init__(params, defaults)
@@ -74,9 +75,8 @@ class SAM(Optimizer):
         self.base_optimizer = base_optimizer(self.param_groups, **kwargs)
         self.param_groups = self.base_optimizer.param_groups
 
-    def check_valid_parameters(self):
-        if self.rho < 0.0:
-            raise ValueError(f'Invalid rho : {self.rho}')
+    def validate_parameters(self):
+        self.validate_rho(self.rho)
 
     @torch.no_grad()
     def first_step(self, zero_grad: bool = False):
