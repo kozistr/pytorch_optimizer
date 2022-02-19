@@ -46,7 +46,7 @@ def test_sparse_supported(sparse_optimizer):
     optimizer.zero_grad()
     optimizer.step()
 
-    optimizer = load_optimizers(optimizer=sparse_optimizer)([param], eps=0.0)
+    optimizer = load_optimizers(optimizer=sparse_optimizer)([param], momentum=0.0, eps=0.0)
     optimizer.zero_grad()
     optimizer.step()
 
