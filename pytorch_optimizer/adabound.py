@@ -143,7 +143,7 @@ class AdaBound(Optimizer):
 
                 step_size = group['lr'] * math.sqrt(bias_correction2)
                 if not group['adamd_debias_term']:
-                    step_size / bias_correction1
+                    step_size /= bias_correction1
 
                 final_lr = group['final_lr'] * group['lr'] / base_lr
                 lower_bound = final_lr * (1 - 1 / (group['gamma'] * state['step'] + 1))
