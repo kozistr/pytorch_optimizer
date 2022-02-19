@@ -99,7 +99,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
 
     def set_hessian(self):
         """Computes the Hutchinson approximation of the hessian trace
-            and accumulates it for each trainable parameter
+        and accumulates it for each trainable parameter
         """
         params = []
         for p in self.get_params():
