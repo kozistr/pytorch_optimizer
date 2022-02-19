@@ -3,7 +3,7 @@ import math
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, PARAMETERS
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class Lamb(Optimizer):
@@ -83,10 +83,12 @@ class Lamb(Optimizer):
 
         return norm
 
-    def step(self, closure: CLOSURE = None) -> float:
-        loss = None
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         grad_norm: float = 1.0
         if self.pre_norm:
@@ -100,16 +102,16 @@ class Lamb(Optimizer):
                 if self.pre_norm:
                     p.grad /= grad_norm
 
-                grad = p.grad.data
+                grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('[-] Lamb does not support sparse gradients, consider SparseAdam instead.')
+                    raise RuntimeError('Lamb does not support sparse gradients, consider SparseAdam instead.')
 
                 state = self.state[p]
 
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p.data)
-                    state['exp_avg_sq'] = torch.zeros_like(p.data)
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
@@ -123,10 +125,10 @@ class Lamb(Optimizer):
 
                 adam_step = exp_avg / exp_avg_sq.sqrt().add(group['eps'])
                 if group['weight_decay'] != 0:
-                    adam_step.add_(p.data, alpha=group['weight_decay'])
+                    adam_step.add_(p, alpha=group['weight_decay'])
 
                 adam_norm = adam_step.pow(2).sum().sqrt()
-                weight_norm = p.data.pow(2).sum().sqrt().clamp(0, self.clamp)
+                weight_norm = p.pow(2).sum().sqrt().clamp(0, self.clamp)
                 if weight_norm == 0 or adam_norm == 0:
                     trust_ratio = 1.0
                 else:
@@ -139,6 +141,6 @@ class Lamb(Optimizer):
                 if self.adam:
                     trust_ratio = 1.0
 
-                p.data.add_(adam_step, alpha=-step_size * trust_ratio)
+                p.add_(adam_step, alpha=-step_size * trust_ratio)
 
         return loss
