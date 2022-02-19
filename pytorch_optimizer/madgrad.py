@@ -8,10 +8,11 @@ import math
 import torch
 from torch.optim import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class MADGRAD(Optimizer):
+class MADGRAD(Optimizer, BaseOptimizer):
     """
     Reference 1 : https://github.com/facebookresearch/madgrad
     Reference 2 : https://github.com/lessw2020/Best-Deep-Learning-Optimizers
@@ -49,18 +50,16 @@ class MADGRAD(Optimizer):
         self.weight_decay = weight_decay
         self.eps = eps
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         defaults: DEFAULTS = dict(lr=lr, eps=eps, momentum=momentum, weight_decay=weight_decay)
         super().__init__(params, defaults)
 
-    def check_valid_parameters(self):
-        if self.lr < 0.0:
-            raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.weight_decay < 0.0:
-            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_momentum(self.momentum)
+        self.validate_epsilon(self.eps)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
