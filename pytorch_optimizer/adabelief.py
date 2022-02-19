@@ -120,7 +120,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
                     grad = grad.float()
 
                 p_fp32 = p
-                if p.dtype in {torch.float16, torch.bfloat16}:
+                if p.dtype in (torch.float16, torch.bfloat16):
                     p_fp32 = p_fp32.float()
 
                 state = self.state[p]
