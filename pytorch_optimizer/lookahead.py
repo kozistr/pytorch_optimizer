@@ -66,17 +66,21 @@ class Lookahead(Optimizer):
         if self.pullback_momentum not in ('none', 'reset', 'pullback'):
             raise ValueError(f'Invalid pullback_momentum : {self.pullback_momentum}')
 
+    @torch.no_grad()
     def update(self, group: Dict):
         for fast in group['params']:
+            if fast.grad is None:
+                continue
+
             param_state = self.state[fast]
             if 'slow_param' not in param_state:
-                param_state['slow_param'] = torch.zeros_like(fast)
+                param_state['slow_param'] = torch.empty_like(fast)
                 param_state['slow_param'].copy_(fast)
                 if self.pullback_momentum == 'pullback':
                     param_state['slow_mom'] = torch.zeros_like(fast)
 
             slow = param_state['slow_param']
-            slow += (fast.data - slow) * self.alpha
+            slow += (fast - slow) * self.alpha
             fast.copy_(slow)
 
             if self.pullback_momentum == 'pullback':
