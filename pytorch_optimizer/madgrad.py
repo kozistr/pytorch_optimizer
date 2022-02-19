@@ -35,6 +35,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
+        decouple_decay: bool = False,
         eps: float = 1e-6,
     ):
         """A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified)
@@ -43,11 +44,13 @@ class MADGRAD(Optimizer, BaseOptimizer):
         :param eps: float. term added to the denominator to improve numerical stability
         :param weight_decay: float. weight decay (L2 penalty)
             MADGRAD optimizer requires less weight decay than other methods, often as little as zero
-            On sparse problems both weight_decay and momentum should be set to 0.
+            On sparse problems both weight_decay and momentum should be set to 0
+        :param decouple_decay: float. Apply AdamW style decoupled weight decay
         """
         self.lr = lr
         self.momentum = momentum
         self.weight_decay = weight_decay
+        self.decouple_decay = decouple_decay
         self.eps = eps
 
         self.validate_parameters()
@@ -104,15 +107,15 @@ class MADGRAD(Optimizer, BaseOptimizer):
                 grad_sum_sq = state['grad_sum_sq']
                 s = state['s']
 
-                if decay != 0:
+                if decay != 0 and not self.decouple_decay:
                     if grad.is_sparse:
                         raise RuntimeError('weight_decay option is not compatible with sparse gradients')
 
                     # original implementation
-                    # grad.add_(p, alpha=decay)
+                    grad.add_(p, alpha=decay)
 
                     # Apply weight decay - L2 / AdamW style
-                    p.mul_(1.0 - lr * decay)
+                    # p.mul_(1.0 - lr * decay)
 
                 if grad.is_sparse:
                     grad = grad.coalesce()
@@ -155,11 +158,17 @@ class MADGRAD(Optimizer, BaseOptimizer):
 
                     s.add_(grad, alpha=_lambda)
 
+                    if decay != 0 and self.decouple_decay:
+                        p_old = p.clone()
+
                     if momentum == 0:
                         p.copy_(x0.addcdiv(s, rms, value=-1))
                     else:
                         z = x0.addcdiv(s, rms, value=-1)
                         p.mul_(1.0 - ck).add_(z, alpha=ck)
+
+                    if decay != 0 and self.decouple_decay:
+                        p.add_(p_old, alpha=-lr * decay)
 
         self.state['k'] += 1
 
