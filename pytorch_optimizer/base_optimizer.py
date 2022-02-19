@@ -22,6 +22,11 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] weight_decay {weight_decay} must be non-negative')
 
     @staticmethod
+    def validate_weight_decay_ratio(weight_decay_ratio: float):
+        if not 0.0 <= weight_decay_ratio < 1.0:
+            raise ValueError(f'[-] weight_decay_ratio {weight_decay_ratio} must be in the range [0, 1)')
+
+    @staticmethod
     def validate_hessian_power(hessian_power: float):
         if not 0.0 <= hessian_power <= 1.0:
             raise ValueError(f'[-] hessian_power {hessian_power} must be in the range [0, 1]')
