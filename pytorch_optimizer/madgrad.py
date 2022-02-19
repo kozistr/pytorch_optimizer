@@ -64,6 +64,8 @@ class MADGRAD(Optimizer):
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
+        # pylint: disable=W0212
+
         loss: LOSS = None
         if closure is not None:
             with torch.enable_grad():
