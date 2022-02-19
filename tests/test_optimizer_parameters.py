@@ -76,6 +76,13 @@ def test_wd_ratio(optimizer_names):
         optimizer(None, wd_ratio=-1e-3)
 
 
+@pytest.mark.parametrize('optimizer_names', ['lars'])
+def test_trust_coefficient(optimizer_names):
+    with pytest.raises(ValueError):
+        optimizer = load_optimizers(optimizer_names)
+        optimizer(None, trust_coefficient=-1e-3)
+
+
 @pytest.mark.parametrize('optimizer_names', ['adahessian'])
 def test_hessian_power(optimizer_names):
     with pytest.raises(ValueError):
