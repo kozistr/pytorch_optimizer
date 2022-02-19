@@ -117,10 +117,10 @@ class AdamP(Optimizer):
         wd: float = 1.0
         expand_size: List[int] = [-1] + [1] * (len(p.shape) - 1)
         for view_func in (self.channel_view, self.layer_view):
-            cosine_sim = self.cosine_similarity(grad, p.data, eps, view_func)
+            cosine_sim = self.cosine_similarity(grad, p, eps, view_func)
 
-            if cosine_sim.max() < delta / math.sqrt(view_func(p.data).size()[1]):
-                p_n = p.data / view_func(p.data).norm(dim=1).view(expand_size).add_(eps)
+            if cosine_sim.max() < delta / math.sqrt(view_func(p).size()[1]):
+                p_n = p / view_func(p).norm(dim=1).view(expand_size).add_(eps)
                 perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(expand_size)
                 wd = wd_ratio
                 return perturb, wd
