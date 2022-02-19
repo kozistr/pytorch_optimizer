@@ -127,9 +127,6 @@ class Ranger21(Optimizer, BaseOptimizer):
 
     def validate_parameters(self):
         self.validate_learning_rate(self.lr)
-        self.validate_learning_rate(self.starting_lr)
-        self.validate_learning_rate(self.current_lr)
-        self.validate_learning_rate(self.min_lr)
         self.validate_betas(self.betas)
         self.validate_beta0(self.beta0)
         self.validate_weight_decay(self.weight_decay)
