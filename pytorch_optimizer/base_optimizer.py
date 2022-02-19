@@ -42,6 +42,11 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] momentum {momentum} must be in the range [0, 1)')
 
     @staticmethod
+    def validate_lookahead_k(k: int):
+        if k < 0:
+            raise ValueError(f'[-] k {k} must be non-negative')
+
+    @staticmethod
     def validate_epsilon(epsilon: float):
         if epsilon < 0.0:
             raise ValueError(f'[-] epsilon {epsilon} must be non-negative')
