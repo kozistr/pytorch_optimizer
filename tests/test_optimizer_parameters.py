@@ -69,7 +69,7 @@ def test_weight_decay(optimizer_names):
         optimizer(None, weight_decay=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_names', ['adamp'])
+@pytest.mark.parametrize('optimizer_names', ['adamp', 'sgdp'])
 def test_wd_ratio(optimizer_names):
     with pytest.raises(ValueError):
         optimizer = load_optimizers(optimizer_names)
