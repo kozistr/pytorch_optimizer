@@ -83,6 +83,14 @@ def test_hessian_power(optimizer_names):
         optimizer(None, hessian_power=-1e-3)
 
 
+@pytest.mark.parametrize('optimizer_names', ['ranger21'])
+def test_beta0(optimizer_names):
+    optimizer = load_optimizers(optimizer_names)
+
+    with pytest.raises(ValueError):
+        optimizer(None, num_iterations=200, beta0=-0.1)
+
+
 @pytest.mark.parametrize('optimizer_names', BETA_OPTIMIZER_NAMES)
 def test_betas(optimizer_names):
     optimizer = load_optimizers(optimizer_names)
