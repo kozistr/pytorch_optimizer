@@ -116,10 +116,12 @@ class SGDP(Optimizer):
 
         return perturb, wd
 
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         for group in self.param_groups:
             momentum = group['momentum']
