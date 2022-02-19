@@ -102,8 +102,6 @@ class Ranger21(Optimizer):
         self.current_lr = lr
         self.min_lr = warm_down_min_lr
 
-        self.param_size: int = 0
-
         defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
@@ -241,11 +239,8 @@ class Ranger21(Optimizer):
                 variance_ma.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                 variance_ma_sum += (variance_ma / bias_correction2).sum()
 
-        if self.param_size == 0:
-            self.param_size = param_size
-
         # stable weight decay
-        variance_normalized = math.sqrt(variance_ma_sum / self.param_size)
+        variance_normalized = math.sqrt(variance_ma_sum / param_size)
         if math.isnan(variance_normalized):
             raise RuntimeError('hit nan for variance_normalized')
 
