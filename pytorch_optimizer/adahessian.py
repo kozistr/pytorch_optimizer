@@ -98,7 +98,9 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 p.hess.zero_()
 
     def set_hessian(self):
-        """Computes the Hutchinson approximation of the hessian trace and accumulates it for each trainable parameter"""
+        """Computes the Hutchinson approximation of the hessian trace
+            and accumulates it for each trainable parameter
+        """
         params = []
         for p in self.get_params():
             if p.grad is None:
