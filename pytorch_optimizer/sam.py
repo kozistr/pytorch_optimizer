@@ -88,7 +88,7 @@ class SAM(Optimizer, BaseOptimizer):
                 if p.grad is None:
                     continue
 
-                self.state[p]['old_p'] = p.data.clone()
+                self.state[p]['old_p'] = p.clone()
                 e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * p.grad * scale.to(p)
                 # climb to the local maximum "w + e(w)"
                 p.add_(e_w)
