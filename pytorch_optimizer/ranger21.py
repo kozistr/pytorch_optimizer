@@ -205,7 +205,7 @@ class Ranger21(Optimizer):
                 if p.grad is None:
                     continue
 
-                grad = p.grad.data
+                grad = p.grad
                 if grad.is_sparse:
                     raise RuntimeError('Ranger21 does not support sparse gradients')
 
@@ -214,17 +214,13 @@ class Ranger21(Optimizer):
                 # Apply Adaptive Gradient Clipping (AGC)
                 agc(p, agc_eps=self.agc_eps, agc_clip_val=self.agc_clipping_value)
 
-                grad = p.grad
-                if grad.is_sparse:
-                    raise RuntimeError('sparse matrix not supported atm')
-
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
                     state['grad_ma'] = torch.zeros_like(p)
                     state['variance_ma'] = torch.zeros_like(p)
-                    state['lookahead_params'] = torch.zeros_like(p.data)
-                    state['lookahead_params'].copy_(p.data)
+                    state['lookahead_params'] = torch.empty_like(p)
+                    state['lookahead_params'].copy_(p)
                     state['neg_grad_ma'] = torch.zeros_like(p)
                     state['max_variance_ma'] = torch.zeros_like(p)
 
@@ -237,12 +233,12 @@ class Ranger21(Optimizer):
 
                 beta1, beta2 = group['betas']
 
-                bias_correction2 = 1 - beta2 ** state['step']
+                bias_correction2 = 1.0 - beta2 ** state['step']
 
                 # second moment estimation
                 # using positive-negative momentum and bias correction
                 variance_ma = state['variance_ma']
-                variance_ma.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
+                variance_ma.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                 variance_ma_sum += (variance_ma / bias_correction2).sum()
 
         if not self.param_size:
@@ -255,7 +251,8 @@ class Ranger21(Optimizer):
 
         # Phase 2 - Apply weight decay and step
         for group in self.param_groups:
-            if group['params'][0].grad is None:
+            p = group['params'][0]
+            if p.grad is None:
                 continue
 
             lr = group['lr']
@@ -272,11 +269,11 @@ class Ranger21(Optimizer):
             # stable decay
             decay = group['weight_decay']
             if decay:
-                p.data.mul_(1.0 - decay * lr / variance_normalized)
+                p.mul_(1.0 - decay * lr / variance_normalized)
 
             # norm loss
-            u_norm = unit_norm(p.data)
-            correction = 2.0 * self.norm_loss_factor * (1 - torch.div(1, u_norm + self.eps))
+            u_norm = unit_norm(p)
+            correction = 2.0 * self.norm_loss_factor * (1.0 - torch.div(1, u_norm + self.eps))
             p.mul_(1.0 - lr * correction)
 
             for p in group['params']:
@@ -297,7 +294,7 @@ class Ranger21(Optimizer):
                 max_variance_ma = state['max_variance_ma']
 
                 torch.max(max_variance_ma, variance_ma, out=variance_ma)
-                denom = (variance_ma.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
+                de_nom = (variance_ma.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
                 grad = p.grad
                 grad = centralize_gradient(grad, gc_conv_only=False)
@@ -305,15 +302,15 @@ class Ranger21(Optimizer):
 
                 grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)
 
-                noise_norm: float = math.sqrt((1 + beta2) ** 2 + beta2 ** 2)
+                noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)
 
                 step_size: float = lr / bias_correction1
 
                 if self.use_softplus:
-                    denom = F.softplus(denom, beta=self.beta_softplus)
+                    de_nom = F.softplus(de_nom, beta=self.beta_softplus)
 
-                pnmomentum = grad_ma.mul(1 + 1.0).add(neg_grad_ma, alpha=-1.0).mul(1.0 / noise_norm)
-                p.addcdiv_(pnmomentum, denom, value=-step_size)
+                pn_momentum = grad_ma.mul(1.0 + 1.0).add(neg_grad_ma, alpha=-1.0).mul(1.0 / noise_norm)
+                p.addcdiv_(pn_momentum, de_nom, value=-step_size)
 
         self.lookahead_process_step()
 
@@ -330,8 +327,8 @@ class Ranger21(Optimizer):
 
                     param_state = self.state[p]
 
-                    p.data.mul_(self.lookahead_blending_alpha).add_(
+                    p.mul_(self.lookahead_blending_alpha).add_(
                         param_state['lookahead_params'],
                         alpha=1.0 - self.lookahead_blending_alpha,
                     )
-                    param_state['lookahead_params'].copy_(p.data)
+                    param_state['lookahead_params'].copy_(p)
