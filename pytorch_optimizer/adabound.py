@@ -4,10 +4,11 @@ from typing import List
 import torch
 from torch.optim.optimizer import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
 
 
-class AdaBound(Optimizer):
+class AdaBound(Optimizer, BaseOptimizer):
     """
     Reference : https://github.com/Luolc/AdaBound
     Example :
@@ -57,7 +58,7 @@ class AdaBound(Optimizer):
         self.fixed_decay = fixed_decay
         self.eps = eps
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         defaults: DEFAULTS = dict(
             lr=lr,
@@ -73,17 +74,11 @@ class AdaBound(Optimizer):
 
         self.base_lrs: List[float] = [group['lr'] for group in self.param_groups]
 
-    def check_valid_parameters(self):
-        if self.lr < 0.0:
-            raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.weight_decay < 0.0:
-            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if not 0.0 <= self.betas[0] < 1.0:
-            raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
-        if not 0.0 <= self.betas[1] < 1.0:
-            raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_betas(self.betas)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_epsilon(self.eps)
 
     def __setstate__(self, state: STATE):
         super().__setstate__(state)

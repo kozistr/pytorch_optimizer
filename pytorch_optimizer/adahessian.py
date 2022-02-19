@@ -3,10 +3,11 @@ from typing import Iterable, List
 import torch
 from torch.optim import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class AdaHessian(Optimizer):
+class AdaHessian(Optimizer, BaseOptimizer):
     """
     Reference : https://github.com/davda54/ada-hessian
     Example :
@@ -59,7 +60,7 @@ class AdaHessian(Optimizer):
         self.eps = eps
         self.seed = seed
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         # use a separate generator that deterministically generates
         # the same `z`s across all GPUs in case of distributed training
@@ -79,19 +80,12 @@ class AdaHessian(Optimizer):
             p.hess = 0.0
             self.state[p]['hessian_step'] = 0
 
-    def check_valid_parameters(self):
-        if self.lr < 0.0:
-            raise ValueError(f'Invalid learning rate : {self.lr}')
-        if self.weight_decay < 0.0:
-            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if not 0.0 <= self.betas[0] < 1.0:
-            raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
-        if not 0.0 <= self.betas[1] < 1.0:
-            raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
-        if not 0.0 <= self.hessian_power <= 1.0:
-            raise ValueError(f'Invalid hessian_power : {self.hessian_power}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_betas(self.betas)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_hessian_power(self.hessian_power)
+        self.validate_epsilon(self.eps)
 
     def get_params(self) -> Iterable:
         """Gets all parameters in all param_groups with gradients"""
