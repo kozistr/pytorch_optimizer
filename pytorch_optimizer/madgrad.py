@@ -134,6 +134,8 @@ class MADGRAD(Optimizer, BaseOptimizer):
                     grad_sum_sq_masked.add_(grad_sq, alpha=_lambda)
 
                     rms_masked_values = grad_sum_sq_masked._values().pow_(1 / 3).add_(eps)
+                    if eps == 0.0:
+                        rms_masked_values[rms_masked_values == 0] = float('inf')
 
                     s.add_(grad, alpha=_lambda)
                     s_masked._values().add_(grad._values(), alpha=_lambda)
@@ -155,6 +157,9 @@ class MADGRAD(Optimizer, BaseOptimizer):
                     # Accumulate second moments
                     grad_sum_sq.addcmul_(grad, grad, value=_lambda)
                     rms = grad_sum_sq.pow(1 / 3).add_(eps)
+
+                    if eps == 0.0:
+                        rms[rms == 0] = float('inf')
 
                     s.add_(grad, alpha=_lambda)
 
