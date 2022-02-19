@@ -32,6 +32,11 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] hessian_power {hessian_power} must be in the range [0, 1]')
 
     @staticmethod
+    def validate_trust_coefficient(trust_coefficient: float):
+        if trust_coefficient < 0.0:
+            raise ValueError(f'[-] trust_coefficient {trust_coefficient} must be non-negative')
+
+    @staticmethod
     def validate_epsilon(epsilon: float):
         if epsilon < 0.0:
             raise ValueError(f'[-] epsilon {epsilon} must be non-negative')
