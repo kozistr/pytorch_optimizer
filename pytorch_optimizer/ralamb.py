@@ -3,10 +3,11 @@ import math
 import torch
 from torch.optim import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class RaLamb(Optimizer):
+class RaLamb(Optimizer, BaseOptimizer):
     """
     Reference : https://gist.github.com/redknightlois/c4023d393eb8f92bb44b2ab582d7ec20
     Example :
@@ -56,7 +57,7 @@ class RaLamb(Optimizer):
         self.n_sma_threshold = n_sma_threshold
         self.degenerated_to_sgd = degenerated_to_sgd
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         defaults: DEFAULTS = dict(
             lr=lr,
@@ -69,17 +70,11 @@ class RaLamb(Optimizer):
 
         super().__init__(params, defaults)
 
-    def check_valid_parameters(self):
-        if self.lr < 0.0:
-            raise ValueError(f'Invalid learning rate : {self.lr}')
-        if not 0.0 <= self.betas[0] < 1.0:
-            raise ValueError(f'Invalid beta_0 : {self.betas[0]}')
-        if not 0.0 <= self.betas[1] < 1.0:
-            raise ValueError(f'Invalid beta_1 : {self.betas[1]}')
-        if self.weight_decay < 0.0:
-            raise ValueError(f'Invalid weight_decay : {self.weight_decay}')
-        if self.eps < 0.0:
-            raise ValueError(f'Invalid eps : {self.eps}')
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_betas(self.betas)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_epsilon(self.eps)
 
     @torch.no_grad()
     def get_gradient_norm(self) -> float:
