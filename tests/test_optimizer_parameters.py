@@ -83,6 +83,20 @@ def test_trust_coefficient(optimizer_names):
         optimizer(None, trust_coefficient=-1e-3)
 
 
+@pytest.mark.parametrize('optimizer_names', ['madgrad', 'lars'])
+def test_momentum(optimizer_names):
+    with pytest.raises(ValueError):
+        optimizer = load_optimizers(optimizer_names)
+        optimizer(None, momentum=-1e-3)
+
+
+@pytest.mark.parametrize('optimizer_names', ['ranger'])
+def test_lookahead_k(optimizer_names):
+    with pytest.raises(ValueError):
+        optimizer = load_optimizers(optimizer_names)
+        optimizer(None, k=-1)
+
+
 @pytest.mark.parametrize('optimizer_names', ['adahessian'])
 def test_hessian_power(optimizer_names):
     with pytest.raises(ValueError):
