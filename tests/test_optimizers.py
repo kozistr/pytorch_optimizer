@@ -149,6 +149,9 @@ def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 def test_closure(optimizer_config):
+    if optimizer_config[0] == Ranger21:
+        return True
+
     _, model, _ = build_environment()
 
     optimizer_class, config, _ = optimizer_config
