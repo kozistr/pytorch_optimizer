@@ -93,15 +93,19 @@ class Ranger(Optimizer):
     def __setstate__(self, state: Dict):
         super().__setstate__(state)
 
-    def step(self, _: CLOSURE = None) -> LOSS:
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
 
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
                     continue
 
-                grad = p.grad.data.float()
+                grad = p.grad.float()
                 if grad.is_sparse:
                     raise RuntimeError('Ranger optimizer does not support sparse gradients')
 
@@ -112,8 +116,8 @@ class Ranger(Optimizer):
                     state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p_data_fp32)
                     state['exp_avg_sq'] = torch.zeros_like(p_data_fp32)
-                    state['slow_buffer'] = torch.empty_like(p.data)
-                    state['slow_buffer'].copy_(p.data)
+                    state['slow_buffer'] = torch.empty_like(p)
+                    state['slow_buffer'].copy_(p)
                 else:
                     state['exp_avg'] = state['exp_avg'].type_as(p_data_fp32)
                     state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_data_fp32)
