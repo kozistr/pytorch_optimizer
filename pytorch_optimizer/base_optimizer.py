@@ -50,8 +50,8 @@ class BaseOptimizer(ABC):
 
     @staticmethod
     def validate_lookahead_k(k: int):
-        if k < 0:
-            raise ValueError(f'[-] k {k} must be non-negative')
+        if k < 1:
+            raise ValueError(f'[-] k {k} must be positive')
 
     @staticmethod
     def validate_rho(rho: float):
