@@ -139,6 +139,16 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 p.hess += h_z * z / self.num_samples
 
     @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['step'] = 0
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_hessian_diag_sq'] = torch.zeros_like(p)
+
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
