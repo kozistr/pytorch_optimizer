@@ -52,14 +52,14 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 500),
     (LARS, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
     (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True}, 200),
-    (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
+    (RaLamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'pre_norm': True}, 500),
+    # (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 500),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'eps': 0.0}, 500),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'momentum': 0.0}, 500),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'decouple_decay': True}, 500),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
+    # (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
     (SGDP, {'lr': 2e-1, 'weight_decay': 1e-3}, 500),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 500),
@@ -151,7 +151,8 @@ def test_safe_f16_optimizers(optimizer_fp16_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_fp16_config
-    if optimizer_class.__name__ == 'MADGRAD':
+
+    if optimizer_class.__name__ == 'MADGRAD' or (optimizer_class.__name__ == 'RaLamb' and 'pre_norm' in config):
         return True
 
     optimizer = SafeFP16Optimizer(optimizer_class(model.parameters(), **config))
@@ -259,6 +260,9 @@ def test_pc_grad_optimizers(optimizer_pc_grad_config):
 
     optimizer_class, config, iterations = optimizer_pc_grad_config
     optimizer = PCGrad(optimizer_class(model.parameters(), **config))
+
+    if optimizer_class.__name__ == 'RaLamb' and 'pre_norm' in config:
+        return True
 
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
