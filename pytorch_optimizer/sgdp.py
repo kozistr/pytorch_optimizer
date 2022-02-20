@@ -6,7 +6,7 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.utils import channel_view, cosine_similarity_by_view, layer_view
+from pytorch_optimizer.utils import projection
 
 
 class SGDP(Optimizer, BaseOptimizer):
@@ -74,29 +74,6 @@ class SGDP(Optimizer, BaseOptimizer):
         self.validate_weight_decay_ratio(self.wd_ratio)
         self.validate_epsilon(self.eps)
 
-    def projection(
-        self,
-        p,
-        grad,
-        perturb: torch.Tensor,
-        delta: float,
-        wd_ratio: float,
-        eps: float,
-    ) -> Tuple[torch.Tensor, float]:
-        wd: float = 1.0
-        expand_size: List[int] = [-1] + [1] * (len(p.shape) - 1)
-        for view_func in (channel_view, layer_view):
-            cosine_sim = cosine_similarity_by_view(grad, p, eps, view_func)
-
-            if cosine_sim.max() < delta / math.sqrt(view_func(p).size()[1]):
-                p_n = p / view_func(p).norm(dim=1).view(expand_size).add_(eps)
-                perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(expand_size)
-                wd = wd_ratio
-
-                return perturb, wd
-
-        return perturb, wd
-
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
@@ -137,7 +114,7 @@ class SGDP(Optimizer, BaseOptimizer):
 
                 wd_ratio: float = 1.0
                 if len(p.shape) > 1:
-                    d_p, wd_ratio = self.projection(
+                    d_p, wd_ratio = projection(
                         p,
                         grad,
                         d_p,

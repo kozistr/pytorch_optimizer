@@ -105,6 +105,28 @@ def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = Fal
     return grad_norm
 
 
+def projection(
+    p,
+    grad,
+    perturb: torch.Tensor,
+    delta: float,
+    wd_ratio: float,
+    eps: float,
+) -> Tuple[torch.Tensor, float]:
+    wd: float = 1.0
+    expand_size: List[int] = [-1] + [1] * (len(p.shape) - 1)
+    for view_func in (channel_view, layer_view):
+        cosine_sim = cosine_similarity_by_view(grad, p, eps, view_func)
+
+        if cosine_sim.max() < delta / math.sqrt(view_func(p).size()[1]):
+            p_n = p / view_func(p).norm(dim=1).view(expand_size).add_(eps)
+            perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(expand_size)
+            wd = wd_ratio
+            return perturb, wd
+
+    return perturb, wd
+
+
 def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
     keep_dim: bool = True
     dim: Optional[Union[int, Tuple[int, ...]]] = None
