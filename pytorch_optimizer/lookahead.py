@@ -48,9 +48,7 @@ class Lookahead(Optimizer, BaseOptimizer):
         self.param_groups = self.optimizer.param_groups
         self.fast_state: STATE = self.optimizer.state
         self.state: STATE = defaultdict(dict)
-
-        for group in self.param_groups:
-            group['counter'] = 0
+        self.reset()
 
         self.defaults: DEFAULTS = dict(
             k=k,
@@ -63,6 +61,11 @@ class Lookahead(Optimizer, BaseOptimizer):
         self.validate_lookahead_k(self.k)
         self.validate_alpha(self.alpha)
         self.validate_pullback_momentum(self.pullback_momentum)
+
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            group['counter'] = 0
 
     @torch.no_grad()
     def update(self, group: Dict):
