@@ -37,6 +37,10 @@ class PCGrad(BaseOptimizer):
     def validate_parameters(self):
         self.validate_reduction(self.reduction)
 
+    @torch.no_grad()
+    def reset(self):
+        pass
+
     @staticmethod
     def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:
         return torch.cat([g.flatten() for g in grads])
