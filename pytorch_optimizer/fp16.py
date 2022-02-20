@@ -241,7 +241,7 @@ class SafeFP16Optimizer(Optimizer):
         for p, p32 in zip(self.fp16_params, self.fp32_params):
             if not p.requires_grad:
                 continue
-            p.copy_(p32)
+            p.data.copy_(p32)
 
     def zero_grad(self):
         """Clears the gradients of all optimized parameters."""
