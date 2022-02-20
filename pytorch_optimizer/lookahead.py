@@ -4,10 +4,11 @@ from typing import Dict
 import torch
 from torch.optim import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, STATE
 
 
-class Lookahead(Optimizer):
+class Lookahead(Optimizer, BaseOptimizer):
     """
     Reference : https://github.com/alphadl/lookahead.pytorch
     Example :
@@ -42,14 +43,12 @@ class Lookahead(Optimizer):
         self.alpha = alpha
         self.pullback_momentum = pullback_momentum
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         self.param_groups = self.optimizer.param_groups
         self.fast_state: STATE = self.optimizer.state
         self.state: STATE = defaultdict(dict)
-
-        for group in self.param_groups:
-            group['counter'] = 0
+        self.reset()
 
         self.defaults: DEFAULTS = dict(
             k=k,
@@ -58,13 +57,15 @@ class Lookahead(Optimizer):
             **optimizer.defaults,
         )
 
-    def check_valid_parameters(self):
-        if self.k < 1:
-            raise ValueError(f'Invalid k : {self.k}')
-        if not 0.0 < self.alpha <= 1.0:
-            raise ValueError(f'Invalid alpha : {self.alpha}')
-        if self.pullback_momentum not in ('none', 'reset', 'pullback'):
-            raise ValueError(f'Invalid pullback_momentum : {self.pullback_momentum}')
+    def validate_parameters(self):
+        self.validate_lookahead_k(self.k)
+        self.validate_alpha(self.alpha)
+        self.validate_pullback_momentum(self.pullback_momentum)
+
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            group['counter'] = 0
 
     @torch.no_grad()
     def update(self, group: Dict):
@@ -82,6 +83,9 @@ class Lookahead(Optimizer):
             slow = param_state['slow_param']
             slow += (fast - slow) * self.alpha
             fast.copy_(slow)
+
+            if 'momentum_buffer' not in self.optimizer.state[fast]:
+                self.optimizer.state[fast]['momentum_buffer'] = torch.zeros_like(fast)
 
             if self.pullback_momentum == 'pullback':
                 internal_momentum = self.optimizer.state[fast]['momentum_buffer']

@@ -84,7 +84,18 @@ class AdaBound(Optimizer, BaseOptimizer):
         super().__setstate__(state)
         for group in self.param_groups:
             group.setdefault('amsbound', False)
-            group.setdefault('adamd_debias_term', False)
+
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['step'] = 0
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
+                if group['amsbound']:
+                    state['max_exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -127,14 +138,15 @@ class AdaBound(Optimizer, BaseOptimizer):
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+
                 if group['amsbound']:
                     max_exp_avg_sq = torch.max(state['max_exp_avg_sq'], exp_avg_sq)
                     de_nom = max_exp_avg_sq.sqrt().add_(group['eps'])
                 else:
                     de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
-                bias_correction1 = 1 - beta1 ** state['step']
-                bias_correction2 = 1 - beta2 ** state['step']
+                bias_correction1 = 1.0 - beta1 ** state['step']
+                bias_correction2 = 1.0 - beta2 ** state['step']
 
                 step_size = group['lr'] * math.sqrt(bias_correction2)
                 if not group['adamd_debias_term']:

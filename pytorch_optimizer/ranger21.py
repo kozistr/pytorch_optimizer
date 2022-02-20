@@ -132,8 +132,19 @@ class Ranger21(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    def __setstate__(self, state: STATE):
-        super().__setstate__(state)
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['step'] = 0
+                state['grad_ma'] = torch.zeros_like(p)
+                state['variance_ma'] = torch.zeros_like(p)
+                state['lookahead_params'] = torch.empty_like(p)
+                state['lookahead_params'].copy_(p)
+                state['neg_grad_ma'] = torch.zeros_like(p)
+                state['max_variance_ma'] = torch.zeros_like(p)
 
     @staticmethod
     def build_warm_up_iterations(total_iterations: int, beta2: float, warm_up_pct: float = 0.22) -> int:

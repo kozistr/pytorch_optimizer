@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+import torch
+
 from pytorch_optimizer.types import BETAS
 
 
@@ -48,8 +50,8 @@ class BaseOptimizer(ABC):
 
     @staticmethod
     def validate_lookahead_k(k: int):
-        if k < 0:
-            raise ValueError(f'[-] k {k} must be non-negative')
+        if k < 1:
+            raise ValueError(f'[-] k {k} must be positive')
 
     @staticmethod
     def validate_rho(rho: float):
@@ -61,6 +63,28 @@ class BaseOptimizer(ABC):
         if epsilon < 0.0:
             raise ValueError(f'[-] epsilon {epsilon} must be non-negative')
 
+    @staticmethod
+    def validate_alpha(alpha: float):
+        if not 0.0 <= alpha < 1.0:
+            raise ValueError(f'[-] alpha {alpha} must be in the range [0, 1)')
+
+    @staticmethod
+    def validate_pullback_momentum(pullback_momentum: str):
+        if pullback_momentum not in ('none', 'reset', 'pullback'):
+            raise ValueError(
+                f'[-] pullback_momentum {pullback_momentum} must be one of (\'none\' or \'reset\' or \'pullback\')'
+            )
+
+    @staticmethod
+    def validate_reduction(reduction: str):
+        if reduction not in ('mean', 'sum'):
+            raise ValueError(f'[-] reduction {reduction} must be one of (\'mean\' or \'sum\')')
+
     @abstractmethod
     def validate_parameters(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    @torch.no_grad()
+    def reset(self):
         raise NotImplementedError

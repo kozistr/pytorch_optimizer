@@ -71,8 +71,15 @@ class RAdam(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    def __setstate__(self, state: Dict):
-        super().__setstate__(state)
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['step'] = 0
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -110,13 +117,13 @@ class RAdam(Optimizer, BaseOptimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
 
+                state['step'] += 1
                 bias_correction1 = 1.0 - beta1 ** state['step']
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                state['step'] += 1
-                buffered = group['buffer'][int(state['step'] % 10)]
+                buffered = group['buffer'][state['step'] % 10]
                 if state['step'] == buffered[0]:
                     n_sma, step_size = buffered[1], buffered[2]
                 else:
@@ -156,7 +163,7 @@ class RAdam(Optimizer, BaseOptimizer):
                         p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
                     p_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
 
-                if p.dtype in {torch.float16, torch.bfloat16}:
+                if p.dtype in (torch.float16, torch.bfloat16):
                     p.copy_(p_fp32)
 
         return loss

@@ -1,9 +1,10 @@
 from typing import Dict, List, Optional, Union
 
 import torch
+from torch import nn
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import CLOSURE
+from pytorch_optimizer.types import CLOSURE, PARAMETERS
 from pytorch_optimizer.utils import clip_grad_norm, has_overflow
 
 __AUTHOR__ = 'Facebook'
@@ -114,26 +115,29 @@ class SafeFP16Optimizer(Optimizer):
         return params
 
     @classmethod
-    def build_fp32_params(cls, parameters, flatten: bool = True) -> Union[torch.Tensor, List[torch.Tensor]]:
+    def build_fp32_params(
+        cls, parameters: PARAMETERS, flatten: bool = True
+    ) -> Union[torch.Tensor, List[torch.Tensor]]:
         # create FP32 copy of parameters and grads
         if flatten:
-            total_param_size = sum(p.data.numel() for p in parameters)
+            total_param_size: int = sum(p.numel() for p in parameters)
             fp32_params = torch.zeros(total_param_size, dtype=torch.float, device=parameters[0].device)
 
             offset: int = 0
             for p in parameters:
-                p_num_el = p.data.numel()
-                fp32_params[offset : offset + p_num_el].copy_(p.data.view(-1))
+                p_num_el = p.numel()
+                fp32_params[offset : offset + p_num_el].copy_(p.view(-1))
                 offset += p_num_el
 
-            fp32_params = torch.nn.Parameter(fp32_params)
-            fp32_params.grad = fp32_params.data.new(total_param_size)
+            fp32_params = nn.Parameter(fp32_params)
+            fp32_params.grad = fp32_params.new(total_param_size)
+
             return fp32_params
 
         fp32_params = []
         for p in parameters:
-            p32 = torch.nn.Parameter(p.data.float())
-            p32.grad = torch.zeros_like(p32.data)
+            p32 = nn.Parameter(p.float())
+            p32.grad = torch.zeros_like(p32)
             fp32_params.append(p32)
 
         return fp32_params
@@ -181,25 +185,25 @@ class SafeFP16Optimizer(Optimizer):
                     continue
 
                 if p.grad is not None:
-                    p32.grad.data.copy_(p.grad.data)
-                    p32.grad.data.mul_(multiply_grads)
+                    p32.grad.copy_(p.grad)
+                    p32.grad.mul_(multiply_grads)
                 else:
-                    p32.grad = torch.zeros_like(p.data, dtype=torch.float)
+                    p32.grad = torch.zeros_like(p, dtype=torch.float)
 
             self.needs_sync = False
 
-    def multiply_grads(self, c):
+    def multiply_grads(self, c: float):
         """Multiplies grads by a constant c."""
         if self.needs_sync:
             self.sync_fp16_grads_to_fp32(c)
         else:
             for p32 in self.fp32_params:
-                p32.grad.data.mul_(c)
+                p32.grad.mul_(c)
 
     def update_main_grads(self):
         self.sync_fp16_grads_to_fp32()
 
-    def clip_main_grads(self, max_norm):
+    def clip_main_grads(self, max_norm: float):
         """Clips gradient norm and updates dynamic loss scaler."""
         self.sync_fp16_grads_to_fp32()
 
@@ -208,8 +212,10 @@ class SafeFP16Optimizer(Optimizer):
         # detect overflow and adjust loss scale
         if self.scaler is not None:
             overflow: bool = has_overflow(grad_norm)
-            prev_scale = self.scaler.loss_scale
+            prev_scale: float = self.scaler.loss_scale
+
             self.scaler.update_scale(overflow)
+
             if overflow:
                 self.zero_grad()
                 if self.scaler.loss_scale <= self.min_loss_scale:
@@ -235,7 +241,7 @@ class SafeFP16Optimizer(Optimizer):
         for p, p32 in zip(self.fp16_params, self.fp32_params):
             if not p.requires_grad:
                 continue
-            p.data.copy_(p32.data)
+            p.data.copy_(p32)
 
     def zero_grad(self):
         """Clears the gradients of all optimized parameters."""

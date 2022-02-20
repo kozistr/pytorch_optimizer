@@ -62,6 +62,14 @@ class LARS(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['mu'] = torch.zeros_like(p)
+
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:

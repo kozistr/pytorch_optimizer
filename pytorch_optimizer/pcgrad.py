@@ -2,13 +2,15 @@ import random
 from copy import deepcopy
 from typing import Iterable, List, Tuple
 
-import numpy as np
 import torch
 from torch import nn
 from torch.optim.optimizer import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
+from pytorch_optimizer.utils import flatten_grad, un_flatten_grad
 
-class PCGrad:
+
+class PCGrad(BaseOptimizer):
     """
     Reference : https://github.com/WeiChengTseng/Pytorch-PCGrad
     Example :
@@ -30,25 +32,14 @@ class PCGrad:
         self.optimizer = optimizer
         self.reduction = reduction
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
-    def check_valid_parameters(self):
-        if self.reduction not in ('mean', 'sum'):
-            raise ValueError(f'invalid reduction : {self.reduction}')
+    def validate_parameters(self):
+        self.validate_reduction(self.reduction)
 
-    @staticmethod
-    def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:
-        return torch.cat([g.flatten() for g in grads])
-
-    @staticmethod
-    def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor]:
-        idx: int = 0
-        un_flatten_grad: List[torch.Tensor] = []
-        for shape in shapes:
-            length = np.prod(shape)
-            un_flatten_grad.append(grads[idx : idx + length].view(shape).clone())
-            idx += length
-        return un_flatten_grad
+    @torch.no_grad()
+    def reset(self):
+        pass
 
     def zero_grad(self):
         return self.optimizer.zero_grad(set_to_none=True)
@@ -92,8 +83,8 @@ class PCGrad:
 
             grad, shape, has_grad = self.retrieve_grad()
 
-            grads.append(self.flatten_grad(grad))
-            has_grads.append(self.flatten_grad(has_grad))
+            grads.append(flatten_grad(grad))
+            has_grads.append(flatten_grad(has_grad))
             shapes.append(shape)
 
         return grads, shapes, has_grads
@@ -131,6 +122,6 @@ class PCGrad:
         """
         grads, shapes, has_grads = self.pack_grad(objectives)
         pc_grad = self.project_conflicting(grads, has_grads)
-        pc_grad = self.un_flatten_grad(pc_grad, shapes[0])
+        pc_grad = un_flatten_grad(pc_grad, shapes[0])
 
         self.set_grad(pc_grad)

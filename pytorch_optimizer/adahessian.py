@@ -139,6 +139,16 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 p.hess += h_z * z / self.num_samples
 
     @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['step'] = 0
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_hessian_diag_sq'] = torch.zeros_like(p)
+
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
@@ -171,14 +181,13 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 beta1, beta2 = group['betas']
 
                 # Decay the first and second moment running average coefficient
-                exp_avg.mul_(beta1).add_(p.grad, alpha=1 - beta1)
-                exp_hessian_diag_sq.mul_(beta2).addcmul_(p.hess, p.hess, value=1 - beta2)
+                exp_avg.mul_(beta1).add_(p.grad, alpha=1.0 - beta1)
+                exp_hessian_diag_sq.mul_(beta2).addcmul_(p.hess, p.hess, value=1.0 - beta2)
 
-                bias_correction1 = 1 - beta1 ** state['step']
-                bias_correction2 = 1 - beta2 ** state['step']
+                bias_correction1 = 1.0 - beta1 ** state['step']
+                bias_correction2 = 1.0 - beta2 ** state['step']
 
-                hessian_power = group['hessian_power']
-                de_nom = (exp_hessian_diag_sq / bias_correction2).pow_(hessian_power / 2.0).add_(group['eps'])
+                de_nom = (exp_hessian_diag_sq / bias_correction2).pow_(group['hessian_power'] / 2.0).add_(group['eps'])
 
                 step_size = group['lr']
                 if not group['adamd_debias_term']:

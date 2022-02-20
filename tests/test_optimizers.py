@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 import torch
 from torch import nn
-from torch.nn import functional as F
 
 from pytorch_optimizer import (
     LARS,
@@ -25,67 +24,14 @@ from pytorch_optimizer import (
     Ranger21,
     SafeFP16Optimizer,
 )
-from pytorch_optimizer.types import LOSS
-
-
-class LogisticRegression(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(2, 2)
-        self.fc2 = nn.Linear(2, 1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.fc2(x)
-        return x
-
-
-class MultiHeadLogisticRegression(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(2, 2)
-        self.head1 = nn.Linear(2, 1)
-        self.head2 = nn.Linear(2, 1)
-
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        x = self.fc1(x)
-        x = F.relu(x)
-        return self.head1(x), self.head2(x)
-
-
-def make_dataset(num_samples: int = 100, dims: int = 2, seed: int = 42) -> Tuple[torch.Tensor, torch.Tensor]:
-    rng = np.random.RandomState(seed)
-
-    x = rng.randn(num_samples, dims) * 2
-
-    # center the first N/2 points at (-2, -2)
-    mid: int = num_samples // 2
-    x[:mid, :] = x[:mid, :] - 2 * np.ones((mid, dims))
-
-    # center the last N/2 points at (2, 2)
-    x[mid:, :] = x[mid:, :] + 2 * np.ones((mid, dims))
-
-    # labels: first N/2 are 0, last N/2 are 1
-    y = np.array([0] * mid + [1] * mid).reshape(100, 1)
-
-    x = torch.Tensor(x)
-    y = torch.Tensor(y)
-
-    return x, y
-
-
-def ids(v) -> str:
-    return f'{v[0].__name__}_{v[1:]}'
-
-
-def dummy_closure() -> LOSS:
-    return 1.0
-
-
-def build_lookahead(*parameters, **kwargs):
-    return Lookahead(AdamP(*parameters, **kwargs))
-
+from tests.utils import (
+    LogisticRegression,
+    MultiHeadLogisticRegression,
+    build_lookahead,
+    dummy_closure,
+    ids,
+    make_dataset,
+)
 
 OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
@@ -106,11 +52,14 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 500),
     (LARS, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
     (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
+    (RaLamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'pre_norm': True}, 500),
+    # (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 500),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'eps': 0.0}, 500),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'momentum': 0.0}, 500),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'decouple_decay': True}, 500),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
+    (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
     (SGDP, {'lr': 2e-1, 'weight_decay': 1e-3}, 500),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 500),
@@ -150,20 +99,6 @@ def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.
     return (x_data, y_data), model, loss_fn
 
 
-@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
-def test_closure(optimizer_config):
-    _, model, _ = build_environment()
-
-    optimizer_class, config, _ = optimizer_config
-    if optimizer_class.__name__ == 'Ranger21':
-        return True
-
-    optimizer = optimizer_class(model.parameters(), **config)
-
-    optimizer.zero_grad()
-    optimizer.step(closure=dummy_closure)
-
-
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
 def test_f32_optimizers(optimizer_fp32_config):
     (x_data, y_data), model, loss_fn = build_environment()
@@ -188,12 +123,36 @@ def test_f32_optimizers(optimizer_fp32_config):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
+@pytest.mark.parametrize('pullback_momentum', ['none', 'reset', 'pullback'])
+def test_lookahead(pullback_momentum):
+    (x_data, y_data), model, loss_fn = build_environment()
+
+    optimizer = Lookahead(AdamP(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(200):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward()
+
+        optimizer.step()
+
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
+
 @pytest.mark.parametrize('optimizer_fp16_config', OPTIMIZERS, ids=ids)
-def test_f16_optimizers(optimizer_fp16_config):
+def test_safe_f16_optimizers(optimizer_fp16_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_fp16_config
-    if optimizer_class.__name__ == 'MADGRAD':
+
+    if optimizer_class.__name__ == 'MADGRAD' or (optimizer_class.__name__ == 'RaLamb' and 'pre_norm' in config):
         return True
 
     optimizer = SafeFP16Optimizer(optimizer_class(model.parameters(), **config))
@@ -238,6 +197,33 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
+@pytest.mark.parametrize('adaptive', (False, True))
+@pytest.mark.parametrize('optimizer_sam_config', OPTIMIZERS, ids=ids)
+def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
+    (x_data, y_data), model, loss_fn = build_environment()
+
+    optimizer_class, config, iterations = optimizer_sam_config
+    optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
+
+    def closure():
+        first_loss = loss_fn(y_data, model(x_data))
+        first_loss.backward()
+        return first_loss
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(iterations):
+        loss = loss_fn(y_data, model(x_data))
+        loss.backward()
+
+        optimizer.step(closure)
+        optimizer.zero_grad()
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
+
 @pytest.mark.parametrize('optimizer_adamd_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_adamd_optimizers(optimizer_adamd_config):
     (x_data, y_data), model, loss_fn = build_environment()
@@ -274,6 +260,9 @@ def test_pc_grad_optimizers(optimizer_pc_grad_config):
 
     optimizer_class, config, iterations = optimizer_pc_grad_config
     optimizer = PCGrad(optimizer_class(model.parameters(), **config))
+
+    if optimizer_class.__name__ == 'RaLamb' and 'pre_norm' in config:
+        return True
 
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
@@ -316,3 +305,28 @@ def test_no_gradients(optimizer_config):
         optimizer.step()
 
     assert tensor_to_numpy(init_loss) >= tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_closure(optimizer_config):
+    _, model, _ = build_environment()
+
+    optimizer_class, config, _ = optimizer_config
+    if optimizer_class.__name__ == 'Ranger21':
+        return True
+
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    optimizer.zero_grad()
+    optimizer.step(closure=dummy_closure)
+
+
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_reset(optimizer_config):
+    _, model, _ = build_environment()
+
+    optimizer_class, config, _ = optimizer_config
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    optimizer.zero_grad()
+    optimizer.reset()

@@ -79,6 +79,10 @@ class SAM(Optimizer, BaseOptimizer):
         self.validate_rho(self.rho)
 
     @torch.no_grad()
+    def reset(self):
+        pass
+
+    @torch.no_grad()
     def first_step(self, zero_grad: bool = False):
         grad_norm = self.grad_norm()
         for group in self.param_groups:
@@ -90,6 +94,7 @@ class SAM(Optimizer, BaseOptimizer):
 
                 self.state[p]['old_p'] = p.clone()
                 e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * p.grad * scale.to(p)
+
                 # climb to the local maximum "w + e(w)"
                 p.add_(e_w)
 
@@ -102,8 +107,9 @@ class SAM(Optimizer, BaseOptimizer):
             for p in group['params']:
                 if p.grad is None:
                     continue
+
                 # get back to "w" from "w + e(w)"
-                p.data = self.state[p]['old_p']
+                p = self.state[p]['old_p']
 
         # do the actual "sharpness-aware" update
         self.base_optimizer.step()
@@ -114,13 +120,14 @@ class SAM(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None):
         if closure is None:
-            raise RuntimeError('Sharpness Aware Minimization requires closure')
-
-        # the closure should do a full forward-backward pass
-        closure = torch.enable_grad()(closure)
+            raise RuntimeError('[-] Sharpness Aware Minimization (SAM) requires closure')
 
         self.first_step(zero_grad=True)
-        closure()
+
+        # the closure should do a full forward-backward pass
+        with torch.enable_grad():
+            closure()
+
         self.second_step()
 
     def grad_norm(self) -> torch.Tensor:

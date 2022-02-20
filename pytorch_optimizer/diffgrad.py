@@ -58,8 +58,16 @@ class DiffGrad(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    def __setstate__(self, state: STATE):
-        super().__setstate__(state)
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['step'] = 0
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
+                state['previous_grad'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:

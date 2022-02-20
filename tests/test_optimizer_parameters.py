@@ -1,20 +1,10 @@
 from typing import List
 
 import pytest
-import torch
 from torch import nn
 
-from pytorch_optimizer import SAM, Lookahead, load_optimizers
-
-
-class Example(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(1, 1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.fc1(x)
-
+from pytorch_optimizer import SAM, AdamP, Lookahead, PCGrad, SafeFP16Optimizer, load_optimizers
+from tests.utils import Example
 
 OPTIMIZER_NAMES: List[str] = [
     'adamp',
@@ -123,6 +113,16 @@ def test_betas(optimizer_names):
         optimizer(None, betas=(0.1, -0.1))
 
 
+@pytest.mark.parametrize('optimizer_names', ['pcgrad'])
+def test_reduction(optimizer_names):
+    model: nn.Module = Example()
+    parameters = model.parameters()
+    optimizer = load_optimizers('adamp')(parameters)
+
+    with pytest.raises(ValueError):
+        PCGrad(optimizer, reduction='wrong')
+
+
 def test_sam_parameters():
     with pytest.raises(ValueError):
         SAM(None, load_optimizers('adamp'), rho=-0.1)
@@ -142,7 +142,34 @@ def test_lookahead_parameters():
         Lookahead(optimizer, k=0)
 
     with pytest.raises(ValueError):
-        Lookahead(optimizer, alpha=0)
+        Lookahead(optimizer, alpha=-0.1)
 
     with pytest.raises(ValueError):
         Lookahead(optimizer, pullback_momentum='invalid')
+
+
+def test_sam_methods():
+    model: nn.Module = Example()
+    parameters = model.parameters()
+
+    optimizer = SAM(parameters, load_optimizers('adamp'))
+    optimizer.reset()
+    optimizer.load_state_dict(optimizer.state_dict())
+
+
+def test_safe_fp16_methods():
+    model: nn.Module = Example()
+
+    optimizer = SafeFP16Optimizer(AdamP(model.parameters(), lr=5e-1))
+    optimizer.load_state_dict(optimizer.state_dict())
+    optimizer.scaler.decrease_loss_scale()
+    optimizer.zero_grad()
+    optimizer.update_main_grads()
+    optimizer.clip_main_grads(100.0)
+    optimizer.multiply_grads(100.0)
+
+    with pytest.raises(AttributeError):
+        optimizer.get_lr()
+        optimizer.set_lr(lr=5e-1)
+
+    assert optimizer.loss_scale == 2.0 ** (15 - 1)

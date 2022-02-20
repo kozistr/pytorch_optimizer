@@ -77,6 +77,16 @@ class RaLamb(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['step'] = 0
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
+
+    @torch.no_grad()
     def get_gradient_norm(self) -> float:
         norm_sq: float = 0.0
         for group in self.param_groups:
@@ -111,7 +121,7 @@ class RaLamb(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('AdaBelief does not support sparse gradients')
+                    raise RuntimeError('RaLamb does not support sparse gradients')
 
                 if grad.dtype in (torch.float16, torch.bfloat16):
                     grad = grad.float()

@@ -8,19 +8,11 @@ from pytorch_optimizer.utils import (
     clip_grad_norm,
     get_optimizer_parameters,
     has_overflow,
+    is_valid_parameters,
     normalize_gradient,
     unit_norm,
 )
-
-
-class Example(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(1, 1)
-        self.norm1 = nn.LayerNorm(1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.norm1(self.fc1(x))
+from tests.utils import Example
 
 
 def test_has_overflow():
@@ -75,3 +67,12 @@ def test_get_optimizer_parameters():
         layer_name: str = before[0]
         if layer_name.find('bias') != -1 or layer_name in wd_ban_list:
             assert after['weight_decay'] == 0.0
+
+
+def test_is_valid_parameters():
+    model: nn.Module = Example()
+    wd_ban_list: List[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+
+    after_parameters = get_optimizer_parameters(model, weight_decay=1e-3, wd_ban_list=wd_ban_list)
+
+    assert is_valid_parameters(after_parameters)
