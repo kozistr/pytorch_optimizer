@@ -152,7 +152,7 @@ def test_lookahead_parameters():
         Lookahead(optimizer, k=0)
 
     with pytest.raises(ValueError):
-        Lookahead(optimizer, alpha=0)
+        Lookahead(optimizer, alpha=-0.1)
 
     with pytest.raises(ValueError):
         Lookahead(optimizer, pullback_momentum='invalid')
