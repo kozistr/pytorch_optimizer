@@ -163,7 +163,7 @@ class RAdam(Optimizer, BaseOptimizer):
                         p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
                     p_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
 
-                if p.dtype in {torch.float16, torch.bfloat16}:
+                if p.dtype in (torch.float16, torch.bfloat16):
                     p.copy_(p_fp32)
 
         return loss
