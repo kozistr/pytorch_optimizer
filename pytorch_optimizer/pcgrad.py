@@ -7,8 +7,10 @@ import torch
 from torch import nn
 from torch.optim.optimizer import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 
-class PCGrad:
+
+class PCGrad(BaseOptimizer):
     """
     Reference : https://github.com/WeiChengTseng/Pytorch-PCGrad
     Example :
@@ -30,11 +32,10 @@ class PCGrad:
         self.optimizer = optimizer
         self.reduction = reduction
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
-    def check_valid_parameters(self):
-        if self.reduction not in ('mean', 'sum'):
-            raise ValueError(f'invalid reduction : {self.reduction}')
+    def validate_parameters(self):
+        self.validate_reduction(self.reduction)
 
     @staticmethod
     def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:
