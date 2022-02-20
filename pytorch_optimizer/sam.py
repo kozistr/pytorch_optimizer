@@ -90,6 +90,7 @@ class SAM(Optimizer, BaseOptimizer):
 
                 self.state[p]['old_p'] = p.clone()
                 e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * p.grad * scale.to(p)
+
                 # climb to the local maximum "w + e(w)"
                 p.add_(e_w)
 
@@ -117,11 +118,12 @@ class SAM(Optimizer, BaseOptimizer):
         if closure is None:
             raise RuntimeError('Sharpness Aware Minimization requires closure')
 
-        # the closure should do a full forward-backward pass
-        closure = torch.enable_grad()(closure)
-
         self.first_step(zero_grad=True)
-        closure()
+
+        # the closure should do a full forward-backward pass
+        with torch.enable_grad():
+            closure()
+
         self.second_step()
 
     def grad_norm(self) -> torch.Tensor:
