@@ -69,6 +69,13 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] alpha {alpha} must be in the range [0, 1)')
 
     @staticmethod
+    def validate_pullback_momentum(pullback_momentum: str):
+        if pullback_momentum not in ('none', 'reset', 'pullback'):
+            raise ValueError(
+                f'[-] pullback_momentum {pullback_momentum} must be one of (\'none\' or \'reset\' or \'pullback\')'
+            )
+
+    @staticmethod
     def validate_reduction(reduction: str):
         if reduction not in ('mean', 'sum'):
             raise ValueError(f'[-] reduction {reduction} must be one of (\'mean\' or \'sum\')')
