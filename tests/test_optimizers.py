@@ -181,7 +181,6 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
 
     optimizer_class, config, iterations = optimizer_sam_config
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
-    optimizer.reset()  # meaningless, but for coverage
 
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):

@@ -148,6 +148,15 @@ def test_lookahead_parameters():
         Lookahead(optimizer, pullback_momentum='invalid')
 
 
+def test_sam_methods():
+    model: nn.Module = Example()
+    parameters = model.parameters()
+
+    optimizer = SAM(parameters, load_optimizers('adamp'))
+    optimizer.reset()
+    optimizer.load_state_dict(optimizer.state_dict())
+
+
 def test_safe_fp16_methods():
     model: nn.Module = Example()
 
