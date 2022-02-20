@@ -84,8 +84,17 @@ class Ranger(Optimizer, BaseOptimizer):
         self.validate_lookahead_k(self.k)
         self.validate_epsilon(self.eps)
 
-    def __setstate__(self, state: Dict):
-        super().__setstate__(state)
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['step'] = 0
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
+                state['slow_buffer'] = torch.empty_like(p)
+                state['slow_buffer'].copy_(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
