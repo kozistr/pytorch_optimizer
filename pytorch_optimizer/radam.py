@@ -117,12 +117,12 @@ class RAdam(Optimizer, BaseOptimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
 
+                state['step'] += 1
                 bias_correction1 = 1.0 - beta1 ** state['step']
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                state['step'] += 1
                 buffered = group['buffer'][int(state['step'] % 10)]
                 if state['step'] == buffered[0]:
                     n_sma, step_size = buffered[1], buffered[2]
