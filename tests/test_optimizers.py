@@ -150,20 +150,6 @@ def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.
     return (x_data, y_data), model, loss_fn
 
 
-@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
-def test_closure(optimizer_config):
-    _, model, _ = build_environment()
-
-    optimizer_class, config, _ = optimizer_config
-    if optimizer_class.__name__ == 'Ranger21':
-        return True
-
-    optimizer = optimizer_class(model.parameters(), **config)
-
-    optimizer.zero_grad()
-    optimizer.step(closure=dummy_closure)
-
-
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
 def test_f32_optimizers(optimizer_fp32_config):
     (x_data, y_data), model, loss_fn = build_environment()
@@ -316,3 +302,31 @@ def test_no_gradients(optimizer_config):
         optimizer.step()
 
     assert tensor_to_numpy(init_loss) >= tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_closure(optimizer_config):
+    _, model, _ = build_environment()
+
+    optimizer_class, config, _ = optimizer_config
+    if optimizer_class.__name__ == 'Ranger21':
+        return True
+
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    optimizer.zero_grad()
+    optimizer.step(closure=dummy_closure)
+
+
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_reset(optimizer_config):
+    _, model, _ = build_environment()
+
+    optimizer_class, config, _ = optimizer_config
+    if optimizer_class.__name__ == 'Ranger21':
+        return True
+
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    optimizer.zero_grad()
+    optimizer.reset()
