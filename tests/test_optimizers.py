@@ -224,6 +224,33 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
+@pytest.mark.parametrize('adaptive', (False, True))
+@pytest.mark.parametrize('optimizer_sam_config', OPTIMIZERS, ids=ids)
+def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
+    (x_data, y_data), model, loss_fn = build_environment()
+
+    optimizer_class, config, iterations = optimizer_sam_config
+    optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
+
+    def closure():
+        first_loss = loss_fn(y_data, model(x_data))
+        first_loss.backward()
+        return first_loss
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(iterations):
+        loss = loss_fn(y_data, model(x_data))
+        loss.backward()
+
+        optimizer.step(closure)
+        optimizer.zero_grad()
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
+
 @pytest.mark.parametrize('optimizer_adamd_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_adamd_optimizers(optimizer_adamd_config):
     (x_data, y_data), model, loss_fn = build_environment()
