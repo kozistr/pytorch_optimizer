@@ -64,6 +64,11 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] epsilon {epsilon} must be non-negative')
 
     @staticmethod
+    def validate_alpha(alpha: float):
+        if not 0.0 <= alpha < 1.0:
+            raise ValueError(f'[-] alpha {alpha} must be in the range [0, 1)')
+
+    @staticmethod
     def validate_reduction(reduction: str):
         if reduction not in ('mean', 'sum'):
             raise ValueError(f'[-] reduction {reduction} must be one of (\'mean\' or \'sum\')')
