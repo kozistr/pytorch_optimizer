@@ -71,8 +71,16 @@ class DiffRGrad(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    def __setstate__(self, state: STATE):
-        super().__setstate__(state)
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['step'] = 0
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
+                state['previous_grad'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -123,7 +131,7 @@ class DiffRGrad(Optimizer, BaseOptimizer):
                 dfc = 1.0 / (1.0 + torch.exp(-diff))
                 state['previous_grad'] = grad.clone()
 
-                buffered = group['buffer'][int(state['step'] % 10)]
+                buffered = group['buffer'][state['step'] % 10]
                 if state['step'] == buffered[0]:
                     n_sma, step_size = buffered[1], buffered[2]
                 else:
@@ -144,10 +152,9 @@ class DiffRGrad(Optimizer, BaseOptimizer):
                             / (n_sma_max - 2)
                         )
 
-                        if group['adamd_debias_term']:
-                            step_size = rt
-                        else:
-                            step_size = rt / bias_correction1
+                        step_size = rt
+                        if not group['adamd_debias_term']:
+                            step_size /= bias_correction1
                     elif self.degenerated_to_sgd:
                         step_size = 1.0 / bias_correction1
                     else:
