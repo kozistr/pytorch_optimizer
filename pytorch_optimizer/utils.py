@@ -1,6 +1,7 @@
 import math
 from typing import List, Optional, Tuple, Union
 
+import numpy as np
 import torch
 from torch import nn
 from torch.distributed import all_reduce
@@ -33,6 +34,20 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
         s = x.std() + epsilon
         x.div_(s)
     return x
+
+
+def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:
+    return torch.cat([g.flatten() for g in grads])
+
+
+def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor]:
+    idx: int = 0
+    un_flatten_grad: List[torch.Tensor] = []
+    for shape in shapes:
+        length = np.prod(shape)
+        un_flatten_grad.append(grads[idx : idx + length].view(shape).clone())
+        idx += length
+    return un_flatten_grad
 
 
 def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> Union[torch.Tensor, float]:
