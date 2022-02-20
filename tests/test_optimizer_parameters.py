@@ -3,7 +3,7 @@ from typing import List
 import pytest
 from torch import nn
 
-from pytorch_optimizer import SAM, Lookahead, PCGrad, load_optimizers
+from pytorch_optimizer import SAM, AdamP, Lookahead, PCGrad, SafeFP16Optimizer, load_optimizers
 from tests.utils import Example
 
 OPTIMIZER_NAMES: List[str] = [
@@ -146,3 +146,21 @@ def test_lookahead_parameters():
 
     with pytest.raises(ValueError):
         Lookahead(optimizer, pullback_momentum='invalid')
+
+
+def test_safe_fp16_methods():
+    model: nn.Module = Example()
+
+    optimizer = SafeFP16Optimizer(AdamP(model.parameters(), lr=5e-1))
+    optimizer.load_state_dict(optimizer.state_dict())
+    optimizer.scaler.decrease_loss_scale()
+    optimizer.zero_grad()
+    optimizer.update_main_grads()
+    optimizer.clip_main_grads(100.0)
+    optimizer.multiply_grads(100.0)
+
+    with pytest.raises(AttributeError):
+        optimizer.get_lr()
+        optimizer.set_lr(lr=5e-1)
+
+    assert optimizer.loss_scale == 2.0 ** (15 - 1)
