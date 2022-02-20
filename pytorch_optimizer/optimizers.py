@@ -34,12 +34,10 @@ def load_optimizers(optimizer: str, use_fp16: bool = False):
         opt = AdaBound
     elif optimizer == 'madgrad':
         opt = MADGRAD
+    elif optimizer == 'diffgrad':
+        opt = DiffGrad
     elif optimizer == 'diffrgrad':
         opt = DiffRGrad
-    elif optimizer == 'diffgrad':
-        opt = DiffGrad
-    elif optimizer == 'diffgrad':
-        opt = DiffGrad
     elif optimizer == 'adahessian':
         opt = AdaHessian
     elif optimizer == 'lamb':
