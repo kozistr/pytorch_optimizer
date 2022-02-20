@@ -4,7 +4,6 @@ from pytorch_optimizer.adahessian import AdaHessian
 from pytorch_optimizer.adamp import AdamP
 from pytorch_optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.diffrgrad import DiffRGrad
-from pytorch_optimizer.fp16 import SafeFP16Optimizer
 from pytorch_optimizer.lamb import Lamb
 from pytorch_optimizer.lars import LARS
 from pytorch_optimizer.madgrad import MADGRAD
@@ -15,7 +14,7 @@ from pytorch_optimizer.ranger21 import Ranger21
 from pytorch_optimizer.sgdp import SGDP
 
 
-def load_optimizers(optimizer: str, use_fp16: bool = False):
+def load_optimizers(optimizer: str):
     optimizer: str = optimizer.lower()
 
     if optimizer == 'adamp':
@@ -48,8 +47,5 @@ def load_optimizers(optimizer: str, use_fp16: bool = False):
         opt = LARS
     else:
         raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
-
-    if use_fp16:
-        opt = SafeFP16Optimizer(opt)
 
     return opt
