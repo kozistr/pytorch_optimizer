@@ -65,6 +65,19 @@ class MADGRAD(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @torch.no_grad()
+    def reset(self):
+        self.state['k'] = torch.tensor([0], dtype=torch.long, requires_grad=False)
+
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['grad_sum_sq'] = torch.zeros_like(p)
+                state['s'] = torch.zeros_like(p)
+                if group['momentum'] != 0:
+                    state['x0'] = torch.clone(p).detach()
+
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         # pylint: disable=W0212
 
@@ -96,8 +109,8 @@ class MADGRAD(Optimizer, BaseOptimizer):
                 state = self.state[p]
 
                 if 'grad_sum_sq' not in state:
-                    state['grad_sum_sq'] = torch.zeros_like(p, requires_grad=False)
-                    state['s'] = torch.zeros_like(p, requires_grad=False)
+                    state['grad_sum_sq'] = torch.zeros_like(p)
+                    state['s'] = torch.zeros_like(p)
                     if momentum != 0:
                         state['x0'] = torch.clone(p).detach()
 
