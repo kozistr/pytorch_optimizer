@@ -79,6 +79,10 @@ class SAM(Optimizer, BaseOptimizer):
         self.validate_rho(self.rho)
 
     @torch.no_grad()
+    def reset(self):
+        pass
+
+    @torch.no_grad()
     def first_step(self, zero_grad: bool = False):
         grad_norm = self.grad_norm()
         for group in self.param_groups:
@@ -116,7 +120,7 @@ class SAM(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None):
         if closure is None:
-            raise RuntimeError('Sharpness Aware Minimization requires closure')
+            raise RuntimeError('[-] Sharpness Aware Minimization (SAM) requires closure')
 
         self.first_step(zero_grad=True)
 
