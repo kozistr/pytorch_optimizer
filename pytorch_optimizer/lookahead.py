@@ -84,6 +84,9 @@ class Lookahead(Optimizer, BaseOptimizer):
             slow += (fast - slow) * self.alpha
             fast.copy_(slow)
 
+            if 'momentum_buffer' not in self.optimizer.state[fast]:
+                self.optimizer.state[fast]['momentum_buffer'] = torch.zeros_like(fast)
+
             if self.pullback_momentum == 'pullback':
                 internal_momentum = self.optimizer.state[fast]['momentum_buffer']
                 self.optimizer.state[fast]['momentum_buffer'] = internal_momentum.mul_(self.alpha).add_(
