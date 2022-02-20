@@ -1,20 +1,10 @@
 from typing import List
 
 import pytest
-import torch
 from torch import nn
 
 from pytorch_optimizer import SAM, Lookahead, PCGrad, load_optimizers
-
-
-class Example(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(1, 1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.fc1(x)
-
+from tests.utils import Example
 
 OPTIMIZER_NAMES: List[str] = [
     'adamp',

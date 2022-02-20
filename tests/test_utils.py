@@ -12,16 +12,7 @@ from pytorch_optimizer.utils import (
     normalize_gradient,
     unit_norm,
 )
-
-
-class Example(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(1, 1)
-        self.norm1 = nn.LayerNorm(1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.norm1(self.fc1(x))
+from tests.utils import Example
 
 
 def test_has_overflow():
