@@ -102,8 +102,9 @@ class SAM(Optimizer, BaseOptimizer):
             for p in group['params']:
                 if p.grad is None:
                     continue
+
                 # get back to "w" from "w + e(w)"
-                p.data = self.state[p]['old_p']
+                p = self.state[p]['old_p']
 
         # do the actual "sharpness-aware" update
         self.base_optimizer.step()
