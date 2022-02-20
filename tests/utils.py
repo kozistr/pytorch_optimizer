@@ -71,7 +71,7 @@ def dummy_closure() -> LOSS:
 
 
 def build_lookahead(*parameters, **kwargs):
-    return Lookahead(AdamP(*parameters, **kwargs), pullback_momentum='pullback')
+    return Lookahead(AdamP(*parameters, **kwargs))
 
 
 def ids(v) -> str:
