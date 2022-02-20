@@ -1,13 +1,13 @@
 import math
-from typing import Callable, List, Tuple
+from typing import List, Tuple
 
 import torch
-import torch.nn.functional as F
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.gc import centralize_gradient
 from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.utils import channel_view, cosine_similarity_by_view, layer_view
 
 
 class AdamP(Optimizer, BaseOptimizer):
@@ -80,25 +80,6 @@ class AdamP(Optimizer, BaseOptimizer):
         self.validate_weight_decay_ratio(self.wd_ratio)
         self.validate_epsilon(self.eps)
 
-    @staticmethod
-    def channel_view(x: torch.Tensor) -> torch.Tensor:
-        return x.view(x.size()[0], -1)
-
-    @staticmethod
-    def layer_view(x: torch.Tensor) -> torch.Tensor:
-        return x.view(1, -1)
-
-    @staticmethod
-    def cosine_similarity(
-        x: torch.Tensor,
-        y: torch.Tensor,
-        eps: float,
-        view_func: Callable[[torch.Tensor], torch.Tensor],
-    ) -> torch.Tensor:
-        x = view_func(x)
-        y = view_func(y)
-        return F.cosine_similarity(x, y, dim=1, eps=eps).abs_()
-
     def projection(
         self,
         p,
@@ -110,8 +91,8 @@ class AdamP(Optimizer, BaseOptimizer):
     ) -> Tuple[torch.Tensor, float]:
         wd: float = 1.0
         expand_size: List[int] = [-1] + [1] * (len(p.shape) - 1)
-        for view_func in (self.channel_view, self.layer_view):
-            cosine_sim = self.cosine_similarity(grad, p, eps, view_func)
+        for view_func in (channel_view, layer_view):
+            cosine_sim = cosine_similarity_by_view(grad, p, eps, view_func)
 
             if cosine_sim.max() < delta / math.sqrt(view_func(p).size()[1]):
                 p_n = p / view_func(p).norm(dim=1).view(expand_size).add_(eps)

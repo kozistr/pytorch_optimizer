@@ -1,10 +1,11 @@
 import math
-from typing import List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from torch import nn
 from torch.distributed import all_reduce
+from torch.nn import functional as F
 from torch.nn.utils import clip_grad_norm_
 
 from pytorch_optimizer.types import PARAMETERS
@@ -48,6 +49,25 @@ def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor
         un_flatten_grad.append(grads[idx : idx + length].view(shape).clone())
         idx += length
     return un_flatten_grad
+
+
+def channel_view(x: torch.Tensor) -> torch.Tensor:
+    return x.view(x.size()[0], -1)
+
+
+def layer_view(x: torch.Tensor) -> torch.Tensor:
+    return x.view(1, -1)
+
+
+def cosine_similarity_by_view(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    eps: float,
+    view_func: Callable[[torch.Tensor], torch.Tensor],
+) -> torch.Tensor:
+    x = view_func(x)
+    y = view_func(y)
+    return F.cosine_similarity(x, y, dim=1, eps=eps).abs_()
 
 
 def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> Union[torch.Tensor, float]:
