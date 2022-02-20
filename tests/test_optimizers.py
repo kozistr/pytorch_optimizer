@@ -16,6 +16,7 @@ from pytorch_optimizer import (
     DiffGrad,
     DiffRGrad,
     Lamb,
+    Lookahead,
     PCGrad,
     RAdam,
     RaLamb,
@@ -104,6 +105,29 @@ def test_f32_optimizers(optimizer_fp32_config):
 
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward()
+
+        optimizer.step()
+
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('pullback_momentum', ['none', 'reset', 'pullback'])
+def test_lookahead(pullback_momentum):
+    (x_data, y_data), model, loss_fn = build_environment()
+
+    optimizer = Lookahead(AdamP(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(200):
         optimizer.zero_grad()
 
         y_pred = model(x_data)
