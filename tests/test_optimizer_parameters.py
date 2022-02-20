@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer import SAM, Lookahead, load_optimizers
+from pytorch_optimizer import SAM, Lookahead, PCGrad, load_optimizers
 
 
 class Example(nn.Module):
@@ -121,6 +121,16 @@ def test_betas(optimizer_names):
 
     with pytest.raises(ValueError):
         optimizer(None, betas=(0.1, -0.1))
+
+
+@pytest.mark.parametrize('optimizer_names', ['pcgrad'])
+def test_reduction(optimizer_names):
+    model: nn.Module = Example()
+    parameters = model.parameters()
+    optimizer = load_optimizers('adamp')(parameters)
+
+    with pytest.raises(ValueError):
+        PCGrad(optimizer, reduction='wrong')
 
 
 def test_sam_parameters():
