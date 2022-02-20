@@ -152,8 +152,6 @@ def test_safe_f16_optimizers(optimizer_fp16_config):
         return True
 
     optimizer = SafeFP16Optimizer(optimizer_class(model.parameters(), **config))
-    optimizer.load_state_dict(optimizer.state_dict())
-    optimizer.scaler.decrease_loss_scale()
 
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
