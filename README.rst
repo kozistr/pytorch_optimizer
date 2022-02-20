@@ -42,7 +42,7 @@ or you can use optimizer loader, simply passing a name of the optimizer.
 
     ...
     model = YourModel()
-    opt = load_optimizers(optimizer='adamp', use_fp16=True)
+    opt = load_optimizers(optimizer='adamp')
     optimizer = opt(model.parameters())
     ...
 
