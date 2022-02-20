@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import CLOSURE
+from pytorch_optimizer.types import CLOSURE, PARAMETERS
 from pytorch_optimizer.utils import clip_grad_norm, has_overflow
 
 __AUTHOR__ = 'Facebook'
@@ -115,7 +115,9 @@ class SafeFP16Optimizer(Optimizer):
         return params
 
     @classmethod
-    def build_fp32_params(cls, parameters, flatten: bool = True) -> Union[torch.Tensor, List[torch.Tensor]]:
+    def build_fp32_params(
+        cls, parameters: PARAMETERS, flatten: bool = True
+    ) -> Union[torch.Tensor, List[torch.Tensor]]:
         # create FP32 copy of parameters and grads
         if flatten:
             total_param_size: int = sum(p.numel() for p in parameters)
@@ -190,7 +192,7 @@ class SafeFP16Optimizer(Optimizer):
 
             self.needs_sync = False
 
-    def multiply_grads(self, c):
+    def multiply_grads(self, c: float):
         """Multiplies grads by a constant c."""
         if self.needs_sync:
             self.sync_fp16_grads_to_fp32(c)
@@ -239,7 +241,7 @@ class SafeFP16Optimizer(Optimizer):
         for p, p32 in zip(self.fp16_params, self.fp32_params):
             if not p.requires_grad:
                 continue
-            p.copy_(p32.data)
+            p.copy_(p32)
 
     def zero_grad(self):
         """Clears the gradients of all optimized parameters."""
