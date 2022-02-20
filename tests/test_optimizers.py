@@ -350,9 +350,6 @@ def test_reset(optimizer_config):
     _, model, _ = build_environment()
 
     optimizer_class, config, _ = optimizer_config
-    if optimizer_class.__name__ == 'Ranger21':
-        return True
-
     optimizer = optimizer_class(model.parameters(), **config)
 
     optimizer.zero_grad()
