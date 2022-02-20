@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+import torch
+
 from pytorch_optimizer.types import BETAS
 
 
@@ -63,4 +65,9 @@ class BaseOptimizer(ABC):
 
     @abstractmethod
     def validate_parameters(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    @torch.no_grad()
+    def reset(self):
         raise NotImplementedError
