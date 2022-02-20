@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple, Union
 import torch
 from torch import nn
 from torch.distributed import all_reduce
+from torch.nn.utils import clip_grad_norm_
 
 from pytorch_optimizer.types import PARAMETERS
 
@@ -53,18 +54,18 @@ def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = Fal
 
     # if syncing we need to manually perform the clipping so that we aggregate properly
     if max_norm > 0 and not sync:
-        return torch.nn.utils.clip_grad_norm_(parameters, max_norm)
+        return clip_grad_norm_(parameters, max_norm)
 
-    norm_sq = sum(p.grad.data.norm() ** 2 for p in parameters if p.grad is not None)
+    norm_sq = sum(p.grad.norm() ** 2 for p in parameters if p.grad is not None)
     if sync:
         # also need to get the norms from all the other sharded works in FSDP
         all_reduce(norm_sq)
 
     grad_norm = math.sqrt(norm_sq)
     if max_norm > 0:
-        clip_coef = max_norm / (grad_norm + 1e-6)
+        clip_coefficient = max_norm / (grad_norm + 1e-6)
         for p in parameters:
-            p.grad.detach().mul_(clip_coef)
+            p.grad.detach().mul_(clip_coefficient)
 
     return grad_norm
 
