@@ -4,10 +4,11 @@ from typing import Dict
 import torch
 from torch.optim import Optimizer
 
+from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, STATE
 
 
-class Lookahead(Optimizer):
+class Lookahead(Optimizer, BaseOptimizer):
     """
     Reference : https://github.com/alphadl/lookahead.pytorch
     Example :
@@ -42,7 +43,7 @@ class Lookahead(Optimizer):
         self.alpha = alpha
         self.pullback_momentum = pullback_momentum
 
-        self.check_valid_parameters()
+        self.validate_parameters()
 
         self.param_groups = self.optimizer.param_groups
         self.fast_state: STATE = self.optimizer.state
@@ -58,13 +59,10 @@ class Lookahead(Optimizer):
             **optimizer.defaults,
         )
 
-    def check_valid_parameters(self):
-        if self.k < 1:
-            raise ValueError(f'Invalid k : {self.k}')
-        if not 0.0 < self.alpha <= 1.0:
-            raise ValueError(f'Invalid alpha : {self.alpha}')
-        if self.pullback_momentum not in ('none', 'reset', 'pullback'):
-            raise ValueError(f'Invalid pullback_momentum : {self.pullback_momentum}')
+    def validate_parameters(self):
+        self.validate_lookahead_k(self.k)
+        self.validate_alpha(self.alpha)
+        self.validate_pullback_momentum(self.pullback_momentum)
 
     @torch.no_grad()
     def update(self, group: Dict):
