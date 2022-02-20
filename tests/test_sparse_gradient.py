@@ -14,6 +14,7 @@ NO_SPARSE_OPTIMIZERS: List[str] = [
     'sgdp',
     'madgrad',
     'ranger',
+    'ranger21',
     'radam',
     'adabound',
     'adahessian',
@@ -31,9 +32,15 @@ def test_sparse_not_supported(no_sparse_optimizer):
     param = torch.randn(1, 1).to_sparse(1).requires_grad_(True)
     param.grad = torch.randn(1, 1).to_sparse(1)
 
+    optimizer = load_optimizers(optimizer=no_sparse_optimizer)
+    if no_sparse_optimizer == 'ranger21':
+        optimizer = optimizer([param], num_iterations=1)
+    else:
+        optimizer = optimizer([param])
+
+    optimizer.zero_grad()
+
     with pytest.raises(RuntimeError):
-        optimizer = load_optimizers(optimizer=no_sparse_optimizer)([param])
-        optimizer.zero_grad()
         optimizer.step()
 
 
