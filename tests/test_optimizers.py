@@ -26,12 +26,13 @@ from pytorch_optimizer import (
     Shampoo,
 )
 from tests.utils import (
-    LogisticRegression,
     MultiHeadLogisticRegression,
+    build_environment,
     build_lookahead,
     dummy_closure,
     ids,
     make_dataset,
+    tensor_to_numpy,
 )
 
 OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
@@ -83,25 +84,6 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
 ]
-
-
-def tensor_to_numpy(x: torch.Tensor) -> np.ndarray:
-    return x.detach().cpu().numpy()
-
-
-def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.Tensor], nn.Module, nn.Module]:
-    torch.manual_seed(42)
-
-    x_data, y_data = make_dataset()
-    model: nn.Module = LogisticRegression()
-    loss_fn: nn.Module = nn.BCEWithLogitsLoss()
-
-    if use_gpu and torch.cuda.is_available():
-        x_data, y_data = x_data.cuda(), y_data.cuda()
-        model = model.cuda()
-        loss_fn = loss_fn.cuda()
-
-    return (x_data, y_data), model, loss_fn
 
 
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
