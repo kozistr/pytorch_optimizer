@@ -162,6 +162,7 @@ def matrix_power(matrix: torch.Tensor, power: float) -> torch.Tensor:
     matrix_device = matrix.device
 
     # use CPU for svd for speed up
-    u, s, v = torch.svd(matrix.cpu())
+    u, s, vh = torch.linalg.svd(matrix.cpu(), full_matrices=False)
+    v = vh.transpose(-2, -1).conj()
 
     return (u @ s.pow_(power).diag() @ v.t()).to(matrix_device)
