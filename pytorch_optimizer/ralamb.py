@@ -94,7 +94,7 @@ class RaLamb(Optimizer, BaseOptimizer):
                 if p.grad is None:
                     continue
 
-                norm_sq += torch.linalg.norm(p.grad).item() ** 2
+                norm_sq += torch.linalg.norm(p.grad).cpu().numpy() ** 2
 
         norm = math.sqrt(norm_sq)
 
