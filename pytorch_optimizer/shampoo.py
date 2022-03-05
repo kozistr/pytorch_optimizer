@@ -49,7 +49,9 @@ class Shampoo(Optimizer, BaseOptimizer):
 
         defaults: DEFAULTS = dict(
             lr=lr,
+            momentum=momentum,
             weight_decay=weight_decay,
+            update_freq=update_freq,
             eps=eps,
         )
         super().__init__(params, defaults)
