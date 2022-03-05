@@ -176,6 +176,6 @@ def test_safe_fp16_methods():
 
 
 def test_ranger21_methods():
-    assert Ranger21.build_warm_up_iterations(1, 0.999) == 0
     assert Ranger21.build_warm_up_iterations(1000, 0.999) == 220
+    assert Ranger21.build_warm_up_iterations(4500, 0.999) == 2000
     assert Ranger21.build_warm_down_iterations(1000) == 280
