@@ -156,3 +156,12 @@ def get_optimizer_parameters(
         },
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in wd_ban_list)], 'weight_decay': 0.0},
     ]
+
+
+def matrix_power(matrix: torch.Tensor, power: float) -> torch.Tensor:
+    matrix_device = matrix.device
+
+    # use CPU for svd for speed up
+    u, s, v = torch.svd(matrix.cpu())
+
+    return (u @ s.pow_(power).diag() @ v.t()).to(matrix_device)
