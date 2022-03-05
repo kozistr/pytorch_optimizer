@@ -70,10 +70,8 @@ class Shampoo(Optimizer, BaseOptimizer):
                 state = self.state[p]
 
                 state['step'] = 0
-                if self.momentum > 0.0:
-                    state['momentum_buffer'] = p.grad.clone()
 
-                # precondition matrices
+                # pre-condition matrices
                 for dim_id, dim in enumerate(p.grad.size()):
                     state[f'pre_cond_{dim_id}'] = group['eps'] * torch.eye(dim, out=p.grad.new(dim, dim))
                     state[f'inv_pre_cond_{dim_id}'] = p.grad.new(dim, dim).zero_()
