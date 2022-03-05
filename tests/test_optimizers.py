@@ -67,7 +67,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SGDP, {'lr': 2e-1, 'weight_decay': 1e-3, 'nesterov': True}, 500),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 500),
-    (Shampoo, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
+    (Shampoo, {'lr': 3e-1, 'weight_decay': 1e-3, 'momentum': 0.05}, 500),
 ]
 
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
