@@ -152,14 +152,13 @@ class RAdam(Optimizer, BaseOptimizer):
                         step_size = -1
                     buffered[2] = step_size
 
+                if (n_sma >= self.n_sma_threshold or step_size > 0) and group['weight_decay'] != 0:
+                    p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
+
                 if n_sma >= self.n_sma_threshold:
-                    if group['weight_decay'] != 0:
-                        p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
                     de_nom = exp_avg_sq.sqrt().add_(group['eps'])
                     p_fp32.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
                 elif step_size > 0:
-                    if group['weight_decay'] != 0:
-                        p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
                     p_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
 
                 if p.dtype in (torch.float16, torch.bfloat16):
