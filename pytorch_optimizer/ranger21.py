@@ -187,13 +187,6 @@ class Ranger21(Optimizer, BaseOptimizer):
 
         return new_lr
 
-    @staticmethod
-    def get_state_values(group, state: STATE):
-        beta1, beta2 = group['betas']
-        mean_avg = state['mean_avg']
-        variance_avg = state['variance_avg']
-        return beta1, beta2, mean_avg, variance_avg
-
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
