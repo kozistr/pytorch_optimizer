@@ -74,6 +74,8 @@ Supported Optimizers
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Lamb         | *Large Batch Optimization for Deep Learning*                                           | `github <https://github.com/cybertronai/pytorch-lamb>`__                          | `https://arxiv.org/abs/1904.00962 <https://arxiv.org/abs/1904.00962>`__                       |
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Shampoo      | *Preconditioned Stochastic Tensor Optimization*                                        | `github <https://github.com/moskomule/shampoo.pytorch>`__                         | `https://arxiv.org/abs/1802.09568 <https://arxiv.org/abs/1802.09568>`__                       |
++--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
 ----------------
@@ -465,6 +467,19 @@ AdamD: Improved bias-correction in Adam
       author={John, John St},
       journal={arXiv preprint arXiv:2110.10828},
       year={2021}
+    }
+
+Shampoo: Preconditioned Stochastic Tensor Optimization
+
+::
+
+    @inproceedings{gupta2018shampoo,
+      title={Shampoo: Preconditioned stochastic tensor optimization},
+      author={Gupta, Vineet and Koren, Tomer and Singer, Yoram},
+      booktitle={International Conference on Machine Learning},
+      pages={1842--1850},
+      year={2018},
+      organization={PMLR}
     }
 
 Author
