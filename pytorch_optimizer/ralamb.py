@@ -147,7 +147,7 @@ class RaLamb(Optimizer, BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 state['step'] += 1
-                buffered = group['buffer'][int(state['step'] % 10)]
+                buffered = group['buffer'][state['step'] % 10]
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
 
