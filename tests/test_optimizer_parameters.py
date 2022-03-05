@@ -126,7 +126,7 @@ def test_reduction(optimizer_names):
 @pytest.mark.parametrize('optimizer_names', ['shampoo'])
 def test_update_frequency(optimizer_names):
     with pytest.raises(ValueError):
-        load_optimizers(optimizer_names)([None], update_freq=0)
+        load_optimizers(optimizer_names)(None, update_freq=0)
 
 
 def test_sam_parameters():
