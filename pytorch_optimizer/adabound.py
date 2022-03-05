@@ -140,10 +140,9 @@ class AdaBound(Optimizer, BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 if group['amsbound']:
-                    max_exp_avg_sq = torch.max(state['max_exp_avg_sq'], exp_avg_sq)
-                    de_nom = max_exp_avg_sq.sqrt().add_(group['eps'])
-                else:
-                    de_nom = exp_avg_sq.sqrt().add_(group['eps'])
+                    exp_avg_sq = torch.max(state['max_exp_avg_sq'], exp_avg_sq)
+
+                de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
                 bias_correction2 = 1.0 - beta2 ** state['step']
