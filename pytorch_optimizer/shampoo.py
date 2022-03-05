@@ -108,7 +108,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                         state[f'inv_pre_cond_{dim_id}'] = grad.new(dim, dim).zero_()
 
                 if momentum > 0.0:
-                    grad.mul_(1.0 - momentum).add_(momentum, alpha=state['momentum_buffer'])
+                    grad.mul_(1.0 - momentum).add_(state['momentum_buffer'], alpha=momentum)
 
                 weight_decay = group['weight_decay']
                 if weight_decay > 0.0:
