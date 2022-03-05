@@ -152,7 +152,7 @@ class RAdam(Optimizer, BaseOptimizer):
                         step_size = -1
                     buffered[2] = step_size
 
-                if (n_sma >= self.n_sma_threshold or step_size > 0) and group['weight_decay'] != 0:
+                if group['weight_decay'] != 0 and (n_sma >= self.n_sma_threshold or step_size > 0):
                     p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
 
                 if n_sma >= self.n_sma_threshold:
