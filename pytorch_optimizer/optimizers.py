@@ -15,7 +15,7 @@ from pytorch_optimizer.sgdp import SGDP
 from pytorch_optimizer.shampoo import Shampoo
 
 
-def load_optimizers(optimizer: str):
+def load_optimizers(optimizer: str):  # pylint: disable=R0911
     optimizer: str = optimizer.lower()
 
     if optimizer == 'adamp':
