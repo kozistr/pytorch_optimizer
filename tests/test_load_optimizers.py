@@ -19,6 +19,7 @@ VALID_OPTIMIZER_NAMES: List[str] = [
     'lamb',
     'ralamb',
     'lars',
+    'shampoo',
 ]
 
 INVALID_OPTIMIZER_NAMES: List[str] = [

@@ -12,40 +12,41 @@ from pytorch_optimizer.ralamb import RaLamb
 from pytorch_optimizer.ranger import Ranger
 from pytorch_optimizer.ranger21 import Ranger21
 from pytorch_optimizer.sgdp import SGDP
+from pytorch_optimizer.shampoo import Shampoo
 
 
 def load_optimizers(optimizer: str):
     optimizer: str = optimizer.lower()
 
     if optimizer == 'adamp':
-        opt = AdamP
-    elif optimizer == 'ranger':
-        opt = Ranger
-    elif optimizer == 'ranger21':
-        opt = Ranger21
-    elif optimizer == 'sgdp':
-        opt = SGDP
-    elif optimizer == 'radam':
-        opt = RAdam
-    elif optimizer == 'adabelief':
-        opt = AdaBelief
-    elif optimizer == 'adabound':
-        opt = AdaBound
-    elif optimizer == 'madgrad':
-        opt = MADGRAD
-    elif optimizer == 'diffgrad':
-        opt = DiffGrad
-    elif optimizer == 'diffrgrad':
-        opt = DiffRGrad
-    elif optimizer == 'adahessian':
-        opt = AdaHessian
-    elif optimizer == 'lamb':
-        opt = Lamb
-    elif optimizer == 'ralamb':
-        opt = RaLamb
-    elif optimizer == 'lars':
-        opt = LARS
-    else:
-        raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+        return AdamP
+    if optimizer == 'ranger':
+        return Ranger
+    if optimizer == 'ranger21':
+        return Ranger21
+    if optimizer == 'sgdp':
+        return SGDP
+    if optimizer == 'radam':
+        return RAdam
+    if optimizer == 'adabelief':
+        return AdaBelief
+    if optimizer == 'adabound':
+        return AdaBound
+    if optimizer == 'madgrad':
+        return MADGRAD
+    if optimizer == 'diffgrad':
+        return DiffGrad
+    if optimizer == 'diffrgrad':
+        return DiffRGrad
+    if optimizer == 'adahessian':
+        return AdaHessian
+    if optimizer == 'lamb':
+        return Lamb
+    if optimizer == 'ralamb':
+        return RaLamb
+    if optimizer == 'lars':
+        return LARS
+    if optimizer == 'shampoo':
+        return Shampoo
 
-    return opt
+    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')

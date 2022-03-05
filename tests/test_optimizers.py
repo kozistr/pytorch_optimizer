@@ -23,14 +23,16 @@ from pytorch_optimizer import (
     Ranger,
     Ranger21,
     SafeFP16Optimizer,
+    Shampoo,
 )
 from tests.utils import (
-    LogisticRegression,
     MultiHeadLogisticRegression,
+    build_environment,
     build_lookahead,
     dummy_closure,
     ids,
     make_dataset,
+    tensor_to_numpy,
 )
 
 OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
@@ -66,6 +68,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SGDP, {'lr': 2e-1, 'weight_decay': 1e-3, 'nesterov': True}, 500),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 500),
+    (Shampoo, {'lr': 3e-1, 'weight_decay': 1e-3, 'momentum': 0.05}, 500),
 ]
 
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
@@ -81,25 +84,6 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
 ]
-
-
-def tensor_to_numpy(x: torch.Tensor) -> np.ndarray:
-    return x.detach().cpu().numpy()
-
-
-def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.Tensor], nn.Module, nn.Module]:
-    torch.manual_seed(42)
-
-    x_data, y_data = make_dataset()
-    model: nn.Module = LogisticRegression()
-    loss_fn: nn.Module = nn.BCEWithLogitsLoss()
-
-    if use_gpu and torch.cuda.is_available():
-        x_data, y_data = x_data.cuda(), y_data.cuda()
-        model = model.cuda()
-        loss_fn = loss_fn.cuda()
-
-    return (x_data, y_data), model, loss_fn
 
 
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
@@ -183,6 +167,9 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_sam_config
+    if optimizer_class.__name__ == 'Shampoo':
+        return True
+
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
     init_loss, loss = np.inf, np.inf
@@ -206,6 +193,9 @@ def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_sam_config
+    if optimizer_class.__name__ == 'Shampoo':
+        return True
+
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
     def closure():

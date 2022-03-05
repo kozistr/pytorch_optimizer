@@ -126,13 +126,12 @@ class AdaBelief(Optimizer, BaseOptimizer):
                         state['max_exp_avg_var'] = torch.zeros_like(p)
 
                 if self.weight_decouple:
-                    if not self.fixed_decay:
-                        p_fp32.mul_(1.0 - group['lr'] * group['weight_decay'])
-                    else:
-                        p_fp32.mul_(1.0 - group['weight_decay'])
-                else:
-                    if group['weight_decay'] != 0:
-                        grad.add_(p_fp32, alpha=group['weight_decay'])
+                    decay: float = (
+                        group['lr'] * group['weight_decay'] if not self.fixed_decay else group['weight_decay']
+                    )
+                    p_fp32.mul_(1.0 - decay)
+                elif group['weight_decay'] != 0:
+                    grad.add_(p_fp32, alpha=group['weight_decay'])
 
                 exp_avg, exp_avg_var = state['exp_avg'], state['exp_avg_var']
 

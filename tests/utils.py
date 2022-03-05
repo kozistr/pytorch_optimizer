@@ -76,3 +76,22 @@ def build_lookahead(*parameters, **kwargs):
 
 def ids(v) -> str:
     return f'{v[0].__name__}_{v[1:]}'
+
+
+def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.Tensor], nn.Module, nn.Module]:
+    torch.manual_seed(42)
+
+    x_data, y_data = make_dataset()
+    model: nn.Module = LogisticRegression()
+    loss_fn: nn.Module = nn.BCEWithLogitsLoss()
+
+    if use_gpu and torch.cuda.is_available():
+        x_data, y_data = x_data.cuda(), y_data.cuda()
+        model = model.cuda()
+        loss_fn = loss_fn.cuda()
+
+    return (x_data, y_data), model, loss_fn
+
+
+def tensor_to_numpy(x: torch.Tensor) -> np.ndarray:
+    return x.detach().cpu().numpy()
