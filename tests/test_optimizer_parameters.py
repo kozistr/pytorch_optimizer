@@ -3,7 +3,7 @@ from typing import List
 import pytest
 from torch import nn
 
-from pytorch_optimizer import SAM, AdamP, Lookahead, PCGrad, SafeFP16Optimizer, load_optimizers
+from pytorch_optimizer import SAM, AdamP, Lookahead, PCGrad, SafeFP16Optimizer, load_optimizers, Ranger21
 from tests.utils import Example
 
 OPTIMIZER_NAMES: List[str] = [
@@ -173,3 +173,11 @@ def test_safe_fp16_methods():
         optimizer.set_lr(lr=5e-1)
 
     assert optimizer.loss_scale == 2.0 ** (15 - 1)
+
+
+def test_ranger21_methods():
+    warm_up_iterations: int = Ranger21.build_warm_up_iterations(1000, 0.999)
+    assert warm_up_iterations == 220
+
+    warm_down_iterations = Ranger21.build_warm_down_iterations(1000)
+    assert warm_down_iterations == 280
