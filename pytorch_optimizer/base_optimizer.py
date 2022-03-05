@@ -80,6 +80,11 @@ class BaseOptimizer(ABC):
         if reduction not in ('mean', 'sum'):
             raise ValueError(f'[-] reduction {reduction} must be one of (\'mean\' or \'sum\')')
 
+    @staticmethod
+    def validate_update_frequency(update_frequency: int):
+        if update_frequency < 1:
+            raise ValueError(f'[-] update_frequency {update_frequency} must be positive')
+
     @abstractmethod
     def validate_parameters(self):
         raise NotImplementedError

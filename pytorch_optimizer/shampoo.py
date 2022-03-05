@@ -60,6 +60,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         self.validate_learning_rate(self.lr)
         self.validate_momentum(self.momentum)
         self.validate_weight_decay(self.weight_decay)
+        self.validate_update_frequency(self.update_freq)
         self.validate_epsilon(self.eps)
 
     @torch.no_grad()
