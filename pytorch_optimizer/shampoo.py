@@ -29,7 +29,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         momentum: float = 0.0,
         weight_decay: float = 0.0,
         update_freq: int = 1,
-        eps: float = 1e-6,
+        eps: float = 1e-4,
     ):
         """Shampoo optimizer
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
