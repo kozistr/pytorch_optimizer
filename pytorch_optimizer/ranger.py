@@ -1,5 +1,4 @@
 import math
-from typing import Dict
 
 import torch
 from torch.optim.optimizer import Optimizer
