@@ -82,12 +82,6 @@ class AdaBelief(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    def __setstate__(self, state: STATE):
-        super().__setstate__(state)
-        for group in self.param_groups:
-            group.setdefault('amsgrad', False)
-            group.setdefault('adamd_debias_term', False)
-
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
@@ -152,11 +146,11 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 grad_residual = grad - exp_avg
                 exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2)
 
+                exp_avg_var = exp_avg_var.add_(group['eps'])
                 if group['amsgrad']:
-                    max_exp_avg_var = torch.max(state['max_exp_avg_var'], exp_avg_var.add_(group['eps']))
-                    de_nom = (max_exp_avg_var.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
-                else:
-                    de_nom = (exp_avg_var.add_(group['eps']).sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
+                    exp_avg_var = torch.max(state['max_exp_avg_var'], exp_avg_var)
+
+                de_nom = (exp_avg_var.add_(group['eps']).sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
                 if not self.rectify:
                     step_size = group['lr']

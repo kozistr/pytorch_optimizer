@@ -94,7 +94,7 @@ class RaLamb(Optimizer, BaseOptimizer):
                 if p.grad is None:
                     continue
 
-                norm_sq += torch.linalg.norm(p.grad).item() ** 2
+                norm_sq += torch.linalg.norm(p.grad).cpu().numpy() ** 2
 
         norm = math.sqrt(norm_sq)
 
@@ -147,7 +147,7 @@ class RaLamb(Optimizer, BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 state['step'] += 1
-                buffered = group['buffer'][int(state['step'] % 10)]
+                buffered = group['buffer'][state['step'] % 10]
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
 

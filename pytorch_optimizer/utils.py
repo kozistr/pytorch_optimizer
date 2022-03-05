@@ -43,12 +43,12 @@ def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:
 
 def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor]:
     idx: int = 0
-    un_flatten_grad: List[torch.Tensor] = []
+    un_flatten_grads: List[torch.Tensor] = []
     for shape in shapes:
         length = np.prod(shape)
-        un_flatten_grad.append(grads[idx : idx + length].view(shape).clone())
+        un_flatten_grads.append(grads[idx : idx + length].view(shape).clone())
         idx += length
-    return un_flatten_grad
+    return un_flatten_grads
 
 
 def channel_view(x: torch.Tensor) -> torch.Tensor:

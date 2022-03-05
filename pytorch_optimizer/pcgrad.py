@@ -39,7 +39,7 @@ class PCGrad(BaseOptimizer):
 
     @torch.no_grad()
     def reset(self):
-        pass
+        self.zero_grad()
 
     def zero_grad(self):
         return self.optimizer.zero_grad(set_to_none=True)
@@ -47,7 +47,7 @@ class PCGrad(BaseOptimizer):
     def step(self):
         return self.optimizer.step()
 
-    def set_grad(self, grads):
+    def set_grad(self, grads: List[torch.Tensor]):
         idx: int = 0
         for group in self.optimizer.param_groups:
             for p in group['params']:
@@ -74,7 +74,7 @@ class PCGrad(BaseOptimizer):
     def pack_grad(self, objectives: Iterable) -> Tuple[List[torch.Tensor], List[List[int]], List[torch.Tensor]]:
         """pack the gradient of the parameters of the network for each objective
         :param objectives: Iterable[nn.Module]. a list of objectives
-        :return:
+        :return: torch.Tensor. packed gradients
         """
         grads, shapes, has_grads = [], [], []
         for objective in objectives:
@@ -89,27 +89,29 @@ class PCGrad(BaseOptimizer):
 
         return grads, shapes, has_grads
 
-    def project_conflicting(self, grads, has_grads) -> torch.Tensor:
+    def project_conflicting(self, grads: List[torch.Tensor], has_grads: List[torch.Tensor]) -> torch.Tensor:
         """project conflicting
         :param grads: a list of the gradient of the parameters
         :param has_grads: a list of mask represent whether the parameter has gradient
-        :return:
+        :return: torch.Tensor. merged gradients
         """
-        shared = torch.stack(has_grads).prod(0).bool()
+        shared: torch.Tensor = torch.stack(has_grads).prod(0).bool()
 
-        pc_grad = deepcopy(grads)
+        pc_grad: List[torch.Tensor] = deepcopy(grads)
         for g_i in pc_grad:
             random.shuffle(grads)
             for g_j in grads:
-                g_i_g_j = torch.dot(g_i, g_j)
+                g_i_g_j: torch.Tensor = torch.dot(g_i, g_j)
                 if g_i_g_j < 0:
                     g_i -= g_i_g_j * g_j / (g_j.norm() ** 2)
 
-        merged_grad = torch.zeros_like(grads[0]).to(grads[0].device)
+        merged_grad: torch.Tensor = torch.zeros_like(grads[0], device=grads[0].device)
+
+        shared_pc_gradients: torch.Tensor = torch.stack([g[shared] for g in pc_grad])
         if self.reduction == 'mean':
-            merged_grad[shared] = torch.stack([g[shared] for g in pc_grad]).mean(dim=0)
+            merged_grad[shared] = shared_pc_gradients.mean(dim=0)
         else:
-            merged_grad[shared] = torch.stack([g[shared] for g in pc_grad]).sum(dim=0)
+            merged_grad[shared] = shared_pc_gradients.sum(dim=0)
 
         merged_grad[~shared] = torch.stack([g[~shared] for g in pc_grad]).sum(dim=0)
 
@@ -121,7 +123,7 @@ class PCGrad(BaseOptimizer):
         :return:
         """
         grads, shapes, has_grads = self.pack_grad(objectives)
+
         pc_grad = self.project_conflicting(grads, has_grads)
         pc_grad = un_flatten_grad(pc_grad, shapes[0])
-
         self.set_grad(pc_grad)

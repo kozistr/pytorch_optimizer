@@ -41,6 +41,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'fixed_decay': True}, 200),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': False}, 200),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
+    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'fixed_decay': True}, 200),
+    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'weight_decouple': False}, 200),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 200),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 200),
@@ -61,6 +63,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
     (SGDP, {'lr': 2e-1, 'weight_decay': 1e-3}, 500),
+    (SGDP, {'lr': 2e-1, 'weight_decay': 1e-3, 'nesterov': True}, 500),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 500),
 ]
@@ -248,8 +251,9 @@ def test_adamd_optimizers(optimizer_adamd_config):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
+@pytest.mark.parametrize('reduction', ('mean', 'sum'))
 @pytest.mark.parametrize('optimizer_pc_grad_config', OPTIMIZERS, ids=ids)
-def test_pc_grad_optimizers(optimizer_pc_grad_config):
+def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
     torch.manual_seed(42)
 
     x_data, y_data = make_dataset()
@@ -259,7 +263,7 @@ def test_pc_grad_optimizers(optimizer_pc_grad_config):
     loss_fn_2: nn.Module = nn.L1Loss()
 
     optimizer_class, config, iterations = optimizer_pc_grad_config
-    optimizer = PCGrad(optimizer_class(model.parameters(), **config))
+    optimizer = PCGrad(optimizer_class(model.parameters(), **config), reduction=reduction)
 
     if optimizer_class.__name__ == 'RaLamb' and 'pre_norm' in config:
         return True

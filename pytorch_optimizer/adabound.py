@@ -80,11 +80,6 @@ class AdaBound(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    def __setstate__(self, state: STATE):
-        super().__setstate__(state)
-        for group in self.param_groups:
-            group.setdefault('amsbound', False)
-
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
@@ -140,10 +135,9 @@ class AdaBound(Optimizer, BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 if group['amsbound']:
-                    max_exp_avg_sq = torch.max(state['max_exp_avg_sq'], exp_avg_sq)
-                    de_nom = max_exp_avg_sq.sqrt().add_(group['eps'])
-                else:
-                    de_nom = exp_avg_sq.sqrt().add_(group['eps'])
+                    exp_avg_sq = torch.max(state['max_exp_avg_sq'], exp_avg_sq)
+
+                de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
                 bias_correction2 = 1.0 - beta2 ** state['step']
