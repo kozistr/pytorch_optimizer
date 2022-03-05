@@ -150,7 +150,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 if group['amsgrad']:
                     exp_avg_var = torch.max(state['max_exp_avg_var'], exp_avg_var)
 
-                de_nom = (exp_avg_var.add_(group['eps']).sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
+                de_nom = (exp_avg_var.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
                 if not self.rectify:
                     step_size = group['lr']
