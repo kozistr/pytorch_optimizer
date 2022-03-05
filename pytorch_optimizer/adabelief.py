@@ -4,7 +4,7 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base_optimizer import BaseOptimizer
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class AdaBelief(Optimizer, BaseOptimizer):
