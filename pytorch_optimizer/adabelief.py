@@ -82,12 +82,6 @@ class AdaBelief(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    def __setstate__(self, state: STATE):
-        super().__setstate__(state)
-        for group in self.param_groups:
-            group.setdefault('amsgrad', False)
-            group.setdefault('adamd_debias_term', False)
-
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
