@@ -148,11 +148,11 @@ class Ranger21(Optimizer, BaseOptimizer):
 
     @staticmethod
     def build_warm_up_iterations(total_iterations: int, beta2: float, warm_up_pct: float = 0.22) -> int:
-        beta_warm_up_iterations: int = math.ceil(2.0 / (1.0 - beta2))  # default un-tuned linear warmup
-        beta_pct: float = beta_warm_up_iterations / total_iterations
+        warm_up_iterations: int = math.ceil(2.0 / (1.0 - beta2))  # default un-tuned linear warmup
+        beta_pct: float = warm_up_iterations / total_iterations
         if beta_pct > 0.45:
             return int(warm_up_pct * total_iterations)
-        return beta_warm_up_iterations
+        return warm_up_iterations
 
     @staticmethod
     def build_warm_down_iterations(total_iterations: int, warm_down_pct: float = 0.72) -> int:
