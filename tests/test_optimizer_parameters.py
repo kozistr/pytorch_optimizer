@@ -3,7 +3,7 @@ from typing import List
 import pytest
 from torch import nn
 
-from pytorch_optimizer import SAM, AdamP, Lookahead, PCGrad, SafeFP16Optimizer, load_optimizers, Ranger21
+from pytorch_optimizer import SAM, AdamP, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizers
 from tests.utils import Example
 
 OPTIMIZER_NAMES: List[str] = [
