@@ -70,6 +70,7 @@ KEYWORDS: List[str] = sorted(
         'lamb',
         'ralamb',
         'lars',
+        'shampoo',
     ]
 )
 
