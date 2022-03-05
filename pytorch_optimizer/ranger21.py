@@ -8,7 +8,7 @@ from torch.optim import Optimizer
 from pytorch_optimizer.agc import agc
 from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.gc import centralize_gradient
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, STATE
+from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.utils import normalize_gradient, unit_norm
 
 __AUTHORS__ = [
