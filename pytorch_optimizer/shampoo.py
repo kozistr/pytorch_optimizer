@@ -71,11 +71,6 @@ class Shampoo(Optimizer, BaseOptimizer):
 
                 state['step'] = 0
 
-                # pre-condition matrices
-                for dim_id, dim in enumerate(p.grad.size()):
-                    state[f'pre_cond_{dim_id}'] = group['eps'] * torch.eye(dim, out=p.grad.new(dim, dim))
-                    state[f'inv_pre_cond_{dim_id}'] = p.grad.new(dim, dim).zero_()
-
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
