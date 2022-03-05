@@ -89,7 +89,7 @@ class LARS(Optimizer, BaseOptimizer):
                     grad = grad.add(p, alpha=g['weight_decay'])
                     param_norm = torch.norm(p)
                     update_norm = torch.norm(grad)
-                    one = torch.ones_like(param_norm)
+                    one = torch.ones_like(param_norm, device=param_norm.device)
 
                     q = torch.where(
                         param_norm > 0.0,
@@ -100,7 +100,7 @@ class LARS(Optimizer, BaseOptimizer):
 
                 param_state = self.state[p]
                 if 'mu' not in param_state:
-                    param_state['mu'] = torch.zeros_like(p)
+                    param_state['mu'] = torch.zeros_like(p, device=p.device)
 
                 mu = param_state['mu']
                 mu.mul_(g['momentum']).add_(grad)
