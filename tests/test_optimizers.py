@@ -250,8 +250,9 @@ def test_adamd_optimizers(optimizer_adamd_config):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
+@pytest.mark.parametrize('reduction', ('mean', 'sum'))
 @pytest.mark.parametrize('optimizer_pc_grad_config', OPTIMIZERS, ids=ids)
-def test_pc_grad_optimizers(optimizer_pc_grad_config):
+def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
     torch.manual_seed(42)
 
     x_data, y_data = make_dataset()
@@ -261,7 +262,7 @@ def test_pc_grad_optimizers(optimizer_pc_grad_config):
     loss_fn_2: nn.Module = nn.L1Loss()
 
     optimizer_class, config, iterations = optimizer_pc_grad_config
-    optimizer = PCGrad(optimizer_class(model.parameters(), **config))
+    optimizer = PCGrad(optimizer_class(model.parameters(), **config), reduction=reduction)
 
     if optimizer_class.__name__ == 'RaLamb' and 'pre_norm' in config:
         return True
