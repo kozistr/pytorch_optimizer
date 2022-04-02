@@ -30,6 +30,7 @@ class PNM(Optimizer, BaseOptimizer):
         betas: BETAS = (0.9, 1.0),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        eps: float = 1e-8,
     ):
         """PNM optimizer
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
@@ -37,11 +38,13 @@ class PNM(Optimizer, BaseOptimizer):
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
         :param weight_decouple: bool. use weight_decouple
+        :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
         self.weight_decouple = weight_decouple
+        self.eps = eps
 
         self.validate_parameters()
 
@@ -57,6 +60,7 @@ class PNM(Optimizer, BaseOptimizer):
         self.validate_learning_rate(self.lr)
         self.validate_betas(self.betas)
         self.validate_weight_decay(self.weight_decay)
+        self.validate_epsilon(self.eps)
 
     @torch.no_grad()
     def reset(self):
