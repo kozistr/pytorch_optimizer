@@ -71,8 +71,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 500),
     (Shampoo, {'lr': 3e-1, 'weight_decay': 1e-3, 'momentum': 0.05}, 500),
-    (PNM, {'lr': 3e-1, 'weight_decay': 1e-3}, 500),
-    (PNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 500),
+    (PNM, {'lr': 2e-1}, 200),
+    (PNM, {'lr': 2e-1, 'weight_decouple': False}, 200),
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3}, 500),
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 500),
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'amsgrad': False}, 500),
@@ -146,7 +146,12 @@ def test_safe_f16_optimizers(optimizer_fp16_config):
 
     optimizer_class, config, iterations = optimizer_fp16_config
 
-    if optimizer_class.__name__ == 'MADGRAD' or (optimizer_class.__name__ == 'RaLamb' and 'pre_norm' in config):
+    optimizer_name: str = optimizer_class.__name__
+    if (
+        (optimizer_name == 'MADGRAD')
+        or (optimizer_name == 'RaLamb' and 'pre_norm' in config)
+        or (optimizer_name == 'PNM')
+    ):
         return True
 
     optimizer = SafeFP16Optimizer(optimizer_class(model.parameters(), **config))
