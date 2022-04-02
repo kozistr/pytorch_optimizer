@@ -15,6 +15,7 @@ from pytorch_optimizer.lookahead import Lookahead
 from pytorch_optimizer.madgrad import MADGRAD
 from pytorch_optimizer.optimizers import load_optimizers
 from pytorch_optimizer.pcgrad import PCGrad
+from pytorch_optimizer.pnm import PNM
 from pytorch_optimizer.radam import RAdam
 from pytorch_optimizer.ralamb import RaLamb
 from pytorch_optimizer.ranger import Ranger
