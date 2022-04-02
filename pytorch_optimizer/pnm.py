@@ -31,7 +31,7 @@ class PNM(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
     ):
-        """AdamP optimizer
+        """PNM optimizer
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
