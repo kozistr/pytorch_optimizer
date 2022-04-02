@@ -71,6 +71,8 @@ KEYWORDS: List[str] = sorted(
         'ralamb',
         'lars',
         'shampoo',
+        'pnm',
+        'adapnm',
     ]
 )
 
