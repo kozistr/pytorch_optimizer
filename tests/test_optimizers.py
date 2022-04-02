@@ -8,11 +8,13 @@ from torch import nn
 from pytorch_optimizer import (
     LARS,
     MADGRAD,
+    PNM,
     SAM,
     SGDP,
     AdaBelief,
     AdaBound,
     AdamP,
+    AdaPNM,
     DiffGrad,
     DiffRGrad,
     Lamb,
@@ -69,6 +71,11 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 500),
     (Shampoo, {'lr': 3e-1, 'weight_decay': 1e-3, 'momentum': 0.05}, 500),
+    (PNM, {'lr': 3e-1, 'weight_decay': 1e-3}, 500),
+    (PNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 500),
+    (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3}, 500),
+    (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 500),
+    (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'amsgrad': False}, 500),
 ]
 
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
