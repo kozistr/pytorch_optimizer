@@ -19,15 +19,15 @@ class BaseOptimizer(ABC):
     @staticmethod
     def validate_betas(betas: BETAS):
         if not 0.0 <= betas[0] < 1.0:
-            raise ValueError(f'[-] beta0 {betas[0]} must be in the range [0, 1)')
+            raise ValueError(f'[-] beta1 {betas[0]} must be in the range [0, 1)')
         if not 0.0 <= betas[1] < 1.0:
-            raise ValueError(f'[-] beta1 {betas[1]} must be in the range [0, 1)')
+            raise ValueError(f'[-] beta2 {betas[1]} must be in the range [0, 1)')
 
         if len(betas) < 3:
             return
 
         if not 0.0 <= betas[2] < 1.0:
-            raise ValueError(f'[-] beta2 {betas[2]} must be in the range [0, 1)')
+            raise ValueError(f'[-] beta3 {betas[2]} must be in the range [0, 1)')
 
     @staticmethod
     def validate_weight_decay(weight_decay: float):
