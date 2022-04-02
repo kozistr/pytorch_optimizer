@@ -4,7 +4,7 @@ import torch
 
 CLOSURE = Optional[Callable[[], float]]
 LOSS = Optional[float]
-BETAS = Tuple[float, float]
+BETAS = Union[Tuple[float, float], Tuple[float, float, float]]
 DEFAULTS = Dict[str, Any]
 PARAMETERS = Optional[Union[Iterable[Dict[str, Any]], Iterable[torch.Tensor]]]
 STATE = Dict[str, Any]

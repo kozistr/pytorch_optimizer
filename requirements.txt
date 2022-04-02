@@ -8,5 +8,5 @@
 -i https://pypi.org/simple
 --trusted-host pypi.org
 numpy==1.21.4
-torch==1.10.1
+torch==1.11.0
 typing-extensions==4.1.1; python_version >= '3.6'

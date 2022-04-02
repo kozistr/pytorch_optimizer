@@ -21,6 +21,8 @@ OPTIMIZER_NAMES: List[str] = [
     'lamb',
     'ralamb',
     'lars',
+    'pnm',
+    'adapnm',
 ]
 
 BETA_OPTIMIZER_NAMES: List[str] = [
@@ -35,6 +37,8 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'ranger',
     'ranger21',
     'ralamb',
+    'pnm',
+    'adapnm',
 ]
 
 
@@ -111,6 +115,10 @@ def test_betas(optimizer_names):
 
     with pytest.raises(ValueError):
         optimizer(None, betas=(0.1, -0.1))
+
+    if optimizer_names == 'adapnm':
+        with pytest.raises(ValueError):
+            optimizer(None, betas=(0.1, 0.1, -0.1))
 
 
 @pytest.mark.parametrize('optimizer_names', ['pcgrad'])
