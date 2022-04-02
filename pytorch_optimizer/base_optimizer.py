@@ -13,8 +13,8 @@ class BaseOptimizer(ABC):
 
     @staticmethod
     def validate_beta0(beta_0: float):
-        if not 0.0 <= beta_0 < 1.0:
-            raise ValueError(f'[-] beta0 {beta_0} must be in the range [0, 1)')
+        if not 0.0 <= beta_0 <= 1.0:
+            raise ValueError(f'[-] beta0 {beta_0} must be in the range [0, 1]')
 
     @staticmethod
     def validate_betas(betas: BETAS):
