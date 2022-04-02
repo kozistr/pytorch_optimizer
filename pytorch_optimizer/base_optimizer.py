@@ -27,7 +27,7 @@ class BaseOptimizer(ABC):
             return
 
         if not 0.0 <= betas[2] <= 1.0:
-            raise ValueError(f'[-] beta3 {betas[2]} must be in the range [0, 1)]')
+            raise ValueError(f'[-] beta3 {betas[2]} must be in the range [0, 1]')
 
     @staticmethod
     def validate_weight_decay(weight_decay: float):
