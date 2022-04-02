@@ -116,6 +116,10 @@ def test_betas(optimizer_names):
     with pytest.raises(ValueError):
         optimizer(None, betas=(0.1, -0.1))
 
+    if optimizer_names == 'adapnm':
+        with pytest.raises(ValueError):
+            optimizer(None, betas=(0.1, 0.1, -0.1))
+
 
 @pytest.mark.parametrize('optimizer_names', ['pcgrad'])
 def test_reduction(optimizer_names):
