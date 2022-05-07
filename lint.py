@@ -14,7 +14,7 @@ def get_configuration() -> Namespace:
     parser.add_argument(
         '-t',
         '--threshold',
-        default=9.95,
+        default=9.98,
         type=float,
     )
 
