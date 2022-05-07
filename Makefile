@@ -1,4 +1,4 @@
-.PHONY: init format test check deploy requirements
+.PHONY: init format test check requirements
 
 init:
 	python -m pip install -U poetry
@@ -15,9 +15,6 @@ check:
 	isort --check-only --profile black -l 119 pytorch_optimizer tests setup.py lint.py
 	black -S -l 119 --check pytorch_optimizer tests setup.py lint.py
 	python lint.py
-
-deploy:
-	python -m poetry publish --build
 
 requirements:
 	python -m poetry export -f requirements.txt --output requirements.txt --without-hashes
