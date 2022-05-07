@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "pytorch_optimizer"
-version = "0.6.1"
-description = "Bunch of optimizer implementations in PyTorch with clean-code, strict types."
+version = "1.0.0"
+description = "Bunch of optimizer implementations in PyTorch with clean-code, strict types. Also, including useful optimization ideas."
 license = "Apache-2.0"
 authors = ["kozistr <kozistr@gmail.com>"]
 maintainers = ["kozistr <kozistr@gmail.com>"]
@@ -12,7 +12,7 @@ documentation = "https://pytorch-optimizers.readthedocs.io/en/latest"
 keywords = ["pytorch", "deep-learning", "optimizer"]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Education",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
