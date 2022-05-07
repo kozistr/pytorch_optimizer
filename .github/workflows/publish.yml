@@ -28,20 +28,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Python 3.8
+      - name: Setup Python 3.10
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          python-version: 3.10
       - name: Install dependencies
-        run: |
-          python3 -m pip install -r requirements.txt
-          python3 -m pip install -U wheel twine
-      - name: Build package
-        run: |
-          make build
+        run: python3 -m pip install -r requirements.txt
       - name: Publish package to PyPI
-        run: |
-          make deploy
         env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          poetry config pypi-token.pypi $PYPI_TOKEN
+          make deploy
