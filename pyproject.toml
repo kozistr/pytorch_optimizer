@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "pytorch_optmizer"
+name = "pytorch_optimizer"
 version = "0.6.1"
 description = "Bunch of optimizer implementations in PyTorch with clean-code, strict types."
 license = "Apache-2.0"
