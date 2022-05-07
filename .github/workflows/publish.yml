@@ -33,7 +33,9 @@ jobs:
         with:
           python-version: 3.9
       - name: Install dependencies
-        run: python3 -m pip install -r requirements.txt
+        run: |
+          python3 -m pip install poetry
+          python3 -m pip install -r requirements.txt
       - name: Publish package to PyPI
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
