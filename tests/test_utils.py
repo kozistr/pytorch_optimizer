@@ -12,7 +12,6 @@ from pytorch_optimizer.utils import (
     normalize_gradient,
     unit_norm,
 )
-from pytorch_optimizer.version import __VERSION__
 from tests.utils import Example
 
 
@@ -77,7 +76,3 @@ def test_is_valid_parameters():
     after_parameters = get_optimizer_parameters(model, weight_decay=1e-3, wd_ban_list=wd_ban_list)
 
     assert is_valid_parameters(after_parameters)
-
-
-def test_version():
-    assert len(__VERSION__.split('.')) == 3

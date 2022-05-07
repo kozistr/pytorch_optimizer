@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "pytorch_optimizer"
+version = "0.6.1"
+description = "Bunch of optimizer implementations in PyTorch with clean-code, strict types."
+license = "Apache-2.0"
+authors = ["kozistr <kozistr@gmail.com>"]
+maintainers = ["kozistr <kozistr@gmail.com>"]
+readme = "README.rst"
+homepage = "https://github.com/kozistr/pytorch_optimizer"
+repository = "https://github.com/kozistr/pytorch_optimizer"
+documentation = "https://pytorch-optimizers.readthedocs.io/en/latest"
+keywords = ["pytorch", "deep-learning", "optimizer"]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+numpy = "*"
+torch = "1.11.0"
+
+[tool.poetry.dev-dependencies]
+isort = "==5.10.1"
+black = "==21.12b0"
+click = "==8.0.4"
+pylint = "==2.11.1"
+pytest = "==7.0.1"
+pytest-cov = "==3.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
