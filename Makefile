@@ -5,15 +5,15 @@ init:
 	python -m poetry install
 
 format:
-	isort --profile black -l 119 pytorch_optimizer tests setup.py lint.py
-	black -S -l 119 pytorch_optimizer tests setup.py lint.py
+	isort --profile black -l 119 pytorch_optimizer tests lint.py
+	black -S -l 119 pytorch_optimizer tests lint.py
 
 test:
 	python -m pytest -sv -vv --cov=pytorch_optimizer --cov-report=xml ./tests
 
 check:
-	isort --check-only --profile black -l 119 pytorch_optimizer tests setup.py lint.py
-	black -S -l 119 --check pytorch_optimizer tests setup.py lint.py
+	isort --check-only --profile black -l 119 pytorch_optimizer tests lint.py
+	black -S -l 119 --check pytorch_optimizer tests lint.py
 	python lint.py
 
 requirements:
