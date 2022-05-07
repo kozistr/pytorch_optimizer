@@ -31,9 +31,9 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.6.2"
+python = "^3.7"
 numpy = "*"
-torch = "*"
+torch = "1.11.0"
 
 [tool.poetry.dev-dependencies]
 isort = "==5.10.1"
