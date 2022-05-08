@@ -58,7 +58,7 @@ class Nero(Optimizer, BaseOptimizer):
 
     def validate_parameters(self):
         self.validate_learning_rate(self.lr)
-        self.validate_beta0(self.beta)
+        self.validate_beta(self.beta)
 
     @torch.no_grad()
     def reset(self):
