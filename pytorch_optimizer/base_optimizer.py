@@ -12,6 +12,11 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] learning rate {learning_rate} must be positive')
 
     @staticmethod
+    def validate_beta(beta: float):
+        if not 0.0 <= beta <= 1.0:
+            raise ValueError(f'[-] beta {beta} must be in the range [0, 1]')
+
+    @staticmethod
     def validate_beta0(beta_0: float):
         if not 0.0 <= beta_0 <= 1.0:
             raise ValueError(f'[-] beta0 {beta_0} must be in the range [0, 1]')
@@ -38,11 +43,6 @@ class BaseOptimizer(ABC):
     def validate_weight_decay_ratio(weight_decay_ratio: float):
         if not 0.0 <= weight_decay_ratio < 1.0:
             raise ValueError(f'[-] weight_decay_ratio {weight_decay_ratio} must be in the range [0, 1)')
-
-    @staticmethod
-    def validate_hessian_power(hessian_power: float):
-        if not 0.0 <= hessian_power <= 1.0:
-            raise ValueError(f'[-] hessian_power {hessian_power} must be in the range [0, 1]')
 
     @staticmethod
     def validate_trust_coefficient(trust_coefficient: float):

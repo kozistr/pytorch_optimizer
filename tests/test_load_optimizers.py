@@ -12,7 +12,6 @@ VALID_OPTIMIZER_NAMES: List[str] = [
     'ranger21',
     'radam',
     'adabound',
-    'adahessian',
     'adabelief',
     'diffgrad',
     'diffrgrad',
@@ -22,6 +21,7 @@ VALID_OPTIMIZER_NAMES: List[str] = [
     'shampoo',
     'pnm',
     'adapnm',
+    'nero',
 ]
 
 INVALID_OPTIMIZER_NAMES: List[str] = [

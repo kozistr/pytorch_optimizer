@@ -19,6 +19,7 @@ from pytorch_optimizer import (
     DiffRGrad,
     Lamb,
     Lookahead,
+    Nero,
     PCGrad,
     RAdam,
     RaLamb,
@@ -57,7 +58,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adam': True, 'eps': 1e-8}, 500),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 500),
     (LARS, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
-    (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
+    (RaLamb, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (RaLamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'pre_norm': True}, 500),
     # (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 500),
@@ -76,6 +77,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3}, 500),
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 500),
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'amsgrad': False}, 500),
+    (Nero, {'lr': 5e-1}, 200),
+    (Nero, {'lr': 5e-1, 'constraints': False}, 200),
 ]
 
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
@@ -98,6 +101,11 @@ def test_f32_optimizers(optimizer_fp32_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_fp32_config
+
+    optimizer_name: str = optimizer_class.__name__
+    if optimizer_name == 'Nero' and 'constraints' not in config:
+        return True
+
     optimizer = optimizer_class(model.parameters(), **config)
 
     init_loss, loss = np.inf, np.inf
@@ -151,6 +159,7 @@ def test_safe_f16_optimizers(optimizer_fp16_config):
         (optimizer_name == 'MADGRAD')
         or (optimizer_name == 'RaLamb' and 'pre_norm' in config)
         or (optimizer_name == 'PNM')
+        or (optimizer_name == 'Nero')
     ):
         return True
 
@@ -283,7 +292,7 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
         optimizer.pc_backward([loss1, loss2])
         optimizer.step()
 
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+    assert tensor_to_numpy(init_loss) > 1.25 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
@@ -295,6 +304,10 @@ def test_no_gradients(optimizer_config):
 
     optimizer_class, config, iterations = optimizer_config
     optimizer = optimizer_class(model.parameters(), **config)
+
+    optimizer_name: str = optimizer_class.__name__
+    if optimizer_name == 'Nero':
+        return True
 
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):

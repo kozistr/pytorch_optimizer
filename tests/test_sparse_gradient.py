@@ -17,7 +17,6 @@ NO_SPARSE_OPTIMIZERS: List[str] = [
     'ranger21',
     'radam',
     'adabound',
-    'adahessian',
     'adabelief',
     'diffgrad',
     'diffrgrad',
@@ -25,6 +24,7 @@ NO_SPARSE_OPTIMIZERS: List[str] = [
     'ralamb',
     'lars',
     'shampoo',
+    'nero',
 ]
 
 

@@ -76,6 +76,8 @@ Supported Optimizers
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Shampoo      | *Preconditioned Stochastic Tensor Optimization*                                        | `github <https://github.com/moskomule/shampoo.pytorch>`__                         | `https://arxiv.org/abs/1802.09568 <https://arxiv.org/abs/1802.09568>`__                       |
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Nero         | *Learning by Turning: Neural Architecture Aware Optimisation*                          | `github <https://github.com/jxbz/nero>`__                                         | `https://arxiv.org/abs/2102.07227 <https://arxiv.org/abs/2102.07227>`__                       |
++--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
 ----------------
@@ -480,6 +482,17 @@ Shampoo: Preconditioned Stochastic Tensor Optimization
       pages={1842--1850},
       year={2018},
       organization={PMLR}
+    }
+
+Nero: Learning by Turning: Neural Architecture Aware Optimisation
+
+::
+
+    @misc{nero2021,
+      title={Learning by Turning: Neural Architecture Aware Optimisation},
+      author={Yang Liu and Jeremy Bernstein and Markus Meister and Yisong Yue},
+      year={2021},
+      eprint={arXiv:2102.07227}
     }
 
 Author

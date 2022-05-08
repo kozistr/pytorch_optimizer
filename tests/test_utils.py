@@ -1,6 +1,7 @@
 from typing import List
 
 import numpy as np
+import pytest
 import torch
 from torch import nn
 
@@ -9,6 +10,8 @@ from pytorch_optimizer.utils import (
     get_optimizer_parameters,
     has_overflow,
     is_valid_parameters,
+    neuron_mean,
+    neuron_norm,
     normalize_gradient,
     unit_norm,
 )
@@ -54,6 +57,25 @@ def test_unit_norm():
     np.testing.assert_approx_equal(unit_norm(x.view(1, 10)).numpy(), 16.8819, significant=4)
     np.testing.assert_approx_equal(unit_norm(x.view(1, 10, 1, 1)).numpy(), 16.8819, significant=4)
     np.testing.assert_approx_equal(unit_norm(x.view(1, 10, 1, 1, 1, 1)).numpy(), 16.8819, significant=4)
+
+
+def test_neuron_mean_norm():
+    x = torch.arange(-5, 5, dtype=torch.float32)
+
+    with pytest.raises(ValueError):
+        neuron_mean(x)
+
+    np.testing.assert_array_equal(
+        neuron_mean(x.view(-1, 1)).numpy(),
+        np.asarray([[-5.0], [-4.0], [-3.0], [-2.0], [-1.0], [0.0], [1.0], [2.0], [3.0], [4.0]]),
+    )
+    np.testing.assert_array_equal(
+        neuron_norm(x).numpy(), np.asarray([5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 1.0, 2.0, 3.0, 4.0])
+    )
+    np.testing.assert_array_equal(
+        neuron_norm(x.view(-1, 1)).numpy(),
+        np.asarray([[5.0], [4.0], [3.0], [2.0], [1.0], [0.0], [1.0], [2.0], [3.0], [4.0]]),
+    )
 
 
 def test_get_optimizer_parameters():
