@@ -89,13 +89,6 @@ def test_lookahead_k(optimizer_names):
         optimizer(None, k=-1)
 
 
-@pytest.mark.parametrize('optimizer_names', ['adahessian'])
-def test_hessian_power(optimizer_names):
-    with pytest.raises(ValueError):
-        optimizer = load_optimizers(optimizer_names)
-        optimizer(None, hessian_power=-1e-3)
-
-
 @pytest.mark.parametrize('optimizer_names', ['ranger21'])
 def test_beta0(optimizer_names):
     optimizer = load_optimizers(optimizer_names)
