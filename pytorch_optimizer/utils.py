@@ -166,3 +166,23 @@ def matrix_power(matrix: torch.Tensor, power: float) -> torch.Tensor:
     v = vh.transpose(-2, -1).conj()
 
     return (u @ s.pow_(power).diag() @ v.t()).to(matrix_device)
+
+
+def neuron_norm(x: torch.Tensor):
+    if x.dim() <= 1:
+        return x.abs()
+
+    view_shape = [x.shape[0]] + [1] * (x.dim() - 1)
+    x = x.view(x.shape[0], -1)
+
+    return x.norm(dim=1).view(*view_shape)
+
+
+def neuron_mean(x: torch.Tensor) -> torch.Tensor:
+    if x.dim() <= 1:
+        raise ValueError('[-] neuron_mean not defined on 1D tensors.')
+
+    view_shape = [x.shape[0]] + [1] * (x.dim() - 1)
+    x = x.view(x.shape[0], -1)
+
+    return x.mean(dim=1).view(*view_shape)
