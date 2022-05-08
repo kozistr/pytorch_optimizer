@@ -3,7 +3,7 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base_optimizer import BaseOptimizer
 from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.utils import neuron_norm, neuron_mean
+from pytorch_optimizer.utils import neuron_mean, neuron_norm
 
 
 class Nero(Optimizer, BaseOptimizer):
