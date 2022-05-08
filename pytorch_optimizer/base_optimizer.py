@@ -12,6 +12,11 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] learning rate {learning_rate} must be positive')
 
     @staticmethod
+    def validate_beta(beta: float):
+        if not 0.0 <= beta <= 1.0:
+            raise ValueError(f'[-] beta {beta} must be in the range [0, 1]')
+
+    @staticmethod
     def validate_beta0(beta_0: float):
         if not 0.0 <= beta_0 <= 1.0:
             raise ValueError(f'[-] beta0 {beta_0} must be in the range [0, 1]')
