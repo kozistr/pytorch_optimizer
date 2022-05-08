@@ -19,6 +19,7 @@ from pytorch_optimizer import (
     DiffRGrad,
     Lamb,
     Lookahead,
+    Nero,
     PCGrad,
     RAdam,
     RaLamb,
@@ -76,6 +77,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3}, 500),
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 500),
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'amsgrad': False}, 500),
+    (Nero, {'lr': 2e-1}, 200),
+    (Nero, {'lr': 2e-1, 'constraints': False}, 200),
 ]
 
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
