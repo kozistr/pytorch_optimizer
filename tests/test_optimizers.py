@@ -77,8 +77,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3}, 500),
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 500),
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'amsgrad': False}, 500),
-    (Nero, {'lr': 1e-1}, 500),
-    (Nero, {'lr': 1e-1, 'constraints': False}, 500),
+    (Nero, {'lr': 2e-1}, 200),
+    (Nero, {'lr': 2e-1, 'constraints': False}, 200),
 ]
 
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
@@ -154,6 +154,7 @@ def test_safe_f16_optimizers(optimizer_fp16_config):
         (optimizer_name == 'MADGRAD')
         or (optimizer_name == 'RaLamb' and 'pre_norm' in config)
         or (optimizer_name == 'PNM')
+        or (optimizer_name == 'Nero')
     ):
         return True
 
@@ -286,7 +287,7 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
         optimizer.pc_backward([loss1, loss2])
         optimizer.step()
 
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+    assert tensor_to_numpy(init_loss) > 1.25 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
