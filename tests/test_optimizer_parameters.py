@@ -40,7 +40,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
 ]
 
 
-@pytest.mark.parametrize('optimizer_names', OPTIMIZER_NAMES)
+@pytest.mark.parametrize('optimizer_names', OPTIMIZER_NAMES + ['nero'])
 def test_learning_rate(optimizer_names):
     with pytest.raises(ValueError):
         optimizer = load_optimizers(optimizer_names)
@@ -95,6 +95,14 @@ def test_beta0(optimizer_names):
 
     with pytest.raises(ValueError):
         optimizer(None, num_iterations=200, beta0=-0.1)
+
+
+@pytest.mark.parametrize('optimizer_names', ['nero'])
+def test_beta(optimizer_names):
+    optimizer = load_optimizers(optimizer_names)
+
+    with pytest.raises(ValueError):
+        optimizer(None, beta=-0.1)
 
 
 @pytest.mark.parametrize('optimizer_names', BETA_OPTIMIZER_NAMES)
