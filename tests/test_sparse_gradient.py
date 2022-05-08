@@ -24,6 +24,7 @@ NO_SPARSE_OPTIMIZERS: List[str] = [
     'ralamb',
     'lars',
     'shampoo',
+    'nero',
 ]
 
 
