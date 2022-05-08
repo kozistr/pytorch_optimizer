@@ -77,8 +77,8 @@ class Nero(Optimizer, BaseOptimizer):
                 state = self.state[p]
                 if len(state) == 0:
                     if group['constraints'] and p.dim() > 1:
-                        p -= neuron_mean(p)
-                        p /= neuron_norm(p)
+                        p.sub_(neuron_mean(p))
+                        p.div_(neuron_norm(p))
 
                     state['step'] = 0
                     state['exp_avg_sq'] = torch.zeros_like(neuron_norm(p))
@@ -97,7 +97,7 @@ class Nero(Optimizer, BaseOptimizer):
                 p.sub_(group['lr'] * state['scale'] * grad_normed)
 
                 if group['constraints'] and p.dim() > 1:
-                    p -= neuron_mean(p)
-                    p /= neuron_norm(p)
+                    p.sub_(neuron_mean(p))
+                    p.div_(neuron_norm(p))
 
         return loss
