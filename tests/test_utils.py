@@ -73,7 +73,8 @@ def test_neuron_mean_norm():
         neuron_norm(x).numpy(), np.asarray([5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 1.0, 2.0, 3.0, 4.0])
     )
     np.testing.assert_array_equal(
-        neuron_norm(x.view(-1, 1)).numpy(), np.asarray([[5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 1.0, 2.0, 3.0, 4.0]])
+        neuron_norm(x.view(-1, 1)).numpy(),
+        np.asarray([[-5.0], [-4.0], [-3.0], [-2.0], [-1.0], [0.0], [1.0], [2.0], [3.0], [4.0]]),
     )
 
 
