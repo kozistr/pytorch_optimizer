@@ -14,7 +14,6 @@ OPTIMIZER_NAMES: List[str] = [
     'ranger21',
     'radam',
     'adabound',
-    'adahessian',
     'adabelief',
     'diffgrad',
     'diffrgrad',
@@ -28,7 +27,6 @@ OPTIMIZER_NAMES: List[str] = [
 BETA_OPTIMIZER_NAMES: List[str] = [
     'adabelief',
     'adabound',
-    'adahessian',
     'adamp',
     'diffgrad',
     'diffrgrad',

@@ -12,7 +12,6 @@ VALID_OPTIMIZER_NAMES: List[str] = [
     'ranger21',
     'radam',
     'adabound',
-    'adahessian',
     'adabelief',
     'diffgrad',
     'diffrgrad',
