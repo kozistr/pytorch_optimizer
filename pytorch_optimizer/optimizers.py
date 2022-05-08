@@ -1,6 +1,5 @@
 from pytorch_optimizer.adabelief import AdaBelief
 from pytorch_optimizer.adabound import AdaBound
-from pytorch_optimizer.adahessian import AdaHessian
 from pytorch_optimizer.adamp import AdamP
 from pytorch_optimizer.adapnm import AdaPNM
 from pytorch_optimizer.diffgrad import DiffGrad
@@ -40,8 +39,6 @@ def load_optimizers(optimizer: str):  # pylint: disable=R0911
         return DiffGrad
     if optimizer == 'diffrgrad':
         return DiffRGrad
-    if optimizer == 'adahessian':
-        return AdaHessian
     if optimizer == 'lamb':
         return Lamb
     if optimizer == 'ralamb':
