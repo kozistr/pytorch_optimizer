@@ -46,8 +46,8 @@ class Nero(Optimizer, BaseOptimizer):
         for group in self.param_groups:
             for p in group['params']:
                 if group['constraints'] and p.dim() > 1:
-                    p -= neuron_mean(p)
-                    p /= neuron_norm(p)
+                    p.sub_(neuron_mean(p))
+                    p.div_(neuron_norm(p))
 
                 state = self.state[p]
 
