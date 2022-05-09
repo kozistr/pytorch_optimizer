@@ -57,7 +57,7 @@ OPTIMIZER_LIST: List = [
 OPTIMIZERS: Dict[str, Optimizer] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
 
-def load_optimizer(optimizer: str):  # pylint: disable=R0911
+def load_optimizer(optimizer: str) -> OPTIMIZERS:  # pylint: disable=R0911
     optimizer: str = optimizer.lower()
 
     if optimizer not in OPTIMIZERS:
