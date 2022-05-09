@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Create Release
+      - name: Create release
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -32,7 +32,7 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: 3.9
-      - name: cache pip
+      - name: Cache pip
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
