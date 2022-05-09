@@ -1,4 +1,8 @@
 # pylint: disable=unused-import
+from typing import Dict, List
+
+from torch.optim import Optimizer
+
 from pytorch_optimizer.adabelief import AdaBelief
 from pytorch_optimizer.adabound import AdaBound
 from pytorch_optimizer.adamp import AdamP
@@ -31,43 +35,36 @@ from pytorch_optimizer.utils import (
     unit_norm,
 )
 
+OPTIMIZER_LIST: List = [
+    AdaBelief,
+    AdaBound,
+    AdamP,
+    AdaPNM,
+    DiffGrad,
+    DiffRGrad,
+    Lamb,
+    LARS,
+    MADGRAD,
+    Nero,
+    PNM,
+    RAdam,
+    RaLamb,
+    Ranger,
+    Ranger21,
+    SGDP,
+    Shampoo,
+]
+OPTIMIZERS: Dict[str, Optimizer] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
+
 
 def load_optimizer(optimizer: str):  # pylint: disable=R0911
     optimizer: str = optimizer.lower()
 
-    if optimizer == 'adamp':
-        return AdamP
-    if optimizer == 'ranger':
-        return Ranger
-    if optimizer == 'ranger21':
-        return Ranger21
-    if optimizer == 'sgdp':
-        return SGDP
-    if optimizer == 'radam':
-        return RAdam
-    if optimizer == 'adabelief':
-        return AdaBelief
-    if optimizer == 'adabound':
-        return AdaBound
-    if optimizer == 'madgrad':
-        return MADGRAD
-    if optimizer == 'diffgrad':
-        return DiffGrad
-    if optimizer == 'diffrgrad':
-        return DiffRGrad
-    if optimizer == 'lamb':
-        return Lamb
-    if optimizer == 'ralamb':
-        return RaLamb
-    if optimizer == 'lars':
-        return LARS
-    if optimizer == 'shampoo':
-        return Shampoo
-    if optimizer == 'pnm':
-        return PNM
-    if optimizer == 'adapnm':
-        return AdaPNM
-    if optimizer == 'nero':
-        return Nero
+    if optimizer not in OPTIMIZERS:
+        raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
 
-    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+    return OPTIMIZERS[optimizer]
+
+
+def get_supported_optimizers() -> List:
+    return OPTIMIZER_LIST
