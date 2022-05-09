@@ -60,7 +60,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (LARS, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
     (RaLamb, {'lr': 2e-1, 'weight_decay': 1e-3}, 500),
     (RaLamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'pre_norm': True}, 500),
-    # (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
+    (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 500),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'eps': 0.0}, 500),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'momentum': 0.0}, 500),
