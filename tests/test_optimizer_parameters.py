@@ -3,7 +3,7 @@ from typing import List
 import pytest
 from torch import nn
 
-from pytorch_optimizer import SAM, AdamP, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizers
+from pytorch_optimizer import SAM, AdamP, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
 from tests.utils import Example
 
 OPTIMIZER_NAMES: List[str] = [
@@ -43,55 +43,55 @@ BETA_OPTIMIZER_NAMES: List[str] = [
 @pytest.mark.parametrize('optimizer_names', OPTIMIZER_NAMES + ['nero'])
 def test_learning_rate(optimizer_names):
     with pytest.raises(ValueError):
-        optimizer = load_optimizers(optimizer_names)
+        optimizer = load_optimizer(optimizer_names)
         optimizer(None, lr=-1e-2)
 
 
 @pytest.mark.parametrize('optimizer_names', OPTIMIZER_NAMES)
 def test_epsilon(optimizer_names):
     with pytest.raises(ValueError):
-        optimizer = load_optimizers(optimizer_names)
+        optimizer = load_optimizer(optimizer_names)
         optimizer(None, eps=-1e-6)
 
 
 @pytest.mark.parametrize('optimizer_names', OPTIMIZER_NAMES)
 def test_weight_decay(optimizer_names):
     with pytest.raises(ValueError):
-        optimizer = load_optimizers(optimizer_names)
+        optimizer = load_optimizer(optimizer_names)
         optimizer(None, weight_decay=-1e-3)
 
 
 @pytest.mark.parametrize('optimizer_names', ['adamp', 'sgdp'])
 def test_wd_ratio(optimizer_names):
     with pytest.raises(ValueError):
-        optimizer = load_optimizers(optimizer_names)
+        optimizer = load_optimizer(optimizer_names)
         optimizer(None, wd_ratio=-1e-3)
 
 
 @pytest.mark.parametrize('optimizer_names', ['lars'])
 def test_trust_coefficient(optimizer_names):
     with pytest.raises(ValueError):
-        optimizer = load_optimizers(optimizer_names)
+        optimizer = load_optimizer(optimizer_names)
         optimizer(None, trust_coefficient=-1e-3)
 
 
 @pytest.mark.parametrize('optimizer_names', ['madgrad', 'lars'])
 def test_momentum(optimizer_names):
     with pytest.raises(ValueError):
-        optimizer = load_optimizers(optimizer_names)
+        optimizer = load_optimizer(optimizer_names)
         optimizer(None, momentum=-1e-3)
 
 
 @pytest.mark.parametrize('optimizer_names', ['ranger'])
 def test_lookahead_k(optimizer_names):
     with pytest.raises(ValueError):
-        optimizer = load_optimizers(optimizer_names)
+        optimizer = load_optimizer(optimizer_names)
         optimizer(None, k=-1)
 
 
 @pytest.mark.parametrize('optimizer_names', ['ranger21'])
 def test_beta0(optimizer_names):
-    optimizer = load_optimizers(optimizer_names)
+    optimizer = load_optimizer(optimizer_names)
 
     with pytest.raises(ValueError):
         optimizer(None, num_iterations=200, beta0=-0.1)
@@ -99,7 +99,7 @@ def test_beta0(optimizer_names):
 
 @pytest.mark.parametrize('optimizer_names', ['nero'])
 def test_beta(optimizer_names):
-    optimizer = load_optimizers(optimizer_names)
+    optimizer = load_optimizer(optimizer_names)
 
     with pytest.raises(ValueError):
         optimizer(None, beta=-0.1)
@@ -107,7 +107,7 @@ def test_beta(optimizer_names):
 
 @pytest.mark.parametrize('optimizer_names', BETA_OPTIMIZER_NAMES)
 def test_betas(optimizer_names):
-    optimizer = load_optimizers(optimizer_names)
+    optimizer = load_optimizer(optimizer_names)
 
     with pytest.raises(ValueError):
         optimizer(None, betas=(-0.1, 0.1))
@@ -124,7 +124,7 @@ def test_betas(optimizer_names):
 def test_reduction(optimizer_names):
     model: nn.Module = Example()
     parameters = model.parameters()
-    optimizer = load_optimizers('adamp')(parameters)
+    optimizer = load_optimizer('adamp')(parameters)
 
     with pytest.raises(ValueError):
         PCGrad(optimizer, reduction='wrong')
@@ -133,18 +133,18 @@ def test_reduction(optimizer_names):
 @pytest.mark.parametrize('optimizer_names', ['shampoo'])
 def test_update_frequency(optimizer_names):
     with pytest.raises(ValueError):
-        load_optimizers(optimizer_names)(None, update_freq=0)
+        load_optimizer(optimizer_names)(None, update_freq=0)
 
 
 def test_sam_parameters():
     with pytest.raises(ValueError):
-        SAM(None, load_optimizers('adamp'), rho=-0.1)
+        SAM(None, load_optimizer('adamp'), rho=-0.1)
 
 
 def test_lookahead_parameters():
     model: nn.Module = Example()
     parameters = model.parameters()
-    optimizer = load_optimizers('adamp')(parameters)
+    optimizer = load_optimizer('adamp')(parameters)
 
     pullback_momentum_list: List[str] = ['none', 'reset', 'pullback']
     for pullback_momentum in pullback_momentum_list:
@@ -165,7 +165,7 @@ def test_sam_methods():
     model: nn.Module = Example()
     parameters = model.parameters()
 
-    optimizer = SAM(parameters, load_optimizers('adamp'))
+    optimizer = SAM(parameters, load_optimizer('adamp'))
     optimizer.reset()
     optimizer.load_state_dict(optimizer.state_dict())
 

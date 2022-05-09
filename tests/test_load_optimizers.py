@@ -2,7 +2,7 @@ from typing import List
 
 import pytest
 
-from pytorch_optimizer import load_optimizers
+from pytorch_optimizer import load_optimizer
 
 VALID_OPTIMIZER_NAMES: List[str] = [
     'adamp',
@@ -36,10 +36,10 @@ INVALID_OPTIMIZER_NAMES: List[str] = [
 
 @pytest.mark.parametrize('valid_optimizer_names', VALID_OPTIMIZER_NAMES)
 def test_load_optimizers_valid(valid_optimizer_names):
-    load_optimizers(valid_optimizer_names)
+    load_optimizer(valid_optimizer_names)
 
 
 @pytest.mark.parametrize('invalid_optimizer_names', INVALID_OPTIMIZER_NAMES)
 def test_load_optimizers_invalid(invalid_optimizer_names):
     with pytest.raises(NotImplementedError):
-        load_optimizers(invalid_optimizer_names)
+        load_optimizer(invalid_optimizer_names)
