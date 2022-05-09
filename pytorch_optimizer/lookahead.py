@@ -25,7 +25,7 @@ class Lookahead(Optimizer, BaseOptimizer):
           optimizer.step()
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=super-init-not-called
         self,
         optimizer: Optimizer,
         k: int = 5,

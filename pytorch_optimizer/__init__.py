@@ -1,4 +1,8 @@
 # pylint: disable=unused-import
+from typing import Dict, List
+
+from torch.optim import Optimizer
+
 from pytorch_optimizer.adabelief import AdaBelief
 from pytorch_optimizer.adabound import AdaBound
 from pytorch_optimizer.adamp import AdamP
@@ -14,7 +18,6 @@ from pytorch_optimizer.lars import LARS
 from pytorch_optimizer.lookahead import Lookahead
 from pytorch_optimizer.madgrad import MADGRAD
 from pytorch_optimizer.nero import Nero
-from pytorch_optimizer.optimizers import load_optimizers
 from pytorch_optimizer.pcgrad import PCGrad
 from pytorch_optimizer.pnm import PNM
 from pytorch_optimizer.radam import RAdam
@@ -31,3 +34,37 @@ from pytorch_optimizer.utils import (
     normalize_gradient,
     unit_norm,
 )
+
+OPTIMIZER_LIST: List = [
+    AdaBelief,
+    AdaBound,
+    AdamP,
+    AdaPNM,
+    DiffGrad,
+    DiffRGrad,
+    Lamb,
+    LARS,
+    MADGRAD,
+    Nero,
+    PNM,
+    RAdam,
+    RaLamb,
+    Ranger,
+    Ranger21,
+    SGDP,
+    Shampoo,
+]
+OPTIMIZERS: Dict[str, Optimizer] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
+
+
+def load_optimizer(optimizer: str) -> OPTIMIZERS:  # pylint: disable=R0911
+    optimizer: str = optimizer.lower()
+
+    if optimizer not in OPTIMIZERS:
+        raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+
+    return OPTIMIZERS[optimizer]
+
+
+def get_supported_optimizers() -> List:
+    return OPTIMIZER_LIST

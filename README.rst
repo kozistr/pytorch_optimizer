@@ -38,11 +38,11 @@ or you can use optimizer loader, simply passing a name of the optimizer.
 
 ::
 
-    from pytorch_optimizer import load_optimizers
+    from pytorch_optimizer import load_optimizer
 
     ...
     model = YourModel()
-    opt = load_optimizers(optimizer='adamp')
+    opt = load_optimizer(optimizer='adamp')
     optimizer = opt(model.parameters())
     ...
 

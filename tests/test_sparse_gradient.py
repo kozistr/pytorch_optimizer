@@ -3,7 +3,7 @@ from typing import List
 import pytest
 import torch
 
-from pytorch_optimizer import load_optimizers
+from pytorch_optimizer import load_optimizer
 
 SPARSE_OPTIMIZERS: List[str] = [
     'madgrad',
@@ -33,7 +33,7 @@ def test_sparse_not_supported(no_sparse_optimizer):
     param = torch.randn(1, 1).to_sparse(1).requires_grad_(True)
     param.grad = torch.randn(1, 1).to_sparse(1)
 
-    optimizer = load_optimizers(optimizer=no_sparse_optimizer)
+    optimizer = load_optimizer(optimizer=no_sparse_optimizer)
     if no_sparse_optimizer == 'ranger21':
         optimizer = optimizer([param], num_iterations=1)
     else:
@@ -50,15 +50,15 @@ def test_sparse_supported(sparse_optimizer):
     param = torch.randn(1, 1).to_sparse(1).requires_grad_(True)
     param.grad = torch.randn(1, 1).to_sparse(1)
 
-    optimizer = load_optimizers(optimizer=sparse_optimizer)([param], momentum=0.0)
+    optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0)
     optimizer.zero_grad()
     optimizer.step()
 
-    optimizer = load_optimizers(optimizer=sparse_optimizer)([param], momentum=0.0, eps=0.0)
+    optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0, eps=0.0)
     optimizer.zero_grad()
     optimizer.step()
 
     with pytest.raises(RuntimeError):
-        optimizer = load_optimizers(optimizer=sparse_optimizer)([param], momentum=0.0, weight_decay=1e-3)
+        optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0, weight_decay=1e-3)
         optimizer.zero_grad()
         optimizer.step()

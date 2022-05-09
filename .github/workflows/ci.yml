@@ -15,11 +15,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: set up Python ${{ matrix.python-version }}
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    - name: cache pip
+    - name: Cache pip
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
@@ -27,15 +27,15 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
           ${{ runner.os }}-
-    - name: install dependencies
+    - name: Install dependencies
       run: pip install -r requirements-dev.txt
-    - name: check lint
+    - name: Check lint
       run: make check
-    - name: check test
+    - name: Check test
       run: |
         export PYTHONDONTWRITEBYTECODE=1
         make test
-    - name: check codecov
+    - name: Check codecov
       uses: codecov/codecov-action@v2
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
