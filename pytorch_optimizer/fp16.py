@@ -87,7 +87,7 @@ class DynamicLossScaler:
 
 
 class SafeFP16Optimizer(Optimizer):
-    def __init__(self, optimizer, aggregate_g_norms: bool = False):
+    def __init__(self, optimizer, aggregate_g_norms: bool = False):  # pylint: disable=super-init-not-called
         self.optimizer = optimizer
         self.aggregate_g_norms = aggregate_g_norms
 
