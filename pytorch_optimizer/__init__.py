@@ -1,5 +1,5 @@
 # pylint: disable=unused-import
-from typing import Dict, List
+from typing import Callable, Dict, List
 
 from torch.optim import Optimizer
 
@@ -57,7 +57,7 @@ OPTIMIZER_LIST: List = [
 OPTIMIZERS: Dict[str, Optimizer] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
 
-def load_optimizer(optimizer: str) -> Optimizer:
+def load_optimizer(optimizer: str) -> Callable:
     optimizer: str = optimizer.lower()
 
     if optimizer not in OPTIMIZERS:
