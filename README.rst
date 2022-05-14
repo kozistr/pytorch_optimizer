@@ -1,9 +1,18 @@
+=================
 pytorch-optimizer
 =================
 
-| |workflow| |codecov| |Documentation Status| |PyPI version| |PyPi download| |black|
++--------------+------------------------------------------+
+| Build        | |workflow| |Documentation Status|        |
++--------------+------------------------------------------+
+| Quality      | |codecov| |black|                        |
++--------------+------------------------------------------+
+| Package      | |PyPI version| |PyPI pyversions|         |
++--------------+------------------------------------------+
+| Status       | |PyPi download|                          |
++--------------+------------------------------------------+
 
-| Bunch of optimizer implementations in PyTorch with clean-code, strict types. Also, including useful optimization ideas.
+| **pytorch-optimizer** is bunch of optimizer collections in PyTorch with clean-code, strict types. Also, including useful optimization ideas.
 | Most of the implementations are based on the original paper, but I added some tweaks.
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
@@ -506,6 +515,8 @@ Hyeongchan Kim / `@kozistr <http://kozistr.tech/about>`__
 .. |PyPI version| image:: https://badge.fury.io/py/pytorch-optimizer.svg
    :target: https://badge.fury.io/py/pytorch-optimizer
 .. |PyPi download| image:: https://img.shields.io/pypi/dm/pytorch-optimizer?style=plastic
+.. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/pytorch-optimizer.svg
+   :target: https://pypi.python.org/pypi/pytorch-optimizer/
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
 .. |codecov| image:: https://codecov.io/gh/kozistr/pytorch_optimizer/branch/main/graph/badge.svg?token=L4K00EA0VD
    :target: https://codecov.io/gh/kozistr/pytorch_optimizer
