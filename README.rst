@@ -1,5 +1,3 @@
-.. class:: center
-
 =================
 pytorch-optimizer
 =================
