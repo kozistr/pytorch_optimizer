@@ -12,7 +12,7 @@ pytorch-optimizer
 | Status       | |PyPi download|                          |
 +--------------+------------------------------------------+
 
-| **pytorch-optimizer** is bunch of optimizer collections in PyTorch with clean-code, strict types. Also, including useful optimization ideas.
+| **pytorch-optimizer** is bunch of optimizer collections in PyTorch. Also, including useful optimization ideas.
 | Most of the implementations are based on the original paper, but I added some tweaks.
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
