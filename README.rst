@@ -9,7 +9,7 @@ pytorch-optimizer
 +--------------+------------------------------------------+
 | Package      | |PyPI version| |PyPI pyversions|         |
 +--------------+------------------------------------------+
-| Status       | |PyPi download|                          |
+| Status       | |PyPi download| |PyPi month download|    |
 +--------------+------------------------------------------+
 
 | **pytorch-optimizer** is bunch of optimizer collections in PyTorch. Also, including useful optimization ideas.
@@ -514,7 +514,10 @@ Hyeongchan Kim / `@kozistr <http://kozistr.tech/about>`__
    :target: https://pytorch-optimizers.readthedocs.io/en/latest/?badge=latest
 .. |PyPI version| image:: https://badge.fury.io/py/pytorch-optimizer.svg
    :target: https://badge.fury.io/py/pytorch-optimizer
-.. |PyPi download| image:: https://img.shields.io/pypi/dm/pytorch-optimizer?style=plastic
+.. |PyPi download| image:: https://pepy.tech/badge/pytorch-optimizer
+   :target: https://pepy.tech/project/pytorch-optimizer
+.. |PyPi month download| image:: https://pepy.tech/badge/pytorch-optimizer/month
+   :target: https://pepy.tech/project/pytorch-optimizer
 .. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/pytorch-optimizer.svg
    :target: https://pypi.python.org/pypi/pytorch-optimizer/
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
