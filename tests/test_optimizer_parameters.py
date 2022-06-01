@@ -120,10 +120,16 @@ def test_betas(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
 
     with pytest.raises(ValueError):
-        optimizer(None, betas=(-0.1, 0.1))
+        if optimizer_name == 'ranger21':
+            optimizer(None, num_iterations=100, betas=(-0.1, 0.1))
+        else:
+            optimizer(None, betas=(-0.1, 0.1))
 
     with pytest.raises(ValueError):
-        optimizer(None, betas=(0.1, -0.1))
+        if optimizer_name == 'ranger21':
+            optimizer(None, num_iterations=100, betas=(0.1, -0.1))
+        else:
+            optimizer(None, betas=(0.1, -0.1))
 
     if optimizer_name == 'adapnm':
         with pytest.raises(ValueError):
@@ -131,8 +137,7 @@ def test_betas(optimizer_name):
 
 
 def test_reduction():
-    model: nn.Module = Example()
-    parameters = model.parameters()
+    parameters = Example().parameters()
     optimizer = load_optimizer('adamp')(parameters)
 
     with pytest.raises(ValueError):
