@@ -41,12 +41,12 @@ class Ranger21(Optimizer, BaseOptimizer):
     def __init__(
         self,
         params: PARAMETERS,
+        num_iterations: int,
         lr: float = 1e-3,
         beta0: float = 0.9,
         betas: BETAS = (0.9, 0.999),
         use_softplus: bool = True,
         beta_softplus: float = 50.0,
-        num_iterations: Optional[int] = None,
         num_warm_up_iterations: Optional[int] = None,
         num_warm_down_iterations: Optional[int] = None,
         warm_down_min_lr: float = 3e-5,
@@ -68,8 +68,8 @@ class Ranger21(Optimizer, BaseOptimizer):
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param use_softplus: bool. use softplus to smooth
         :param beta_softplus: float. beta
-        :param agc_clipping_value: float
-        :param agc_eps: float
+        :param agc_clipping_value: float.
+        :param agc_eps: float. eps for AGC
         :param centralize_gradients: bool. use GC both convolution & fc layers
         :param normalize_gradients: bool. use gradient normalization
         :param lookahead_merge_time: int. merge time

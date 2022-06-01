@@ -40,100 +40,115 @@ BETA_OPTIMIZER_NAMES: List[str] = [
 ]
 
 
-@pytest.mark.parametrize('optimizer_names', OPTIMIZER_NAMES + ['nero'])
-def test_learning_rate(optimizer_names):
+@pytest.mark.parametrize('optimizer_name', OPTIMIZER_NAMES + ['nero'])
+def test_learning_rate(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+
     with pytest.raises(ValueError):
-        optimizer = load_optimizer(optimizer_names)
-        optimizer(None, lr=-1e-2)
+        if optimizer_name == 'ranger21':
+            optimizer(None, num_iterations=100, lr=-1e-2)
+        else:
+            optimizer(None, lr=-1e-2)
 
 
-@pytest.mark.parametrize('optimizer_names', OPTIMIZER_NAMES)
-def test_epsilon(optimizer_names):
+@pytest.mark.parametrize('optimizer_name', OPTIMIZER_NAMES)
+def test_epsilon(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+
     with pytest.raises(ValueError):
-        optimizer = load_optimizer(optimizer_names)
-        optimizer(None, eps=-1e-6)
+        if optimizer_name == 'ranger21':
+            optimizer(None, num_iterations=100, eps=-1e-6)
+        else:
+            optimizer(None, eps=-1e-6)
 
 
-@pytest.mark.parametrize('optimizer_names', OPTIMIZER_NAMES)
-def test_weight_decay(optimizer_names):
+@pytest.mark.parametrize('optimizer_name', OPTIMIZER_NAMES)
+def test_weight_decay(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+
     with pytest.raises(ValueError):
-        optimizer = load_optimizer(optimizer_names)
-        optimizer(None, weight_decay=-1e-3)
+        if optimizer_name == 'ranger21':
+            optimizer(None, num_iterations=100, weight_decay=-1e-3)
+        else:
+            optimizer(None, weight_decay=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_names', ['adamp', 'sgdp'])
-def test_wd_ratio(optimizer_names):
+@pytest.mark.parametrize('optimizer_name', ['adamp', 'sgdp'])
+def test_wd_ratio(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
-        optimizer = load_optimizer(optimizer_names)
         optimizer(None, wd_ratio=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_names', ['lars'])
-def test_trust_coefficient(optimizer_names):
+@pytest.mark.parametrize('optimizer_name', ['lars'])
+def test_trust_coefficient(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
-        optimizer = load_optimizer(optimizer_names)
         optimizer(None, trust_coefficient=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_names', ['madgrad', 'lars'])
-def test_momentum(optimizer_names):
+@pytest.mark.parametrize('optimizer_name', ['madgrad', 'lars'])
+def test_momentum(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
-        optimizer = load_optimizer(optimizer_names)
         optimizer(None, momentum=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_names', ['ranger'])
-def test_lookahead_k(optimizer_names):
+@pytest.mark.parametrize('optimizer_name', ['ranger'])
+def test_lookahead_k(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
-        optimizer = load_optimizer(optimizer_names)
         optimizer(None, k=-1)
 
 
-@pytest.mark.parametrize('optimizer_names', ['ranger21'])
-def test_beta0(optimizer_names):
-    optimizer = load_optimizer(optimizer_names)
-
+@pytest.mark.parametrize('optimizer_name', ['ranger21'])
+def test_beta0(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
         optimizer(None, num_iterations=200, beta0=-0.1)
 
 
-@pytest.mark.parametrize('optimizer_names', ['nero'])
-def test_beta(optimizer_names):
-    optimizer = load_optimizer(optimizer_names)
-
+@pytest.mark.parametrize('optimizer_name', ['nero'])
+def test_beta(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
         optimizer(None, beta=-0.1)
 
 
-@pytest.mark.parametrize('optimizer_names', BETA_OPTIMIZER_NAMES)
-def test_betas(optimizer_names):
-    optimizer = load_optimizer(optimizer_names)
+@pytest.mark.parametrize('optimizer_name', BETA_OPTIMIZER_NAMES)
+def test_betas(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
 
     with pytest.raises(ValueError):
-        optimizer(None, betas=(-0.1, 0.1))
+        if optimizer_name == 'ranger21':
+            optimizer(None, num_iterations=100, betas=(-0.1, 0.1))
+        else:
+            optimizer(None, betas=(-0.1, 0.1))
 
     with pytest.raises(ValueError):
-        optimizer(None, betas=(0.1, -0.1))
+        if optimizer_name == 'ranger21':
+            optimizer(None, num_iterations=100, betas=(0.1, -0.1))
+        else:
+            optimizer(None, betas=(0.1, -0.1))
 
-    if optimizer_names == 'adapnm':
+    if optimizer_name == 'adapnm':
         with pytest.raises(ValueError):
             optimizer(None, betas=(0.1, 0.1, -0.1))
 
 
-@pytest.mark.parametrize('optimizer_names', ['pcgrad'])
-def test_reduction(optimizer_names):
-    model: nn.Module = Example()
-    parameters = model.parameters()
+def test_reduction():
+    parameters = Example().parameters()
     optimizer = load_optimizer('adamp')(parameters)
 
     with pytest.raises(ValueError):
         PCGrad(optimizer, reduction='wrong')
 
 
-@pytest.mark.parametrize('optimizer_names', ['shampoo'])
-def test_update_frequency(optimizer_names):
+@pytest.mark.parametrize('optimizer_name', ['shampoo'])
+def test_update_frequency(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
-        load_optimizer(optimizer_names)(None, update_freq=0)
+        optimizer(None, update_freq=0)
 
 
 def test_sam_parameters():
