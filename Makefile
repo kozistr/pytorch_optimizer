@@ -1,7 +1,7 @@
 .PHONY: init format test check requirements
 
 init:
-	python -m pip install -U poetry
+	python -m pip install -q -U poetry
 	python -m poetry install
 
 format:
