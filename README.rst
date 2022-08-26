@@ -414,187 +414,293 @@ Citations
 
    </details>
 
-Stable weight decay
+.. raw:: html
+
+   <details>
+   <summary><a>Stable weight decay</a></summary>
 
 ::
 
     @article{xie2020stable,
-      title={Stable weight decay regularization},
-      author={Xie, Zeke and Sato, Issei and Sugiyama, Masashi},
-      journal={arXiv preprint arXiv:2011.11152},
-      year={2020}
+        title={Stable weight decay regularization},
+        author={Xie, Zeke and Sato, Issei and Sugiyama, Masashi},
+        journal={arXiv preprint arXiv:2011.11152},
+        year={2020}
     }
 
-Softplus transformation
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Softplus transformation</a></summary>
 
 ::
 
     @article{tong2019calibrating,
-      title={Calibrating the adaptive learning rate to improve convergence of adam},
-      author={Tong, Qianqian and Liang, Guannan and Bi, Jinbo},
-      journal={arXiv preprint arXiv:1908.00700},
-      year={2019}
+        title={Calibrating the adaptive learning rate to improve convergence of adam},
+        author={Tong, Qianqian and Liang, Guannan and Bi, Jinbo},
+        journal={arXiv preprint arXiv:1908.00700},
+        year={2019}
     }
 
-MADGRAD
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>MADGRAD</a></summary>
 
 ::
 
     @article{defazio2021adaptivity,
-      title={Adaptivity without compromise: a momentumized, adaptive, dual averaged gradient method for stochastic optimization},
-      author={Defazio, Aaron and Jelassi, Samy},
-      journal={arXiv preprint arXiv:2101.11075},
-      year={2021}
+        title={Adaptivity without compromise: a momentumized, adaptive, dual averaged gradient method for stochastic optimization},
+        author={Defazio, Aaron and Jelassi, Samy},
+        journal={arXiv preprint arXiv:2101.11075},
+        year={2021}
     }
 
-AdaHessian
+.. raw:: html
+
+   </details>
+
+
+.. raw:: html
+
+   <details>
+   <summary><a>AdaHessian</a></summary>
 
 ::
 
     @article{yao2020adahessian,
-      title={ADAHESSIAN: An adaptive second order optimizer for machine learning},
-      author={Yao, Zhewei and Gholami, Amir and Shen, Sheng and Mustafa, Mustafa and Keutzer, Kurt and Mahoney, Michael W},
-      journal={arXiv preprint arXiv:2006.00719},
-      year={2020}
+        title={ADAHESSIAN: An adaptive second order optimizer for machine learning},
+        author={Yao, Zhewei and Gholami, Amir and Shen, Sheng and Mustafa, Mustafa and Keutzer, Kurt and Mahoney, Michael W},
+        journal={arXiv preprint arXiv:2006.00719},
+        year={2020}
     }
 
-AdaBound
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>AdaBound</a></summary>
 
 ::
 
     @inproceedings{Luo2019AdaBound,
-      author = {Luo, Liangchen and Xiong, Yuanhao and Liu, Yan and Sun, Xu},
-      title = {Adaptive Gradient Methods with Dynamic Bound of Learning Rate},
-      booktitle = {Proceedings of the 7th International Conference on Learning Representations},
-      month = {May},
-      year = {2019},
-      address = {New Orleans, Louisiana}
+        author = {Luo, Liangchen and Xiong, Yuanhao and Liu, Yan and Sun, Xu},
+        title = {Adaptive Gradient Methods with Dynamic Bound of Learning Rate},
+        booktitle = {Proceedings of the 7th International Conference on Learning Representations},
+        month = {May},
+        year = {2019},
+        address = {New Orleans, Louisiana}
     }
 
-AdaBelief
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>AdaBelief</a></summary>
 
 ::
 
     @article{zhuang2020adabelief,
-      title={Adabelief optimizer: Adapting stepsizes by the belief in observed gradients},
-      author={Zhuang, Juntang and Tang, Tommy and Ding, Yifan and Tatikonda, Sekhar and Dvornek, Nicha and Papademetris, Xenophon and Duncan, James S},
-      journal={arXiv preprint arXiv:2010.07468},
-      year={2020}
+        title={Adabelief optimizer: Adapting stepsizes by the belief in observed gradients},
+        author={Zhuang, Juntang and Tang, Tommy and Ding, Yifan and Tatikonda, Sekhar and Dvornek, Nicha and Papademetris, Xenophon and Duncan, James S},
+        journal={arXiv preprint arXiv:2010.07468},
+        year={2020}
     }
 
-Sharpness-Aware Minimization
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Sharpness-Aware Minimization</a></summary>
 
 ::
 
     @article{foret2020sharpness,
-      title={Sharpness-aware minimization for efficiently improving generalization},
-      author={Foret, Pierre and Kleiner, Ariel and Mobahi, Hossein and Neyshabur, Behnam},
-      journal={arXiv preprint arXiv:2010.01412},
-      year={2020}
+        title={Sharpness-aware minimization for efficiently improving generalization},
+        author={Foret, Pierre and Kleiner, Ariel and Mobahi, Hossein and Neyshabur, Behnam},
+        journal={arXiv preprint arXiv:2010.01412},
+        year={2020}
     }
 
-Adaptive Sharpness-Aware Minimization
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Adaptive Sharpness-Aware Minimization</a></summary>
 
 ::
 
     @article{kwon2021asam,
-      title={ASAM: Adaptive Sharpness-Aware Minimization for Scale-Invariant Learning of Deep Neural Networks},
-      author={Kwon, Jungmin and Kim, Jeongseop and Park, Hyunseo and Choi, In Kwon},
-      journal={arXiv preprint arXiv:2102.11600},
-      year={2021}
+        title={ASAM: Adaptive Sharpness-Aware Minimization for Scale-Invariant Learning of Deep Neural Networks},
+        author={Kwon, Jungmin and Kim, Jeongseop and Park, Hyunseo and Choi, In Kwon},
+        journal={arXiv preprint arXiv:2102.11600},
+        year={2021}
     }
 
-diffGrad
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>diffGrad</a></summary>
 
 ::
 
     @article{dubey2019diffgrad,
-      title={diffgrad: An optimization method for convolutional neural networks},
-      author={Dubey, Shiv Ram and Chakraborty, Soumendu and Roy, Swalpa Kumar and Mukherjee, Snehasis and Singh, Satish Kumar and Chaudhuri, Bidyut Baran},
-      journal={IEEE transactions on neural networks and learning systems},
-      volume={31},
-      number={11},
-      pages={4500--4511},
-      year={2019},
-      publisher={IEEE}
+        title={diffgrad: An optimization method for convolutional neural networks},
+        author={Dubey, Shiv Ram and Chakraborty, Soumendu and Roy, Swalpa Kumar and Mukherjee, Snehasis and Singh, Satish Kumar and Chaudhuri, Bidyut Baran},
+        journal={IEEE transactions on neural networks and learning systems},
+        volume={31},
+        number={11},
+        pages={4500--4511},
+        year={2019},
+        publisher={IEEE}
     }
 
-On the Convergence of Adam and Beyond
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>On the Convergence of Adam and Beyond</a></summary>
 
 ::
 
     @article{reddi2019convergence,
-      title={On the convergence of adam and beyond},
-      author={Reddi, Sashank J and Kale, Satyen and Kumar, Sanjiv},
-      journal={arXiv preprint arXiv:1904.09237},
-      year={2019}
+        title={On the convergence of adam and beyond},
+        author={Reddi, Sashank J and Kale, Satyen and Kumar, Sanjiv},
+        journal={arXiv preprint arXiv:1904.09237},
+        year={2019}
     }
 
-Gradient Surgery for Multi-Task Learning
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Gradient Surgery for Multi-Task Learning</a></summary>
 
 ::
 
     @article{yu2020gradient,
-      title={Gradient surgery for multi-task learning},
-      author={Yu, Tianhe and Kumar, Saurabh and Gupta, Abhishek and Levine, Sergey and Hausman, Karol and Finn, Chelsea},
-      journal={arXiv preprint arXiv:2001.06782},
-      year={2020}
+        title={Gradient surgery for multi-task learning},
+        author={Yu, Tianhe and Kumar, Saurabh and Gupta, Abhishek and Levine, Sergey and Hausman, Karol and Finn, Chelsea},
+        journal={arXiv preprint arXiv:2001.06782},
+        year={2020}
     }
 
-AdamD: Improved bias-correction in Adam
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>AdamD: Improved bias-correction in Adam</a></summary>
 
 ::
 
     @article{john2021adamd,
-      title={AdamD: Improved bias-correction in Adam},
-      author={John, John St},
-      journal={arXiv preprint arXiv:2110.10828},
-      year={2021}
+        title={AdamD: Improved bias-correction in Adam},
+        author={John, John St},
+        journal={arXiv preprint arXiv:2110.10828},
+        year={2021}
     }
 
-Shampoo: Preconditioned Stochastic Tensor Optimization
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Shampoo: Preconditioned Stochastic Tensor Optimization</a></summary>
 
 ::
 
     @inproceedings{gupta2018shampoo,
-      title={Shampoo: Preconditioned stochastic tensor optimization},
-      author={Gupta, Vineet and Koren, Tomer and Singer, Yoram},
-      booktitle={International Conference on Machine Learning},
-      pages={1842--1850},
-      year={2018},
-      organization={PMLR}
+        title={Shampoo: Preconditioned stochastic tensor optimization},
+        author={Gupta, Vineet and Koren, Tomer and Singer, Yoram},
+        booktitle={International Conference on Machine Learning},
+        pages={1842--1850},
+        year={2018},
+        organization={PMLR}
     }
 
-Nero: Learning by Turning: Neural Architecture Aware Optimisation
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Nero: Learning by Turning: Neural Architecture Aware Optimisation</a></summary>
 
 ::
 
     @misc{nero2021,
-      title={Learning by Turning: Neural Architecture Aware Optimisation},
-      author={Yang Liu and Jeremy Bernstein and Markus Meister and Yisong Yue},
-      year={2021},
-      eprint={arXiv:2102.07227}
+        title={Learning by Turning: Neural Architecture Aware Optimisation},
+        author={Yang Liu and Jeremy Bernstein and Markus Meister and Yisong Yue},
+        year={2021},
+        eprint={arXiv:2102.07227}
     }
 
-Adan: Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Adan: Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models</a></summary>
 
 ::
 
     @ARTICLE{2022arXiv220806677X,
-      author = {{Xie}, Xingyu and {Zhou}, Pan and {Li}, Huan and {Lin}, Zhouchen and {Yan}, Shuicheng},
-      title = "{Adan: Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models}",
-      journal = {arXiv e-prints},
-      keywords = {Computer Science - Machine Learning, Mathematics - Optimization and Control},
-      year = 2022,
-      month = aug,
-      eid = {arXiv:2208.06677},
-      pages = {arXiv:2208.06677},
-      archivePrefix = {arXiv},
-      eprint = {2208.06677},
-      primaryClass = {cs.LG},
-      adsurl = {https://ui.adsabs.harvard.edu/abs/2022arXiv220806677X},
-      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+        author = {{Xie}, Xingyu and {Zhou}, Pan and {Li}, Huan and {Lin}, Zhouchen and {Yan}, Shuicheng},
+        title = "{Adan: Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models}",
+        journal = {arXiv e-prints},
+        keywords = {Computer Science - Machine Learning, Mathematics - Optimization and Control},
+        year = 2022,
+        month = aug,
+        eid = {arXiv:2208.06677},
+        pages = {arXiv:2208.06677},
+        archivePrefix = {arXiv},
+        eprint = {2208.06677},
+        primaryClass = {cs.LG},
+        adsurl = {https://ui.adsabs.harvard.edu/abs/2022arXiv220806677X},
+        adsnote = {Provided by the SAO/NASA Astrophysics Data System}
     }
+
+.. raw:: html
+
+   </details>
 
 Author
 ------
