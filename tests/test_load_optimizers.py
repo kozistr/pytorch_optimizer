@@ -6,6 +6,7 @@ from pytorch_optimizer import get_supported_optimizers, load_optimizer
 
 VALID_OPTIMIZER_NAMES: List[str] = [
     'adamp',
+    'adan',
     'sgdp',
     'madgrad',
     'ranger',
