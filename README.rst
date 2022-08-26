@@ -87,6 +87,8 @@ Supported Optimizers
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Nero         | *Learning by Turning: Neural Architecture Aware Optimisation*                          | `github <https://github.com/jxbz/nero>`__                                         | `https://arxiv.org/abs/2102.07227 <https://arxiv.org/abs/2102.07227>`__                       |
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Adan         | * Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models*              | `github <https://github.com/sail-sg/Adan>`__                                      | `https://arxiv.org/abs/2208.06677 <https://arxiv.org/abs/2208.06677>`__                       |
++--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
 ----------------
@@ -502,6 +504,26 @@ Nero: Learning by Turning: Neural Architecture Aware Optimisation
       author={Yang Liu and Jeremy Bernstein and Markus Meister and Yisong Yue},
       year={2021},
       eprint={arXiv:2102.07227}
+    }
+
+Adan: Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models
+
+::
+
+    @ARTICLE{2022arXiv220806677X,
+      author = {{Xie}, Xingyu and {Zhou}, Pan and {Li}, Huan and {Lin}, Zhouchen and {Yan}, Shuicheng},
+      title = "{Adan: Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models}",
+      journal = {arXiv e-prints},
+      keywords = {Computer Science - Machine Learning, Mathematics - Optimization and Control},
+      year = 2022,
+      month = aug,
+      eid = {arXiv:2208.06677},
+      pages = {arXiv:2208.06677},
+      archivePrefix = {arXiv},
+      eprint = {2208.06677},
+      primaryClass = {cs.LG},
+      adsurl = {https://ui.adsabs.harvard.edu/abs/2022arXiv220806677X},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
     }
 
 Author
