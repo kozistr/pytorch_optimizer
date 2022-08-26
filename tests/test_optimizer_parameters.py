@@ -8,6 +8,7 @@ from tests.utils import Example
 
 OPTIMIZER_NAMES: List[str] = [
     'adamp',
+    'adan',
     'sgdp',
     'madgrad',
     'ranger',
@@ -37,6 +38,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'ralamb',
     'pnm',
     'adapnm',
+    'adan',
 ]
 
 
@@ -122,16 +124,16 @@ def test_betas(optimizer_name):
     with pytest.raises(ValueError):
         if optimizer_name == 'ranger21':
             optimizer(None, num_iterations=100, betas=(-0.1, 0.1))
-        else:
+        elif optimizer not in ('adapnm', 'adan'):
             optimizer(None, betas=(-0.1, 0.1))
 
     with pytest.raises(ValueError):
         if optimizer_name == 'ranger21':
             optimizer(None, num_iterations=100, betas=(0.1, -0.1))
-        else:
+        elif optimizer not in ('adapnm', 'adan'):
             optimizer(None, betas=(0.1, -0.1))
 
-    if optimizer_name == 'adapnm':
+    if optimizer_name in ('adapnm', 'adan'):
         with pytest.raises(ValueError):
             optimizer(None, betas=(0.1, 0.1, -0.1))
 
