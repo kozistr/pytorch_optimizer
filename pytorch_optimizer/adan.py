@@ -112,7 +112,7 @@ class Adan(Optimizer, BaseOptimizer):
                 state['previous_grad'] = grad.clone()
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
-                exp_avg_var.mul_(beta2).add_(grad_diff, value=1.0 - beta2)
+                exp_avg_var.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
                 exp_avg_nest.mul_(beta3).add_((grad + beta2 * grad_diff) ** 2, alpha=1.0 - beta3)
 
                 step_size = group['lr'] / math.sqrt(exp_avg_nest + self.eps)
