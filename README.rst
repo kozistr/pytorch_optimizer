@@ -320,64 +320,99 @@ Citations
 
    </details>
 
-RAdam
+.. raw:: html
+
+   <details>
+   <summary><a>RAdam</a></summary>
 
 ::
 
     @inproceedings{liu2019radam,
-     author = {Liu, Liyuan and Jiang, Haoming and He, Pengcheng and Chen, Weizhu and Liu, Xiaodong and Gao, Jianfeng and Han, Jiawei},
-     booktitle = {Proceedings of the Eighth International Conference on Learning Representations (ICLR 2020)},
-     month = {April},
-     title = {On the Variance of the Adaptive Learning Rate and Beyond},
-     year = {2020}
+        author = {Liu, Liyuan and Jiang, Haoming and He, Pengcheng and Chen, Weizhu and Liu, Xiaodong and Gao, Jianfeng and Han, Jiawei},
+        booktitle = {Proceedings of the Eighth International Conference on Learning Representations (ICLR 2020)},
+        month = {April},
+        title = {On the Variance of the Adaptive Learning Rate and Beyond},
+        year = {2020}
     }
 
-Norm Loss
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Norm Loss</a></summary>
 
 ::
 
     @inproceedings{georgiou2021norm,
-      title={Norm Loss: An efficient yet effective regularization method for deep neural networks},
-      author={Georgiou, Theodoros and Schmitt, Sebastian and B{\"a}ck, Thomas and Chen, Wei and Lew, Michael},
-      booktitle={2020 25th International Conference on Pattern Recognition (ICPR)},
-      pages={8812--8818},
-      year={2021},
-      organization={IEEE}
+        title={Norm Loss: An efficient yet effective regularization method for deep neural networks},
+        author={Georgiou, Theodoros and Schmitt, Sebastian and B{\"a}ck, Thomas and Chen, Wei and Lew, Michael},
+        booktitle={2020 25th International Conference on Pattern Recognition (ICPR)},
+        pages={8812--8818},
+        year={2021},
+        organization={IEEE}
     }
 
-Positive-Negative Momentum
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Positive-Negative Momentum</a></summary>
 
 ::
 
     @article{xie2021positive,
-      title={Positive-Negative Momentum: Manipulating Stochastic Gradient Noise to Improve Generalization},
-      author={Xie, Zeke and Yuan, Li and Zhu, Zhanxing and Sugiyama, Masashi},
-      journal={arXiv preprint arXiv:2103.17182},
-      year={2021}
+        title={Positive-Negative Momentum: Manipulating Stochastic Gradient Noise to Improve Generalization},
+        author={Xie, Zeke and Yuan, Li and Zhu, Zhanxing and Sugiyama, Masashi},
+        journal={arXiv preprint arXiv:2103.17182},
+        year={2021}
     }
 
-Explore-Exploit learning rate schedule
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Explore-Exploit learning rate schedule</a></summary>
 
 ::
 
     @article{iyer2020wide,
-      title={Wide-minima Density Hypothesis and the Explore-Exploit Learning Rate Schedule},
-      author={Iyer, Nikhil and Thejas, V and Kwatra, Nipun and Ramjee, Ramachandran and Sivathanu, Muthian},
-      journal={arXiv preprint arXiv:2003.03977},
-      year={2020}
+        title={Wide-minima Density Hypothesis and the Explore-Exploit Learning Rate Schedule},
+        author={Iyer, Nikhil and Thejas, V and Kwatra, Nipun and Ramjee, Ramachandran and Sivathanu, Muthian},
+        journal={arXiv preprint arXiv:2003.03977},
+        year={2020}
     }
 
-Linear learning-rate warm-up
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Linear learning-rate warm-up</a></summary>
 
 ::
 
     @article{ma2019adequacy,
-      title={On the adequacy of untuned warmup for adaptive optimization},
-      author={Ma, Jerry and Yarats, Denis},
-      journal={arXiv preprint arXiv:1910.04209},
-      volume={7},
-      year={2019}
+        title={On the adequacy of untuned warmup for adaptive optimization},
+        author={Ma, Jerry and Yarats, Denis},
+        journal={arXiv preprint arXiv:1910.04209},
+        volume={7},
+        year={2019}
     }
+
+.. raw:: html
+
+   </details>
 
 Stable weight decay
 
