@@ -115,9 +115,9 @@ class Adan(Optimizer, BaseOptimizer):
                 exp_avg_var.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
                 exp_avg_nest.mul_(beta3).add_((grad + beta2 * grad_diff) ** 2, alpha=1.0 - beta3)
 
-                step_size = group['lr'] / math.sqrt(exp_avg_nest + self.eps)
+                step_size = group['lr'] / exp_avg_nest.add_(self.eps).sqrt_()
 
-                p.sub_(exp_avg + beta2 * exp_avg_var, alpha=step_size)
+                p.sub_(step_size * (exp_avg + beta2 * exp_avg_var))
                 p.div_(1.0 + group['weight_decay'])
 
         return loss
