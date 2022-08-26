@@ -1,11 +1,10 @@
 # pylint: disable=unused-import
 from typing import Callable, Dict, List
 
-from torch.optim import Optimizer
-
 from pytorch_optimizer.adabelief import AdaBelief
 from pytorch_optimizer.adabound import AdaBound
 from pytorch_optimizer.adamp import AdamP
+from pytorch_optimizer.adan import Adan
 from pytorch_optimizer.adapnm import AdaPNM
 from pytorch_optimizer.agc import agc
 from pytorch_optimizer.chebyshev_schedule import get_chebyshev_schedule
@@ -39,6 +38,7 @@ OPTIMIZER_LIST: List = [
     AdaBelief,
     AdaBound,
     AdamP,
+    Adan,
     AdaPNM,
     DiffGrad,
     DiffRGrad,
@@ -54,7 +54,7 @@ OPTIMIZER_LIST: List = [
     SGDP,
     Shampoo,
 ]
-OPTIMIZERS: Dict[str, Optimizer] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
+OPTIMIZERS: Dict[str, Callable] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
 
 def load_optimizer(optimizer: str) -> Callable:

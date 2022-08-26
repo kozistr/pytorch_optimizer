@@ -6,6 +6,7 @@ from pytorch_optimizer import get_supported_optimizers, load_optimizer
 
 VALID_OPTIMIZER_NAMES: List[str] = [
     'adamp',
+    'adan',
     'sgdp',
     'madgrad',
     'ranger',
@@ -46,4 +47,4 @@ def test_load_optimizers_invalid(invalid_optimizer_names):
 
 
 def test_get_supported_optimizers():
-    assert len(get_supported_optimizers()) == 17
+    assert len(get_supported_optimizers()) == 18
