@@ -228,6 +228,11 @@ Gradient Surgery for Multi-Task Learning
 Citations
 ---------
 
+<details>
+<summary><a>big code</a></summary>
+<pre>lots_of_code = "this text block"</pre>
+</details>
+
 AdamP
 
 ::
