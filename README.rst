@@ -233,64 +233,92 @@ Citations
    <details>
    <summary><a>AdamP</a></summary>
 
-    ::
+::
 
-        @inproceedings{heo2021adamp,
-            title={AdamP: Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights},
-            author={Heo, Byeongho and Chun, Sanghyuk and Oh, Seong Joon and Han, Dongyoon and Yun, Sangdoo and Kim, Gyuwan and Uh, Youngjung and Ha, Jung-Woo},
-            year={2021},
-            booktitle={International Conference on Learning Representations (ICLR)},
-        }
+    @inproceedings{heo2021adamp,
+        title={AdamP: Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights},
+        author={Heo, Byeongho and Chun, Sanghyuk and Oh, Seong Joon and Han, Dongyoon and Yun, Sangdoo and Kim, Gyuwan and Uh, Youngjung and Ha, Jung-Woo},
+        year={2021},
+        booktitle={International Conference on Learning Representations (ICLR)},
+    }
 
 .. raw:: html
 
    </details>
 
-Adaptive Gradient Clipping (AGC)
+.. raw:: html
+
+   <details>
+   <summary><a>Adaptive Gradient Clipping (AGC)</a></summary>
 
 ::
 
     @article{brock2021high,
-      author={Andrew Brock and Soham De and Samuel L. Smith and Karen Simonyan},
-      title={High-Performance Large-Scale Image Recognition Without Normalization},
-      journal={arXiv preprint arXiv:2102.06171},
-      year={2021}
+        author={Andrew Brock and Soham De and Samuel L. Smith and Karen Simonyan},
+        title={High-Performance Large-Scale Image Recognition Without Normalization},
+        journal={arXiv preprint arXiv:2102.06171},
+        year={2021}
     }
 
-Chebyshev LR Schedules
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Chebyshev LR Schedules</a></summary>
 
 ::
 
     @article{agarwal2021acceleration,
-      title={Acceleration via Fractal Learning Rate Schedules},
-      author={Agarwal, Naman and Goel, Surbhi and Zhang, Cyril},
-      journal={arXiv preprint arXiv:2103.01338},
-      year={2021}
+        title={Acceleration via Fractal Learning Rate Schedules},
+        author={Agarwal, Naman and Goel, Surbhi and Zhang, Cyril},
+        journal={arXiv preprint arXiv:2103.01338},
+        year={2021}
     }
 
-Gradient Centralization (GC)
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Gradient Centralization (GC)</a></summary>
 
 ::
 
     @inproceedings{yong2020gradient,
-      title={Gradient centralization: A new optimization technique for deep neural networks},
-      author={Yong, Hongwei and Huang, Jianqiang and Hua, Xiansheng and Zhang, Lei},
-      booktitle={European Conference on Computer Vision},
-      pages={635--652},
-      year={2020},
-      organization={Springer}
+        title={Gradient centralization: A new optimization technique for deep neural networks},
+        author={Yong, Hongwei and Huang, Jianqiang and Hua, Xiansheng and Zhang, Lei},
+        booktitle={European Conference on Computer Vision},
+        pages={635--652},
+        year={2020},
+        organization={Springer}
     }
 
-Lookahead
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+   <details>
+   <summary><a>Lookahead</a></summary>
 
 ::
 
     @article{zhang2019lookahead,
-      title={Lookahead optimizer: k steps forward, 1 step back},
-      author={Zhang, Michael R and Lucas, James and Hinton, Geoffrey and Ba, Jimmy},
-      journal={arXiv preprint arXiv:1907.08610},
-      year={2019}
+        title={Lookahead optimizer: k steps forward, 1 step back},
+        author={Zhang, Michael R and Lucas, James and Hinton, Geoffrey and Ba, Jimmy},
+        journal={arXiv preprint arXiv:1907.08610},
+        year={2019}
     }
+
+.. raw:: html
+
+   </details>
 
 RAdam
 
