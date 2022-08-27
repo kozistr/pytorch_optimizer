@@ -231,7 +231,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>AdamP</a></summary>
+   <summary><a>AdamP: Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights</a></summary>
 
 ::
 
@@ -267,7 +267,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>Chebyshev LR Schedules</a></summary>
+   <summary><a>Chebyshev LR Schedules: Acceleration via Fractal Learning Rate Schedules</a></summary>
 
 ::
 
@@ -305,7 +305,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>Lookahead</a></summary>
+   <summary><a>Lookahead: k steps forward, 1 step back</a></summary>
 
 ::
 
@@ -323,7 +323,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>RAdam</a></summary>
+   <summary><a>RAdam: On the Variance of the Adaptive Learning Rate and Beyond</a></summary>
 
 ::
 
@@ -342,7 +342,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>Norm Loss</a></summary>
+   <summary><a>Norm Loss: An efficient yet effective regularization method for deep neural networks</a></summary>
 
 ::
 
@@ -362,7 +362,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>Positive-Negative Momentum</a></summary>
+   <summary><a>Positive-Negative Momentum: Manipulating Stochastic Gradient Noise to Improve Generalization</a></summary>
 
 ::
 
@@ -380,7 +380,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>Explore-Exploit learning rate schedule</a></summary>
+   <summary><a>Wide-minima Density Hypothesis and the Explore-Exploit Learning Rate Schedule</a></summary>
 
 ::
 
@@ -398,7 +398,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>Linear learning-rate warm-up</a></summary>
+   <summary><a>On the adequacy of untuned warmup for adaptive optimization</a></summary>
 
 ::
 
@@ -417,7 +417,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>Stable weight decay</a></summary>
+   <summary><a>Stable weight decay regularization</a></summary>
 
 ::
 
@@ -453,7 +453,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>MADGRAD</a></summary>
+   <summary><a>MADGRAD: a momentumized, adaptive, dual averaged gradient method for stochastic optimization</a></summary>
 
 ::
 
@@ -472,7 +472,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>AdaHessian</a></summary>
+   <summary><a>AdaHessian: An adaptive second order optimizer for machine learning</a></summary>
 
 ::
 
@@ -490,7 +490,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>AdaBound</a></summary>
+   <summary><a>AdaBound: Adaptive Gradient Methods with Dynamic Bound of Learning Rate</a></summary>
 
 ::
 
@@ -510,7 +510,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>AdaBelief</a></summary>
+   <summary><a>AdaBelief: Adapting stepsizes by the belief in observed gradients</a></summary>
 
 ::
 
@@ -564,7 +564,7 @@ Citations
 .. raw:: html
 
    <details>
-   <summary><a>diffGrad</a></summary>
+   <summary><a>diffGrad: An optimization method for convolutional neural networks</a></summary>
 
 ::
 
