@@ -1,4 +1,4 @@
-dependencies = ["torch"]
+dependencies = ['torch']
 
 from functools import partial as _partial, update_wrapper as _update_wrapper
 
