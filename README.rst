@@ -256,229 +256,27 @@ Citations
 
 `AdaHessian <https://scholar.googleusercontent.com/scholar.bib?q=info:NVTf2oQp6YoJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeqDj8:AAGBfm0AAAAAYxCsFj89NAaxz72Tc2BaFva6FGFHuzjO&scisig=AAGBfm0AAAAAYxCsFm7SeFVY6NaIy5w0BOLAVGM4oy-z&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-` <>`__
+`AdaBound <https://scholar.googleusercontent.com/scholar.bib?q=info:CsrDHbimhWgJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeqXZQ:AAGBfm0AAAAAYxCsRZR-WfagzOhOzHZ3ARAlehesAaQL&scisig=AAGBfm0AAAAAYxCsRSRkCJhTl9QisH1o5k8cbHBOOaQ0&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-` <>`__
+`Adabelief <https://scholar.googleusercontent.com/scholar.bib?q=info:cf1gkNMQCAsJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeqcPk:AAGBfm0AAAAAYxCsaPn6O2pgnuIZmWlssnrLY7Zug1ab&scisig=AAGBfm0AAAAAYxCsaPiac1Ktzqa7-8wabbO3pQzq2ezC&scisf=4&ct=citation&cd=-1&hl=en>`__
 
+`Sharpness-aware minimization <https://scholar.googleusercontent.com/scholar.bib?q=info:621rS0TnyooJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeqkcY:AAGBfm0AAAAAYxCsicYP7tw5aRNOjjXwkA4Vow-7jzWX&scisig=AAGBfm0AAAAAYxCsibGf462P1_gsWErL-yeGdIeNHywO&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-.. raw:: html
+`Adaptive Sharpness-aware minimization <https://scholar.googleusercontent.com/scholar.bib?q=info:ta4j_XtLqXYJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeqhhE:AAGBfm0AAAAAYxCsnhEGLjlU7PCikAYnM6LYuACuKcfu&scisig=AAGBfm0AAAAAYxCsno-VG_RWK0tOtqZdWxel6qTKtNyC&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-   </details>
+`diffGrad <https://scholar.googleusercontent.com/scholar.bib?q=info:yGmD33AMjN4J:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yeqp7I:AAGBfm0AAAAAYxCsv7IYbE3ozFQrbhjAxbBdhbcNrNaT&scisig=AAGBfm0AAAAAYxCsv2mDmsNyW0R1koLK3vG04K7HEyRW&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-.. raw:: html
+`On the Convergence of Adam and Beyond <https://scholar.googleusercontent.com/scholar.bib?q=info:B0s07Z6wFWkJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yeq5VI:AAGBfm0AAAAAYxCs_VIET-w3Fc6Bx3B7pbnercaue84a&scisig=AAGBfm0AAAAAYxCs_Rzcu3G4tmMrxOdaeXsfN9RSp3aA&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-   <details>
-   <summary><a>AdaBound: Adaptive Gradient Methods with Dynamic Bound of Learning Rate</a></summary>
+`Gradient surgery for multi-task learning <https://scholar.googleusercontent.com/scholar.bib?q=info:ae9CdgI_CtkJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YerBWY:AAGBfm0AAAAAYxCtHWZzzktUQ2GRhrSx_LWh7AiWbeUV&scisig=AAGBfm0AAAAAYxCtHaXMBqe9K0CCS9McXDPM8BRHHrTD&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-::
+`AdamD <https://scholar.googleusercontent.com/scholar.bib?q=info:XimgvO50x1AJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YerIAo:AAGBfm0AAAAAYxCtOAq69M6dSH0RQEVyiQYk-5ToDCvA&scisig=AAGBfm0AAAAAYxCtOJRDGw1cq6WRv2NODkLE5sgxAPz-&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-    @inproceedings{Luo2019AdaBound,
-        author = {Luo, Liangchen and Xiong, Yuanhao and Liu, Yan and Sun, Xu},
-        title = {Adaptive Gradient Methods with Dynamic Bound of Learning Rate},
-        booktitle = {Proceedings of the 7th International Conference on Learning Representations},
-        month = {May},
-        year = {2019},
-        address = {New Orleans, Louisiana}
-    }
+`Shampoo <https://scholar.googleusercontent.com/scholar.bib?q=info:GQn55DATO9sJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YerS64:AAGBfm0AAAAAYxCtU65eO2d2kyAf36X-vcVbovISPAY9&scisig=AAGBfm0AAAAAYxCtUwoUqdIzjjuqat7lPKZylm3bO6io&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-.. raw:: html
+`Nero <https://scholar.googleusercontent.com/scholar.bib?q=info:X7-f1Z-47X8J:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yercz8:AAGBfm0AAAAAYxCtaz9tFLHi82julKp6XCCGPZLRN2Qt&scisig=AAGBfm0AAAAAYxCta7MAiMjXj8qzcM8XBLi2AxsgVHIB&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>AdaBelief: Adapting stepsizes by the belief in observed gradients</a></summary>
-
-::
-
-    @article{zhuang2020adabelief,
-        title={Adabelief optimizer: Adapting stepsizes by the belief in observed gradients},
-        author={Zhuang, Juntang and Tang, Tommy and Ding, Yifan and Tatikonda, Sekhar and Dvornek, Nicha and Papademetris, Xenophon and Duncan, James S},
-        journal={arXiv preprint arXiv:2010.07468},
-        year={2020}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Sharpness-Aware Minimization</a></summary>
-
-::
-
-    @article{foret2020sharpness,
-        title={Sharpness-aware minimization for efficiently improving generalization},
-        author={Foret, Pierre and Kleiner, Ariel and Mobahi, Hossein and Neyshabur, Behnam},
-        journal={arXiv preprint arXiv:2010.01412},
-        year={2020}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Adaptive Sharpness-Aware Minimization</a></summary>
-
-::
-
-    @article{kwon2021asam,
-        title={ASAM: Adaptive Sharpness-Aware Minimization for Scale-Invariant Learning of Deep Neural Networks},
-        author={Kwon, Jungmin and Kim, Jeongseop and Park, Hyunseo and Choi, In Kwon},
-        journal={arXiv preprint arXiv:2102.11600},
-        year={2021}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>diffGrad: An optimization method for convolutional neural networks</a></summary>
-
-::
-
-    @article{dubey2019diffgrad,
-        title={diffgrad: An optimization method for convolutional neural networks},
-        author={Dubey, Shiv Ram and Chakraborty, Soumendu and Roy, Swalpa Kumar and Mukherjee, Snehasis and Singh, Satish Kumar and Chaudhuri, Bidyut Baran},
-        journal={IEEE transactions on neural networks and learning systems},
-        volume={31},
-        number={11},
-        pages={4500--4511},
-        year={2019},
-        publisher={IEEE}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>On the Convergence of Adam and Beyond</a></summary>
-
-::
-
-    @article{reddi2019convergence,
-        title={On the convergence of adam and beyond},
-        author={Reddi, Sashank J and Kale, Satyen and Kumar, Sanjiv},
-        journal={arXiv preprint arXiv:1904.09237},
-        year={2019}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Gradient Surgery for Multi-Task Learning</a></summary>
-
-::
-
-    @article{yu2020gradient,
-        title={Gradient surgery for multi-task learning},
-        author={Yu, Tianhe and Kumar, Saurabh and Gupta, Abhishek and Levine, Sergey and Hausman, Karol and Finn, Chelsea},
-        journal={arXiv preprint arXiv:2001.06782},
-        year={2020}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>AdamD: Improved bias-correction in Adam</a></summary>
-
-::
-
-    @article{john2021adamd,
-        title={AdamD: Improved bias-correction in Adam},
-        author={John, John St},
-        journal={arXiv preprint arXiv:2110.10828},
-        year={2021}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Shampoo: Preconditioned Stochastic Tensor Optimization</a></summary>
-
-::
-
-    @inproceedings{gupta2018shampoo,
-        title={Shampoo: Preconditioned stochastic tensor optimization},
-        author={Gupta, Vineet and Koren, Tomer and Singer, Yoram},
-        booktitle={International Conference on Machine Learning},
-        pages={1842--1850},
-        year={2018},
-        organization={PMLR}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Nero: Learning by Turning: Neural Architecture Aware Optimisation</a></summary>
-
-::
-
-    @misc{nero2021,
-        title={Learning by Turning: Neural Architecture Aware Optimisation},
-        author={Yang Liu and Jeremy Bernstein and Markus Meister and Yisong Yue},
-        year={2021},
-        eprint={arXiv:2102.07227}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Adan: Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models</a></summary>
-
-::
-
-    @ARTICLE{2022arXiv220806677X,
-        author = {{Xie}, Xingyu and {Zhou}, Pan and {Li}, Huan and {Lin}, Zhouchen and {Yan}, Shuicheng},
-        title = "{Adan: Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models}",
-        journal = {arXiv e-prints},
-        keywords = {Computer Science - Machine Learning, Mathematics - Optimization and Control},
-        year = 2022,
-        month = aug,
-        eid = {arXiv:2208.06677},
-        pages = {arXiv:2208.06677},
-        archivePrefix = {arXiv},
-        eprint = {2208.06677},
-        primaryClass = {cs.LG},
-        adsurl = {https://ui.adsabs.harvard.edu/abs/2022arXiv220806677X},
-        adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-    }
-
-.. raw:: html
-
-   </details>
+`Adan <https://scholar.googleusercontent.com/scholar.bib?q=info:rMUXKCk35EAJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YerkVs:AAGBfm0AAAAAYxCtiVs7M7Oh9VkEVan-wY3IXOKyQtx1&scisig=AAGBfm0AAAAAYxCtiYyoEigNiau7MNmGcvqAEC8nSm-L&scisf=4&ct=citation&cd=-1&hl=en>`__
 
 Author
 ------
