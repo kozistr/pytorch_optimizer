@@ -230,248 +230,36 @@ Citations
 
 `AdamP <https://scholar.googleusercontent.com/scholar.bib?q=info:SfSq5UFS71wJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YevydU:AAGBfm0AAAAAYxCp0dVqrS10vvLfEDcY31SdH8ZRpeB4&scisig=AAGBfm0AAAAAYxCp0bLEn4nNd2Gmpb64J-nsN62Hq19N&scisf=4&ct=citation&cd=-1&hl=en>`__
 
+`Adaptive Gradient Clipping (AGC) <https://scholar.googleusercontent.com/scholar.bib?q=info:G6OwKvfrhU4J:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YesC_0:AAGBfm0AAAAAYxCqE_3u1oAcHorMaAJ_SR7Xo5PvdxIC&scisig=AAGBfm0AAAAAYxCqEz7D8y15Q5sJL5QUdbpTMdFHGSMi&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-.. [AGC]
+`Chebyshev LR Schedules <https://scholar.googleusercontent.com/scholar.bib?q=info:5bxSTRao5pUJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YesV7g:AAGBfm0AAAAAYxCqT7jEP6cOz39vHjSXD71OiD_WHNeu&scisig=AAGBfm0AAAAAYxCqTxBAT7yBvhGW1KZopv6tYDL6fjhq&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-    @article{brock2021high,
-        author={Andrew Brock and Soham De and Samuel L. Smith and Karen Simonyan},
-        title={High-Performance Large-Scale Image Recognition Without Normalization},
-        journal={arXiv preprint arXiv:2102.06171},
-        year={2021}
-    }
+`Gradient Centralization (GC) <https://scholar.googleusercontent.com/scholar.bib?q=info:MQDRtwz4RekJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeskLw:AAGBfm0AAAAAYxCqiLx6z7Lo-Fag54T6c22UyMxC3uKU&scisig=AAGBfm0AAAAAYxCqiDzweYqjl8tPPjAVYv4y42-amW04&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-.. [Chebyshev-LR-Schedules]
+`Lookahead <https://scholar.googleusercontent.com/scholar.bib?q=info:A1J2Cn9LEyQJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yest68:AAGBfm0AAAAAYxCqr68LW2mC6SXXXXIEv17IH1VfVwTU&scisig=AAGBfm0AAAAAYxCqr0ZQGEPcASa4BcFlRIMYfC_ELoH3&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-    @article{agarwal2021acceleration,
-        title={Acceleration via Fractal Learning Rate Schedules},
-        author={Agarwal, Naman and Goel, Surbhi and Zhang, Cyril},
-        journal={arXiv preprint arXiv:2103.01338},
-        year={2021}
-    }
+`RAdam <https://scholar.googleusercontent.com/scholar.bib?q=info:tTLLKZi0NB4J:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yes-Kc:AAGBfm0AAAAAYxCq4KdbtBaCrCnPM3teTRbkG2ke4zu1&scisig=AAGBfm0AAAAAYxCq4DKANM54ZoMqj8sYTKjhrrWTYZJv&scisf=4&ct=citation&cd=-1&hl=en>`__
 
+`Norm Loss <https://scholar.googleusercontent.com/scholar.bib?q=info:cgudi9fC610J:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YetGG8:AAGBfm0AAAAAYxCrAG8mPyX5faDy-Orn0sNT3laCqhCX&scisig=AAGBfm0AAAAAYxCrAPhudmT6SGj0XyHAGuBIgn4iP9UM&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-.. raw:: html
+`Positive-Negative Momentum <https://scholar.googleusercontent.com/scholar.bib?q=info:EU4LbWCU44UJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YetNIE:AAGBfm0AAAAAYxCrLIFD4YhCP2b755xkmgM9ekT5z2I3&scisig=AAGBfm0AAAAAYxCrLA0s6cI4xGBVGFOpGDBJkD4jW45M&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-   </details>
+`Explore-Exploit Learning Rate Schedule <https://scholar.googleusercontent.com/scholar.bib?q=info:-Z0_Ot7wtzsJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YetRPU:AAGBfm0AAAAAYxCrXPVjSJKqfwDN1V1KDkX--4xZuQ3d&scisig=AAGBfm0AAAAAYxCrXLMftLTqnC4BUjTH8TEDoeg8Xn0P&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-.. raw:: html
+`On the adequacy of untuned warmup for adaptive optimization <https://scholar.googleusercontent.com/scholar.bib?q=info:_xl7KQ5GS8wJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yetb_s:AAGBfm0AAAAAYxCrd_t2aLAHKkunOI588UJkaMygzX7V&scisig=AAGBfm0AAAAAYxCrd4xDt7wmBQYV2J88Dv1klVIEEldW&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-   <details>
-   <summary><a>Chebyshev LR Schedules: Acceleration via Fractal Learning Rate Schedules</a></summary>
+`Stable weight decay regularization <https://scholar.googleusercontent.com/scholar.bib?q=info:braJqOHCLpcJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yetu34:AAGBfm0AAAAAYxCro36JSgGOwWVwx8K21_sJaiJCi_tc&scisig=AAGBfm0AAAAAYxCro42f96rMxskixD8vZdyLuRCv9hzp&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-::
+`Softplus transformation <https://scholar.googleusercontent.com/scholar.bib?q=info:_V_Tt16gXUsJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yet3gY:AAGBfm0AAAAAYxCrxgbrSUaRQqStYNBuVBPS3TMRgH7f&scisig=AAGBfm0AAAAAYxCrxqnu8UQn70pqZWxbBoJaz05eCgsj&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-    @article{agarwal2021acceleration,
-        title={Acceleration via Fractal Learning Rate Schedules},
-        author={Agarwal, Naman and Goel, Surbhi and Zhang, Cyril},
-        journal={arXiv preprint arXiv:2103.01338},
-        year={2021}
-    }
+`MADGRAD <https://scholar.googleusercontent.com/scholar.bib?q=info:WnYNAExj8yEJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yet6g8:AAGBfm0AAAAAYxCr8g-OAPHACQZtBVamCAXY3mUPO7qR&scisig=AAGBfm0AAAAAYxCr8iVTWljaTOsxZ9ZHce61Uh5rYWdB&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-.. raw:: html
+`AdaHessian <https://scholar.googleusercontent.com/scholar.bib?q=info:NVTf2oQp6YoJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeqDj8:AAGBfm0AAAAAYxCsFj89NAaxz72Tc2BaFva6FGFHuzjO&scisig=AAGBfm0AAAAAYxCsFm7SeFVY6NaIy5w0BOLAVGM4oy-z&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-   </details>
+` <>`__
 
-.. raw:: html
+` <>`__
 
-   <details>
-   <summary><a>Gradient Centralization (GC)</a></summary>
-
-::
-
-    @inproceedings{yong2020gradient,
-        title={Gradient centralization: A new optimization technique for deep neural networks},
-        author={Yong, Hongwei and Huang, Jianqiang and Hua, Xiansheng and Zhang, Lei},
-        booktitle={European Conference on Computer Vision},
-        pages={635--652},
-        year={2020},
-        organization={Springer}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Lookahead: k steps forward, 1 step back</a></summary>
-
-::
-
-    @article{zhang2019lookahead,
-        title={Lookahead optimizer: k steps forward, 1 step back},
-        author={Zhang, Michael R and Lucas, James and Hinton, Geoffrey and Ba, Jimmy},
-        journal={arXiv preprint arXiv:1907.08610},
-        year={2019}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>RAdam: On the Variance of the Adaptive Learning Rate and Beyond</a></summary>
-
-::
-
-    @inproceedings{liu2019radam,
-        author = {Liu, Liyuan and Jiang, Haoming and He, Pengcheng and Chen, Weizhu and Liu, Xiaodong and Gao, Jianfeng and Han, Jiawei},
-        booktitle = {Proceedings of the Eighth International Conference on Learning Representations (ICLR 2020)},
-        month = {April},
-        title = {On the Variance of the Adaptive Learning Rate and Beyond},
-        year = {2020}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Norm Loss: An efficient yet effective regularization method for deep neural networks</a></summary>
-
-::
-
-    @inproceedings{georgiou2021norm,
-        title={Norm Loss: An efficient yet effective regularization method for deep neural networks},
-        author={Georgiou, Theodoros and Schmitt, Sebastian and B{\"a}ck, Thomas and Chen, Wei and Lew, Michael},
-        booktitle={2020 25th International Conference on Pattern Recognition (ICPR)},
-        pages={8812--8818},
-        year={2021},
-        organization={IEEE}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Positive-Negative Momentum: Manipulating Stochastic Gradient Noise to Improve Generalization</a></summary>
-
-::
-
-    @article{xie2021positive,
-        title={Positive-Negative Momentum: Manipulating Stochastic Gradient Noise to Improve Generalization},
-        author={Xie, Zeke and Yuan, Li and Zhu, Zhanxing and Sugiyama, Masashi},
-        journal={arXiv preprint arXiv:2103.17182},
-        year={2021}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Wide-minima Density Hypothesis and the Explore-Exploit Learning Rate Schedule</a></summary>
-
-::
-
-    @article{iyer2020wide,
-        title={Wide-minima Density Hypothesis and the Explore-Exploit Learning Rate Schedule},
-        author={Iyer, Nikhil and Thejas, V and Kwatra, Nipun and Ramjee, Ramachandran and Sivathanu, Muthian},
-        journal={arXiv preprint arXiv:2003.03977},
-        year={2020}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>On the adequacy of untuned warmup for adaptive optimization</a></summary>
-
-::
-
-    @article{ma2019adequacy,
-        title={On the adequacy of untuned warmup for adaptive optimization},
-        author={Ma, Jerry and Yarats, Denis},
-        journal={arXiv preprint arXiv:1910.04209},
-        volume={7},
-        year={2019}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Stable weight decay regularization</a></summary>
-
-::
-
-    @article{xie2020stable,
-        title={Stable weight decay regularization},
-        author={Xie, Zeke and Sato, Issei and Sugiyama, Masashi},
-        journal={arXiv preprint arXiv:2011.11152},
-        year={2020}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Softplus transformation</a></summary>
-
-::
-
-    @article{tong2019calibrating,
-        title={Calibrating the adaptive learning rate to improve convergence of adam},
-        author={Tong, Qianqian and Liang, Guannan and Bi, Jinbo},
-        journal={arXiv preprint arXiv:1908.00700},
-        year={2019}
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>MADGRAD: a momentumized, adaptive, dual averaged gradient method for stochastic optimization</a></summary>
-
-::
-
-    @article{defazio2021adaptivity,
-        title={Adaptivity without compromise: a momentumized, adaptive, dual averaged gradient method for stochastic optimization},
-        author={Defazio, Aaron and Jelassi, Samy},
-        journal={arXiv preprint arXiv:2101.11075},
-        year={2021}
-    }
-
-.. raw:: html
-
-   </details>
-
-
-.. raw:: html
-
-   <details>
-   <summary><a>AdaHessian: An adaptive second order optimizer for machine learning</a></summary>
-
-::
-
-    @article{yao2020adahessian,
-        title={ADAHESSIAN: An adaptive second order optimizer for machine learning},
-        author={Yao, Zhewei and Gholami, Amir and Shen, Sheng and Mustafa, Mustafa and Keutzer, Kurt and Mahoney, Michael W},
-        journal={arXiv preprint arXiv:2006.00719},
-        year={2020}
-    }
 
 .. raw:: html
 
