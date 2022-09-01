@@ -228,41 +228,10 @@ Gradient Surgery for Multi-Task Learning
 Citations
 ---------
 
-[AdamP]_
+`AdamP <https://scholar.googleusercontent.com/scholar.bib?q=info:SfSq5UFS71wJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YevydU:AAGBfm0AAAAAYxCp0dVqrS10vvLfEDcY31SdH8ZRpeB4&scisig=AAGBfm0AAAAAYxCp0bLEn4nNd2Gmpb64J-nsN62Hq19N&scisf=4&ct=citation&cd=-1&hl=en>`__
 
-.. [Adamp]
 
-    @inproceedings{heo2021adamp,
-        title={AdamP: Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights},
-        author={Heo, Byeongho and Chun, Sanghyuk and Oh, Seong Joon and Han, Dongyoon and Yun, Sangdoo and Kim, Gyuwan and Uh, Youngjung and Ha, Jung-Woo},
-        year={2021},
-        booktitle={International Conference on Learning Representations (ICLR)},
-    }
-
-.. raw:: html
-
-   <details>
-   <summary><a>AdamP: Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights</a></summary>
-
-::
-
-    @inproceedings{heo2021adamp,
-        title={AdamP: Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights},
-        author={Heo, Byeongho and Chun, Sanghyuk and Oh, Seong Joon and Han, Dongyoon and Yun, Sangdoo and Kim, Gyuwan and Uh, Youngjung and Ha, Jung-Woo},
-        year={2021},
-        booktitle={International Conference on Learning Representations (ICLR)},
-    }
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-   <details>
-   <summary><a>Adaptive Gradient Clipping (AGC)</a></summary>
-
-::
+.. [AGC]
 
     @article{brock2021high,
         author={Andrew Brock and Soham De and Samuel L. Smith and Karen Simonyan},
@@ -270,6 +239,16 @@ Citations
         journal={arXiv preprint arXiv:2102.06171},
         year={2021}
     }
+
+.. [Chebyshev-LR-Schedules]
+
+    @article{agarwal2021acceleration,
+        title={Acceleration via Fractal Learning Rate Schedules},
+        author={Agarwal, Naman and Goel, Surbhi and Zhang, Cyril},
+        journal={arXiv preprint arXiv:2103.01338},
+        year={2021}
+    }
+
 
 .. raw:: html
 
