@@ -36,7 +36,7 @@ from pytorch_optimizer.utils import (
     unit_norm,
 )
 
-OPTIMIZER_LIST: List = [
+OPTIMIZER_LIST: List[Type[Optimizer]] = [
     AdaBelief,
     AdaBound,
     AdamP,
