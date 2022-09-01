@@ -230,7 +230,7 @@ Citations
 
 [AdamP]_
 
-.. [Adamp] AdamP: Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights
+.. [Adamp]
 
     @inproceedings{heo2021adamp,
         title={AdamP: Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights},
