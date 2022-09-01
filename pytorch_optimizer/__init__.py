@@ -1,5 +1,7 @@
 # pylint: disable=unused-import
-from typing import Callable, Dict, List
+from typing import Dict, List, Type
+
+from torch.optim import Optimizer
 
 from pytorch_optimizer.adabelief import AdaBelief
 from pytorch_optimizer.adabound import AdaBound
@@ -54,10 +56,10 @@ OPTIMIZER_LIST: List = [
     SGDP,
     Shampoo,
 ]
-OPTIMIZERS: Dict[str, Callable] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
+OPTIMIZERS: Dict[str, Type[Optimizer]] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
 
-def load_optimizer(optimizer: str) -> Callable:
+def load_optimizer(optimizer: str) -> Type[Optimizer]:
     optimizer: str = optimizer.lower()
 
     if optimizer not in OPTIMIZERS:
@@ -66,5 +68,5 @@ def load_optimizer(optimizer: str) -> Callable:
     return OPTIMIZERS[optimizer]
 
 
-def get_supported_optimizers() -> List:
+def get_supported_optimizers() -> List[Type[Optimizer]]:
     return OPTIMIZER_LIST
