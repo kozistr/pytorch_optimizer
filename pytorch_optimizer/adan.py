@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch.optim.optimizer import Optimizer
 
@@ -8,7 +10,7 @@ from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 class Adan(Optimizer, BaseOptimizer):
     """
-    Reference : x
+    Reference : https://github.com/sail-sg/Adan/blob/main/adan.py
     Example :
         from pytorch_optimizer import Adan
         ...
@@ -27,21 +29,24 @@ class Adan(Optimizer, BaseOptimizer):
         params: PARAMETERS,
         lr: float = 1e-3,
         betas: BETAS = (0.98, 0.92, 0.99),
-        weight_decay: float = 0.02,
+        weight_decay: float = 0.0,
+        weight_decouple: bool = False,
         use_gc: bool = False,
-        eps: float = 1e-16,
+        eps: float = 1e-8,
     ):
         """Adan optimizer
         :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
         :param lr: float. learning rate
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
+        :param weight_decouple: bool. decoupled weight decay
         :param use_gc: bool. use gradient centralization
         :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
+        self.weight_decouple = weight_decouple
         self.use_gc = use_gc
         self.eps = eps
 
@@ -52,6 +57,7 @@ class Adan(Optimizer, BaseOptimizer):
             betas=betas,
             eps=eps,
             weight_decay=weight_decay,
+            weight_decouple=weight_decouple,
         )
         super().__init__(params, defaults)
 
@@ -69,7 +75,7 @@ class Adan(Optimizer, BaseOptimizer):
 
                 state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
-                state['exp_avg_var'] = torch.zeros_like(p)
+                state['exp_avg_diff'] = torch.zeros_like(p)
                 state['exp_avg_nest'] = torch.zeros_like(p)
                 state['previous_grad'] = torch.zeros_like(p)
 
@@ -93,15 +99,19 @@ class Adan(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_var'] = torch.zeros_like(p)
+                    state['exp_avg_diff'] = torch.zeros_like(p)
                     state['exp_avg_nest'] = torch.zeros_like(p)
                     state['previous_grad'] = torch.zeros_like(p)
 
-                exp_avg, exp_avg_var, exp_avg_nest = state['exp_avg'], state['exp_avg_var'], state['exp_avg_nest']
+                exp_avg, exp_avg_diff, exp_avg_nest = state['exp_avg'], state['exp_avg_diff'], state['exp_avg_nest']
                 prev_grad = state['previous_grad']
 
                 state['step'] += 1
                 beta1, beta2, beta3 = group['betas']
+
+                bias_correction1 = 1.0 - beta1 ** group['step']
+                bias_correction2 = 1.0 - beta2 ** group['step']
+                bias_correction3 = 1.0 - beta3 ** group['step']
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
@@ -109,13 +119,20 @@ class Adan(Optimizer, BaseOptimizer):
                 grad_diff = grad - prev_grad
                 state['previous_grad'] = grad.clone()
 
+                update = grad + beta2 * grad_diff
+
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
-                exp_avg_var.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
-                exp_avg_nest.mul_(beta3).add_((grad + beta2 * grad_diff) ** 2, alpha=1.0 - beta3)
+                exp_avg_diff.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
+                exp_avg_nest.mul_(beta3).addcmul_(update, update, alpha=1.0 - beta3)
 
-                step_size = group['lr'] / exp_avg_nest.add_(self.eps).sqrt_()
+                de_nom = exp_avg_nest.add_(self.eps).sqrt_() / math.sqrt(bias_correction3)
+                step_size = (exp_avg / bias_correction1 + beta2 * exp_avg_diff / bias_correction2).div_(de_nom)
 
-                p.sub_(step_size * (exp_avg + beta2 * exp_avg_var))
-                p.div_(1.0 + group['weight_decay'])
+                if state['weight_decouple']:
+                    p.mul_(1.0 - group['lr'] * group['weight_decay'])
+                    p.add_(step_size, alpha=-group['lr'])
+                else:
+                    p.add_(step_size, alpha=-group['lr'])
+                    p.div_(1.0 + group['lr'] * group['weight_decay'])
 
         return loss
