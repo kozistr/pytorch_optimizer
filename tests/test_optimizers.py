@@ -80,8 +80,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'amsgrad': False}, 500),
     (Nero, {'lr': 5e-1}, 200),
     (Nero, {'lr': 5e-1, 'constraints': False}, 200),
-    (Adan, {'lr': 2e-1}, 200),
-    (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True}, 500),
+    (Adan, {'lr': 1e-1}, 300),
+    (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True}, 300),
+    (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True, 'weight_decouple': True}, 300),
 ]
 
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
