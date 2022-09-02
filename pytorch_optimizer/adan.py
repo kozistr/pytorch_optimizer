@@ -109,9 +109,9 @@ class Adan(Optimizer, BaseOptimizer):
                 state['step'] += 1
                 beta1, beta2, beta3 = group['betas']
 
-                bias_correction1 = 1.0 - beta1 ** group['step']
-                bias_correction2 = 1.0 - beta2 ** group['step']
-                bias_correction3 = 1.0 - beta3 ** group['step']
+                bias_correction1 = 1.0 - beta1 ** state['step']
+                bias_correction2 = 1.0 - beta2 ** state['step']
+                bias_correction3 = 1.0 - beta3 ** state['step']
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
@@ -123,16 +123,16 @@ class Adan(Optimizer, BaseOptimizer):
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_diff.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
-                exp_avg_nest.mul_(beta3).addcmul_(update, update, alpha=1.0 - beta3)
+                exp_avg_nest.mul_(beta3).addcmul_(update, update, value=1.0 - beta3)
 
-                de_nom = exp_avg_nest.add_(self.eps).sqrt_() / math.sqrt(bias_correction3)
-                step_size = (exp_avg / bias_correction1 + beta2 * exp_avg_diff / bias_correction2).div_(de_nom)
+                de_nom = (exp_avg_nest.sqrt_() / math.sqrt(bias_correction3)).add_(self.eps)
+                perturb = (exp_avg / bias_correction1 + beta2 * exp_avg_diff / bias_correction2).div_(de_nom)
 
-                if state['weight_decouple']:
+                if group['weight_decouple']:
                     p.mul_(1.0 - group['lr'] * group['weight_decay'])
-                    p.add_(step_size, alpha=-group['lr'])
+                    p.add_(perturb, alpha=-group['lr'])
                 else:
-                    p.add_(step_size, alpha=-group['lr'])
+                    p.add_(perturb, alpha=-group['lr'])
                     p.div_(1.0 + group['lr'] * group['weight_decay'])
 
         return loss
