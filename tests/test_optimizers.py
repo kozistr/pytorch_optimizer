@@ -80,8 +80,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'amsgrad': False}, 500),
     (Nero, {'lr': 5e-1}, 200),
     (Nero, {'lr': 5e-1, 'constraints': False}, 200),
-    (Adan, {'lr': 2e-1}, 200),
-    (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True}, 500),
+    (Adan, {'lr': 5e-1}, 300),
+    (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True}, 300),
+    (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True, 'weight_decouple': True}, 300),
 ]
 
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
@@ -163,6 +164,7 @@ def test_safe_f16_optimizers(optimizer_fp16_config):
         or (optimizer_name == 'RaLamb' and 'pre_norm' in config)
         or (optimizer_name == 'PNM')
         or (optimizer_name == 'Nero')
+        or (optimizer_name == 'Adan' and 'weight_decay' not in config)
     ):
         return True
 
