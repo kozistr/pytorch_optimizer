@@ -12,10 +12,9 @@ from pytorch_optimizer import load_optimizer as _load_optimizer
 
 dependencies = ['torch']
 
-if __name__ == '__main__':
-    for optimizer in _get_supported_optimizers():
-        name: str = optimizer.__name__
-        for n in (name, name.lower(), name.upper()):
-            func = _partial(_load_optimizer, optimizer=n)
-            _update_wrapper(func, optimizer)
-            globals()[n] = func
+for optimizer in _get_supported_optimizers():
+    name: str = optimizer.__name__
+    for n in (name, name.lower(), name.upper()):
+        func = _partial(_load_optimizer, optimizer=n)
+        _update_wrapper(func, optimizer)
+        globals()[n] = func
