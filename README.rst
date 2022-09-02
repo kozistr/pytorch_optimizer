@@ -38,22 +38,27 @@ Simple Usage
 
     from pytorch_optimizer import AdamP
 
-    ...
     model = YourModel()
     optimizer = AdamP(model.parameters())
-    ...
 
-or you can use optimizer loader, simply passing a name of the optimizer.
-
-::
+    # or you can use optimizer loader, simply passing a name of the optimizer.
 
     from pytorch_optimizer import load_optimizer
 
-    ...
     model = YourModel()
     opt = load_optimizer(optimizer='adamp')
     optimizer = opt(model.parameters())
-    ...
+
+Also, you can load the optimizer via `torch.hub`
+
+::
+
+    import torch
+
+    model = YourModel()
+    opt = torch.hub.load('kozistr/pytorch_optimizer', 'adamp')
+    optimizer = opt(model.parameters())
+
 
 Supported Optimizers
 --------------------
