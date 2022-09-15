@@ -233,55 +233,55 @@ Gradient Surgery for Multi-Task Learning
 Citations
 ---------
 
-`AdamP <https://scholar.googleusercontent.com/scholar.bib?q=info:SfSq5UFS71wJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YevydU:AAGBfm0AAAAAYxCp0dVqrS10vvLfEDcY31SdH8ZRpeB4&scisig=AAGBfm0AAAAAYxCp0bLEn4nNd2Gmpb64J-nsN62Hq19N&scisf=4&ct=citation&cd=-1&hl=en>`__
+`AdamP <https://github.com/clovaai/AdamP#how-to-cite>`__
 
-`Adaptive Gradient Clipping (AGC) <https://scholar.googleusercontent.com/scholar.bib?q=info:G6OwKvfrhU4J:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YesC_0:AAGBfm0AAAAAYxCqE_3u1oAcHorMaAJ_SR7Xo5PvdxIC&scisig=AAGBfm0AAAAAYxCqEz7D8y15Q5sJL5QUdbpTMdFHGSMi&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Adaptive Gradient Clipping <https://ui.adsabs.harvard.edu/abs/2021arXiv210206171B/exportcitation>`__
 
-`Chebyshev LR Schedules <https://scholar.googleusercontent.com/scholar.bib?q=info:5bxSTRao5pUJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YesV7g:AAGBfm0AAAAAYxCqT7jEP6cOz39vHjSXD71OiD_WHNeu&scisig=AAGBfm0AAAAAYxCqTxBAT7yBvhGW1KZopv6tYDL6fjhq&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Chebyshev LR Schedules <https://ui.adsabs.harvard.edu/abs/2021arXiv210301338A/exportcitation>`__
 
-`Gradient Centralization (GC) <https://scholar.googleusercontent.com/scholar.bib?q=info:MQDRtwz4RekJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeskLw:AAGBfm0AAAAAYxCqiLx6z7Lo-Fag54T6c22UyMxC3uKU&scisig=AAGBfm0AAAAAYxCqiDzweYqjl8tPPjAVYv4y42-amW04&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Gradient Centralization <https://github.com/Yonghongwei/Gradient-Centralization#citation>`__
 
-`Lookahead <https://scholar.googleusercontent.com/scholar.bib?q=info:A1J2Cn9LEyQJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yest68:AAGBfm0AAAAAYxCqr68LW2mC6SXXXXIEv17IH1VfVwTU&scisig=AAGBfm0AAAAAYxCqr0ZQGEPcASa4BcFlRIMYfC_ELoH3&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Lookahead <https://ui.adsabs.harvard.edu/abs/2019arXiv190708610Z/exportcitation>`__
 
-`RAdam <https://scholar.googleusercontent.com/scholar.bib?q=info:tTLLKZi0NB4J:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yes-Kc:AAGBfm0AAAAAYxCq4KdbtBaCrCnPM3teTRbkG2ke4zu1&scisig=AAGBfm0AAAAAYxCq4DKANM54ZoMqj8sYTKjhrrWTYZJv&scisf=4&ct=citation&cd=-1&hl=en>`__
+`RAdam <https://github.com/LiyuanLucasLiu/RAdam#citation>`__
 
-`Norm Loss <https://scholar.googleusercontent.com/scholar.bib?q=info:cgudi9fC610J:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YetGG8:AAGBfm0AAAAAYxCrAG8mPyX5faDy-Orn0sNT3laCqhCX&scisig=AAGBfm0AAAAAYxCrAPhudmT6SGj0XyHAGuBIgn4iP9UM&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Norm Loss <https://ui.adsabs.harvard.edu/abs/2021arXiv210306583G/exportcitation>`__
 
-`Positive-Negative Momentum <https://scholar.googleusercontent.com/scholar.bib?q=info:EU4LbWCU44UJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YetNIE:AAGBfm0AAAAAYxCrLIFD4YhCP2b755xkmgM9ekT5z2I3&scisig=AAGBfm0AAAAAYxCrLA0s6cI4xGBVGFOpGDBJkD4jW45M&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Positive-Negative Momentum <https://github.com/zeke-xie/Positive-Negative-Momentum#citing>`__
 
-`Explore-Exploit Learning Rate Schedule <https://scholar.googleusercontent.com/scholar.bib?q=info:-Z0_Ot7wtzsJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YetRPU:AAGBfm0AAAAAYxCrXPVjSJKqfwDN1V1KDkX--4xZuQ3d&scisig=AAGBfm0AAAAAYxCrXLMftLTqnC4BUjTH8TEDoeg8Xn0P&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Explore-Exploit Learning Rate Schedule <https://ui.adsabs.harvard.edu/abs/2020arXiv200303977I/exportcitation>`__
 
-`On the adequacy of untuned warmup for adaptive optimization <https://scholar.googleusercontent.com/scholar.bib?q=info:_xl7KQ5GS8wJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yetb_s:AAGBfm0AAAAAYxCrd_t2aLAHKkunOI588UJkaMygzX7V&scisig=AAGBfm0AAAAAYxCrd4xDt7wmBQYV2J88Dv1klVIEEldW&scisf=4&ct=citation&cd=-1&hl=en>`__
+`On the adequacy of untuned warmup for adaptive optimization <https://ui.adsabs.harvard.edu/abs/2019arXiv191004209M/exportcitation>`__
 
-`Stable weight decay regularization <https://scholar.googleusercontent.com/scholar.bib?q=info:braJqOHCLpcJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yetu34:AAGBfm0AAAAAYxCro36JSgGOwWVwx8K21_sJaiJCi_tc&scisig=AAGBfm0AAAAAYxCro42f96rMxskixD8vZdyLuRCv9hzp&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Stable weight decay regularization <https://github.com/zeke-xie/stable-weight-decay-regularization#citing>`__
 
-`Softplus transformation <https://scholar.googleusercontent.com/scholar.bib?q=info:_V_Tt16gXUsJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yet3gY:AAGBfm0AAAAAYxCrxgbrSUaRQqStYNBuVBPS3TMRgH7f&scisig=AAGBfm0AAAAAYxCrxqnu8UQn70pqZWxbBoJaz05eCgsj&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Softplus transformation <https://ui.adsabs.harvard.edu/abs/2019arXiv190800700T/exportcitation>`__
 
-`MADGRAD <https://scholar.googleusercontent.com/scholar.bib?q=info:WnYNAExj8yEJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yet6g8:AAGBfm0AAAAAYxCr8g-OAPHACQZtBVamCAXY3mUPO7qR&scisig=AAGBfm0AAAAAYxCr8iVTWljaTOsxZ9ZHce61Uh5rYWdB&scisf=4&ct=citation&cd=-1&hl=en>`__
+`MADGRAD <https://github.com/facebookresearch/madgrad#tech-report>`__
 
-`AdaHessian <https://scholar.googleusercontent.com/scholar.bib?q=info:NVTf2oQp6YoJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeqDj8:AAGBfm0AAAAAYxCsFj89NAaxz72Tc2BaFva6FGFHuzjO&scisig=AAGBfm0AAAAAYxCsFm7SeFVY6NaIy5w0BOLAVGM4oy-z&scisf=4&ct=citation&cd=-1&hl=en>`__
+`AdaHessian <https://github.com/amirgholami/adahessian#citation>`__
 
-`AdaBound <https://scholar.googleusercontent.com/scholar.bib?q=info:CsrDHbimhWgJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeqXZQ:AAGBfm0AAAAAYxCsRZR-WfagzOhOzHZ3ARAlehesAaQL&scisig=AAGBfm0AAAAAYxCsRSRkCJhTl9QisH1o5k8cbHBOOaQ0&scisf=4&ct=citation&cd=-1&hl=en>`__
+`AdaBound <https://github.com/Luolc/AdaBound#citing>`__
 
-`Adabelief <https://scholar.googleusercontent.com/scholar.bib?q=info:cf1gkNMQCAsJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeqcPk:AAGBfm0AAAAAYxCsaPn6O2pgnuIZmWlssnrLY7Zug1ab&scisig=AAGBfm0AAAAAYxCsaPiac1Ktzqa7-8wabbO3pQzq2ezC&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Adabelief <https://ui.adsabs.harvard.edu/abs/2020arXiv201007468Z/exportcitation>`__
 
-`Sharpness-aware minimization <https://scholar.googleusercontent.com/scholar.bib?q=info:621rS0TnyooJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeqkcY:AAGBfm0AAAAAYxCsicYP7tw5aRNOjjXwkA4Vow-7jzWX&scisig=AAGBfm0AAAAAYxCsibGf462P1_gsWErL-yeGdIeNHywO&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Sharpness-aware minimization <https://ui.adsabs.harvard.edu/abs/2020arXiv201001412F/exportcitation>`__
 
-`Adaptive Sharpness-aware minimization <https://scholar.googleusercontent.com/scholar.bib?q=info:ta4j_XtLqXYJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YeqhhE:AAGBfm0AAAAAYxCsnhEGLjlU7PCikAYnM6LYuACuKcfu&scisig=AAGBfm0AAAAAYxCsno-VG_RWK0tOtqZdWxel6qTKtNyC&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Adaptive Sharpness-aware minimization <https://ui.adsabs.harvard.edu/abs/2021arXiv210211600K/exportcitation>`__
 
-`diffGrad <https://scholar.googleusercontent.com/scholar.bib?q=info:yGmD33AMjN4J:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yeqp7I:AAGBfm0AAAAAYxCsv7IYbE3ozFQrbhjAxbBdhbcNrNaT&scisig=AAGBfm0AAAAAYxCsv2mDmsNyW0R1koLK3vG04K7HEyRW&scisf=4&ct=citation&cd=-1&hl=en>`__
+`diffGrad <https://ui.adsabs.harvard.edu/abs/2019arXiv190911015D/exportcitation>`__
 
-`On the Convergence of Adam and Beyond <https://scholar.googleusercontent.com/scholar.bib?q=info:B0s07Z6wFWkJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yeq5VI:AAGBfm0AAAAAYxCs_VIET-w3Fc6Bx3B7pbnercaue84a&scisig=AAGBfm0AAAAAYxCs_Rzcu3G4tmMrxOdaeXsfN9RSp3aA&scisf=4&ct=citation&cd=-1&hl=en>`__
+`On the Convergence of Adam and Beyond <https://ui.adsabs.harvard.edu/abs/2019arXiv190409237R/exportcitation>`__
 
-`Gradient surgery for multi-task learning <https://scholar.googleusercontent.com/scholar.bib?q=info:ae9CdgI_CtkJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YerBWY:AAGBfm0AAAAAYxCtHWZzzktUQ2GRhrSx_LWh7AiWbeUV&scisig=AAGBfm0AAAAAYxCtHaXMBqe9K0CCS9McXDPM8BRHHrTD&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Gradient surgery for multi-task learning <https://ui.adsabs.harvard.edu/abs/2020arXiv200106782Y/exportcitation>`__
 
-`AdamD <https://scholar.googleusercontent.com/scholar.bib?q=info:XimgvO50x1AJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YerIAo:AAGBfm0AAAAAYxCtOAq69M6dSH0RQEVyiQYk-5ToDCvA&scisig=AAGBfm0AAAAAYxCtOJRDGw1cq6WRv2NODkLE5sgxAPz-&scisf=4&ct=citation&cd=-1&hl=en>`__
+`AdamD <https://ui.adsabs.harvard.edu/abs/2021arXiv211010828S/exportcitation>`__
 
-`Shampoo <https://scholar.googleusercontent.com/scholar.bib?q=info:GQn55DATO9sJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YerS64:AAGBfm0AAAAAYxCtU65eO2d2kyAf36X-vcVbovISPAY9&scisig=AAGBfm0AAAAAYxCtUwoUqdIzjjuqat7lPKZylm3bO6io&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Shampoo <https://ui.adsabs.harvard.edu/abs/2018arXiv180209568G/exportcitation>`__
 
-`Nero <https://scholar.googleusercontent.com/scholar.bib?q=info:X7-f1Z-47X8J:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0Yercz8:AAGBfm0AAAAAYxCtaz9tFLHi82julKp6XCCGPZLRN2Qt&scisig=AAGBfm0AAAAAYxCta7MAiMjXj8qzcM8XBLi2AxsgVHIB&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Nero <https://ui.adsabs.harvard.edu/abs/2021arXiv210207227L/exportcitation>`__
 
-`Adan <https://scholar.googleusercontent.com/scholar.bib?q=info:rMUXKCk35EAJ:scholar.google.com/&output=citation&scisdr=CgX1Wk9EELXN0YerkVs:AAGBfm0AAAAAYxCtiVs7M7Oh9VkEVan-wY3IXOKyQtx1&scisig=AAGBfm0AAAAAYxCtiYyoEigNiau7MNmGcvqAEC8nSm-L&scisf=4&ct=citation&cd=-1&hl=en>`__
+`Adan <https://ui.adsabs.harvard.edu/abs/2022arXiv220806677X/exportcitation>`__
 
 Author
 ------
