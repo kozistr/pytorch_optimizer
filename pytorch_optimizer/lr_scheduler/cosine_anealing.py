@@ -15,10 +15,10 @@ class CosineAnnealingWarmupRestarts(_LRScheduler):
         optimizer: Type[Optimizer],
         first_cycle_steps: int,
         cycle_mult: float = 1.0,
-        max_lr: float = 0.1,
-        min_lr: float = 0.001,
+        max_lr: float = 1e-4,
+        min_lr: float = 1e-6,
         warmup_steps: int = 0,
-        gamma: float = 1.0,
+        gamma: float = 0.9,
         last_epoch: int = -1,
     ):
         """
