@@ -29,7 +29,7 @@ def deberta_v3_large_lr_scheduler(
     layer_middle_threshold: int = 323  # end of the 24 layers
 
     for layer_num, (name, params) in enumerate(backbone_parameters):
-        weight_decay = 0.0 if 'bias' in name else wd
+        weight_decay: float = 0.0 if ('bias' in name) or ('LayerNorm.weight' in name) else wd
 
         lr = base_lr / 2.5  # 2e-5
         if layer_num >= layer_middle_threshold:
