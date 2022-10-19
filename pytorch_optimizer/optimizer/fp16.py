@@ -4,11 +4,8 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
-from pytorch_optimizer.base.types import CLOSURE, PARAMETERS
+from pytorch_optimizer.base.types import CLOSURE, OPTIMIZER, PARAMETERS
 from pytorch_optimizer.optimizer.utils import clip_grad_norm, has_overflow
-
-__AUTHOR__ = 'Facebook'
-__REFERENCE__ = 'https://github.com/facebookresearch/ParlAI/blob/main/parlai/utils/fp16.py'
 
 
 class DynamicLossScaler:
@@ -21,6 +18,9 @@ class DynamicLossScaler:
 
     Shamelessly stolen and adapted from FairSeq.
     <https://github.com/pytorch/fairseq/blob/main/fairseq/optim/fp16_optimizer.py>
+
+    Reference : 'https://github.com/facebookresearch/ParlAI/blob/main/parlai/utils/fp16.py'
+
     """
 
     def __init__(
@@ -87,7 +87,7 @@ class DynamicLossScaler:
 
 
 class SafeFP16Optimizer(Optimizer):
-    def __init__(self, optimizer, aggregate_g_norms: bool = False):  # pylint: disable=super-init-not-called
+    def __init__(self, optimizer: OPTIMIZER, aggregate_g_norms: bool = False):  # pylint: disable=super-init-not-called
         self.optimizer = optimizer
         self.aggregate_g_norms = aggregate_g_norms
 
@@ -108,7 +108,7 @@ class SafeFP16Optimizer(Optimizer):
         self.needs_sync: bool = True
 
     @classmethod
-    def get_parameters(cls, optimizer: Optimizer):
+    def get_parameters(cls, optimizer: OPTIMIZER):
         params = []
         for pg in optimizer.param_groups:
             params += list(pg['params'])
