@@ -2,6 +2,7 @@
 from typing import Dict, List
 
 from pytorch_optimizer.base.types import LR_SCHEDULER, OPTIMIZER
+from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
@@ -9,7 +10,6 @@ from pytorch_optimizer.optimizer.adamp import AdamP
 from pytorch_optimizer.optimizer.adan import Adan
 from pytorch_optimizer.optimizer.adapnm import AdaPNM
 from pytorch_optimizer.optimizer.agc import agc
-from pytorch_optimizer.optimizer.chebyshev_schedule import get_chebyshev_schedule
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.diffrgrad import DiffRGrad
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
