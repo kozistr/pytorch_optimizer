@@ -69,12 +69,12 @@ class AdaPNM(Optimizer, BaseOptimizer):
                 state = self.state[p]
 
                 state['step'] = 0
-                state['exp_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
-                state['exp_avg_sq'] = torch.zeros_like(p, memory_format=torch.preserve_format)
-                state['neg_exp_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
+                state['neg_exp_avg'] = torch.zeros_like(p)
 
                 if group['amsgrad']:
-                    state['max_exp_avg_sq'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                    state['max_exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -100,12 +100,12 @@ class AdaPNM(Optimizer, BaseOptimizer):
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
-                    state['exp_avg_sq'] = torch.zeros_like(p, memory_format=torch.preserve_format)
-                    state['neg_exp_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
+                    state['neg_exp_avg'] = torch.zeros_like(p)
 
                     if group['amsgrad']:
-                        state['max_exp_avg_sq'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                        state['max_exp_avg_sq'] = torch.zeros_like(p)
 
                 state['step'] += 1
                 beta1, beta2, beta3 = group['betas']
