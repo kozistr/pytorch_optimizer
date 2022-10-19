@@ -4,9 +4,9 @@ from typing import Iterable, List, Tuple
 
 import torch
 from torch import nn
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.types import OPTIMIZER
 from pytorch_optimizer.optimizer.utils import flatten_grad, un_flatten_grad
 
 
@@ -28,7 +28,7 @@ class PCGrad(BaseOptimizer):
           optimizer.step()
     """
 
-    def __init__(self, optimizer: Optimizer, reduction: str = 'mean'):
+    def __init__(self, optimizer: OPTIMIZER, reduction: str = 'mean'):
         self.optimizer = optimizer
         self.reduction = reduction
 
