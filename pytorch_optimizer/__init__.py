@@ -1,7 +1,7 @@
 # pylint: disable=unused-import
 from typing import Dict, List
 
-from pytorch_optimizer.base.types import LR_SCHEDULER, OPTIMIZER
+from pytorch_optimizer.base.types import SCHEDULER, OPTIMIZER
 from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
@@ -58,10 +58,10 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
-LR_SCHEDULER_LIST: List[LR_SCHEDULER] = [
+LR_SCHEDULER_LIST: List[SCHEDULER] = [
     CosineAnnealingWarmupRestarts,
 ]
-LR_SCHEDULERS: Dict[str, LR_SCHEDULER] = {
+LR_SCHEDULERS: Dict[str, SCHEDULER] = {
     str(lr_scheduler.__name__).lower(): lr_scheduler for lr_scheduler in LR_SCHEDULER_LIST
 }
 
@@ -75,7 +75,7 @@ def load_optimizer(optimizer: str) -> OPTIMIZER:
     return OPTIMIZERS[optimizer]
 
 
-def load_lr_scheduler(lr_scheduler: str) -> LR_SCHEDULER:
+def load_lr_scheduler(lr_scheduler: str) -> SCHEDULER:
     lr_scheduler: str = lr_scheduler.lower()
 
     if lr_scheduler not in LR_SCHEDULERS:
@@ -88,5 +88,5 @@ def get_supported_optimizers() -> List[OPTIMIZER]:
     return OPTIMIZER_LIST
 
 
-def get_supported_lr_schedulers() -> List[LR_SCHEDULER]:
+def get_supported_lr_schedulers() -> List[SCHEDULER]:
     return LR_SCHEDULER_LIST
