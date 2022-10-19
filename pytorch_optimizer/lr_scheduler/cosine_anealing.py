@@ -1,8 +1,9 @@
 import math
-from typing import List, Optional, Type
+from typing import List, Optional
 
-from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
+
+from pytorch_optimizer.base.types import OPTIMIZER
 
 
 class CosineAnnealingWarmupRestarts(_LRScheduler):
@@ -12,7 +13,7 @@ class CosineAnnealingWarmupRestarts(_LRScheduler):
 
     def __init__(
         self,
-        optimizer: Type[Optimizer],
+        optimizer: OPTIMIZER,
         first_cycle_steps: int,
         cycle_mult: float = 1.0,
         max_lr: float = 1e-4,
