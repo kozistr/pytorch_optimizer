@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pytorch_optimizer import get_chebyshev_schedule
-from pytorch_optimizer.chebyshev_schedule import chebyshev_perm
+from pytorch_optimizer.optimizer.chebyshev_schedule import chebyshev_perm
 
 
 def test_get_chebyshev_schedule():

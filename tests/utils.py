@@ -6,7 +6,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from pytorch_optimizer import AdamP, Lookahead
-from pytorch_optimizer.types import LOSS
+from pytorch_optimizer.base.types import LOSS
 
 
 class LogisticRegression(nn.Module):
