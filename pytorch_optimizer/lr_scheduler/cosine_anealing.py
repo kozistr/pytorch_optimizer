@@ -32,7 +32,7 @@ class CosineAnnealingWarmupRestarts(_LRScheduler):
         :param gamma: float. decrease rate of lr by cycle
         :param last_epoch: int. step size of the current cycle.
         """
-        if warmup_steps < first_cycle_steps:
+        if warmup_steps >= first_cycle_steps:
             raise ValueError(
                 f'[-] warmup_steps must be smaller than first_cycle_steps. {warmup_steps} < {first_cycle_steps}'
             )
