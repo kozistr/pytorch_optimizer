@@ -4,7 +4,7 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, PARAMETERS
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, OPTIMIZER, PARAMETERS
 
 
 class SAM(Optimizer, BaseOptimizer):
@@ -53,7 +53,7 @@ class SAM(Optimizer, BaseOptimizer):
     def __init__(
         self,
         params: PARAMETERS,
-        base_optimizer,
+        base_optimizer: OPTIMIZER,
         rho: float = 0.05,
         adaptive: bool = False,
         **kwargs,
