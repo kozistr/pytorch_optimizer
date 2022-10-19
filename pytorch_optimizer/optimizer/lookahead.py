@@ -4,8 +4,8 @@ from typing import Dict
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, STATE
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, STATE
 
 
 class Lookahead(Optimizer, BaseOptimizer):

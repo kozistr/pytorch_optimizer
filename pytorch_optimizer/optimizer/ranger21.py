@@ -5,9 +5,9 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Optimizer
 
+from pytorch_optimizer.base.base_optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.agc import agc
-from pytorch_optimizer.base.base_optimizer import BaseOptimizer
 from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
 

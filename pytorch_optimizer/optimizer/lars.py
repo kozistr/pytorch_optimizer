@@ -1,8 +1,8 @@
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class LARS(Optimizer, BaseOptimizer):
