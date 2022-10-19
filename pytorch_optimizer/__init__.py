@@ -1,9 +1,7 @@
 # pylint: disable=unused-import
-from typing import Dict, List, Type
+from typing import Dict, List
 
-from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
-
+from pytorch_optimizer.base.types import LR_SCHEDULER, OPTIMIZER
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
@@ -38,7 +36,7 @@ from pytorch_optimizer.optimizer.utils import (
     unit_norm,
 )
 
-OPTIMIZER_LIST: List[Type[Optimizer]] = [
+OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaBelief,
     AdaBound,
     AdamP,
@@ -58,17 +56,17 @@ OPTIMIZER_LIST: List[Type[Optimizer]] = [
     SGDP,
     Shampoo,
 ]
-OPTIMIZERS: Dict[str, Type[Optimizer]] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
+OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
-LR_SCHEDULER_LIST: List[Type[_LRScheduler]] = [
+LR_SCHEDULER_LIST: List[LR_SCHEDULER] = [
     CosineAnnealingWarmupRestarts,
 ]
-LR_SCHEDULERS: Dict[str, Type[_LRScheduler]] = {
+LR_SCHEDULERS: Dict[str, LR_SCHEDULER] = {
     str(lr_scheduler.__name__).lower(): lr_scheduler for lr_scheduler in LR_SCHEDULER_LIST
 }
 
 
-def load_optimizer(optimizer: str) -> Type[Optimizer]:
+def load_optimizer(optimizer: str) -> OPTIMIZER:
     optimizer: str = optimizer.lower()
 
     if optimizer not in OPTIMIZERS:
@@ -77,7 +75,7 @@ def load_optimizer(optimizer: str) -> Type[Optimizer]:
     return OPTIMIZERS[optimizer]
 
 
-def load_lr_scheduler(lr_scheduler: str) -> Type[_LRScheduler]:
+def load_lr_scheduler(lr_scheduler: str) -> LR_SCHEDULER:
     lr_scheduler: str = lr_scheduler.lower()
 
     if lr_scheduler not in LR_SCHEDULERS:
@@ -86,9 +84,9 @@ def load_lr_scheduler(lr_scheduler: str) -> Type[_LRScheduler]:
     return LR_SCHEDULERS[lr_scheduler]
 
 
-def get_supported_optimizers() -> List[Type[Optimizer]]:
+def get_supported_optimizers() -> List[OPTIMIZER]:
     return OPTIMIZER_LIST
 
 
-def get_supported_lr_schedulers() -> List[Type[_LRScheduler]]:
+def get_supported_lr_schedulers() -> List[LR_SCHEDULER]:
     return LR_SCHEDULER_LIST
