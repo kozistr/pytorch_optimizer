@@ -1,56 +1,21 @@
-from typing import List
-
 import numpy as np
+import pytest
 
 from pytorch_optimizer import AdamP, get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.chebyshev import chebyshev_perm
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from tests.utils import Example
 
-
-def test_cosine_annealing_warmup_restarts():
-    model = Example()
-    optimizer = AdamP(model.parameters())
-
-    def test_scheduler(
-        first_cycle_steps: int,
-        cycle_mult: float,
-        max_lr: float,
-        min_lr: float,
-        warmup_steps: int,
-        gamma: float,
-        max_epochs: int,
-        expected_lrs: List[float],
-    ):
-        lr_scheduler = CosineAnnealingWarmupRestarts(
-            optimizer=optimizer,
-            first_cycle_steps=first_cycle_steps,
-            cycle_mult=cycle_mult,
-            max_lr=max_lr,
-            min_lr=min_lr,
-            warmup_steps=warmup_steps,
-            gamma=gamma,
-        )
-
-        if warmup_steps > 0:
-            np.testing.assert_almost_equal(min_lr, round(lr_scheduler.get_lr()[0], 6))
-
-        for epoch in range(max_epochs):
-            lr_scheduler.step(epoch)
-
-            lr: float = round(lr_scheduler.get_lr()[0], 6)
-            np.testing.assert_almost_equal(expected_lrs[epoch], lr)
-
-    # case 1
-    test_scheduler(
-        first_cycle_steps=10,
-        cycle_mult=1.0,
-        max_lr=1e-3,
-        min_lr=1e-6,
-        warmup_steps=5,
-        gamma=1.0,
-        max_epochs=20,
-        expected_lrs=[
+CAWR_RECIPES = [
+    (
+        10,
+        1.0,
+        1e-3,
+        1e-6,
+        5,
+        1.0,
+        20,
+        [
             1e-06,
             0.000201,
             0.000401,
@@ -72,18 +37,16 @@ def test_cosine_annealing_warmup_restarts():
             0.000346,
             9.6e-05,
         ],
-    )
-
-    # case 2
-    test_scheduler(
-        first_cycle_steps=10,
-        cycle_mult=0.9,
-        max_lr=1e-3,
-        min_lr=1e-6,
-        warmup_steps=5,
-        gamma=0.5,
-        max_epochs=20,
-        expected_lrs=[
+    ),
+    (
+        10,
+        0.9,
+        1e-3,
+        1e-6,
+        5,
+        0.5,
+        20,
+        [
             1e-06,
             0.000201,
             0.000401,
@@ -105,7 +68,44 @@ def test_cosine_annealing_warmup_restarts():
             7.4e-05,
             1e-06,
         ],
+    ),
+]
+
+
+@pytest.mark.parametrize('cosine_annealing_warmup_restart_param', CAWR_RECIPES)
+def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param):
+    model = Example()
+    optimizer = AdamP(model.parameters())
+
+    (
+        first_cycle_steps,
+        cycle_mult,
+        max_lr,
+        min_lr,
+        warmup_steps,
+        gamma,
+        max_epochs,
+        expected_lrs,
+    ) = cosine_annealing_warmup_restart_param
+
+    lr_scheduler = CosineAnnealingWarmupRestarts(
+        optimizer=optimizer,
+        first_cycle_steps=first_cycle_steps,
+        cycle_mult=cycle_mult,
+        max_lr=max_lr,
+        min_lr=min_lr,
+        warmup_steps=warmup_steps,
+        gamma=gamma,
     )
+
+    if warmup_steps > 0:
+        np.testing.assert_almost_equal(min_lr, round(lr_scheduler.get_lr()[0], 6))
+
+    for epoch in range(max_epochs):
+        lr_scheduler.step(epoch)
+
+        lr: float = round(lr_scheduler.get_lr()[0], 6)
+        np.testing.assert_almost_equal(expected_lrs[epoch], lr)
 
 
 def test_get_chebyshev_schedule():
