@@ -1,7 +1,7 @@
 # pylint: disable=unused-import
 from typing import Dict, List
 
-from pytorch_optimizer.base.types import SCHEDULER, OPTIMIZER
+from pytorch_optimizer.base.types import OPTIMIZER, SCHEDULER
 from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.optimizer.adabelief import AdaBelief

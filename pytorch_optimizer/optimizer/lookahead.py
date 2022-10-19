@@ -5,7 +5,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, STATE
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER, STATE
 
 
 class Lookahead(Optimizer, BaseOptimizer):
@@ -27,13 +27,13 @@ class Lookahead(Optimizer, BaseOptimizer):
 
     def __init__(  # pylint: disable=super-init-not-called
         self,
-        optimizer: Optimizer,
+        optimizer: OPTIMIZER,
         k: int = 5,
         alpha: float = 0.5,
         pullback_momentum: str = 'none',
     ):
         """Lookahead
-        :param optimizer: Optimizer. base optimizer
+        :param optimizer: OPTIMIZER. base optimizer
         :param k: int. number of lookahead steps
         :param alpha: float. linear interpolation factor
         :param pullback_momentum: str. change to inner optimizer momentum on interpolation update
