@@ -8,7 +8,7 @@ from pytorch_optimizer.base.types import PARAMETERS
 def deberta_v3_large_lr_scheduler(
     model: nn.Module,
     head_param_start: int = 390,
-    base_lr: float = 5e-5,
+    base_lr: float = 2e-5,
     last_lr: Optional[float] = None,
     wd: float = 1e-2,
 ) -> PARAMETERS:
