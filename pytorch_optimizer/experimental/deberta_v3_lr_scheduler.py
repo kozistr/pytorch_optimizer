@@ -12,6 +12,15 @@ def deberta_v3_large_lr_scheduler(
     last_lr: Optional[float] = None,
     wd: float = 1e-2,
 ) -> PARAMETERS:
+    """DeBERTa-v3 large layer-wise lr scheduler
+    Reference : https://github.com/gilfernandes/commonlit
+
+    :param model: nn.Module. model. based on Huggingface Transformers.
+    :param head_param_start: int. where the backbone ends (head starts)
+    :param base_lr: float. base lr
+    :param last_lr: float. last lr
+    :param wd: float. weight decay
+    """
     named_parameters = list(model.named_parameters())
 
     backbone_parameters = named_parameters[:head_param_start]
