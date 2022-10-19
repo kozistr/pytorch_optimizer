@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import pytest
 
@@ -11,56 +13,86 @@ def test_cosine_annealing_warmup_restarts():
     model = Example()
     optimizer = AdamP(model.parameters())
 
+    def test_scheduler(
+        first_cycle_steps: int, warmup_steps: int, gamma: float, max_epochs: int, expected_lrs: List[float]
+    ):
+        lr_scheduler = CosineAnnealingWarmupRestarts(
+            optimizer=optimizer,
+            first_cycle_steps=first_cycle_steps,
+            cycle_mult=1.0,
+            max_lr=1e-3,
+            min_lr=1e-6,
+            warmup_steps=warmup_steps,
+            gamma=gamma,
+        )
+
+        for epoch in range(max_epochs):
+            lr_scheduler.step(epoch)
+
+            lr: float = round(lr_scheduler.get_lr()[0], 6)
+            np.testing.assert_almost_equal(expected_lrs[epoch], lr)
+
     # case 1
-    lr_scheduler = CosineAnnealingWarmupRestarts(
-        optimizer, first_cycle_steps=500, cycle_mult=1.0, max_lr=0.1, min_lr=0.001, warmup_steps=100, gamma=1.0
+    test_scheduler(
+        first_cycle_steps=10,
+        warmup_steps=5,
+        gamma=1.0,
+        max_epochs=20,
+        expected_lrs=[
+            1e-06,
+            0.000201,
+            0.000401,
+            0.0006,
+            0.0008,
+            0.001,
+            0.000905,
+            0.000655,
+            0.000346,
+            9.6e-05,
+            1e-06,
+            0.000201,
+            0.000401,
+            0.0006,
+            0.0008,
+            0.001,
+            0.000905,
+            0.000655,
+            0.000346,
+            9.6e-05,
+        ],
     )
 
-    expected_lrs = [
-        0.001000,
-        0.001990,
-        0.002980,
-        0.003970,
-        0.004960,
-    ]
-
-    for epoch in range(5):
-        lr_scheduler.step(epoch)
-
-        np.testing.assert_almost_equal(expected_lrs[epoch], lr_scheduler.get_lr()[0])
+    print()
 
     # case 2
-    lr_scheduler = CosineAnnealingWarmupRestarts(
-        optimizer, first_cycle_steps=10, cycle_mult=1.0, max_lr=0.1, min_lr=0.001, warmup_steps=5, gamma=0.5
+    test_scheduler(
+        first_cycle_steps=10,
+        warmup_steps=5,
+        gamma=0.5,
+        max_epochs=20,
+        expected_lrs=[
+            1e-06,
+            0.000201,
+            0.000401,
+            0.0006,
+            0.0008,
+            0.001,
+            0.000905,
+            0.000655,
+            0.000346,
+            9.6e-05,
+            1e-06,
+            0.000101,
+            0.000201,
+            0.0003,
+            0.0004,
+            0.0005,
+            0.000452,
+            0.000328,
+            0.000173,
+            4.9e-05,
+        ],
     )
-
-    expected_lrs = [
-        0.001,
-        0.0208,
-        0.0406,
-        0.0604,
-        0.0802,
-        0.1,
-        0.090546,
-        0.065796,
-        0.035204,
-        0.010454,
-        0.001,
-        0.0108,
-        0.0206,
-        0.0304,
-        0.0402,
-        0.05,
-        0.045321,
-        0.033071,
-        0.017929,
-        0.005679,
-    ]
-
-    for epoch in range(20):
-        lr_scheduler.step(epoch)
-
-        np.testing.assert_almost_equal(expected_lrs[epoch], round(lr_scheduler.get_lr()[0], 6))
 
 
 def test_get_chebyshev_schedule():
