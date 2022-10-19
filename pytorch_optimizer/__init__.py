@@ -2,7 +2,9 @@
 from typing import Dict, List, Type
 
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler
 
+from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
 from pytorch_optimizer.optimizer.adamp import AdamP
@@ -58,6 +60,13 @@ OPTIMIZER_LIST: List[Type[Optimizer]] = [
 ]
 OPTIMIZERS: Dict[str, Type[Optimizer]] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
+LR_SCHEDULER_LIST: List[Type[_LRScheduler]] = [
+    CosineAnnealingWarmupRestarts,
+]
+LR_SCHEDULERS: Dict[str, Type[_LRScheduler]] = {
+    str(lr_scheduler.__name__).lower(): lr_scheduler for lr_scheduler in LR_SCHEDULER_LIST
+}
+
 
 def load_optimizer(optimizer: str) -> Type[Optimizer]:
     optimizer: str = optimizer.lower()
@@ -68,5 +77,18 @@ def load_optimizer(optimizer: str) -> Type[Optimizer]:
     return OPTIMIZERS[optimizer]
 
 
+def load_lr_scheduler(lr_scheduler: str) -> Type[_LRScheduler]:
+    lr_scheduler: str = lr_scheduler.lower()
+
+    if lr_scheduler not in LR_SCHEDULERS:
+        raise NotImplementedError(f'[-] not implemented lr_scheduler : {lr_scheduler}')
+
+    return LR_SCHEDULERS[lr_scheduler]
+
+
 def get_supported_optimizers() -> List[Type[Optimizer]]:
     return OPTIMIZER_LIST
+
+
+def get_supported_lr_schedulers() -> List[Type[_LRScheduler]]:
+    return LR_SCHEDULER_LIST
