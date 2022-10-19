@@ -13,17 +13,26 @@ def test_cosine_annealing_warmup_restarts():
     optimizer = AdamP(model.parameters())
 
     def test_scheduler(
-        first_cycle_steps: int, warmup_steps: int, gamma: float, max_epochs: int, expected_lrs: List[float]
+        first_cycle_steps: int,
+        max_lr: float,
+        min_lr: float,
+        warmup_steps: int,
+        gamma: float,
+        max_epochs: int,
+        expected_lrs: List[float],
     ):
         lr_scheduler = CosineAnnealingWarmupRestarts(
             optimizer=optimizer,
             first_cycle_steps=first_cycle_steps,
             cycle_mult=1.0,
-            max_lr=1e-3,
-            min_lr=1e-6,
+            max_lr=max_lr,
+            min_lr=min_lr,
             warmup_steps=warmup_steps,
             gamma=gamma,
         )
+
+        if warmup_steps > 0:
+            np.testing.assert_almost_equal(min_lr, round(lr_scheduler.get_lr()[0], 6))
 
         for epoch in range(max_epochs):
             lr_scheduler.step(epoch)
@@ -34,6 +43,8 @@ def test_cosine_annealing_warmup_restarts():
     # case 1
     test_scheduler(
         first_cycle_steps=10,
+        max_lr=1e-3,
+        min_lr=1e-6,
         warmup_steps=5,
         gamma=1.0,
         max_epochs=20,
@@ -61,11 +72,11 @@ def test_cosine_annealing_warmup_restarts():
         ],
     )
 
-    print()
-
     # case 2
     test_scheduler(
         first_cycle_steps=10,
+        max_lr=1e-3,
+        min_lr=1e-6,
         warmup_steps=5,
         gamma=0.5,
         max_epochs=20,
