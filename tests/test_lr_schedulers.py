@@ -14,6 +14,7 @@ def test_cosine_annealing_warmup_restarts():
 
     def test_scheduler(
         first_cycle_steps: int,
+        cycle_mult: float,
         max_lr: float,
         min_lr: float,
         warmup_steps: int,
@@ -24,7 +25,7 @@ def test_cosine_annealing_warmup_restarts():
         lr_scheduler = CosineAnnealingWarmupRestarts(
             optimizer=optimizer,
             first_cycle_steps=first_cycle_steps,
-            cycle_mult=1.0,
+            cycle_mult=cycle_mult,
             max_lr=max_lr,
             min_lr=min_lr,
             warmup_steps=warmup_steps,
@@ -43,6 +44,7 @@ def test_cosine_annealing_warmup_restarts():
     # case 1
     test_scheduler(
         first_cycle_steps=10,
+        cycle_mult=1.0,
         max_lr=1e-3,
         min_lr=1e-6,
         warmup_steps=5,
@@ -75,6 +77,7 @@ def test_cosine_annealing_warmup_restarts():
     # case 2
     test_scheduler(
         first_cycle_steps=10,
+        cycle_mult=0.9,
         max_lr=1e-3,
         min_lr=1e-6,
         warmup_steps=5,
@@ -97,10 +100,7 @@ def test_cosine_annealing_warmup_restarts():
             0.0003,
             0.0004,
             0.0005,
-            0.000452,
-            0.000328,
-            0.000173,
-            4.9e-05,
+            0.000427,
         ],
     )
 
