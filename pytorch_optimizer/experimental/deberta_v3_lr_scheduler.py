@@ -9,7 +9,7 @@ def deberta_v3_large_lr_scheduler(
     model: nn.Module,
     head_param_start: int = 390,
     base_lr: float = 2e-5,
-    head_lr: Optional[float] = None,
+    head_lr: float = 1e-4,
     wd: float = 1e-2,
 ) -> PARAMETERS:
     """DeBERTa-v3 large layer-wise lr scheduler
@@ -28,11 +28,7 @@ def deberta_v3_large_lr_scheduler(
 
     regressor_group = [params for (_, params) in regressor_parameters]
 
-    parameters = []
-    if head_lr is not None:
-        parameters.append({'params': regressor_group, 'lr': head_lr})
-    else:
-        parameters.append({'params': regressor_group})
+    parameters = [{'params': regressor_group, 'lr': head_lr}]
 
     layer_low_threshold: int = 195  # start of the 12 layers
     layer_middle_threshold: int = 323  # end of the 24 layers
