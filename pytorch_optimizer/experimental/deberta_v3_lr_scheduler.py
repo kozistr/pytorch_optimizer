@@ -9,7 +9,7 @@ def deberta_v3_large_lr_scheduler(
     model: nn.Module,
     head_param_start: int = 390,
     base_lr: float = 2e-5,
-    last_lr: Optional[float] = None,
+    head_lr: Optional[float] = None,
     wd: float = 1e-2,
 ) -> PARAMETERS:
     """DeBERTa-v3 large layer-wise lr scheduler
@@ -18,7 +18,7 @@ def deberta_v3_large_lr_scheduler(
     :param model: nn.Module. model. based on Huggingface Transformers.
     :param head_param_start: int. where the backbone ends (head starts)
     :param base_lr: float. base lr
-    :param last_lr: float. last lr
+    :param head_lr: float. head_lr
     :param wd: float. weight decay
     """
     named_parameters = list(model.named_parameters())
@@ -29,8 +29,8 @@ def deberta_v3_large_lr_scheduler(
     regressor_group = [params for (_, params) in regressor_parameters]
 
     parameters = []
-    if last_lr is not None:
-        parameters.append({'params': regressor_group, 'lr': last_lr})
+    if head_lr is not None:
+        parameters.append({'params': regressor_group, 'lr': head_lr})
     else:
         parameters.append({'params': regressor_group})
 
