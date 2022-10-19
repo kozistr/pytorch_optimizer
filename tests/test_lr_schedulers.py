@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
+from torch import nn
 
 from pytorch_optimizer import AdamP, get_chebyshev_schedule
+from pytorch_optimizer.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
 from pytorch_optimizer.lr_scheduler.chebyshev import chebyshev_perm
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from tests.utils import Example
@@ -111,3 +113,15 @@ def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param)
 def test_get_chebyshev_schedule():
     np.testing.assert_almost_equal(get_chebyshev_schedule(3), 1.81818182, decimal=6)
     np.testing.assert_array_equal(chebyshev_perm(5), np.asarray([0, 7, 3, 4, 1, 6, 2, 5]))
+
+
+def test_deberta_v3_large_lr_scheduler():
+    try:
+        from transformers import AutoConfig, AutoModel
+
+        config = AutoConfig.from_pretrained('microsoft/deberta-v3-large', pretrained=False)
+        model = AutoModel.from_config(config)
+    except ImportError:
+        model = nn.Sequential(*[nn.Linear(1, 1, bias=False) for _ in range(400)])
+
+    deberta_v3_large_lr_scheduler(model)
