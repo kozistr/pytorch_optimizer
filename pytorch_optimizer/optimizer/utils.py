@@ -8,7 +8,7 @@ from torch.distributed import all_reduce
 from torch.nn import functional as F
 from torch.nn.utils import clip_grad_norm_
 
-from pytorch_optimizer.types import PARAMETERS
+from pytorch_optimizer.base.types import PARAMETERS
 
 
 def is_valid_parameters(parameters: PARAMETERS) -> bool:

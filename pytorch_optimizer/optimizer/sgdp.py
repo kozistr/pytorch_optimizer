@@ -1,9 +1,9 @@
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.base_optimizer import BaseOptimizer
-from pytorch_optimizer.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.utils import projection
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.optimizer.utils import projection
 
 
 class SGDP(Optimizer, BaseOptimizer):

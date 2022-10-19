@@ -1,6 +1,6 @@
 import torch
 
-from pytorch_optimizer.utils import unit_norm
+from pytorch_optimizer.optimizer.utils import unit_norm
 
 
 def agc(p: torch.Tensor, agc_eps: float, agc_clip_val: float, eps: float = 1e-6):

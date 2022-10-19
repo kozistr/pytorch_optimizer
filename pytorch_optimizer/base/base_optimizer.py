@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 import torch
 
-from pytorch_optimizer.types import BETAS
+from pytorch_optimizer.base.types import BETAS
 
 
 class BaseOptimizer(ABC):

@@ -3,9 +3,9 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.base_optimizer import BaseOptimizer
-from pytorch_optimizer.gc import centralize_gradient
-from pytorch_optimizer.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
 class Adan(Optimizer, BaseOptimizer):

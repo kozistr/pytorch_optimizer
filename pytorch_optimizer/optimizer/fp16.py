@@ -4,8 +4,8 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
-from pytorch_optimizer.types import CLOSURE, PARAMETERS
-from pytorch_optimizer.utils import clip_grad_norm, has_overflow
+from pytorch_optimizer.base.types import CLOSURE, PARAMETERS
+from pytorch_optimizer.optimizer.utils import clip_grad_norm, has_overflow
 
 __AUTHOR__ = 'Facebook'
 __REFERENCE__ = 'https://github.com/facebookresearch/ParlAI/blob/main/parlai/utils/fp16.py'

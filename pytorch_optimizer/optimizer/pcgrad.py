@@ -6,8 +6,8 @@ import torch
 from torch import nn
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.base_optimizer import BaseOptimizer
-from pytorch_optimizer.utils import flatten_grad, un_flatten_grad
+from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.optimizer.utils import flatten_grad, un_flatten_grad
 
 
 class PCGrad(BaseOptimizer):
