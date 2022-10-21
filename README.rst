@@ -29,7 +29,7 @@ Install
 
 ::
 
-    $ pip3 install pytorch-optimizer
+    $ pip3 install -U pytorch-optimizer
 
 Simple Usage
 ~~~~~~~~~~~~

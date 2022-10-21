@@ -5,7 +5,7 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer.utils import (
+from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
     get_optimizer_parameters,
     has_overflow,

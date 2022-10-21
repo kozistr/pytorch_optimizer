@@ -8,7 +8,6 @@ from pytorch_optimizer import load_optimizer
 SPARSE_OPTIMIZERS: List[str] = [
     'madgrad',
 ]
-
 NO_SPARSE_OPTIMIZERS: List[str] = [
     'adamp',
     'sgdp',

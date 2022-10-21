@@ -1,34 +1,34 @@
 # pylint: disable=unused-import
-from typing import Dict, List, Type
+from typing import Dict, List
 
-from torch.optim import Optimizer
-
-from pytorch_optimizer.adabelief import AdaBelief
-from pytorch_optimizer.adabound import AdaBound
-from pytorch_optimizer.adamp import AdamP
-from pytorch_optimizer.adan import Adan
-from pytorch_optimizer.adapnm import AdaPNM
-from pytorch_optimizer.agc import agc
-from pytorch_optimizer.chebyshev_schedule import get_chebyshev_schedule
-from pytorch_optimizer.diffgrad import DiffGrad
-from pytorch_optimizer.diffrgrad import DiffRGrad
-from pytorch_optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
-from pytorch_optimizer.gc import centralize_gradient
-from pytorch_optimizer.lamb import Lamb
-from pytorch_optimizer.lars import LARS
-from pytorch_optimizer.lookahead import Lookahead
-from pytorch_optimizer.madgrad import MADGRAD
-from pytorch_optimizer.nero import Nero
-from pytorch_optimizer.pcgrad import PCGrad
-from pytorch_optimizer.pnm import PNM
-from pytorch_optimizer.radam import RAdam
-from pytorch_optimizer.ralamb import RaLamb
-from pytorch_optimizer.ranger import Ranger
-from pytorch_optimizer.ranger21 import Ranger21
-from pytorch_optimizer.sam import SAM
-from pytorch_optimizer.sgdp import SGDP
-from pytorch_optimizer.shampoo import Shampoo
-from pytorch_optimizer.utils import (
+from pytorch_optimizer.base.types import OPTIMIZER, SCHEDULER
+from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_schedule
+from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
+from pytorch_optimizer.optimizer.adabelief import AdaBelief
+from pytorch_optimizer.optimizer.adabound import AdaBound
+from pytorch_optimizer.optimizer.adamp import AdamP
+from pytorch_optimizer.optimizer.adan import Adan
+from pytorch_optimizer.optimizer.adapnm import AdaPNM
+from pytorch_optimizer.optimizer.agc import agc
+from pytorch_optimizer.optimizer.diffgrad import DiffGrad
+from pytorch_optimizer.optimizer.diffrgrad import DiffRGrad
+from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
+from pytorch_optimizer.optimizer.gc import centralize_gradient
+from pytorch_optimizer.optimizer.lamb import Lamb
+from pytorch_optimizer.optimizer.lars import LARS
+from pytorch_optimizer.optimizer.lookahead import Lookahead
+from pytorch_optimizer.optimizer.madgrad import MADGRAD
+from pytorch_optimizer.optimizer.nero import Nero
+from pytorch_optimizer.optimizer.pcgrad import PCGrad
+from pytorch_optimizer.optimizer.pnm import PNM
+from pytorch_optimizer.optimizer.radam import RAdam
+from pytorch_optimizer.optimizer.ralamb import RaLamb
+from pytorch_optimizer.optimizer.ranger import Ranger
+from pytorch_optimizer.optimizer.ranger21 import Ranger21
+from pytorch_optimizer.optimizer.sam import SAM
+from pytorch_optimizer.optimizer.sgdp import SGDP
+from pytorch_optimizer.optimizer.shampoo import Shampoo
+from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
     get_optimizer_parameters,
     matrix_power,
@@ -36,7 +36,7 @@ from pytorch_optimizer.utils import (
     unit_norm,
 )
 
-OPTIMIZER_LIST: List[Type[Optimizer]] = [
+OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaBelief,
     AdaBound,
     AdamP,
@@ -56,10 +56,17 @@ OPTIMIZER_LIST: List[Type[Optimizer]] = [
     SGDP,
     Shampoo,
 ]
-OPTIMIZERS: Dict[str, Type[Optimizer]] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
+OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
+
+LR_SCHEDULER_LIST: List[SCHEDULER] = [
+    CosineAnnealingWarmupRestarts,
+]
+LR_SCHEDULERS: Dict[str, SCHEDULER] = {
+    str(lr_scheduler.__name__).lower(): lr_scheduler for lr_scheduler in LR_SCHEDULER_LIST
+}
 
 
-def load_optimizer(optimizer: str) -> Type[Optimizer]:
+def load_optimizer(optimizer: str) -> OPTIMIZER:
     optimizer: str = optimizer.lower()
 
     if optimizer not in OPTIMIZERS:
@@ -68,5 +75,18 @@ def load_optimizer(optimizer: str) -> Type[Optimizer]:
     return OPTIMIZERS[optimizer]
 
 
-def get_supported_optimizers() -> List[Type[Optimizer]]:
+def load_lr_scheduler(lr_scheduler: str) -> SCHEDULER:
+    lr_scheduler: str = lr_scheduler.lower()
+
+    if lr_scheduler not in LR_SCHEDULERS:
+        raise NotImplementedError(f'[-] not implemented lr_scheduler : {lr_scheduler}')
+
+    return LR_SCHEDULERS[lr_scheduler]
+
+
+def get_supported_optimizers() -> List[OPTIMIZER]:
     return OPTIMIZER_LIST
+
+
+def get_supported_lr_schedulers() -> List[SCHEDULER]:
+    return LR_SCHEDULER_LIST
