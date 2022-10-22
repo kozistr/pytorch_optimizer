@@ -205,7 +205,16 @@ def test_safe_fp16_methods():
     assert optimizer.loss_scale == 2.0 ** (15 - 1)
 
 
-def test_ranger21_methods():
+def test_ranger21_warm_methods():
     assert Ranger21.build_warm_up_iterations(1000, 0.999) == 220
     assert Ranger21.build_warm_up_iterations(4500, 0.999) == 2000
     assert Ranger21.build_warm_down_iterations(1000) == 280
+
+
+def test_ranger21_variance_normalized():
+    model: nn.Module = nn.Linear(1, 1, bias=False)
+    model.requires_grad_(False)
+
+    optimizer = Ranger21(model.parameters(), 100)
+    with pytest.raises(ValueError):
+        optimizer.step()
