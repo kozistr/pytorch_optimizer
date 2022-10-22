@@ -102,6 +102,7 @@ class Ranger21(Optimizer, BaseOptimizer):
             betas=betas,
             eps=eps,
             weight_decay=weight_decay,
+            adamd_debias_term=adamd_debias_term,
         )
         super().__init__(params, defaults)
 
