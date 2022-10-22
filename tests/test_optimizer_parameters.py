@@ -1,7 +1,9 @@
 from typing import List
 
 import pytest
+import torch
 from torch import nn
+from torch.nn import functional as F
 
 from pytorch_optimizer import SAM, AdamP, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
 from tests.utils import Example
@@ -211,10 +213,34 @@ def test_ranger21_warm_methods():
     assert Ranger21.build_warm_down_iterations(1000) == 280
 
 
-def test_ranger21_variance_normalized():
+def test_ranger21_size_of_parameter():
     model: nn.Module = nn.Linear(1, 1, bias=False)
     model.requires_grad_(False)
 
-    optimizer = Ranger21(model.parameters(), 100)
     with pytest.raises(ValueError):
+        Ranger21(model.parameters(), 100).step()
+
+
+def test_ranger21_variance_normalized():
+    model: nn.Module = Example()
+    optimizer = Ranger21(model.parameters(), num_iterations=100, betas=(0.9, 1e-9))
+
+    y_pred = model(torch.ones((1, 1)))
+    loss = F.binary_cross_entropy_with_logits(y_pred, torch.zeros(1, 1))
+
+    with pytest.raises(RuntimeError):
         optimizer.step()
+
+
+def test_ranger21_closure():
+    model: nn.Module = Example()
+    optimizer = Ranger21(model.parameters(), num_iterations=100, betas=(0.9, 1e-9))
+
+    loss_fn = nn.BCEWithLogitsLoss()
+
+    def closure():
+        loss = loss_fn(torch.ones((1, 1)), model(torch.ones((1, 1))))
+        loss.backward()
+        return loss
+
+    optimizer.step(closure)
