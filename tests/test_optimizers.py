@@ -249,7 +249,7 @@ def test_adamd_optimizers(optimizer_adamd_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, num_iterations = optimizer_adamd_config
-    if str(optimizer_class.__name__) == 'Ranger21':
+    if optimizer_class.__name__ == 'Ranger21':
         config.update({'num_iterations': num_iterations})
 
     optimizer = optimizer_class(model.parameters(), **config)
