@@ -97,6 +97,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 500),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
+    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
 ]
 
 
@@ -247,11 +248,14 @@ def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
 def test_adamd_optimizers(optimizer_adamd_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
-    optimizer_class, config, iterations = optimizer_adamd_config
+    optimizer_class, config, num_iterations = optimizer_adamd_config
+    if str(optimizer_class.__name__) == 'Ranger21':
+        config.update({'num_iterations': num_iterations})
+
     optimizer = optimizer_class(model.parameters(), **config)
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(iterations):
+    for _ in range(num_iterations):
         optimizer.zero_grad()
 
         y_pred = model(x_data)
