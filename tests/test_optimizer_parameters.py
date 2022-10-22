@@ -221,17 +221,6 @@ def test_ranger21_size_of_parameter():
         Ranger21(model.parameters(), 100).step()
 
 
-def test_ranger21_variance_normalized():
-    model: nn.Module = Example()
-    optimizer = Ranger21(model.parameters(), num_iterations=100, betas=(0.9, 1e-9))
-
-    y_pred = model(torch.ones((1, 1)))
-    loss = F.binary_cross_entropy_with_logits(y_pred, torch.zeros(1, 1))
-
-    with pytest.raises(RuntimeError):
-        optimizer.step()
-
-
 def test_ranger21_closure():
     model: nn.Module = Example()
     optimizer = Ranger21(model.parameters(), num_iterations=100, betas=(0.9, 1e-9))
