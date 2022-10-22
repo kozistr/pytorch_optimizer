@@ -11,15 +11,6 @@ from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
 
-__AUTHORS__ = [
-    '@lessw2020',
-    '@NestorDemeure',
-    # with contributions from :
-    '@BrianPugh',
-    '@Kayuksel',
-    '@TheZothen',
-]
-
 
 class Ranger21(Optimizer, BaseOptimizer):
     """
@@ -58,6 +49,7 @@ class Ranger21(Optimizer, BaseOptimizer):
         lookahead_blending_alpha: float = 0.5,
         weight_decay: float = 1e-4,
         norm_loss_factor: float = 1e-4,
+        adamd_debias_term: bool = False,
         eps: float = 1e-8,
     ):
         """Ranger21 optimizer
@@ -76,6 +68,7 @@ class Ranger21(Optimizer, BaseOptimizer):
         :param lookahead_blending_alpha: float. blending alpha
         :param weight_decay: float. weight decay (L2 penalty)
         :param norm_loss_factor: float. norm loss factor
+        :param adamd_debias_term: bool.Only correct the denominator to avoid inflating step sizes early in training
         :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
@@ -91,6 +84,7 @@ class Ranger21(Optimizer, BaseOptimizer):
         self.lookahead_blending_alpha = lookahead_blending_alpha
         self.weight_decay = weight_decay
         self.norm_loss_factor = norm_loss_factor
+        self.adamd_debias_term = adamd_debias_term
         self.eps = eps
 
         self.validate_parameters()
@@ -299,7 +293,9 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)
 
-                step_size: float = lr / bias_correction1
+                step_size: float = lr
+                if not group['adamd_debias_term']:
+                    step_size /= bias_correction1
 
                 if self.use_softplus:
                     de_nom = F.softplus(de_nom, beta=self.beta_softplus)
