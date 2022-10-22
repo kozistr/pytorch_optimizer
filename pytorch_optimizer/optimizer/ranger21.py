@@ -29,7 +29,7 @@ class Ranger21(Optimizer, BaseOptimizer):
           optimizer.step()
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=R0913
         self,
         params: PARAMETERS,
         num_iterations: int,
