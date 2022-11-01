@@ -33,7 +33,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.7"
-numpy = "^1.22.4"
+numpy = "*"
 torch = "^1.10"
 
 [tool.poetry.dev-dependencies]
