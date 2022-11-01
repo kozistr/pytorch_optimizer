@@ -60,6 +60,16 @@ Also, you can load the optimizer via `torch.hub`
     optimizer = opt(model.parameters())
 
 
+And you can check the supported optimizers & lr schedulers.
+
+::
+
+    from pytorch_optimizer import get_supported_optimizers, get_supported_lr_schedulers
+
+    supported_optimizers = get_supported_optimizers()
+    supported_lr_schedulers = get_supported_lr_schedulers()
+
+
 Supported Optimizers
 --------------------
 
