@@ -18,4 +18,4 @@ check:
 
 requirements:
 	python -m poetry export -f requirements.txt --output requirements.txt --without-hashes
-	python -m poetry export --dev -f requirements.txt --output requirements-dev.txt --without-hashes
+	python -m poetry export -f requirements.txt --output requirements-dev.txt --without-hashes --with dev
