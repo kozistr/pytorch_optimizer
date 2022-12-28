@@ -24,9 +24,7 @@ jobs:
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-          ${{ runner.os }}-
+        restore-keys: ${{ runner.os }}-pip-
     - name: Install dependencies
       run: pip install -r requirements-dev.txt
     - name: Check lint
@@ -44,3 +42,12 @@ jobs:
         env_vars: OS,PYTHON
         fail_ci_if_error: true
         verbose: true
+    - name: Commit & Push .testmondata
+      uses: actions-js/push@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        author_email: kozistr@gmail.com
+        author_name	: kozistr
+        message: '[skip ci] ci(test): .testmondata'
+        branch: ${{ github.ref }}
+        directory: '.'
