@@ -119,10 +119,9 @@ class AdaPNM(Optimizer, BaseOptimizer):
                 else:
                     exp_avg, neg_exp_avg = state['neg_exp_avg'], state['exp_avg']
 
-                exp_avg.mul_(beta1**2).add_(grad, alpha=1 - beta1**2)
-                noise_norm = math.sqrt((1 + beta3) ** 2 + beta3**2)
-
+                exp_avg.mul_(beta1 ** 2).add_(grad, alpha=1 - beta1 ** 2)  # fmt: skip
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+
                 if group['amsgrad']:
                     exp_avg_sq = torch.max(state['max_exp_avg_sq'], exp_avg_sq)
 
@@ -130,6 +129,7 @@ class AdaPNM(Optimizer, BaseOptimizer):
 
                 step_size = group['lr'] / bias_correction1
 
+                noise_norm = math.sqrt((1 + beta3) ** 2 + beta3 ** 2)  # fmt: skip
                 pn_momentum = exp_avg.mul(1 + beta3).add(neg_exp_avg, alpha=-beta3).mul(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, denom, value=-step_size)
 
