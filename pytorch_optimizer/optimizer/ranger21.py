@@ -280,8 +280,8 @@ class Ranger21(Optimizer, BaseOptimizer):
                     grad_ma, neg_grad_ma = state['neg_grad_ma'], state['grad_ma']
 
                 beta1, beta2 = group['betas']
-                bias_correction1 = 1.0 - beta1**step
-                bias_correction2 = 1.0 - beta2**step
+                bias_correction1 = 1.0 - beta1 ** step  # fmt: skip
+                bias_correction2 = 1.0 - beta2 ** step  # fmt: skip
 
                 variance_ma = state['variance_ma']
                 max_variance_ma = state['max_variance_ma']
