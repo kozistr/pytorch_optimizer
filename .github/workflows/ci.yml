@@ -49,5 +49,5 @@ jobs:
         author_email: kozistr@gmail.com
         author_name	: kozistr
         message: '[skip ci] ci(test): .testmondata'
-        branch: ${{ github.ref }}
+        branch: ${ GITHUB_REF##*/ }
         directory: '.'
