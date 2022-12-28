@@ -280,8 +280,8 @@ class Ranger21(Optimizer, BaseOptimizer):
                     grad_ma, neg_grad_ma = state['neg_grad_ma'], state['grad_ma']
 
                 beta1, beta2 = group['betas']
-                bias_correction1 = 1.0 - beta1 ** step
-                bias_correction2 = 1.0 - beta2 ** step
+                bias_correction1 = 1.0 - beta1**step
+                bias_correction2 = 1.0 - beta2**step
 
                 variance_ma = state['variance_ma']
                 max_variance_ma = state['max_variance_ma']
@@ -293,9 +293,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                 grad = centralize_gradient(grad, gc_conv_only=False)
                 grad = normalize_gradient(grad)
 
-                grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)
-
-                noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)
+                grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
 
                 step_size: float = lr
                 if not group['adamd_debias_term']:
@@ -304,6 +302,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                 if self.use_softplus:
                     de_nom = F.softplus(de_nom, beta=self.beta_softplus)
 
+                noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
                 pn_momentum = grad_ma.mul(1.0 + 1.0).add(neg_grad_ma, alpha=-1.0).mul(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)
 

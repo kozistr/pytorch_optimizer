@@ -30,7 +30,7 @@ class DynamicLossScaler:
         scale_window: int = 2000,
         tolerance: float = 0.00,
         threshold: Optional[float] = None,
-    ):
+    ):  # fmt: skip
         """Dynamic Loss Scaler for fp16 training
         :param init_scale: Initial loss scale
         :param scale_factor: Factor by which to increase or decrease loss scale
@@ -103,8 +103,8 @@ class SafeFP16Optimizer(Optimizer):
 
         optimizer.param_groups[0]['params'] = self.fp32_params
 
-        self.scaler: DynamicLossScaler = DynamicLossScaler(2.0 ** 15)
-        self.min_loss_scale: float = 2 ** -5
+        self.scaler: DynamicLossScaler = DynamicLossScaler(2.0**15)
+        self.min_loss_scale: float = 2**-5
         self.needs_sync: bool = True
 
     @classmethod
