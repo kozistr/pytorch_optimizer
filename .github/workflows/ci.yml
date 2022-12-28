@@ -12,8 +12,6 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.11']
-    env:
-     BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
     steps:
     - uses: actions/checkout@v3
@@ -27,6 +25,12 @@ jobs:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
         restore-keys: ${{ runner.os }}-pip-
+    - name: Cache .testmondata
+      uses: actions/cache@v3
+      with:
+        path: .testmondata
+        key: ${{ matrix.python-version }}-testmon-${{ hashFiles('.testmondata') }}
+        restore-keys: ${{ matrix.python-version }}-testmon-
     - name: Install dependencies
       run: pip install -r requirements-dev.txt
     - name: Check lint
@@ -44,14 +48,3 @@ jobs:
         env_vars: OS,PYTHON
         fail_ci_if_error: true
         verbose: true
-    - name: Commit .testmondata
-      run: |
-        git config --local user.email "kozistr@gmail.com"
-        git config --local user.name "kozistr"
-        git add .testmondata
-        git commit -a -m "[skip ci] ci(test): .testmondata"
-    - name: Push .testmondata
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GH_TOKEN }}
-        branch: ${{ env.BRANCH_NAME }}
