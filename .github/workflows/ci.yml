@@ -9,11 +9,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    outputs:
-      branch_name: ${{ steps.get-branch-name.outputs.branch_name }}
     strategy:
       matrix:
         python-version: ['3.11']
+    outputs:
+      branch_name: ${{ steps.get-branch-name.outputs.branch_name }}
 
     steps:
     - name: Get the current branch name
