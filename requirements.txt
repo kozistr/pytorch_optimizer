@@ -1,5 +1,4 @@
-numpy==1.21.1 ; python_version >= "3.7" and python_version < "4.0"
-setuptools==65.6.3 ; python_version >= "3.7" and python_version < "4.0" and platform_system == "Linux"
+numpy==1.21.1 ; python_version >= "3.7" and python_version < "3.8"
+numpy==1.24.1 ; python_version >= "3.8" and python_version < "4.0"
 torch==1.13.1 ; python_version >= "3.7" and python_version < "4.0"
 typing-extensions==4.4.0 ; python_version >= "3.7" and python_version < "4.0"
-wheel==0.38.4 ; python_version >= "3.7" and python_version < "4.0" and platform_system == "Linux"
