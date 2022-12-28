@@ -69,8 +69,8 @@ class PNM(Optimizer, BaseOptimizer):
                 state = self.state[p]
 
                 state['step'] = 0
-                state['pos_momentum'] = torch.zeros_like(p, memory_format=torch.preserve_format)
-                state['neg_momentum'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                state['pos_momentum'] = torch.zeros_like(p)
+                state['neg_momentum'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -96,8 +96,8 @@ class PNM(Optimizer, BaseOptimizer):
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
-                    state['pos_momentum'] = torch.zeros_like(p, memory_format=torch.preserve_format)
-                    state['neg_momentum'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                    state['pos_momentum'] = torch.zeros_like(p)
+                    state['neg_momentum'] = torch.zeros_like(p)
 
                 state['step'] += 1
                 beta1, beta2 = group['betas']
@@ -109,9 +109,9 @@ class PNM(Optimizer, BaseOptimizer):
                     neg_momentum = state['pos_momentum']
                     pos_momentum = state['neg_momentum']
 
-                pos_momentum.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)
+                pos_momentum.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
 
-                noise_norm = math.sqrt((1 + beta2) ** 2 + beta2 ** 2)
+                noise_norm = math.sqrt((1 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
                 delta_p = pos_momentum.mul(1 + beta2).add(neg_momentum, alpha=-beta2).mul(1.0 / noise_norm)
 
                 p.add_(delta_p, alpha=-group['lr'])
