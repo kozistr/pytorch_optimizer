@@ -44,12 +44,14 @@ jobs:
         env_vars: OS,PYTHON
         fail_ci_if_error: true
         verbose: true
-    - name: Commit & Push .testmondata
-      uses: actions-js/push@master
+    - name: Commit .testmondata
+      run: |
+        git config --local user.email "kozistr@gmail.com"
+        git config --local user.name "kozistr"
+        git add .testmondata
+        git commit -a -m "[skip ci] ci(test): .testmondata"
+    - name: Push .testmondata
+      uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        author_email: kozistr@gmail.com
-        author_name	: kozistr
-        message: '[skip ci] ci(test): .testmondata'
-        branch: ${{ env.BRANCH_NAME }}
-        directory: '.'
+        branch: ${{ github.head_ref }}
