@@ -109,7 +109,7 @@ def test_f32_optimizers(optimizer_fp32_config):
 
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name == 'Nero' and 'constraints' not in config:
-        return True
+        assert True
 
     optimizer = optimizer_class(model.parameters(), **config)
 
@@ -167,7 +167,7 @@ def test_safe_f16_optimizers(optimizer_fp16_config):
         or (optimizer_name == 'Nero')
         or (optimizer_name == 'Adan' and 'weight_decay' not in config)
     ):
-        return True
+        assert True
 
     optimizer = SafeFP16Optimizer(optimizer_class(model.parameters(), **config))
 
@@ -195,7 +195,7 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
 
     optimizer_class, config, iterations = optimizer_sam_config
     if optimizer_class.__name__ == 'Shampoo':
-        return True
+        assert True
 
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
@@ -221,7 +221,7 @@ def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
 
     optimizer_class, config, iterations = optimizer_sam_config
     if optimizer_class.__name__ == 'Shampoo':
-        return True
+        assert True
 
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
@@ -286,7 +286,7 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
     optimizer = PCGrad(optimizer_class(model.parameters(), **config), reduction=reduction)
 
     if optimizer_class.__name__ == 'RaLamb' and 'pre_norm' in config:
-        return True
+        assert True
 
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
@@ -316,7 +316,7 @@ def test_no_gradients(optimizer_config):
 
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name == 'Nero':
-        return True
+        assert True
 
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
@@ -341,7 +341,7 @@ def test_closure(optimizer_config):
 
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
-        return True
+        assert True
 
     optimizer = optimizer_class(model.parameters(), **config)
 
