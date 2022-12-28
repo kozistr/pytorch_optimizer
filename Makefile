@@ -9,7 +9,7 @@ format:
 	black -S -l 119 pytorch_optimizer tests hubconf.py
 
 test:
-	python -m pytest -sv -vv --cov=pytorch_optimizer --cov-report=xml ./tests
+	python -m pytest -p no:pastebin -p no:nose -p no:doctest -sv -vv --cov=pytorch_optimizer --cov-report=xml ./tests
 
 check:
 	isort --check-only --profile black -l 119 pytorch_optimizer tests hubconf.py
