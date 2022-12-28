@@ -12,13 +12,10 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.11']
-    outputs:
-      branch_name: ${{ steps.get-branch-name.outputs.branch_name }}
+    env:
+     BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 
     steps:
-    - name: Get the current branch name
-      id: get-branch-name
-      run: echo "branch_name=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
@@ -54,5 +51,5 @@ jobs:
         author_email: kozistr@gmail.com
         author_name	: kozistr
         message: '[skip ci] ci(test): .testmondata'
-        branch: ${{ branch_name }}
+        branch: ${{ env.BRANCH_NAME }}
         directory: '.'
