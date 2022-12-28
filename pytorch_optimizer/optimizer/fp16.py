@@ -103,8 +103,8 @@ class SafeFP16Optimizer(Optimizer):
 
         optimizer.param_groups[0]['params'] = self.fp32_params
 
-        self.scaler: DynamicLossScaler = DynamicLossScaler(2.0**15)
-        self.min_loss_scale: float = 2**-5
+        self.scaler: DynamicLossScaler = DynamicLossScaler(2.0 ** 15)  # fmt: skip
+        self.min_loss_scale: float = 2 ** -5  # fmt: skip
         self.needs_sync: bool = True
 
     @classmethod
