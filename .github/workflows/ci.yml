@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9']
+        python-version: ['3.11']
 
     steps:
     - uses: actions/checkout@v3
@@ -36,7 +36,7 @@ jobs:
         export PYTHONDONTWRITEBYTECODE=1
         make test
     - name: Check codecov
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         directory: ./
