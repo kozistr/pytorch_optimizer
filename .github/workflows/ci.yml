@@ -9,11 +9,16 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    outputs:
+      branch_name: ${{ steps.get-branch-name.outputs.branch_name }}
     strategy:
       matrix:
         python-version: ['3.11']
 
     steps:
+    - name: Get the current branch name
+      id: get-branch-name
+      run: echo "branch_name=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
@@ -49,5 +54,5 @@ jobs:
         author_email: kozistr@gmail.com
         author_name	: kozistr
         message: '[skip ci] ci(test): .testmondata'
-        branch: ${ GITHUB_REF##*/ }
+        branch: ${{ branch_name }}
         directory: '.'
