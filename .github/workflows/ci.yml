@@ -53,5 +53,5 @@ jobs:
     - name: Push .testmondata
       uses: ad-m/github-push-action@master
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ github.head_ref }}
+        github_token: ${{ secrets.GH_TOKEN }}
+        branch: ${{ env.BRANCH_NAME }}
