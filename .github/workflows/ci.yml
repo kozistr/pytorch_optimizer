@@ -25,11 +25,14 @@ jobs:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
         restore-keys: ${{ runner.os }}-pip-
-    - name: Cache .testmondata
+    - name: Cache pytest stuffs
       uses: actions/cache@v3
       with:
-        path: .testmondata
-        key: ${{ matrix.python-version }}-testmon-${{ hashFiles('.testmondata') }}
+        path: |
+          .testmondata
+          .coverage
+          coverage.xml
+        key: ${{ matrix.python-version }}-testmon-${{ hashFiles('.testmondata') }}-${{ hashFiles('.coverage') }}
         restore-keys: ${{ matrix.python-version }}-testmon-
     - name: Install dependencies
       run: pip install -r requirements-dev.txt
