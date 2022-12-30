@@ -37,7 +37,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements-dev.txt
-        pip uninstall nvidia-cuda-runtime-cu11 nvidia-cudnn-cu11 nvidia-cublas-cu11 nvidia-cuda-nvrtc-cu11
+        pip uninstall -y nvidia-cuda-runtime-cu11 nvidia-cudnn-cu11 nvidia-cublas-cu11 nvidia-cuda-nvrtc-cu11
     - name: Check lint
       run: make check
     - name: Check test
