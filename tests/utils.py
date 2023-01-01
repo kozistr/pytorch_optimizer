@@ -78,6 +78,10 @@ def ids(v) -> str:
     return f'{v[0].__name__}_{v[1:]}'
 
 
+def names(v) -> str:
+    return v.__name__
+
+
 def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.Tensor], nn.Module, nn.Module]:
     torch.manual_seed(42)
 
