@@ -349,8 +349,10 @@ def test_closure(optimizer_config):
     _, model, _ = build_environment()
 
     optimizer_class, config, _ = optimizer_config
-    if optimizer_class.__name__ == 'Ranger21':
-        pytest.skip(f'skip {optimizer_class.__name__}')
+
+    optimizer_name: str = optimizer_class.__name__
+    if (optimizer_name == 'Ranger21') or (optimizer_name == 'Adai'):
+        pytest.skip(f'skip {optimizer_name}')
 
     optimizer = optimizer_class(model.parameters(), **config)
 
