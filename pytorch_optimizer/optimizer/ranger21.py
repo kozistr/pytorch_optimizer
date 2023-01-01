@@ -236,7 +236,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
         # stable weight decay
         if param_size == 0:
-            raise ZeroDivisionError('[-] param_size is 0')
+            raise ValueError('[-] param_size is 0')
 
         variance_normalized = math.sqrt(variance_ma_sum / param_size)
         if math.isnan(variance_normalized):

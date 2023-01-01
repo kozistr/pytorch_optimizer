@@ -125,7 +125,7 @@ class Adai(Optimizer, BaseOptimizer):
                 exp_avg_sq_hat_sum += exp_avg_sq.sum() / bias_correction2
 
         if param_size == 0:
-            raise ZeroDivisionError('[-] param_size is 0')
+            raise ValueError('[-] param_size is 0')
 
         exp_avg_sq_hat_mean = exp_avg_sq_hat_sum / param_size
 
