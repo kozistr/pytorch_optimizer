@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch.optim.optimizer import Optimizer
 
@@ -28,6 +30,7 @@ class Adai(Optimizer, BaseOptimizer):
         betas: BETAS = (0.1, 0.99),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
+        dampening: float = 1.0,
         eps: float = 1e-3,
     ):
         """Adai
@@ -36,12 +39,14 @@ class Adai(Optimizer, BaseOptimizer):
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
         :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
+        :param dampening: float. dampening for momentum
         :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
         self.weight_decouple = weight_decouple
+        self.dampening = dampening
         self.eps = eps
 
         self.validate_parameters()
@@ -50,6 +55,7 @@ class Adai(Optimizer, BaseOptimizer):
             lr=lr,
             betas=betas,
             weight_decay=weight_decay,
+            dampening=dampening,
             eps=eps,
         )
         super().__init__(params, defaults)
@@ -148,13 +154,16 @@ class Adai(Optimizer, BaseOptimizer):
                 bias_correction2 = 1 - beta2 ** state['step']
 
                 exp_avg_sq_hat = exp_avg_sq / bias_correction2
-                beta1 = (1.0 - (exp_avg_sq_hat / exp_avg_sq_hat_mean).mul(beta0)).clamp(0.0, 1.0 - group['eps'])
+                beta1 = (
+                    1.0 - (exp_avg_sq_hat / exp_avg_sq_hat_mean).pow(1.0 / (3 - 2 * group['dampening'])).mul(beta0)
+                ).clamp(0.0, 1 - group['eps'])
+                beta3 = (1.0 - beta1).pow(group['dampening'])
 
                 beta1_prod.mul_(beta1)
                 bias_correction1 = 1.0 - beta1_prod
 
-                exp_avg.mul_(beta1).addcmul_(1.0 - beta1, grad)
-                exp_avg_hat = exp_avg / bias_correction1
+                exp_avg.mul_(beta1).addcmul_(beta3, grad)
+                exp_avg_hat = exp_avg / bias_correction1 * math.pow(beta0, 1.0 - group['dampening'])
 
                 p.add_(exp_avg_hat, alpha=-group['lr'])
 
