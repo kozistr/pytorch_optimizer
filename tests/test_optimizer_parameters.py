@@ -219,7 +219,7 @@ def test_size_of_parameter(optimizer):
     model: nn.Module = nn.Linear(1, 1, bias=False)
     model.requires_grad_(False)
 
-    with pytest.raises(ZeroDivisionError):
+    with pytest.raises(ValueError):
         optimizer(model.parameters(), 100).step()
 
 
