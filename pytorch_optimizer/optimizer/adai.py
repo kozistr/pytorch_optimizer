@@ -52,7 +52,6 @@ class Adai(Optimizer, BaseOptimizer):
             lr=lr,
             betas=betas,
             weight_decay=weight_decay,
-            adamd_debias_term=adamd_debias_term,
             eps=eps,
         )
         super().__init__(params, defaults)
