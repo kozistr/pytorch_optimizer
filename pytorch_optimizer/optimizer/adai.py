@@ -124,7 +124,7 @@ class Adai(Optimizer, BaseOptimizer):
 
                 exp_avg_sq_hat_sum += exp_avg_sq.sum() / bias_correction2
 
-        exp_avg_sq_hat_mean = exp_avg_sq_hat_sum / self.param_size
+        exp_avg_sq_hat_mean = exp_avg_sq_hat_sum / param_size
 
         for group in self.param_groups:
             for p in group['params']:
