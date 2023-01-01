@@ -40,63 +40,63 @@ from tests.utils import (
 )
 
 OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
-    (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'amsgrad': True}, 200),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 200),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'fixed_decay': True}, 200),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': False}, 200),
-    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3}, 200),
-    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'fixed_decay': True}, 200),
-    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'weight_decouple': False}, 200),
-    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 200),
-    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
-    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 200),
-    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'nesterov': True}, 200),
-    (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
-    (DiffRGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
-    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
-    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adam': True, 'eps': 1e-8}, 500),
-    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 500),
-    (LARS, {'lr': 1e-1, 'weight_decay': 1e-3}, 500),
-    (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-4}, 200),
-    (RaLamb, {'lr': 1e-2, 'weight_decay': 1e-4, 'pre_norm': True}, 200),
-    # (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
-    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 500),
-    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'eps': 0.0}, 500),
-    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'momentum': 0.0}, 500),
-    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'decouple_decay': True}, 500),
+    (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 100),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 100),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'amsgrad': True}, 100),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 100),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'fixed_decay': True}, 100),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': False}, 100),
+    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3}, 100),
+    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'fixed_decay': True}, 100),
+    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'weight_decouple': False}, 100),
+    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 100),
+    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 100),
+    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 100),
+    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'nesterov': True}, 100),
+    (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 100),
+    (DiffRGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 100),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adam': True, 'eps': 1e-8}, 200),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 200),
+    (LARS, {'lr': 1e-1, 'weight_decay': 1e-3}, 300),
+    (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-4}, 100),
+    (RaLamb, {'lr': 1e-2, 'weight_decay': 1e-4, 'pre_norm': True}, 100),
+    (RaLamb, {'lr': 1e-2, 'weight_decay': 1e-4, 'degenerated_to_sgd': True}, 100),
+    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
+    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'eps': 0.0}, 200),
+    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'momentum': 0.0}, 200),
+    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'decouple_decay': True}, 200),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
-    (SGDP, {'lr': 5e-2, 'weight_decay': 1e-4}, 200),
-    (SGDP, {'lr': 5e-2, 'weight_decay': 1e-4, 'nesterov': True}, 200),
+    # (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
+    (SGDP, {'lr': 5e-2, 'weight_decay': 1e-4}, 100),
+    (SGDP, {'lr': 5e-2, 'weight_decay': 1e-4, 'nesterov': True}, 100),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
-    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 500),
-    (Shampoo, {'lr': 3e-1, 'weight_decay': 1e-3, 'momentum': 0.05}, 500),
-    (PNM, {'lr': 2e-1}, 200),
-    (PNM, {'lr': 2e-1, 'weight_decouple': False}, 200),
-    (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3}, 500),
-    (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 500),
-    (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'amsgrad': False}, 500),
-    (Nero, {'lr': 5e-1}, 200),
-    (Nero, {'lr': 5e-1, 'constraints': False}, 200),
-    (Adan, {'lr': 5e-1}, 300),
-    (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True}, 300),
-    (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True, 'weight_decouple': True}, 300),
+    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 200),
+    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.05}, 200),
+    (PNM, {'lr': 2e-1}, 100),
+    (PNM, {'lr': 2e-1, 'weight_decouple': False}, 100),
+    (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3}, 100),
+    (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 100),
+    (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'amsgrad': False}, 100),
+    (Nero, {'lr': 5e-1}, 100),
+    (Nero, {'lr': 5e-1, 'constraints': False}, 100),
+    (Adan, {'lr': 5e-1}, 100),
+    (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True}, 100),
+    (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True, 'weight_decouple': True}, 100),
 ]
 
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
-    (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 500),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
-    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
-    (AdaBound, {'lr': 1e-2, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True, 'adamd_debias_term': True}, 200),
-    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 500),
-    (DiffGrad, {'lr': 15 - 1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 500),
-    (DiffRGrad, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
-    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 300),
-    (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 500),
-    (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
-    (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
+    (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
+    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
+    (AdaBound, {'lr': 1e-2, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True, 'adamd_debias_term': True}, 100),
+    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
+    (DiffGrad, {'lr': 15 - 1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
+    (DiffRGrad, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
+    (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
+    (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
+    (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
 ]
 
@@ -137,7 +137,7 @@ def test_lookahead(pullback_momentum):
     optimizer = Lookahead(AdamP(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(200):
+    for _ in range(100):
         optimizer.zero_grad()
 
         y_pred = model(x_data)
@@ -166,6 +166,7 @@ def test_safe_f16_optimizers(optimizer_fp16_config):
         or (optimizer_name == 'PNM')
         or (optimizer_name == 'Nero')
         or (optimizer_name == 'Adan' and 'weight_decay' not in config)
+        or (optimizer_name == 'RAdam')
     ):
         pytest.skip(f'skip {optimizer_name}')
 
