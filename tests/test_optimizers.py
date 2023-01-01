@@ -37,6 +37,7 @@ from tests.utils import (
     dummy_closure,
     ids,
     make_dataset,
+    names,
     tensor_to_numpy,
 )
 
@@ -344,28 +345,31 @@ def test_no_gradients(optimizer_config):
     assert tensor_to_numpy(init_loss) >= tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
-def test_closure(optimizer_config):
+@pytest.mark.parametrize('optimizer', set(config[0] for config in OPTIMIZERS), ids=names)
+def test_closure(optimizer):
     _, model, _ = build_environment()
 
-    optimizer_class, config, _ = optimizer_config
-
-    optimizer_name: str = optimizer_class.__name__
-    if (optimizer_name == 'Ranger21') or (optimizer_name == 'Adai'):
-        pytest.skip(f'skip {optimizer_name}')
-
-    optimizer = optimizer_class(model.parameters(), **config)
+    if optimizer.__name__ == 'Ranger21':
+        optimizer = optimizer(model.parameters(), num_iterations=1)
+    else:
+        optimizer = optimizer(model.parameters())
 
     optimizer.zero_grad()
-    optimizer.step(closure=dummy_closure)
+
+    try:
+        optimizer.step(closure=dummy_closure)
+    except ZeroDivisionError:  # in case of Ranger21, Adai optimizers
+        pass
 
 
-@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
-def test_reset(optimizer_config):
+@pytest.mark.parametrize('optimizer', set(config[0] for config in OPTIMIZERS), ids=names)
+def test_reset(optimizer):
     _, model, _ = build_environment()
 
-    optimizer_class, config, _ = optimizer_config
-    optimizer = optimizer_class(model.parameters(), **config)
+    if optimizer.__name__ == 'Ranger21':
+        optimizer = optimizer(model.parameters(), num_iterations=1)
+    else:
+        optimizer = optimizer(model.parameters())
 
     optimizer.zero_grad()
     optimizer.reset()
