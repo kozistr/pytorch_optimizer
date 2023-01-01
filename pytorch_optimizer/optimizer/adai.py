@@ -135,9 +135,6 @@ class Adai(Optimizer, BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise RuntimeError('Adai does not support sparse gradients')
-
                 state = self.state[p]
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
