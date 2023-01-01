@@ -71,7 +71,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SGDP, {'lr': 5e-2, 'weight_decay': 1e-4}, 100),
     (SGDP, {'lr': 5e-2, 'weight_decay': 1e-4, 'nesterov': True}, 100),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
-    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 300}, 300),
+    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 200),
     (Shampoo, {'lr': 5e-2, 'weight_decay': 1e-3, 'momentum': 0.01}, 300),
     (PNM, {'lr': 2e-1}, 100),
     (PNM, {'lr': 2e-1, 'weight_decouple': False}, 100),
