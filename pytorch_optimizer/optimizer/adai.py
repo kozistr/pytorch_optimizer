@@ -61,8 +61,6 @@ class Adai(Optimizer, BaseOptimizer):
         )
         super().__init__(params, defaults)
 
-        self.param_size: int = self.get_parameter_size()
-
     def validate_parameters(self):
         self.validate_learning_rate(self.lr)
         self.validate_betas(self.betas)
@@ -80,18 +78,6 @@ class Adai(Optimizer, BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['beta1_prod'] = torch.ones_like(p)
 
-    def get_parameter_size(self) -> int:
-        param_size: int = 0
-
-        for group in self.param_groups:
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                param_size += p.numel()
-
-        return param_size
-
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
@@ -99,6 +85,7 @@ class Adai(Optimizer, BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
+        param_size: int = 0
         exp_avg_sq_hat_sum: float = 0.0
 
         for group in self.param_groups:
@@ -109,6 +96,8 @@ class Adai(Optimizer, BaseOptimizer):
                 grad = p.grad
                 if grad.is_sparse:
                     raise RuntimeError('Adai does not support sparse gradients')
+
+                param_size += p.numel()
 
                 state = self.state[p]
 
