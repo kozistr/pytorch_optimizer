@@ -362,14 +362,14 @@ def test_closure(optimizer):
         pass
 
 
-@pytest.mark.parametrize('optimizer', set(config[0] for config in OPTIMIZERS), ids=names)
-def test_reset(optimizer):
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_reset(optimizer_config):
     _, model, _ = build_environment()
 
-    if optimizer.__name__ == 'Ranger21':
-        optimizer = optimizer(model.parameters(), num_iterations=1)
-    else:
-        optimizer = optimizer(model.parameters())
+    optimizer_class, config, _ = optimizer_config
+    if optimizer_class.__name__ == 'Ranger21':
+        config.update({'num_iterations': 1})
 
+    optimizer = optimizer_class(model.parameters(), **config)
     optimizer.zero_grad()
     optimizer.reset()
