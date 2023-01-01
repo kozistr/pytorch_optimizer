@@ -7,6 +7,7 @@ from torch import nn
 
 from pytorch_optimizer import (
     LARS,
+Adai,
     MADGRAD,
     PNM,
     SAM,
@@ -50,6 +51,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'fixed_decay': True}, 100),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'weight_decouple': False}, 100),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 100),
+    (Adai, {'lr': 1e-1, 'weight_decay': 0.0}, 100),
+    (Adai, {'lr': 1e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 100),
+    (Adai, {'lr': 1e-1, 'weight_decay': 1e-3, 'weight_decouple': True}, 100),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 100),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 100),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'nesterov': True}, 100),
@@ -84,7 +88,6 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True}, 100),
     (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True, 'weight_decouple': True}, 100),
 ]
-
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
