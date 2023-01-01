@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from pytorch_optimizer import SAM, AdamP, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
+from pytorch_optimizer import SAM, Adai, AdamP, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
 from tests.utils import Example
 
 OPTIMIZER_NAMES: List[str] = [
@@ -25,8 +25,8 @@ OPTIMIZER_NAMES: List[str] = [
     'lars',
     'pnm',
     'adapnm',
+    'adai',
 ]
-
 BETA_OPTIMIZER_NAMES: List[str] = [
     'adabelief',
     'adabound',
@@ -41,6 +41,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'pnm',
     'adapnm',
     'adan',
+    'adai',
 ]
 
 
@@ -213,12 +214,13 @@ def test_ranger21_warm_methods():
     assert Ranger21.build_warm_down_iterations(1000) == 280
 
 
-def test_ranger21_size_of_parameter():
+@pytest.mark.parametrize('optimizer', [Ranger21, Adai])
+def test_size_of_parameter(optimizer):
     model: nn.Module = nn.Linear(1, 1, bias=False)
     model.requires_grad_(False)
 
-    with pytest.raises(ValueError):
-        Ranger21(model.parameters(), 100).step()
+    with pytest.raises(ZeroDivisionError):
+        optimizer(model.parameters(), 100).step()
 
 
 def test_ranger21_closure():
