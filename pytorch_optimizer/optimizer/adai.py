@@ -46,8 +46,6 @@ class Adai(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        self.param_size: int = self.get_parameter_size()
-
         defaults: DEFAULTS = dict(
             lr=lr,
             betas=betas,
@@ -55,6 +53,8 @@ class Adai(Optimizer, BaseOptimizer):
             eps=eps,
         )
         super().__init__(params, defaults)
+
+        self.param_size: int = self.get_parameter_size()
 
     def validate_parameters(self):
         self.validate_learning_rate(self.lr)
