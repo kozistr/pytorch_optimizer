@@ -358,7 +358,7 @@ def test_closure(optimizer):
 
     try:
         optimizer.step(closure=dummy_closure)
-    except ZeroDivisionError:  # in case of Ranger21, Adai optimizers
+    except ValueError:  # in case of Ranger21, Adai optimizers
         pass
 
 
