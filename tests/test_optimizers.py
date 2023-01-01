@@ -7,13 +7,13 @@ from torch import nn
 
 from pytorch_optimizer import (
     LARS,
-Adai,
     MADGRAD,
     PNM,
     SAM,
     SGDP,
     AdaBelief,
     AdaBound,
+    Adai,
     AdamP,
     Adan,
     AdaPNM,
