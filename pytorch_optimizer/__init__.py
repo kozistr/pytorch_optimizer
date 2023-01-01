@@ -6,6 +6,7 @@ from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
+from pytorch_optimizer.optimizer.adai import Adai
 from pytorch_optimizer.optimizer.adamp import AdamP
 from pytorch_optimizer.optimizer.adan import Adan
 from pytorch_optimizer.optimizer.adapnm import AdaPNM
@@ -40,6 +41,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaBelief,
     AdaBound,
     AdamP,
+    Adai,
     Adan,
     AdaPNM,
     DiffGrad,
