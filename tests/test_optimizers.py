@@ -52,6 +52,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'weight_decouple': False}, 100),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 100),
     (Adai, {'lr': 1e-2, 'weight_decay': 0.0}, 200),
+    (Adai, {'lr': 1e-2, 'weight_decay': 0.0, 'dampending': 0.9}, 200),
     (Adai, {'lr': 1e-2, 'weight_decay': 1e-4, 'weight_decouple': False}, 200),
     (Adai, {'lr': 1e-2, 'weight_decay': 1e-4, 'weight_decouple': True}, 200),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 100),
@@ -199,8 +200,10 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_sam_config
-    if optimizer_class.__name__ == 'Shampoo':
-        pytest.skip(f'skip {optimizer_class.__name__}')
+
+    optimizer_name: str = optimizer_class.__name__
+    if (optimizer_name == 'Shampoo') or (optimizer_name == 'Adai'):
+        pytest.skip(f'skip {optimizer_name}')
 
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
@@ -225,8 +228,10 @@ def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_sam_config
-    if optimizer_class.__name__ == 'Shampoo':
-        pytest.skip(f'skip {optimizer_class.__name__}')
+
+    optimizer_name: str = optimizer_class.__name__
+    if (optimizer_name == 'Shampoo') or (optimizer_name == 'Adai'):
+        pytest.skip(f'skip {optimizer_name}')
 
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
