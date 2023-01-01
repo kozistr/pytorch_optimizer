@@ -23,6 +23,7 @@ VALID_OPTIMIZER_NAMES: List[str] = [
     'pnm',
     'adapnm',
     'nero',
+    'adai',
 ]
 INVALID_OPTIMIZER_NAMES: List[str] = [
     'asam',
