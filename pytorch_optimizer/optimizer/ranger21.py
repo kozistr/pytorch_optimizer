@@ -235,6 +235,9 @@ class Ranger21(Optimizer, BaseOptimizer):
                 variance_ma_sum += (variance_ma / bias_correction2).sum()
 
         # stable weight decay
+        if param_size == 0:
+            raise ZeroDivisionError('[-] param_size is 0')
+
         variance_normalized = math.sqrt(variance_ma_sum / param_size)
         if math.isnan(variance_normalized):
             raise RuntimeError('hit nan for variance_normalized')
