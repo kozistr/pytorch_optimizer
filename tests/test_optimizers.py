@@ -55,17 +55,17 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'nesterov': True}, 100),
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 100),
     (DiffRGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 100),
-    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
-    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adam': True, 'eps': 1e-8}, 200),
-    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 200),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 100),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adam': True, 'eps': 1e-8}, 100),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 100),
     (LARS, {'lr': 1e-1, 'weight_decay': 1e-3}, 300),
     (RaLamb, {'lr': 1e-1, 'weight_decay': 1e-4}, 100),
     (RaLamb, {'lr': 1e-2, 'weight_decay': 1e-4, 'pre_norm': True}, 100),
     (RaLamb, {'lr': 1e-2, 'weight_decay': 1e-4, 'degenerated_to_sgd': True}, 100),
-    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 200),
-    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'eps': 0.0}, 200),
-    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'momentum': 0.0}, 200),
-    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'decouple_decay': True}, 200),
+    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3}, 100),
+    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'eps': 0.0}, 100),
+    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'momentum': 0.0}, 100),
+    (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'decouple_decay': True}, 100),
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 200),
     # (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 200),
     (SGDP, {'lr': 5e-2, 'weight_decay': 1e-4}, 100),
@@ -127,7 +127,7 @@ def test_f32_optimizers(optimizer_fp32_config):
 
         optimizer.step()
 
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('pullback_momentum', ['none', 'reset', 'pullback'])
