@@ -37,7 +37,7 @@ numpy = [
     { version = "=1.21.1", python = ">=3.7,<3.8"},
     { version = "*", python = ">=3.8"},
 ]
-torch = "^1.10"
+torch = { version = "^1.10", source = "torch"}
 
 [tool.poetry.dev-dependencies]
 isort = "^5.11.4"
@@ -45,6 +45,11 @@ black = "^22.12.0"
 pylint = "^2.15.9"
 pytest = "^7.2.0"
 pytest-cov = "^4.0.0"
+
+[[tool.poetry.source]]
+name = "torch"
+url = "https://download.pytorch.org/whl/cpu"
+secondary = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
