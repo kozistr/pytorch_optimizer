@@ -28,7 +28,6 @@ class Adai(Optimizer, BaseOptimizer):
         betas: BETAS = (0.1, 0.99),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
-        adamd_debias_term: bool = False,
         eps: float = 1e-3,
     ):
         """Adai
@@ -37,7 +36,6 @@ class Adai(Optimizer, BaseOptimizer):
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
         :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
-        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
         :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
