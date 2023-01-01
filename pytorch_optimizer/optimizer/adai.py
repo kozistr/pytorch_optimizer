@@ -39,7 +39,8 @@ class Adai(Optimizer, BaseOptimizer):
         :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         :param weight_decay: float. weight decay (L2 penalty)
         :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
-        :param dampening: float. dampening for momentum. where dampening < 1, it will show some adaptive-moment behavior
+        :param dampening: float. dampening for momentum. where dampening < 1,
+            it will show some adaptive-moment behavior
         :param eps: float. term added to the denominator to improve numerical stability
         """
         self.lr = lr
