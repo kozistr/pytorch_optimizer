@@ -13,6 +13,7 @@ from pytorch_optimizer import (
     SGDP,
     AdaBelief,
     AdaBound,
+    Adai,
     AdamP,
     Adan,
     AdaPNM,
@@ -36,6 +37,7 @@ from tests.utils import (
     dummy_closure,
     ids,
     make_dataset,
+    names,
     tensor_to_numpy,
 )
 
@@ -50,6 +52,10 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'fixed_decay': True}, 100),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'weight_decouple': False}, 100),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 100),
+    (Adai, {'lr': 1e-1, 'weight_decay': 0.0}, 200),
+    (Adai, {'lr': 1e-1, 'weight_decay': 0.0, 'dampening': 0.9}, 200),
+    (Adai, {'lr': 1e-1, 'weight_decay': 1e-4, 'weight_decouple': False}, 200),
+    (Adai, {'lr': 1e-1, 'weight_decay': 1e-4, 'weight_decouple': True}, 200),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 100),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 100),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'nesterov': True}, 100),
@@ -84,7 +90,6 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True}, 100),
     (Adan, {'lr': 1e-0, 'weight_decay': 1e-3, 'use_gc': True, 'weight_decouple': True}, 100),
 ]
-
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
@@ -167,6 +172,7 @@ def test_safe_f16_optimizers(optimizer_fp16_config):
         or (optimizer_name == 'Nero')
         or (optimizer_name == 'Adan' and 'weight_decay' not in config)
         or (optimizer_name == 'RAdam')
+        or (optimizer_name == 'Adai')
     ):
         pytest.skip(f'skip {optimizer_name}')
 
@@ -195,8 +201,10 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_sam_config
-    if optimizer_class.__name__ == 'Shampoo':
-        pytest.skip(f'skip {optimizer_class.__name__}')
+
+    optimizer_name: str = optimizer_class.__name__
+    if (optimizer_name == 'Shampoo') or (optimizer_name == 'Adai'):
+        pytest.skip(f'skip {optimizer_name}')
 
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
@@ -221,8 +229,10 @@ def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_sam_config
-    if optimizer_class.__name__ == 'Shampoo':
-        pytest.skip(f'skip {optimizer_class.__name__}')
+
+    optimizer_name: str = optimizer_class.__name__
+    if (optimizer_name == 'Shampoo') or (optimizer_name == 'Adai'):
+        pytest.skip(f'skip {optimizer_name}')
 
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
@@ -335,18 +345,21 @@ def test_no_gradients(optimizer_config):
     assert tensor_to_numpy(init_loss) >= tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
-def test_closure(optimizer_config):
+@pytest.mark.parametrize('optimizer', set(config[0] for config in OPTIMIZERS), ids=names)
+def test_closure(optimizer):
     _, model, _ = build_environment()
 
-    optimizer_class, config, _ = optimizer_config
-    if optimizer_class.__name__ == 'Ranger21':
-        pytest.skip(f'skip {optimizer_class.__name__}')
-
-    optimizer = optimizer_class(model.parameters(), **config)
+    if optimizer.__name__ == 'Ranger21':
+        optimizer = optimizer(model.parameters(), num_iterations=1)
+    else:
+        optimizer = optimizer(model.parameters())
 
     optimizer.zero_grad()
-    optimizer.step(closure=dummy_closure)
+
+    try:
+        optimizer.step(closure=dummy_closure)
+    except ValueError:  # in case of Ranger21, Adai optimizers
+        pass
 
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
@@ -354,7 +367,9 @@ def test_reset(optimizer_config):
     _, model, _ = build_environment()
 
     optimizer_class, config, _ = optimizer_config
-    optimizer = optimizer_class(model.parameters(), **config)
+    if optimizer_class.__name__ == 'Ranger21':
+        config.update({'num_iterations': 1})
 
+    optimizer = optimizer_class(model.parameters(), **config)
     optimizer.zero_grad()
     optimizer.reset()

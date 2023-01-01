@@ -23,8 +23,8 @@ VALID_OPTIMIZER_NAMES: List[str] = [
     'pnm',
     'adapnm',
     'nero',
+    'adai',
 ]
-
 INVALID_OPTIMIZER_NAMES: List[str] = [
     'asam',
     'sam',
@@ -47,4 +47,4 @@ def test_load_optimizers_invalid(invalid_optimizer_names):
 
 
 def test_get_supported_optimizers():
-    assert len(get_supported_optimizers()) == 18
+    assert len(get_supported_optimizers()) == 19
