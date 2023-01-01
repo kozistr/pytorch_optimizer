@@ -31,6 +31,12 @@ Install
 
     $ pip3 install -U pytorch-optimizer
 
+or
+
+::
+
+    $ pip3 install -U --no-deps pytorch-optimizer
+
 Simple Usage
 ~~~~~~~~~~~~
 
