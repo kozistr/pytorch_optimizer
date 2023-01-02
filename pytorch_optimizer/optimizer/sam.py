@@ -4,6 +4,7 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import ClosureError
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, OPTIMIZER, PARAMETERS
 
 
@@ -77,6 +78,10 @@ class SAM(Optimizer, BaseOptimizer):
     def validate_parameters(self):
         self.validate_rho(self.rho)
 
+    @property
+    def __name__(self) -> str:
+        return 'SAM'
+
     @torch.no_grad()
     def reset(self):
         pass
@@ -119,7 +124,7 @@ class SAM(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None):
         if closure is None:
-            raise RuntimeError('[-] Sharpness Aware Minimization (SAM) requires closure')
+            raise ClosureError(self.__name__)
 
         self.first_step(zero_grad=True)
 
