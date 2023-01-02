@@ -16,15 +16,16 @@ def is_valid_parameters(parameters: PARAMETERS) -> bool:
 
 
 def has_overflow(grad_norm: torch.Tensor) -> bool:
-    """Detect inf and NaN in grad_norm."""
+    r"""Detect inf and NaN in grad_norm."""
     return grad_norm != grad_norm or grad_norm == float('inf')  # pylint: disable=comparison-with-itself
 
 
 def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> torch.Tensor:
-    """normalize gradient with stddev
-    :param x: torch.Tensor. gradient
-    :param use_channels: bool. channel-wise normalization
-    :param epsilon: float. eps
+    r"""normalize gradient with stddev
+
+    :param x: torch.Tensor. gradient.
+    :param use_channels: bool. channel-wise normalization.
+    :param epsilon: float. eps.
     :return: torch.Tensor. normalized gradient.
     """
     size: int = x.dim()
@@ -147,6 +148,13 @@ def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
 def get_optimizer_parameters(
     model: nn.Module, weight_decay: float, wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight')
 ) -> PARAMETERS:
+    r"""get optimizer parameters while filtering specified modules.
+
+    :param model: nn.Module. model.
+    :param weight_decay: float. weight_decay.
+    :param wd_ban_list: List[str]. ban list not to set weight decay.
+    :return PARAMETERS. new parameter list.
+    """
     param_optimizer: List[Tuple[str, nn.Parameter]] = list(model.named_parameters())
 
     return [
