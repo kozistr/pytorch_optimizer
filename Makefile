@@ -1,4 +1,4 @@
-.PHONY: init format test check requirements
+.PHONY: init format test check requirements docs
 
 init:
 	python -m pip install -q -U poetry
@@ -19,3 +19,6 @@ check:
 requirements:
 	python -m poetry export -f requirements.txt --output requirements.txt --without-hashes
 	python -m poetry export -f requirements.txt --output requirements-dev.txt --without-hashes --with dev
+
+docs:
+	make -C docs html

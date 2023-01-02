@@ -16,4 +16,4 @@ def test_load_optimizers_invalid(invalid_lr_scheduler_names):
 
 
 def test_get_supported_lr_schedulers():
-    assert len(get_supported_lr_schedulers()) == 1
+    assert len(get_supported_lr_schedulers()) == 6

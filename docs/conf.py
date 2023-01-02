@@ -20,7 +20,7 @@ import sphinx_rtd_theme
 # -- Project information -----------------------------------------------------
 
 project = 'pytorch-optimizers'
-copyright = '2023, kozistr'
+copyright = '2021, kozistr'
 author = 'kozistr'
 
 # The full version, including alpha/beta/rc tags

@@ -98,6 +98,11 @@ BETA_OPTIMIZER_NAMES: List[str] = [
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
     'CosineAnnealingWarmupRestarts',
+    'ConstantLR',
+    'CosineAnnealingLR',
+    'CosineAnnealingWarmRestarts',
+    'CyclicLR',
+    'OneCycleLR',
 ]
 INVALID_LR_SCHEDULER_NAMES: List[str] = [
     'dummy',

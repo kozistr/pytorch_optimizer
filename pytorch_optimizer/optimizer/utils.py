@@ -16,15 +16,16 @@ def is_valid_parameters(parameters: PARAMETERS) -> bool:
 
 
 def has_overflow(grad_norm: torch.Tensor) -> bool:
-    """Detect inf and NaN in grad_norm."""
+    r"""Detect inf and NaN in grad_norm."""
     return grad_norm != grad_norm or grad_norm == float('inf')  # pylint: disable=comparison-with-itself
 
 
 def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> torch.Tensor:
-    """normalize gradient with stddev
-    :param x: torch.Tensor. gradient
-    :param use_channels: bool. channel-wise normalization
-    :param epsilon: float. eps
+    r"""normalize gradient with stddev
+
+    :param x: torch.Tensor. gradient.
+    :param use_channels: bool. channel-wise normalization.
+    :param epsilon: float. eps.
     :return: torch.Tensor. normalized gradient.
     """
     size: int = x.dim()
@@ -71,14 +72,14 @@ def cosine_similarity_by_view(
 
 
 def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> Union[torch.Tensor, float]:
-    """Clips grad norms.
-    During combination with FSDP, will also ensure that grad norms are aggregated
-    across all workers, since each worker only stores their shard of the gradients
-    :param parameters: Parameters whose gradients we wish to clip
-    :param max_norm: Maximum norm we wish the gradients to have. If non-positive, then
-        we will not perform clipping
-    :param sync: Boolean indicating whether we should aggregate across the distributed
-        group. Used only in combination with FSDP
+    r"""Clips gradient norms. During combination with FSDP, will also ensure that grad norms are aggregated
+        across all workers, since each worker only stores their shard of the gradients.
+
+    :param parameters: PARAMETERS. Parameters whose gradients we wish to clip.
+    :param max_norm: float. Maximum norm we wish the gradients to have. If non-positive, then
+        we will not perform clipping.
+    :param sync: bool. Boolean indicating whether we should aggregate across the distributed group.
+        Used only in combination with FSDP.
     :returns: The gradient norm across all parameters, before clipping.
     """
     if isinstance(parameters, torch.Tensor):
@@ -147,6 +148,13 @@ def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
 def get_optimizer_parameters(
     model: nn.Module, weight_decay: float, wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight')
 ) -> PARAMETERS:
+    r"""get optimizer parameters while filtering specified modules.
+
+    :param model: nn.Module. model.
+    :param weight_decay: float. weight_decay.
+    :param wd_ban_list: List[str]. ban list not to set weight decay.
+    :returns: PARAMETERS. new parameter list.
+    """
     param_optimizer: List[Tuple[str, nn.Parameter]] = list(model.named_parameters())
 
     return [
