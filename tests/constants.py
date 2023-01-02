@@ -32,3 +32,32 @@ VALID_LR_SCHEDULER_NAMES: List[str] = [
 INVALID_LR_SCHEDULER_NAMES: List[str] = [
     'dummy',
 ]
+VALID_OPTIMIZER_NAMES: List[str] = [
+    'adamp',
+    'adan',
+    'sgdp',
+    'madgrad',
+    'ranger',
+    'ranger21',
+    'radam',
+    'adabound',
+    'adabelief',
+    'diffgrad',
+    'diffrgrad',
+    'lamb',
+    'ralamb',
+    'lars',
+    'shampoo',
+    'pnm',
+    'adapnm',
+    'nero',
+    'adai',
+]
+INVALID_OPTIMIZER_NAMES: List[str] = [
+    'asam',
+    'sam',
+    'pcgrad',
+    'adamd',
+    'lookahead',
+    'chebyshev_schedule',
+]
