@@ -32,6 +32,16 @@ release = '2.1.0'
 # ones.
 extensions = [
     'sphinx_rtd_theme',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
+    'sphinx_autodoc_typehints',
+    'sphinx.ext.doctest',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.ifconfig',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -68,5 +78,11 @@ html_theme_options = {
     'sticky_navigation': True,
     'navigation_depth': 4,
     'includehidden': True,
-    'titles_only': False
+    'titles_only': False,
+    'description': 'pytorch-optimizer is bunch of optimizer collections in PyTorch',
+    'github_user': 'kozistr',
+    'github_repo': 'pytorch_optimizer',
+    'github_button': True,
+    'github_type': 'star',
+    'github_banner': True,
 }
