@@ -4,24 +4,21 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
 class Adan(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/sail-sg/Adan/blob/main/adan.py
-    Example :
-        from pytorch_optimizer import Adan
-        ...
-        model = YourModel()
-        optimizer = Adan(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. decoupled weight decay.
+    :param use_gc: bool. use gradient centralization.
+    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(
@@ -34,15 +31,6 @@ class Adan(Optimizer, BaseOptimizer):
         use_gc: bool = False,
         eps: float = 1e-8,
     ):
-        """Adan optimizer
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param weight_decouple: bool. decoupled weight decay
-        :param use_gc: bool. use gradient centralization
-        :param eps: float. term added to the denominator to improve numerical stability
-        """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
@@ -93,7 +81,7 @@ class Adan(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('Adan does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 state = self.state[p]
                 if len(state) == 0:
