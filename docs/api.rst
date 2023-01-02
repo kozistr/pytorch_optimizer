@@ -174,7 +174,7 @@ Ranger21
 SAM
 ---
 
-.. autoclass:: pytorch_optimizer.SAM
+.. autoclass:: pytorch_optimizer.optimizer.SAM
     :members:
 
 .. _SGDP:
