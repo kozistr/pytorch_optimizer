@@ -27,6 +27,8 @@ NO_SPARSE_OPTIMIZERS: List[str] = [
     'nero',
     'adan',
     'adai',
+    'adapnm',
+    'pnm',
 ]
 
 
