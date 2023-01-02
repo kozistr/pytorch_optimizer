@@ -55,7 +55,7 @@ class Lamb(Optimizer, BaseOptimizer):
 
     @property
     def __name__(self) -> str:
-        return 'LAMB'
+        return 'Lamb'
 
     @torch.no_grad()
     def reset(self):
