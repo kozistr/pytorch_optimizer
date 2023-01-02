@@ -304,7 +304,7 @@ Citations
 `Adai <https://github.com/zeke-xie/adaptive-inertia-adai#citing>`__
 
 Citation
--------------
+--------
 
 Please cite original authors of optimization algorithms. If you use this software, please cite it as below.
 Or you can get from "cite this repository" button.
