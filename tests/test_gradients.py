@@ -4,7 +4,7 @@ import torch
 
 from pytorch_optimizer import SAM, AdamP, load_optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
-from tests.constants import NO_SPARSE_OPTIMIZERS, OPTIMIZERS, SPARSE_OPTIMIZERS
+from tests.constants import NO_SPARSE_OPTIMIZERS, OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
 from tests.utils import build_environment, ids, tensor_to_numpy
 
 
@@ -72,6 +72,24 @@ def test_sparse_supported(sparse_optimizer):
         optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0, weight_decay=1e-3)
         optimizer.zero_grad()
         optimizer.step()
+
+
+@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
+def test_bfp16_gradient(optimizer_name):
+    # "addcmul_cpu_out" & "eye" not implemented for fp16, bfp16 but gpu op only
+    if optimizer_name in ('shampoo', 'adabelief'):
+        pytest.skip(optimizer_name)
+
+    param = torch.randn(1, 1).bfloat16().requires_grad_(True)
+    param.grad = torch.randn(1, 1).bfloat16()
+
+    optimizer = load_optimizer(optimizer_name)
+    if optimizer_name == 'ranger21':
+        optimizer = optimizer([param], num_iterations=1)
+    else:
+        optimizer = optimizer([param])
+
+    optimizer.step()
 
 
 def test_sam_no_gradient():
