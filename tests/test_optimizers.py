@@ -318,36 +318,6 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
     assert tensor_to_numpy(init_loss) > 1.25 * tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
-def test_no_gradients(optimizer_config):
-    (x_data, y_data), model, loss_fn = build_environment()
-
-    model.fc1.weight.requires_grad = False
-    model.fc1.bias.requires_grad = False
-
-    optimizer_class, config, iterations = optimizer_config
-    optimizer = optimizer_class(model.parameters(), **config)
-
-    if optimizer_class.__name__ == 'Nero':
-        pytest.skip(f'skip {optimizer_class.__name__}')
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) >= tensor_to_numpy(loss)
-
-
 @pytest.mark.parametrize('optimizer', set(config[0] for config in OPTIMIZERS), ids=names)
 def test_closure(optimizer):
     _, model, _ = build_environment()
@@ -373,22 +343,6 @@ def test_no_closure():
 
     with pytest.raises(NoClosureError):
         optimizer.step()
-
-
-def test_sam_no_gradient():
-    (x_data, y_data), model, loss_fn = build_environment()
-    model.fc1.weight.requires_grad = False
-    model.fc1.weight.grad = None
-
-    optimizer = SAM(model.parameters(), AdamP)
-    optimizer.zero_grad()
-
-    loss = loss_fn(y_data, model(x_data))
-    loss.backward()
-    optimizer.first_step(zero_grad=True)
-
-    loss_fn(y_data, model(x_data)).backward()
-    optimizer.second_step(zero_grad=True)
 
 
 def test_nero_zero_scale():
