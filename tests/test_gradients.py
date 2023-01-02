@@ -17,6 +17,8 @@ def test_no_gradients(optimizer_name):
 
     if optimizer_name == 'ranger21':
         optimizer = load_optimizer(optimizer_name)(params, num_iterations=1)
+    elif optimizer_name == 'ralamb':
+        optimizer = load_optimizer(optimizer_name)(params, pre_norm=True)
     elif optimizer_name == 'lookahead':
         optimizer = Lookahead(load_optimizer('adamp')(params), k=1)
     else:
