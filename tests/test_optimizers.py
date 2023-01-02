@@ -30,6 +30,7 @@ from pytorch_optimizer import (
     SafeFP16Optimizer,
     Shampoo,
 )
+from pytorch_optimizer.base.exception import ZeroParameterSize
 from tests.utils import (
     MultiHeadLogisticRegression,
     build_environment,
@@ -360,7 +361,7 @@ def test_closure(optimizer):
 
     try:
         optimizer.step(closure=dummy_closure)
-    except ValueError:  # in case of Ranger21, Adai optimizers
+    except ZeroParameterSize:  # in case of Ranger21, Adai optimizers
         pass
 
 
