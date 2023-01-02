@@ -9,9 +9,11 @@ from tests.utils import build_environment, simple_parameter
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_no_gradients(optimizer_name):
-    p1 = simple_parameter(require_grad=False)
-    p2 = simple_parameter(require_grad=True)
-    params = [{'params': [p1, p2]}]
+    p1 = simple_parameter(require_grad=True)
+    p2 = simple_parameter(require_grad=False)
+    p3 = simple_parameter(require_grad=True)
+    p4 = simple_parameter(require_grad=False)
+    params = [{'params': [p1, p2]}] + [{'params': [p3]}] + [{'params': [p4]}]
 
     if optimizer_name == 'ranger21':
         optimizer = load_optimizer(optimizer_name)(params, num_iterations=1)
@@ -19,8 +21,10 @@ def test_no_gradients(optimizer_name):
         optimizer = load_optimizer(optimizer_name)(params)
 
     optimizer.zero_grad()
-    p1.grad = None
-    p2.grad = torch.zeros(1, 1)
+    p1.grad = torch.zeros(1, 1)
+    p2.grad = None
+    p3.grad = torch.zeros(1, 1)
+    p4.grad = None
     optimizer.step()
 
 
