@@ -1,7 +1,8 @@
 class NoSparseGradientError(Exception):
     """Raised when the gradient is sparse gradient
 
-    :param optimizer_name: str. name of the optimizer.
+    :param optimizer_name: str. optimizer name.
+    :param note: str. special conditions to note (default '').
     """
 
     def __init__(self, optimizer_name: str, note: str = ''):
