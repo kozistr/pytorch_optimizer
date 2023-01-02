@@ -54,7 +54,7 @@ AdaPNM
 AGC
 ---
 
-.. autoclass:: pytorch_optimizer.AGC
+.. autoclass:: pytorch_optimizer.agc
     :members:
 
 .. _diffGrad:
