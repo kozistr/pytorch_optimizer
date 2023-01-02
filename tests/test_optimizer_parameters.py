@@ -6,46 +6,11 @@ from torch import nn
 
 from pytorch_optimizer import SAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
 from pytorch_optimizer.base.exception import ZeroParameterSizeError
+from tests.constants import BETA_OPTIMIZER_NAMES, VALID_OPTIMIZER_NAMES
 from tests.utils import Example
 
-OPTIMIZER_NAMES: List[str] = [
-    'adamp',
-    'adan',
-    'sgdp',
-    'madgrad',
-    'ranger',
-    'ranger21',
-    'radam',
-    'adabound',
-    'adabelief',
-    'diffgrad',
-    'diffrgrad',
-    'lamb',
-    'ralamb',
-    'lars',
-    'pnm',
-    'adapnm',
-    'adai',
-]
-BETA_OPTIMIZER_NAMES: List[str] = [
-    'adabelief',
-    'adabound',
-    'adamp',
-    'diffgrad',
-    'diffrgrad',
-    'lamb',
-    'radam',
-    'ranger',
-    'ranger21',
-    'ralamb',
-    'pnm',
-    'adapnm',
-    'adan',
-    'adai',
-]
 
-
-@pytest.mark.parametrize('optimizer_name', OPTIMIZER_NAMES + ['nero'])
+@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_learning_rate(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
 
@@ -56,8 +21,11 @@ def test_learning_rate(optimizer_name):
             optimizer(None, lr=-1e-2)
 
 
-@pytest.mark.parametrize('optimizer_name', OPTIMIZER_NAMES)
+@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
+    if optimizer_name == 'nero':
+        pytest.skip('skip Nero optimizer')
+
     optimizer = load_optimizer(optimizer_name)
 
     with pytest.raises(ValueError):
@@ -67,8 +35,11 @@ def test_epsilon(optimizer_name):
             optimizer(None, eps=-1e-6)
 
 
-@pytest.mark.parametrize('optimizer_name', OPTIMIZER_NAMES)
+@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_weight_decay(optimizer_name):
+    if optimizer_name == 'nero':
+        pytest.skip('skip Nero optimizer')
+
     optimizer = load_optimizer(optimizer_name)
 
     with pytest.raises(ValueError):
