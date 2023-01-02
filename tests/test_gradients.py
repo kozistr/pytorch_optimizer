@@ -4,7 +4,7 @@ import torch
 
 from pytorch_optimizer import SAM, AdamP, load_optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
-from tests.constants import SPARSE_OPTIMIZERS, NO_SPARSE_OPTIMIZERS
+from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS
 from tests.test_optimizers import OPTIMIZERS
 from tests.utils import build_environment, ids, tensor_to_numpy
 

@@ -24,3 +24,5 @@ NO_SPARSE_OPTIMIZERS: List[str] = [
     'adapnm',
     'pnm',
 ]
+ADAPTIVE_FLAGS: List[bool] = [True, False]
+PULLBACK_MOMENTUM: List[str] = ['none', 'reset', 'pullback']

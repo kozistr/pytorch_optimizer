@@ -31,6 +31,7 @@ from pytorch_optimizer import (
     Shampoo,
 )
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
+from tests.constants import ADAPTIVE_FLAGS, PULLBACK_MOMENTUM
 from tests.utils import (
     MultiHeadLogisticRegression,
     build_environment,
@@ -138,7 +139,7 @@ def test_f32_optimizers(optimizer_fp32_config):
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('pullback_momentum', ['none', 'reset', 'pullback'])
+@pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
 def test_lookahead(pullback_momentum):
     (x_data, y_data), model, loss_fn = build_environment()
 
@@ -198,7 +199,7 @@ def test_safe_f16_optimizers(optimizer_fp16_config):
     assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('adaptive', (False, True))
+@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
 @pytest.mark.parametrize('optimizer_sam_config', OPTIMIZERS, ids=ids)
 def test_sam_optimizers(adaptive, optimizer_sam_config):
     (x_data, y_data), model, loss_fn = build_environment()
@@ -226,7 +227,7 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('adaptive', (False, True))
+@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
 @pytest.mark.parametrize('optimizer_sam_config', OPTIMIZERS, ids=ids)
 def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
     (x_data, y_data), model, loss_fn = build_environment()
