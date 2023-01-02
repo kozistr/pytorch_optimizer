@@ -13,6 +13,7 @@ from tests.utils import (
     ids,
     make_dataset,
     names,
+    simple_parameter,
     tensor_to_numpy,
 )
 
@@ -228,12 +229,12 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
 
 @pytest.mark.parametrize('optimizer', set(config[0] for config in OPTIMIZERS), ids=names)
 def test_closure(optimizer):
-    _, model, _ = build_environment()
+    param = simple_parameter()
 
     if optimizer.__name__ == 'Ranger21':
-        optimizer = optimizer(model.parameters(), num_iterations=1)
+        optimizer = optimizer([param], num_iterations=1)
     else:
-        optimizer = optimizer(model.parameters())
+        optimizer = optimizer([param])
 
     optimizer.zero_grad()
 
@@ -244,7 +245,7 @@ def test_closure(optimizer):
 
 
 def test_no_closure():
-    param = torch.randn(1, 1).requires_grad_(True)
+    param = simple_parameter()
 
     optimizer = SAM([param], load_optimizer('adamp'))
     optimizer.zero_grad()
@@ -254,7 +255,7 @@ def test_no_closure():
 
 
 def test_nero_zero_scale():
-    param = torch.zeros(1, 1).requires_grad_(True)
+    param = simple_parameter()
 
     optimizer = load_optimizer('nero')([param], constraints=False)
     optimizer.zero_grad()
@@ -264,7 +265,7 @@ def test_nero_zero_scale():
 
 @pytest.mark.parametrize('optimizer_name', ['diffrgrad', 'adabelief'])
 def test_rectified_optimizer(optimizer_name):
-    param = torch.zeros(1, 1).requires_grad_(True)
+    param = simple_parameter()
 
     optimizer = load_optimizer(optimizer_name)([param], n_sma_threshold=1000, degenerated_to_sgd=False)
     optimizer.zero_grad()
@@ -274,13 +275,12 @@ def test_rectified_optimizer(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 def test_reset(optimizer_config):
-    _, model, _ = build_environment()
-    model.fc1.weight.data = torch.zeros((2, 2))  # for Nero optimizer
+    param = simple_parameter()
 
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
         config.update({'num_iterations': 1})
 
-    optimizer = optimizer_class(model.parameters(), **config)
+    optimizer = optimizer_class([param], **config)
     optimizer.zero_grad()
     optimizer.reset()
