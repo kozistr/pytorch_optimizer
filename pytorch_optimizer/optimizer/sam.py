@@ -13,16 +13,14 @@ class SAM(Optimizer, BaseOptimizer):
 
     Example:
         Here's an example::
-            from pytorch_optimizer import SAM
-            ...
+
             model = YourModel()
-            base_optimizer =  Ranger21
+            base_optimizer = Ranger21
             optimizer = SAM(model.parameters(), base_optimizer)
-            ...
+
             for input, output in data:
                 # first forward-backward pass
 
-                # use this loss for any training statistics
                 loss = loss_function(output, model(input))
                 loss.backward()
                 optimizer.first_step(zero_grad=True)
@@ -33,17 +31,15 @@ class SAM(Optimizer, BaseOptimizer):
                 optimizer.second_step(zero_grad=True)
 
         Alternative example with a single closure-based step function::
-            from pytorch_optimizer import SAM
 
             model = YourModel()
-            base_optimizer =  Ranger21
+            base_optimizer = Ranger21
             optimizer = SAM(model.parameters(), base_optimizer)
 
             def closure():
                 loss = loss_function(output, model(input))
                 loss.backward()
                 return loss
-            ...
 
             for input, output in data:
                 loss = loss_function(output, model(input))
