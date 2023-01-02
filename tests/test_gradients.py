@@ -75,7 +75,7 @@ def test_sparse_supported(sparse_optimizer):
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
-def test_bfp16_gradient(optimizer_name):
+def test_bf16_gradient(optimizer_name):
     # "addcmul_cpu_out" & "eye" not implemented for fp16, bfp16 but gpu op only
     if optimizer_name in ('shampoo', 'adabelief'):
         pytest.skip(optimizer_name)
