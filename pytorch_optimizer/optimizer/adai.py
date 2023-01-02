@@ -6,6 +6,7 @@ from torch.optim.optimizer import Optimizer
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSize
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
 class Adai(Optimizer, BaseOptimizer):
@@ -18,6 +19,7 @@ class Adai(Optimizer, BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param dampening: float. dampening for momentum. where dampening < 1,
         it will show some adaptive-moment behavior.
+    :param use_gc: bool. use gradient centralization.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -29,6 +31,7 @@ class Adai(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         dampening: float = 1.0,
+        use_gc: bool = False,
         eps: float = 1e-3,
     ):
         self.lr = lr
@@ -36,6 +39,7 @@ class Adai(Optimizer, BaseOptimizer):
         self.weight_decay = weight_decay
         self.weight_decouple = weight_decouple
         self.dampening = dampening
+        self.use_gc = use_gc
         self.eps = eps
 
         self.validate_parameters()
@@ -99,6 +103,9 @@ class Adai(Optimizer, BaseOptimizer):
 
                 exp_avg_sq = state['exp_avg_sq']
                 _, beta2 = group['betas']
+
+                if self.use_gc:
+                    grad = centralize_gradient(grad, gc_conv_only=False)
 
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
