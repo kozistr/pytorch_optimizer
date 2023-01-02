@@ -62,7 +62,7 @@ AGC
 diffGrad
 --------
 
-.. autoclass:: pytorch_optimizer.diffGrad
+.. autoclass:: pytorch_optimizer.DiffGrad
     :members:
 
 .. _diffRGrad:
@@ -70,7 +70,7 @@ diffGrad
 diffRGrad
 ---------
 
-.. autoclass:: pytorch_optimizer.diffRGrad
+.. autoclass:: pytorch_optimizer.DiffRGrad
     :members:
 
 .. _GC:
@@ -78,7 +78,7 @@ diffRGrad
 GC
 --
 
-.. autoclass:: pytorch_optimizer.gradient_centralization
+.. autoclass:: pytorch_optimizer.centralize_gradient
     :members:
 
 .. _Lamb:
@@ -87,4 +87,108 @@ Lamb
 ----
 
 .. autoclass:: pytorch_optimizer.Lamb
+    :members:
+
+.. _LARS:
+
+LARS
+----
+
+.. autoclass:: pytorch_optimizer.LARS
+    :members:
+
+.. _Lookahead:
+
+Lookahead
+---------
+
+.. autoclass:: pytorch_optimizer.Lookahead
+    :members:
+
+.. _MADGRAD:
+
+MADGRAD
+-------
+
+.. autoclass:: pytorch_optimizer.MADGRAD
+    :members:
+
+.. _Nero:
+
+Nero
+----
+
+.. autoclass:: pytorch_optimizer.Nero
+    :members:
+
+.. _PCGrad:
+
+PCGrad
+------
+
+.. autoclass:: pytorch_optimizer.PCGrad
+    :members:
+
+.. _PNM:
+
+PNM
+---
+
+.. autoclass:: pytorch_optimizer.PNM
+    :members:
+
+.. _RAdam:
+
+RAdam
+-----
+
+.. autoclass:: pytorch_optimizer.RAdam
+    :members:
+
+.. _RaLamb:
+
+RaLamb
+------
+
+.. autoclass:: pytorch_optimizer.RaLamb
+    :members:
+
+.. _Ranger:
+
+Ranger
+------
+
+.. autoclass:: pytorch_optimizer.Ranger
+    :members:
+
+.. _Ranger21:
+
+Ranger21
+--------
+
+.. autoclass:: pytorch_optimizer.Ranger21
+    :members:
+
+.. _SAM:
+
+SAM
+---
+
+.. autoclass:: pytorch_optimizer.SAM
+    :members:
+
+.. _SGDP:
+
+SGDP
+----
+
+.. autoclass:: pytorch_optimizer.SGDP
+    :members:
+
+.. _Shampoo:
+
+Shampoo
+-------
+
+.. autoclass:: pytorch_optimizer.Shampoo
     :members:
