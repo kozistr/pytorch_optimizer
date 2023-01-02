@@ -2,33 +2,21 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.utils import neuron_mean, neuron_norm
 
 
 class Nero(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/jxbz/nero
-    Example :
-        from pytorch_optimizer import Nero
-        ...
-        model = YourModel()
-        optimizer = Nero(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    """Learning by Turning: Neural Architecture Aware Optimisation
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param beta: float. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param constraints: bool.
     """
 
     def __init__(self, params: PARAMETERS, lr: float = 0.01, beta: float = 0.999, constraints: bool = True):
-        """AdamP optimizer
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param beta: float. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param constraints: bool.
-        """
         self.lr = lr
         self.beta = beta
 
@@ -40,6 +28,10 @@ class Nero(Optimizer, BaseOptimizer):
     def validate_parameters(self):
         self.validate_learning_rate(self.lr)
         self.validate_beta(self.beta)
+
+    @property
+    def __name__(self) -> str:
+        return 'Nero'
 
     @torch.no_grad()
     def reset(self):
@@ -72,7 +64,7 @@ class Nero(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('Nero does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 state = self.state[p]
                 if len(state) == 0:
