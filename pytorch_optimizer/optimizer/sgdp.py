@@ -2,24 +2,23 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.utils import projection
 
 
 class SGDP(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/clovaai/AdamP
-    Example :
-        from pytorch_optimizer import SGDP
-        ...
-        model = YourModel()
-        optimizer = SGDP(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""SGD + Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param momentum: float. momentum factor.
+    :param dampening: float. dampening for momentum.
+    :param eps: float. term added to the denominator to improve numerical stability.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param delta: float. threshold that determines whether a set of parameters is scale invariant or not.
+    :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
+        on scale-variant parameters.
+    :param nesterov: bool. enables nesterov momentum.
     """
 
     def __init__(
@@ -34,18 +33,6 @@ class SGDP(Optimizer, BaseOptimizer):
         wd_ratio: float = 0.1,
         nesterov: bool = False,
     ):
-        """SGDP optimizer
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param momentum: float. momentum factor
-        :param dampening: float. dampening for momentum
-        :param eps: float. term added to the denominator to improve numerical stability
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param delta: float. threshold that determines whether a set of parameters is scale invariant or not
-        :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
-            on scale-variant parameters
-        :param nesterov: bool. enables nesterov momentum
-        """
         self.lr = lr
         self.weight_decay = weight_decay
         self.wd_ratio = wd_ratio
@@ -95,7 +82,7 @@ class SGDP(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('SGDP does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 state = self.state[p]
                 if len(state) == 0:

@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSize
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.gc import centralize_gradient
@@ -13,20 +14,25 @@ from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
 
 
 class Ranger21(Optimizer, BaseOptimizer):
-    """
-    Reference 1 : https://github.com/lessw2020/Ranger21
-    Reference 2 : https://github.com/nestordemeure/flaxOptimizers/blob/main/flaxOptimizers/ranger21.py
-    Example :
-        from pytorch_optimizer import Ranger21
-        ...
-        model = YourModel()
-        optimizer = Ranger21(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""Ranger21 optimizer
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param beta0: float. Manages the amplitude of the noise introduced by positive negative momentum
+        While 0.9 is a recommended default value, you can use -0.5 to minimize the noise.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param use_softplus: bool. use softplus to smooth.
+    :param beta_softplus: float. beta.
+    :param agc_clipping_value: float.
+    :param agc_eps: float. eps for AGC
+    :param centralize_gradients: bool. use GC both convolution & fc layers.
+    :param normalize_gradients: bool. use gradient normalization.
+    :param lookahead_merge_time: int. merge time.
+    :param lookahead_blending_alpha: float. blending alpha.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param norm_loss_factor: float. norm loss factor.
+    :param adamd_debias_term: bool.Only correct the denominator to avoid inflating step sizes early in training.
+    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(  # pylint: disable=R0913
@@ -52,25 +58,6 @@ class Ranger21(Optimizer, BaseOptimizer):
         adamd_debias_term: bool = False,
         eps: float = 1e-8,
     ):
-        """Ranger21 optimizer
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param beta0: float. Manages the amplitude of the noise introduced by positive negative momentum
-            While 0.9 is a recommended default value, you can use -0.5 to minimize the noise
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param use_softplus: bool. use softplus to smooth
-        :param beta_softplus: float. beta
-        :param agc_clipping_value: float.
-        :param agc_eps: float. eps for AGC
-        :param centralize_gradients: bool. use GC both convolution & fc layers
-        :param normalize_gradients: bool. use gradient normalization
-        :param lookahead_merge_time: int. merge time
-        :param lookahead_blending_alpha: float. blending alpha
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param norm_loss_factor: float. norm loss factor
-        :param adamd_debias_term: bool.Only correct the denominator to avoid inflating step sizes early in training
-        :param eps: float. term added to the denominator to improve numerical stability
-        """
         self.lr = lr
         self.beta0 = beta0
         self.betas = betas
@@ -200,7 +187,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('Ranger21 does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 param_size += p.numel()
 
@@ -236,7 +223,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
         # stable weight decay
         if param_size == 0:
-            raise ValueError('[-] param_size is 0')
+            raise ZeroParameterSize()
 
         variance_normalized = math.sqrt(variance_ma_sum / param_size)
         if math.isnan(variance_normalized):

@@ -4,23 +4,22 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class RaLamb(Optimizer, BaseOptimizer):
-    """
-    Reference : https://gist.github.com/redknightlois/c4023d393eb8f92bb44b2ab582d7ec20
-    Example :
-        from pytorch_optimizer import RaLamb
-        ...
-        model = YourModel()
-        optimizer = RaLamb(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""RAdam + LAMB. Large Batch Optimization for Deep Learning
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param eps: float. term added to the denominator to improve numerical stability.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param pre_norm: bool. perform pre-normalization of all gradients.
+    :param n_sma_threshold: int. (recommended is 5).
+    :param degenerated_to_sgd: float. degenerated to SGD.
     """
 
     clamp: float = 10.0
@@ -37,17 +36,6 @@ class RaLamb(Optimizer, BaseOptimizer):
         n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = False,
     ):
-        """RaLamb
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator to improve numerical stability
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
-        :param pre_norm: bool. perform pre-normalization of all gradients
-        :param n_sma_threshold: int. (recommended is 5)
-        :param degenerated_to_sgd: float. degenerated to SGD
-        """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
@@ -75,6 +63,10 @@ class RaLamb(Optimizer, BaseOptimizer):
         self.validate_betas(self.betas)
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
+
+    @property
+    def __name__(self) -> str:
+        return 'RaLamb'
 
     @torch.no_grad()
     def reset(self):
@@ -121,7 +113,7 @@ class RaLamb(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('RaLamb does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 if grad.dtype in (torch.float16, torch.bfloat16):
                     grad = grad.float()
