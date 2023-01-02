@@ -1,5 +1,5 @@
 Implemented LR Schedulers
-====================
+=========================
 
 .. _get_chebyshev_schedule:
 
