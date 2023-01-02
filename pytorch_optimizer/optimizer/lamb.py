@@ -4,23 +4,20 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class Lamb(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/cybertronai/pytorch-lamb/blob/master/pytorch_lamb/lamb.py
-    Example :
-        from pytorch_optimizer import Lamb
-        ...
-        model = YourModel()
-        optimizer = Lamb(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""Large Batch Optimization for Deep Learning
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param eps: float. term added to the denominator to improve numerical stability.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param pre_norm: bool. perform pre-normalization of all gradients.
     """
 
     clamp: float = 10.0
@@ -36,15 +33,6 @@ class Lamb(Optimizer, BaseOptimizer):
         adamd_debias_term: bool = False,
         pre_norm: bool = False,
     ):
-        """Lamb
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator to improve numerical stability
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
-        :param pre_norm: bool. perform pre-normalization of all gradients
-        """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
@@ -64,6 +52,10 @@ class Lamb(Optimizer, BaseOptimizer):
         self.validate_betas(self.betas)
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
+
+    @property
+    def __name__(self) -> str:
+        return 'LAMB'
 
     @torch.no_grad()
     def reset(self):
@@ -109,7 +101,7 @@ class Lamb(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('Lamb does not support sparse gradients, consider SparseAdam instead.')
+                    raise NoSparseGradientError(self.__name__)
 
                 state = self.state[p]
 
