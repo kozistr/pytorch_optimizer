@@ -376,12 +376,18 @@ def test_no_closure():
 
 
 def test_sam_no_gradient():
-    param = torch.randn(1, 1).requires_grad_(False)
-    param.grad = torch.randn(1, 1)
+    (x_data, y_data), model, loss_fn = build_environment()
+    model.fc1.require_grads = False
 
-    optimizer = SAM([param], AdamP)
+    optimizer = SAM(model.parameters(), AdamP)
     optimizer.zero_grad()
-    optimizer.step(closure=dummy_closure)
+
+    loss = loss_fn(y_data, model(x_data))
+    loss.backward()
+    optimizer.first_step(zero_grad=True)
+
+    loss_fn(y_data, model(x_data)).backward()
+    optimizer.second_step(zero_grad=True)
 
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
