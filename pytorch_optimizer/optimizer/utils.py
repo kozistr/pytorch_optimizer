@@ -71,14 +71,14 @@ def cosine_similarity_by_view(
 
 
 def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> Union[torch.Tensor, float]:
-    """Clips grad norms.
-    During combination with FSDP, will also ensure that grad norms are aggregated
-    across all workers, since each worker only stores their shard of the gradients
-    :param parameters: Parameters whose gradients we wish to clip
-    :param max_norm: Maximum norm we wish the gradients to have. If non-positive, then
-        we will not perform clipping
-    :param sync: Boolean indicating whether we should aggregate across the distributed
-        group. Used only in combination with FSDP
+    r"""Clips gradient norms. During combination with FSDP, will also ensure that grad norms are aggregated
+        across all workers, since each worker only stores their shard of the gradients.
+
+    :param parameters: PARAMETERS. Parameters whose gradients we wish to clip.
+    :param max_norm: float. Maximum norm we wish the gradients to have. If non-positive, then
+        we will not perform clipping.
+    :param sync: bool. Boolean indicating whether we should aggregate across the distributed group.
+        Used only in combination with FSDP.
     :returns: The gradient norm across all parameters, before clipping.
     """
     if isinstance(parameters, torch.Tensor):
