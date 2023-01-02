@@ -30,6 +30,7 @@ from pytorch_optimizer import (
     SafeFP16Optimizer,
     Shampoo,
 )
+from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from tests.utils import (
     MultiHeadLogisticRegression,
     build_environment,
@@ -53,6 +54,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'weight_decouple': False}, 100),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 100),
     (Adai, {'lr': 1e-1, 'weight_decay': 0.0}, 200),
+    (Adai, {'lr': 1e-1, 'weight_decay': 0.0, 'use_gc': True}, 200),
     (Adai, {'lr': 1e-1, 'weight_decay': 0.0, 'dampening': 0.9}, 200),
     (Adai, {'lr': 1e-1, 'weight_decay': 1e-4, 'weight_decouple': False}, 200),
     (Adai, {'lr': 1e-1, 'weight_decay': 1e-4, 'weight_decouple': True}, 200),
@@ -103,6 +105,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
+    (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
 ]
 
 
@@ -358,8 +361,33 @@ def test_closure(optimizer):
 
     try:
         optimizer.step(closure=dummy_closure)
-    except ValueError:  # in case of Ranger21, Adai optimizers
+    except ZeroParameterSizeError:  # in case of Ranger21, Adai optimizers
         pass
+
+
+def test_no_closure():
+    _, model, _ = build_environment()
+
+    optimizer = SAM(model.parameters(), AdamP)
+    optimizer.zero_grad()
+
+    with pytest.raises(NoClosureError):
+        optimizer.step()
+
+
+def test_sam_no_gradient():
+    (x_data, y_data), model, loss_fn = build_environment()
+    model.fc1.require_grads = False
+
+    optimizer = SAM(model.parameters(), AdamP)
+    optimizer.zero_grad()
+
+    loss = loss_fn(y_data, model(x_data))
+    loss.backward()
+    optimizer.first_step(zero_grad=True)
+
+    loss_fn(y_data, model(x_data)).backward()
+    optimizer.second_step(zero_grad=True)
 
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)

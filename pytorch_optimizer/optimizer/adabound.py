@@ -5,23 +5,24 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class AdaBound(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/Luolc/AdaBound
-    Example :
-        from pytorch_optimizer import AdaBound
-        ...
-        model = YourModel()
-        optimizer = AdaBound(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""Adaptive Gradient Methods with Dynamic Bound of Learning Rate
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param final_lr: float. final learning rate.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param gamma: float. convergence speed of the bound functions.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
+    :param amsbound: bool. whether to use the AMSBound variant.
+    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(
@@ -38,19 +39,6 @@ class AdaBound(Optimizer, BaseOptimizer):
         adamd_debias_term: bool = False,
         eps: float = 1e-8,
     ):
-        """AdaBound
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param final_lr: float. final learning rate
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param gamma: float. convergence speed of the bound functions
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
-        :param fixed_decay: bool. fix weight decay
-        :param amsbound: bool. whether to use the AMSBound variant
-        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
-        :param eps: float. term added to the denominator to improve numerical stability
-        """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
@@ -80,6 +68,10 @@ class AdaBound(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
+    @property
+    def __name__(self) -> str:
+        return 'AdaBound'
+
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
@@ -106,7 +98,7 @@ class AdaBound(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('AdaBound does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 state = self.state[p]
 
@@ -120,13 +112,12 @@ class AdaBound(Optimizer, BaseOptimizer):
                 state['step'] += 1
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                if self.weight_decouple:
-                    if not self.fixed_decay:
-                        p.mul_(1.0 - group['lr'] * group['weight_decay'])
+                if group['weight_decay'] != 0:
+                    if self.weight_decouple:
+                        p.mul_(
+                            1.0 - (group['weight_decay'] if self.fixed_decay else group['lr'] * group['weight_decay'])
+                        )
                     else:
-                        p.mul_(1.0 - group['weight_decay'])
-                else:
-                    if group['weight_decay'] != 0:
                         grad.add_(p, alpha=group['weight_decay'])
 
                 beta1, beta2 = group['betas']

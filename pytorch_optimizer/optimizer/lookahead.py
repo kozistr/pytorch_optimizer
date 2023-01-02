@@ -9,20 +9,12 @@ from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER, STA
 
 
 class Lookahead(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/alphadl/lookahead.pytorch
-    Example :
-        from pytorch_optimizer import AdamP, Lookahead
-        ...
-        model = YourModel()
-        base_optimizer = AdamP(model.parameters())
-        optimizer = Lookahead(base_optimizer)
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""k steps forward, 1 step back
+
+    :param optimizer: OPTIMIZER. base optimizer.
+    :param k: int. number of lookahead steps.
+    :param alpha: float. linear interpolation factor.
+    :param pullback_momentum: str. change to inner optimizer momentum on interpolation update.
     """
 
     def __init__(  # pylint: disable=super-init-not-called
@@ -32,12 +24,6 @@ class Lookahead(Optimizer, BaseOptimizer):
         alpha: float = 0.5,
         pullback_momentum: str = 'none',
     ):
-        """Lookahead
-        :param optimizer: OPTIMIZER. base optimizer
-        :param k: int. number of lookahead steps
-        :param alpha: float. linear interpolation factor
-        :param pullback_momentum: str. change to inner optimizer momentum on interpolation update
-        """
         self.optimizer = optimizer
         self.k = k
         self.alpha = alpha

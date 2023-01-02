@@ -9,7 +9,7 @@ from pytorch_optimizer.optimizer.utils import clip_grad_norm, has_overflow
 
 
 class DynamicLossScaler:
-    """Dynamically adjusts the loss scaling factor.
+    r"""Dynamically adjusts the loss scaling factor.
     Dynamic loss scalers are important in mixed-precision training.
     They help us avoid underflows and overflows in low-precision gradients.
 
@@ -21,6 +21,12 @@ class DynamicLossScaler:
 
     Reference : 'https://github.com/facebookresearch/ParlAI/blob/main/parlai/utils/fp16.py'
 
+    :param init_scale: Initial loss scale.
+    :param scale_factor: Factor by which to increase or decrease loss scale.
+    :param scale_window: If we do not experience overflow in scale_window iterations,
+        loss scale will increase by scale_factor.
+    :param tolerance: Pct of iterations that have overflowed after which we must decrease the loss scale.
+    :param threshold: If not None, loss scale will decrease below this threshold.
     """
 
     def __init__(
@@ -31,14 +37,6 @@ class DynamicLossScaler:
         tolerance: float = 0.00,
         threshold: Optional[float] = None,
     ):  # fmt: skip
-        """Dynamic Loss Scaler for fp16 training
-        :param init_scale: Initial loss scale
-        :param scale_factor: Factor by which to increase or decrease loss scale
-        :param scale_window: If we do not experience overflow in scale_window iterations,
-            loss scale will increase by scale_factor
-        :param tolerance: Pct of iterations that have overflowed after which we must decrease the loss scale
-        :param threshold: If not None, loss scale will decrease below this threshold
-        """
         self.loss_scale = init_scale
         self.scale_factor = scale_factor
         self.scale_window = scale_window
@@ -54,6 +52,8 @@ class DynamicLossScaler:
         """Update the loss scale.
         If overflow exceeds our tolerance, we decrease the loss scale. If the number of
         iterations since the last overflow exceeds the scale window, we increase the loss scale.
+
+        :param overflow: bool. adjust scales to prevent overflow.
         """
         iter_since_rescale: int = self.iter - self.last_rescale_iter
 

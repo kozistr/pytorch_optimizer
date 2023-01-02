@@ -2,23 +2,19 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class LARS(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/facebookresearch/mae/blob/main/util/lars.py
-    Example :
-        from pytorch_optimizer import LARS
-        ...
-        model = YourModel()
-        optimizer = LARS(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""Layer-wise Adaptive Rate Scaling (no rate scaling or weight decay for parameters <= 1D)
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param momentum: float. momentum.
+    :param trust_coefficient: float. trust_coefficient.
+    :param eps: float. epsilon.
     """
 
     def __init__(
@@ -30,14 +26,6 @@ class LARS(Optimizer, BaseOptimizer):
         trust_coefficient: float = 0.001,
         eps: float = 1e-6,
     ):
-        """LARS optimizer, no rate scaling or weight decay for parameters <= 1D
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param momentum: float. momentum
-        :param trust_coefficient: float. trust_coefficient
-        :param eps: float. epsilon
-        """
         self.lr = lr
         self.weight_decay = weight_decay
         self.momentum = momentum
@@ -61,6 +49,10 @@ class LARS(Optimizer, BaseOptimizer):
         self.validate_trust_coefficient(self.trust_coefficient)
         self.validate_epsilon(self.eps)
 
+    @property
+    def __name__(self) -> str:
+        return 'Lars'
+
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
@@ -83,7 +75,7 @@ class LARS(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('LARS does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 if p.ndim > 1:  # if not normalization gamma/beta or bias
                     grad = grad.add(p, alpha=g['weight_decay'])

@@ -7,8 +7,16 @@ from pytorch_optimizer.base.types import OPTIMIZER
 
 
 class CosineAnnealingWarmupRestarts(_LRScheduler):
-    """
-    Reference : https://github.com/katsura-jp/pytorch-cosine-annealing-with-warmup/
+    r"""CosineAnnealingWarmupRestarts
+
+    :param optimizer: Optimizer. wrapped optimizer instance.
+    :param first_cycle_steps: int. first cycle step size.
+    :param cycle_mult: float. cycle steps magnification.
+    :param max_lr: float.
+    :param min_lr: float.
+    :param warmup_steps: int. number of warmup steps.
+    :param gamma: float. decrease rate of lr by cycle.
+    :param last_epoch: int. step size of the current cycle.
     """
 
     def __init__(
@@ -22,16 +30,6 @@ class CosineAnnealingWarmupRestarts(_LRScheduler):
         gamma: float = 0.9,
         last_epoch: int = -1,
     ):
-        """
-        :param optimizer: Optimizer. wrapped optimizer instance
-        :param first_cycle_steps: int. first cycle step size
-        :param cycle_mult: float. cycle steps magnification
-        :param max_lr: float.
-        :param min_lr: float.
-        :param warmup_steps: int. number of warmup steps
-        :param gamma: float. decrease rate of lr by cycle
-        :param last_epoch: int. step size of the current cycle.
-        """
         if warmup_steps >= first_cycle_steps:
             raise ValueError(
                 f'[-] warmup_steps must be smaller than first_cycle_steps. {warmup_steps} < {first_cycle_steps}'

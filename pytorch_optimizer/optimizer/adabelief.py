@@ -4,23 +4,25 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class AdaBelief(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/juntang-zhuang/Adabelief-Optimizer
-    Example :
-        from pytorch_optimizer import AdaBelief
-        ...
-        model = YourModel()
-        optimizer = AdaBelief(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""Adapting Step-sizes by the Belief in Observed Gradients
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param n_sma_threshold: number of SMA threshold (recommended is 5).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
+    :param rectify: bool. perform the rectified update similar to RAdam.
+    :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high.
+    :param amsgrad: bool. whether to use the AMSBound variant.
+    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(
@@ -38,20 +40,6 @@ class AdaBelief(Optimizer, BaseOptimizer):
         adamd_debias_term: bool = False,
         eps: float = 1e-16,
     ):
-        """AdaBelief optimizer
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param n_sma_threshold: (recommended is 5)
-        :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
-        :param fixed_decay: bool. fix weight decay
-        :param rectify: bool. perform the rectified update similar to RAdam
-        :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high
-        :param amsgrad: bool. whether to use the AMSBound variant
-        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
-        :param eps: float. term added to the denominator to improve numerical stability
-        """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
@@ -82,6 +70,10 @@ class AdaBelief(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
+    @property
+    def __name__(self) -> str:
+        return 'AdaBelief'
+
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
@@ -108,7 +100,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('AdaBelief does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 if grad.dtype in (torch.float16, torch.bfloat16):
                     grad = grad.float()

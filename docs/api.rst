@@ -1,0 +1,194 @@
+Implemented Optimizers
+====================
+
+.. _AdaBelief:
+
+AdaBelief
+---------
+
+.. autoclass:: pytorch_optimizer.AdaBelief
+    :members:
+
+.. _AdaBound:
+
+AdaBound
+--------
+
+.. autoclass:: pytorch_optimizer.AdaBound
+    :members:
+
+.. _Adai:
+
+Adai
+----
+
+.. autoclass:: pytorch_optimizer.Adai
+    :members:
+
+.. _AdamP:
+
+AdamP
+-----
+
+.. autoclass:: pytorch_optimizer.AdamP
+    :members:
+
+.. _Adan:
+
+Adan
+----
+
+.. autoclass:: pytorch_optimizer.Adan
+    :members:
+
+.. _AdaPNM:
+
+AdaPNM
+------
+
+.. autoclass:: pytorch_optimizer.AdaPNM
+    :members:
+
+.. _AGC:
+
+AGC
+---
+
+.. autoclass:: pytorch_optimizer.AGC
+    :members:
+
+.. _diffGrad:
+
+diffGrad
+--------
+
+.. autoclass:: pytorch_optimizer.DiffGrad
+    :members:
+
+.. _diffRGrad:
+
+diffRGrad
+---------
+
+.. autoclass:: pytorch_optimizer.DiffRGrad
+    :members:
+
+.. _GC:
+
+GC
+--
+
+.. autoclass:: pytorch_optimizer.centralize_gradient
+    :members:
+
+.. _Lamb:
+
+Lamb
+----
+
+.. autoclass:: pytorch_optimizer.Lamb
+    :members:
+
+.. _LARS:
+
+LARS
+----
+
+.. autoclass:: pytorch_optimizer.LARS
+    :members:
+
+.. _Lookahead:
+
+Lookahead
+---------
+
+.. autoclass:: pytorch_optimizer.Lookahead
+    :members:
+
+.. _MADGRAD:
+
+MADGRAD
+-------
+
+.. autoclass:: pytorch_optimizer.MADGRAD
+    :members:
+
+.. _Nero:
+
+Nero
+----
+
+.. autoclass:: pytorch_optimizer.Nero
+    :members:
+
+.. _PCGrad:
+
+PCGrad
+------
+
+.. autoclass:: pytorch_optimizer.PCGrad
+    :members:
+
+.. _PNM:
+
+PNM
+---
+
+.. autoclass:: pytorch_optimizer.PNM
+    :members:
+
+.. _RAdam:
+
+RAdam
+-----
+
+.. autoclass:: pytorch_optimizer.RAdam
+    :members:
+
+.. _RaLamb:
+
+RaLamb
+------
+
+.. autoclass:: pytorch_optimizer.RaLamb
+    :members:
+
+.. _Ranger:
+
+Ranger
+------
+
+.. autoclass:: pytorch_optimizer.Ranger
+    :members:
+
+.. _Ranger21:
+
+Ranger21
+--------
+
+.. autoclass:: pytorch_optimizer.Ranger21
+    :members:
+
+.. _SAM:
+
+SAM
+---
+
+.. autoclass:: pytorch_optimizer.SAM
+    :members:
+
+.. _SGDP:
+
+SGDP
+----
+
+.. autoclass:: pytorch_optimizer.SGDP
+    :members:
+
+.. _Shampoo:
+
+Shampoo
+-------
+
+.. autoclass:: pytorch_optimizer.Shampoo
+    :members:

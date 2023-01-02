@@ -2,24 +2,20 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.utils import matrix_power
 
 
 class Shampoo(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/moskomule/shampoo.pytorch/blob/master/shampoo.py
-    Example :
-        from pytorch_optimizer import Shampoo
-        ...
-        model = YourModel()
-        optimizer = Shampoo(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""Preconditioned Stochastic Tensor Optimization
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param momentum: float. momentum.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param update_freq: int. update frequency to compute inverse.
+    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(
@@ -31,14 +27,6 @@ class Shampoo(Optimizer, BaseOptimizer):
         update_freq: int = 1,
         eps: float = 1e-4,
     ):
-        """Shampoo optimizer
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param momentum: float. momentum
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param update_freq: int. update frequency to compute inverse
-        :param eps: float. term added to the denominator to improve numerical stability
-        """
         self.lr = lr
         self.momentum = momentum
         self.weight_decay = weight_decay
@@ -63,6 +51,10 @@ class Shampoo(Optimizer, BaseOptimizer):
         self.validate_update_frequency(self.update_freq)
         self.validate_epsilon(self.eps)
 
+    @property
+    def __name__(self) -> str:
+        return 'Shampoo'
+
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
@@ -85,7 +77,7 @@ class Shampoo(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('Shampoo does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 momentum = group['momentum']
                 state = self.state[p]

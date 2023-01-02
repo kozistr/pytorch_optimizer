@@ -4,23 +4,23 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
 class Adai(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/zeke-xie/adaptive-inertia-adai
-    Example :
-        from pytorch_optimizer import Adai
-        ...
-        model = YourModel()
-        optimizer = Adai(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""Disentangling the Effects of Adaptive Learning Rate and Momentum
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param dampening: float. dampening for momentum. where dampening < 1,
+        it will show some adaptive-moment behavior.
+    :param use_gc: bool. use gradient centralization.
+    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(
@@ -31,23 +31,15 @@ class Adai(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         dampening: float = 1.0,
+        use_gc: bool = False,
         eps: float = 1e-3,
     ):
-        """Adai
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW
-        :param dampening: float. dampening for momentum. where dampening < 1,
-            it will show some adaptive-moment behavior
-        :param eps: float. term added to the denominator to improve numerical stability
-        """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
         self.weight_decouple = weight_decouple
         self.dampening = dampening
+        self.use_gc = use_gc
         self.eps = eps
 
         self.validate_parameters()
@@ -66,6 +58,10 @@ class Adai(Optimizer, BaseOptimizer):
         self.validate_betas(self.betas)
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
+
+    @property
+    def __name__(self) -> str:
+        return 'Adai'
 
     @torch.no_grad()
     def reset(self):
@@ -95,7 +91,7 @@ class Adai(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('Adai does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 param_size += p.numel()
 
@@ -112,6 +108,9 @@ class Adai(Optimizer, BaseOptimizer):
                 exp_avg_sq = state['exp_avg_sq']
                 _, beta2 = group['betas']
 
+                if self.use_gc:
+                    grad = centralize_gradient(grad, gc_conv_only=False)
+
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
                 if group['weight_decay'] != 0:
@@ -125,7 +124,7 @@ class Adai(Optimizer, BaseOptimizer):
                 exp_avg_sq_hat_sum += exp_avg_sq.sum() / bias_correction2
 
         if param_size == 0:
-            raise ValueError('[-] param_size is 0')
+            raise ZeroParameterSizeError()
 
         exp_avg_sq_hat_mean = exp_avg_sq_hat_sum / param_size
 
@@ -141,12 +140,12 @@ class Adai(Optimizer, BaseOptimizer):
                 beta1_prod = state['beta1_prod']
                 beta0, beta2 = group['betas']
 
-                bias_correction2 = 1 - beta2 ** state['step']
+                bias_correction2 = 1.0 - beta2 ** state['step']
 
                 exp_avg_sq_hat = exp_avg_sq / bias_correction2
                 beta1 = (
-                    1.0 - (exp_avg_sq_hat / exp_avg_sq_hat_mean).pow(1.0 / (3 - 2 * group['dampening'])).mul(beta0)
-                ).clamp(0.0, 1 - group['eps'])
+                    1.0 - (exp_avg_sq_hat / exp_avg_sq_hat_mean).pow(1.0 / (3.0 - 2.0 * group['dampening'])).mul(beta0)
+                ).clamp(0.0, 1.0 - group['eps'])
                 beta3 = (1.0 - beta1).pow(group['dampening'])
 
                 beta1_prod.mul_(beta1)

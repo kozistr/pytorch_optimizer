@@ -4,23 +4,21 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class RAdam(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/LiyuanLucasLiu/RAdam/
-    Example :
-        from pytorch_optimizer import RAdam
-        ...
-        model = YourModel()
-        optimizer = RAdam(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""Rectified Adam
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param n_sma_threshold: int. (recommended is 5).
+    :param degenerated_to_sgd: float. degenerated to SGD.
+    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(
@@ -34,16 +32,6 @@ class RAdam(Optimizer, BaseOptimizer):
         adamd_debias_term: bool = False,
         eps: float = 1e-8,
     ):
-        """RAdam optimizer
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param n_sma_threshold: int. (recommended is 5)
-        :param degenerated_to_sgd: float. degenerated to SGD
-        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
-        :param eps: float. term added to the denominator to improve numerical stability
-        """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
@@ -70,6 +58,10 @@ class RAdam(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
+    @property
+    def __name__(self) -> str:
+        return 'RAdam'
+
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
@@ -94,7 +86,7 @@ class RAdam(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('AdaBelief does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 if grad.dtype in (torch.float16, torch.bfloat16):
                     grad = grad.float()

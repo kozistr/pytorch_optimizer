@@ -4,23 +4,19 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class DiffGrad(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/shivram1987/diffGrad
-    Example :
-        from pytorch_optimizer import DiffGrad
-        ...
-        model = YourModel()
-        optimizer = DiffGrad(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""An Optimization Method for Convolutional Neural Networks
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param eps: float. term added to the denominator to improve numerical stability.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
     """
 
     def __init__(
@@ -32,14 +28,6 @@ class DiffGrad(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         adamd_debias_term: bool = False,
     ):
-        """DiffGrad optimizer
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param eps: float. term added to the denominator to improve numerical stability
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
-        """
         self.lr = lr
         self.eps = eps
         self.betas = betas
@@ -57,6 +45,10 @@ class DiffGrad(Optimizer, BaseOptimizer):
         self.validate_betas(self.betas)
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
+
+    @property
+    def __name__(self) -> str:
+        return 'diffGrad'
 
     @torch.no_grad()
     def reset(self):
@@ -83,7 +75,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('diffGrad does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 state = self.state[p]
                 if len(state) == 0:
@@ -103,6 +95,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
                 # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
