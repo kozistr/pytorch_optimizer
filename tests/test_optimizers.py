@@ -391,10 +391,20 @@ def test_sam_no_gradient():
     optimizer.second_step(zero_grad=True)
 
 
+def test_nero_zero_scale():
+    (x_data, y_data), model, loss_fn = build_environment()
+    model.fc1.weight.data = torch.zeros((2, 2))
+
+    optimizer = Nero(model.parameters())
+    optimizer.zero_grad()
+    loss_fn(model(x_data), y_data).backward()
+    optimizer.step()
+
+
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 def test_reset(optimizer_config):
     _, model, _ = build_environment()
-    model.fc1.weight.data = torch.zeros((1, 1))  # for Nero optimizer
+    model.fc1.weight.data = torch.zeros((2, 2))  # for Nero optimizer
 
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
