@@ -30,7 +30,7 @@ from pytorch_optimizer import (
     SafeFP16Optimizer,
     Shampoo,
 )
-from pytorch_optimizer.base.exception import ZeroParameterSizeError, NoClosureError
+from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from tests.utils import (
     MultiHeadLogisticRegression,
     build_environment,
