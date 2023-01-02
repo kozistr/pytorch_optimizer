@@ -3,9 +3,9 @@ from typing import List
 import pytest
 import torch
 from torch import nn
-from torch.nn import functional as F
 
-from pytorch_optimizer import SAM, Adai, AdamP, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
+from pytorch_optimizer import SAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
+from pytorch_optimizer.base.exception import ZeroParameterSize
 from tests.utils import Example
 
 OPTIMIZER_NAMES: List[str] = [
@@ -193,7 +193,7 @@ def test_sam_methods():
 def test_safe_fp16_methods():
     model: nn.Module = Example()
 
-    optimizer = SafeFP16Optimizer(AdamP(model.parameters(), lr=5e-1))
+    optimizer = SafeFP16Optimizer(load_optimizer('adamp')(model.parameters(), lr=5e-1))
     optimizer.load_state_dict(optimizer.state_dict())
     optimizer.scaler.decrease_loss_scale()
     optimizer.zero_grad()
@@ -214,18 +214,18 @@ def test_ranger21_warm_methods():
     assert Ranger21.build_warm_down_iterations(1000) == 280
 
 
-@pytest.mark.parametrize('optimizer', [Ranger21, Adai])
+@pytest.mark.parametrize('optimizer', ['ranger21', 'adai'])
 def test_size_of_parameter(optimizer):
     model: nn.Module = nn.Linear(1, 1, bias=False)
     model.requires_grad_(False)
 
-    with pytest.raises(ValueError):
-        optimizer(model.parameters(), 100).step()
+    with pytest.raises(ZeroParameterSize):
+        load_optimizer(optimizer)(model.parameters(), 100).step()
 
 
 def test_ranger21_closure():
     model: nn.Module = Example()
-    optimizer = Ranger21(model.parameters(), num_iterations=100, betas=(0.9, 1e-9))
+    optimizer = load_optimizer('ranger21')(model.parameters(), num_iterations=100, betas=(0.9, 1e-9))
 
     loss_fn = nn.BCEWithLogitsLoss()
 
