@@ -254,12 +254,11 @@ def test_no_closure():
 
 
 def test_nero_zero_scale():
-    (x_data, y_data), model, loss_fn = build_environment()
-    model.fc1.weight.data = torch.zeros((2, 2))
+    param = torch.zeros(1, 1).requires_grad_(True)
 
-    optimizer = Nero(model.parameters())
+    optimizer = Nero([param], constraints=False)
     optimizer.zero_grad()
-    loss_fn(model(x_data), y_data).backward()
+    param.grad = torch.zeros(1, 1)
     optimizer.step()
 
 
