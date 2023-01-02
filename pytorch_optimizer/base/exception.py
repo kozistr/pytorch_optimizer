@@ -19,7 +19,7 @@ class ZeroParameterSizeError(Exception):
         super().__init__(self.message)
 
 
-class ClosureError(Exception):
+class NoClosureError(Exception):
     """Raised when there's no closure function"""
 
     def __init__(self, optimizer_name: str):
