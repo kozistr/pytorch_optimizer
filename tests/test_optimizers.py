@@ -263,7 +263,7 @@ def test_nero_zero_scale():
     optimizer.step()
 
 
-@pytest.mark.parametrize('optimizer_name', ['diffrgrad', 'adabelief'])
+@pytest.mark.parametrize('optimizer_name', ['diffrgrad', 'adabelief', 'radam', 'ralamb'])
 def test_rectified_optimizer(optimizer_name):
     param = simple_parameter()
 
