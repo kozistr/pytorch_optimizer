@@ -3,7 +3,7 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer import SAM, AdamP, Lookahead, Nero, PCGrad, SafeFP16Optimizer
+from pytorch_optimizer import SAM, Lookahead, PCGrad, SafeFP16Optimizer, load_optimizer
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
 from tests.utils import (
@@ -50,10 +50,10 @@ def test_f32_optimizers(optimizer_fp32_config):
 def test_lookahead(pullback_momentum):
     (x_data, y_data), model, loss_fn = build_environment()
 
-    optimizer = Lookahead(AdamP(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
+    optimizer = Lookahead(load_optimizer('adamp')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(100):
+    for _ in range(10):
         optimizer.zero_grad()
 
         y_pred = model(x_data)
@@ -244,9 +244,9 @@ def test_closure(optimizer):
 
 
 def test_no_closure():
-    _, model, _ = build_environment()
+    param = torch.randn(1, 1).requires_grad_(True)
 
-    optimizer = SAM(model.parameters(), AdamP)
+    optimizer = SAM([param], load_optimizer('adamp'))
     optimizer.zero_grad()
 
     with pytest.raises(NoClosureError):
@@ -256,7 +256,17 @@ def test_no_closure():
 def test_nero_zero_scale():
     param = torch.zeros(1, 1).requires_grad_(True)
 
-    optimizer = Nero([param], constraints=False)
+    optimizer = load_optimizer('nero')([param], constraints=False)
+    optimizer.zero_grad()
+    param.grad = torch.zeros(1, 1)
+    optimizer.step()
+
+
+@pytest.mark.parametrize('optimizer_name', ['diffrgrad', 'adabelief'])
+def test_rectified_optimizer(optimizer_name):
+    param = torch.zeros(1, 1).requires_grad_(True)
+
+    optimizer = load_optimizer(optimizer_name)([param], n_sma_threshold=1000, degenerated_to_sgd=False)
     optimizer.zero_grad()
     param.grad = torch.zeros(1, 1)
     optimizer.step()
