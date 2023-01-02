@@ -4,25 +4,21 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class DiffRGrad(Optimizer, BaseOptimizer):
-    """
-    Reference 1 : https://github.com/shivram1987/diffGrad
-    Reference 2 : https://github.com/LiyuanLucasLiu/RAdam
-    Reference 3 : https://github.com/lessw2020/Best-Deep-Learning-Optimizers/blob/master/diffgrad/diff_rgrad.py
-    Example :
-        from pytorch_optimizer import DiffRGrad
-        ...
-        model = YourModel()
-        optimizer = DiffRGrad(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""RAdam + DiffGrad
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param n_sma_threshold: int. (recommended is 5).
+    :param degenerated_to_sgd: bool. degenerated to SGD.
+    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(
@@ -36,16 +32,6 @@ class DiffRGrad(Optimizer, BaseOptimizer):
         adamd_debias_term: bool = False,
         eps: float = 1e-8,
     ):
-        """Blend RAdam with DiffGrad
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param n_sma_threshold: int. (recommended is 5)
-        :param degenerated_to_sgd: bool. degenerated to SGD
-        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
-        :param eps: float. term added to the denominator to improve numerical stability
-        """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
@@ -70,6 +56,10 @@ class DiffRGrad(Optimizer, BaseOptimizer):
         self.validate_betas(self.betas)
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
+
+    @property
+    def __name__(self) -> str:
+        return 'diffRGrad'
 
     @torch.no_grad()
     def reset(self):
@@ -96,7 +86,7 @@ class DiffRGrad(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('AdaBelief does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 if grad.dtype in (torch.float16, torch.bfloat16):
                     grad = grad.float()
