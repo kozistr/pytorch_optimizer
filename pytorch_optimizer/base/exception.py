@@ -11,9 +11,17 @@ class NoSparseGradientError(Exception):
         super().__init__(self.message)
 
 
-class ZeroParameterSize(Exception):
+class ZeroParameterSizeError(Exception):
     """Raised when the parameter size is 0"""
 
     def __init__(self):
         self.message: str = '[-] parameter size is 0'
+        super().__init__(self.message)
+
+
+class ClosureError(Exception):
+    """Raised when there's no closure function"""
+
+    def __init__(self, optimizer_name: str):
+        self.message: str = f'[-] {optimizer_name} requires closure.'
         super().__init__(self.message)
