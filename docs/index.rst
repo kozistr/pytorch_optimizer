@@ -18,11 +18,10 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   api
+   optimizer_api
+   scheduler_api
 
 Indices and tables
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
