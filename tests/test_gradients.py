@@ -1,13 +1,13 @@
 import pytest
 import torch
 
-from pytorch_optimizer import SAM, AdamP, load_optimizer
+from pytorch_optimizer import SAM, AdamP, load_optimizer, Lookahead
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
 from tests.utils import build_environment, simple_parameter
 
 
-@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
+@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES + ['lookahead'])
 def test_no_gradients(optimizer_name):
     p1 = simple_parameter(require_grad=True)
     p2 = simple_parameter(require_grad=False)
@@ -17,6 +17,8 @@ def test_no_gradients(optimizer_name):
 
     if optimizer_name == 'ranger21':
         optimizer = load_optimizer(optimizer_name)(params, num_iterations=1)
+    elif optimizer_name == 'lookahead':
+        optimizer = Lookahead(load_optimizer('adamp')(params), k=1)
     else:
         optimizer = load_optimizer(optimizer_name)(params)
 
