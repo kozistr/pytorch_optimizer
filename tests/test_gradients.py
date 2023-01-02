@@ -1,54 +1,12 @@
-from typing import List
-
 import numpy as np
 import pytest
 import torch
 
 from pytorch_optimizer import SAM, AdamP, load_optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
+from tests.constants import SPARSE_OPTIMIZERS, NO_SPARSE_OPTIMIZERS
 from tests.test_optimizers import OPTIMIZERS
 from tests.utils import build_environment, ids, tensor_to_numpy
-
-SPARSE_OPTIMIZERS: List[str] = [
-    'madgrad',
-]
-NO_SPARSE_OPTIMIZERS: List[str] = [
-    'adamp',
-    'sgdp',
-    'madgrad',
-    'ranger',
-    'ranger21',
-    'radam',
-    'adabound',
-    'adabelief',
-    'diffgrad',
-    'diffrgrad',
-    'lamb',
-    'ralamb',
-    'lars',
-    'shampoo',
-    'nero',
-    'adan',
-    'adai',
-    'adapnm',
-    'pnm',
-]
-
-
-def test_sam_no_gradient():
-    (x_data, y_data), model, loss_fn = build_environment()
-    model.fc1.weight.requires_grad = False
-    model.fc1.weight.grad = None
-
-    optimizer = SAM(model.parameters(), AdamP)
-    optimizer.zero_grad()
-
-    loss = loss_fn(y_data, model(x_data))
-    loss.backward()
-    optimizer.first_step(zero_grad=True)
-
-    loss_fn(y_data, model(x_data)).backward()
-    optimizer.second_step(zero_grad=True)
 
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
@@ -115,3 +73,19 @@ def test_sparse_supported(sparse_optimizer):
         optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0, weight_decay=1e-3)
         optimizer.zero_grad()
         optimizer.step()
+
+
+def test_sam_no_gradient():
+    (x_data, y_data), model, loss_fn = build_environment()
+    model.fc1.weight.requires_grad = False
+    model.fc1.weight.grad = None
+
+    optimizer = SAM(model.parameters(), AdamP)
+    optimizer.zero_grad()
+
+    loss = loss_fn(y_data, model(x_data))
+    loss.backward()
+    optimizer.first_step(zero_grad=True)
+
+    loss_fn(y_data, model(x_data)).backward()
+    optimizer.second_step(zero_grad=True)
