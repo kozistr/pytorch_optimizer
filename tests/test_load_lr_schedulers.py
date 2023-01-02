@@ -1,16 +1,7 @@
-from typing import List
-
 import pytest
 
 from pytorch_optimizer import get_supported_lr_schedulers, load_lr_scheduler
-
-VALID_LR_SCHEDULER_NAMES: List[str] = [
-    'CosineAnnealingWarmupRestarts',
-]
-
-INVALID_LR_SCHEDULER_NAMES: List[str] = [
-    'dummy',
-]
+from tests.constants import INVALID_LR_SCHEDULER_NAMES, VALID_LR_SCHEDULER_NAMES
 
 
 @pytest.mark.parametrize('valid_lr_scheduler_names', VALID_LR_SCHEDULER_NAMES)

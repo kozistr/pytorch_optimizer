@@ -45,6 +45,10 @@ class Example(nn.Module):
         return self.norm1(self.fc1(x))
 
 
+def simple_parameter(require_grad: bool = True) -> torch.Tensor:
+    return torch.zeros(1, 1).requires_grad_(require_grad)
+
+
 def make_dataset(num_samples: int = 100, dims: int = 2, seed: int = 42) -> Tuple[torch.Tensor, torch.Tensor]:
     rng = np.random.RandomState(seed)
 

@@ -9,6 +9,7 @@ from pytorch_optimizer.optimizer.utils import projection
 
 class SGDP(Optimizer, BaseOptimizer):
     r"""SGD + Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights
+
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param momentum: float. momentum factor.

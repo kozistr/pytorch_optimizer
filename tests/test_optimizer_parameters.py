@@ -1,51 +1,14 @@
-from typing import List
-
 import pytest
 import torch
 from torch import nn
 
 from pytorch_optimizer import SAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
 from pytorch_optimizer.base.exception import ZeroParameterSizeError
-from tests.utils import Example
-
-OPTIMIZER_NAMES: List[str] = [
-    'adamp',
-    'adan',
-    'sgdp',
-    'madgrad',
-    'ranger',
-    'ranger21',
-    'radam',
-    'adabound',
-    'adabelief',
-    'diffgrad',
-    'diffrgrad',
-    'lamb',
-    'ralamb',
-    'lars',
-    'pnm',
-    'adapnm',
-    'adai',
-]
-BETA_OPTIMIZER_NAMES: List[str] = [
-    'adabelief',
-    'adabound',
-    'adamp',
-    'diffgrad',
-    'diffrgrad',
-    'lamb',
-    'radam',
-    'ranger',
-    'ranger21',
-    'ralamb',
-    'pnm',
-    'adapnm',
-    'adan',
-    'adai',
-]
+from tests.constants import BETA_OPTIMIZER_NAMES, PULLBACK_MOMENTUM, VALID_OPTIMIZER_NAMES
+from tests.utils import Example, simple_parameter
 
 
-@pytest.mark.parametrize('optimizer_name', OPTIMIZER_NAMES + ['nero'])
+@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_learning_rate(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
 
@@ -56,8 +19,11 @@ def test_learning_rate(optimizer_name):
             optimizer(None, lr=-1e-2)
 
 
-@pytest.mark.parametrize('optimizer_name', OPTIMIZER_NAMES)
+@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
+    if optimizer_name == 'nero':
+        pytest.skip('skip Nero optimizer')
+
     optimizer = load_optimizer(optimizer_name)
 
     with pytest.raises(ValueError):
@@ -67,8 +33,11 @@ def test_epsilon(optimizer_name):
             optimizer(None, eps=-1e-6)
 
 
-@pytest.mark.parametrize('optimizer_name', OPTIMIZER_NAMES)
+@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_weight_decay(optimizer_name):
+    if optimizer_name == 'nero':
+        pytest.skip('skip Nero optimizer')
+
     optimizer = load_optimizer(optimizer_name)
 
     with pytest.raises(ValueError):
@@ -162,14 +131,15 @@ def test_sam_parameters():
 
 
 def test_lookahead_parameters():
-    model: nn.Module = Example()
-    parameters = model.parameters()
-    optimizer = load_optimizer('adamp')(parameters)
+    param = simple_parameter()
+    optimizer = load_optimizer('adamp')([param])
 
-    pullback_momentum_list: List[str] = ['none', 'reset', 'pullback']
-    for pullback_momentum in pullback_momentum_list:
+    for pullback_momentum in PULLBACK_MOMENTUM:
         opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
         opt.load_state_dict(opt.state_dict())
+
+        opt.update_lookahead()
+        opt.add_param_group({'params': [simple_parameter()]})
 
     with pytest.raises(ValueError):
         Lookahead(optimizer, k=0)
@@ -182,18 +152,17 @@ def test_lookahead_parameters():
 
 
 def test_sam_methods():
-    model: nn.Module = Example()
-    parameters = model.parameters()
+    param = simple_parameter()
 
-    optimizer = SAM(parameters, load_optimizer('adamp'))
+    optimizer = SAM([param], load_optimizer('adamp'))
     optimizer.reset()
     optimizer.load_state_dict(optimizer.state_dict())
 
 
 def test_safe_fp16_methods():
-    model: nn.Module = Example()
+    param = simple_parameter()
 
-    optimizer = SafeFP16Optimizer(load_optimizer('adamp')(model.parameters(), lr=5e-1))
+    optimizer = SafeFP16Optimizer(load_optimizer('adamp')([param], lr=5e-1))
     optimizer.load_state_dict(optimizer.state_dict())
     optimizer.scaler.decrease_loss_scale()
     optimizer.zero_grad()
@@ -216,11 +185,10 @@ def test_ranger21_warm_methods():
 
 @pytest.mark.parametrize('optimizer', ['ranger21', 'adai'])
 def test_size_of_parameter(optimizer):
-    model: nn.Module = nn.Linear(1, 1, bias=False)
-    model.requires_grad_(False)
+    param = simple_parameter(require_grad=False)
 
     with pytest.raises(ZeroParameterSizeError):
-        load_optimizer(optimizer)(model.parameters(), 100).step()
+        load_optimizer(optimizer)([param], 1).step()
 
 
 def test_ranger21_closure():

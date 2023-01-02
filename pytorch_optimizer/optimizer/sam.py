@@ -31,24 +31,24 @@ class SAM(Optimizer, BaseOptimizer):
             loss_function(output, model(input)).backward()
             optimizer.second_step(zero_grad=True)
 
-    Alternative Example with a single closure-based step function:
-        from pytorch_optimizer import SAM
-        ...
-        model = YourModel()
-        base_optimizer =  Ranger21
-        optimizer = SAM(model.parameters(), base_optimizer)
+        Alternative Example with a single closure-based step function:
+            from pytorch_optimizer import SAM
+            ...
+            model = YourModel()
+            base_optimizer =  Ranger21
+            optimizer = SAM(model.parameters(), base_optimizer)
 
-        def closure():
-            loss = loss_function(output, model(input))
-            loss.backward()
-            return loss
-        ...
+            def closure():
+                loss = loss_function(output, model(input))
+                loss.backward()
+                return loss
+            ...
 
-        for input, output in data:
-            loss = loss_function(output, model(input))
-            loss.backward()
-            optimizer.step(closure)
-            optimizer.zero_grad()
+            for input, output in data:
+                loss = loss_function(output, model(input))
+                loss.backward()
+                optimizer.step(closure)
+                optimizer.zero_grad()
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
     :param base_optimizer: Optimizer. base optimizer

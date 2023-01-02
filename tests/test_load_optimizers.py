@@ -1,38 +1,7 @@
-from typing import List
-
 import pytest
 
 from pytorch_optimizer import get_supported_optimizers, load_optimizer
-
-VALID_OPTIMIZER_NAMES: List[str] = [
-    'adamp',
-    'adan',
-    'sgdp',
-    'madgrad',
-    'ranger',
-    'ranger21',
-    'radam',
-    'adabound',
-    'adabelief',
-    'diffgrad',
-    'diffrgrad',
-    'lamb',
-    'ralamb',
-    'lars',
-    'shampoo',
-    'pnm',
-    'adapnm',
-    'nero',
-    'adai',
-]
-INVALID_OPTIMIZER_NAMES: List[str] = [
-    'asam',
-    'sam',
-    'pcgrad',
-    'adamd',
-    'lookahead',
-    'chebyshev_schedule',
-]
+from tests.constants import INVALID_OPTIMIZER_NAMES, VALID_OPTIMIZER_NAMES
 
 
 @pytest.mark.parametrize('valid_optimizer_names', VALID_OPTIMIZER_NAMES)
