@@ -11,21 +11,10 @@ from pytorch_optimizer.optimizer.utils import flatten_grad, un_flatten_grad
 
 
 class PCGrad(BaseOptimizer):
-    """
-    Reference : https://github.com/WeiChengTseng/Pytorch-PCGrad
-    Example :
-        from pytorch_optimizer import AdamP, PCGrad
-        ...
-        model = YourModel()
-        optimizer = PCGrad(AdamP(model.parameters()))
+    r"""Gradient Surgery for Multi-Task Learning
 
-        loss_1, loss_2 = nn.L1Loss(), nn.MSELoss()
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss1, loss2 = loss1_fn(y_pred, output), loss2_fn(y_pred, output)
-          optimizer.pc_backward([loss1, loss2])
-          optimizer.step()
+    :param optimizer: OPTIMIZER: optimizer instance.
+    :param reduction: str. reduction method.
     """
 
     def __init__(self, optimizer: OPTIMIZER, reduction: str = 'mean'):
@@ -73,8 +62,9 @@ class PCGrad(BaseOptimizer):
 
     def pack_grad(self, objectives: Iterable) -> Tuple[List[torch.Tensor], List[List[int]], List[torch.Tensor]]:
         """pack the gradient of the parameters of the network for each objective
-        :param objectives: Iterable[nn.Module]. a list of objectives
-        :return: torch.Tensor. packed gradients
+
+        :param objectives: Iterable[nn.Module]. a list of objectives.
+        :return: torch.Tensor. packed gradients.
         """
         grads, shapes, has_grads = [], [], []
         for objective in objectives:
@@ -91,9 +81,10 @@ class PCGrad(BaseOptimizer):
 
     def project_conflicting(self, grads: List[torch.Tensor], has_grads: List[torch.Tensor]) -> torch.Tensor:
         """project conflicting
-        :param grads: a list of the gradient of the parameters
-        :param has_grads: a list of mask represent whether the parameter has gradient
-        :return: torch.Tensor. merged gradients
+
+        :param grads: a list of the gradient of the parameters.
+        :param has_grads: a list of mask represent whether the parameter has gradient.
+        :return: torch.Tensor. merged gradients.
         """
         shared: torch.Tensor = torch.stack(has_grads).prod(0).bool()
 
@@ -119,8 +110,8 @@ class PCGrad(BaseOptimizer):
 
     def pc_backward(self, objectives: Iterable[nn.Module]):
         """calculate the gradient of the parameters
-        :param objectives: Iterable[nn.Module]. a list of objectives
-        :return:
+
+        :param objectives: Iterable[nn.Module]. a list of objectives.
         """
         grads, shapes, has_grads = self.pack_grad(objectives)
 
