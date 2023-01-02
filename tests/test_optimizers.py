@@ -377,7 +377,8 @@ def test_no_closure():
 
 def test_sam_no_gradient():
     (x_data, y_data), model, loss_fn = build_environment()
-    model.fc1.require_grads = False
+    model.fc1.weight.requires_grad = False
+    model.fc1.weight.grad = None
 
     optimizer = SAM(model.parameters(), AdamP)
     optimizer.zero_grad()
