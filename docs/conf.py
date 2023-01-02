@@ -79,10 +79,4 @@ html_theme_options = {
     'navigation_depth': 4,
     'includehidden': True,
     'titles_only': False,
-    'description': 'pytorch-optimizer is bunch of optimizer collections in PyTorch',
-    'github_user': 'kozistr',
-    'github_repo': 'pytorch_optimizer',
-    'github_button': True,
-    'github_type': 'star',
-    'github_banner': True,
 }
