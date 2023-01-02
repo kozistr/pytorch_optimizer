@@ -8,8 +8,8 @@ from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, OPTIMIZER, PARAMETER
 
 
 class SAM(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/davda54/sam
+    r"""Sharpness-Aware Minimization for Efficiently Improving Generalization
+
     Example :
         from pytorch_optimizer import SAM
         ...
@@ -48,6 +48,12 @@ class SAM(Optimizer, BaseOptimizer):
             loss.backward()
             optimizer.step(closure)
             optimizer.zero_grad()
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
+    :param base_optimizer: Optimizer. base optimizer
+    :param rho: float. size of the neighborhood for computing the max loss
+    :param adaptive: bool. element-wise Adaptive SAM
+    :param kwargs: Dict. parameters for optimizer.
     """
 
     def __init__(
@@ -58,13 +64,6 @@ class SAM(Optimizer, BaseOptimizer):
         adaptive: bool = False,
         **kwargs,
     ):
-        """SAM
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param base_optimizer: Optimizer. base optimizer
-        :param rho: float. size of the neighborhood for computing the max loss
-        :param adaptive: bool. element-wise Adaptive SAM
-        :param kwargs: Dict. parameters for optimizer.
-        """
         self.rho = rho
 
         self.validate_parameters()
@@ -109,7 +108,7 @@ class SAM(Optimizer, BaseOptimizer):
                     continue
 
                 # get back to "w" from "w + e(w)"
-                p = self.state[p]['old_p']
+                p.data = self.state[p]['old_p']
 
         # do the actual "sharpness-aware" update
         self.base_optimizer.step()
