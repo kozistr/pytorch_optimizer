@@ -58,6 +58,10 @@ class SGDP(Optimizer, BaseOptimizer):
         self.validate_weight_decay_ratio(self.wd_ratio)
         self.validate_epsilon(self.eps)
 
+    @property
+    def __name__(self) -> str:
+        return 'SGDP'
+
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
