@@ -9,24 +9,20 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class MADGRAD(Optimizer, BaseOptimizer):
-    """
-    Reference 1 : https://github.com/facebookresearch/madgrad
-    Reference 2 : https://github.com/lessw2020/Best-Deep-Learning-Optimizers
-    Example :
-        from pytorch_optimizer import MADGRAD
-        ...
-        model = YourModel()
-        optimizer = MADGRAD(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified)
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param eps: float. term added to the denominator to improve numerical stability.
+    :param weight_decay: float. weight decay (L2 penalty).
+        MADGRAD optimizer requires less weight decay than other methods, often as little as zero.
+        On sparse problems both weight_decay and momentum should be set to 0.
+    :param decouple_decay: float. Apply AdamW style decoupled weight decay.
     """
 
     def __init__(
@@ -38,15 +34,6 @@ class MADGRAD(Optimizer, BaseOptimizer):
         decouple_decay: bool = False,
         eps: float = 1e-6,
     ):
-        """A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified)
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param eps: float. term added to the denominator to improve numerical stability
-        :param weight_decay: float. weight decay (L2 penalty)
-            MADGRAD optimizer requires less weight decay than other methods, often as little as zero
-            On sparse problems both weight_decay and momentum should be set to 0
-        :param decouple_decay: float. Apply AdamW style decoupled weight decay
-        """
         self.lr = lr
         self.momentum = momentum
         self.weight_decay = weight_decay
@@ -115,14 +102,14 @@ class MADGRAD(Optimizer, BaseOptimizer):
                         state['x0'] = torch.clone(p).detach()
 
                 if momentum != 0.0 and grad.is_sparse:
-                    raise RuntimeError('momentum != 0 is not compatible with sparse gradients')
+                    raise NoSparseGradientError(self.__name__, note='momentum != 0.0')
 
                 grad_sum_sq = state['grad_sum_sq']
                 s = state['s']
 
                 if decay != 0 and not self.decouple_decay:
                     if grad.is_sparse:
-                        raise RuntimeError('weight_decay option is not compatible with sparse gradients')
+                        raise NoSparseGradientError(self.__name__, note='weight_decay')
 
                     # original implementation
                     grad.add_(p, alpha=decay)
