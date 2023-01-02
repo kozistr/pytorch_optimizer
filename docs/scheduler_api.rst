@@ -16,3 +16,43 @@ CosineAnnealingWarmupRestarts
 
 .. autoclass:: pytorch_optimizer.CosineAnnealingWarmupRestarts
     :members:
+
+.. _ConstantLR:
+
+ConstantLR
+----------
+
+.. autoclass:: pytorch_optimizer.ConstantLR
+    :members:
+
+.. _CosineAnnealingLR:
+
+ConstantLR
+----------
+
+.. autoclass:: pytorch_optimizer.CosineAnnealingLR
+    :members:
+
+.. _CosineAnnealingWarmRestarts:
+
+CosineAnnealingWarmRestarts
+---------------------------
+
+.. autoclass:: pytorch_optimizer.CosineAnnealingWarmRestarts
+    :members:
+
+.. _CyclicLR:
+
+CyclicLR
+--------
+
+.. autoclass:: pytorch_optimizer.CyclicLR
+    :members:
+
+.. _OneCycleLR:
+
+OneCycleLR
+----------
+
+.. autoclass:: pytorch_optimizer.OneCycleLR
+    :members:
