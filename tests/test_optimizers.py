@@ -30,7 +30,7 @@ from pytorch_optimizer import (
     SafeFP16Optimizer,
     Shampoo,
 )
-from pytorch_optimizer.base.exception import ZeroParameterSizeError
+from pytorch_optimizer.base.exception import ZeroParameterSizeError, NoClosureError
 from tests.utils import (
     MultiHeadLogisticRegression,
     build_environment,
@@ -363,6 +363,16 @@ def test_closure(optimizer):
         optimizer.step(closure=dummy_closure)
     except ZeroParameterSizeError:  # in case of Ranger21, Adai optimizers
         pass
+
+
+def test_no_closure():
+    _, model, _ = build_environment()
+
+    optimizer = SAM(model.parameters(), AdamP)
+    optimizer.zero_grad()
+
+    with pytest.raises(NoClosureError):
+        optimizer.step()
 
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
