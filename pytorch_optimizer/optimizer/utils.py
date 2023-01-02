@@ -153,7 +153,7 @@ def get_optimizer_parameters(
     :param model: nn.Module. model.
     :param weight_decay: float. weight_decay.
     :param wd_ban_list: List[str]. ban list not to set weight decay.
-    :return PARAMETERS. new parameter list.
+    :returns: PARAMETERS. new parameter list.
     """
     param_optimizer: List[Tuple[str, nn.Parameter]] = list(model.named_parameters())
 
