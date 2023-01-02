@@ -4,6 +4,7 @@ import pytest
 import torch
 
 from pytorch_optimizer import load_optimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 
 SPARSE_OPTIMIZERS: List[str] = [
     'madgrad',
@@ -42,7 +43,7 @@ def test_sparse_not_supported(no_sparse_optimizer):
 
     optimizer.zero_grad()
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(NoSparseGradientError):
         optimizer.step()
 
 
@@ -59,7 +60,7 @@ def test_sparse_supported(sparse_optimizer):
     optimizer.zero_grad()
     optimizer.step()
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(NoSparseGradientError):
         optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0, weight_decay=1e-3)
         optimizer.zero_grad()
         optimizer.step()
