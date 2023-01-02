@@ -7,3 +7,15 @@ Welcome to pytorch-optimizers's documentation!
 ==============================================
 
 .. include:: ../README.rst
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+Contents
+--------
+
+.. toctree::
+   :maxdepth: 2
+
+   api
