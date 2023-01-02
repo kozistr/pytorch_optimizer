@@ -4,25 +4,26 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.utils import projection
 
 
 class AdamP(Optimizer, BaseOptimizer):
-    """
-    Reference : https://github.com/clovaai/AdamP
-    Example :
-        from pytorch_optimizer import AdamP
-        ...
-        model = YourModel()
-        optimizer = AdamP(model.parameters())
-        ...
-        for input, output in data:
-          optimizer.zero_grad()
-          loss = loss_function(output, model(input))
-          loss.backward()
-          optimizer.step()
+    r"""Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param delta: float. threshold that determines whether a set of parameters is scale invariant or not.
+    :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
+        on scale-variant parameters.
+    :param use_gc: bool. use gradient centralization.
+    :param nesterov: bool. enables Nesterov momentum.
+    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(
@@ -38,19 +39,6 @@ class AdamP(Optimizer, BaseOptimizer):
         adamd_debias_term: bool = False,
         eps: float = 1e-8,
     ):
-        """AdamP optimizer
-        :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-        :param lr: float. learning rate
-        :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        :param weight_decay: float. weight decay (L2 penalty)
-        :param delta: float. threshold that determines whether a set of parameters is scale invariant or not
-        :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
-            on scale-variant parameters
-        :param use_gc: bool. use gradient centralization
-        :param nesterov: bool. enables Nesterov momentum
-        :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training
-        :param eps: float. term added to the denominator to improve numerical stability
-        """
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
@@ -103,7 +91,7 @@ class AdamP(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise RuntimeError('AdamP does not support sparse gradients')
+                    raise NoSparseGradientError(self.__name__)
 
                 state = self.state[p]
                 if len(state) == 0:
