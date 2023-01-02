@@ -5,7 +5,7 @@ import torch
 from torch import nn
 
 from pytorch_optimizer import SAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
-from pytorch_optimizer.base.exception import ZeroParameterSize
+from pytorch_optimizer.base.exception import ZeroParameterSizeError
 from tests.utils import Example
 
 OPTIMIZER_NAMES: List[str] = [
@@ -219,7 +219,7 @@ def test_size_of_parameter(optimizer):
     model: nn.Module = nn.Linear(1, 1, bias=False)
     model.requires_grad_(False)
 
-    with pytest.raises(ZeroParameterSize):
+    with pytest.raises(ZeroParameterSizeError):
         load_optimizer(optimizer)(model.parameters(), 100).step()
 
 

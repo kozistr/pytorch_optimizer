@@ -4,7 +4,7 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.base_optimizer import BaseOptimizer
-from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSize
+from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.gc import centralize_gradient
 
@@ -124,7 +124,7 @@ class Adai(Optimizer, BaseOptimizer):
                 exp_avg_sq_hat_sum += exp_avg_sq.sum() / bias_correction2
 
         if param_size == 0:
-            raise ZeroParameterSize()
+            raise ZeroParameterSizeError()
 
         exp_avg_sq_hat_mean = exp_avg_sq_hat_sum / param_size
 
