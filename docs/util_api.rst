@@ -40,3 +40,19 @@ unit_norm
 
 .. autoclass:: pytorch_optimizer.unit_norm
     :members:
+
+.. _DynamicLossScaler:
+
+DynamicLossScaler
+-----------------
+
+.. autoclass:: pytorch_optimizer.DynamicLossScaler
+    :members:
+
+.. _SafeFP16Optimizer:
+
+SafeFP16Optimizer
+-----------------
+
+.. autoclass:: pytorch_optimizer.SafeFP16Optimizer
+    :members:
