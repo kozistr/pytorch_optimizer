@@ -394,6 +394,7 @@ def test_sam_no_gradient():
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 def test_reset(optimizer_config):
     _, model, _ = build_environment()
+    model.fc1.weight.data = torch.zeros((1, 1))  # for Nero optimizer
 
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
