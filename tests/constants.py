@@ -104,7 +104,7 @@ INVALID_LR_SCHEDULER_NAMES: List[str] = [
 ]
 
 OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
-    (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 100),
+    (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'amsgrad': True}, 10),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 10),
