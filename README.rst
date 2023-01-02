@@ -303,6 +303,22 @@ Citations
 
 `Adai <https://github.com/zeke-xie/adaptive-inertia-adai#citing>`__
 
+Citation
+-------------
+
+Please cite original authors of optimization algorithms. If you use this software, please cite it as below.
+Or you can get from "cite this repository" button.
+
+::
+
+    @software{Kim_pytorch_optimizer_Bunch_of_2022,
+        author = {Kim, Hyeongchan},
+        month = {1},
+        title = {{pytorch_optimizer: Bunch of optimizer implementations in PyTorch with clean-code, strict types}},
+        version = {1.0.0},
+        year = {2022}
+    }
+
 Author
 ------
 
