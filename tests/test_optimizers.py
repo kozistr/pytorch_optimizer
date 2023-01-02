@@ -375,6 +375,15 @@ def test_no_closure():
         optimizer.step()
 
 
+def test_sam_no_gradient():
+    param = torch.randn(1, 1).requires_grad_(False)
+    param.grad = torch.randn(1, 1)
+
+    optimizer = SAM([param], AdamP)
+    optimizer.zero_grad()
+    optimizer.step(closure=dummy_closure)
+
+
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 def test_reset(optimizer_config):
     _, model, _ = build_environment()
