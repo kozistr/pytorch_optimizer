@@ -26,3 +26,9 @@ NO_SPARSE_OPTIMIZERS: List[str] = [
 ]
 ADAPTIVE_FLAGS: List[bool] = [True, False]
 PULLBACK_MOMENTUM: List[str] = ['none', 'reset', 'pullback']
+VALID_LR_SCHEDULER_NAMES: List[str] = [
+    'CosineAnnealingWarmupRestarts',
+]
+INVALID_LR_SCHEDULER_NAMES: List[str] = [
+    'dummy',
+]
