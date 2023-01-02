@@ -53,6 +53,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'weight_decouple': False}, 100),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'amsbound': True}, 100),
     (Adai, {'lr': 1e-1, 'weight_decay': 0.0}, 200),
+    (Adai, {'lr': 1e-1, 'weight_decay': 0.0, 'use_gc': True}, 200),
     (Adai, {'lr': 1e-1, 'weight_decay': 0.0, 'dampening': 0.9}, 200),
     (Adai, {'lr': 1e-1, 'weight_decay': 1e-4, 'weight_decouple': False}, 200),
     (Adai, {'lr': 1e-1, 'weight_decay': 1e-4, 'weight_decouple': True}, 200),
@@ -103,6 +104,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (RAdam, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 200),
+    (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
 ]
 
 
