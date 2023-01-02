@@ -51,6 +51,10 @@ class MADGRAD(Optimizer, BaseOptimizer):
         self.validate_momentum(self.momentum)
         self.validate_epsilon(self.eps)
 
+    @property
+    def __name__(self) -> str:
+        return 'MADGRAD'
+
     @torch.no_grad()
     def reset(self):
         self.state['k'] = torch.tensor([0], dtype=torch.long, requires_grad=False)
