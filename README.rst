@@ -19,7 +19,7 @@ pytorch-optimizer
 Documentation
 -------------
 
-https://pytorch-optimizers.readthedocs.io/en/latest/
+https://pytorch-optimizers.readthedocs.io/en/stable/
 
 Usage
 -----
