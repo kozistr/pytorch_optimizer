@@ -20,6 +20,7 @@ Contents
 
    optimizer_api
    scheduler_api
+   util_api
 
 Indices and tables
 ==================
