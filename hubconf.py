@@ -1,9 +1,3 @@
-"""
-PyTorch Hub models
-Usage:
-    import torch
-    optimizer = torch.hub.load('kozistr/pytorch_optimizer', 'adamp')
-"""
 from functools import partial as _partial
 from functools import update_wrapper as _update_wrapper
 
