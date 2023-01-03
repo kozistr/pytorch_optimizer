@@ -27,8 +27,8 @@ ConstantLR
 
 .. _CosineAnnealingLR:
 
-ConstantLR
-----------
+CosineAnnealingLR
+-----------------
 
 .. autoclass:: pytorch_optimizer.CosineAnnealingLR
     :members:
