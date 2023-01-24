@@ -51,6 +51,11 @@ name = "torch"
 url = "https://download.pytorch.org/whl/cpu"
 secondary = true
 
+[tool.coverage.run]
+omit = [
+    "./pytorch_optimizer/optimizer/gsam.py",
+]
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
