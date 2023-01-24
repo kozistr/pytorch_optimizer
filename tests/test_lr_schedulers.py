@@ -159,8 +159,8 @@ def test_linear_warmup_linear_scheduler():
     lr_scheduler = LinearScheduler(optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
 
     for expected_lr in LWL_RECIPE:
-        lr = lr_scheduler.step()
-        np.testing.assert_almost_equal(expected_lr, lr)
+        lr_scheduler.step()
+        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr())
 
 
 def test_linear_warmup_cosine_scheduler():
@@ -168,8 +168,8 @@ def test_linear_warmup_cosine_scheduler():
     lr_scheduler = CosineScheduler(optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
 
     for expected_lr in LWC_RECIPE:
-        lr = lr_scheduler.step()
-        np.testing.assert_almost_equal(expected_lr, lr, 5)
+        lr_scheduler.step()
+        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr(), 5)
 
 
 def test_linear_warmup_poly_scheduler():
@@ -177,8 +177,8 @@ def test_linear_warmup_poly_scheduler():
     lr_scheduler = PolyScheduler(optimizer=optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
 
     for expected_lr in LWP_RECIPE:
-        lr = lr_scheduler.step()
-        np.testing.assert_almost_equal(expected_lr, lr, 6)
+        lr_scheduler.step()
+        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr(), 6)
 
 
 @pytest.mark.parametrize('proportion_learning_rate', PROPORTION_LEARNING_RATES)
@@ -196,8 +196,8 @@ def test_proportion_scheduler(proportion_learning_rate):
     )
 
     for _ in range(10):
-        value = rho_scheduler.step()
-        np.testing.assert_almost_equal(proportion_learning_rate[2], value, 6)
+        _ = rho_scheduler.step()
+        np.testing.assert_almost_equal(proportion_learning_rate[2], rho_scheduler.get_lr(), 6)
 
 
 def test_deberta_v3_large_lr_scheduler():
