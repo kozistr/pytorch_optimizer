@@ -7,6 +7,7 @@ from pytorch_optimizer.experimental.deberta_v3_lr_scheduler import deberta_v3_la
 from pytorch_optimizer.lr_scheduler.chebyshev import chebyshev_perm
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
+from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from tests.utils import Example
 
 CAWR_RECIPES = [
@@ -109,6 +110,18 @@ LWP_RECIPE = [
     0.017247,
     0.019900,
 ]
+PP_RECIPE = [
+    1.090909,
+    1.090909,
+    1.090909,
+    1.090909,
+    1.090909,
+    1.090909,
+    1.090909,
+    1.090909,
+    1.090909,
+    1.090909,
+]
 
 
 @pytest.mark.parametrize('cosine_annealing_warmup_restart_param', CAWR_RECIPES)
@@ -177,6 +190,16 @@ def test_linear_warmup_poly_scheduler():
     for expected_lr in LWP_RECIPE:
         lr = lr_scheduler.step()
         np.testing.assert_almost_equal(expected_lr, lr, 6)
+
+
+def test_proportion_scheduler():
+    base_optimizer = AdamP(Example().parameters())
+    lr_scheduler = CosineScheduler(base_optimizer, t_max=10, max_lr=1e-1, min_lr=1e-3, init_lr=1e-2)
+    rho_scheduler = ProportionScheduler(lr_scheduler, max_lr=1e-1, min_lr=1e-3, max_value=2.0, min_value=1.0)
+
+    for expected_value in PP_RECIPE:
+        value = rho_scheduler.step()
+        np.testing.assert_almost_equal(expected_value, value, 6)
 
 
 def test_deberta_v3_large_lr_scheduler():
