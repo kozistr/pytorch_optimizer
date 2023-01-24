@@ -7,6 +7,8 @@ from torch import nn
 
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
+    disable_running_stats,
+    enable_running_stats,
     get_optimizer_parameters,
     has_overflow,
     is_valid_parameters,
@@ -98,3 +100,19 @@ def test_is_valid_parameters():
     after_parameters = get_optimizer_parameters(model, weight_decay=1e-3, wd_ban_list=wd_ban_list)
 
     assert is_valid_parameters(after_parameters)
+
+
+def test_running_stats():
+    model = nn.Sequential(
+        nn.Linear(1, 1),
+        nn.BatchNorm2d(1),
+    )
+    model[1].momentum = 0.1
+
+    disable_running_stats(model)
+
+    assert (model[1].momentum == 0) and (model[1].backup_momentum == 0.1)
+
+    enable_running_stats(model)
+
+    assert (model[1].momentum == 0.1)
