@@ -1,5 +1,3 @@
-from typing import List
-
 import numpy as np
 import pytest
 from torch import nn
@@ -9,7 +7,6 @@ from pytorch_optimizer.experimental.deberta_v3_lr_scheduler import deberta_v3_la
 from pytorch_optimizer.lr_scheduler.chebyshev import chebyshev_perm
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
-from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from tests.utils import Example
 
 CAWR_RECIPES = [
