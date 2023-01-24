@@ -112,6 +112,8 @@ Supported Optimizers
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Adai         | *Disentangling the Effects of Adaptive Learning Rate and Momentum*                     | `github <https://github.com/zeke-xie/adaptive-inertia-adai>`__                    | `https://arxiv.org/abs/2006.15815 <https://arxiv.org/abs/2006.15815>`__                       |
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| GSAM         | *Surrogate Gap Guided Sharpness-Aware Minimization*                                    | `github <https://github.com/juntang-zhuang/GSAM>`__                               | `https://openreview.net/pdf?id=edONMAnhLu- <https://openreview.net/pdf?id=edONMAnhLu->`__     |
++--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
 ----------------
@@ -302,6 +304,8 @@ Citations
 `Adan <https://ui.adsabs.harvard.edu/abs/2022arXiv220806677X/exportcitation>`__
 
 `Adai <https://github.com/zeke-xie/adaptive-inertia-adai#citing>`__
+
+`GSAM <https://github.com/juntang-zhuang/GSAM#citation>`__
 
 Citation
 --------

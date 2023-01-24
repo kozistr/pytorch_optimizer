@@ -1,8 +1,8 @@
 import torch
 from torch.optim import Optimizer
 
-from pytorch_optimizer.base.base_optimizer import BaseOptimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 

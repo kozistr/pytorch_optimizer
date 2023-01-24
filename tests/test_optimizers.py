@@ -3,7 +3,16 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer import SAM, Lookahead, PCGrad, SafeFP16Optimizer, load_optimizer
+from pytorch_optimizer import (
+    GSAM,
+    SAM,
+    CosineScheduler,
+    Lookahead,
+    PCGrad,
+    ProportionScheduler,
+    SafeFP16Optimizer,
+    load_optimizer,
+)
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
 from tests.utils import (
@@ -165,6 +174,41 @@ def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
             init_loss = loss
 
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
+def test_gsam_optimizers(adaptive):
+    if not torch.cuda.is_available():
+        pytest.skip(f'there\'s no cuda. skip test.')
+
+    (x_data, y_data), model, loss_fn = build_environment()
+
+    x_data = x_data.cuda()
+    y_data = y_data.cuda()
+    model.cuda()
+
+    lr: float = 5e-1
+    num_iterations: int = 50
+
+    base_optimizer = load_optimizer('adamp')(model.parameters(), lr=lr)
+    lr_scheduler = CosineScheduler(base_optimizer, t_max=num_iterations, max_lr=lr, min_lr=lr, init_lr=lr)
+    rho_scheduler = ProportionScheduler(lr_scheduler, max_lr=lr, min_lr=lr)
+    optimizer = GSAM(
+        model.parameters(), base_optimizer=base_optimizer, model=model, rho_scheduler=rho_scheduler, adaptive=adaptive
+    )
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(num_iterations):
+        optimizer.set_closure(loss_fn, x_data, y_data)
+        _, loss = optimizer.step()
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        lr_scheduler.step()
+        optimizer.update_rho_t()
+
+    assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_adamd_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)

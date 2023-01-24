@@ -3,7 +3,7 @@ import torch
 from torch import nn
 
 from pytorch_optimizer import SAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
-from pytorch_optimizer.base.exception import ZeroParameterSizeError
+from pytorch_optimizer.base.exception import NegativeLRError, ZeroParameterSizeError
 from tests.constants import BETA_OPTIMIZER_NAMES, PULLBACK_MOMENTUM, VALID_OPTIMIZER_NAMES
 from tests.utils import Example, simple_parameter
 
@@ -12,7 +12,7 @@ from tests.utils import Example, simple_parameter
 def test_learning_rate(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(NegativeLRError):
         if optimizer_name == 'ranger21':
             optimizer(None, num_iterations=100, lr=-1e-2)
         else:

@@ -5,7 +5,7 @@ from typing import Iterable, List, Tuple
 import torch
 from torch import nn
 
-from pytorch_optimizer.base.base_optimizer import BaseOptimizer
+from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import OPTIMIZER
 from pytorch_optimizer.optimizer.utils import flatten_grad, un_flatten_grad
 
