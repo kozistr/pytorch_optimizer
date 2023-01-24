@@ -110,18 +110,7 @@ LWP_RECIPE = [
     0.017247,
     0.019900,
 ]
-PP_RECIPE = [
-    1.090909,
-    1.090909,
-    1.090909,
-    1.090909,
-    1.090909,
-    1.090909,
-    1.090909,
-    1.090909,
-    1.090909,
-    1.090909,
-]
+PROPORTION_LEARNING_RATES = [(1e-1, 1e-1, 2.0), (1e-1, 1e-3, 1.090909)]
 
 
 @pytest.mark.parametrize('cosine_annealing_warmup_restart_param', CAWR_RECIPES)
@@ -192,14 +181,23 @@ def test_linear_warmup_poly_scheduler():
         np.testing.assert_almost_equal(expected_lr, lr, 6)
 
 
-def test_proportion_scheduler():
+@pytest.mark.parametrize('proportion_learning_rate', PROPORTION_LEARNING_RATES)
+def test_proportion_scheduler(proportion_learning_rate):
     base_optimizer = AdamP(Example().parameters())
-    lr_scheduler = CosineScheduler(base_optimizer, t_max=10, max_lr=1e-1, min_lr=1e-3, init_lr=1e-2)
-    rho_scheduler = ProportionScheduler(lr_scheduler, max_lr=1e-1, min_lr=1e-3, max_value=2.0, min_value=1.0)
+    lr_scheduler = CosineScheduler(
+        base_optimizer, t_max=10, max_lr=proportion_learning_rate[0], min_lr=proportion_learning_rate[1], init_lr=1e-2
+    )
+    rho_scheduler = ProportionScheduler(
+        lr_scheduler,
+        max_lr=proportion_learning_rate[0],
+        min_lr=proportion_learning_rate[1],
+        max_value=2.0,
+        min_value=1.0,
+    )
 
-    for expected_value in PP_RECIPE:
+    for _ in range(10):
         value = rho_scheduler.step()
-        np.testing.assert_almost_equal(expected_value, value, 6)
+        np.testing.assert_almost_equal(proportion_learning_rate[2], value, 6)
 
 
 def test_deberta_v3_large_lr_scheduler():
