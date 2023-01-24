@@ -56,3 +56,20 @@ SafeFP16Optimizer
 
 .. autoclass:: pytorch_optimizer.SafeFP16Optimizer
     :members:
+
+.. _enable_running_stats:
+
+enable_running_stats
+--------------------
+
+.. autoclass:: pytorch_optimizer.enable_running_stats
+    :members:
+
+
+.. _disable_running_stats:
+
+disable_running_stats
+---------------------
+
+.. autoclass:: pytorch_optimizer.disable_running_stats
+    :members:
