@@ -6,6 +6,7 @@ import torch
 from torch import nn
 from torch.distributed import all_reduce
 from torch.nn import functional as F
+from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.utils import clip_grad_norm_
 
 from pytorch_optimizer.base.types import PARAMETERS
@@ -194,3 +195,20 @@ def neuron_mean(x: torch.Tensor) -> torch.Tensor:
     x = x.view(x.shape[0], -1)
 
     return x.mean(dim=1).view(*view_shape)
+
+
+def disable_running_stats(model):
+    def _disable(module):
+        if isinstance(module, _BatchNorm):
+            module.backup_momentum = module.momentum
+            module.momentum = 0
+
+    model.apply(_disable)
+
+
+def enable_running_stats(model):
+    def _enable(module):
+        if isinstance(module, _BatchNorm) and hasattr(module, 'backup_momentum'):
+            module.momentum = module.backup_momentum
+
+    model.apply(_enable)
