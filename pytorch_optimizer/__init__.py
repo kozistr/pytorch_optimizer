@@ -11,6 +11,8 @@ from pytorch_optimizer.lr_scheduler import (
 )
 from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
+from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
+from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
 from pytorch_optimizer.optimizer.adai import Adai
@@ -22,6 +24,7 @@ from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.diffrgrad import DiffRGrad
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
 from pytorch_optimizer.optimizer.gc import centralize_gradient
+from pytorch_optimizer.optimizer.gsam import GSAM
 from pytorch_optimizer.optimizer.lamb import Lamb
 from pytorch_optimizer.optimizer.lars import LARS
 from pytorch_optimizer.optimizer.lookahead import Lookahead
@@ -74,6 +77,10 @@ LR_SCHEDULER_LIST: List[SCHEDULER] = [
     CosineAnnealingWarmRestarts,
     CyclicLR,
     OneCycleLR,
+    CosineScheduler,
+    PolyScheduler,
+    LinearScheduler,
+    ProportionScheduler,
 ]
 LR_SCHEDULERS: Dict[str, SCHEDULER] = {
     str(lr_scheduler.__name__).lower(): lr_scheduler for lr_scheduler in LR_SCHEDULER_LIST

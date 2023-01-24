@@ -20,7 +20,7 @@ class GSAM(Optimizer, BaseOptimizer):
 
             model = YourModel()
             base_optimizer = AdamP(model.parameters())
-            lr_scheduler = CosineAnnealingLR(base_optimizer, t_max=num_total_steps, last_epoch=-1)
+            lr_scheduler = LinearScheduler(base_optimizer, t_max=num_total_steps)
             rho_scheduler = ProportionScheduler(lr_scheduler, max_lr=max_lr)
             optimizer = GSAM(model.parameters(), base_optimizer, model, rho_scheduler)
 
@@ -48,8 +48,8 @@ class GSAM(Optimizer, BaseOptimizer):
         params: PARAMETERS,
         base_optimizer: OPTIMIZER,
         model: nn.Module,
-        alpha: float,
         rho_scheduler,
+        alpha: float = 0.4,
         adaptive: bool = False,
         perturb_eps: float = 1e-12,
         amp: bool = False,
@@ -57,8 +57,8 @@ class GSAM(Optimizer, BaseOptimizer):
         **kwargs,
     ):
         self.model = model
-        self.alpha = alpha
         self.rho_scheduler = rho_scheduler
+        self.alpha = alpha
         self.adaptive = adaptive
         self.perturb_eps = perturb_eps
 
