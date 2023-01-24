@@ -1,5 +1,5 @@
-Implemented utilizations
-========================
+Utilizations
+============
 
 .. _clip_grad_norm:
 
