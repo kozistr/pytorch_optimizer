@@ -52,8 +52,6 @@ class GSAM(Optimizer, BaseOptimizer):
         alpha: float = 0.4,
         adaptive: bool = False,
         perturb_eps: float = 1e-12,
-        amp: bool = False,
-        max_grad_norm: float = -1,
         **kwargs,
     ):
         self.model = model
@@ -74,10 +72,6 @@ class GSAM(Optimizer, BaseOptimizer):
 
         self.base_optimizer = base_optimizer
         self.param_groups = self.base_optimizer.param_groups
-
-        self.amp = amp
-        self.scaler = torch.cuda.amp.GradScaler(amp)
-        self.max_grad_norm = max_grad_norm
 
         self.validate_parameters()
 
@@ -196,12 +190,10 @@ class GSAM(Optimizer, BaseOptimizer):
         def get_grad():
             self.base_optimizer.zero_grad()
             with torch.enable_grad():
-                with torch.cuda.amp.autocast(self.amp):
-                    outputs = self.model(inputs)
-                    loss = loss_fn(outputs, targets, **kwargs)
+                outputs = self.model(inputs)
+                loss = loss_fn(outputs, targets, **kwargs)
 
-            self.scaler.scale(loss).backward()
-            self.scaler.update()
+            loss.backward()
 
             return outputs, loss.detach()
 
@@ -226,11 +218,7 @@ class GSAM(Optimizer, BaseOptimizer):
 
         self.sync_grad()
 
-        if self.max_grad_norm != -1:
-            self.scaler.unscale_(self.param_groups)
-            clip_grad_norm_(self.param_groups, self.max_grad_norm)
-
-        self.scaler.step(self.base_optimizer)
+        self.base_optimizer.step()
 
         enable_running_stats(self.model)
 
