@@ -1,4 +1,4 @@
-Implemented Optimizers
+Optimizers
 ====================
 
 .. _AdaBelief:
@@ -191,4 +191,12 @@ Shampoo
 -------
 
 .. autoclass:: pytorch_optimizer.Shampoo
+    :members:
+
+.. _GSAM:
+
+GSAM
+----
+
+.. autoclass:: pytorch_optimizer.GSAM
     :members:
