@@ -4,7 +4,7 @@ import pytest
 from pytorch_optimizer import AdamP, get_chebyshev_schedule
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
-from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler
+from pytorch_optimizer.lr_scheduler.linear_warmup import PolyScheduler
 from tests.utils import Example
 
 
@@ -37,20 +37,23 @@ def test_cosine_annealing_warmup_restarts_params():
 def test_linear_warmup_lr_scheduler_params():
     optimizer = AdamP(Example().parameters())
 
-    with pytest.raises(NegativeLRError):
-        CosineScheduler(optimizer, t_max=1, max_lr=-1)
+    with pytest.raises(ValueError):
+        PolyScheduler(poly_order=-1, optimizer=optimizer, t_max=1, max_lr=1)
 
     with pytest.raises(NegativeLRError):
-        CosineScheduler(optimizer, t_max=1, max_lr=1, min_lr=-1)
+        PolyScheduler(optimizer=optimizer, t_max=1, max_lr=-1)
 
     with pytest.raises(NegativeLRError):
-        CosineScheduler(optimizer, t_max=1, max_lr=1, min_lr=1, init_lr=-1)
+        PolyScheduler(optimizer=optimizer, t_max=1, max_lr=1, min_lr=-1)
+
+    with pytest.raises(NegativeLRError):
+        PolyScheduler(optimizer=optimizer, t_max=1, max_lr=1, min_lr=1, init_lr=-1)
 
     with pytest.raises(NegativeStepError):
-        CosineScheduler(optimizer, t_max=-1, max_lr=1, min_lr=1, init_lr=1)
+        PolyScheduler(optimizer=optimizer, t_max=-1, max_lr=1, min_lr=1, init_lr=1)
 
     with pytest.raises(NegativeStepError):
-        CosineScheduler(optimizer, t_max=1, max_lr=1, min_lr=1, init_lr=1, warmup_steps=-1)
+        PolyScheduler(optimizer=optimizer, t_max=1, max_lr=1, min_lr=1, init_lr=1, warmup_steps=-1)
 
 
 def test_chebyshev_params():
