@@ -4,7 +4,6 @@ from typing import Callable, Dict, Optional, Tuple
 import torch
 from torch import nn
 from torch.distributed import ReduceOp, all_reduce, get_world_size, is_initialized
-from torch.nn.utils import clip_grad_norm_
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer

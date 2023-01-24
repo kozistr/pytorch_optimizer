@@ -1,13 +1,14 @@
+from abc import ABC, abstractmethod
 from typing import List
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 from pytorch_optimizer.base.types import OPTIMIZER
 
 
-class BaseLinearWarmupScheduler:
+class BaseLinearWarmupScheduler(ABC):
     r"""BaseLinearWarmupScheduler class. The LR Scheduler class based on this class has linear warmup strategy.
 
-    :param optimizer: Optimizer. optimizer instance. It will set learning rate to all trainable parameters in optimizer.
+    :param optimizer: Optimizer. OPTIMIZER. It will set learning rate to all trainable parameters in optimizer.
     :param t_max: int. total steps to train.
     :param max_lr: float. maximum lr.
     :param min_lr: float. minimum lr.
@@ -31,11 +32,11 @@ class BaseLinearWarmupScheduler:
         self.init_lr = init_lr
         self.warmup_steps = warmup_steps
 
-        self.t: int = 0
+        self.step_t: int = 0
         self.base_lrs: List[float] = []
 
         # record current value in self._last_lr to match API from torch.optim.lr_scheduler
-        self._last_lr: List[float] = [init_lr]
+        self.last_lr: List[float] = [init_lr]
 
         self.validate_parameters()
 
@@ -64,26 +65,27 @@ class BaseLinearWarmupScheduler:
             self.base_lrs.append(self.min_lr)
 
     def step(self):
-        if self.t < self.warmup_steps:
-            value = self.init_lr + (self.max_lr - self.init_lr) * self.t / self.warmup_steps
-        elif self.t == self.warmup_steps:
+        if self.step_t < self.warmup_steps:
+            value = self.init_lr + (self.max_lr - self.init_lr) * self.step_t / self.warmup_steps
+        elif self.step_t == self.warmup_steps:
             value = self.max_lr
         else:
             value = self._step()
 
-        self.t += 1
+        self.step_t += 1
 
         # apply the lr to optimizer if it's provided
         if self.optimizer is not None:
             for param_group in self.optimizer.param_groups:
                 param_group['lr'] = value
 
-        self._last_lr = [value]
+        self.last_lr = [value]
 
         return value
 
+    @abstractmethod
     def _step(self) -> float:
-        pass
+        raise NotImplementedError
 
-    def lr(self) -> float:
-        return self._last_lr[0]
+    def get_lr(self) -> float:
+        return self.last_lr[0]

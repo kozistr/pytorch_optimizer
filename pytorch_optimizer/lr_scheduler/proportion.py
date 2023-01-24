@@ -21,19 +21,19 @@ class ProportionScheduler:
         self.max_value = max_value
         self.min_value = min_value
 
-        self.t: int = 0
-        self._last_lr: List[float] = []
+        self.step_t: int = 0
+        self.last_lr: List[float] = []
 
         self.step()
 
-    def lr(self) -> float:
-        return self._last_lr[0]
+    def get_lr(self) -> float:
+        return self.last_lr[0]
 
     def step(self) -> float:
-        self.t += 1
+        self.step_t += 1
 
-        if hasattr(self.lr_scheduler, '_last_lr'):
-            lr = self.lr_scheduler._last_lr[0]
+        if hasattr(self.lr_scheduler, 'last_lr'):
+            lr = self.lr_scheduler.last_lr[0]
         else:
             lr = self.lr_scheduler.optimizer.param_groups[0]['lr']
 
@@ -44,6 +44,6 @@ class ProportionScheduler:
         else:
             value = self.max_value
 
-        self._last_lr = [value]
+        self.last_lr = [value]
 
         return value
