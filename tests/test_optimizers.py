@@ -3,7 +3,7 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer import SAM, Lookahead, PCGrad, SafeFP16Optimizer, load_optimizer
+from pytorch_optimizer import GSAM, SAM, Lookahead, PCGrad, SafeFP16Optimizer, load_optimizer, LinearScheduler, ProportionScheduler
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
 from tests.utils import (
@@ -133,6 +133,31 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
             init_loss = loss
 
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
+def test_gsam_optimizers(adaptive):
+    (x_data, y_data), model, loss_fn = build_environment()
+
+    base_optimizer = load_optimizer('adamp')
+    lr_scheduler = LinearScheduler(base_optimizer, t_max=50, max_lr=1e-2, min_lr=1e-3, init_lr=1e-2)
+    rho_scheduler = LinearScheduler(base_optimizer, t_max=50, max_lr=1e-2, min_lr=1e-3, init_lr=1e-2)
+    optimizer = GSAM(model.parameters(), base_optimizer, model, adaptive=adaptive)
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(50):
+        loss = loss_fn(y_data, model(x_data))
+        loss.backward()
+        optimizer.first_step(zero_grad=True)
+
+        loss_fn(y_data, model(x_data)).backward()
+        optimizer.second_step(zero_grad=True)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)

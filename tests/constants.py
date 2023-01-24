@@ -74,6 +74,7 @@ VALID_OPTIMIZER_NAMES: List[str] = [
 INVALID_OPTIMIZER_NAMES: List[str] = [
     'asam',
     'sam',
+    'gsam',
     'pcgrad',
     'adamd',
     'lookahead',
