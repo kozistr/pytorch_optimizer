@@ -72,17 +72,22 @@ class GSAM(Optimizer, BaseOptimizer):
             self.grad_reduce = ReduceOp.SUM
             self.manual_average: bool = True
 
+        self.base_optimizer = base_optimizer
+        self.param_groups = self.base_optimizer.param_groups
+
         self.amp = amp
         self.scaler = torch.cuda.amp.GradScaler(amp)
         self.max_grad_norm = max_grad_norm
 
+        self.validate_parameters()
+
         defaults: DEFAULTS = dict(adaptive=adaptive, **kwargs)
         super().__init__(params, defaults)
 
-        self.base_optimizer = base_optimizer(self.param_groups, **kwargs)
-        self.param_groups = self.base_optimizer.param_groups
-
         self.update_rho_t()
+
+    def validate_parameters(self):
+        self.validate_alpha(self.alpha)
 
     @property
     def __name__(self) -> str:
