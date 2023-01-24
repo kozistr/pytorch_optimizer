@@ -24,7 +24,7 @@ class PolyScheduler(BaseLinearWarmupScheduler):
     :param: poly_order: float. lr scheduler decreases with steps.
     """
 
-    def __init__(self, poly_order: float = -0.5, *args, **kwargs):
+    def __init__(self, poly_order: float = 0.5, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.poly_order = poly_order
 
