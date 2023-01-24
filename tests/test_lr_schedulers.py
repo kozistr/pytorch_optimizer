@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import pytest
 from torch import nn
@@ -6,6 +8,8 @@ from pytorch_optimizer import AdamP, get_chebyshev_schedule
 from pytorch_optimizer.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
 from pytorch_optimizer.lr_scheduler.chebyshev import chebyshev_perm
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
+from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
+from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from tests.utils import Example
 
 CAWR_RECIPES = [
@@ -72,6 +76,42 @@ CAWR_RECIPES = [
         ],
     ),
 ]
+LWL_RECIPE = [
+    0.001,
+    0.0028,
+    0.0046,
+    0.0064,
+    0.0082,
+    0.01,
+    0.00802,
+    0.00604,
+    0.00406,
+    0.00208,
+]
+LWC_RECIPE = [
+    0.001,
+    0.00280,
+    0.00460,
+    0.00640,
+    0.00820,
+    0.01000,
+    0.00905,
+    0.00658,
+    0.00352,
+    0.00105,
+]
+LWP_RECIPE = [
+    0.001,
+    0.002800,
+    0.004600,
+    0.006400,
+    0.008200,
+    0.010000,
+    0.010000,
+    0.014101,
+    0.017247,
+    0.019900,
+]
 
 
 @pytest.mark.parametrize('cosine_annealing_warmup_restart_param', CAWR_RECIPES)
@@ -110,9 +150,36 @@ def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param)
         np.testing.assert_almost_equal(expected_lrs[epoch], lr)
 
 
-def test_get_chebyshev_schedule():
+def test_get_chebyshev_scheduler():
     np.testing.assert_almost_equal(get_chebyshev_schedule(3), 1.81818182, decimal=6)
     np.testing.assert_array_equal(chebyshev_perm(5), np.asarray([0, 7, 3, 4, 1, 6, 2, 5]))
+
+
+def test_linear_warmup_linear_scheduler():
+    optimizer = AdamP(Example().parameters())
+    lr_scheduler = LinearScheduler(optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
+
+    for expected_lr in LWL_RECIPE:
+        lr = lr_scheduler.step()
+        np.testing.assert_almost_equal(expected_lr, lr)
+
+
+def test_linear_warmup_cosine_scheduler():
+    optimizer = AdamP(Example().parameters())
+    lr_scheduler = CosineScheduler(optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
+
+    for expected_lr in LWC_RECIPE:
+        lr = lr_scheduler.step()
+        np.testing.assert_almost_equal(expected_lr, lr, 5)
+
+
+def test_linear_warmup_poly_scheduler():
+    optimizer = AdamP(Example().parameters())
+    lr_scheduler = PolyScheduler(optimizer=optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
+
+    for expected_lr in LWP_RECIPE:
+        lr = lr_scheduler.step()
+        np.testing.assert_almost_equal(expected_lr, lr, 6)
 
 
 def test_deberta_v3_large_lr_scheduler():
