@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 import pytest
 from torch import nn
@@ -182,7 +184,7 @@ def test_linear_warmup_poly_scheduler():
 
 
 @pytest.mark.parametrize('proportion_learning_rate', PROPORTION_LEARNING_RATES)
-def test_proportion_scheduler(proportion_learning_rate):
+def test_proportion_scheduler(proportion_learning_rate: Tuple[float, float, float]):
     base_optimizer = AdamP(Example().parameters())
     lr_scheduler = CosineScheduler(
         base_optimizer, t_max=10, max_lr=proportion_learning_rate[0], min_lr=proportion_learning_rate[1], init_lr=1e-2
@@ -198,6 +200,27 @@ def test_proportion_scheduler(proportion_learning_rate):
     for _ in range(10):
         _ = rho_scheduler.step()
         np.testing.assert_almost_equal(proportion_learning_rate[2], rho_scheduler.get_lr(), 6)
+
+
+def test_proportion_no_last_lr_scheduler():
+    base_optimizer = AdamP(Example().parameters())
+    lr_scheduler = CosineAnnealingWarmupRestarts(
+        base_optimizer,
+        first_cycle_steps=10,
+        max_lr=1e-2,
+        min_lr=1e-2,
+    )
+    rho_scheduler = ProportionScheduler(
+        lr_scheduler,
+        max_lr=1e-2,
+        min_lr=1e-2,
+        max_value=2.0,
+        min_value=1.0,
+    )
+
+    for _ in range(10):
+        _ = rho_scheduler.step()
+        np.testing.assert_almost_equal(2.0, rho_scheduler.get_lr(), 6)
 
 
 def test_deberta_v3_large_lr_scheduler():
