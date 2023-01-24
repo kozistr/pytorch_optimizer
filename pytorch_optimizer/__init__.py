@@ -41,6 +41,8 @@ from pytorch_optimizer.optimizer.sgdp import SGDP
 from pytorch_optimizer.optimizer.shampoo import Shampoo
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
+    disable_running_stats,
+    enable_running_stats,
     get_optimizer_parameters,
     matrix_power,
     normalize_gradient,
