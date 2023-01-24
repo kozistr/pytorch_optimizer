@@ -115,4 +115,4 @@ def test_running_stats():
 
     enable_running_stats(model)
 
-    assert (model[1].momentum == 0.1)
+    assert model[1].momentum == 0.1
