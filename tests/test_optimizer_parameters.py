@@ -3,7 +3,7 @@ import torch
 from torch import nn
 
 from pytorch_optimizer import SAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
-from pytorch_optimizer.base.exception import ZeroParameterSizeError, NegativeLRError
+from pytorch_optimizer.base.exception import NegativeLRError, ZeroParameterSizeError
 from tests.constants import BETA_OPTIMIZER_NAMES, PULLBACK_MOMENTUM, VALID_OPTIMIZER_NAMES
 from tests.utils import Example, simple_parameter
 
