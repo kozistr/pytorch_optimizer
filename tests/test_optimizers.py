@@ -179,7 +179,7 @@ def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
 def test_gsam_optimizers(adaptive):
     if not torch.cuda.is_available():
-        return True
+        pytest.skip(f'there\'s no cuda. skip test.')
 
     (x_data, y_data), model, loss_fn = build_environment()
 
