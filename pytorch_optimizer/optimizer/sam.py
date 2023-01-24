@@ -3,8 +3,8 @@ from typing import Dict
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.base.base_optimizer import BaseOptimizer
 from pytorch_optimizer.base.exception import NoClosureError
+from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, OPTIMIZER, PARAMETERS
 
 
