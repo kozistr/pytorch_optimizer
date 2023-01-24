@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 import torch
 
+from pytorch_optimizer.base.exception import NegativeLRError
 from pytorch_optimizer.base.types import BETAS
 
 
@@ -9,7 +10,7 @@ class BaseOptimizer(ABC):
     @staticmethod
     def validate_learning_rate(learning_rate: float):
         if learning_rate < 0.0:
-            raise ValueError(f'[-] learning rate {learning_rate} must be positive')
+            raise NegativeLRError(learning_rate)
 
     @staticmethod
     def validate_beta(beta: float):
