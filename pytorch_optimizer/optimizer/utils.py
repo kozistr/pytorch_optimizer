@@ -199,6 +199,7 @@ def neuron_mean(x: torch.Tensor) -> torch.Tensor:
 
 def disable_running_stats(model):
     r"""disable running stats (momentum) of BatchNorm"""
+
     def _disable(module):
         if isinstance(module, _BatchNorm):
             module.backup_momentum = module.momentum
@@ -209,6 +210,7 @@ def disable_running_stats(model):
 
 def enable_running_stats(model):
     r"""enable running stats (momentum) of BatchNorm"""
+
     def _enable(module):
         if isinstance(module, _BatchNorm) and hasattr(module, 'backup_momentum'):
             module.momentum = module.backup_momentum
