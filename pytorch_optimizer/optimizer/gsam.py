@@ -1,9 +1,10 @@
 from contextlib import ExitStack
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 
 import torch
 from torch import nn
 from torch.distributed import ReduceOp, all_reduce, get_world_size, is_initialized
+from torch.nn.utils import clip_grad_norm_
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -18,39 +19,19 @@ class GSAM(Optimizer, BaseOptimizer):
         Here's an example::
 
             model = YourModel()
-            base_optimizer = Ranger21
-            lr_scheduler = CosineAnnealingLR(base_optimizer, t_max=1, last_epoch=-1)
+            base_optimizer = AdamP(model.parameters())
+            lr_scheduler = CosineAnnealingLR(base_optimizer, t_max=num_total_steps, last_epoch=-1)
             rho_scheduler = ProportionScheduler(lr_scheduler, max_lr=max_lr)
             optimizer = GSAM(model.parameters(), base_optimizer, model, rho_scheduler)
 
-            for input, output in data:
-                # first forward-backward pass
+            def loss_fn(predictions, targets):
+                return F.cross_entropy(predictions, targets)
 
-                loss = loss_function(output, model(input))
-                loss.backward()
-                optimizer.first_step(zero_grad=True)
-
-                # second forward-backward pass
-                # make sure to do a full forward pass
-                loss_function(output, model(input)).backward()
-                optimizer.second_step(zero_grad=True)
-
-        Alternative example with a single closure-based step function::
-
-            model = YourModel()
-            base_optimizer = Ranger21
-            optimizer = GSAM(model.parameters(), base_optimizer)
-
-            def closure():
-                loss = loss_function(output, model(input))
-                loss.backward()
-                return loss
-
-            for input, output in data:
-                loss = loss_function(output, model(input))
-                loss.backward()
-                optimizer.step(closure)
-                optimizer.zero_grad()
+            for inputs, targets in data:
+                optimizer.set_closure(loss_fn, inputs, targets)
+                predictions, loss = optimizer.step()
+                lr_scheduler.step()
+                optimizer.update_rho_t()
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
     :param base_optimizer: Optimizer. base optimizer.
@@ -71,6 +52,8 @@ class GSAM(Optimizer, BaseOptimizer):
         rho_scheduler,
         adaptive: bool = False,
         perturb_eps: float = 1e-12,
+        amp: bool = False,
+        max_grad_norm: float = -1,
         **kwargs,
     ):
         self.model = model
@@ -88,6 +71,10 @@ class GSAM(Optimizer, BaseOptimizer):
         else:  # PyTorch <= 1.11.0 does not have AVG, need to manually average across processes
             self.grad_reduce = ReduceOp.SUM
             self.manual_average: bool = True
+
+        self.amp = amp
+        self.scaler = torch.cuda.amp.GradScaler(amp)
+        self.max_grad_norm = max_grad_norm
 
         defaults: DEFAULTS = dict(adaptive=adaptive, **kwargs)
         super().__init__(params, defaults)
@@ -111,7 +98,7 @@ class GSAM(Optimizer, BaseOptimizer):
         return self.rho_t
 
     @torch.no_grad()
-    def perturb_weights(self, rho: float = 0.0):
+    def perturb_weights(self, rho: float):
         grad_norm = self.grad_norm(weight_adaptive=self.adaptive)
         for group in self.param_groups:
             scale = rho / (grad_norm + self.perturb_eps)
@@ -144,7 +131,7 @@ class GSAM(Optimizer, BaseOptimizer):
 
                 inner_prod += torch.sum(self.state[p]['old_g'] * p.grad)
 
-        new_grad_norm = self.grad_norm()
+        new_grad_norm = self.grad_norm(by=None)
         old_grad_norm = self.grad_norm(by='old_g')
 
         cosine = inner_prod / (new_grad_norm * old_grad_norm + self.perturb_eps)
@@ -173,7 +160,7 @@ class GSAM(Optimizer, BaseOptimizer):
                         p.grad.div_(float(get_world_size()))
 
     @torch.no_grad()
-    def grad_norm(self, by: Optional[str] = None, weight_adaptive: bool = False):
+    def grad_norm(self, by: Optional[str] = None, weight_adaptive: bool = False) -> torch.Tensor:
         return torch.norm(
             torch.stack(
                 [
@@ -186,10 +173,6 @@ class GSAM(Optimizer, BaseOptimizer):
             p=2,
         )
 
-    def load_state_dict(self, state_dict):
-        super().load_state_dict(state_dict)
-        self.base_optimizer.param_groups = self.param_groups
-
     def maybe_no_sync(self):
         return self.model.no_sync() if is_initialized() else ExitStack()
 
@@ -199,18 +182,23 @@ class GSAM(Optimizer, BaseOptimizer):
         create self.forward_backward_func, which is a function such that self.forward_backward_func() automatically
         performs forward and backward passes. This function does not take any arguments, and the inputs and
         targets data should be pre-set in the definition of partial-function.
+
+        :param loss_fn: nn.Module. loss function.
+        :param inputs: torch.Tensor. inputs.
+        :param targets: torch.Tensor. targets.
         """
 
         def get_grad():
             self.base_optimizer.zero_grad()
             with torch.enable_grad():
-                outputs = self.model(inputs)
-                loss = loss_fn(outputs, targets, **kwargs)
+                with torch.cuda.amp.autocast(self.amp):
+                    outputs = self.model(inputs)
+                    loss = loss_fn(outputs, targets, **kwargs)
 
-            loss_value = loss.clone().detach()
-            loss.backward()
+            self.scaler.scale(loss).backward()
+            self.scaler.update()
 
-            return outputs, loss_value
+            return outputs, loss.detach()
 
         self.forward_backward_func = get_grad
 
@@ -233,8 +221,16 @@ class GSAM(Optimizer, BaseOptimizer):
 
         self.sync_grad()
 
-        self.base_optimizer.step()
+        if self.max_grad_norm != -1:
+            self.scaler.unscale_(self.param_groups)
+            clip_grad_norm_(self.param_groups, self.max_grad_norm)
+
+        self.scaler.step(self.base_optimizer)
 
         enable_running_stats(self.model)
 
         return outputs, loss_value
+
+    def load_state_dict(self, state_dict: Dict):
+        super().load_state_dict(state_dict)
+        self.base_optimizer.param_groups = self.param_groups
