@@ -1,5 +1,5 @@
 from contextlib import ExitStack
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Tuple
 
 import torch
 from torch import nn
@@ -203,11 +203,11 @@ class GSAM(Optimizer, BaseOptimizer):
         self.forward_backward_func = get_grad
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None):
+    def step(self, closure: CLOSURE = None) -> Tuple[torch.Tensor, float]:
         get_grad = closure if closure else self.forward_backward_func
 
         with self.maybe_no_sync():
-            outputs, loss_value = get_grad()
+            outputs, loss = get_grad()
 
             self.perturb_weights(rho=self.rho_t)
 
@@ -229,7 +229,7 @@ class GSAM(Optimizer, BaseOptimizer):
 
         enable_running_stats(self.model)
 
-        return outputs, loss_value
+        return outputs, loss
 
     def load_state_dict(self, state_dict: Dict):
         super().load_state_dict(state_dict)
