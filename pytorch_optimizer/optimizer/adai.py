@@ -129,6 +129,8 @@ class Adai(Optimizer, BaseOptimizer):
         exp_avg_sq_hat_mean = exp_avg_sq_hat_sum / param_size
 
         for group in self.param_groups:
+            beta0, beta2 = group['betas']
+            beta0_dp = math.pow(beta0, 1.0 - group['dampening'])
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -138,7 +140,6 @@ class Adai(Optimizer, BaseOptimizer):
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1_prod = state['beta1_prod']
-                beta0, beta2 = group['betas']
 
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
@@ -152,7 +153,7 @@ class Adai(Optimizer, BaseOptimizer):
                 bias_correction1 = 1.0 - beta1_prod
 
                 exp_avg.mul_(beta1).addcmul_(beta3, grad)
-                exp_avg_hat = exp_avg / bias_correction1 * math.pow(beta0, 1.0 - group['dampening'])
+                exp_avg_hat = exp_avg / bias_correction1 * beta0_dp
 
                 p.add_(exp_avg_hat, alpha=-group['lr'])
 
