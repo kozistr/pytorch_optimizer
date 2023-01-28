@@ -122,7 +122,7 @@ class AdaPNM(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1 ** 2).add_(grad, alpha=1 - beta1 ** 2)  # fmt: skip
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                 if group['amsgrad']:
-                    exp_avg_sq = torch.max(state['max_exp_avg_sq'], exp_avg_sq)
+                    torch.max(state['max_exp_avg_sq'], exp_avg_sq, out=exp_avg_sq)
 
                 de_nom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 

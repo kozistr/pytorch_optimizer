@@ -113,7 +113,7 @@ class Adai(Optimizer, BaseOptimizer):
 
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
-                if group['weight_decay'] != 0:
+                if group['weight_decay'] > 0.0:
                     if self.weight_decouple:
                         p.mul_(1.0 - group['lr'] * group['weight_decay'])
                     else:

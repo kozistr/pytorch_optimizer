@@ -81,6 +81,7 @@ class DiffRGrad(Optimizer, BaseOptimizer):
 
         for group in self.param_groups:
             beta1, beta2 = group['betas']
+            n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -107,9 +108,8 @@ class DiffRGrad(Optimizer, BaseOptimizer):
                     state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_fp32)
                     state['previous_grad'] = state['previous_grad'].type_as(p_fp32)
 
-                exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
-
                 state['step'] += 1
+                exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
 
@@ -127,12 +127,11 @@ class DiffRGrad(Optimizer, BaseOptimizer):
                 else:
                     buffered[0] = state['step']
                     beta2_t = beta2 ** state['step']
-                    n_sma_max = 2.0 / (1.0 - beta2) - 1.0
                     n_sma = n_sma_max - 2.0 * state['step'] * beta2_t / (1.0 - beta2_t)
                     buffered[1] = n_sma
 
                     if n_sma >= self.n_sma_threshold:
-                        rt = math.sqrt(
+                        step_size = math.sqrt(
                             (1 - beta2_t)
                             * (n_sma - 4)
                             / (n_sma_max - 4)
@@ -141,8 +140,6 @@ class DiffRGrad(Optimizer, BaseOptimizer):
                             * n_sma_max
                             / (n_sma_max - 2)
                         )
-
-                        step_size = rt
                         if not group['adamd_debias_term']:
                             step_size /= bias_correction1
                     elif self.degenerated_to_sgd:

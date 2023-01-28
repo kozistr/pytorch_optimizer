@@ -142,7 +142,7 @@ class Lamb(Optimizer, BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 adam_step = exp_avg / exp_avg_sq.sqrt().add(group['eps'])
-                if group['weight_decay'] != 0:
+                if group['weight_decay'] > 0.0:
                     adam_step.add_(p, alpha=group['weight_decay'])
 
                 weight_norm = p.norm(2).clamp(0, self.clamp)
