@@ -71,6 +71,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            momentum = group['momentum']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -79,7 +80,6 @@ class Shampoo(Optimizer, BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(self.__name__)
 
-                momentum = group['momentum']
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
