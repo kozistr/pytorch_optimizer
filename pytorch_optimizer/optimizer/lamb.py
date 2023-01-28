@@ -1,4 +1,4 @@
-import math
+from typing import Union
 
 import torch
 from torch.optim import Optimizer
@@ -16,6 +16,8 @@ class Lamb(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param eps: float. term added to the denominator to improve numerical stability.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param grad_averaging: bool. whether apply (1 - beta2) to grad when calculating running averages of gradient.
+    :param max_grad_norm: float. max gradient norm to clip.
     :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param pre_norm: bool. perform pre-normalization of all gradients.
     """
@@ -29,6 +31,8 @@ class Lamb(Optimizer, BaseOptimizer):
         betas: BETAS = (0.9, 0.999),
         eps: float = 1e-6,
         weight_decay: float = 0.0,
+        grad_averaging: bool = True,
+        max_grad_norm: float = 1.0,
         adam: bool = False,
         adamd_debias_term: bool = False,
         pre_norm: bool = False,
@@ -36,6 +40,8 @@ class Lamb(Optimizer, BaseOptimizer):
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
+        self.grad_averaging = grad_averaging
+        self.max_grad_norm = max_grad_norm
         self.eps = eps
         self.adam = adam
         self.adamd_debias_term = adamd_debias_term
@@ -43,7 +49,14 @@ class Lamb(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
+        defaults: DEFAULTS = dict(
+            lr=lr,
+            betas=betas,
+            eps=eps,
+            weight_decay=weight_decay,
+            grad_averaging=grad_averaging,
+            max_grad_norm=max_grad_norm,
+        )
 
         super().__init__(params, defaults)
 
@@ -52,6 +65,7 @@ class Lamb(Optimizer, BaseOptimizer):
         self.validate_betas(self.betas)
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
+        self.validate_norm(self.max_grad_norm)
 
     @property
     def __name__(self) -> str:
@@ -67,17 +81,24 @@ class Lamb(Optimizer, BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
-    def get_global_gradient_norm(self) -> torch.Tensor:
+    @torch.no_grad()
+    def get_global_gradient_norm(self) -> Union[torch.Tensor, float]:
+        if self.defaults['max_grad_norm'] == 0.0:
+            return 1.0
+
         device = self.param_groups[0]['params'][0].device
 
-        norm_sq = torch.zeros(1, device=device)
+        global_grad_norm = torch.zeros(1, device=device)
+        max_grad_norm = torch.tensor(self.defaults['max_grad_norm'], device=device)
+
         for group in self.param_groups:
             for p in group['params']:
-                if p.grad is None:
-                    continue
-                norm_sq.add_(torch.linalg.norm(p.grad).pow(2))
+                if p.grad is not None:
+                    global_grad_norm.add_(p.grad.pow(2).sum())
 
-        return torch.sqrt(norm_sq) + self.eps
+        global_grad_norm = torch.sqrt(global_grad_norm)
+
+        return torch.clamp(max_grad_norm / (global_grad_norm + self.eps), max=1.0)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
