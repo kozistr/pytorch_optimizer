@@ -80,7 +80,6 @@ class SGDP(Optimizer, BaseOptimizer):
 
         for group in self.param_groups:
             momentum = group['momentum']
-
             for p in group['params']:
                 if p.grad is None:
                     continue
