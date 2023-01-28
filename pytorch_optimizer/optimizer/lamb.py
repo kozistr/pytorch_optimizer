@@ -93,7 +93,7 @@ class Lamb(Optimizer, BaseOptimizer):
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is not None:
-                    global_grad_norm.add_(p.grad.pow(2).sum())
+                    global_grad_norm.add_(torch.linalg.norm(p.grad).pow(2))
 
         global_grad_norm = torch.sqrt(global_grad_norm)
 
