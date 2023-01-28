@@ -85,6 +85,7 @@ class Adai(Optimizer, BaseOptimizer):
         exp_avg_sq_hat_sum: float = 0.0
 
         for group in self.param_groups:
+            _, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -106,7 +107,6 @@ class Adai(Optimizer, BaseOptimizer):
                 state['step'] += 1
 
                 exp_avg_sq = state['exp_avg_sq']
-                _, beta2 = group['betas']
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)

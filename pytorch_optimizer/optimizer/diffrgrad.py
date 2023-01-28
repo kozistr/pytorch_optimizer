@@ -80,6 +80,7 @@ class DiffRGrad(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            beta1, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -109,7 +110,6 @@ class DiffRGrad(Optimizer, BaseOptimizer):
                 exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
 
                 state['step'] += 1
-                beta1, beta2 = group['betas']
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
 
@@ -119,7 +119,7 @@ class DiffRGrad(Optimizer, BaseOptimizer):
                 # compute diffGrad coefficient (dfc)
                 diff = abs(previous_grad - grad)
                 dfc = 1.0 / (1.0 + torch.exp(-diff))
-                state['previous_grad'] = grad.clone()
+                state['previous_grad'].copy_(grad)
 
                 buffered = group['buffer'][state['step'] % 10]
                 if state['step'] == buffered[0]:

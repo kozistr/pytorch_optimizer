@@ -94,6 +94,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            beta1, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -128,7 +129,6 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 exp_avg, exp_avg_var = state['exp_avg'], state['exp_avg_var']
 
                 state['step'] += 1
-                beta1, beta2 = group['betas']
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
                 bias_correction2 = 1.0 - beta2 ** state['step']
@@ -136,10 +136,9 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 grad_residual = grad - exp_avg
                 exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2)
-
-                exp_avg_var = exp_avg_var.add_(group['eps'])
+                exp_avg_var.add_(group['eps'])
                 if group['amsgrad']:
-                    exp_avg_var = torch.max(state['max_exp_avg_var'], exp_avg_var)
+                    torch.max(state['max_exp_avg_var'], exp_avg_var, out=exp_avg_var)
 
                 de_nom = (exp_avg_var.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 

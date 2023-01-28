@@ -69,6 +69,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            beta1, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -90,7 +91,6 @@ class DiffGrad(Optimizer, BaseOptimizer):
                     grad.add_(p, alpha=group['weight_decay'])
 
                 state['step'] += 1
-                beta1, beta2 = group['betas']
 
                 # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
@@ -104,15 +104,13 @@ class DiffGrad(Optimizer, BaseOptimizer):
                 # compute diffGrad coefficient (dfc)
                 diff = abs(previous_grad - grad)
                 dfc = 1.0 / (1.0 + torch.exp(-diff))
-                state['previous_grad'] = grad.clone()
-
-                # update momentum with dfc
-                exp_avg1 = exp_avg * dfc
+                state['previous_grad'].copy_(grad)
 
                 step_size = group['lr'] * math.sqrt(bias_correction2)
                 if not group['adamd_debias_term']:
                     step_size /= bias_correction1
 
-                p.addcdiv_(exp_avg1, de_nom, value=-step_size)
+                # update momentum with dfc (exp_avg * dfc)
+                p.addcdiv_(exp_avg * dfc, de_nom, value=-step_size)
 
         return loss

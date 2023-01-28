@@ -89,6 +89,7 @@ class AdamP(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            beta1, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -106,7 +107,6 @@ class AdamP(Optimizer, BaseOptimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 state['step'] += 1
-                beta1, beta2 = group['betas']
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
                 bias_correction2 = 1.0 - beta2 ** state['step']
@@ -120,9 +120,10 @@ class AdamP(Optimizer, BaseOptimizer):
                 de_nom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
                 if group['nesterov']:
-                    perturb = (beta1 * exp_avg + (1.0 - beta1) * grad) / de_nom
+                    perturb = beta1 * exp_avg + (1.0 - beta1) * grad
                 else:
-                    perturb = exp_avg / de_nom
+                    perturb = exp_avg
+                perturb.div_(de_nom)
 
                 wd_ratio: float = 1
                 if len(p.shape) > 1:
