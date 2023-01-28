@@ -95,7 +95,9 @@ class AdaBelief(Optimizer, BaseOptimizer):
 
         for group in self.param_groups:
             beta1, beta2 = group['betas']
-            n_sma_max: float = 2 / (1 - beta2) - 1
+            if self.rectify:
+                n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
+
             for p in group['params']:
                 if p.grad is None:
                     continue
