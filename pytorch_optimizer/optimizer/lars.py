@@ -13,7 +13,9 @@ class LARS(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param weight_decay: float. weight decay (L2 penalty).
     :param momentum: float. momentum.
+    :param dampening: float. dampening for momentum.
     :param trust_coefficient: float. trust_coefficient.
+    :param nesterov: bool. enables nesterov momentum.
     :param eps: float. epsilon.
     """
 
@@ -23,13 +25,17 @@ class LARS(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         weight_decay: float = 0.0,
         momentum: float = 0.9,
-        trust_coefficient: float = 0.001,
+        dampening: float = 0.0,
+        trust_coefficient: float = 1e-3,
+        nesterov: bool = False,
         eps: float = 1e-6,
     ):
         self.lr = lr
         self.weight_decay = weight_decay
         self.momentum = momentum
+        self.dampening = dampening
         self.trust_coefficient = trust_coefficient
+        self.nesterov = nesterov
         self.eps = eps
 
         self.validate_parameters()
@@ -38,7 +44,9 @@ class LARS(Optimizer, BaseOptimizer):
             lr=lr,
             weight_decay=weight_decay,
             momentum=momentum,
+            dampening=dampening,
             trust_coefficient=trust_coefficient,
+            nesterov=nesterov,
         )
         super().__init__(params, defaults)
 
@@ -68,8 +76,8 @@ class LARS(Optimizer, BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        for g in self.param_groups:
-            for p in g['params']:
+        for group in self.param_groups:
+            for p in group['params']:
                 if p.grad is None:
                     continue
 
@@ -78,25 +86,32 @@ class LARS(Optimizer, BaseOptimizer):
                     raise NoSparseGradientError(self.__name__)
 
                 if p.ndim > 1:  # if not normalization gamma/beta or bias
-                    grad = grad.add(p, alpha=g['weight_decay'])
-                    param_norm = torch.norm(p)
-                    update_norm = torch.norm(grad)
+                    param_norm = p.norm(2.0)
+                    update_norm = grad.norm(2.0)
                     one = torch.ones_like(param_norm, device=param_norm.device)
 
-                    q = torch.where(
+                    trust_ratio = torch.where(
                         param_norm > 0.0,
-                        torch.where(update_norm > 0.0, (g['trust_coefficient'] * param_norm / update_norm), one),
+                        torch.where(update_norm > 0.0, (group['trust_coefficient'] * param_norm / update_norm), one),
                         one,
                     )
-                    grad = grad.mul(q)
 
-                param_state = self.state[p]
-                if 'mu' not in param_state:
-                    param_state['mu'] = torch.zeros_like(p, device=p.device)
+                    grad.add_(p, alpha=group['weight_decay'])
+                    grad.mul_(trust_ratio)
 
-                mu = param_state['mu']
-                mu.mul_(g['momentum']).add_(grad)
+                if group['momentum'] > 0.0:
+                    param_state = self.state[p]
+                    if 'momentum_buffer' not in param_state:
+                        param_state['momentum_buffer'] = grad.clone().detach()
 
-                p.add_(mu, alpha=-g['lr'])
+                    mu = param_state['momentum_buffer']
+                    mu.mul_(group['momentum']).add_(grad, alpha=1.0 - group['dampening'])
+
+                    if group['nesterov']:
+                        grad.add_(mu, alpha=group['momentum'])
+                    else:
+                        grad.copy_(mu)
+
+                p.add_(grad, alpha=-group['lr'])
 
         return loss

@@ -91,6 +91,7 @@ def test_safe_f16_optimizers(optimizer_fp16_config):
         or (optimizer_name == 'RaLamb' and 'pre_norm' in config)
         or (optimizer_name == 'PNM')
         or (optimizer_name == 'Nero')
+        or (optimizer_name == 'LARS' and 'nesterov' in config)
         or (optimizer_name == 'Adan' and 'weight_decay' not in config)
         or (optimizer_name == 'RAdam')
         or (optimizer_name == 'Adai')

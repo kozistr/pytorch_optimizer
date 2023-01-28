@@ -71,6 +71,8 @@ class Shampoo(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            momentum = group['momentum']
+            weight_decay = group['weight_decay']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -79,7 +81,6 @@ class Shampoo(Optimizer, BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(self.__name__)
 
-                momentum = group['momentum']
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
@@ -95,7 +96,6 @@ class Shampoo(Optimizer, BaseOptimizer):
                 if momentum > 0.0:
                     grad.mul_(1.0 - momentum).add_(state['momentum_buffer'], alpha=momentum)
 
-                weight_decay = group['weight_decay']
                 if weight_decay > 0.0:
                     grad.add_(p, alpha=weight_decay)
 

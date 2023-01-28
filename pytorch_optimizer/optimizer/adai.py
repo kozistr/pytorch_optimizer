@@ -85,6 +85,7 @@ class Adai(Optimizer, BaseOptimizer):
         exp_avg_sq_hat_sum: float = 0.0
 
         for group in self.param_groups:
+            _, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -106,14 +107,13 @@ class Adai(Optimizer, BaseOptimizer):
                 state['step'] += 1
 
                 exp_avg_sq = state['exp_avg_sq']
-                _, beta2 = group['betas']
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
-                if group['weight_decay'] != 0:
+                if group['weight_decay'] > 0.0:
                     if self.weight_decouple:
                         p.mul_(1.0 - group['lr'] * group['weight_decay'])
                     else:
@@ -129,6 +129,8 @@ class Adai(Optimizer, BaseOptimizer):
         exp_avg_sq_hat_mean = exp_avg_sq_hat_sum / param_size
 
         for group in self.param_groups:
+            beta0, beta2 = group['betas']
+            beta0_dp = math.pow(beta0, 1.0 - group['dampening'])
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -138,7 +140,6 @@ class Adai(Optimizer, BaseOptimizer):
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1_prod = state['beta1_prod']
-                beta0, beta2 = group['betas']
 
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
@@ -152,7 +153,7 @@ class Adai(Optimizer, BaseOptimizer):
                 bias_correction1 = 1.0 - beta1_prod
 
                 exp_avg.mul_(beta1).addcmul_(beta3, grad)
-                exp_avg_hat = exp_avg / bias_correction1 * math.pow(beta0, 1.0 - group['dampening'])
+                exp_avg_hat = exp_avg / bias_correction1 * beta0_dp
 
                 p.add_(exp_avg_hat, alpha=-group['lr'])
 

@@ -94,6 +94,10 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            beta1, beta2 = group['betas']
+            if self.rectify:
+                n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -128,7 +132,6 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 exp_avg, exp_avg_var = state['exp_avg'], state['exp_avg_var']
 
                 state['step'] += 1
-                beta1, beta2 = group['betas']
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
                 bias_correction2 = 1.0 - beta2 ** state['step']
@@ -136,10 +139,9 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 grad_residual = grad - exp_avg
                 exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2)
-
-                exp_avg_var = exp_avg_var.add_(group['eps'])
+                exp_avg_var.add_(group['eps'])
                 if group['amsgrad']:
-                    exp_avg_var = torch.max(state['max_exp_avg_var'], exp_avg_var)
+                    torch.max(state['max_exp_avg_var'], exp_avg_var, out=exp_avg_var)
 
                 de_nom = (exp_avg_var.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
@@ -155,12 +157,11 @@ class AdaBelief(Optimizer, BaseOptimizer):
                     else:
                         buffered[0] = state['step']
                         beta2_t = beta2 ** state['step']
-                        n_sma_max = 2 / (1 - beta2) - 1
                         n_sma = n_sma_max - 2 * state['step'] * beta2_t / (1 - beta2_t)
                         buffered[1] = n_sma
 
                         if n_sma >= self.n_sma_threshold:
-                            rt = math.sqrt(
+                            step_size = math.sqrt(
                                 (1 - beta2_t)
                                 * (n_sma - 4)
                                 / (n_sma_max - 4)
@@ -169,8 +170,6 @@ class AdaBelief(Optimizer, BaseOptimizer):
                                 * n_sma_max
                                 / (n_sma_max - 2)
                             )
-
-                            step_size = rt
                             if not group['adamd_debias_term']:
                                 step_size /= bias_correction1
                         elif self.degenerated_to_sgd:

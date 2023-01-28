@@ -79,18 +79,17 @@ class RaLamb(Optimizer, BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def get_gradient_norm(self) -> float:
-        norm_sq: float = 0.0
+    def get_global_gradient_norm(self) -> torch.Tensor:
+        device = self.param_groups[0]['params'][0].device
+
+        global_grad_norm = torch.zeros(1, device=device)
+
         for group in self.param_groups:
             for p in group['params']:
-                if p.grad is None:
-                    continue
+                if p.grad is not None:
+                    global_grad_norm.add_(torch.linalg.norm(p.grad).pow(2))
 
-                norm_sq += torch.linalg.norm(p.grad).cpu().numpy() ** 2
-
-        norm = math.sqrt(norm_sq)
-
-        return norm
+        return torch.sqrt(global_grad_norm) + self.eps
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -101,9 +100,11 @@ class RaLamb(Optimizer, BaseOptimizer):
 
         grad_norm: float = 1.0
         if self.pre_norm:
-            grad_norm = self.get_gradient_norm()
+            grad_norm = self.get_global_gradient_norm()
 
         for group in self.param_groups:
+            beta1, beta2 = group['betas']
+            n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -133,7 +134,6 @@ class RaLamb(Optimizer, BaseOptimizer):
                     state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_fp32)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                beta1, beta2 = group['betas']
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
@@ -148,13 +148,12 @@ class RaLamb(Optimizer, BaseOptimizer):
                 else:
                     buffered[0] = state['step']
                     beta2_t = beta2 ** state['step']
-                    n_sma_max = 2 / (1 - beta2) - 1
                     n_sma = n_sma_max - 2 * state['step'] * beta2_t / (1 - beta2_t)
                     buffered[1] = n_sma
 
                     # more conservative since it's an approximated value
                     if n_sma >= self.n_sma_threshold:
-                        rt = math.sqrt(
+                        step_size = math.sqrt(
                             (1 - beta2_t)
                             * (n_sma - 4)
                             / (n_sma_max - 4)
@@ -163,8 +162,6 @@ class RaLamb(Optimizer, BaseOptimizer):
                             * n_sma_max
                             / (n_sma_max - 2)
                         )
-
-                        step_size = rt
                         if not group['adamd_debias_term']:
                             step_size /= bias_correction1
                     elif self.degenerated_to_sgd:
@@ -174,7 +171,7 @@ class RaLamb(Optimizer, BaseOptimizer):
 
                     buffered[2] = step_size
 
-                if group['weight_decay'] != 0:
+                if group['weight_decay'] > 0.0:
                     p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
 
                 radam_step = p_fp32.clone()
@@ -184,12 +181,12 @@ class RaLamb(Optimizer, BaseOptimizer):
                 else:
                     radam_step.add_(exp_avg, alpha=-step_size)
 
-                radam_step = radam_step.pow(2).sum().sqrt()
-                weight_norm = p.pow(2).sum().sqrt().clamp(0.0, self.clamp)
+                radam_step = radam_step.norm(2.0)
+                weight_norm = p.norm(2.0).clamp(0.0, self.clamp)
                 if weight_norm == 0 or radam_step == 0:
                     trust_ratio = 1.0
                 else:
-                    trust_ratio = weight_norm / radam_step
+                    trust_ratio = weight_norm / (radam_step + self.eps)
 
                 state['weight_norm'] = weight_norm
                 state['adam_norm'] = radam_step

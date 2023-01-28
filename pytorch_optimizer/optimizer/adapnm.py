@@ -84,6 +84,8 @@ class AdaPNM(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            beta1, beta2, beta3 = group['betas']
+            noise_norm = math.sqrt((1 + beta3) ** 2 + beta3 ** 2)  # fmt: skip
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -107,7 +109,6 @@ class AdaPNM(Optimizer, BaseOptimizer):
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
 
                 state['step'] += 1
-                beta1, beta2, beta3 = group['betas']
 
                 bias_correction1 = 1 - beta1 ** state['step']
                 bias_correction2 = 1 - beta2 ** state['step']
@@ -120,18 +121,16 @@ class AdaPNM(Optimizer, BaseOptimizer):
 
                 exp_avg.mul_(beta1 ** 2).add_(grad, alpha=1 - beta1 ** 2)  # fmt: skip
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
-
                 if group['amsgrad']:
-                    exp_avg_sq = torch.max(state['max_exp_avg_sq'], exp_avg_sq)
+                    torch.max(state['max_exp_avg_sq'], exp_avg_sq, out=exp_avg_sq)
 
-                denom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
+                de_nom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
                 step_size = group['lr']
                 if not group['adamd_debias_term']:
                     step_size /= bias_correction1
 
-                noise_norm = math.sqrt((1 + beta3) ** 2 + beta3 ** 2)  # fmt: skip
-                pn_momentum = exp_avg.mul(1 + beta3).add(neg_exp_avg, alpha=-beta3).mul(1.0 / noise_norm)
-                p.addcdiv_(pn_momentum, denom, value=-step_size)
+                pn_momentum = exp_avg.mul(1.0 + beta3).add(neg_exp_avg, alpha=-beta3).mul(1.0 / noise_norm)
+                p.addcdiv_(pn_momentum, de_nom, value=-step_size)
 
         return loss

@@ -89,6 +89,7 @@ class AdamP(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            beta1, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -103,10 +104,8 @@ class AdamP(Optimizer, BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
                 state['step'] += 1
-                beta1, beta2 = group['betas']
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
                 bias_correction2 = 1.0 - beta2 ** state['step']
@@ -117,12 +116,14 @@ class AdamP(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                de_nom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
+                inv_de_nom = 1.0 / (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
+                perturb = exp_avg.clone()
                 if group['nesterov']:
-                    perturb = (beta1 * exp_avg + (1.0 - beta1) * grad) / de_nom
+                    # perturb = beta1 * exp_avg + (1.0 - beta1) * grad / de_nom
+                    perturb.mul_(beta1).addcmul_(grad, inv_de_nom, value=1.0 - beta1)
                 else:
-                    perturb = exp_avg / de_nom
+                    perturb.mul_(inv_de_nom)
 
                 wd_ratio: float = 1
                 if len(p.shape) > 1:
@@ -135,7 +136,7 @@ class AdamP(Optimizer, BaseOptimizer):
                         group['eps'],
                     )
 
-                if group['weight_decay'] > 0:
+                if group['weight_decay'] > 0.0:
                     p.mul_(1.0 - group['lr'] * group['weight_decay'] * wd_ratio)
 
                 step_size = group['lr']

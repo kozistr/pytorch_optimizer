@@ -92,6 +92,11 @@ class BaseOptimizer(ABC):
         if update_frequency < 1:
             raise ValueError(f'[-] update_frequency {update_frequency} must be positive')
 
+    @staticmethod
+    def validate_norm(norm: float):
+        if norm < 0.0:
+            raise ValueError(f'[-] norm {norm} must be positive')
+
     @abstractmethod
     def validate_parameters(self):
         raise NotImplementedError

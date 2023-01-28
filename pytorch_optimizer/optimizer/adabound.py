@@ -92,6 +92,7 @@ class AdaBound(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group, base_lr in zip(self.param_groups, self.base_lrs):
+            beta1, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -112,7 +113,7 @@ class AdaBound(Optimizer, BaseOptimizer):
                 state['step'] += 1
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                if group['weight_decay'] != 0:
+                if group['weight_decay'] > 0.0:
                     if self.weight_decouple:
                         p.mul_(
                             1.0 - (group['weight_decay'] if self.fixed_decay else group['lr'] * group['weight_decay'])
@@ -120,13 +121,10 @@ class AdaBound(Optimizer, BaseOptimizer):
                     else:
                         grad.add_(p, alpha=group['weight_decay'])
 
-                beta1, beta2 = group['betas']
-
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
-
                 if group['amsbound']:
-                    exp_avg_sq = torch.max(state['max_exp_avg_sq'], exp_avg_sq)
+                    torch.max(state['max_exp_avg_sq'], exp_avg_sq, out=exp_avg_sq)
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
