@@ -18,7 +18,6 @@ class Lamb(Optimizer, BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param grad_averaging: bool. whether apply (1 - beta2) to gradient when calculating running averages of gradient.
     :param max_grad_norm: float. max gradient norm to clip.
-    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param pre_norm: bool. perform pre-normalization of all gradients.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
@@ -34,7 +33,6 @@ class Lamb(Optimizer, BaseOptimizer):
         grad_averaging: bool = True,
         max_grad_norm: float = 1.0,
         adam: bool = False,
-        adamd_debias_term: bool = False,
         pre_norm: bool = False,
         eps: float = 1e-6,
     ):
@@ -44,7 +42,6 @@ class Lamb(Optimizer, BaseOptimizer):
         self.grad_averaging = grad_averaging
         self.max_grad_norm = max_grad_norm
         self.adam = adam
-        self.adamd_debias_term = adamd_debias_term
         self.pre_norm = pre_norm
         self.eps = eps
 
