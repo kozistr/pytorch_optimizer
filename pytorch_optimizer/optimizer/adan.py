@@ -1,4 +1,5 @@
 import math
+from typing import Union
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -17,6 +18,7 @@ class Adan(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. decoupled weight decay.
+    :param max_grad_norm: float. max gradient norm to clip.
     :param use_gc: bool. use gradient centralization.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
@@ -28,6 +30,7 @@ class Adan(Optimizer, BaseOptimizer):
         betas: BETAS = (0.98, 0.92, 0.99),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
+        max_grad_norm: float = 0.0,
         use_gc: bool = False,
         eps: float = 1e-8,
     ):
@@ -35,6 +38,7 @@ class Adan(Optimizer, BaseOptimizer):
         self.betas = betas
         self.weight_decay = weight_decay
         self.weight_decouple = weight_decouple
+        self.max_grad_norm = max_grad_norm
         self.use_gc = use_gc
         self.eps = eps
 
@@ -46,6 +50,7 @@ class Adan(Optimizer, BaseOptimizer):
             eps=eps,
             weight_decay=weight_decay,
             weight_decouple=weight_decouple,
+            max_grad_norm=max_grad_norm,
         )
         super().__init__(params, defaults)
 
@@ -54,6 +59,7 @@ class Adan(Optimizer, BaseOptimizer):
         self.validate_betas(self.betas)
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
+        self.validate_norm(self.max_grad_norm)
 
     @property
     def __name__(self) -> str:
@@ -62,14 +68,33 @@ class Adan(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
-                state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_diff'] = torch.zeros_like(p)
                 state['exp_avg_nest'] = torch.zeros_like(p)
                 state['previous_grad'] = torch.zeros_like(p)
+
+    @torch.no_grad()
+    def get_global_gradient_norm(self) -> Union[torch.Tensor, float]:
+        if self.defaults['max_grad_norm'] == 0.0:
+            return 1.0
+
+        device = self.param_groups[0]['params'][0].device
+
+        global_grad_norm = torch.zeros(1, device=device)
+        max_grad_norm = torch.tensor(self.defaults['max_grad_norm'], device=device)
+
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is not None:
+                    global_grad_norm.add_(p.grad.pow(2).sum())
+
+        global_grad_norm = torch.sqrt(global_grad_norm)
+
+        return torch.clamp(max_grad_norm / (global_grad_norm + self.eps), max=1.0)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -78,7 +103,19 @@ class Adan(Optimizer, BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
+        clip_global_grad_norm = self.get_global_gradient_norm()
+
         for group in self.param_groups:
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
+            beta1, beta2, beta3 = group['betas']
+            bias_correction1 = 1.0 - beta1 ** group['step']
+            bias_correction2 = 1.0 - beta2 ** group['step']
+            bias_correction3_sq = math.sqrt(1.0 - beta3 ** group['step'])
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -89,27 +126,21 @@ class Adan(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_diff'] = torch.zeros_like(p)
                     state['exp_avg_nest'] = torch.zeros_like(p)
-                    state['previous_grad'] = torch.zeros_like(p)
+                    state['previous_grad'] = grad.clone().mul_(clip_global_grad_norm)
 
                 exp_avg, exp_avg_diff, exp_avg_nest = state['exp_avg'], state['exp_avg_diff'], state['exp_avg_nest']
                 prev_grad = state['previous_grad']
 
-                state['step'] += 1
-                beta1, beta2, beta3 = group['betas']
-
-                bias_correction1 = 1.0 - beta1 ** state['step']
-                bias_correction2 = 1.0 - beta2 ** state['step']
-                bias_correction3 = 1.0 - beta3 ** state['step']
+                grad.mul_(clip_global_grad_norm)
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
                 grad_diff = grad - prev_grad
-                state['previous_grad'] = grad.clone()
+                state['previous_grad'].copy_(grad)
 
                 update = grad + beta2 * grad_diff
 
@@ -117,7 +148,7 @@ class Adan(Optimizer, BaseOptimizer):
                 exp_avg_diff.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
                 exp_avg_nest.mul_(beta3).addcmul_(update, update, value=1.0 - beta3)
 
-                de_nom = (exp_avg_nest.sqrt_() / math.sqrt(bias_correction3)).add_(self.eps)
+                de_nom = (exp_avg_nest.sqrt_() / bias_correction3_sq).add_(self.eps)
                 perturb = (exp_avg / bias_correction1 + beta2 * exp_avg_diff / bias_correction2).div_(de_nom)
 
                 if group['weight_decouple']:
