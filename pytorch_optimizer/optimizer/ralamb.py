@@ -79,18 +79,17 @@ class RaLamb(Optimizer, BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def get_gradient_norm(self) -> float:
-        norm_sq: float = 0.0
+    def get_global_gradient_norm(self) -> torch.Tensor:
+        device = self.param_groups[0]['params'][0].device
+
+        global_grad_norm = torch.zeros(1, device=device)
+
         for group in self.param_groups:
             for p in group['params']:
-                if p.grad is None:
-                    continue
+                if p.grad is not None:
+                    global_grad_norm.add_(p.grad.pow(2).sum())
 
-                norm_sq += torch.linalg.norm(p.grad).cpu().numpy() ** 2
-
-        norm = math.sqrt(norm_sq)
-
-        return norm
+        return torch.sqrt(global_grad_norm) + self.eps
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -101,7 +100,7 @@ class RaLamb(Optimizer, BaseOptimizer):
 
         grad_norm: float = 1.0
         if self.pre_norm:
-            grad_norm = self.get_gradient_norm()
+            grad_norm = self.get_global_gradient_norm()
 
         for group in self.param_groups:
             for p in group['params']:
@@ -184,12 +183,12 @@ class RaLamb(Optimizer, BaseOptimizer):
                 else:
                     radam_step.add_(exp_avg, alpha=-step_size)
 
-                radam_step = radam_step.pow(2).sum().sqrt()
-                weight_norm = p.pow(2).sum().sqrt().clamp(0.0, self.clamp)
+                radam_step = radam_step.norm(2.0)
+                weight_norm = p.norm(2.0).clamp(0.0, self.clamp)
                 if weight_norm == 0 or radam_step == 0:
                     trust_ratio = 1.0
                 else:
-                    trust_ratio = weight_norm / radam_step
+                    trust_ratio = weight_norm / (radam_step + self.eps)
 
                 state['weight_norm'] = weight_norm
                 state['adam_norm'] = radam_step
