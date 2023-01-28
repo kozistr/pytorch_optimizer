@@ -245,6 +245,8 @@ class Ranger21(Optimizer, BaseOptimizer):
             bias_correction1 = 1.0 - beta1 ** step  # fmt: skip
             bias_correction2_sq = math.sqrt(1.0 - beta2 ** step)  # fmt: skip
 
+            noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
+
             # warm up
             lr = self.warm_up_dampening(lr, step)
 
@@ -292,7 +294,6 @@ class Ranger21(Optimizer, BaseOptimizer):
                 if self.use_softplus:
                     de_nom = F.softplus(de_nom, beta=self.beta_softplus)
 
-                noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
                 pn_momentum = grad_ma.mul(1.0 + 1.0).add(neg_grad_ma, alpha=-1.0).mul(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)
 
