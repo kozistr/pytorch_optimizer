@@ -104,9 +104,8 @@ class AdamP(Optimizer, BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
                 state['step'] += 1
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
                 bias_correction2 = 1.0 - beta2 ** state['step']
@@ -117,13 +116,14 @@ class AdamP(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                de_nom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
+                inv_de_nom = 1.0 / (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
 
+                perturb = exp_avg.clone()
                 if group['nesterov']:
-                    perturb = beta1 * exp_avg + (1.0 - beta1) * grad
+                    # perturb = beta1 * exp_avg + (1.0 - beta1) * grad / de_nom
+                    perturb.mul_(beta1).addcmul_((1.0 - beta1) * grad, inv_de_nom, value=1)
                 else:
-                    perturb = exp_avg
-                perturb.div_(de_nom)
+                    perturb.mul_(inv_de_nom)
 
                 wd_ratio: float = 1
                 if len(p.shape) > 1:
