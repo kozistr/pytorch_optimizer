@@ -125,7 +125,7 @@ def test_update_frequency(optimizer_name):
         optimizer(None, update_freq=0)
 
 
-@pytest.mark.parametrize('optimizer_name', ['adan'])
+@pytest.mark.parametrize('optimizer_name', ['adan', 'lamb'])
 def test_norm(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
