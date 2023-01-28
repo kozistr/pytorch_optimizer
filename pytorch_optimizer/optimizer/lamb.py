@@ -67,18 +67,17 @@ class Lamb(Optimizer, BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
-    def get_gradient_norm(self) -> float:
-        norm_sq: float = 0.0
+    def get_global_gradient_norm(self) -> torch.Tensor:
+        device = self.param_groups[0]['params'][0].device
+
+        norm_sq = torch.zeros(1, device=device)
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
                     continue
+                norm_sq.add_(torch.linalg.norm(p.grad).pow(2))
 
-                norm_sq += torch.linalg.norm(p.grad).item() ** 2
-
-        norm = math.sqrt(norm_sq)
-
-        return norm
+        return torch.sqrt(norm_sq) + self.eps
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -87,9 +86,9 @@ class Lamb(Optimizer, BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        grad_norm: float = 1.0
+        grad_norm = 1.0
         if self.pre_norm:
-            grad_norm = self.get_gradient_norm() + self.eps
+            grad_norm = self.get_global_gradient_norm()
 
         for group in self.param_groups:
             for p in group['params']:
