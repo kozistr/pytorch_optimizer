@@ -80,6 +80,7 @@ class RAdam(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            beta1, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -106,7 +107,6 @@ class RAdam(Optimizer, BaseOptimizer):
                     state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_fp32)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                beta1, beta2 = group['betas']
 
                 state['step'] += 1
                 bias_correction1 = 1.0 - beta1 ** state['step']

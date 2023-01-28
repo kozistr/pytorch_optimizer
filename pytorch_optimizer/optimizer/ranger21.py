@@ -185,6 +185,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
         # Phase 1 - Accumulate all the variance_ma_sum to use in stable weight decay
         for group in self.param_groups:
+            beta1, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -215,8 +216,6 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 state['step'] += 1
 
-                beta1, beta2 = group['betas']
-
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
                 # second moment estimation
@@ -241,6 +240,10 @@ class Ranger21(Optimizer, BaseOptimizer):
 
             lr = group['lr']
             step = self.state[group['params'][0]]['step']
+
+            beta1, beta2 = group['betas']
+            bias_correction1 = 1.0 - beta1 ** step  # fmt: skip
+            bias_correction2_sq = math.sqrt(1.0 - beta2 ** step)  # fmt: skip
 
             # warm up
             lr = self.warm_up_dampening(lr, step)
@@ -270,15 +273,11 @@ class Ranger21(Optimizer, BaseOptimizer):
                 else:
                     grad_ma, neg_grad_ma = state['neg_grad_ma'], state['grad_ma']
 
-                beta1, beta2 = group['betas']
-                bias_correction1 = 1.0 - beta1 ** step  # fmt: skip
-                bias_correction2 = 1.0 - beta2 ** step  # fmt: skip
-
                 variance_ma = state['variance_ma']
                 max_variance_ma = state['max_variance_ma']
 
                 torch.max(max_variance_ma, variance_ma, out=variance_ma)
-                de_nom = (variance_ma.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
+                de_nom = (variance_ma.sqrt() / bias_correction2_sq).add_(group['eps'])
 
                 grad = p.grad
                 grad = centralize_gradient(grad, gc_conv_only=False)
@@ -286,7 +285,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
 
-                step_size: float = lr
+                step_size = lr
                 if not group['adamd_debias_term']:
                     step_size /= bias_correction1
 

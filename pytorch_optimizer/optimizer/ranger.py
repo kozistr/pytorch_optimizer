@@ -95,6 +95,7 @@ class Ranger(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            beta1, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -122,7 +123,6 @@ class Ranger(Optimizer, BaseOptimizer):
                     state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_fp32)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                beta1, beta2 = group['betas']
 
                 if self.use_gc and grad.dim() > self.gc_gradient_threshold:
                     grad = centralize_gradient(grad, gc_conv_only=False)
