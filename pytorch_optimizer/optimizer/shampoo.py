@@ -123,7 +123,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                         grad = grad.view(transposed_size)
 
                 state['step'] += 1
-                state['momentum_buffer'].copy_(grad)
+                state['momentum_buffer'] = grad
 
                 p.add_(grad, alpha=-group['lr'])
 
