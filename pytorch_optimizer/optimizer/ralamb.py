@@ -173,7 +173,7 @@ class RaLamb(Optimizer, BaseOptimizer):
 
                     buffered[2] = step_size
 
-                if group['weight_decay'] != 0:
+                if group['weight_decay'] > 0.0:
                     p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
 
                 radam_step = p_fp32.clone()
