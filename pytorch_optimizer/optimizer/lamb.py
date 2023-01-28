@@ -17,8 +17,8 @@ class Lamb(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param grad_averaging: bool. whether apply (1 - beta2) to gradient when calculating running averages of gradient.
-    :param adam: bool. always use trust ratio = 1, which turns this into Adam. Useful for comparison purposes.
     :param max_grad_norm: float. max gradient norm to clip.
+    :param adam: bool. always use trust ratio = 1, which turns this into Adam. Useful for comparison purposes.
     :param pre_norm: bool. perform pre-normalization of all gradients.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
