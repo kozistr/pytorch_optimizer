@@ -132,14 +132,13 @@ class Adan(Optimizer, BaseOptimizer):
                     state['previous_grad'] = grad.clone()
 
                 exp_avg, exp_avg_diff, exp_avg_nest = state['exp_avg'], state['exp_avg_diff'], state['exp_avg_nest']
-                prev_grad = state['previous_grad']
 
                 grad.mul_(clip_global_grad_norm)
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
-                grad_diff = grad - prev_grad
+                grad_diff = grad - state['previous_grad']
                 state['previous_grad'].copy_(grad)
 
                 update = grad + beta2 * grad_diff
