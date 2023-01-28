@@ -101,10 +101,10 @@ class LARS(Optimizer, BaseOptimizer):
 
                 if group['momentum'] > 0.0:
                     param_state = self.state[p]
-                    if 'mu' not in param_state:
-                        param_state['mu'] = grad.clone().detach()
+                    if 'momentum_buffer' not in param_state:
+                        param_state['momentum_buffer'] = grad.clone().detach()
 
-                    mu = param_state['mu']
+                    mu = param_state['momentum_buffer']
                     mu.mul_(group['momentum']).add_(grad, alpha=1.0 - group['dampening'])
 
                     if group['nesterov']:
