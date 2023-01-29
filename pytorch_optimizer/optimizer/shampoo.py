@@ -168,7 +168,7 @@ class PreConditioner:
         beta2: float,
         inverse_exponent_override: int,
         block_size: int,
-        best_effort_shape_interpretation: bool,
+        shape_interpretation: bool,
         matrix_eps: float,
     ):
         self.beta2 = beta2
@@ -177,7 +177,7 @@ class PreConditioner:
 
         self.original_shape: List[int] = var.shape
         self.transformed_shape: List[int] = var.shape
-        if best_effort_shape_interpretation:
+        if shape_interpretation:
             self.transformed_shape = merge_small_dims(self.original_shape, block_size)
 
         if len(self.transformed_shape) <= 1:
@@ -204,10 +204,10 @@ class PreConditioner:
 
         w2: float = 1.0 if self.beta2 == 1.0 else (1.0 - self.beta2)
         rank: int = len(self.transformed_shape)
-        for j, grad in enumerate(partitioned_grads):
+        for j, partitioned_grad in enumerate(partitioned_grads):
             for i in range(rank):
                 axes: List[int] = list(range(i)) + list(range(i + 1, rank))
-                stat: torch.Tensor = torch.tensordot(grad, grad, [axes, axes])
+                stat: torch.Tensor = torch.tensordot(partitioned_grad, partitioned_grad, [axes, axes])
                 self.statistics[j * rank + i].mul_(self.beta2).add_(stat, alpha=w2)
 
     def exponent_for_pre_conditioner(self) -> int:
@@ -267,7 +267,7 @@ class Shampoo(Optimizer, BaseOptimizer):
     :param block_size: int. Block size for large layers (if > 0).
         Block size = 1 ==> Adagrad (Don't do this, extremely inefficient!)
         Block size should be as large as feasible under memory/time constraints.
-    :param best_effort_shape_interpretation: bool. Automatic shape interpretation (for eg: [4, 3, 1024, 512] would
+    :param shape_interpretation: bool. Automatic shape interpretation (for eg: [4, 3, 1024, 512] would
         result in 12 x [1024, 512] L and R statistics. Disabled by default which results in Shampoo constructing
         statistics [4, 4], [3, 3], [1024, 1024], [512, 512].
     :param graft_type: bool. Type of grafting (SGD or AdaGrad).
@@ -288,7 +288,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         preconditioning_compute_steps: int = 1,
         statistics_compute_steps: int = 1,
         block_size: int = 128,
-        best_effort_shape_interpretation: bool = True,
+        shape_interpretation: bool = True,
         graft_type: int = LayerWiseGrafting.SGD,
         nesterov: bool = True,
         diagonal_eps: float = 1e-6,
@@ -303,7 +303,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         self.preconditioning_compute_steps = preconditioning_compute_steps
         self.statistics_compute_steps = statistics_compute_steps
         self.block_size = block_size
-        self.best_effort_shape_interpretation = best_effort_shape_interpretation
+        self.shape_interpretation = shape_interpretation
         self.graft_type = graft_type
         self.nesterov = nesterov
         self.diagonal_eps = diagonal_eps
@@ -345,7 +345,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                     self.beta2,
                     self.inverse_exponent_override,
                     self.block_size,
-                    self.best_effort_shape_interpretation,
+                    self.shape_interpretation,
                     self.matrix_eps,
                 )
                 if self.graft_type == LayerWiseGrafting.ADAGRAD:
@@ -380,7 +380,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                         self.beta2,
                         self.inverse_exponent_override,
                         self.block_size,
-                        self.best_effort_shape_interpretation,
+                        self.shape_interpretation,
                         self.matrix_eps,
                     )
                     if self.graft_type == LayerWiseGrafting.ADAGRAD:
