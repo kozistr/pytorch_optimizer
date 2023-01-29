@@ -320,3 +320,28 @@ def compute_power(
         count += 1
 
     return mat_root
+
+
+def merge_small_dims(shape_to_merge: List[int], max_dim: int) -> List[int]:
+    r"""Merge small dimensions. If there are some small dimensions, we collapse them:
+        e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if max_dim = 1024
+        [1, 2, 768, 1, 2048] --> [2, 768, 2048]
+
+    :param shape_to_merge: List. Shape to merge small dimensions.
+    :param max_dim: int. Maximal dimension of output shape used in merging.
+    """
+    resulting_shape: List[int] = []
+
+    product: int = 1
+    for d in shape_to_merge:
+        if product * d <= max_dim:
+            product *= d
+        else:
+            if product > 1:
+                resulting_shape.append(product)
+            product = d
+
+    if product > 1:
+        resulting_shape.append(product)
+
+    return resulting_shape
