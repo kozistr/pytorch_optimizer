@@ -287,9 +287,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
 
-                step_size = lr
-                if not group['adamd_debias_term']:
-                    step_size /= bias_correction1
+                step_size: float = lr if group['adamd_debias_term'] else lr / bias_correction1
 
                 if self.use_softplus:
                     de_nom = F.softplus(de_nom, beta=self.beta_softplus)
