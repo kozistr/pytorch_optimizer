@@ -405,7 +405,6 @@ class Shampoo(Optimizer, BaseOptimizer):
                 if self.nesterov:
                     momentum_update.mul_(group['momentum']).add_(wd_update)
 
-                # final update
                 p.add_(momentum_update, alpha=-group['lr'])
 
         return loss
