@@ -93,6 +93,7 @@ class AdaBound(Optimizer, BaseOptimizer):
 
         for group, base_lr in zip(self.param_groups, self.base_lrs):
             beta1, beta2 = group['betas']
+            weight_decay: float = group['weight_decay']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -113,13 +114,11 @@ class AdaBound(Optimizer, BaseOptimizer):
                 state['step'] += 1
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                if group['weight_decay'] > 0.0:
+                if weight_decay > 0.0:
                     if self.weight_decouple:
-                        p.mul_(
-                            1.0 - (group['weight_decay'] if self.fixed_decay else group['lr'] * group['weight_decay'])
-                        )
+                        p.mul_(1.0 - (weight_decay if self.fixed_decay else group['lr'] * weight_decay))
                     else:
-                        grad.add_(p, alpha=group['weight_decay'])
+                        grad.add_(p, alpha=weight_decay)
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
