@@ -44,7 +44,6 @@ from pytorch_optimizer.optimizer.utils import (
     disable_running_stats,
     enable_running_stats,
     get_optimizer_parameters,
-    matrix_power,
     normalize_gradient,
     unit_norm,
 )
