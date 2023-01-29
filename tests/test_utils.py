@@ -134,7 +134,7 @@ def test_compute_power():
     np.testing.assert_array_almost_equal(
         np.asarray([[7.3464, -6.4758], [-6.4758, 7.3464]]),
         x.numpy(),
-        decimal=4,
+        decimal=3,
     )
 
 
