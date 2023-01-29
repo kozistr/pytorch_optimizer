@@ -336,7 +336,7 @@ def test_shampoo_block_partitioner():
         nn.Linear(4096, 512),
         nn.Linear(512, 1),
     )
-    optimizer = load_optimizer('shampoo')(model.parameters())
+    optimizer = load_optimizer('shampoo')(model.parameters(), shape_interpretation=False)
     optimizer.zero_grad()
     for _ in range(10):
         optimizer.step()
