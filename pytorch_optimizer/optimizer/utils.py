@@ -177,7 +177,7 @@ def matrix_power(matrix: torch.Tensor, power: float) -> torch.Tensor:
     return (u @ s.pow_(power).diag() @ v.t()).to(matrix_device)
 
 
-def neuron_norm(x: torch.Tensor):
+def neuron_norm(x: torch.Tensor) -> torch.Tensor:
     if x.dim() <= 1:
         return x.abs()
 
