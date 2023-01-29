@@ -140,7 +140,7 @@ class GSAM(Optimizer, BaseOptimizer):
                 if p.grad is None:
                     continue
 
-                vertical = self.state[p]['old_g'] - cosine * old_grad_norm * p.grad.data / (
+                vertical = self.state[p]['old_g'] - cosine * old_grad_norm * p.grad / (
                     new_grad_norm + self.perturb_eps
                 )
                 p.grad.add_(vertical, alpha=-alpha)
