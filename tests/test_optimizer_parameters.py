@@ -21,8 +21,8 @@ def test_learning_rate(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
-    if optimizer_name == 'nero':
-        pytest.skip('skip Nero optimizer')
+    if optimizer_name in ('nero', 'shampoo'):
+        pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
 
@@ -31,6 +31,16 @@ def test_epsilon(optimizer_name):
             optimizer(None, num_iterations=100, eps=-1e-6)
         else:
             optimizer(None, eps=-1e-6)
+
+
+def test_shampoo_epsilon():
+    optimizer = load_optimizer('shampoo')
+
+    with pytest.raises(ValueError):
+        optimizer(None, diagonal_eps=-1e-6)
+
+    with pytest.raises(ValueError):
+        optimizer(None, matrix_eps=-1e-6)
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
@@ -121,8 +131,15 @@ def test_reduction():
 @pytest.mark.parametrize('optimizer_name', ['shampoo'])
 def test_update_frequency(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
+
     with pytest.raises(ValueError):
-        optimizer(None, update_freq=0)
+        optimizer(None, start_preconditioning_step=0)
+
+    with pytest.raises(ValueError):
+        optimizer(None, statistics_compute_steps=0)
+
+    with pytest.raises(ValueError):
+        optimizer(None, preconditioning_compute_steps=0)
 
 
 @pytest.mark.parametrize('optimizer_name', ['adan', 'lamb'])
