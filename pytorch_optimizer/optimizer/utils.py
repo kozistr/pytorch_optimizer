@@ -48,7 +48,7 @@ def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor
     un_flatten_grads: List[torch.Tensor] = []
     for shape in shapes:
         length = np.prod(shape)
-        un_flatten_grads.append(grads[idx : idx + length].view(shape).clone())
+        un_flatten_grads.append(grads[idx:idx + length].view(shape).clone())  # fmt: skip
         idx += length
     return un_flatten_grads
 
@@ -177,7 +177,7 @@ def matrix_power(matrix: torch.Tensor, power: float) -> torch.Tensor:
     return (u @ s.pow_(power).diag() @ v.t()).to(matrix_device)
 
 
-def neuron_norm(x: torch.Tensor):
+def neuron_norm(x: torch.Tensor) -> torch.Tensor:
     if x.dim() <= 1:
         return x.abs()
 

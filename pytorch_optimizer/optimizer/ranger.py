@@ -105,30 +105,19 @@ class Ranger(Optimizer, BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(self.__name__)
 
-                if grad.dtype in (torch.float16, torch.bfloat16):
-                    grad = grad.float()
-
-                p_fp32 = p
-                if p.dtype in {torch.float16, torch.bfloat16}:
-                    p_fp32 = p_fp32.float()
-
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p_fp32)
-                    state['exp_avg_sq'] = torch.zeros_like(p_fp32)
-                    state['slow_buffer'] = torch.empty_like(p_fp32)
-                    state['slow_buffer'].copy_(p_fp32)
-                else:
-                    state['exp_avg'] = state['exp_avg'].type_as(p_fp32)
-                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_fp32)
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
+                    state['slow_buffer'] = torch.empty_like(p)
+                    state['slow_buffer'].copy_(p)
 
+                state['step'] += 1
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 if self.use_gc and grad.dim() > self.gc_gradient_threshold:
                     grad = centralize_gradient(grad, gc_conv_only=False)
-
-                state['step'] += 1
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
@@ -160,16 +149,14 @@ class Ranger(Optimizer, BaseOptimizer):
 
                     buffered[2] = step_size
 
-                if group['weight_decay'] != 0:
-                    p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
+                if group['weight_decay'] > 0.0:
+                    p.add_(p, alpha=-group['weight_decay'] * group['lr'])
 
                 if n_sma > self.n_sma_threshold:
                     de_nom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p_fp32.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
+                    p.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
                 else:
-                    p_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
-
-                p.copy_(p_fp32)
+                    p.add_(exp_avg, alpha=-step_size * group['lr'])
 
                 if state['step'] % group['k'] == 0:
                     slow_p = state['slow_buffer']

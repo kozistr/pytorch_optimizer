@@ -98,7 +98,7 @@ class RaLamb(Optimizer, BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        grad_norm: float = 1.0
+        grad_norm = 1.0
         if self.pre_norm:
             grad_norm = self.get_global_gradient_norm()
 
@@ -109,36 +109,26 @@ class RaLamb(Optimizer, BaseOptimizer):
                 if p.grad is None:
                     continue
 
-                if self.pre_norm:
-                    p.grad /= grad_norm
-
                 grad = p.grad
                 if grad.is_sparse:
                     raise NoSparseGradientError(self.__name__)
 
-                if grad.dtype in (torch.float16, torch.bfloat16):
-                    grad = grad.float()
-
-                p_fp32 = p
-                if p.dtype in (torch.float16, torch.bfloat16):
-                    p_fp32 = p_fp32.float()
+                if self.pre_norm:
+                    grad.div_(grad_norm)
 
                 state = self.state[p]
 
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p_fp32)
-                    state['exp_avg_sq'] = torch.zeros_like(p_fp32)
-                else:
-                    state['exp_avg'] = state['exp_avg'].type_as(p_fp32)
-                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_fp32)
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
 
+                state['step'] += 1
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                state['step'] += 1
                 buffered = group['buffer'][state['step'] % 10]
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
@@ -172,32 +162,29 @@ class RaLamb(Optimizer, BaseOptimizer):
                     buffered[2] = step_size
 
                 if group['weight_decay'] > 0.0:
-                    p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
+                    p.add_(p, alpha=-group['weight_decay'] * group['lr'])
 
-                radam_step = p_fp32.clone()
+                radam_step = p.clone()
                 if n_sma >= self.n_sma_threshold:
                     de_nom = exp_avg_sq.sqrt().add_(group['eps'])
                     radam_step.addcdiv_(exp_avg, de_nom, value=-step_size)
                 else:
                     radam_step.add_(exp_avg, alpha=-step_size)
 
-                radam_step = radam_step.norm(2.0)
+                radam_norm = radam_step.norm(2.0)
                 weight_norm = p.norm(2.0).clamp(0.0, self.clamp)
-                if weight_norm == 0 or radam_step == 0:
+                if weight_norm == 0 or radam_norm == 0:
                     trust_ratio = 1.0
                 else:
-                    trust_ratio = weight_norm / (radam_step + self.eps)
+                    trust_ratio = weight_norm / (radam_norm + self.eps)
 
                 state['weight_norm'] = weight_norm
-                state['adam_norm'] = radam_step
+                state['adam_norm'] = radam_norm
                 state['trust_ratio'] = trust_ratio
 
                 if n_sma >= self.n_sma_threshold:
-                    p_fp32.addcdiv_(exp_avg, de_nom, value=-step_size * trust_ratio)
+                    p.addcdiv_(exp_avg, de_nom, value=-step_size * trust_ratio)
                 else:
-                    p_fp32.add_(exp_avg, alpha=-step_size * trust_ratio)
-
-                if p.dtype in (torch.float16, torch.bfloat16):
-                    p.copy_(p_fp32)
+                    p.add_(exp_avg, alpha=-step_size * trust_ratio)
 
         return loss

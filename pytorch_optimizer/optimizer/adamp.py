@@ -108,7 +108,7 @@ class AdamP(Optimizer, BaseOptimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
-                bias_correction2 = 1.0 - beta2 ** state['step']
+                bias_correction2_sq = math.sqrt(1.0 - beta2 ** state['step'])
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
@@ -116,7 +116,7 @@ class AdamP(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                inv_de_nom = 1.0 / (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
+                inv_de_nom = 1.0 / (exp_avg_sq.sqrt() / bias_correction2_sq).add_(group['eps'])
 
                 perturb = exp_avg.clone()
                 if group['nesterov']:
@@ -125,7 +125,7 @@ class AdamP(Optimizer, BaseOptimizer):
                 else:
                     perturb.mul_(inv_de_nom)
 
-                wd_ratio: float = 1
+                wd_ratio: float = 1.0
                 if len(p.shape) > 1:
                     perturb, wd_ratio = projection(
                         p,
@@ -139,10 +139,7 @@ class AdamP(Optimizer, BaseOptimizer):
                 if group['weight_decay'] > 0.0:
                     p.mul_(1.0 - group['lr'] * group['weight_decay'] * wd_ratio)
 
-                step_size = group['lr']
-                if not group['adamd_debias_term']:
-                    step_size /= bias_correction1
-
+                step_size: float = group['lr'] if group['adamd_debias_term'] else group['lr'] / bias_correction1
                 p.add_(perturb, alpha=-step_size)
 
         return loss

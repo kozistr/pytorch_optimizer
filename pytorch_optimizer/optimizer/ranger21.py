@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Optimizer
 
-from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSizeError
+from pytorch_optimizer.base.exception import NegativeLRError, NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.agc import agc
@@ -14,7 +14,20 @@ from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
 
 
 class Ranger21(Optimizer, BaseOptimizer):
-    r"""Ranger21 optimizer
+    r"""Integrating the latest deep learning components into a single optimizer.
+        Here's the components
+            * uses the AdamW optimizer as its core (or, optionally, MadGrad)
+            * Adaptive gradient clipping
+            * Gradient centralization
+            * Positive-Negative momentum
+            * Norm loss
+            * Stable weight decay
+            * Linear learning rate warm-up
+            * Explore-exploit learning rate schedule
+            * Lookahead
+            * Softplus transformation
+            * Gradient Normalization
+            * Corrects the denominator (AdamD)
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
@@ -31,7 +44,7 @@ class Ranger21(Optimizer, BaseOptimizer):
     :param lookahead_blending_alpha: float. blending alpha.
     :param weight_decay: float. weight decay (L2 penalty).
     :param norm_loss_factor: float. norm loss factor.
-    :param adamd_debias_term: bool.Only correct the denominator to avoid inflating step sizes early in training.
+    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -253,7 +266,7 @@ class Ranger21(Optimizer, BaseOptimizer):
             # warm down
             lr = self.get_warm_down(lr, step)
             if lr < 0.0:
-                raise ValueError(f'{lr} went negative')
+                raise NegativeLRError(lr)
 
             # stable decay
             decay = group['weight_decay']
@@ -276,9 +289,8 @@ class Ranger21(Optimizer, BaseOptimizer):
                     grad_ma, neg_grad_ma = state['neg_grad_ma'], state['grad_ma']
 
                 variance_ma = state['variance_ma']
-                max_variance_ma = state['max_variance_ma']
 
-                torch.max(max_variance_ma, variance_ma, out=variance_ma)
+                torch.max(state['max_variance_ma'], variance_ma, out=variance_ma)
                 de_nom = (variance_ma.sqrt() / bias_correction2_sq).add_(group['eps'])
 
                 grad = p.grad
@@ -287,9 +299,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
 
-                step_size = lr
-                if not group['adamd_debias_term']:
-                    step_size /= bias_correction1
+                step_size: float = lr if group['adamd_debias_term'] else lr / bias_correction1
 
                 if self.use_softplus:
                     de_nom = F.softplus(de_nom, beta=self.beta_softplus)

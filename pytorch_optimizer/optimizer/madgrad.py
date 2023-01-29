@@ -65,7 +65,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
 
                 state['grad_sum_sq'] = torch.zeros_like(p)
                 state['s'] = torch.zeros_like(p)
-                if group['momentum'] != 0:
+                if group['momentum'] > 0.0:
                     state['x0'] = torch.clone(p).detach()
 
     @torch.no_grad()
@@ -102,11 +102,11 @@ class MADGRAD(Optimizer, BaseOptimizer):
                 if 'grad_sum_sq' not in state:
                     state['grad_sum_sq'] = torch.zeros_like(p)
                     state['s'] = torch.zeros_like(p)
-                    if momentum != 0:
+                    if momentum > 0.0:
                         state['x0'] = torch.clone(p).detach()
 
-                if momentum != 0.0 and grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__, note='momentum != 0.0')
+                if momentum > 0.0 and grad.is_sparse:
+                    raise NoSparseGradientError(self.__name__, note='momentum > 0.0')
 
                 grad_sum_sq = state['grad_sum_sq']
                 s = state['s']
