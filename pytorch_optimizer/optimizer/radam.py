@@ -90,22 +90,12 @@ class RAdam(Optimizer, BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(self.__name__)
 
-                if grad.dtype in (torch.float16, torch.bfloat16):
-                    grad = grad.float()
-
-                p_fp32 = p
-                if p.dtype in (torch.float16, torch.bfloat16):
-                    p_fp32 = p_fp32.float()
-
                 state = self.state[p]
 
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p_fp32)
-                    state['exp_avg_sq'] = torch.zeros_like(p_fp32)
-                else:
-                    state['exp_avg'] = state['exp_avg'].type_as(p_fp32)
-                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_fp32)
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
@@ -143,15 +133,12 @@ class RAdam(Optimizer, BaseOptimizer):
                     buffered[2] = step_size
 
                 if group['weight_decay'] > 0.0 and (n_sma >= self.n_sma_threshold or step_size > 0):
-                    p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
+                    p.add_(p, alpha=-group['weight_decay'] * group['lr'])
 
                 if n_sma >= self.n_sma_threshold:
                     de_nom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p_fp32.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
+                    p.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
                 elif step_size > 0:
-                    p_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
-
-                if p.dtype in (torch.float16, torch.bfloat16):
-                    p.copy_(p_fp32)
+                    p.add_(exp_avg, alpha=-step_size * group['lr'])
 
         return loss
