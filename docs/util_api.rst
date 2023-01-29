@@ -17,14 +17,6 @@ get_optimizer_parameters
 .. autoclass:: pytorch_optimizer.get_optimizer_parameters
     :members:
 
-.. _matrix_power:
-
-matrix_power
-------------
-
-.. autoclass:: pytorch_optimizer.matrix_power
-    :members:
-
 .. _normalize_gradient:
 
 normalize_gradient
