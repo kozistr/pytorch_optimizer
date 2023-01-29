@@ -329,3 +329,13 @@ def test_reset(optimizer_config):
     optimizer = optimizer_class([param], **config)
     optimizer.zero_grad()
     optimizer.reset()
+
+
+def test_shampoo_block_partitioner():
+    model = nn.Sequential(
+        nn.Linear(4096, 512),
+        nn.Linear(512, 1),
+    )
+    optimizer = load_optimizer('shampoo')(model.parameters())
+    optimizer.zero_grad()
+    optimizer.step()
