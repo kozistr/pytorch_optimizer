@@ -1,4 +1,4 @@
-# pylint: disable=unused-import
+# ruff: noqa
 from typing import Dict, List
 
 from pytorch_optimizer.base.types import OPTIMIZER, SCHEDULER
