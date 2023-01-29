@@ -2,7 +2,7 @@ import math
 from typing import Optional
 
 import torch
-import torch.nn.functional as F
+from torch.nn import functional as f
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NegativeLRError, NoSparseGradientError, ZeroParameterSizeError
@@ -302,7 +302,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                 step_size: float = lr if group['adamd_debias_term'] else lr / bias_correction1
 
                 if self.use_softplus:
-                    de_nom = F.softplus(de_nom, beta=self.beta_softplus)
+                    de_nom = f.softplus(de_nom, beta=self.beta_softplus)
 
                 pn_momentum = grad_ma.mul(1.0 + 1.0).add(neg_grad_ma, alpha=-1.0).mul(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)

@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.distributed import all_reduce
-from torch.nn import functional as F
+from torch.nn import functional as f
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.utils import clip_grad_norm_
 
@@ -69,7 +69,7 @@ def cosine_similarity_by_view(
 ) -> torch.Tensor:
     x = view_func(x)
     y = view_func(y)
-    return F.cosine_similarity(x, y, dim=1, eps=eps).abs_()
+    return f.cosine_similarity(x, y, dim=1, eps=eps).abs_()
 
 
 def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> Union[torch.Tensor, float]:
