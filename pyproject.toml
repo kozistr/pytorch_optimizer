@@ -42,7 +42,7 @@ torch = { version = "^1.10", source = "torch"}
 [tool.poetry.dev-dependencies]
 isort = "^5.11.4"
 black = "^22.12.0"
-pylint = "^2.15.9"
+ruff = "^0.0.237"
 pytest = "^7.2.0"
 pytest-cov = "^4.0.0"
 
@@ -50,6 +50,36 @@ pytest-cov = "^4.0.0"
 name = "torch"
 url = "https://download.pytorch.org/whl/cpu"
 secondary = true
+
+[tool.ruff]
+select = ["E", "F", "B", "I", "N"]
+ignore = []
+fixable = ["A", "B", "C", "D", "E", "F"]
+unfixable = ["F401"]
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+per-file-ignores = {}
+line-length = 119
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+target-version = "py39"
+
+[per-file-ignores]
+"./pytorch_optimizer/__init__.py" = ["F401"]
+"./pytorch_optimizer/lr_scheduler/__init__.py" = ["F401"]
+
+[tool.ruff.mccabe]
+max-complexity = 10
 
 [tool.coverage.run]
 omit = [
