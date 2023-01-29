@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch.optim import Optimizer
 
-from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSizeError
+from pytorch_optimizer.base.exception import NegativeLRError, NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.agc import agc
@@ -253,7 +253,7 @@ class Ranger21(Optimizer, BaseOptimizer):
             # warm down
             lr = self.get_warm_down(lr, step)
             if lr < 0.0:
-                raise ValueError(f'{lr} went negative')
+                raise NegativeLRError(lr)
 
             # stable decay
             decay = group['weight_decay']
