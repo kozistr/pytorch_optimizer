@@ -14,7 +14,7 @@ test:
 check:
 	isort --check-only --profile black -l 119 pytorch_optimizer tests hubconf.py
 	black -S -l 119 --check pytorch_optimizer tests hubconf.py
-	pylint --fail-under=10.0 pytorch_optimizer
+	ruff pytorch_optimizer
 
 requirements:
 	python -m poetry export -f requirements.txt --output requirements.txt --without-hashes
