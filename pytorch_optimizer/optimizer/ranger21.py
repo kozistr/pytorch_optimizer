@@ -14,7 +14,7 @@ from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
 
 
 class Ranger21(Optimizer, BaseOptimizer):
-    r"""Ranger21 optimizer
+    r"""Integrating the latest deep learning components into a single optimizer.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
@@ -31,7 +31,7 @@ class Ranger21(Optimizer, BaseOptimizer):
     :param lookahead_blending_alpha: float. blending alpha.
     :param weight_decay: float. weight decay (L2 penalty).
     :param norm_loss_factor: float. norm loss factor.
-    :param adamd_debias_term: bool.Only correct the denominator to avoid inflating step sizes early in training.
+    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
