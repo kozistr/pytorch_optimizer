@@ -95,10 +95,9 @@ class SGDP(Optimizer, BaseOptimizer):
                 buf = state['momentum']
                 buf.mul_(momentum).add_(grad, alpha=1.0 - group['dampening'])
 
+                d_p = buf
                 if group['nesterov']:
-                    d_p = grad + momentum * buf
-                else:
-                    d_p = buf
+                    d_p.mul_(momentum).add_(grad)
 
                 wd_ratio: float = 1.0
                 if len(p.shape) > 1:
@@ -111,7 +110,7 @@ class SGDP(Optimizer, BaseOptimizer):
                         group['eps'],
                     )
 
-                if group['weight_decay'] > 0:
+                if group['weight_decay'] > 0.0:
                     p.mul_(1.0 - group['lr'] * group['weight_decay'] * wd_ratio / (1.0 - momentum))
 
                 p.add_(d_p, alpha=-group['lr'])
