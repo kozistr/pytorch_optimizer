@@ -125,9 +125,17 @@ def test_compute_power():
     x = compute_power(torch.zeros((1,)), p=1)
     assert torch.tensor([1000000.0]) == x
 
-    # case 2 : x.shape[0] == 1
+    # case 2 : len(x.shape) != 1 and x.shape[0] == 1
     x = compute_power(torch.zeros((1, 2)), p=1)
     assert torch.tensor([1.0]) == x
+
+    # case 3 : len(x.shape) != 1 and x.shape[0] != 1
+    x = compute_power(torch.ones((2, 2)), p=5)
+    np.testing.assert_array_almost_equal(
+        np.asarray([[7.3464, -6.4758], [-6.4758, 7.3464]]),
+        x.numpy(),
+        decimal=4,
+    )
 
 
 def test_merge_small_dims():
