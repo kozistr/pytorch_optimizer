@@ -85,12 +85,11 @@ class DiffGrad(Optimizer, BaseOptimizer):
                     state['exp_avg_sq'] = torch.zeros_like(p)
                     state['previous_grad'] = torch.zeros_like(p)
 
+                state['step'] += 1
                 exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
 
-                if group['weight_decay'] != 0:
+                if group['weight_decay'] > 0.0:
                     grad.add_(p, alpha=group['weight_decay'])
-
-                state['step'] += 1
 
                 # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
@@ -99,18 +98,18 @@ class DiffGrad(Optimizer, BaseOptimizer):
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
-                bias_correction2 = 1.0 - beta2 ** state['step']
+                bias_correction2_sq = math.sqrt(1.0 - beta2 ** state['step'])
 
                 # compute diffGrad coefficient (dfc)
-                diff = abs(previous_grad - grad)
-                dfc = 1.0 / (1.0 + torch.exp(-diff))
+                dfc = previous_grad.clone()
+                dfc.sub_(grad).abs_().sigmoid_().mul_(exp_avg)
                 state['previous_grad'].copy_(grad)
 
-                step_size = group['lr'] * math.sqrt(bias_correction2)
+                step_size = group['lr'] * bias_correction2_sq
                 if not group['adamd_debias_term']:
                     step_size /= bias_correction1
 
-                # update momentum with dfc (exp_avg * dfc)
-                p.addcdiv_(exp_avg * dfc, de_nom, value=-step_size)
+                # update momentum with dfc
+                p.addcdiv_(dfc, de_nom, value=-step_size)
 
         return loss
