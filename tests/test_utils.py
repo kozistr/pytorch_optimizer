@@ -16,6 +16,7 @@ from pytorch_optimizer.optimizer.utils import (
     neuron_norm,
     normalize_gradient,
     unit_norm,
+merge_small_dims,
 )
 from tests.utils import Example
 
@@ -116,3 +117,13 @@ def test_running_stats():
     enable_running_stats(model)
 
     assert model[1].momentum == 0.1
+
+
+def test_merge_small_dims():
+    case1 = [1, 2, 512, 1, 2048, 1, 3, 4]
+    expected_case1 = [1024, 2048, 12]
+    assert expected_case1 == merge_small_dims(case1, max_dim=1024)
+
+    case2 = [1, 2, 768, 1, 2048]
+    expected_case2 = [2, 768, 2048]
+    assert expected_case2 == merge_small_dims(case2, max_dim=1024)
