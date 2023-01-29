@@ -139,10 +139,7 @@ class AdamP(Optimizer, BaseOptimizer):
                 if group['weight_decay'] > 0.0:
                     p.mul_(1.0 - group['lr'] * group['weight_decay'] * wd_ratio)
 
-                step_size = group['lr']
-                if not group['adamd_debias_term']:
-                    step_size /= bias_correction1
-
+                step_size: float = group['lr'] if group['adamd_debias_term'] else group['lr'] / bias_correction1
                 p.add_(perturb, alpha=-step_size)
 
         return loss
