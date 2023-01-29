@@ -7,16 +7,17 @@ from torch import nn
 
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
+    compute_power,
     disable_running_stats,
     enable_running_stats,
     get_optimizer_parameters,
     has_overflow,
     is_valid_parameters,
+    merge_small_dims,
     neuron_mean,
     neuron_norm,
     normalize_gradient,
     unit_norm,
-merge_small_dims,
 )
 from tests.utils import Example
 
@@ -117,6 +118,16 @@ def test_running_stats():
     enable_running_stats(model)
 
     assert model[1].momentum == 0.1
+
+
+def test_compute_power():
+    # case 1 : len(x.shape) == 1
+    x = compute_power(torch.zeros((1,)), p=1)
+    assert torch.tensor([1000000.0]) == x
+
+    # case 2 : x.shape[0] == 1
+    x = compute_power(torch.zeros((1, 2)), p=1)
+    assert torch.tensor([1.0]) == x
 
 
 def test_merge_small_dims():
