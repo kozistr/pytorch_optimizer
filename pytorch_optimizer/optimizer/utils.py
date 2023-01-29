@@ -179,7 +179,7 @@ def matrix_power(matrix: torch.Tensor, power: float) -> torch.Tensor:
 
 def neuron_norm(x: torch.Tensor) -> torch.Tensor:
     if x.dim() <= 1:
-        return x.abs_()
+        return x.abs()
 
     view_shape = [x.shape[0]] + [1] * (x.dim() - 1)
     x = x.view(x.shape[0], -1)
