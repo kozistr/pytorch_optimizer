@@ -131,11 +131,13 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 grad_residual = grad - exp_avg
                 exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2).add_(group['eps'])
 
-                exp_avg_var_temp = exp_avg_var.clone()
                 if group['amsgrad']:
-                    torch.max(state['max_exp_avg_var'], exp_avg_var_temp, out=exp_avg_var_temp)
-
-                de_nom = (exp_avg_var_temp.sqrt() / bias_correction2_sq).add_(group['eps'])
+                    max_exp_avg_var = state['max_exp_avg_var']
+                    torch.max(max_exp_avg_var, exp_avg_var, out=max_exp_avg_var)
+                    de_nom = max_exp_avg_var.sqrt()
+                else:
+                    de_nom = exp_avg_var.sqrt()
+                de_nom.div_(bias_correction2_sq).add_(group['eps'])
 
                 if not self.rectify:
                     step_size: float = group['lr'] if group['adamd_debias_term'] else group['lr'] / bias_correction1
