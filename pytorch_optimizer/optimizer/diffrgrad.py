@@ -90,23 +90,12 @@ class DiffRGrad(Optimizer, BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(self.__name__)
 
-                if grad.dtype in (torch.float16, torch.bfloat16):
-                    grad = grad.float()
-
-                p_fp32 = p
-                if p.dtype in (torch.float16, torch.bfloat16):
-                    p_fp32 = p_fp32.float()
-
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
-                    state['exp_avg'] = torch.zeros_like(p_fp32)
-                    state['exp_avg_sq'] = torch.zeros_like(p_fp32)
-                    state['previous_grad'] = torch.zeros_like(p_fp32)
-                else:
-                    state['exp_avg'] = state['exp_avg'].type_as(p_fp32)
-                    state['exp_avg_sq'] = state['exp_avg_sq'].type_as(p_fp32)
-                    state['previous_grad'] = state['previous_grad'].type_as(p_fp32)
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
+                    state['previous_grad'] = torch.zeros_like(p)
 
                 state['step'] += 1
                 exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
@@ -117,8 +106,8 @@ class DiffRGrad(Optimizer, BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 # compute diffGrad coefficient (dfc)
-                diff = abs(previous_grad - grad)
-                dfc = 1.0 / (1.0 + torch.exp(-diff))
+                dfc = previous_grad.clone()
+                dfc.sub_(grad).abs_().sigmoid_().mul_(exp_avg)
                 state['previous_grad'].copy_(grad)
 
                 buffered = group['buffer'][state['step'] % 10]
@@ -149,21 +138,13 @@ class DiffRGrad(Optimizer, BaseOptimizer):
 
                     buffered[2] = step_size
 
+                if group['weight_decay'] > 0.0:
+                    p.add_(p, alpha=-group['weight_decay'] * group['lr'])
+
                 if n_sma >= self.n_sma_threshold:
-                    if group['weight_decay'] != 0:
-                        p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
-
                     de_nom = exp_avg_sq.sqrt().add_(group['eps'])
-
-                    # update momentum with dfc
-                    p_fp32.addcdiv_(exp_avg * dfc.float(), de_nom, value=-step_size * group['lr'])
+                    p.addcdiv_(dfc, de_nom, value=-step_size * group['lr'])
                 elif step_size > 0:
-                    if group['weight_decay'] != 0:
-                        p_fp32.add_(p_fp32, alpha=-group['weight_decay'] * group['lr'])
-
-                    p_fp32.add_(exp_avg, alpha=-step_size * group['lr'])
-
-                if p.dtype in (torch.float16, torch.bfloat16):
-                    p.copy_(p_fp32)
+                    p.add_(exp_avg, alpha=-step_size * group['lr'])
 
         return loss
