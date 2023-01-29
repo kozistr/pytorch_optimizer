@@ -138,7 +138,8 @@ class Adan(Optimizer, BaseOptimizer):
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
-                grad_diff = grad - state['previous_grad']
+                grad_diff = -state['previous_grad']
+                grad_diff.add_(grad)
                 state['previous_grad'].copy_(grad)
 
                 update = grad + beta2 * grad_diff
