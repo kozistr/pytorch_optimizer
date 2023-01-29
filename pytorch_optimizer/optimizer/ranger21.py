@@ -276,9 +276,8 @@ class Ranger21(Optimizer, BaseOptimizer):
                     grad_ma, neg_grad_ma = state['neg_grad_ma'], state['grad_ma']
 
                 variance_ma = state['variance_ma']
-                max_variance_ma = state['max_variance_ma']
 
-                torch.max(max_variance_ma, variance_ma, out=variance_ma)
+                torch.max(state['max_variance_ma'], variance_ma, out=variance_ma)
                 de_nom = (variance_ma.sqrt() / bias_correction2_sq).add_(group['eps'])
 
                 grad = p.grad
