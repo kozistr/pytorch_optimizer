@@ -233,19 +233,19 @@ class PreConditioner:
         reshaped_grad = torch.reshape(grad, self.transformed_shape)
         partitioned_grads = self.partitioner.partition(reshaped_grad)
 
-        preconditioned_partitioned_grads: List[torch.Tensor] = []
+        pre_cond_partitioned_grads: List[torch.Tensor] = []
         num_splits: int = self.partitioner.num_splits
-        for i, grad in enumerate(partitioned_grads):
+        for i, partitioned_grad in enumerate(partitioned_grads):
             pre_conditioners_for_grad = self.pre_conditioners[i * num_splits : (i + 1) * num_splits]
-            rank: int = len(grad.shape)
+            rank: int = len(partitioned_grad.shape)
 
-            pre_cond_grad = grad
+            pre_cond_grad = partitioned_grad
             for j in range(rank):
                 pre_cond_grad = torch.tensordot(pre_cond_grad, pre_conditioners_for_grad[j], [[0], [0]])
 
-            preconditioned_partitioned_grads.append(pre_cond_grad)
+            pre_cond_partitioned_grads.append(pre_cond_grad)
 
-        merged_grad = self.partitioner.merge_partitions(preconditioned_partitioned_grads)
+        merged_grad = self.partitioner.merge_partitions(pre_cond_partitioned_grads)
 
         return torch.reshape(merged_grad, self.original_shape)
 
