@@ -128,9 +128,9 @@ class AdaBound(Optimizer, BaseOptimizer):
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
-                bias_correction2 = 1.0 - beta2 ** state['step']
+                bias_correction2_sq = math.sqrt(1.0 - beta2 ** state['step'])
 
-                step_size = group['lr'] * math.sqrt(bias_correction2)
+                step_size = group['lr'] * bias_correction2_sq
                 if not group['adamd_debias_term']:
                     step_size /= bias_correction1
 
