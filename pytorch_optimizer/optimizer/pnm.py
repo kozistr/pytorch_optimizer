@@ -51,7 +51,7 @@ class PNM(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'PNM'
 
     @torch.no_grad()

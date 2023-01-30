@@ -72,7 +72,7 @@ class Ranger(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'Ranger'
 
     @torch.no_grad()

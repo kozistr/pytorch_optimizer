@@ -84,7 +84,7 @@ class GSAM(Optimizer, BaseOptimizer):
         self.validate_alpha(self.alpha)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'GSAM'
 
     @torch.no_grad()

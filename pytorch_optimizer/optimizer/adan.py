@@ -62,7 +62,7 @@ class Adan(Optimizer, BaseOptimizer):
         self.validate_norm(self.max_grad_norm)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'Adan'
 
     @torch.no_grad()

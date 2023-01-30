@@ -57,7 +57,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'MADGRAD'
 
     @torch.no_grad()

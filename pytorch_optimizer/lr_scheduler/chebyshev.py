@@ -2,12 +2,12 @@ import numpy as np
 
 
 def chebyshev_steps(small_m: float, big_m: float, num_epochs: int) -> np.ndarray:
-    """chebyshev_steps
+    r"""chebyshev_steps
 
     :param small_m: float. stands for 'm' notation.
     :param big_m:  float. stands for 'M' notation.
     :param num_epochs: int. stands for 'T' notation.
-    :return: np.array. chebyshev_steps
+    :return: np.array. chebyshev_steps.
     """
 
     c, r = (big_m + small_m) / 2.0, (big_m - small_m) / 2.0

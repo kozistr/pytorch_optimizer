@@ -30,7 +30,7 @@ class Nero(Optimizer, BaseOptimizer):
         self.validate_beta(self.beta)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'Nero'
 
     @torch.no_grad()

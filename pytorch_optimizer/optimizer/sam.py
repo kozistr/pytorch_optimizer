@@ -77,7 +77,7 @@ class SAM(Optimizer, BaseOptimizer):
         self.validate_rho(self.rho)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'SAM'
 
     @torch.no_grad()

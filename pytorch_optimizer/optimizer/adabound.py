@@ -69,7 +69,7 @@ class AdaBound(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'AdaBound'
 
     @torch.no_grad()
