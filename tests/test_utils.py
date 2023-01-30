@@ -66,7 +66,7 @@ def test_unit_norm():
 def test_neuron_mean_norm():
     x = torch.arange(-5, 5, dtype=torch.float32)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=''):
         neuron_mean(x)
 
     np.testing.assert_array_equal(
@@ -113,7 +113,8 @@ def test_running_stats():
 
     disable_running_stats(model)
 
-    assert (model[1].momentum == 0) and (model[1].backup_momentum == 0.1)
+    assert model[1].momentum == 0
+    assert model[1].backup_momentum == 0.1
 
     enable_running_stats(model)
 
