@@ -84,6 +84,7 @@ max-complexity = 10
 [tool.coverage.run]
 omit = [
     "./pytorch_optimizer/optimizer/gsam.py",
+    "./pytorch_optimizer/optimizer/fp16.py",
 ]
 
 [build-system]
