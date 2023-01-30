@@ -78,7 +78,6 @@ INVALID_OPTIMIZER_NAMES: List[str] = [
     'pcgrad',
     'adamd',
     'lookahead',
-    'chebyshev_schedule',
 ]
 BETA_OPTIMIZER_NAMES: List[str] = [
     'adabelief',
