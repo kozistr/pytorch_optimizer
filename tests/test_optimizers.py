@@ -230,17 +230,16 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
 def test_closure(optimizer):
     param = simple_parameter()
 
-    if optimizer.__name__ == 'Ranger21':
-        optimizer = optimizer([param], num_iterations=1)
-    else:
-        optimizer = optimizer([param])
+    optimizer_name: str = optimizer.__name__
 
+    optimizer = optimizer([param], num_iterations=1) if optimizer_name == 'Ranger21' else optimizer([param])
     optimizer.zero_grad()
 
-    try:
+    if optimizer_name in ('Ranger21', 'Adai'):
+        with pytest.raises(ZeroParameterSizeError):
+            optimizer.step(closure=dummy_closure)
+    else:
         optimizer.step(closure=dummy_closure)
-    except ZeroParameterSizeError:  # in case of Ranger21, Adai optimizers
-        pass
 
 
 def test_no_closure():
