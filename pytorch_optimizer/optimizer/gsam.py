@@ -117,7 +117,7 @@ class GSAM(Optimizer, BaseOptimizer):
     def un_perturb(self):
         for group in self.param_groups:
             for p in group['params']:
-                if 'e_w' in self.state[p].keys():
+                if 'e_w' in self.state[p]:
                     p.sub_(self.state[p]['e_w'])
 
     @torch.no_grad()
