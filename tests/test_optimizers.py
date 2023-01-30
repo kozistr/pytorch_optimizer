@@ -192,7 +192,7 @@ def test_adamd_optimizers(optimizer_adamd_config):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('reduction', ('mean', 'sum'))
+@pytest.mark.parametrize('reduction', ['mean', 'sum'])
 @pytest.mark.parametrize('optimizer_pc_grad_config', OPTIMIZERS, ids=ids)
 def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
     torch.manual_seed(42)
