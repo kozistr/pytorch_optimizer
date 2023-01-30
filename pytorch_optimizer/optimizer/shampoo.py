@@ -128,8 +128,6 @@ class BlockPartitioner:
                 torch.cat(partitions[idx:idx + n], axis=i) for idx in range(0, len(partitions), n)  # fmt: skip
             ]
 
-        print(partitions)
-
         if len(partitions) == 1:
             raise ValueError('[-] num of partitions is 1')
 
@@ -210,10 +208,10 @@ class PreConditioner:
         reshaped_grad = torch.reshape(grad, self.transformed_shape)
         partitioned_grads = self.partitioner.partition(reshaped_grad)
 
-        pre_cond_partitioned_grads: List[torch.Tensor] = []
         num_splits: int = self.partitioner.num_splits
+        pre_cond_partitioned_grads: List[torch.Tensor] = []
         for i, partitioned_grad in enumerate(partitioned_grads):
-            pre_conditioners_for_grad = self.pre_conditioners[i * num_splits : (i + 1) * num_splits]
+            pre_conditioners_for_grad = self.pre_conditioners[i * num_splits:(i + 1) * num_splits]  # fmt: skip
             rank: int = len(partitioned_grad.shape)
 
             pre_cond_grad = partitioned_grad
