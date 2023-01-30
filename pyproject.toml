@@ -88,8 +88,6 @@ target-version = "py39"
 "./pytorch_optimizer/__init__.py" = ["F401"]
 "./pytorch_optimizer/lr_scheduler/__init__.py" = ["F401"]
 
-[toll.ruff.flake8-bandit]
-
 
 [tool.ruff.mccabe]
 max-complexity = 10
