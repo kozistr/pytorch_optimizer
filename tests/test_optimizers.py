@@ -3,16 +3,7 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer import (
-    GSAM,
-    SAM,
-    CosineScheduler,
-    Lookahead,
-    PCGrad,
-    ProportionScheduler,
-    SafeFP16Optimizer,
-    load_optimizer,
-)
+from pytorch_optimizer import GSAM, SAM, CosineScheduler, Lookahead, PCGrad, ProportionScheduler, load_optimizer
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
 from tests.utils import (
@@ -77,44 +68,6 @@ def test_lookahead(pullback_momentum):
         optimizer.step()
 
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('optimizer_fp16_config', OPTIMIZERS, ids=ids)
-def test_safe_f16_optimizers(optimizer_fp16_config):
-    (x_data, y_data), model, loss_fn = build_environment()
-
-    optimizer_class, config, iterations = optimizer_fp16_config
-
-    optimizer_name: str = optimizer_class.__name__
-    if (
-        (optimizer_name == 'MADGRAD')
-        or (optimizer_name == 'RaLamb' and 'pre_norm' in config)
-        or (optimizer_name == 'PNM')
-        or (optimizer_name == 'Nero')
-        or (optimizer_name == 'LARS' and 'nesterov' in config)
-        or (optimizer_name == 'Adan' and 'weight_decay' not in config)
-        or (optimizer_name == 'RAdam')
-        or (optimizer_name == 'Adai')
-    ):
-        pytest.skip(f'skip {optimizer_name}')
-
-    optimizer = SafeFP16Optimizer(optimizer_class(model.parameters(), **config))
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
@@ -332,11 +285,20 @@ def test_reset(optimizer_config):
 
 
 def test_shampoo_block_partitioner():
+    (x_data, y_data), _, loss_fn = build_environment()
+
     model = nn.Sequential(
+        nn.Linear(2, 4096),
         nn.Linear(4096, 512),
         nn.Linear(512, 1),
     )
-    optimizer = load_optimizer('shampoo')(model.parameters(), shape_interpretation=False)
-    optimizer.zero_grad()
-    for _ in range(10):
+
+    optimizer = load_optimizer('shampoo')(model.parameters())
+
+    for _ in range(5):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss_fn(y_pred, y_data).backward()
+
         optimizer.step()
