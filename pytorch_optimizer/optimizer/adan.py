@@ -122,7 +122,7 @@ class Adan(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 state = self.state[p]
                 if len(state) == 0:

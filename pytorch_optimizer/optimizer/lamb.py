@@ -124,7 +124,7 @@ class Lamb(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 if self.pre_norm:
                     grad.div_(grad_norm)

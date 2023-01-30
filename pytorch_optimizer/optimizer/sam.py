@@ -122,7 +122,7 @@ class SAM(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None):
         if closure is None:
-            raise NoClosureError(self.__name__)
+            raise NoClosureError(self.__str__)
 
         self.first_step(zero_grad=True)
 

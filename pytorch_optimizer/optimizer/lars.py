@@ -83,7 +83,7 @@ class LARS(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 if p.ndim > 1:  # if not normalization gamma/beta or bias
                     param_norm = p.norm(2.0)
