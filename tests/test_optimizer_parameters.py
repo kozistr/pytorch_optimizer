@@ -116,13 +116,11 @@ def test_betas(optimizer_name):
 
     config1 = {'betas': (-0.1, 0.1)}
     config2 = {'betas': (0.1, -0.1)}
-    config3 = {'betas': (0.1, 0.1, -0.1)}
-
     if optimizer_name == 'ranger21':
         config1.update({'num_iterations': 100})
         config2.update({'num_iterations': 100})
 
-    if optimizer not in ('adapnm', 'adan'):
+    if optimizer_name not in ('adapnm', 'adan'):
         with pytest.raises(ValueError):
             optimizer(None, **config1)
 
@@ -130,14 +128,14 @@ def test_betas(optimizer_name):
             optimizer(None, **config2)
     else:
         with pytest.raises(ValueError):
-            optimizer(None, **config3)
+            optimizer(None, betas=(0.1, 0.1, -0.1))
 
 
 def test_reduction():
     parameters = Example().parameters()
     optimizer = load_optimizer('adamp')(parameters)
 
-    with pytest.raises(ValueError, match=''):
+    with pytest.raises(ValueError):
         PCGrad(optimizer, reduction='wrong')
 
 
