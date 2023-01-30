@@ -12,11 +12,12 @@ from tests.utils import Example, simple_parameter
 def test_learning_rate(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
 
+    config = {'lr': -1e-2}
+    if optimizer_name == 'ranger21':
+        config.update({'num_iterations': 100})
+
     with pytest.raises(NegativeLRError):
-        if optimizer_name == 'ranger21':
-            optimizer(None, num_iterations=100, lr=-1e-2)
-        else:
-            optimizer(None, lr=-1e-2)
+        optimizer(None, **config)
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
@@ -26,21 +27,28 @@ def test_epsilon(optimizer_name):
 
     optimizer = load_optimizer(optimizer_name)
 
-    with pytest.raises(ValueError, match=''):
-        if optimizer_name == 'ranger21':
-            optimizer(None, num_iterations=100, eps=-1e-6)
-        else:
-            optimizer(None, eps=-1e-6)
+    config = {'eps': -1e-6}
+    if optimizer_name == 'ranger21':
+        config.update({'num_iterations': 100})
+
+    with pytest.raises(ValueError, match=r'[-] epsilon -1e-06 must be non-negative') as error_info:
+        optimizer(None, **config)
+
+    assert str(error_info.value) == '[-] epsilon -1e-06 must be non-negative'
 
 
 def test_shampoo_epsilon():
     optimizer = load_optimizer('shampoo')
 
-    with pytest.raises(ValueError, match=''):
+    with pytest.raises(ValueError, match=r'[-] epsilon -1e-06 must be non-negative') as error_info:
         optimizer(None, diagonal_eps=-1e-6)
 
-    with pytest.raises(ValueError, match=''):
+    assert str(error_info.value) == '[-] epsilon -1e-06 must be non-negative'
+
+    with pytest.raises(ValueError, match=r'[-] epsilon -1e-06 must be non-negative') as error_info:
         optimizer(None, matrix_eps=-1e-6)
+
+    assert str(error_info.value) == '[-] epsilon -1e-06 must be non-negative'
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
@@ -50,11 +58,14 @@ def test_weight_decay(optimizer_name):
 
     optimizer = load_optimizer(optimizer_name)
 
-    with pytest.raises(ValueError, match=''):
-        if optimizer_name == 'ranger21':
-            optimizer(None, num_iterations=100, weight_decay=-1e-3)
-        else:
-            optimizer(None, weight_decay=-1e-3)
+    config = {'weight_decay': -1e-3}
+    if optimizer_name == 'ranger21':
+        config.update({'num_iterations': 100})
+
+    with pytest.raises(ValueError, match=r'[-] weight_decay -0.001 must be non-negative') as error_info:
+        optimizer(None, **config)
+
+    assert str(error_info.value) == '[-] weight_decay -0.001 must be non-negative'
 
 
 @pytest.mark.parametrize('optimizer_name', ['adamp', 'sgdp'])
@@ -194,8 +205,10 @@ def test_safe_fp16_methods():
     optimizer.clip_main_grads(100.0)
     optimizer.multiply_grads(100.0)
 
-    with pytest.raises(AttributeError, match=''):
+    with pytest.raises(AttributeError):
         optimizer.get_lr()
+
+    with pytest.raises(AttributeError):
         optimizer.set_lr(lr=5e-1)
 
     assert optimizer.loss_scale == 2.0 ** (15 - 1)
