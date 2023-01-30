@@ -54,6 +54,7 @@ class Lamb(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'grad_averaging': grad_averaging,
             'max_grad_norm': max_grad_norm,
+            'eps': eps,
         }
         super().__init__(params, defaults)
 
