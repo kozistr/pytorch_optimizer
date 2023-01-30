@@ -42,15 +42,15 @@ class AdaPNM(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            betas=betas,
-            weight_decay=weight_decay,
-            weight_decouple=weight_decouple,
-            amsgrad=amsgrad,
-            adamd_debias_term=adamd_debias_term,
-            eps=eps,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'amsgrad': amsgrad,
+            'adamd_debias_term': adamd_debias_term,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):

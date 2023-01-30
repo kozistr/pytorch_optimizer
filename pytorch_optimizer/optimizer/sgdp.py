@@ -41,16 +41,16 @@ class SGDP(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            momentum=momentum,
-            dampening=dampening,
-            weight_decay=weight_decay,
-            nesterov=nesterov,
-            eps=eps,
-            delta=delta,
-            wd_ratio=wd_ratio,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'weight_decay': weight_decay,
+            'momentum': momentum,
+            'dampening': dampening,
+            'delta': delta,
+            'wd_ratio': wd_ratio,
+            'nesterov': nesterov,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):

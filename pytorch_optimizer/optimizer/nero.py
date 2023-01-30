@@ -22,7 +22,7 @@ class Nero(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(lr=lr, constraints=constraints)
+        defaults: DEFAULTS = {'lr': lr, 'constraints': constraints}
         super().__init__(params, defaults)
 
     def validate_parameters(self):

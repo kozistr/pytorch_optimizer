@@ -40,14 +40,14 @@ class LARS(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            weight_decay=weight_decay,
-            momentum=momentum,
-            dampening=dampening,
-            trust_coefficient=trust_coefficient,
-            nesterov=nesterov,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'weight_decay': weight_decay,
+            'momemtum': momentum,
+            'dampening': dampening,
+            'trust_coefficient': trust_coefficient,
+            'nesterov': nesterov,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):

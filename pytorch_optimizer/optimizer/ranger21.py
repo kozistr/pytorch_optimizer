@@ -97,13 +97,13 @@ class Ranger21(Optimizer, BaseOptimizer):
         self.current_lr = lr
         self.min_lr = warm_down_min_lr
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            betas=betas,
-            eps=eps,
-            weight_decay=weight_decay,
-            adamd_debias_term=adamd_debias_term,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'adamd_debias_term': adamd_debias_term,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
         # warmup iterations

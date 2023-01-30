@@ -66,7 +66,8 @@ class SAM(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(rho=rho, adaptive=adaptive, **kwargs)
+        defaults: DEFAULTS = {'rho': rho, 'adaptive': adaptive}
+        defaults.update(kwargs)
         super().__init__(params, defaults)
 
         self.base_optimizer = base_optimizer(self.param_groups, **kwargs)

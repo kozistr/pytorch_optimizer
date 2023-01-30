@@ -44,14 +44,14 @@ class Adan(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            betas=betas,
-            eps=eps,
-            weight_decay=weight_decay,
-            weight_decouple=weight_decouple,
-            max_grad_norm=max_grad_norm,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'max_grad_norm': max_grad_norm,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):

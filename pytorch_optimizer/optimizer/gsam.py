@@ -74,7 +74,8 @@ class GSAM(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(adaptive=adaptive, **kwargs)
+        defaults: DEFAULTS = {'adaptive': adaptive}
+        defaults.update(kwargs)
         super().__init__(params, defaults)
 
         self.update_rho_t()

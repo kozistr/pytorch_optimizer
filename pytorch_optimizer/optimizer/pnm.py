@@ -36,12 +36,12 @@ class PNM(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            betas=betas,
-            weight_decay=weight_decay,
-            weight_decouple=weight_decouple,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):

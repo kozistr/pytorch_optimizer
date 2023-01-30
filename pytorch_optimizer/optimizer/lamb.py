@@ -48,15 +48,13 @@ class Lamb(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            betas=betas,
-            eps=eps,
-            weight_decay=weight_decay,
-            grad_averaging=grad_averaging,
-            max_grad_norm=max_grad_norm,
-        )
-
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'grad_averaging': grad_averaging,
+            'max_grad_norm': max_grad_norm,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
