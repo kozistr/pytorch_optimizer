@@ -70,8 +70,8 @@ class AdagradGraft(SGDGraft):
 
 class BlockPartitioner:
     r"""Partitions a tensor into smaller tensors for preconditioning.
-    For example, if a variable has shape (4096, 512), we might split the 4096 into 4 blocks,
-    so we effectively have 4 variables of size (1024, 512) each.
+        For example, if a variable has shape (4096, 512), we might split the 4096 into 4 blocks,
+        so we effectively have 4 variables of size (1024, 512) each.
 
     :param var: torch.Tensor. tensor variable.
     :param block_size: int. block size.
