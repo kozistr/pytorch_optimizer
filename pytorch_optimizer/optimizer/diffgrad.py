@@ -90,7 +90,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
                     state['previous_grad'] = torch.zeros_like(p)
 
                 state['step'] += 1
-                exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 if group['weight_decay'] > 0.0:
                     grad.add_(p, alpha=group['weight_decay'])
@@ -105,7 +105,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
                 bias_correction2_sq = math.sqrt(1.0 - beta2 ** state['step'])
 
                 # compute diffGrad coefficient (dfc)
-                dfc = previous_grad.clone()
+                dfc = state['previous_grad'].clone()
                 dfc.sub_(grad).abs_().sigmoid_().mul_(exp_avg)
                 state['previous_grad'].copy_(grad)
 
