@@ -53,10 +53,6 @@ class CosineAnnealingWarmupRestarts(_LRScheduler):
 
         self.init_lr()
 
-    @property
-    def __str__(self) -> str:
-        return 'CosineAnnealingWarmupRestarts'
-
     def init_lr(self):
         self.base_lrs = []
         for param_group in self.optimizer.param_groups:

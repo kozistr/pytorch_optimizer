@@ -42,11 +42,6 @@ class BaseLinearWarmupScheduler(ABC):
 
         self._init_lr()
 
-    @property
-    @abstractmethod
-    def __str__(self) -> str:
-        raise NotImplementedError
-
     def validate_parameters(self):
         if self.min_lr < 0:
             raise NegativeLRError(self.min_lr, 'min_lr')
