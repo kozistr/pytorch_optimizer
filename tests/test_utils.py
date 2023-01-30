@@ -66,8 +66,10 @@ def test_unit_norm():
 def test_neuron_mean_norm():
     x = torch.arange(-5, 5, dtype=torch.float32)
 
-    with pytest.raises(ValueError, match=''):
+    with pytest.raises(ValueError, match=r'[-] neuron_mean not defined on 1D tensors.') as error_info:
         neuron_mean(x)
+
+    assert str(error_info.value) == '[-] neuron_mean not defined on 1D tensors.'
 
     np.testing.assert_array_equal(
         neuron_mean(x.view(-1, 1)).numpy(),
