@@ -85,7 +85,7 @@ class BlockPartitioner:
         split_sizes: List[np.ndarray] = []
 
         # We split var into smaller blocks. Here we store the metadata to make that split.
-        for i, d in enumerate(var.shape):
+        for i, d in enumerate(self.shape):
             if 0 < block_size < d:
                 # d - 1, otherwise split appends a 0-size array.
                 num_split: int = (d - 1) // block_size
@@ -128,8 +128,8 @@ class BlockPartitioner:
                 torch.cat(partitions[idx:idx + n], axis=i) for idx in range(0, len(partitions), n)  # fmt: skip
             ]
 
-        if len(partitions) == 1:
-            raise ValueError('[-] num of partitions is 1')
+        # if len(partitions) == 1:
+        #     raise ValueError('[-] num of partitions is 1')
 
         return partitions[0]
 
@@ -155,10 +155,9 @@ class PreConditioner:
         if shape_interpretation:
             self.transformed_shape = merge_small_dims(self.original_shape, block_size)
 
-        if len(self.transformed_shape) <= 1:
-            self.statistics = []
-            self.pre_conditioners = []
-        else:
+        self.statistics: List[torch.Tensor] = []
+        self.pre_conditioners: List[torch.Tensor] = []
+        if len(self.transformed_shape) > 1:
             reshaped_var = torch.reshape(var, self.transformed_shape)
             self.partitioner = BlockPartitioner(reshaped_var, block_size)
 
@@ -169,7 +168,7 @@ class PreConditioner:
     def add_statistics(self, grad: torch.Tensor):
         r"""Compute statistics from gradients and add to the correct state entries.
 
-        :param grad: torch.Tensor. Gradient to compute statistics from.
+        :param grad: torch.Tensor. gradient to compute statistics from.
         """
         if not self.statistics:
             return
