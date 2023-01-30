@@ -120,7 +120,6 @@ class AdamP(Optimizer, BaseOptimizer):
 
                 perturb = exp_avg.clone()
                 if group['nesterov']:
-                    # perturb = beta1 * exp_avg + (1.0 - beta1) * grad / de_nom
                     perturb.mul_(beta1).addcmul_(grad, inv_de_nom, value=1.0 - beta1)
                 else:
                     perturb.mul_(inv_de_nom)

@@ -120,11 +120,8 @@ class MADGRAD(Optimizer, BaseOptimizer):
                     if grad.is_sparse:
                         raise NoSparseGradientError(self.__str__, note='weight_decay')
 
-                    # original implementation
+                    # original implementation. not AdamW style
                     grad.add_(p, alpha=weight_decay)
-
-                    # Apply weight decay - L2 / AdamW style
-                    # p.mul_(1.0 - lr * weight_decay)
 
                 if grad.is_sparse:
                     grad = grad.coalesce()
