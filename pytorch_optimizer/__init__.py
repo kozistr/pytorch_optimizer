@@ -69,7 +69,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     SGDP,
     Shampoo,
 ]
-OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer).lower(): optimizer for optimizer in OPTIMIZER_LIST}
+OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
 LR_SCHEDULER_LIST: List[SCHEDULER] = [
     CosineAnnealingWarmupRestarts,
@@ -83,7 +83,9 @@ LR_SCHEDULER_LIST: List[SCHEDULER] = [
     LinearScheduler,
     ProportionScheduler,
 ]
-LR_SCHEDULERS: Dict[str, SCHEDULER] = {str(lr_scheduler).lower(): lr_scheduler for lr_scheduler in LR_SCHEDULER_LIST}
+LR_SCHEDULERS: Dict[str, SCHEDULER] = {
+    str(lr_scheduler.__name__).lower(): lr_scheduler for lr_scheduler in LR_SCHEDULER_LIST
+}
 
 
 def load_optimizer(optimizer: str) -> OPTIMIZER:
