@@ -18,8 +18,7 @@ class LogisticRegression(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.fc1(x)
         x = f.relu(x)
-        x = self.fc2(x)
-        return x
+        return self.fc2(x)
 
 
 class MultiHeadLogisticRegression(nn.Module):
