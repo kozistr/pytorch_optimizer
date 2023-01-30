@@ -225,7 +225,7 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
     assert tensor_to_numpy(init_loss) > 1.25 * tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('optimizer', set(config[0] for config in OPTIMIZERS), ids=names)
+@pytest.mark.parametrize('optimizer', {config[0] for config in OPTIMIZERS}, ids=names)
 def test_closure(optimizer):
     param = simple_parameter()
 
