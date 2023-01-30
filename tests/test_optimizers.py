@@ -5,6 +5,7 @@ from torch import nn
 
 from pytorch_optimizer import GSAM, SAM, CosineScheduler, Lookahead, PCGrad, ProportionScheduler, load_optimizer
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
+from pytorch_optimizer.optimizer.shampoo import BlockPartitioner
 from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
 from tests.utils import (
     MultiHeadLogisticRegression,
@@ -284,7 +285,7 @@ def test_reset(optimizer_config):
     optimizer.reset()
 
 
-def test_shampoo_block_partitioner():
+def test_shampoo_optimizer():
     (x_data, y_data), _, loss_fn = build_environment()
 
     model = nn.Sequential(
@@ -302,3 +303,12 @@ def test_shampoo_block_partitioner():
         loss_fn(y_pred, y_data).backward()
 
         optimizer.step()
+
+
+def test_shampoo_block_partitioner():
+    var = torch.zeros((2, 2))
+    target_var = torch.zeros((1, 1))
+
+    partitioner = BlockPartitioner(var, block_size=2)
+    with pytest.raises(ValueError):
+        partitioner.partition(target_var)
