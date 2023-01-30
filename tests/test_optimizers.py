@@ -107,7 +107,7 @@ def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
     optimizer_class, config, iterations = optimizer_sam_config
 
     optimizer_name: str = optimizer_class.__name__
-    if (optimizer_name == 'Shampoo') or (optimizer_name == 'Adai'):
+    if optimizer_name in ('Shampoo', 'Adai'):
         pytest.skip(f'skip {optimizer_name}')
 
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
