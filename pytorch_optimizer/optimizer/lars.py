@@ -43,7 +43,7 @@ class LARS(Optimizer, BaseOptimizer):
         defaults: DEFAULTS = {
             'lr': lr,
             'weight_decay': weight_decay,
-            'momemtum': momentum,
+            'momentum': momentum,
             'dampening': dampening,
             'trust_coefficient': trust_coefficient,
             'nesterov': nesterov,
