@@ -11,12 +11,16 @@ from tests.utils import Example
 def test_cosine_annealing_warmup_restarts_params():
     optimizer = AdamP(Example().parameters())
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match=r'[-] warmup_steps must be smaller than first_cycle_steps. 20 < 10'
+    ) as error_info:
         CosineAnnealingWarmupRestarts(
             optimizer=optimizer,
             first_cycle_steps=10,
             warmup_steps=20,
         )
+
+    assert str(error_info.value) == '[-] warmup_steps must be smaller than first_cycle_steps. 20 < 10'
 
     min_lr: float = 1e-6
     first_cycle_steps: int = 5
@@ -37,8 +41,10 @@ def test_cosine_annealing_warmup_restarts_params():
 def test_linear_warmup_lr_scheduler_params():
     optimizer = AdamP(Example().parameters())
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r'[-] poly_order must be positive. -1') as error_info:
         PolyScheduler(poly_order=-1, optimizer=optimizer, t_max=1, max_lr=1)
+
+    assert str(error_info.value) == '[-] poly_order must be positive. -1'
 
     with pytest.raises(NegativeLRError):
         PolyScheduler(optimizer=optimizer, t_max=1, max_lr=-1)
