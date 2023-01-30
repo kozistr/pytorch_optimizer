@@ -52,7 +52,7 @@ url = "https://download.pytorch.org/whl/cpu"
 secondary = true
 
 [tool.ruff]
-select = ["E", "F", "B", "I", "N", "W", "C4"]
+select = ["A", "E", "F", "B", "I", "N", "W", "C4"]
 ignore = []
 fixable = ["A", "B", "C", "D", "E", "F"]
 unfixable = ["F401"]
