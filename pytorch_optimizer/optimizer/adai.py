@@ -86,7 +86,6 @@ class Adai(Optimizer, BaseOptimizer):
 
         for group in self.param_groups:
             _, beta2 = group['betas']
-            weight_decay = group['weight_decay']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -112,11 +111,11 @@ class Adai(Optimizer, BaseOptimizer):
 
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
-                if weight_decay > 0.0:
+                if group['weight_decay'] > 0.0:
                     if self.weight_decouple:
-                        p.mul_(1.0 - group['lr'] * weight_decay)
+                        p.mul_(1.0 - group['lr'] * group['weight_decay'])
                     else:
-                        grad.add_(p, alpha=weight_decay)
+                        grad.add_(p, alpha=group['weight_decay'])
 
                 exp_avg_sq = state['exp_avg_sq']
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
