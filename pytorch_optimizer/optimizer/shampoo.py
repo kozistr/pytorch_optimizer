@@ -79,8 +79,8 @@ class BlockPartitioner:
 
     def __init__(self, var: torch.Tensor, block_size: int):
         self.shape: List[int] = var.shape
-        self.splits: List[Tuple[int, int]] = []
-        self.split_sizes: List[Tuple[int, int]] = []
+        self.splits: List[Tuple[int, np.ndarray]] = []
+        self.split_sizes: List[Tuple[int, np.ndarray]] = []
 
         split_sizes: List[np.ndarray] = []
 
@@ -99,23 +99,23 @@ class BlockPartitioner:
                 split_sizes.append(np.array([d], dtype=np.int32))
 
         self.num_splits: int = len(split_sizes)
-        self.pre_conditioner_shapes: List = []
+        self.pre_conditioner_shapes: List[List[int]] = []
         for t in itertools.product(*split_sizes):
             self.pre_conditioner_shapes.extend([[d, d] for d in t])
 
     def shapes_for_pre_conditioners(self) -> List[List[int]]:
         return self.pre_conditioner_shapes
 
-    def partition(self, tensor: torch.Tensor) -> List[torch.Tensor]:
+    def partition(self, x: torch.Tensor) -> List[torch.Tensor]:
         r"""Partition tensor into blocks."""
-        if tensor.shape != self.shape:
-            raise ValueError(f'self._shape != tensor.shape ({self.shape} vs {tensor.shape})')
+        if x.shape != self.shape:
+            raise ValueError(f'self._shape != x.shape ({self.shape} vs {x.shape})')
 
-        tensors = [tensor]
+        tensors: List[torch.Tensor] = [x]
         for i, sizes in self.split_sizes:
-            tensors_local = []
+            tensors_local: List[torch.Tensor] = []
             for t in tensors:
-                tensors_local.extend(torch.split(t, tuple(sizes), dim=i))
+                tensors_local.extend(torch.split(t, list(sizes), dim=i))
             tensors = tensors_local
         return tensors
 
@@ -127,6 +127,8 @@ class BlockPartitioner:
             partitions: List[torch.Tensor] = [
                 torch.cat(partitions[idx:idx + n], axis=i) for idx in range(0, len(partitions), n)  # fmt: skip
             ]
+
+        print(partitions)
 
         if len(partitions) == 1:
             raise ValueError('[-] num of partitions is 1')
