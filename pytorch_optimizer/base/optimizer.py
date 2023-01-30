@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 import torch
 
-from pytorch_optimizer.base.exception import NegativeLRError
+from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 from pytorch_optimizer.base.types import BETAS
 
 
@@ -90,7 +90,7 @@ class BaseOptimizer(ABC):
     @staticmethod
     def validate_update_frequency(update_frequency: int):
         if update_frequency < 1:
-            raise ValueError(f'[-] update_frequency {update_frequency} must be positive')
+            raise NegativeStepError(f'[-] update_frequency {update_frequency} must be positive')
 
     @staticmethod
     def validate_norm(norm: float):
