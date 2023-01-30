@@ -195,6 +195,7 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
 
     optimizer_class, config, iterations = optimizer_pc_grad_config
     optimizer = PCGrad(optimizer_class(model.parameters(), **config), reduction=reduction)
+    optimizer.reset()
 
     if optimizer_class.__name__ == 'RaLamb' and 'pre_norm' in config:
         pytest.skip(f'skip {optimizer_class.__name__} w/ pre_norm')
@@ -202,6 +203,7 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
         optimizer.zero_grad()
+
         y_pred_1, y_pred_2 = model(x_data)
         loss1, loss2 = loss_fn_1(y_pred_1, y_data), loss_fn_2(y_pred_2, y_data)
 
