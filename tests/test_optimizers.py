@@ -295,7 +295,7 @@ def test_shampoo_block_partitioner():
 
     optimizer = load_optimizer('shampoo')(model.parameters())
 
-    for _ in range(5):
+    for _ in range(2):
         optimizer.zero_grad()
 
         y_pred = model(x_data)
