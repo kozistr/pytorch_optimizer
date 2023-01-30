@@ -52,7 +52,7 @@ url = "https://download.pytorch.org/whl/cpu"
 secondary = true
 
 [tool.ruff]
-select = ["A", "B", "C4", "E", "F", "I", "N", "W"]
+select = ["A", "B", "C4", "E", "F", "G", "I", "N", "S", "T", "ISC", "W", "T20"]
 ignore = []
 fixable = ["A", "B", "C", "D", "E", "F"]
 unfixable = ["F401"]
@@ -76,9 +76,17 @@ line-length = 119
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 target-version = "py39"
 
-[per-file-ignores]
+[tool.ruff.per-file-ignores]
+"./tests/test_utils.py" = ["S101"]
+"./tests/test_optimizers.py" = ["S101"]
+"./tests/test_optimizer_parameters.py" = ["S101"]
+"./tests/test_load_optimizers.py" = ["S101"]
+"./tests/test_load_lr_schedulers.py" = ["S101"]
 "./pytorch_optimizer/__init__.py" = ["F401"]
 "./pytorch_optimizer/lr_scheduler/__init__.py" = ["F401"]
+
+[toll.ruff.flake8-bandit]
+
 
 [tool.ruff.mccabe]
 max-complexity = 10
