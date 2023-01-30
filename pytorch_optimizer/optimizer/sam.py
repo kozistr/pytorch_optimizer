@@ -66,7 +66,8 @@ class SAM(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(rho=rho, adaptive=adaptive, **kwargs)
+        defaults: DEFAULTS = {'rho': rho, 'adaptive': adaptive}
+        defaults.update(kwargs)
         super().__init__(params, defaults)
 
         self.base_optimizer = base_optimizer(self.param_groups, **kwargs)
@@ -76,7 +77,7 @@ class SAM(Optimizer, BaseOptimizer):
         self.validate_rho(self.rho)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'SAM'
 
     @torch.no_grad()
@@ -121,7 +122,7 @@ class SAM(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None):
         if closure is None:
-            raise NoClosureError(self.__name__)
+            raise NoClosureError(self.__str__)
 
         self.first_step(zero_grad=True)
 

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytorch_optimizer"
-version = "2.2.1"
+version = "2.3.0"
 description = "optimizer & lr scheduler implementations in PyTorch with clean-code, strict types. Also, including useful optimization ideas."
 license = "Apache-2.0"
 authors = ["kozistr <kozistr@gmail.com>"]
@@ -42,7 +42,7 @@ torch = { version = "^1.10", source = "torch"}
 [tool.poetry.dev-dependencies]
 isort = "^5.11.4"
 black = "^22.12.0"
-pylint = "^2.15.9"
+ruff = "^0.0.237"
 pytest = "^7.2.0"
 pytest-cov = "^4.0.0"
 
@@ -51,9 +51,50 @@ name = "torch"
 url = "https://download.pytorch.org/whl/cpu"
 secondary = true
 
+[tool.ruff]
+select = ["A", "B", "C4", "E", "F", "G", "I", "N", "S", "T", "ISC", "W", "INP", "PIE", "T20", "RET", "SIM", "ARG"]
+ignore = []
+fixable = ["A", "B", "C", "D", "E", "F"]
+unfixable = ["F401"]
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".github",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "docs",
+    "assets",
+]
+line-length = 119
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+target-version = "py39"
+
+[tool.ruff.per-file-ignores]
+"./hubconf.py" = ["INP001"]
+"./tests/test_utils.py" = ["S101"]
+"./tests/test_gradients.py" = ["S101"]
+"./tests/test_optimizers.py" = ["S101"]
+"./tests/test_optimizer_parameters.py" = ["S101"]
+"./tests/test_load_optimizers.py" = ["S101"]
+"./tests/test_load_lr_schedulers.py" = ["S101"]
+"./tests/test_lr_scheduler_parameters.py" = ["S101"]
+"./pytorch_optimizer/__init__.py" = ["F401"]
+"./pytorch_optimizer/lr_scheduler/__init__.py" = ["F401"]
+
+[tool.ruff.mccabe]
+max-complexity = 10
+
 [tool.coverage.run]
 omit = [
     "./pytorch_optimizer/optimizer/gsam.py",
+    "./pytorch_optimizer/optimizer/fp16.py",
 ]
 
 [build-system]

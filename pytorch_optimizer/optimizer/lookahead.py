@@ -36,11 +36,13 @@ class Lookahead(Optimizer, BaseOptimizer):
         self.state: STATE = defaultdict(dict)
         self.reset()
 
-        self.defaults: DEFAULTS = dict(
-            k=k,
-            alpha=alpha,
-            pullback_momentum=pullback_momentum,
-            **optimizer.defaults,
+        self.defaults: DEFAULTS = optimizer.defaults
+        self.defaults.update(
+            {
+                'k': k,
+                'alpha': alpha,
+                'pullback_momentum': pullback_momentum,
+            }
         )
 
     def validate_parameters(self):

@@ -74,7 +74,8 @@ class GSAM(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(adaptive=adaptive, **kwargs)
+        defaults: DEFAULTS = {'adaptive': adaptive}
+        defaults.update(kwargs)
         super().__init__(params, defaults)
 
         self.update_rho_t()
@@ -83,7 +84,7 @@ class GSAM(Optimizer, BaseOptimizer):
         self.validate_alpha(self.alpha)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'GSAM'
 
     @torch.no_grad()
@@ -116,7 +117,7 @@ class GSAM(Optimizer, BaseOptimizer):
     def un_perturb(self):
         for group in self.param_groups:
             for p in group['params']:
-                if 'e_w' in self.state[p].keys():
+                if 'e_w' in self.state[p]:
                     p.sub_(self.state[p]['e_w'])
 
     @torch.no_grad()

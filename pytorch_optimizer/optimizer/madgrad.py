@@ -42,7 +42,12 @@ class MADGRAD(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(lr=lr, eps=eps, momentum=momentum, weight_decay=weight_decay)
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'weight_decay': weight_decay,
+            'momentum': momentum,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -52,7 +57,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'MADGRAD'
 
     @torch.no_grad()
@@ -106,14 +111,14 @@ class MADGRAD(Optimizer, BaseOptimizer):
                         state['x0'] = torch.clone(p).detach()
 
                 if momentum > 0.0 and grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__, note='momentum > 0.0')
+                    raise NoSparseGradientError(self.__str__, note='momentum > 0.0')
 
                 grad_sum_sq = state['grad_sum_sq']
                 s = state['s']
 
                 if weight_decay > 0.0 and not self.decouple_decay:
                     if grad.is_sparse:
-                        raise NoSparseGradientError(self.__name__, note='weight_decay')
+                        raise NoSparseGradientError(self.__str__, note='weight_decay')
 
                     # original implementation
                     grad.add_(p, alpha=weight_decay)

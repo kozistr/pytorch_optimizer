@@ -40,14 +40,14 @@ class LARS(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            weight_decay=weight_decay,
-            momentum=momentum,
-            dampening=dampening,
-            trust_coefficient=trust_coefficient,
-            nesterov=nesterov,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'weight_decay': weight_decay,
+            'momentum': momentum,
+            'dampening': dampening,
+            'trust_coefficient': trust_coefficient,
+            'nesterov': nesterov,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -58,7 +58,7 @@ class LARS(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'Lars'
 
     @torch.no_grad()
@@ -83,7 +83,7 @@ class LARS(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 if p.ndim > 1:  # if not normalization gamma/beta or bias
                     param_norm = p.norm(2.0)

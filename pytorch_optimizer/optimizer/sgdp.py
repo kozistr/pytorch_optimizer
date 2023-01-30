@@ -41,16 +41,16 @@ class SGDP(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            momentum=momentum,
-            dampening=dampening,
-            weight_decay=weight_decay,
-            nesterov=nesterov,
-            eps=eps,
-            delta=delta,
-            wd_ratio=wd_ratio,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'weight_decay': weight_decay,
+            'momentum': momentum,
+            'dampening': dampening,
+            'delta': delta,
+            'wd_ratio': wd_ratio,
+            'nesterov': nesterov,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -60,7 +60,7 @@ class SGDP(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'SGDP'
 
     @torch.no_grad()
@@ -86,7 +86,7 @@ class SGDP(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 state = self.state[p]
                 if len(state) == 0:

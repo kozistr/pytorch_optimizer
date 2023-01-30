@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 import torch
 from torch import nn
-from torch.nn import functional as F
+from torch.nn import functional as f
 
 from pytorch_optimizer import AdamP, Lookahead
 from pytorch_optimizer.base.types import LOSS
@@ -17,9 +17,8 @@ class LogisticRegression(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.fc1(x)
-        x = F.relu(x)
-        x = self.fc2(x)
-        return x
+        x = f.relu(x)
+        return self.fc2(x)
 
 
 class MultiHeadLogisticRegression(nn.Module):
@@ -31,7 +30,7 @@ class MultiHeadLogisticRegression(nn.Module):
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         x = self.fc1(x)
-        x = F.relu(x)
+        x = f.relu(x)
         return self.head1(x), self.head2(x)
 
 

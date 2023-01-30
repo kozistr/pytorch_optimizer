@@ -3,7 +3,7 @@ import torch
 from torch import nn
 
 from pytorch_optimizer import SAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
-from pytorch_optimizer.base.exception import NegativeLRError, ZeroParameterSizeError
+from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError, ZeroParameterSizeError
 from tests.constants import BETA_OPTIMIZER_NAMES, PULLBACK_MOMENTUM, VALID_OPTIMIZER_NAMES
 from tests.utils import Example, simple_parameter
 
@@ -12,25 +12,43 @@ from tests.utils import Example, simple_parameter
 def test_learning_rate(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
 
+    config = {'lr': -1e-2}
+    if optimizer_name == 'ranger21':
+        config.update({'num_iterations': 100})
+
     with pytest.raises(NegativeLRError):
-        if optimizer_name == 'ranger21':
-            optimizer(None, num_iterations=100, lr=-1e-2)
-        else:
-            optimizer(None, lr=-1e-2)
+        optimizer(None, **config)
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
-    if optimizer_name == 'nero':
-        pytest.skip('skip Nero optimizer')
+    if optimizer_name in ('nero', 'shampoo'):
+        pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
 
-    with pytest.raises(ValueError):
-        if optimizer_name == 'ranger21':
-            optimizer(None, num_iterations=100, eps=-1e-6)
-        else:
-            optimizer(None, eps=-1e-6)
+    config = {'eps': -1e-6}
+    if optimizer_name == 'ranger21':
+        config.update({'num_iterations': 100})
+
+    with pytest.raises(ValueError) as error_info:
+        optimizer(None, **config)
+
+    assert str(error_info.value) == '[-] epsilon -1e-06 must be non-negative'
+
+
+def test_shampoo_epsilon():
+    optimizer = load_optimizer('shampoo')
+
+    with pytest.raises(ValueError) as error_info:
+        optimizer(None, diagonal_eps=-1e-6)
+
+    assert str(error_info.value) == '[-] epsilon -1e-06 must be non-negative'
+
+    with pytest.raises(ValueError) as error_info:
+        optimizer(None, matrix_eps=-1e-6)
+
+    assert str(error_info.value) == '[-] epsilon -1e-06 must be non-negative'
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
@@ -40,11 +58,14 @@ def test_weight_decay(optimizer_name):
 
     optimizer = load_optimizer(optimizer_name)
 
-    with pytest.raises(ValueError):
-        if optimizer_name == 'ranger21':
-            optimizer(None, num_iterations=100, weight_decay=-1e-3)
-        else:
-            optimizer(None, weight_decay=-1e-3)
+    config = {'weight_decay': -1e-3}
+    if optimizer_name == 'ranger21':
+        config.update({'num_iterations': 100})
+
+    with pytest.raises(ValueError) as error_info:
+        optimizer(None, **config)
+
+    assert str(error_info.value) == '[-] weight_decay -0.001 must be non-negative'
 
 
 @pytest.mark.parametrize('optimizer_name', ['adamp', 'sgdp'])
@@ -61,7 +82,7 @@ def test_trust_coefficient(optimizer_name):
         optimizer(None, trust_coefficient=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_name', ['madgrad', 'lars'])
+@pytest.mark.parametrize('optimizer_name', ['madgrad', 'lars', 'shampoo'])
 def test_momentum(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
@@ -93,19 +114,19 @@ def test_beta(optimizer_name):
 def test_betas(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
 
-    with pytest.raises(ValueError):
-        if optimizer_name == 'ranger21':
-            optimizer(None, num_iterations=100, betas=(-0.1, 0.1))
-        elif optimizer not in ('adapnm', 'adan'):
-            optimizer(None, betas=(-0.1, 0.1))
+    config1 = {'betas': (-0.1, 0.1)}
+    config2 = {'betas': (0.1, -0.1)}
+    if optimizer_name == 'ranger21':
+        config1.update({'num_iterations': 100})
+        config2.update({'num_iterations': 100})
 
-    with pytest.raises(ValueError):
-        if optimizer_name == 'ranger21':
-            optimizer(None, num_iterations=100, betas=(0.1, -0.1))
-        elif optimizer not in ('adapnm', 'adan'):
-            optimizer(None, betas=(0.1, -0.1))
+    if optimizer_name not in ('adapnm', 'adan'):
+        with pytest.raises(ValueError):
+            optimizer(None, **config1)
 
-    if optimizer_name in ('adapnm', 'adan'):
+        with pytest.raises(ValueError):
+            optimizer(None, **config2)
+    else:
         with pytest.raises(ValueError):
             optimizer(None, betas=(0.1, 0.1, -0.1))
 
@@ -121,8 +142,15 @@ def test_reduction():
 @pytest.mark.parametrize('optimizer_name', ['shampoo'])
 def test_update_frequency(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
-    with pytest.raises(ValueError):
-        optimizer(None, update_freq=0)
+
+    with pytest.raises(NegativeStepError):
+        optimizer(None, start_preconditioning_step=-1)
+
+    with pytest.raises(NegativeStepError):
+        optimizer(None, statistics_compute_steps=-1)
+
+    with pytest.raises(NegativeStepError):
+        optimizer(None, preconditioning_compute_steps=-1)
 
 
 @pytest.mark.parametrize('optimizer_name', ['adan', 'lamb'])
@@ -133,7 +161,7 @@ def test_norm(optimizer_name):
 
 
 def test_sam_parameters():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=''):
         SAM(None, load_optimizer('adamp'), rho=-0.1)
 
 
@@ -179,6 +207,8 @@ def test_safe_fp16_methods():
 
     with pytest.raises(AttributeError):
         optimizer.get_lr()
+
+    with pytest.raises(AttributeError):
         optimizer.set_lr(lr=5e-1)
 
     assert optimizer.loss_scale == 2.0 ** (15 - 1)

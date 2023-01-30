@@ -47,15 +47,14 @@ class RaLamb(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            betas=betas,
-            eps=eps,
-            weight_decay=weight_decay,
-            adamd_debias_term=adamd_debias_term,
-            buffer=[[None, None, None] for _ in range(10)],
-        )
-
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'adamd_debias_term': adamd_debias_term,
+            'buffer': [[None, None, None] for _ in range(10)],
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -65,7 +64,7 @@ class RaLamb(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'RaLamb'
 
     @torch.no_grad()
@@ -111,7 +110,7 @@ class RaLamb(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 if self.pre_norm:
                     grad.div_(grad_norm)
@@ -173,10 +172,9 @@ class RaLamb(Optimizer, BaseOptimizer):
 
                 radam_norm = radam_step.norm(2.0)
                 weight_norm = p.norm(2.0).clamp(0.0, self.clamp)
-                if weight_norm == 0 or radam_norm == 0:
-                    trust_ratio = 1.0
-                else:
-                    trust_ratio = weight_norm / (radam_norm + self.eps)
+                trust_ratio: float = (
+                    1.0 if weight_norm == 0 or radam_norm == 0 else weight_norm / (radam_norm + self.eps)
+                )
 
                 state['weight_norm'] = weight_norm
                 state['adam_norm'] = radam_norm

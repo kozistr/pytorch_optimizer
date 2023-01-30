@@ -3,17 +3,9 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer import (
-    GSAM,
-    SAM,
-    CosineScheduler,
-    Lookahead,
-    PCGrad,
-    ProportionScheduler,
-    SafeFP16Optimizer,
-    load_optimizer,
-)
+from pytorch_optimizer import GSAM, SAM, CosineScheduler, Lookahead, PCGrad, ProportionScheduler, load_optimizer
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
+from pytorch_optimizer.optimizer.shampoo_utils import BlockPartitioner
 from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
 from tests.utils import (
     MultiHeadLogisticRegression,
@@ -79,44 +71,6 @@ def test_lookahead(pullback_momentum):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('optimizer_fp16_config', OPTIMIZERS, ids=ids)
-def test_safe_f16_optimizers(optimizer_fp16_config):
-    (x_data, y_data), model, loss_fn = build_environment()
-
-    optimizer_class, config, iterations = optimizer_fp16_config
-
-    optimizer_name: str = optimizer_class.__name__
-    if (
-        (optimizer_name == 'MADGRAD')
-        or (optimizer_name == 'RaLamb' and 'pre_norm' in config)
-        or (optimizer_name == 'PNM')
-        or (optimizer_name == 'Nero')
-        or (optimizer_name == 'LARS' and 'nesterov' in config)
-        or (optimizer_name == 'Adan' and 'weight_decay' not in config)
-        or (optimizer_name == 'RAdam')
-        or (optimizer_name == 'Adai')
-    ):
-        pytest.skip(f'skip {optimizer_name}')
-
-    optimizer = SafeFP16Optimizer(optimizer_class(model.parameters(), **config))
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
-
-
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
 @pytest.mark.parametrize('optimizer_sam_config', OPTIMIZERS, ids=ids)
 def test_sam_optimizers(adaptive, optimizer_sam_config):
@@ -153,7 +107,7 @@ def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
     optimizer_class, config, iterations = optimizer_sam_config
 
     optimizer_name: str = optimizer_class.__name__
-    if (optimizer_name == 'Shampoo') or (optimizer_name == 'Adai'):
+    if optimizer_name in ('Shampoo', 'Adai'):
         pytest.skip(f'skip {optimizer_name}')
 
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
@@ -180,7 +134,7 @@ def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
 def test_gsam_optimizers(adaptive):
     if not torch.cuda.is_available():
-        pytest.skip(f'there\'s no cuda. skip test.')
+        pytest.skip('there\'s no cuda. skip test.')
 
     (x_data, y_data), model, loss_fn = build_environment()
 
@@ -239,7 +193,7 @@ def test_adamd_optimizers(optimizer_adamd_config):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('reduction', ('mean', 'sum'))
+@pytest.mark.parametrize('reduction', ['mean', 'sum'])
 @pytest.mark.parametrize('optimizer_pc_grad_config', OPTIMIZERS, ids=ids)
 def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
     torch.manual_seed(42)
@@ -272,21 +226,20 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
     assert tensor_to_numpy(init_loss) > 1.25 * tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('optimizer', set(config[0] for config in OPTIMIZERS), ids=names)
+@pytest.mark.parametrize('optimizer', {config[0] for config in OPTIMIZERS}, ids=names)
 def test_closure(optimizer):
     param = simple_parameter()
 
-    if optimizer.__name__ == 'Ranger21':
-        optimizer = optimizer([param], num_iterations=1)
-    else:
-        optimizer = optimizer([param])
+    optimizer_name: str = optimizer.__name__
 
+    optimizer = optimizer([param], num_iterations=1) if optimizer_name == 'Ranger21' else optimizer([param])
     optimizer.zero_grad()
 
-    try:
+    if optimizer_name in ('Ranger21', 'Adai'):
+        with pytest.raises(ZeroParameterSizeError):
+            optimizer.step(closure=dummy_closure)
+    else:
         optimizer.step(closure=dummy_closure)
-    except ZeroParameterSizeError:  # in case of Ranger21, Adai optimizers
-        pass
 
 
 def test_no_closure():
@@ -329,3 +282,32 @@ def test_reset(optimizer_config):
     optimizer = optimizer_class([param], **config)
     optimizer.zero_grad()
     optimizer.reset()
+
+
+def test_shampoo_optimizer():
+    (x_data, y_data), _, loss_fn = build_environment()
+
+    model = nn.Sequential(
+        nn.Linear(2, 4096),
+        nn.Linear(4096, 512),
+        nn.Linear(512, 1),
+    )
+
+    optimizer = load_optimizer('shampoo')(model.parameters())
+
+    for _ in range(2):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss_fn(y_pred, y_data).backward()
+
+        optimizer.step()
+
+
+def test_shampoo_block_partitioner():
+    var = torch.zeros((2, 2))
+    target_var = torch.zeros((1, 1))
+
+    partitioner = BlockPartitioner(var, block_size=2)
+    with pytest.raises(ValueError):
+        partitioner.partition(target_var)

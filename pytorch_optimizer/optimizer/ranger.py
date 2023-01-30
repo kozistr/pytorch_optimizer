@@ -50,18 +50,18 @@ class Ranger(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            alpha=alpha,
-            k=k,
-            step_counter=0,
-            betas=betas,
-            n_sma_threshold=n_sma_threshold,
-            eps=eps,
-            weight_decay=weight_decay,
-            adamd_debias_term=adamd_debias_term,
-            buffer=[[None, None, None] for _ in range(10)],
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'alpha': alpha,
+            'k': k,
+            'step_counter': 0,
+            'n_sma_threshold': n_sma_threshold,
+            'weight_decay': weight_decay,
+            'adamd_debias_term': adamd_debias_term,
+            'buffer': [[None, None, None] for _ in range(10)],
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -72,7 +72,7 @@ class Ranger(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'Ranger'
 
     @torch.no_grad()
@@ -103,7 +103,7 @@ class Ranger(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 state = self.state[p]
                 if len(state) == 0:

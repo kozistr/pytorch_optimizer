@@ -78,7 +78,6 @@ INVALID_OPTIMIZER_NAMES: List[str] = [
     'pcgrad',
     'adamd',
     'lookahead',
-    'chebyshev_schedule',
 ]
 BETA_OPTIMIZER_NAMES: List[str] = [
     'adabelief',
@@ -150,7 +149,11 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SGDP, {'lr': 5e-2, 'weight_decay': 1e-4, 'nesterov': True}, 100),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 200),
-    (Shampoo, {'lr': 5e-2, 'weight_decay': 1e-3, 'momentum': 0.01}, 300),
+    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': 0}, 50),
+    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': 1}, 50),
+    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': 2}, 50),
+    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'nesterov': False}, 50),
+    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'start_preconditioning_step': 5}, 50),
     (PNM, {'lr': 3e-1}, 50),
     (PNM, {'lr': 3e-1, 'weight_decouple': False}, 50),
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3}, 50),
@@ -160,7 +163,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Nero, {'lr': 5e-1, 'constraints': False}, 100),
     (Adan, {'lr': 5e-1}, 100),
     (Adan, {'lr': 5e-1, 'max_grad_norm': 1.0}, 100),
-    (Adan, {'lr': 5e-2, 'weight_decay': 1e-3, 'use_gc': True}, 300),
+    (Adan, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 200),
     (Adan, {'lr': 1e-1, 'weight_decay': 1e-3, 'use_gc': True, 'weight_decouple': True}, 100),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [

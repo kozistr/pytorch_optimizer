@@ -2,7 +2,7 @@ import math
 from typing import Optional
 
 import torch
-import torch.nn.functional as F
+from torch.nn import functional as f
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NegativeLRError, NoSparseGradientError, ZeroParameterSizeError
@@ -97,13 +97,13 @@ class Ranger21(Optimizer, BaseOptimizer):
         self.current_lr = lr
         self.min_lr = warm_down_min_lr
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            betas=betas,
-            eps=eps,
-            weight_decay=weight_decay,
-            adamd_debias_term=adamd_debias_term,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'adamd_debias_term': adamd_debias_term,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
         # warmup iterations
@@ -128,7 +128,7 @@ class Ranger21(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'Ranger21'
 
     @torch.no_grad()
@@ -205,7 +205,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 param_size += p.numel()
 
@@ -302,7 +302,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                 step_size: float = lr if group['adamd_debias_term'] else lr / bias_correction1
 
                 if self.use_softplus:
-                    de_nom = F.softplus(de_nom, beta=self.beta_softplus)
+                    de_nom = f.softplus(de_nom, beta=self.beta_softplus)
 
                 pn_momentum = grad_ma.mul(1.0 + 1.0).add(neg_grad_ma, alpha=-1.0).mul(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)

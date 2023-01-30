@@ -7,11 +7,13 @@ from torch import nn
 
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
+    compute_power,
     disable_running_stats,
     enable_running_stats,
     get_optimizer_parameters,
     has_overflow,
     is_valid_parameters,
+    merge_small_dims,
     neuron_mean,
     neuron_norm,
     normalize_gradient,
@@ -64,8 +66,10 @@ def test_unit_norm():
 def test_neuron_mean_norm():
     x = torch.arange(-5, 5, dtype=torch.float32)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as error_info:
         neuron_mean(x)
+
+    assert str(error_info.value) == '[-] neuron_mean not defined on 1D tensors.'
 
     np.testing.assert_array_equal(
         neuron_mean(x.view(-1, 1)).numpy(),
@@ -111,8 +115,45 @@ def test_running_stats():
 
     disable_running_stats(model)
 
-    assert (model[1].momentum == 0) and (model[1].backup_momentum == 0.1)
+    assert model[1].momentum == 0
+    assert model[1].backup_momentum == 0.1
 
     enable_running_stats(model)
 
     assert model[1].momentum == 0.1
+
+
+def test_compute_power():
+    # case 1 : len(x.shape) == 1
+    x = compute_power(torch.zeros((1,)), p=1)
+    assert torch.tensor([1000000.0]) == x
+
+    # case 2 : len(x.shape) != 1 and x.shape[0] == 1
+    x = compute_power(torch.zeros((1, 2)), p=1)
+    assert torch.tensor([1.0]) == x
+
+    # case 3 : len(x.shape) != 1 and x.shape[0] != 1, n&n-1 != 0
+    x = compute_power(torch.ones((2, 2)), p=5)
+    np.testing.assert_array_almost_equal(
+        np.asarray([[7.3464, -6.4758], [-6.4758, 7.3464]]),
+        x.numpy(),
+        decimal=3,
+    )
+
+    # case 4 : len(x.shape) != 1 and x.shape[0] != 1, n&n-1 == 0
+    x = compute_power(torch.ones((2, 2)), p=32)
+    np.testing.assert_array_almost_equal(
+        np.asarray([[1.1527, -0.3520], [-0.3520, 1.1527]]),
+        x.numpy(),
+        decimal=2,
+    )
+
+
+def test_merge_small_dims():
+    case1 = [1, 2, 512, 1, 2048, 1, 3, 4]
+    expected_case1 = [1024, 2048, 12]
+    assert expected_case1 == merge_small_dims(case1, max_dim=1024)
+
+    case2 = [1, 2, 768, 1, 2048]
+    expected_case2 = [2, 768, 2048]
+    assert expected_case2 == merge_small_dims(case2, max_dim=1024)

@@ -36,12 +36,12 @@ class PNM(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            betas=betas,
-            weight_decay=weight_decay,
-            weight_decouple=weight_decouple,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -51,7 +51,7 @@ class PNM(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'PNM'
 
     @torch.no_grad()
@@ -80,7 +80,7 @@ class PNM(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 if group['weight_decouple']:
                     p.mul_(1.0 - group['lr'] * group['weight_decay'])

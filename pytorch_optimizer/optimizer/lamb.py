@@ -48,15 +48,14 @@ class Lamb(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            betas=betas,
-            eps=eps,
-            weight_decay=weight_decay,
-            grad_averaging=grad_averaging,
-            max_grad_norm=max_grad_norm,
-        )
-
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'grad_averaging': grad_averaging,
+            'max_grad_norm': max_grad_norm,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -67,7 +66,7 @@ class Lamb(Optimizer, BaseOptimizer):
         self.validate_norm(self.max_grad_norm)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'Lamb'
 
     @torch.no_grad()
@@ -125,7 +124,7 @@ class Lamb(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 if self.pre_norm:
                     grad.div_(grad_norm)
@@ -147,10 +146,9 @@ class Lamb(Optimizer, BaseOptimizer):
 
                 weight_norm = p.norm(2).clamp(0, self.clamp)
                 adam_norm = adam_step.norm(2)
-                if weight_norm == 0 or adam_norm == 0:
-                    trust_ratio = 1.0
-                else:
-                    trust_ratio = weight_norm / (adam_norm + self.eps)
+                trust_ratio: float = (
+                    1.0 if weight_norm == 0 or adam_norm == 0 else weight_norm / (adam_norm + self.eps)
+                )
 
                 state['weight_norm'] = weight_norm
                 state['adam_norm'] = adam_norm

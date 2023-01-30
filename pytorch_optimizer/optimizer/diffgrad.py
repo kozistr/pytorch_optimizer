@@ -35,9 +35,13 @@ class DiffGrad(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr, betas=betas, eps=eps, weight_decay=weight_decay, adamd_debias_term=adamd_debias_term
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'adamd_debias_term': adamd_debias_term,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -47,7 +51,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'diffGrad'
 
     @torch.no_grad()
@@ -76,7 +80,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 state = self.state[p]
                 if len(state) == 0:

@@ -44,14 +44,14 @@ class Adan(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            betas=betas,
-            eps=eps,
-            weight_decay=weight_decay,
-            weight_decouple=weight_decouple,
-            max_grad_norm=max_grad_norm,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'max_grad_norm': max_grad_norm,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -62,7 +62,7 @@ class Adan(Optimizer, BaseOptimizer):
         self.validate_norm(self.max_grad_norm)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'Adan'
 
     @torch.no_grad()
@@ -122,7 +122,7 @@ class Adan(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 state = self.state[p]
                 if len(state) == 0:
