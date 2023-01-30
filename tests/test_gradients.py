@@ -37,11 +37,8 @@ def test_sparse_not_supported(no_sparse_optimizer):
     param = torch.randn(1, 1).to_sparse(1).requires_grad_(True)
     param.grad = torch.randn(1, 1).to_sparse(1)
 
-    optimizer = load_optimizer(optimizer=no_sparse_optimizer)
-    if no_sparse_optimizer == 'ranger21':
-        optimizer = optimizer([param], num_iterations=1)
-    else:
-        optimizer = optimizer([param])
+    opt = load_optimizer(optimizer=no_sparse_optimizer)
+    optimizer = opt([param], num_iterations=1) if no_sparse_optimizer == 'ranger21' else opt([param])
 
     optimizer.zero_grad()
 
@@ -74,17 +71,14 @@ def test_sparse_supported(sparse_optimizer):
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_bf16_gradient(optimizer_name):
     # "addcmul_cpu_out" & "eye" not implemented for fp16, bfp16 but gpu op only
-    if optimizer_name in ('shampoo', 'adabelief'):
+    if optimizer_name in ('shampoo',):
         pytest.skip(optimizer_name)
 
     param = torch.randn(1, 1).bfloat16().requires_grad_(True)
     param.grad = torch.randn(1, 1).bfloat16()
 
-    optimizer = load_optimizer(optimizer_name)
-    if optimizer_name == 'ranger21':
-        optimizer = optimizer([param], num_iterations=1)
-    else:
-        optimizer = optimizer([param])
+    opt = load_optimizer(optimizer=optimizer_name)
+    optimizer = opt([param], num_iterations=1) if optimizer_name == 'ranger21' else opt([param])
 
     optimizer.step()
 
