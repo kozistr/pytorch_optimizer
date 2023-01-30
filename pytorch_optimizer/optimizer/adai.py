@@ -44,13 +44,13 @@ class Adai(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            betas=betas,
-            weight_decay=weight_decay,
-            dampening=dampening,
-            eps=eps,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'dampening': dampening,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -105,7 +105,6 @@ class Adai(Optimizer, BaseOptimizer):
                     state['beta1_prod'] = torch.ones_like(p)
 
                 state['step'] += 1
-
                 exp_avg_sq = state['exp_avg_sq']
 
                 if self.use_gc:

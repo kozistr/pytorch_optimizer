@@ -285,11 +285,11 @@ class Shampoo(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            momentum=momentum,
-            weight_decay=weight_decay,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'momentum': momentum,
+            'weight_decay': weight_decay,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):

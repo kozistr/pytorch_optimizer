@@ -48,16 +48,16 @@ class AdaBound(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = dict(
-            lr=lr,
-            betas=betas,
-            final_lr=final_lr,
-            gamma=gamma,
-            weight_decay=weight_decay,
-            amsbound=amsbound,
-            adamd_debias_term=adamd_debias_term,
-            eps=eps,
-        )
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'final_lr': final_lr,
+            'gamma': gamma,
+            'weight_decay': weight_decay,
+            'amsbound': amsbound,
+            'adamd_debias_term': adamd_debias_term,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
         self.base_lrs: List[float] = [group['lr'] for group in self.param_groups]
