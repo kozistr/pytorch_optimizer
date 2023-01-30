@@ -115,7 +115,9 @@ class AdaBound(Optimizer, BaseOptimizer):
 
                 if group['weight_decay'] > 0.0:
                     if self.weight_decouple:
-                        p.mul_(1.0 - (group['weight_decay'] if self.fixed_decay else group['lr'] * group['weight_decay']))
+                        p.mul_(
+                            1.0 - (group['weight_decay'] if self.fixed_decay else group['lr'] * group['weight_decay'])
+                        )
                     else:
                         grad.add_(p, alpha=group['weight_decay'])
 
