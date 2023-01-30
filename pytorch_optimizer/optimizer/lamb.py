@@ -146,10 +146,9 @@ class Lamb(Optimizer, BaseOptimizer):
 
                 weight_norm = p.norm(2).clamp(0, self.clamp)
                 adam_norm = adam_step.norm(2)
-                if weight_norm == 0 or adam_norm == 0:
-                    trust_ratio = 1.0
-                else:
-                    trust_ratio = weight_norm / (adam_norm + self.eps)
+                trust_ratio: float = (
+                    1.0 if weight_norm == 0 or adam_norm == 0 else weight_norm / (adam_norm + self.eps)
+                )
 
                 state['weight_norm'] = weight_norm
                 state['adam_norm'] = adam_norm

@@ -172,10 +172,9 @@ class RaLamb(Optimizer, BaseOptimizer):
 
                 radam_norm = radam_step.norm(2.0)
                 weight_norm = p.norm(2.0).clamp(0.0, self.clamp)
-                if weight_norm == 0 or radam_norm == 0:
-                    trust_ratio = 1.0
-                else:
-                    trust_ratio = weight_norm / (radam_norm + self.eps)
+                trust_ratio: float = (
+                    1.0 if weight_norm == 0 or radam_norm == 0 else weight_norm / (radam_norm + self.eps)
+                )
 
                 state['weight_norm'] = weight_norm
                 state['adam_norm'] = radam_norm
