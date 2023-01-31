@@ -253,7 +253,7 @@ class PreConditioner:
 
     def should_precondition_dims(self) -> List[bool]:
         r"""Vector containing indicator indicating if the dim is preconditioned."""
-        rank: int = len(self.partitioner.split_sizes)
+        rank: int = len(self.transformed_shape)
         return (
             [True] * rank
             if self.pre_conditioner_type == PreConditionerType.ALL or rank <= 1
@@ -285,10 +285,10 @@ class PreConditioner:
         Loop invariant: the dimension to be preconditioned is first
         We keep all axes in the same cyclic order they were originally.
         """
+        rank: int = len(partitioned_grad.shape)
+        roll: Tuple[int, ...] = (*tuple(range(1, rank)), 0)
         for j, should_precondition in enumerate(should_preconditioned_dims):
-            rank: int = len(partitioned_grad.shape)
             if not should_precondition:
-                roll: Tuple[int, ...] = (*tuple(range(1, rank)), 0)
                 partitioned_grad = torch.permute(partitioned_grad, roll)
                 continue
             partitioned_grad = torch.tensordot(partitioned_grad, pre_conditioners_for_grad[j], dims=[[0], [0]])
