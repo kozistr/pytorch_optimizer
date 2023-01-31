@@ -21,6 +21,7 @@ class LayerWiseGrafting(IntEnum):
     NONE = 0
     SGD = 1
     ADAGRAD = 2
+    RMSPROP = 3
 
 
 class Graft:
@@ -29,7 +30,7 @@ class Graft:
     def __init__(self, *args):
         pass
 
-    def add_statistics(self, grad: torch.Tensor):
+    def add_statistics(self, grad: torch.Tensor, unused_beta2: float):  # noqa: ARG002
         r"""Add the statistics."""
         pass
 
@@ -67,9 +68,30 @@ class AdagradGraft(SGDGraft):
         self.diagonal_eps = diagonal_eps
         self.statistics: torch.Tensor = torch.zeros_like(var, device=var.device)
 
-    def add_statistics(self, grad: torch.Tensor):
+    def add_statistics(self, grad: torch.Tensor, _):
         r"""Add the statistics."""
         self.statistics.add_(grad.pow(2))
+
+    def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
+        r"""Get preconditioned gradient."""
+        return grad / (torch.sqrt(self.statistics) + self.diagonal_eps)
+
+
+class RMSPropGraft(SGDGraft):
+    r"""Graft using RMSProp. Essentially an implementation of RMSProp with momentum.
+
+    :param var: torch.Tensor. variable.
+    :param diagonal_eps: float. diagonal epsilon.
+    """
+
+    def __init__(self, var: torch.Tensor, diagonal_eps: float):
+        super().__init__(var)
+        self.diagonal_eps = diagonal_eps
+        self.statistics: torch.Tensor = torch.zeros_like(var, device=var.device)
+
+    def add_statistics(self, grad: torch.Tensor, beta2: float):
+        r"""Add the statistics."""
+        self.statistics.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         r"""Get preconditioned gradient."""
