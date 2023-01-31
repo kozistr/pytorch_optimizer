@@ -155,6 +155,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': LayerWiseGrafting.ADAGRAD}, 50),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'nesterov': False}, 50),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'decoupled_weight_decay': True}, 50),
+    (Shampoo, {'lr': 1e-0, 'weight_decay': 1e-3, 'momentum': 0.01, 'decoupled_learning_rate': False}, 50),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'moving_average_for_momentum': True}, 50),
     (PNM, {'lr': 3e-1}, 50),
     (PNM, {'lr': 3e-1, 'weight_decouple': False}, 50),
