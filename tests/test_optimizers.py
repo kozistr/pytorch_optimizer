@@ -282,7 +282,8 @@ def test_reset(optimizer_config):
     optimizer.reset()
 
 
-def test_shampoo_optimizer():
+@pytest.mark.parametrize('pre_conditioner_type', [0, 1])
+def test_shampoo_optimizer(pre_conditioner_type):
     (x_data, y_data), _, loss_fn = build_environment()
 
     model = nn.Sequential(
@@ -291,21 +292,21 @@ def test_shampoo_optimizer():
         nn.Linear(512, 1),
     )
 
-    optimizer = load_optimizer('shampoo')(model.parameters(), start_preconditioning_step=1)
+    optimizer = load_optimizer('shampoo')(
+        model.parameters(), start_preconditioning_step=1, pre_conditioner_type=pre_conditioner_type
+    )
+    optimizer.zero_grad()
 
-    for _ in range(2):
-        optimizer.zero_grad()
+    y_pred = model(x_data)
+    loss_fn(y_pred, y_data).backward()
 
-        y_pred = model(x_data)
-        loss_fn(y_pred, y_data).backward()
-
-        optimizer.step()
+    optimizer.step()
 
 
 def test_shampoo_block_partitioner():
     var = torch.zeros((2, 2))
     target_var = torch.zeros((1, 1))
 
-    partitioner = BlockPartitioner(var, block_size=2)
+    partitioner = BlockPartitioner(var, block_size=2, pre_conditioner_type=0)
     with pytest.raises(ValueError):
         partitioner.partition(target_var)
