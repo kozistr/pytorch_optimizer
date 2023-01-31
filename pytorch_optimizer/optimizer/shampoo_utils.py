@@ -118,10 +118,12 @@ class BlockPartitioner:
 
     :param var: torch.Tensor. tensor variable.
     :param block_size: int. block size.
+    :param pre_conditioner_type: int type of pre-conditioner.
     """
 
-    def __init__(self, var: torch.Tensor, block_size: int):
+    def __init__(self, var: torch.Tensor, block_size: int, pre_conditioner_type: int):
         self.shape: List[int] = var.shape
+
         self.splits: List[Tuple[int, np.ndarray]] = []
         self.split_sizes: List[Tuple[int, np.ndarray]] = []
 
@@ -144,6 +146,8 @@ class BlockPartitioner:
         self.num_splits: int = len(split_sizes)
         self.pre_conditioner_shapes: List[List[int]] = []
         for t in itertools.product(*split_sizes):
+            if pre_conditioner_type == PreConditionerType.INPUT and self.num_splits > 1:
+                t = t[:-1]
             self.pre_conditioner_shapes.extend([[d, d] for d in t])
 
     def shapes_for_pre_conditioners(self) -> List[List[int]]:
@@ -226,7 +230,7 @@ class PreConditioner:
         self.pre_conditioners: List[torch.Tensor] = []
         if len(self.transformed_shape) > 1:
             reshaped_var = torch.reshape(var, self.transformed_shape)
-            self.partitioner = BlockPartitioner(reshaped_var, block_size)
+            self.partitioner = BlockPartitioner(reshaped_var, block_size, self.pre_conditioner_type)
 
             shapes = self.partitioner.shapes_for_pre_conditioners()
             self.statistics = [self.matrix_eps * torch.eye(s[0], device=var.device) for s in shapes]
@@ -262,11 +266,11 @@ class PreConditioner:
 
     def exponent_for_pre_conditioner(self) -> int:
         r"""Return exponent to use for inverse-pth root M^{-1/p}."""
-        if self.inverse_exponent_override > 0:
-            return self.inverse_exponent_override
-
-        num_pre_conditioners: int = sum(self.should_precondition_dims())
-        return 2 * num_pre_conditioners
+        return (
+            self.inverse_exponent_override
+            if self.inverse_exponent_override > 0
+            else 2 * sum(self.should_precondition_dims())
+        )
 
     def compute_pre_conditioners(self):
         r"""Compute L^{-1/exp} for each stats matrix L."""
