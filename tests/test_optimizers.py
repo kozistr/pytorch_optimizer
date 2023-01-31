@@ -53,6 +53,7 @@ def test_shampoo_optimizer_graft_types(graft_type):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer = load_optimizer('shampoo')(model.parameters(), lr=1e-1, weight_decay=1e-3, graft_type=graft_type)
+    optimizer.reset()
 
     init_loss, loss = np.inf, np.inf
     for _ in range(30):
