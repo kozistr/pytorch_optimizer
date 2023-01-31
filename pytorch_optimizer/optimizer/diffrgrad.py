@@ -9,7 +9,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 
 
 class DiffRGrad(Optimizer, BaseOptimizer):
-    r"""RAdam + DiffGrad
+    r"""RAdam + DiffGrad.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
@@ -98,7 +98,7 @@ class DiffRGrad(Optimizer, BaseOptimizer):
                     state['previous_grad'] = torch.zeros_like(p)
 
                 state['step'] += 1
-                exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
 
@@ -106,7 +106,7 @@ class DiffRGrad(Optimizer, BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 # compute diffGrad coefficient (dfc)
-                dfc = previous_grad.clone()
+                dfc = state['previous_grad'].clone()
                 dfc.sub_(grad).abs_().sigmoid_().mul_(exp_avg)
                 state['previous_grad'].copy_(grad)
 

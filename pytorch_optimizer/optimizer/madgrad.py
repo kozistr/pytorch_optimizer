@@ -14,7 +14,7 @@ from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class MADGRAD(Optimizer, BaseOptimizer):
-    r"""A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified)
+    r"""A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified).
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
@@ -120,11 +120,8 @@ class MADGRAD(Optimizer, BaseOptimizer):
                     if grad.is_sparse:
                         raise NoSparseGradientError(self.__str__, note='weight_decay')
 
-                    # original implementation
+                    # original implementation. not AdamW style
                     grad.add_(p, alpha=weight_decay)
-
-                    # Apply weight decay - L2 / AdamW style
-                    # p.mul_(1.0 - lr * weight_decay)
 
                 if grad.is_sparse:
                     grad = grad.coalesce()

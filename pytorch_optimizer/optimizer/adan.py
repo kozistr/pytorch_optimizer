@@ -11,7 +11,7 @@ from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
 class Adan(Optimizer, BaseOptimizer):
-    r"""Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models
+    r"""Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

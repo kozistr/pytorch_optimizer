@@ -12,9 +12,10 @@ from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_runn
 
 
 class GSAM(Optimizer, BaseOptimizer):
-    r"""Surrogate Gap Guided Sharpness-Aware Minimization
+    r"""Surrogate Gap Guided Sharpness-Aware Minimization.
 
     Example:
+    -------
         Here's an example::
 
             model = YourModel()
@@ -177,10 +178,11 @@ class GSAM(Optimizer, BaseOptimizer):
 
     @torch.no_grad()
     def set_closure(self, loss_fn: nn.Module, inputs: torch.Tensor, targets: torch.Tensor, **kwargs):
-        r"""set closure
-        create self.forward_backward_func, which is a function such that self.forward_backward_func() automatically
-        performs forward and backward passes. This function does not take any arguments, and the inputs and
-        targets data should be pre-set in the definition of partial-function.
+        r"""Set closure.
+
+            Create `self.forward_backward_func`, which is a function such that `self.forward_backward_func()`
+            automatically performs forward and backward passes. This function does not take any arguments,
+            and the inputs and targets data should be pre-set in the definition of partial-function.
 
         :param loss_fn: nn.Module. loss function.
         :param inputs: torch.Tensor. inputs.

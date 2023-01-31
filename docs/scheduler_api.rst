@@ -56,3 +56,11 @@ OneCycleLR
 
 .. autoclass:: pytorch_optimizer.OneCycleLR
     :members:
+
+.. _deberta_v3_large_lr_scheduler:
+
+deberta_v3_large_lr_scheduler
+-----------------------------
+
+.. autoclass:: pytorch_optimizer.deberta_v3_large_lr_scheduler
+    :members:

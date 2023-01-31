@@ -7,7 +7,7 @@ from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIM
 from tests.utils import build_environment, simple_parameter
 
 
-@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES + ['lookahead'])
+@pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead'])
 def test_no_gradients(optimizer_name):
     p1 = simple_parameter(require_grad=True)
     p2 = simple_parameter(require_grad=False)

@@ -9,7 +9,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 
 
 class AdaBelief(Optimizer, BaseOptimizer):
-    r"""Adapting Step-sizes by the Belief in Observed Gradients
+    r"""Adapting Step-sizes by the Belief in Observed Gradients.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

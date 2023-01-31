@@ -9,7 +9,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 
 
 class AdaPNM(Optimizer, BaseOptimizer):
-    r"""Adam + Positive-Negative Momentum Optimizers
+    r"""Adam + Positive-Negative Momentum Optimizers.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

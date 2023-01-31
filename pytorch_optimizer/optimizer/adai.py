@@ -10,7 +10,7 @@ from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
 class Adai(Optimizer, BaseOptimizer):
-    r"""Disentangling the Effects of Adaptive Learning Rate and Momentum
+    r"""Disentangling the Effects of Adaptive Learning Rate and Momentum.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
@@ -105,7 +105,6 @@ class Adai(Optimizer, BaseOptimizer):
                     state['beta1_prod'] = torch.ones_like(p)
 
                 state['step'] += 1
-                exp_avg_sq = state['exp_avg_sq']
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
@@ -118,6 +117,7 @@ class Adai(Optimizer, BaseOptimizer):
                     else:
                         grad.add_(p, alpha=group['weight_decay'])
 
+                exp_avg_sq = state['exp_avg_sq']
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 exp_avg_sq_hat_sum += exp_avg_sq.sum() / bias_correction2

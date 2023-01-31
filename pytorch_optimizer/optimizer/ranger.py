@@ -10,7 +10,7 @@ from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
 class Ranger(Optimizer, BaseOptimizer):
-    r"""a synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer
+    r"""a synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

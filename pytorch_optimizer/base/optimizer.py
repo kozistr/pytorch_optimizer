@@ -7,6 +7,8 @@ from pytorch_optimizer.base.types import BETAS
 
 
 class BaseOptimizer(ABC):
+    r"""Base optimizer class."""
+
     @staticmethod
     def validate_learning_rate(learning_rate: float):
         if learning_rate < 0.0:
@@ -90,7 +92,7 @@ class BaseOptimizer(ABC):
     @staticmethod
     def validate_update_frequency(update_frequency: int):
         if update_frequency < 1:
-            raise NegativeStepError(f'[-] update_frequency {update_frequency} must be positive')
+            raise NegativeStepError(update_frequency, step_type='update_frequency')
 
     @staticmethod
     def validate_norm(norm: float):

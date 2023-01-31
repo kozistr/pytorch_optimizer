@@ -10,6 +10,7 @@ from pytorch_optimizer.optimizer.utils import clip_grad_norm, has_overflow
 
 class DynamicLossScaler:
     r"""Dynamically adjusts the loss scaling factor.
+
         Dynamic loss scalers are important in mixed-precision training.
         They help us avoid underflows and overflows in low-precision gradients.
 
@@ -50,8 +51,9 @@ class DynamicLossScaler:
 
     def update_scale(self, overflow: bool):
         r"""Update the loss scale.
-        If overflow exceeds our tolerance, we decrease the loss scale. If the number of
-        iterations since the last overflow exceeds the scale window, we increase the loss scale.
+
+            If overflow exceeds our tolerance, we decrease the loss scale.
+            If the number of iterations since the last overflow exceeds the scale window, we increase the loss scale.
 
         :param overflow: bool. adjust scales to prevent overflow.
         """
@@ -79,7 +81,8 @@ class DynamicLossScaler:
 
     def decrease_loss_scale(self):
         r"""Decrease the loss scale by self.scale_factor.
-        NOTE: the loss_scale will not go below self.threshold.
+
+        NOTE: the loss_scale will not go below `self.threshold`.
         """
         self.loss_scale /= self.scale_factor
         if self.threshold is not None:
@@ -87,9 +90,22 @@ class DynamicLossScaler:
 
 
 class SafeFP16Optimizer(Optimizer):
-    def __init__(self, optimizer: OPTIMIZER, aggregate_g_norms: bool = False):
+    r"""Safe FP16 Optimizer.
+
+    :param optimizer: OPTIMIZER.
+    :param aggregate_g_norms: bool. aggregate_g_norms.
+    :param min_loss_scale: float. min_loss_scale.
+    """
+
+    def __init__(
+        self,
+        optimizer: OPTIMIZER,
+        aggregate_g_norms: bool = False,
+        min_loss_scale: float = 2 ** -5,
+    ):  # fmt: skip
         self.optimizer = optimizer
         self.aggregate_g_norms = aggregate_g_norms
+        self.min_loss_scale = min_loss_scale
 
         self.fp16_params = self.get_parameters(optimizer)
         self.fp32_params = self.build_fp32_params(self.fp16_params, flatten=False)
@@ -104,7 +120,6 @@ class SafeFP16Optimizer(Optimizer):
         optimizer.param_groups[0]['params'] = self.fp32_params
 
         self.scaler: DynamicLossScaler = DynamicLossScaler(2.0 ** 15)  # fmt: skip
-        self.min_loss_scale: float = 2 ** -5  # fmt: skip
         self.needs_sync: bool = True
 
     @classmethod
@@ -151,6 +166,7 @@ class SafeFP16Optimizer(Optimizer):
 
     def load_state_dict(self, state_dict: Dict):
         r"""Load an optimizer state dict.
+
             In general, we should prefer the configuration of the existing optimizer instance
             (e.g., learning rate) over that found in the state_dict. This allows us to
             resume training from a checkpoint using a new set of optimizer args.
@@ -162,9 +178,13 @@ class SafeFP16Optimizer(Optimizer):
         self.optimizer.load_state_dict(state_dict)
 
     def backward(self, loss, update_main_grads: bool = False):
-        r"""Computes the sum of gradients of the given tensor w.r.t. graph leaves.
-        Compared to :func:`fairseq.optim.FairseqOptimizer.backward`, this function
-        additionally dynamically scales the loss to avoid gradient underflow.
+        r"""Compute the sum of gradients of the given tensor w.r.t. graph leaves.
+
+            Compared to :func:`fairseq.optim.FairseqOptimizer.backward`, this function
+            additionally dynamically scales the loss to avoid gradient underflow.
+
+        :param loss: float. loss.
+        :param update_main_grads: bool. update main gradient.
         """
         if self.scaler is not None:
             loss = loss * self.scaler.loss_scale
@@ -176,6 +196,7 @@ class SafeFP16Optimizer(Optimizer):
             self.update_main_grads()
 
     def sync_fp16_grads_to_fp32(self, multiply_grads: float = 1.0):
+        r"""Sync fp16 to fp32 gradients."""
         if self.needs_sync:
             if self.scaler is not None:
                 # correct for dynamic loss scaler
@@ -195,7 +216,7 @@ class SafeFP16Optimizer(Optimizer):
             self.needs_sync = False
 
     def multiply_grads(self, c: float):
-        r"""Multiplies grads by a constant c."""
+        r"""Multiply grads by a constant c."""
         if self.needs_sync:
             self.sync_fp16_grads_to_fp32(c)
         else:
@@ -206,7 +227,7 @@ class SafeFP16Optimizer(Optimizer):
         self.sync_fp16_grads_to_fp32()
 
     def clip_main_grads(self, max_norm: float):
-        r"""Clips gradient norm and updates dynamic loss scaler."""
+        r"""Clip gradient norm and updates dynamic loss scaler."""
         self.sync_fp16_grads_to_fp32()
 
         grad_norm = clip_grad_norm(self.fp32_params, max_norm, sync=self.aggregate_g_norms)
@@ -221,8 +242,8 @@ class SafeFP16Optimizer(Optimizer):
             if overflow:
                 self.zero_grad()
                 if self.scaler.loss_scale <= self.min_loss_scale:
-                    # Use FloatingPointError as an uncommon error that parent
-                    # functions can safely catch to stop training.
+                    # Use FloatingPointError as an uncommon error
+                    # that parent functions can safely catch to stop training.
                     self.scaler.loss_scale = prev_scale
 
                     raise FloatingPointError(
@@ -235,7 +256,7 @@ class SafeFP16Optimizer(Optimizer):
         return grad_norm
 
     def step(self, closure: CLOSURE = None):
-        r"""Performs a single optimization step."""
+        r"""Perform a single optimization step."""
         self.sync_fp16_grads_to_fp32()
         self.optimizer.step(closure)
 
@@ -246,7 +267,7 @@ class SafeFP16Optimizer(Optimizer):
             p.data.copy_(p32)
 
     def zero_grad(self):
-        r"""Clears the gradients of all optimized parameters."""
+        r"""Clear the gradients of all optimized parameters."""
         for p in self.fp16_params:
             p.grad = None
         for p32 in self.fp32_params:
@@ -254,9 +275,11 @@ class SafeFP16Optimizer(Optimizer):
         self.needs_sync = False
 
     def get_lr(self) -> float:
+        r"""Get learning rate."""
         return self.optimizer.get_lr()
 
     def set_lr(self, lr: float):
+        r"""Set learning rate."""
         self.optimizer.set_lr(lr)
 
     @property

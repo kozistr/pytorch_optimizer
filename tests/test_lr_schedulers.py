@@ -4,8 +4,7 @@ import numpy as np
 import pytest
 from torch import nn
 
-from pytorch_optimizer import AdamP, get_chebyshev_schedule
-from pytorch_optimizer.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
+from pytorch_optimizer import AdamP, deberta_v3_large_lr_scheduler, get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.chebyshev import chebyshev_perm
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler

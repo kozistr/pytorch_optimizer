@@ -1,5 +1,5 @@
 class NoSparseGradientError(Exception):
-    """Raised when the gradient is sparse gradient
+    """Raised when the gradient is sparse gradient.
 
     :param optimizer_name: str. optimizer name.
     :param note: str. special conditions to note (default '').
@@ -12,7 +12,7 @@ class NoSparseGradientError(Exception):
 
 
 class ZeroParameterSizeError(Exception):
-    """Raised when the parameter size is 0"""
+    """Raised when the parameter size is 0."""
 
     def __init__(self):
         self.message: str = '[-] parameter size is 0'
@@ -20,7 +20,7 @@ class ZeroParameterSizeError(Exception):
 
 
 class NoClosureError(Exception):
-    """Raised when there's no closure function"""
+    """Raised when there's no closure function."""
 
     def __init__(self, optimizer_name: str):
         self.message: str = f'[-] {optimizer_name} requires closure.'
@@ -28,7 +28,7 @@ class NoClosureError(Exception):
 
 
 class NegativeLRError(Exception):
-    """Raised when learning rate is negative"""
+    """Raised when learning rate is negative."""
 
     def __init__(self, lr: float, lr_type: str = ''):
         self.note: str = 'learning rate' if lr_type == '' else lr_type
@@ -37,7 +37,7 @@ class NegativeLRError(Exception):
 
 
 class NegativeStepError(Exception):
-    """Raised when step is negative"""
+    """Raised when step is negative."""
 
     def __init__(self, num_steps: int, step_type: str = ''):
         self.note: str = 'step' if step_type == '' else step_type

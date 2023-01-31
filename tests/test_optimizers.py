@@ -78,10 +78,6 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
 
     optimizer_class, config, iterations = optimizer_sam_config
 
-    optimizer_name: str = optimizer_class.__name__
-    if (optimizer_name == 'Shampoo') or (optimizer_name == 'Adai'):
-        pytest.skip(f'skip {optimizer_name}')
-
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
     init_loss, loss = np.inf, np.inf
@@ -100,17 +96,10 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-@pytest.mark.parametrize('optimizer_sam_config', OPTIMIZERS, ids=ids)
-def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
+def test_sam_optimizers_with_closure(adaptive):
     (x_data, y_data), model, loss_fn = build_environment()
 
-    optimizer_class, config, iterations = optimizer_sam_config
-
-    optimizer_name: str = optimizer_class.__name__
-    if optimizer_name in ('Shampoo', 'Adai'):
-        pytest.skip(f'skip {optimizer_name}')
-
-    optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
+    optimizer = SAM(model.parameters(), load_optimizer('adamp'), lr=5e-1, adaptive=adaptive)
 
     def closure():
         first_loss = loss_fn(y_data, model(x_data))
@@ -118,7 +107,7 @@ def test_sam_optimizers_with_closure(adaptive, optimizer_sam_config):
         return first_loss
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(iterations):
+    for _ in range(10):
         loss = loss_fn(y_data, model(x_data))
         loss.backward()
 
@@ -206,6 +195,7 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
 
     optimizer_class, config, iterations = optimizer_pc_grad_config
     optimizer = PCGrad(optimizer_class(model.parameters(), **config), reduction=reduction)
+    optimizer.reset()
 
     if optimizer_class.__name__ == 'RaLamb' and 'pre_norm' in config:
         pytest.skip(f'skip {optimizer_class.__name__} w/ pre_norm')
@@ -213,6 +203,7 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
         optimizer.zero_grad()
+
         y_pred_1, y_pred_2 = model(x_data)
         loss1, loss2 = loss_fn_1(y_pred_1, y_data), loss_fn_2(y_pred_2, y_data)
 

@@ -11,7 +11,7 @@ from pytorch_optimizer.optimizer.utils import flatten_grad, un_flatten_grad
 
 
 class PCGrad(BaseOptimizer):
-    r"""Gradient Surgery for Multi-Task Learning
+    r"""Gradient Surgery for Multi-Task Learning.
 
     :param optimizer: OPTIMIZER: optimizer instance.
     :param reduction: str. reduction method.
@@ -44,7 +44,7 @@ class PCGrad(BaseOptimizer):
                 idx += 1
 
     def retrieve_grad(self) -> Tuple[List[torch.Tensor], List[int], List[torch.Tensor]]:
-        r"""get the gradient of the parameters of the network with specific objective"""
+        r"""get the gradient of the parameters of the network with specific objective."""
         grad, shape, has_grad = [], [], []
         for group in self.optimizer.param_groups:
             for p in group['params']:
@@ -61,7 +61,7 @@ class PCGrad(BaseOptimizer):
         return grad, shape, has_grad
 
     def pack_grad(self, objectives: Iterable) -> Tuple[List[torch.Tensor], List[List[int]], List[torch.Tensor]]:
-        r"""pack the gradient of the parameters of the network for each objective
+        r"""pack the gradient of the parameters of the network for each objective.
 
         :param objectives: Iterable[nn.Module]. a list of objectives.
         :return: torch.Tensor. packed gradients.
@@ -80,7 +80,7 @@ class PCGrad(BaseOptimizer):
         return grads, shapes, has_grads
 
     def project_conflicting(self, grads: List[torch.Tensor], has_grads: List[torch.Tensor]) -> torch.Tensor:
-        r"""project conflicting
+        r"""project conflicting.
 
         :param grads: a list of the gradient of the parameters.
         :param has_grads: a list of mask represent whether the parameter has gradient.
@@ -109,7 +109,7 @@ class PCGrad(BaseOptimizer):
         return merged_grad
 
     def pc_backward(self, objectives: Iterable[nn.Module]):
-        r"""calculate the gradient of the parameters
+        r"""calculate the gradient of the parameters.
 
         :param objectives: Iterable[nn.Module]. a list of objectives.
         """

@@ -9,7 +9,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 
 
 class RaLamb(Optimizer, BaseOptimizer):
-    r"""RAdam + LAMB. Large Batch Optimization for Deep Learning
+    r"""RAdam + LAMB. Large Batch Optimization for Deep Learning.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

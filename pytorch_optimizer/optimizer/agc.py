@@ -4,10 +4,10 @@ from pytorch_optimizer.optimizer.utils import unit_norm
 
 
 def agc(p: torch.Tensor, agc_eps: float, agc_clip_val: float, eps: float = 1e-6) -> torch.Tensor:
-    """Clip gradient values in excess of the unit wise norm.
+    r"""Clip gradient values in excess of the unit wise norm.
 
-    :param p: parameter. model parameter.
-    :param agc_eps: float. epsilon.
+    :param p: Parameter. parameter.
+    :param agc_eps: float. agc epsilon to clip the norm of parameter.
     :param agc_clip_val: float. norm clip.
     :param eps: float. simple stop from div by zero and no relation to standard optimizer eps.
     """

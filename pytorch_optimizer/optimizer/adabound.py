@@ -10,7 +10,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 
 
 class AdaBound(Optimizer, BaseOptimizer):
-    r"""Adaptive Gradient Methods with Dynamic Bound of Learning Rate
+    r"""Adaptive Gradient Methods with Dynamic Bound of Learning Rate.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
@@ -93,7 +93,6 @@ class AdaBound(Optimizer, BaseOptimizer):
 
         for group, base_lr in zip(self.param_groups, self.base_lrs):
             beta1, beta2 = group['betas']
-            weight_decay: float = group['weight_decay']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -114,11 +113,13 @@ class AdaBound(Optimizer, BaseOptimizer):
                 state['step'] += 1
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                if weight_decay > 0.0:
+                if group['weight_decay'] > 0.0:
                     if self.weight_decouple:
-                        p.mul_(1.0 - (weight_decay if self.fixed_decay else group['lr'] * weight_decay))
+                        p.mul_(
+                            1.0 - (group['weight_decay'] if self.fixed_decay else group['lr'] * group['weight_decay'])
+                        )
                     else:
-                        grad.add_(p, alpha=weight_decay)
+                        grad.add_(p, alpha=group['weight_decay'])
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
@@ -128,9 +129,9 @@ class AdaBound(Optimizer, BaseOptimizer):
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
                 bias_correction1 = 1.0 - beta1 ** state['step']
-                bias_correction2 = 1.0 - beta2 ** state['step']
+                bias_correction2_sq = math.sqrt(1.0 - beta2 ** state['step'])
 
-                step_size = group['lr'] * math.sqrt(bias_correction2)
+                step_size = group['lr'] * bias_correction2_sq
                 if not group['adamd_debias_term']:
                     step_size /= bias_correction1
 
