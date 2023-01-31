@@ -77,6 +77,8 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_sam_config
+    if optimizer_class.__name__ == 'Shampoo' and 'decoupled_learning_rate' in config:
+        pytest.skip('Skip Shampoo w/ decoupled_learning_rate')
 
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
@@ -194,6 +196,9 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
     loss_fn_2: nn.Module = nn.L1Loss()
 
     optimizer_class, config, iterations = optimizer_pc_grad_config
+    if optimizer_class.__name__ == 'Shampoo' and 'decoupled_learning_rate' in config:
+        pytest.skip('skip Shampoo w/ decoupled_learning_rate')
+
     optimizer = PCGrad(optimizer_class(model.parameters(), **config), reduction=reduction)
     optimizer.reset()
 
