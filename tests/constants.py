@@ -153,7 +153,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'graft_type': 1}, 50),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'graft_type': 2}, 50),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'graft_type': 3}, 50),
-    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'nesterov': False, 'start_preconditioning_step': 1}, 50),
+    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'nesterov': False}, 50),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'decoupled_weight_decay': True}, 50),
     (Shampoo, {'lr': 1e-0, 'weight_decay': 1e-3, 'decoupled_learning_rate': False}, 50),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'moving_average_for_momentum': True}, 50),
