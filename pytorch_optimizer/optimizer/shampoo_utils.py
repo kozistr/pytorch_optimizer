@@ -9,7 +9,8 @@ from pytorch_optimizer.optimizer.utils import compute_power, merge_small_dims
 
 
 class LayerWiseGrafting(IntEnum):
-    r"""layer-wise grafting
+    r"""Layer-wise grafting.
+
     Grafting is a technique to fix the layer-wise scale of Shampoo optimizer.
     https://arxiv.org/pdf/2002.11803.pdf studies this in detail. This
     allows us to plugin the Shampoo optimizer into settings where SGD/AdaGrad
@@ -29,12 +30,15 @@ class Graft:
         pass
 
     def add_statistics(self, grad: torch.Tensor):
+        r"""Add the statistics."""
         pass
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
+        r"""Get preconditioned gradient."""
         return grad
 
     def update_momentum(self, update: torch.Tensor, unused_beta1: float) -> torch.Tensor:  # noqa: ARG002
+        r"""Update momentum."""
         return update
 
 
@@ -46,12 +50,17 @@ class SGDGraft(Graft):
         self.momentum: torch.Tensor = torch.zeros_like(var, device=var.device)
 
     def update_momentum(self, update: torch.Tensor, beta1: float) -> torch.Tensor:
+        r"""Update momentum."""
         self.momentum.mul_(beta1).add_(update)
         return self.momentum
 
 
 class AdagradGraft(SGDGraft):
-    r"""Graft using Adagrad. Essentially an implementation of Adagrad with momentum."""
+    r"""Graft using Adagrad. Essentially an implementation of Adagrad with momentum.
+
+    :param var: torch.Tensor. variable.
+    :param diagonal_eps: float. diagonal epsilon.
+    """
 
     def __init__(self, var: torch.Tensor, diagonal_eps: float):
         super().__init__(var)
@@ -59,14 +68,17 @@ class AdagradGraft(SGDGraft):
         self.statistics: torch.Tensor = torch.zeros_like(var, device=var.device)
 
     def add_statistics(self, grad: torch.Tensor):
+        r"""Add the statistics."""
         self.statistics.add_(grad.pow(2))
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
+        r"""Get preconditioned gradient."""
         return grad / (torch.sqrt(self.statistics) + self.diagonal_eps)
 
 
 class BlockPartitioner:
-    r"""Partitions a tensor into smaller tensors for preconditioning.
+    r"""Partition a tensor into smaller tensors for preconditioning.
+
         For example, if a variable has shape (4096, 512), we might split the 4096 into 4 blocks,
         so we effectively have 4 variables of size (1024, 512) each.
 
@@ -101,6 +113,7 @@ class BlockPartitioner:
             self.pre_conditioner_shapes.extend([[d, d] for d in t])
 
     def shapes_for_pre_conditioners(self) -> List[List[int]]:
+        r"""Get shapes of pre-conditioner."""
         return self.pre_conditioner_shapes
 
     def partition(self, x: torch.Tensor) -> List[torch.Tensor]:
@@ -132,7 +145,15 @@ class BlockPartitioner:
 
 
 class PreConditioner:
-    r"""Compute statistics/shape from gradients for preconditioning."""
+    r"""Compute statistics/shape from gradients for preconditioning.
+
+    :param var: torch.Tensor. variable.
+    :param beta2: float. beta2.
+    :param inverse_exponent_override: int.
+    :param block_size: int.
+    :param shape_interpretation: bool.
+    :param matrix_eps: float.
+    """
 
     def __init__(
         self,
@@ -182,7 +203,7 @@ class PreConditioner:
                 self.statistics[j * rank + i].mul_(self.beta2).add_(stat, alpha=w2)
 
     def exponent_for_pre_conditioner(self) -> int:
-        r"""Returns exponent to use for inverse-pth root M^{-1/p}."""
+        r"""Return exponent to use for inverse-pth root M^{-1/p}."""
         return (
             self.inverse_exponent_override if self.inverse_exponent_override > 0 else 2 * len(self.transformed_shape)
         )
