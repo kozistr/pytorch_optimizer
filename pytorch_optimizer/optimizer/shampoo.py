@@ -125,8 +125,12 @@ class Shampoo(Optimizer, BaseOptimizer):
                 )
                 if self.graft_type == LayerWiseGrafting.ADAGRAD:
                     state['graft'] = AdagradGraft(p, self.diagonal_eps)
+                elif self.graft_type == LayerWiseGrafting.RMSPROP:
+                    state['graft'] = RMSPropGraft(p, self.diagonal_eps)
                 elif self.graft_type == LayerWiseGrafting.SGD:
                     state['graft'] = SGDGraft(p)
+                elif self.graft_type == LayerWiseGrafting.SQRTN:
+                    state['graft'] = SQRTNGraft(p)
                 else:
                     state['graft'] = Graft(p)
 
