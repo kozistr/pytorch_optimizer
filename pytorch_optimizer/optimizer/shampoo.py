@@ -38,7 +38,7 @@ class Shampoo(Optimizer, BaseOptimizer):
     :param shape_interpretation: bool. Automatic shape interpretation (for eg: [4, 3, 1024, 512] would
         result in 12 x [1024, 512] L and R statistics. Disabled by default which results in Shampoo constructing
         statistics [4, 4], [3, 3], [1024, 1024], [512, 512].
-    :param graft_type: bool. Type of grafting (SGD or AdaGrad).
+    :param graft_type: bool. Type of grafting (SGD or AdaGrad or RMSProp or None).
     :param nesterov: bool. Nesterov momentum.
     :param diagonal_eps: float. term added to the denominator to improve numerical stability.
     :param matrix_eps: float. term added to the denominator to improve numerical stability.
