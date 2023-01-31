@@ -22,7 +22,7 @@ class Shampoo(Optimizer, BaseOptimizer):
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
-    :param momentum: float. momentum (beta1).
+    :param beta1: float. momentum (beta1).
     :param beta2: float. beta2.
     :param moving_average_for_momentum: bool. perform moving_average for momentum (beta1).
     :param weight_decay: float. weight decay (L2 penalty).
@@ -49,7 +49,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         self,
         params: PARAMETERS,
         lr: float = 1e-3,
-        momentum: float = 0.9,
+        beta1: float = 0.9,
         beta2: float = 0.999,
         moving_average_for_momentum: bool = False,
         weight_decay: float = 0.0,
@@ -67,7 +67,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         matrix_eps: float = 1e-6,
     ):
         self.lr = lr
-        self.momentum = momentum
+        self.beta1 = beta1
         self.beta2 = beta2
         self.moving_average_for_momentum = moving_average_for_momentum
         self.weight_decay = weight_decay
@@ -88,14 +88,14 @@ class Shampoo(Optimizer, BaseOptimizer):
 
         defaults: DEFAULTS = {
             'lr': lr,
-            'momentum': momentum,
+            'beta1': beta1,
             'weight_decay': weight_decay,
         }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
         self.validate_learning_rate(self.lr)
-        self.validate_momentum(self.momentum)
+        self.validate_momentum(self.beta1)
         self.validate_weight_decay(self.weight_decay)
         self.validate_update_frequency(self.start_preconditioning_step)
         self.validate_update_frequency(self.statistics_compute_steps)
@@ -202,8 +202,8 @@ class Shampoo(Optimizer, BaseOptimizer):
                         graft_grad.mul_(1.0 - group['lr'] * group['weight_decay'])
 
                 # Momentum and Nesterov momentum, if needed
-                state['momentum'].mul_(group['momentum']).add_(shampoo_grad)
-                graft_momentum = graft.update_momentum(grad, group['momentum'])
+                state['momentum'].mul_(group['beta1']).add_(shampoo_grad)
+                graft_momentum = graft.update_momentum(grad, group['beta1'])
 
                 if state['step'] >= self.start_preconditioning_step:
                     momentum_update = state['momentum']
@@ -213,10 +213,10 @@ class Shampoo(Optimizer, BaseOptimizer):
                     wd_update = graft_grad
 
                 if self.nesterov:
-                    w: float = (1.0 - group['momentum']) if self.moving_average_for_momentum else 1.0
+                    w: float = (1.0 - group['beta1']) if self.moving_average_for_momentum else 1.0
                     wd_update.mul_(w)
 
-                    momentum_update.mul_(group['momentum']).add_(wd_update)
+                    momentum_update.mul_(group['beta1']).add_(wd_update)
 
                 p.add_(momentum_update, alpha=-group['lr'])
 
