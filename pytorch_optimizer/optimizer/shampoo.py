@@ -9,6 +9,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
     Graft,
     LayerWiseGrafting,
     PreConditioner,
+    PreConditionerType,
     RMSPropGraft,
     SGDGraft,
     SQRTNGraft,
@@ -38,7 +39,8 @@ class Shampoo(Optimizer, BaseOptimizer):
     :param shape_interpretation: bool. Automatic shape interpretation (for eg: [4, 3, 1024, 512] would
         result in 12 x [1024, 512] L and R statistics. Disabled by default which results in Shampoo constructing
         statistics [4, 4], [3, 3], [1024, 1024], [512, 512].
-    :param graft_type: bool. Type of grafting (SGD or AdaGrad or RMSProp or SQRT_N or None).
+    :param graft_type: int. type of grafting (SGD or AdaGrad or RMSProp or SQRT_N or None).
+    :param pre_conditioner_type: int. type of pre-conditioner.
     :param nesterov: bool. Nesterov momentum.
     :param diagonal_eps: float. term added to the denominator to improve numerical stability.
     :param matrix_eps: float. term added to the denominator to improve numerical stability.
@@ -60,6 +62,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         block_size: int = 128,
         shape_interpretation: bool = True,
         graft_type: int = LayerWiseGrafting.SGD,
+        pre_conditioner_type: int = PreConditionerType.ALL,
         nesterov: bool = True,
         diagonal_eps: float = 1e-10,
         matrix_eps: float = 1e-6,
@@ -77,6 +80,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         self.block_size = block_size
         self.shape_interpretation = shape_interpretation
         self.graft_type = graft_type
+        self.pre_conditioner_type = pre_conditioner_type
         self.nesterov = nesterov
         self.diagonal_eps = diagonal_eps
         self.matrix_eps = matrix_eps
@@ -119,6 +123,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                     self.block_size,
                     self.shape_interpretation,
                     self.matrix_eps,
+                    self.pre_conditioner_type,
                 )
                 if self.graft_type == LayerWiseGrafting.ADAGRAD:
                     state['graft'] = AdagradGraft(p, self.diagonal_eps)
@@ -159,6 +164,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                         self.block_size,
                         self.shape_interpretation,
                         self.matrix_eps,
+                        self.pre_conditioner_type,
                     )
                     if self.graft_type == LayerWiseGrafting.ADAGRAD:
                         state['graft'] = AdagradGraft(p, self.diagonal_eps)
