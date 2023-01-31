@@ -178,6 +178,18 @@ class BlockPartitioner:
         return partitions[0]
 
 
+class PreConditionerType(IntEnum):
+    r"""Type of PreConditioner.
+
+    In default (ALL), computes pre-conditioner for each dim.
+    INPUT is one-sided Shampoo, in this cases only on input dim.
+    Assumes last dim is always the output dim and everything else input dim.
+    """
+
+    ALL = 0
+    INPUT = 1
+
+
 class PreConditioner:
     r"""Compute statistics/shape from gradients for preconditioning.
 
@@ -187,6 +199,7 @@ class PreConditioner:
     :param block_size: int.
     :param shape_interpretation: bool.
     :param matrix_eps: float.
+    :param pre_conditioner_type: int. type of pre-conditioner.
     """
 
     def __init__(
@@ -197,10 +210,12 @@ class PreConditioner:
         block_size: int,
         shape_interpretation: bool,
         matrix_eps: float,
+        pre_conditioner_type: int = PreConditionerType.ALL,
     ):
         self.beta2 = beta2
         self.inverse_exponent_override = inverse_exponent_override
         self.matrix_eps = matrix_eps
+        self.pre_conditioner_type = pre_conditioner_type
 
         self.original_shape: List[int] = var.shape
         self.transformed_shape: List[int] = var.shape
@@ -236,17 +251,49 @@ class PreConditioner:
                 stat: torch.Tensor = torch.tensordot(partitioned_grad, partitioned_grad, [axes, axes])
                 self.statistics[j * rank + i].mul_(self.beta2).add_(stat, alpha=w2)
 
+    def should_precondition_dims(self) -> List[bool]:
+        r"""A vector containing indicator indicating if the dim is preconditioned."""
+        rank: int = len(self.partitioner.split_sizes)
+        return (
+            [True] * rank
+            if self.pre_conditioner_type == PreConditionerType.ALL or rank <= 1
+            else [True] * (rank - 1) + [False]
+        )
+
     def exponent_for_pre_conditioner(self) -> int:
         r"""Return exponent to use for inverse-pth root M^{-1/p}."""
-        return (
-            self.inverse_exponent_override if self.inverse_exponent_override > 0 else 2 * len(self.transformed_shape)
-        )
+        if self.inverse_exponent_override > 0:
+            return self.inverse_exponent_override
+
+        num_pre_conditioners: int = sum(self.should_precondition_dims())
+        return 2 * num_pre_conditioners
 
     def compute_pre_conditioners(self):
         r"""Compute L^{-1/exp} for each stats matrix L."""
         exp: int = self.exponent_for_pre_conditioner()
         for i, stat in enumerate(self.statistics):
             self.pre_conditioners[i] = compute_power(stat, exp, ridge_epsilon=self.matrix_eps)
+
+    @staticmethod
+    def precondition_block(
+        partitioned_grad: torch.Tensor,
+        should_preconditioned_dims: List[bool],
+        pre_conditioners_for_grad: List[torch.Tensor],
+    ) -> torch.Tensor:
+        r"""Perform a preconditioning op on a single gradient block.
+
+        Loop invariant: the dimension to be preconditioned is first
+        We keep all axes in the same cyclic order they were originally.
+        """
+
+        for j, should_precondition in enumerate(should_preconditioned_dims):
+            rank: int = len(partitioned_grad.shape)
+            if not should_precondition:
+                roll = tuple(range(1, rank)) + (0,)
+                partitioned_grad = torch.permute(partitioned_grad, roll)
+                continue
+            partitioned_grad = torch.tensordot(partitioned_grad, pre_conditioners_for_grad[j], dims=[[0], [0]])
+        return partitioned_grad
 
     def preconditioned_grad(self, grad: torch.Tensor) -> torch.Tensor:
         r"""Precondition the gradient.
@@ -259,15 +306,18 @@ class PreConditioner:
         reshaped_grad = torch.reshape(grad, self.transformed_shape)
         partitioned_grads = self.partitioner.partition(reshaped_grad)
 
-        num_splits: int = self.partitioner.num_splits
+        should_precondition_dims: List[bool] = self.should_precondition_dims()
+        num_pre_conditioners: int = sum(should_precondition_dims)
+
         pre_cond_partitioned_grads: List[torch.Tensor] = []
         for i, partitioned_grad in enumerate(partitioned_grads):
-            pre_conditioners_for_grad = self.pre_conditioners[i * num_splits:(i + 1) * num_splits]  # fmt: skip
-            rank: int = len(partitioned_grad.shape)
+            pre_conditioners_for_grad = self.pre_conditioners[
+                i * num_pre_conditioners:(i + 1) * num_pre_conditioners
+            ]  # fmt: skip
 
-            pre_cond_grad = partitioned_grad
-            for j in range(rank):
-                pre_cond_grad = torch.tensordot(pre_cond_grad, pre_conditioners_for_grad[j], [[0], [0]])
+            pre_cond_grad = self.precondition_block(
+                partitioned_grad, should_precondition_dims, pre_conditioners_for_grad
+            )
 
             pre_cond_partitioned_grads.append(pre_cond_grad)
 
