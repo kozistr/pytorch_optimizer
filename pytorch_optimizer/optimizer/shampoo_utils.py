@@ -182,7 +182,7 @@ class PreConditionerType(IntEnum):
     r"""Type of PreConditioner.
 
     In default (ALL), computes pre-conditioner for each dim.
-    INPUT is one-sided Shampoo, in this cases only on input dim.
+    INPUT is one-sided Shampoo, in this case only on input dim.
     Assumes last dim is always the output dim and everything else input dim.
     """
 
