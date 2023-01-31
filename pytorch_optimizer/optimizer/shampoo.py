@@ -170,7 +170,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                 pre_conditioner, graft = state['pre_conditioner'], state['graft']
 
                 # gather statistics, compute pre-conditioners
-                graft.add_statistics(grad)
+                graft.add_statistics(grad, self.beta2)
                 if state['step'] % self.statistics_compute_steps == 0:
                     pre_conditioner.add_statistics(grad)
                 if state['step'] % self.preconditioning_compute_steps == 0:
