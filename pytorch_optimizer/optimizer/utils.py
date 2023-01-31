@@ -350,6 +350,9 @@ def merge_small_dims(shape_to_merge: List[int], max_dim: int) -> List[int]:
     :param shape_to_merge: List. Shape to merge small dimensions.
     :param max_dim: int. Maximal dimension of output shape used in merging.
     """
+    if shape_to_merge and np.all(np.array(shape_to_merge) == 1):
+        return [1]
+
     resulting_shape: List[int] = []
 
     product: int = 1
