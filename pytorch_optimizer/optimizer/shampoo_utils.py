@@ -30,7 +30,7 @@ class Graft:
     def __init__(self, *args):
         pass
 
-    def add_statistics(self, grad: torch.Tensor, unused_beta2: float):  # noqa: ARG002
+    def add_statistics(self, grad: torch.Tensor, unused_beta2: float):
         r"""Add the statistics."""
         pass
 
