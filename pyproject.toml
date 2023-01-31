@@ -52,8 +52,8 @@ url = "https://download.pytorch.org/whl/cpu"
 secondary = true
 
 [tool.ruff]
-select = ["A", "B", "C4", "E", "F", "G", "I", "N", "S", "T", "ISC", "ICN", "W", "INP", "PIE", "T20", "RET", "SIM", "TID", "ARG", "ERA", "RUF", "YTT"]
-ignore = []
+select = ["A", "B", "C4", "E", "F", "G", "I", "N", "S", "T", "ISC", "ICN", "W", "INP", "PIE", "T20", "RET", "SIM", "TID", "ARG", "ERA", "RUF", "YTT", "PL"]
+ignore = ["PLR2004"]
 fixable = ["A", "B", "C", "D", "E", "F"]
 unfixable = ["F401"]
 exclude = [
