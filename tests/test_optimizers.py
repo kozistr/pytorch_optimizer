@@ -291,7 +291,7 @@ def test_shampoo_optimizer():
         nn.Linear(512, 1),
     )
 
-    optimizer = load_optimizer('shampoo')(model.parameters())
+    optimizer = load_optimizer('shampoo')(model.parameters(), start_preconditioning_step=1)
 
     for _ in range(2):
         optimizer.zero_grad()
