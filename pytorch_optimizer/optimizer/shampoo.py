@@ -17,6 +17,7 @@ class Shampoo(Optimizer, BaseOptimizer):
     :param momentum: float. momentum.
     :param beta2: float. beta2.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param decoupled_weight_decay: bool. do decoupled_weight_decay.
     :param inverse_exponent_override: int. fixed exponent for pre-conditioner, if > 0.
     :param start_preconditioning_step: int.
     :param preconditioning_compute_steps: int. performance tuning params for controlling memory and compute
@@ -41,6 +42,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         momentum: float = 0.0,
         beta2: float = 1.0,
         weight_decay: float = 0.0,
+        decoupled_weight_decay: bool = False,
         inverse_exponent_override: int = 0,
         start_preconditioning_step: int = 1,
         preconditioning_compute_steps: int = 1,
@@ -56,6 +58,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         self.momentum = momentum
         self.beta2 = beta2
         self.weight_decay = weight_decay
+        self.decoupled_weight_decay = decoupled_weight_decay
         self.inverse_exponent_override = inverse_exponent_override
         self.start_preconditioning_step = start_preconditioning_step
         self.preconditioning_compute_steps = preconditioning_compute_steps
@@ -167,10 +170,11 @@ class Shampoo(Optimizer, BaseOptimizer):
                 # grafting
                 graft_norm = torch.norm(graft_grad)
                 shampoo_norm = torch.norm(shampoo_grad)
-                shampoo_grad.mul_(graft_norm / (shampoo_norm + 1e-16))
+                if self.graft_type != LayerWiseGrafting.NONE:
+                    shampoo_grad.mul_(graft_norm / (shampoo_norm + 1e-16))
 
                 # apply weight decay (adam style)
-                if group['weight_decay'] > 0.0:
+                if group['weight_decay'] > 0.0 and not self.decoupled_weight_decay:
                     shampoo_grad.add_(p, alpha=group['weight_decay'])
                     graft_grad.add_(p, alpha=group['weight_decay'])
 
