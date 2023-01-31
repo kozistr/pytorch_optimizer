@@ -154,7 +154,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                     state['momentum'] = torch.zeros_like(p)
                     state['pre_conditioner'] = PreConditioner(
                         p,
-                        self.beta2,
+                        beta2,
                         self.inverse_exponent_override,
                         self.block_size,
                         self.shape_interpretation,
