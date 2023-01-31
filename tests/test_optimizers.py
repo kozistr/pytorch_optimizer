@@ -48,6 +48,29 @@ def test_f32_optimizers(optimizer_fp32_config):
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
+@pytest.mark.parametrize('graft_type', range(5))
+def test_shampoo_optimizer_graft_types(graft_type):
+    (x_data, y_data), model, loss_fn = build_environment()
+
+    optimizer = load_optimizer('shampoo')(model.parameters(), lr=1e-1, weight_decay=1e-3, graft_type=graft_type)
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(30):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward()
+
+        optimizer.step()
+
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+
+
 @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
 def test_lookahead(pullback_momentum):
     (x_data, y_data), model, loss_fn = build_environment()
