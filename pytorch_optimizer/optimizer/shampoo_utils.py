@@ -146,7 +146,7 @@ class BlockPartitioner:
         self.num_splits: int = len(split_sizes)
         self.pre_conditioner_shapes: List[List[int]] = []
         for t in itertools.product(*split_sizes):
-            if not(pre_conditioner_type == PreConditionerType.ALL or self.num_splits <= 1):
+            if not (pre_conditioner_type == PreConditionerType.ALL or self.num_splits <= 1):
                 t = t[:-1]
             self.pre_conditioner_shapes.extend([[d, d] for d in t])
 
