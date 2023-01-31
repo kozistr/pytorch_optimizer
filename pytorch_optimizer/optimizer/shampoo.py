@@ -4,7 +4,14 @@ from torch.optim.optimizer import Optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.optimizer.shampoo_utils import AdagradGraft, Graft, LayerWiseGrafting, PreConditioner, SGDGraft
+from pytorch_optimizer.optimizer.shampoo_utils import (
+    AdagradGraft,
+    Graft,
+    LayerWiseGrafting,
+    PreConditioner,
+    RMSPropGraft,
+    SGDGraft,
+)
 
 
 class Shampoo(Optimizer, BaseOptimizer):
@@ -152,6 +159,8 @@ class Shampoo(Optimizer, BaseOptimizer):
                     )
                     if self.graft_type == LayerWiseGrafting.ADAGRAD:
                         state['graft'] = AdagradGraft(p, self.diagonal_eps)
+                    elif self.graft_type == LayerWiseGrafting.RMSPROP:
+                        state['graft'] = RMSPropGraft(p, self.diagonal_eps)
                     elif self.graft_type == LayerWiseGrafting.SGD:
                         state['graft'] = SGDGraft(p)
                     else:
