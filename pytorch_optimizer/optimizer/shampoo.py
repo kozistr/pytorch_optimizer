@@ -11,6 +11,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
     PreConditioner,
     RMSPropGraft,
     SGDGraft,
+    SQRTNGraft,
 )
 
 
@@ -163,6 +164,8 @@ class Shampoo(Optimizer, BaseOptimizer):
                         state['graft'] = RMSPropGraft(p, self.diagonal_eps)
                     elif self.graft_type == LayerWiseGrafting.SGD:
                         state['graft'] = SGDGraft(p)
+                    elif self.graft_type == LayerWiseGrafting.SQRTN:
+                        state['graft'] = SQRTNGraft(p)
                     else:
                         state['graft'] = Graft(p)
 
