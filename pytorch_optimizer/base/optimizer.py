@@ -90,7 +90,7 @@ class BaseOptimizer(ABC):
     @staticmethod
     def validate_update_frequency(update_frequency: int):
         if update_frequency < 1:
-            raise NegativeStepError(f'[-] update_frequency {update_frequency} must be positive')
+            raise NegativeStepError(update_frequency, step_type='update_frequency')
 
     @staticmethod
     def validate_norm(norm: float):
