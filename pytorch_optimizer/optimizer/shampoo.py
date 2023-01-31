@@ -44,7 +44,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         decoupled_weight_decay: bool = False,
         inverse_exponent_override: int = 0,
-        start_preconditioning_step: int = 1,
+        start_preconditioning_step: int = 5,
         preconditioning_compute_steps: int = 1,
         statistics_compute_steps: int = 1,
         block_size: int = 128,
