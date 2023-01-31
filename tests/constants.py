@@ -21,7 +21,6 @@ from pytorch_optimizer import (
     Ranger21,
     Shampoo,
 )
-from pytorch_optimizer.optimizer.shampoo_utils import LayerWiseGrafting
 from tests.utils import build_lookahead
 
 ADAPTIVE_FLAGS: List[bool] = [True, False]
@@ -151,9 +150,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 200),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'start_preconditioning_step': 1}, 50),
-    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': LayerWiseGrafting.NONE}, 50),
-    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': LayerWiseGrafting.SGD}, 50),
-    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': LayerWiseGrafting.ADAGRAD}, 50),
+    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': 0}, 50),
+    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': 1}, 50),
+    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': 2}, 50),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'nesterov': False}, 50),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'decoupled_weight_decay': True}, 50),
     (Shampoo, {'lr': 1e-0, 'weight_decay': 1e-3, 'momentum': 0.01, 'decoupled_learning_rate': False}, 50),
