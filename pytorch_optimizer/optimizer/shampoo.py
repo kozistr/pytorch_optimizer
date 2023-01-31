@@ -41,8 +41,8 @@ class Shampoo(Optimizer, BaseOptimizer):
         self,
         params: PARAMETERS,
         lr: float = 1e-3,
-        momentum: float = 0.0,
-        beta2: float = 1.0,
+        momentum: float = 0.9,
+        beta2: float = 0.999,
         moving_average_for_momentum: bool = False,
         weight_decay: float = 0.0,
         decoupled_weight_decay: bool = False,
@@ -55,8 +55,8 @@ class Shampoo(Optimizer, BaseOptimizer):
         shape_interpretation: bool = True,
         graft_type: int = LayerWiseGrafting.SGD,
         nesterov: bool = True,
-        diagonal_eps: float = 1e-6,
-        matrix_eps: float = 1e-12,
+        diagonal_eps: float = 1e-10,
+        matrix_eps: float = 1e-6,
     ):
         self.lr = lr
         self.momentum = momentum
