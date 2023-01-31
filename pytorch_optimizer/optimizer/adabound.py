@@ -10,7 +10,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 
 
 class AdaBound(Optimizer, BaseOptimizer):
-    r"""Adaptive Gradient Methods with Dynamic Bound of Learning Rate
+    r"""Adaptive Gradient Methods with Dynamic Bound of Learning Rate.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

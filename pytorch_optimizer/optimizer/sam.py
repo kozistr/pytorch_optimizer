@@ -9,9 +9,10 @@ from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, OPTIMIZER, PARAMETER
 
 
 class SAM(Optimizer, BaseOptimizer):
-    r"""Sharpness-Aware Minimization for Efficiently Improving Generalization
+    r"""Sharpness-Aware Minimization for Efficiently Improving Generalization.
 
     Example:
+    -------
         Here's an example::
 
             model = YourModel()

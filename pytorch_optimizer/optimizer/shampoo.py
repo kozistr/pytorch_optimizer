@@ -9,7 +9,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import AdagradGraft, Graft, Layer
 
 class Shampoo(Optimizer, BaseOptimizer):
     r"""Preconditioned Stochastic Tensor Optimization.
-        Reference : https://github.com/google-research/google-research/blob/master/scalable_shampoo/pytorch/shampoo.py
+        Reference : https://github.com/google-research/google-research/blob/master/scalable_shampoo/pytorch/shampoo.py.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

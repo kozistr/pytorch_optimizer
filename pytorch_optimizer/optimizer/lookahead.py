@@ -9,7 +9,7 @@ from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER, STA
 
 
 class Lookahead(Optimizer, BaseOptimizer):
-    r"""k steps forward, 1 step back
+    r"""k steps forward, 1 step back.
 
     :param optimizer: OPTIMIZER. base optimizer.
     :param k: int. number of lookahead steps.

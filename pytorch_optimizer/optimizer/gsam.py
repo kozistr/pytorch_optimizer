@@ -12,9 +12,10 @@ from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_runn
 
 
 class GSAM(Optimizer, BaseOptimizer):
-    r"""Surrogate Gap Guided Sharpness-Aware Minimization
+    r"""Surrogate Gap Guided Sharpness-Aware Minimization.
 
     Example:
+    -------
         Here's an example::
 
             model = YourModel()

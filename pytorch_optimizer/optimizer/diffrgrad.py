@@ -9,7 +9,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 
 
 class DiffRGrad(Optimizer, BaseOptimizer):
-    r"""RAdam + DiffGrad
+    r"""RAdam + DiffGrad.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

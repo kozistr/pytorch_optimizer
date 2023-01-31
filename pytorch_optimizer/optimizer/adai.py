@@ -10,7 +10,7 @@ from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
 class Adai(Optimizer, BaseOptimizer):
-    r"""Disentangling the Effects of Adaptive Learning Rate and Momentum
+    r"""Disentangling the Effects of Adaptive Learning Rate and Momentum.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

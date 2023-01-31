@@ -27,7 +27,7 @@ class Ranger21(Optimizer, BaseOptimizer):
             * Lookahead
             * Softplus transformation
             * Gradient Normalization
-            * Corrects the denominator (AdamD)
+            * Corrects the denominator (AdamD).
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

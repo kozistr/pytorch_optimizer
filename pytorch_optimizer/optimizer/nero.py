@@ -8,7 +8,7 @@ from pytorch_optimizer.optimizer.utils import neuron_mean, neuron_norm
 
 
 class Nero(Optimizer, BaseOptimizer):
-    """Learning by Turning: Neural Architecture Aware Optimisation
+    """Learning by Turning: Neural Architecture Aware Optimisation.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

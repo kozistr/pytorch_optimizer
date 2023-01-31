@@ -9,7 +9,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 
 
 class DiffGrad(Optimizer, BaseOptimizer):
-    r"""An Optimization Method for Convolutional Neural Networks
+    r"""An Optimization Method for Convolutional Neural Networks.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

@@ -16,6 +16,7 @@ class LayerWiseGrafting(IntEnum):
     is already well tuned. Grafting onto Shampoo means take the Shampoo direction,
     but use the step magnitude from the grafted optimizer such as Adagrad or SGD.
     """
+
     NONE = 0
     SGD = 1
     ADAGRAD = 2

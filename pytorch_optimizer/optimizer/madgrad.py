@@ -14,7 +14,7 @@ from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class MADGRAD(Optimizer, BaseOptimizer):
-    r"""A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified)
+    r"""A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified).
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

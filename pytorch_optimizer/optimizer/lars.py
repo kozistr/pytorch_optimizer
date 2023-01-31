@@ -7,7 +7,7 @@ from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class LARS(Optimizer, BaseOptimizer):
-    r"""Layer-wise Adaptive Rate Scaling (no rate scaling or weight decay for parameters <= 1D)
+    r"""Layer-wise Adaptive Rate Scaling (no rate scaling or weight decay for parameters <= 1D).
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

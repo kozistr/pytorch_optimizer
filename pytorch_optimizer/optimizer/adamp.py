@@ -11,7 +11,7 @@ from pytorch_optimizer.optimizer.utils import projection
 
 
 class AdamP(Optimizer, BaseOptimizer):
-    r"""Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights
+    r"""Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

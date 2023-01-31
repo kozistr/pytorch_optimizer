@@ -13,6 +13,7 @@ from pytorch_optimizer.base.types import PARAMETERS
 
 
 def is_valid_parameters(parameters: PARAMETERS) -> bool:
+    r"""Check where the parameters are valid."""
     return isinstance(parameters, (list, tuple)) and len(parameters) > 0 and isinstance(parameters[0], dict)
 
 
@@ -22,7 +23,7 @@ def has_overflow(grad_norm: torch.Tensor) -> bool:
 
 
 def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> torch.Tensor:
-    r"""normalize gradient with stddev
+    r"""Normalize gradient with stddev.
 
     :param x: torch.Tensor. gradient.
     :param use_channels: bool. channel-wise normalization.
@@ -40,10 +41,12 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
 
 
 def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:
-    return torch.cat([g.flatten() for g in grads])
+    r"""Flatten the gradient."""
+    return torch.cat([grad.flatten() for grad in grads])
 
 
 def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor]:
+    r"""Unflatten the gradient."""
     idx: int = 0
     un_flatten_grads: List[torch.Tensor] = []
     for shape in shapes:
@@ -54,10 +57,12 @@ def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor
 
 
 def channel_view(x: torch.Tensor) -> torch.Tensor:
+    r"""Do channel view."""
     return x.view(x.size()[0], -1)
 
 
 def layer_view(x: torch.Tensor) -> torch.Tensor:
+    r"""Do layer view."""
     return x.view(1, -1)
 
 
@@ -67,14 +72,23 @@ def cosine_similarity_by_view(
     eps: float,
     view_func: Callable[[torch.Tensor], torch.Tensor],
 ) -> torch.Tensor:
+    r"""Calculate cosine similarity by the view.
+
+    :param x: torch.Tensor. src.
+    :param y: torch.Tensor. dst.
+    :param eps: float. epsilon.
+    :param view_func: Callable. view (channel or layer) function.
+    """
     x = view_func(x)
     y = view_func(y)
     return f.cosine_similarity(x, y, dim=1, eps=eps).abs_()
 
 
 def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> Union[torch.Tensor, float]:
-    r"""Clips gradient norms. During combination with FSDP, will also ensure that grad norms are aggregated
-        across all workers, since each worker only stores their shard of the gradients.
+    r"""Clip gradient norms.
+
+        During combination with FSDP, will also ensure that grad norms are aggregated across all workers,
+        since each worker only stores their shard of the gradients.
 
     :param parameters: PARAMETERS. Parameters whose gradients we wish to clip.
     :param max_norm: float. Maximum norm we wish the gradients to have. If non-positive, then
@@ -115,6 +129,7 @@ def projection(
     wd_ratio: float,
     eps: float,
 ) -> Tuple[torch.Tensor, float]:
+    r"""Project to remove the radial component from the update vector."""
     wd: float = 1.0
     expand_size: List[int] = [-1] + [1] * (len(p.shape) - 1)
     for view_func in (channel_view, layer_view):
@@ -130,6 +145,7 @@ def projection(
 
 
 def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
+    r"""Get norm of unit."""
     keep_dim: bool = True
     dim: Optional[Union[int, Tuple[int, ...]]] = None
 
@@ -149,7 +165,7 @@ def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
 def get_optimizer_parameters(
     model: nn.Module, weight_decay: float, wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight')
 ) -> PARAMETERS:
-    r"""get optimizer parameters while filtering specified modules.
+    r"""Get optimizer parameters while filtering specified modules.
 
     :param model: nn.Module. model.
     :param weight_decay: float. weight_decay.
@@ -168,6 +184,7 @@ def get_optimizer_parameters(
 
 
 def neuron_norm(x: torch.Tensor) -> torch.Tensor:
+    r"""Get norm of the tensor."""
     if x.dim() <= 1:
         return x.abs()
 
@@ -178,6 +195,7 @@ def neuron_norm(x: torch.Tensor) -> torch.Tensor:
 
 
 def neuron_mean(x: torch.Tensor) -> torch.Tensor:
+    r"""Get mean of the tensor."""
     if x.dim() <= 1:
         raise ValueError('[-] neuron_mean not defined on 1D tensors.')
 
@@ -188,7 +206,7 @@ def neuron_mean(x: torch.Tensor) -> torch.Tensor:
 
 
 def disable_running_stats(model):
-    r"""disable running stats (momentum) of BatchNorm"""
+    r"""Disable running stats (momentum) of BatchNorm."""
 
     def _disable(module):
         if isinstance(module, _BatchNorm):
@@ -199,7 +217,7 @@ def disable_running_stats(model):
 
 
 def enable_running_stats(model):
-    r"""enable running stats (momentum) of BatchNorm"""
+    r"""Enable running stats (momentum) of BatchNorm."""
 
     def _enable(module):
         if isinstance(module, _BatchNorm) and hasattr(module, 'backup_momentum'):
@@ -212,8 +230,9 @@ def enable_running_stats(model):
 def power_iter(
     mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 100
 ) -> Tuple[torch.Tensor, torch.Tensor, int]:
-    r"""Power iteration. Compute the maximum eigenvalue of mat, for scaling.
-        v is a random vector with values in (-1, 1)
+    r"""Power iteration.
+
+        Compute the maximum eigenvalue of mat, for scaling. v is a random vector with values in (-1, 1).
 
     :param mat_g: torch.Tensor. the symmetric PSD matrix.
     :param error_tolerance: float. Iterative exit condition.
@@ -238,7 +257,7 @@ def power_iter(
 
 @torch.no_grad()
 def mat_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
-    r"""Computes mat_m^p, for p a positive integer.
+    r"""Compute mat_m^{p}.
 
     :param mat_m: torch.Tensor. a square matrix.
     :param p: int. a positive integer.
@@ -251,7 +270,7 @@ def mat_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
             p_done *= 2
         return res
 
-    power = None
+    power: Optional[torch.Tensor] = None
     while p > 0:
         if p % 2 == 1:
             power = torch.matmul(mat_m, power) if power is not None else mat_m
@@ -264,10 +283,12 @@ def mat_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
 def compute_power(
     mat_g: torch.Tensor, p: int, iter_count: int = 100, error_tolerance: float = 1e-6, ridge_epsilon: float = 1e-6
 ) -> torch.Tensor:
-    r"""A method to compute G^{-1/p} using a coupled Newton iteration. See for example equation 3.2 on page 9 of:
-        A Schur-Newton Method for the Matrix p-th Root and its Inverse by Chun-Hua Guo and Nicholas J. Higham
-        SIAM Journal on Matrix Analysis and Applications, 2006, Vol. 28, No. 3 : pp. 788-804
-        https://pdfs.semanticscholar.org/0abe/7f77433cf5908bfe2b79aa91af881da83858.pdf
+    r"""Compute G^{-1/p} using a coupled Newton iteration.
+
+        See for example equation 3.2 on page 9 of:
+            A Schur-Newton Method for the Matrix p-th Root and its Inverse by Chun-Hua Guo and Nicholas J. Higham
+            SIAM Journal on Matrix Analysis and Applications, 2006, Vol. 28, No. 3 : pp. 788-804
+            https://pdfs.semanticscholar.org/0abe/7f77433cf5908bfe2b79aa91af881da83858.pdf.
 
     :param mat_g: torch.Tensor. A square positive semi-definite matrix.
     :param p: int. a positive integer.
@@ -313,9 +334,11 @@ def compute_power(
 
 
 def merge_small_dims(shape_to_merge: List[int], max_dim: int) -> List[int]:
-    r"""Merge small dimensions. If there are some small dimensions, we collapse them:
-        e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if max_dim = 1024
-        [1, 2, 768, 1, 2048] --> [2, 768, 2048]
+    r"""Merge small dimensions.
+
+        If there are some small dimensions, we collapse them
+            e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if max_dim = 1024
+            [1, 2, 768, 1, 2048] --> [2, 768, 2048].
 
     :param shape_to_merge: List. Shape to merge small dimensions.
     :param max_dim: int. Maximal dimension of output shape used in merging.
