@@ -2,6 +2,7 @@
 from typing import Dict, List
 
 from pytorch_optimizer.base.types import OPTIMIZER, SCHEDULER
+from pytorch_optimizer.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
 from pytorch_optimizer.lr_scheduler import (
     ConstantLR,
     CosineAnnealingLR,
