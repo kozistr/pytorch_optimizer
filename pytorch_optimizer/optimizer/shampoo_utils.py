@@ -22,6 +22,7 @@ class LayerWiseGrafting(IntEnum):
     SGD = 1
     ADAGRAD = 2
     RMSPROP = 3
+    SQRTN = 4
 
 
 class Graft:
@@ -54,6 +55,17 @@ class SGDGraft(Graft):
         r"""Update momentum."""
         self.momentum.mul_(beta1).add_(update)
         return self.momentum
+
+
+class SQRTNGraft(Graft):
+    r"""Graft using SQRTN."""
+
+    def __init__(self, var: torch.Tensor):
+        super().__init__(var)
+
+    def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
+        r"""Get preconditioned gradient."""
+        return torch.ones_like(grad) * torch.sign(grad)
 
 
 class AdagradGraft(SGDGraft):
