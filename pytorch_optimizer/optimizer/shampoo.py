@@ -18,7 +18,8 @@ class Shampoo(Optimizer, BaseOptimizer):
     :param beta2: float. beta2.
     :param moving_average_for_momentum: bool. perform moving_average for momentum (beta1).
     :param weight_decay: float. weight decay (L2 penalty).
-    :param decoupled_weight_decay: bool. do decoupled_weight_decay.
+    :param decoupled_weight_decay: bool. use decoupled weight_decay.
+    :param decoupled_learning_rate: bool. use decoupled lr, otherwise couple it w/ preconditioned gradient.
     :param inverse_exponent_override: int. fixed exponent for pre-conditioner, if > 0.
     :param start_preconditioning_step: int.
     :param preconditioning_compute_steps: int. performance tuning params for controlling memory and compute
@@ -45,6 +46,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         moving_average_for_momentum: bool = False,
         weight_decay: float = 0.0,
         decoupled_weight_decay: bool = False,
+        decoupled_learning_rate: bool = True,
         inverse_exponent_override: int = 0,
         start_preconditioning_step: int = 5,
         preconditioning_compute_steps: int = 1,
@@ -62,6 +64,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         self.moving_average_for_momentum = moving_average_for_momentum
         self.weight_decay = weight_decay
         self.decoupled_weight_decay = decoupled_weight_decay
+        self.decoupled_learning_rate = decoupled_learning_rate
         self.inverse_exponent_override = inverse_exponent_override
         self.start_preconditioning_step = start_preconditioning_step
         self.preconditioning_compute_steps = preconditioning_compute_steps
@@ -165,7 +168,8 @@ class Shampoo(Optimizer, BaseOptimizer):
                     pre_conditioner.compute_pre_conditioners()
 
                 # pre-condition gradients
-                graft_grad: torch.Tensor = graft.precondition_gradient(grad)
+                pre_conditioner_multiplier: float = group['lr'] if not self.decoupled_learning_rate else 1.0
+                graft_grad: torch.Tensor = graft.precondition_gradient(grad * pre_conditioner_multiplier)
                 shampoo_grad: torch.Tensor = grad
                 if state['step'] >= self.start_preconditioning_step:
                     shampoo_grad = pre_conditioner.preconditioned_grad(grad)
