@@ -308,17 +308,14 @@ class PreConditioner:
         should_precondition_dims: List[bool] = self.should_precondition_dims()
         num_pre_conditioners: int = sum(should_precondition_dims)
 
-        pre_cond_partitioned_grads: List[torch.Tensor] = []
-        for i, partitioned_grad in enumerate(partitioned_grads):
-            pre_conditioners_for_grad = self.pre_conditioners[
-                i * num_pre_conditioners:(i + 1) * num_pre_conditioners
-            ]  # fmt: skip
-
-            pre_cond_grad = self.precondition_block(
-                partitioned_grad, should_precondition_dims, pre_conditioners_for_grad
+        pre_cond_partitioned_grads: List[torch.Tensor] = [
+            self.precondition_block(
+                partitioned_grad,
+                should_precondition_dims,
+                self.pre_conditioners[i * num_pre_conditioners:(i + 1) * num_pre_conditioners]  # fmt: skip
             )
-
-            pre_cond_partitioned_grads.append(pre_cond_grad)
+            for i, partitioned_grad in enumerate(partitioned_grads)
+        ]
 
         merged_grad = self.partitioner.merge_partitions(pre_cond_partitioned_grads)
 
