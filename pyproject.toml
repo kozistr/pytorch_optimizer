@@ -53,7 +53,7 @@ secondary = true
 
 [tool.ruff]
 select = ["A", "B", "C4", "D", "E", "F", "G", "I", "N", "S", "T", "ISC", "ICN", "W", "INP", "PIE", "T20", "RET", "SIM", "TID", "ARG", "ERA", "RUF", "YTT", "PL"]
-ignore = ["D100", "D213", "PLR2004"]
+ignore = ["D100", "D102", "D104", "D105", "D107", "D203", "D213", "PIE790", "PLR2004"]
 fixable = ["A", "B", "C", "D", "E", "F"]
 unfixable = ["F401"]
 exclude = [
