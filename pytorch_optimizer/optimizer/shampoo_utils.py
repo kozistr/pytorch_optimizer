@@ -289,7 +289,7 @@ class PreConditioner:
         roll: Tuple[int, ...] = (*tuple(range(1, rank)), 0)
         for j, should_precondition in enumerate(should_preconditioned_dims):
             if not should_precondition:
-                partitioned_grad = torch.permute(partitioned_grad, roll)
+                partitioned_grad = torch.permute(partitioned_grad, roll).contiguous()
                 continue
             partitioned_grad = torch.tensordot(partitioned_grad, pre_conditioners_for_grad[j], dims=[[0], [0]])
         return partitioned_grad
