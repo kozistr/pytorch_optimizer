@@ -150,6 +150,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SGDP, {'lr': 5e-2, 'weight_decay': 1e-4, 'nesterov': True}, 100),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 200),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 500}, 200),
+    (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'start_preconditioning_step': 1}, 50),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': LayerWiseGrafting.NONE}, 50),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': LayerWiseGrafting.SGD}, 50),
     (Shampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.01, 'graft_type': LayerWiseGrafting.ADAGRAD}, 50),
