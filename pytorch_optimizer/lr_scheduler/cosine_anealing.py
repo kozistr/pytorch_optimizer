@@ -7,7 +7,7 @@ from pytorch_optimizer.base.types import OPTIMIZER
 
 
 class CosineAnnealingWarmupRestarts(_LRScheduler):
-    r"""CosineAnnealingWarmupRestarts
+    r"""CosineAnnealingWarmupRestarts.
 
     :param optimizer: Optimizer. wrapped optimizer instance.
     :param first_cycle_steps: int. first cycle step size.

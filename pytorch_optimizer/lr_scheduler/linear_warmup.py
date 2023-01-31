@@ -19,7 +19,7 @@ class CosineScheduler(BaseLinearWarmupScheduler):
 
 
 class PolyScheduler(BaseLinearWarmupScheduler):
-    r"""Poly LR Scheduler
+    r"""Poly LR Scheduler.
 
     :param: poly_order: float. lr scheduler decreases with steps.
     """
