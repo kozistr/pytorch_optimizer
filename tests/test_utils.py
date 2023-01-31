@@ -157,3 +157,7 @@ def test_merge_small_dims():
     case2 = [1, 2, 768, 1, 2048]
     expected_case2 = [2, 768, 2048]
     assert expected_case2 == merge_small_dims(case2, max_dim=1024)
+
+    case3 = [1, 1, 1]
+    expected_case3 = [1]
+    assert expected_case3 == merge_small_dims(case3, max_dim=1)
