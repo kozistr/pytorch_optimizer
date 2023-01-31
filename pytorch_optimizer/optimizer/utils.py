@@ -281,7 +281,12 @@ def mat_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
 
 @torch.no_grad()
 def compute_power(
-    mat_g: torch.Tensor, p: int, iter_count: int = 100, error_tolerance: float = 1e-6, ridge_epsilon: float = 1e-6
+    mat_g: torch.Tensor,
+    p: int,
+    iter_count: int = 100,
+    error_tolerance: float = 1e-6,
+    ridge_epsilon: float = 1e-6,
+    max_error_ratio: float = 1.2,
 ) -> torch.Tensor:
     r"""Compute G^{-1/p} using a coupled Newton iteration.
 
@@ -296,6 +301,8 @@ def compute_power(
     :param error_tolerance: float. Threshold for stopping iteration.
     :param ridge_epsilon: float. We add this times I to G, to make is positive definite. For scaling,
         we multiply it by the largest eigenvalue of G.
+    :param max_error_ratio: float. Sometimes error increases after an iteration before decreasing and converging.
+        1.2 factor is used to bound the maximal allowed increase.
     """
     shape: List[int] = list(mat_g.shape)
     if len(shape) == 1:
@@ -323,7 +330,7 @@ def compute_power(
         mat_m = torch.matmul(mat_power(tmp_mat_m, p), mat_m)
 
         new_error = torch.max(torch.abs(mat_m - identity))
-        if new_error > error * 1.2:
+        if new_error > error * max_error_ratio:
             break
 
         mat_root = new_mat_root
