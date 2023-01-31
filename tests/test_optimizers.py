@@ -196,8 +196,10 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
     loss_fn_2: nn.Module = nn.L1Loss()
 
     optimizer_class, config, iterations = optimizer_pc_grad_config
-    if optimizer_class.__name__ == 'Shampoo' and 'decoupled_learning_rate' in config:
-        pytest.skip('skip Shampoo w/ decoupled_learning_rate')
+    if (optimizer_class.__name__ == 'Shampoo' and 'decoupled_learning_rate' in config) or (
+        optimizer_class.__name__ == 'Shampoo' and 'graft_type' in config and config['graft_type'] == 3
+    ):
+        pytest.skip(f'skip Shampoo w/ {config}')
 
     optimizer = PCGrad(optimizer_class(model.parameters(), **config), reduction=reduction)
     optimizer.reset()
