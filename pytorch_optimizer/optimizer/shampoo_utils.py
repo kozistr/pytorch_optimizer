@@ -252,7 +252,7 @@ class PreConditioner:
                 self.statistics[j * rank + i].mul_(self.beta2).add_(stat, alpha=w2)
 
     def should_precondition_dims(self) -> List[bool]:
-        r"""A vector containing indicator indicating if the dim is preconditioned."""
+        r"""Vector containing indicator indicating if the dim is preconditioned."""
         rank: int = len(self.partitioner.split_sizes)
         return (
             [True] * rank
@@ -280,16 +280,15 @@ class PreConditioner:
         should_preconditioned_dims: List[bool],
         pre_conditioners_for_grad: List[torch.Tensor],
     ) -> torch.Tensor:
-        r"""Perform a preconditioning op on a single gradient block.
+        r"""Perform a preconditioning operation on a single gradient block.
 
         Loop invariant: the dimension to be preconditioned is first
         We keep all axes in the same cyclic order they were originally.
         """
-
         for j, should_precondition in enumerate(should_preconditioned_dims):
             rank: int = len(partitioned_grad.shape)
             if not should_precondition:
-                roll = tuple(range(1, rank)) + (0,)
+                roll: Tuple[int, ...] = (*tuple(range(1, rank)), 0)
                 partitioned_grad = torch.permute(partitioned_grad, roll)
                 continue
             partitioned_grad = torch.tensordot(partitioned_grad, pre_conditioners_for_grad[j], dims=[[0], [0]])
