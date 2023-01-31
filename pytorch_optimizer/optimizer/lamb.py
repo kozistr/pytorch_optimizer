@@ -9,8 +9,9 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 
 
 class Lamb(Optimizer, BaseOptimizer):
-    r"""Large Batch Optimization for Deep Learning. This Lamb implementation is based on the paper v3,
-        which does not use de-biasing.
+    r"""Large Batch Optimization for Deep Learning.
+
+        This Lamb implementation is based on the paper v3, which does not use de-biasing.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.

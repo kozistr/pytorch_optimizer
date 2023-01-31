@@ -2,7 +2,8 @@ from typing import List
 
 
 class ProportionScheduler:
-    r"""ProportionScheduler (Rho Scheduler of GSAM)
+    r"""ProportionScheduler (Rho Scheduler of GSAM).
+
         This scheduler outputs a value that evolves proportional to lr_scheduler.
 
     :param lr_scheduler: learning rate scheduler.

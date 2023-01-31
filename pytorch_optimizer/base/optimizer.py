@@ -7,6 +7,8 @@ from pytorch_optimizer.base.types import BETAS
 
 
 class BaseOptimizer(ABC):
+    r"""Base optimizer class."""
+
     @staticmethod
     def validate_learning_rate(learning_rate: float):
         if learning_rate < 0.0:

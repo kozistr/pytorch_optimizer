@@ -6,7 +6,9 @@ from pytorch_optimizer.base.types import OPTIMIZER
 
 
 class BaseLinearWarmupScheduler(ABC):
-    r"""BaseLinearWarmupScheduler class. The LR Scheduler class based on this class has linear warmup strategy.
+    r"""BaseLinearWarmupScheduler class.
+
+        The LR Scheduler class based on this class has linear warmup strategy.
 
     :param optimizer: Optimizer. OPTIMIZER. It will set learning rate to all trainable parameters in optimizer.
     :param t_max: int. total steps to train.

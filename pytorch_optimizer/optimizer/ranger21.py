@@ -15,6 +15,7 @@ from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
 
 class Ranger21(Optimizer, BaseOptimizer):
     r"""Integrating the latest deep learning components into a single optimizer.
+
         Here's the components
             * uses the AdamW optimizer as its core (or, optionally, MadGrad)
             * Adaptive gradient clipping

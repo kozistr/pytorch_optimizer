@@ -2,7 +2,7 @@ import numpy as np
 
 
 def chebyshev_steps(small_m: float, big_m: float, num_epochs: int) -> np.ndarray:
-    r"""chebyshev_steps.
+    r"""Chebyshev steps.
 
     :param small_m: float. stands for 'm' notation.
     :param big_m:  float. stands for 'M' notation.
@@ -16,6 +16,7 @@ def chebyshev_steps(small_m: float, big_m: float, num_epochs: int) -> np.ndarray
 
 
 def chebyshev_perm(num_epochs: int) -> np.ndarray:
+    r"""Chebyshev permutation."""
     perm = np.array([0])
     while len(perm) < num_epochs:
         perm = np.vstack([perm, 2 * len(perm) - 1 - perm]).T.flatten()
@@ -23,6 +24,7 @@ def chebyshev_perm(num_epochs: int) -> np.ndarray:
 
 
 def get_chebyshev_schedule(num_epochs: int) -> np.ndarray:
+    r"""Get Chebyshev schedules."""
     steps: np.ndarray = chebyshev_steps(0.1, 1, num_epochs - 2)
     perm: np.ndarray = chebyshev_perm(num_epochs - 2)
     return steps[perm]
