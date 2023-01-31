@@ -177,9 +177,13 @@ class Shampoo(Optimizer, BaseOptimizer):
                     shampoo_grad.mul_(graft_norm / (shampoo_norm + 1e-16))
 
                 # apply weight decay (adam style)
-                if group['weight_decay'] > 0.0 and not self.decoupled_weight_decay:
-                    shampoo_grad.add_(p, alpha=group['weight_decay'])
-                    graft_grad.add_(p, alpha=group['weight_decay'])
+                if group['weight_decay'] > 0.0:
+                    if not self.decoupled_weight_decay:
+                        shampoo_grad.add_(p, alpha=group['weight_decay'])
+                        graft_grad.add_(p, alpha=group['weight_decay'])
+                    else:
+                        shampoo_grad.mul_(1.0 - group['lr'] * group['weight_decay'])
+                        graft_grad.mul_(1.0 - group['lr'] * group['weight_decay'])
 
                 # Momentum and Nesterov momentum, if needed
                 state['momentum'].mul_(group['momentum']).add_(shampoo_grad)
