@@ -94,6 +94,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'adapnm',
     'adan',
     'adai',
+    'shampoo',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
