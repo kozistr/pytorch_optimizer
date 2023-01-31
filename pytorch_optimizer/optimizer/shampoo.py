@@ -14,8 +14,9 @@ class Shampoo(Optimizer, BaseOptimizer):
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
-    :param momentum: float. momentum.
+    :param momentum: float. momentum (beta1).
     :param beta2: float. beta2.
+    :param moving_average_for_momentum: bool. perform moving_average for momentum (beta1).
     :param weight_decay: float. weight decay (L2 penalty).
     :param decoupled_weight_decay: bool. do decoupled_weight_decay.
     :param inverse_exponent_override: int. fixed exponent for pre-conditioner, if > 0.
@@ -41,6 +42,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         momentum: float = 0.0,
         beta2: float = 1.0,
+        moving_average_for_momentum: bool = False,
         weight_decay: float = 0.0,
         decoupled_weight_decay: bool = False,
         inverse_exponent_override: int = 0,
@@ -57,6 +59,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         self.lr = lr
         self.momentum = momentum
         self.beta2 = beta2
+        self.moving_average_for_momentum = moving_average_for_momentum
         self.weight_decay = weight_decay
         self.decoupled_weight_decay = decoupled_weight_decay
         self.inverse_exponent_override = inverse_exponent_override
@@ -190,6 +193,9 @@ class Shampoo(Optimizer, BaseOptimizer):
                     wd_update = graft_grad
 
                 if self.nesterov:
+                    w: float = (1.0 - group['momentum']) if self.moving_average_for_momentum else 1.0
+                    wd_update.mul_(w)
+
                     momentum_update.mul_(group['momentum']).add_(wd_update)
 
                 p.add_(momentum_update, alpha=-group['lr'])
