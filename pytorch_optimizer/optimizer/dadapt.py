@@ -7,8 +7,10 @@
 import torch
 from torch.optim.optimizer import Optimizer
 
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.optimizer.utils import to_real
 
 
 class DAdaptAdaGrad(Optimizer, BaseOptimizer):
@@ -27,12 +29,12 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
     def __init__(
         self,
         params: PARAMETERS,
-        lr: float = 1e-3,
+        lr: float = 1.0,
         momentum: float = 0.0,
         d0: float = 1e-6,
         growth_rate: float = float('inf'),
         weight_decay: float = 0.0,
-        eps: float = 1e-3,
+        eps: float = 0.0,
     ):
         self.lr = lr
         self.momentum = momentum
@@ -76,7 +78,6 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
 
-                state['step'] = 0
                 state['alpha_k'] = torch.full_like(p, fill_value=1e-6)
                 state['sk'] = torch.zeros_like(p)
                 state['x0'] = torch.clone(p)
@@ -114,8 +115,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                 grad = p.grad
 
                 state = self.state[p]
-                if 'step' not in state:
-                    state['step'] = 0
+                if 'alpha_k' not in state:
                     try:
                         state['alpha_k'] = torch.full_like(p, fill_value=1e-6)
                     except NotImplementedError:  # there's no fill_() op for SpareTensorCPU
@@ -231,6 +231,167 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                         p.mul_(momentum).add_(z, alpha=1.0 - momentum)
                     else:
                         p.copy_(z)
+
+            group['k'] += 1
+
+        return loss
+
+
+class DAdaptAdam(Optimizer, BaseOptimizer):
+    r"""Adam with D-Adaptation. Leave LR set to 1 unless you encounter instability.
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param betas: BETAS. betas.
+    :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
+    :param growth_rate: float. prevent the D estimate from growing faster than this multiplicative rate.
+        Default is inf, for unrestricted.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. use AdamW style weight decay.
+    :param eps: float. term added to the denominator to improve numerical stability.
+    """
+
+    def __init__(
+        self,
+        params: PARAMETERS,
+        lr: float = 1.0,
+        betas: BETAS = (0.9, 0.999),
+        d0: float = 1e-6,
+        growth_rate: float = float('inf'),
+        weight_decay: float = 0.0,
+        weight_decouple: bool = False,
+        eps: float = 1e-8,
+    ):
+        self.lr = lr
+        self.betas = betas
+        self.d0 = d0
+        self.growth_rate = growth_rate
+        self.weight_decay = weight_decay
+        self.weight_decouple = weight_decouple
+        self.eps = eps
+
+        self.validate_parameters()
+
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'd': d0,
+            'growth_rate': growth_rate,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'gsq_weighted': 0.0,
+            'k': 0,
+            'eps': eps,
+        }
+        super().__init__(params, defaults)
+
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_betas(self.betas)
+        self.validate_momentum(self.momentum)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_epsilon(self.eps)
+
+    @property
+    def __str__(self) -> str:
+        return 'DAdaptAdam'
+
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                state = self.state[p]
+
+                state['step'] = 0
+                state['s'] = torch.zeros_like(p)
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
+
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+
+        group = self.param_groups[0]
+
+        lr, momentum = group['lr'], group['momentum']
+        beta1, beta2 = group['betas']
+
+        gsq_weighted, growth_rate = group['gsq_weighted'], group['growth_rate']
+
+        d = group['d']
+        d_lr = float(d * lr)
+
+        g_sq = torch.tensor([0.0], device=group['params'][0].device)
+        sksq_weighted = torch.tensor([0.0], device=group['params'][0].device)
+        sk_l1 = torch.tensor([0.0], device=group['params'][0].device)
+
+        for group in self.param_groups:
+            weight_decay, eps = group['weight_decay'], group['eps']
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                grad = p.grad
+                if grad.is_sparse:
+                    raise NoSparseGradientError(self.__str__)
+
+                state = self.state[p]
+                if 'step' not in state:
+                    state['step'] = 0
+                    state['s'] = torch.zeros_like(p)
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
+
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
+                grad_power = to_real(grad * grad.conj())
+
+                exp_avg.mul_(beta1).add_(grad, alpha=d_lr * (1.0 - beta1))
+                exp_avg_sq.mul_(beta2).add_(grad_power, alpha=1.0 - beta2)
+
+                de_nom = exp_avg_sq.sqrt().add_(eps)
+
+                g_sq.add_(grad_power.div_(de_nom).sum())
+
+                s = state['s']
+                s.mul_(beta2).add_(grad, alpha=d_lr * (1.0 - beta2))
+
+                sksq_weighted.add_(to_real(s * s.conj()).div_(de_nom).sum())
+                sk_l1.add_(s.abs().sum())
+
+        gsq_weighted = beta2 * gsq_weighted + g_sq * (d_lr**2) * (1 - beta2)
+        if lr > 0.0:
+            d_hat = (sksq_weighted / (1.0 - beta2) - gsq_weighted) / sk_l1
+            d = max(d, min(d_hat, d * growth_rate))
+
+        for group in self.param_groups:
+            group['gsq_weighted'] = gsq_weighted
+            group['d'] = d
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                grad = p.grad
+
+                state = self.state[p]
+
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
+                state['step'] += 1
+
+                de_nom = exp_avg_sq.sqrt().add_(group['eps'])
+                de_nom = de_nom.type(p.type())
+
+                if group['weight_decay'] > 0.0 and group['weight_decouple']:
+                    p.add_(p, alpha=-group['weight_decay'] * d_lr)
+
+                p.addcdiv_(exp_avg, de_nom, value=-1)
 
             group['k'] += 1
 
