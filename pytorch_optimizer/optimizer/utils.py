@@ -23,6 +23,7 @@ def has_overflow(grad_norm: torch.Tensor) -> bool:
 
 
 def to_real(x: torch.Tensor) -> torch.Tensor:
+    r"""Return real value of tensor."""
     return x.real if torch.is_complex(x) else x
 
 
