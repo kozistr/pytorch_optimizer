@@ -325,10 +325,10 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         gsq_weighted, growth_rate = group['gsq_weighted'], group['growth_rate']
 
         d, lr = group['d'], group['lr']
-        d_lr = float(d * group['lr'])
+        d_lr = float(d * lr)
 
         g_sq = torch.tensor([0.0], device=group['params'][0].device)
-        sksq_weighted = torch.tensor([0.0], device=group['params'][0].device)
+        sk_sq_weighted = torch.tensor([0.0], device=group['params'][0].device)
         sk_l1 = torch.tensor([0.0], device=group['params'][0].device)
 
         for group in self.param_groups:
@@ -361,12 +361,12 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
                 s = state['s']
                 s.mul_(beta2).add_(grad, alpha=d_lr * (1.0 - beta2))
 
-                sksq_weighted.add_(to_real(s * s.conj()).div_(de_nom).sum())
+                sk_sq_weighted.add_(to_real(s * s.conj()).div_(de_nom).sum())
                 sk_l1.add_(s.abs().sum())
 
         gsq_weighted = beta2 * gsq_weighted + g_sq * (d_lr**2) * (1 - beta2)
         if lr > 0.0:
-            d_hat = (sksq_weighted / (1.0 - beta2) - gsq_weighted) / sk_l1
+            d_hat = (sk_sq_weighted / (1.0 - beta2) - gsq_weighted) / sk_l1
             d = max(d, min(d_hat, d * growth_rate))
 
         for group in self.param_groups:
