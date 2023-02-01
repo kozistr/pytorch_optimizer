@@ -338,11 +338,13 @@ def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: in
     iters: int = 0
     singular_val: torch.Tensor = 0
     while error > error_tolerance and iters < num_iters:
-        v.div_(v.norm())
+        v /= v.norm()
         mat_v = torch.mv(mat_g, v)
         s_v = torch.dot(v, mat_v)
+
         error = torch.abs(s_v - singular_val)
-        v.copy_(mat_v)
+
+        v = mat_v
         singular_val = s_v
         iters += 1
 
@@ -370,10 +372,11 @@ def matrix_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
     if exponent == 2:
         return mat_pow_4
 
+    mat_pow_8 = mat_pow_4.matmul(mat_pow_4)
     if exponent == 3:
-        return mat_pow_4.matmul(mat_pow_4)
+        return mat_pow_8
 
-    raise
+    return mat_pow_8.matmul(mat_pow_8)
 
 
 @torch.no_grad()
