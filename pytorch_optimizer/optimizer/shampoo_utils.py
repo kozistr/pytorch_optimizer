@@ -360,23 +360,10 @@ def matrix_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
     """
     exponent: int = int(np.round(np.log2(p)))
 
-    # for the reason of the performance, I unroll the loop.
-    if exponent == 0:
-        return mat_m
-
-    mat_pow_2 = mat_m.matmul(mat_m)
-    if exponent == 1:
-        return mat_pow_2
-
-    mat_pow_4 = mat_pow_2.matmul(mat_pow_2)
-    if exponent == 2:
-        return mat_pow_4
-
-    mat_pow_8 = mat_pow_4.matmul(mat_pow_4)
-    if exponent == 3:
-        return mat_pow_8
-
-    return mat_pow_8.matmul(mat_pow_8)
+    power = mat_m
+    for i in range(exponent):
+        power = torch.matmul(power, power)
+    return power
 
 
 @torch.no_grad()
