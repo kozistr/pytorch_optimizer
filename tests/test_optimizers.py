@@ -273,10 +273,13 @@ def test_reset(optimizer_config):
     optimizer.reset()
 
 
+@pytest.mark.parametrize('require_gradient', [False, True])
 @pytest.mark.parametrize('sparse_gradient', [False, True])
 @pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD'])
-def test_d_adapt_reset(sparse_gradient, optimizer_name):
-    param = simple_sparse_parameter() if sparse_gradient else simple_parameter()
+def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
+    param = simple_sparse_parameter(require_gradient) if sparse_gradient else simple_parameter(require_gradient)
+    if not require_gradient:
+        param.grad = None
 
     optimizer = load_optimizer(optimizer_name)([param])
     assert optimizer.__str__ == optimizer_name
