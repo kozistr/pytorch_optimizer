@@ -378,7 +378,7 @@ def matrix_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
         return mat_p8
 
     # most of the cases, never reached here.
-    return mat_p8
+    return torch.matmul(mat_p8, mat_p8).float()
 
 
 @torch.no_grad()
