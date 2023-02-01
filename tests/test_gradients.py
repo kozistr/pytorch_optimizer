@@ -60,6 +60,7 @@ def test_sparse_supported(sparse_optimizer):
     optimizer.step()
 
     optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0, weight_decay=1e-3)
+    optimizer.reset()
     optimizer.zero_grad()
 
     if sparse_optimizer == 'madgrad':
