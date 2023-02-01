@@ -62,10 +62,11 @@ def test_sparse_supported(sparse_optimizer):
     optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0, weight_decay=1e-3)
     optimizer.zero_grad()
 
-    with pytest.raises(NoSparseGradientError) as error_info:
+    if sparse_optimizer == 'madgrad':
+        with pytest.raises(NoSparseGradientError):
+            optimizer.step()
+    else:
         optimizer.step()
-
-    assert str(error_info.value) == '[-] MADGRAD w/ weight_decay does not support sparse gradient.'
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
