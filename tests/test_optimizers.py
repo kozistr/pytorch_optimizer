@@ -270,7 +270,6 @@ def test_reset(optimizer_config):
         config.update({'num_iterations': 1})
 
     optimizer = optimizer_class([param], **config)
-    optimizer.zero_grad()
     optimizer.reset()
 
 
