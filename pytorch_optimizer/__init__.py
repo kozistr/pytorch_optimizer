@@ -21,7 +21,7 @@ from pytorch_optimizer.optimizer.adamp import AdamP
 from pytorch_optimizer.optimizer.adan import Adan
 from pytorch_optimizer.optimizer.adapnm import AdaPNM
 from pytorch_optimizer.optimizer.agc import agc
-from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam
+from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptSGD
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.diffrgrad import DiffRGrad
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
@@ -72,6 +72,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Shampoo,
     DAdaptAdaGrad,
     DAdaptAdam,
+    DAdaptSGD,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
