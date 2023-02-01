@@ -78,7 +78,10 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
 
-                state['alpha_k'] = torch.full_like(p, fill_value=1e-6)
+                try:
+                    state['alpha_k'] = torch.full_like(p, fill_value=1e-6)
+                except NotImplementedError:  # there's no fill_() op for SpareTensorCPU
+                    state['alpha_k'] = torch.zeros_like(p)
                 state['sk'] = torch.zeros_like(p)
                 state['x0'] = torch.clone(p)
                 if p.grad.is_sparse:
@@ -474,8 +477,8 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse and weight_decay > 0.0:
-                    raise NoSparseGradientError(self.__str__, note='w/ weight_decay')
+                if grad.is_sparse:
+                    raise NoSparseGradientError(self.__str__)
 
                 if weight_decay > 0.0:
                     grad.add_(p, alpha=weight_decay)
