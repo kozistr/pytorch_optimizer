@@ -5,15 +5,14 @@ import pytest
 import torch
 from torch import nn
 
+from pytorch_optimizer.optimizer.shampoo_utils import compute_power, merge_small_dims
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
-    compute_power,
     disable_running_stats,
     enable_running_stats,
     get_optimizer_parameters,
     has_overflow,
     is_valid_parameters,
-    merge_small_dims,
     neuron_mean,
     neuron_norm,
     normalize_gradient,
