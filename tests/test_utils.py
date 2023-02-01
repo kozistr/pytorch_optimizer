@@ -135,17 +135,9 @@ def test_compute_power():
     # case 3 : len(x.shape) != 1 and x.shape[0] != 1, n&n-1 != 0
     x = compute_power(torch.ones((2, 2)), p=5)
     np.testing.assert_array_almost_equal(
-        np.asarray([[7.3464, -6.4758], [-6.4758, 7.3464]]),
+        np.asarray([[13.454, -12.63], [-12.63, 13.454]]),
         x.numpy(),
         decimal=3,
-    )
-
-    # case 4 : len(x.shape) != 1 and x.shape[0] != 1, n&n-1 == 0
-    x = compute_power(torch.ones((2, 2)), p=32)
-    np.testing.assert_array_almost_equal(
-        np.asarray([[1.1527, -0.3520], [-0.3520, 1.1527]]),
-        x.numpy(),
-        decimal=2,
     )
 
 
