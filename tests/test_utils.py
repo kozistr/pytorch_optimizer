@@ -140,6 +140,15 @@ def test_compute_power():
         decimal=2,
     )
 
+    # case 4 p=1
+    x = compute_power(torch.ones((2, 2)), p=1)
+    np.testing.assert_array_almost_equal(
+        np.asarray([[252206.4062, -252205.8750], [-252205.8750, 252206.4062]]),
+        x.numpy(),
+        decimal=2,
+    )
+
+    # case 5 p=8
     x = compute_power(torch.ones((2, 2)), p=8)
     np.testing.assert_array_almost_equal(
         np.asarray([[3.0399, -2.1229], [-2.1229, 3.0399]]),
@@ -147,6 +156,7 @@ def test_compute_power():
         decimal=2,
     )
 
+    # case 6 p=16
     x = compute_power(torch.ones((2, 2)), p=16)
     np.testing.assert_array_almost_equal(
         np.asarray([[1.6142, -0.6567], [-0.6567, 1.6142]]),
