@@ -274,6 +274,7 @@ def test_reset(optimizer_config):
 @pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD'])
 def test_d_adapt_reset(optimizer_name):
     optimizer = load_optimizer(optimizer_name)(MultiHeadLogisticRegression().parameters())
+    assert optimizer.__str__ == optimizer_name
     optimizer.reset()
 
 
