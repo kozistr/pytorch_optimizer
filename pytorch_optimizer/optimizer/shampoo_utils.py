@@ -422,13 +422,14 @@ def compute_power(
     count: int = 0
     while error > error_tolerance and count < iter_count:
         mat_m_i = (1 - alpha) * identity + alpha * mat_m
+        new_mat_root = torch.matmul(mat_root, mat_m_i)
         mat_m = torch.matmul(matrix_power(mat_m_i, p), mat_m)
 
         new_error = torch.max(torch.abs(mat_m - identity))
         if new_error > error * max_error_ratio:
             break
 
-        mat_root = torch.matmul(mat_root, mat_m_i)
+        mat_root = new_mat_root
         error = new_error
         count += 1
 
