@@ -13,6 +13,7 @@ from pytorch_optimizer import (
     AdaPNM,
     DAdaptAdaGrad,
     DAdaptAdam,
+    DAdaptSGD,
     DiffGrad,
     DiffRGrad,
     Lamb,
@@ -73,6 +74,9 @@ VALID_OPTIMIZER_NAMES: List[str] = [
     'adapnm',
     'nero',
     'adai',
+    'dadaptadagrad',
+    'dadaptadam',
+    'dadaptsgd',
 ]
 INVALID_OPTIMIZER_NAMES: List[str] = [
     'asam',
@@ -98,6 +102,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'adan',
     'adai',
     'shampoo',
+    'dadaptadam',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -179,6 +184,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (DAdaptAdaGrad, {'lr': 1.0, 'weight_decay': 1e-2, 'momentum': 0.1}, 150),
     (DAdaptAdam, {'lr': 1.0, 'weight_decay': 1e-2}, 50),
     (DAdaptAdam, {'lr': 1.0, 'weight_decay': 1e-2, 'weight_decouple': True}, 50),
+    (DAdaptSGD, {'lr': 1.0, 'weight_decay': 1e-2}, 50),
+    (DAdaptSGD, {'lr': 1.0, 'momentum': 0.01, 'weight_decay': 1e-2}, 50),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 10),
