@@ -131,42 +131,42 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                     weighted_sk = state['weighted_sk']
 
                     grad = grad.coalesce()
-                    grad_vals = grad._values()
-                    vk_vals = grad_vals.pow(2)
 
-                    sk_vals = sk.sparse_mask(grad).coalesce()._values()
-
-                    old_skl1_vals = sk_vals.abs().sum()
+                    vk = grad._values().pow(2)
+                    sk_masked = sk.sparse_mask(grad).coalesce()
+                    old_skl1_masked = sk_masked._values().abs().sum()
 
                     sk.add_(grad, alpha=d_lr)
 
-                    sk_vals = sk.sparse_mask(grad).coalesce()._values()
-                    alpha_k_vals = alpha_k.sparse_mask(grad).coalesce()._values()
-                    weighted_sk_vals = weighted_sk.sparse_mask(grad).coalesce()._values()
+                    sk_masked = sk.sparse_mask(grad).coalesce()
+                    alpha_k_masked = alpha_k.sparse_mask(grad).coalesce()
+                    weighted_sk_masked = weighted_sk.sparse_mask(grad).coalesce()
 
                     # update alpha before step
-                    alpha_kp1_vals = alpha_k_vals + vk_vals
+                    alpha_k_p1_masked = alpha_k_masked._values() + vk
 
-                    alpha_k_delta_vals = alpha_kp1_vals - alpha_k_vals
-                    alpha_k_delta = torch.sparse_coo_tensor(grad.indices(), alpha_k_delta_vals, grad.shape)
+                    alpha_k_delta_masked = alpha_k_p1_masked - alpha_k_masked._values()
+                    alpha_k_delta = torch.sparse_coo_tensor(grad.indices(), alpha_k_delta_masked, grad.shape)
                     alpha_k.add_(alpha_k_delta)
 
-                    de_nom = torch.sqrt(alpha_kp1_vals + eps)
+                    de_nom = torch.sqrt(alpha_k_p1_masked + eps)
 
-                    grad_sq = vk_vals.div(de_nom).sum()
+                    grad_sq = vk.div(de_nom).sum()
                     g_sq.add_(grad_sq)
 
                     # update weighted sk sq tracking
-                    weighted_skp1_vals = sk_vals.pow(2).div(de_nom)
+                    weighted_skp1_masked = sk_masked._values().pow(2).div(de_nom)
 
-                    sksq_weighted_change.add_(weighted_skp1_vals.sum() - weighted_sk_vals.sum())
+                    sksq_weighted_change.add_(weighted_skp1_masked.sum() - weighted_sk_masked._values().sum())
 
-                    weighted_skp1_delta_vals = weighted_skp1_vals - weighted_sk_vals
-                    weighted_skp1_delta = torch.sparse_coo_tensor(grad.indices(), weighted_skp1_delta_vals, grad.shape)
+                    weighted_skp1_delta_masked = weighted_skp1_masked - weighted_sk_masked._values()
+                    weighted_skp1_delta = torch.sparse_coo_tensor(
+                        grad.indices(), weighted_skp1_delta_masked, grad.shape
+                    )
                     weighted_sk.add_(weighted_skp1_delta)
 
-                    skl1_vals = sk_vals.abs().sum()
-                    skl1_change.add_(skl1_vals - old_skl1_vals)
+                    skl1_masked = sk_masked._values().abs().sum()
+                    skl1_change.add_(skl1_masked - old_skl1_masked)
                 else:
                     if weight_decay > 0.0:
                         grad.add_(p, alpha=weight_decay)
