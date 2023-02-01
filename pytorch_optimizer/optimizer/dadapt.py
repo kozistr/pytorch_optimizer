@@ -53,8 +53,8 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
             'growth_rate': growth_rate,
             'weight_decay': weight_decay,
             'gsq_weighted': 0.0,
-            'sksq_weighted': 0.0,
-            'skl1': 0.0,
+            'sk_sq_weighted': 0.0,
+            'sk_l1': 0.0,
             'k': 0,
             'eps': eps,
         }
@@ -97,15 +97,15 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
         lr, momentum = group['lr'], group['momentum']
 
         growth_rate = group['growth_rate']
-        gsq_weighted, sksq_weighted = group['gsq_weighted'], group['sksq_weighted']
-        skl1 = group['skl1']
+        gsq_weighted, sk_sq_weighted = group['gsq_weighted'], group['sk_sq_weighted']
+        sk_l1 = group['sk_l1']
 
         d = group['d']
         d_lr = float(d * lr)
 
         g_sq = torch.tensor([0.0], device=group['params'][0].device)
-        sksq_weighted_change = torch.tensor([0.0], device=group['params'][0].device)
-        skl1_change = torch.tensor([0.0], device=group['params'][0].device)
+        sk_sq_weighted_change = torch.tensor([0.0], device=group['params'][0].device)
+        sk_l1_change = torch.tensor([0.0], device=group['params'][0].device)
 
         for group in self.param_groups:
             weight_decay, eps = group['weight_decay'], group['eps']
@@ -135,7 +135,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
                     vk = grad._values().pow(2)
                     sk_masked = sk.sparse_mask(grad).coalesce()
-                    old_skl1_masked = sk_masked._values().abs().sum()
+                    old_sk_l1_masked = sk_masked._values().abs().sum()
 
                     sk.add_(grad, alpha=d_lr)
 
@@ -156,24 +156,24 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                     g_sq.add_(grad_sq)
 
                     # update weighted sk sq tracking
-                    weighted_skp1_masked = sk_masked._values().pow(2).div(de_nom)
+                    weighted_sk_p1_masked = sk_masked._values().pow(2).div(de_nom)
 
-                    sksq_weighted_change.add_(weighted_skp1_masked.sum() - weighted_sk_masked._values().sum())
+                    sk_sq_weighted_change.add_(weighted_sk_p1_masked.sum() - weighted_sk_masked._values().sum())
 
-                    weighted_skp1_delta_masked = weighted_skp1_masked - weighted_sk_masked._values()
-                    weighted_skp1_delta = torch.sparse_coo_tensor(
-                        grad.indices(), weighted_skp1_delta_masked, grad.shape
+                    weighted_sk_p1_delta_masked = weighted_skp1_masked - weighted_sk_masked._values()
+                    weighted_sk_p1_delta = torch.sparse_coo_tensor(
+                        grad.indices(), weighted_sk_p1_delta_masked, grad.shape
                     )
-                    weighted_sk.add_(weighted_skp1_delta)
+                    weighted_sk.add_(weighted_sk_p1_delta)
 
-                    skl1_masked = sk_masked._values().abs().sum()
-                    skl1_change.add_(skl1_masked - old_skl1_masked)
+                    sk_l1_masked = sk_masked._values().abs().sum()
+                    sk_l1_change.add_(sk_l1_masked - old_sk_l1_masked)
                 else:
                     if weight_decay > 0.0:
                         grad.add_(p, alpha=weight_decay)
 
-                    old_sksq_weighted_param = sk.pow(2).div(torch.sqrt(alpha_k) + eps).sum()
-                    old_skl1_param = sk.abs().sum()
+                    old_sk_sq_weighted_param = sk.pow(2).div(torch.sqrt(alpha_k) + eps).sum()
+                    old_sk_l1_param = sk.abs().sum()
 
                     alpha_k.add_(grad.pow(2))
                     grad_sq = grad.pow(2).div(torch.sqrt(alpha_k) + eps).sum()
@@ -181,24 +181,24 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
                     sk.add_(grad, alpha=d_lr)
 
-                    sksq_weighted_param = sk.pow(2).div(torch.sqrt(alpha_k) + eps).sum()
-                    skl1_param = sk.abs().sum()
+                    sk_sq_weighted_param = sk.pow(2).div(torch.sqrt(alpha_k) + eps).sum()
+                    sk_l1_param = sk.abs().sum()
 
-                    sksq_weighted_change.add_(sksq_weighted_param - old_sksq_weighted_param)
-                    skl1_change.add_(skl1_param - old_skl1_param)
+                    sk_sq_weighted_change.add_(sk_sq_weighted_param - old_sk_sq_weighted_param)
+                    sk_l1_change.add_(sk_l1_param - old_sk_l1_param)
 
-        sksq_weighted += sksq_weighted_change
+        sk_sq_weighted += sk_sq_weighted_change
         gsq_weighted += d_lr * d_lr * g_sq
-        skl1 += skl1_change
+        sk_l1 += sk_l1_change
 
         if lr > 0.0:
-            d_hat = (sksq_weighted - gsq_weighted) / skl1
+            d_hat = (sk_sq_weighted - gsq_weighted) / sk_l1
             d = self.d0 = max(d, min(d_hat, d * growth_rate))
 
         for group in self.param_groups:
             group['gsq_weighted'] = gsq_weighted
-            group['sksq_weighted'] = sksq_weighted
-            group['skl1'] = skl1
+            group['sk_sq_weighted'] = sk_sq_weighted
+            group['sk_l1'] = sk_l1
             group['d'] = d
 
             for p in group['params']:
@@ -222,8 +222,8 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
                     loc_masked = x0_masked - sk_masked.div(torch.sqrt(alpha_k_masked + group['eps']))
 
-                    loc_delta_vals = loc_masked - p_masked
-                    loc_delta = torch.sparse_coo_tensor(grad.indices(), loc_delta_vals, grad.shape)
+                    loc_delta_masked = loc_masked - p_masked
+                    loc_delta = torch.sparse_coo_tensor(grad.indices(), loc_delta_masked, grad.shape)
                     p.add_(loc_delta)
                 else:
                     z = x0 - sk.div(torch.sqrt(alpha_k) + group['eps'])
