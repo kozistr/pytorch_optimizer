@@ -288,7 +288,6 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
     def validate_parameters(self):
         self.validate_learning_rate(self.lr)
         self.validate_betas(self.betas)
-        self.validate_momentum(self.momentum)
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
@@ -319,13 +318,11 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
 
         group = self.param_groups[0]
 
-        lr, momentum = group['lr'], group['momentum']
         beta1, beta2 = group['betas']
-
         gsq_weighted, growth_rate = group['gsq_weighted'], group['growth_rate']
 
-        d = group['d']
-        d_lr = float(d * lr)
+        d, lr = group['d'], group['lr']
+        d_lr = float(d * group['lr'])
 
         g_sq = torch.tensor([0.0], device=group['params'][0].device)
         sksq_weighted = torch.tensor([0.0], device=group['params'][0].device)
@@ -377,13 +374,10 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
                 if p.grad is None:
                     continue
 
-                grad = p.grad
-
                 state = self.state[p]
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
                 state['step'] += 1
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
                 de_nom = de_nom.type(p.type())
