@@ -48,18 +48,18 @@ def test_sparse_not_supported(no_sparse_optimizer):
 @pytest.mark.parametrize('sparse_optimizer', SPARSE_OPTIMIZERS)
 def test_sparse_supported(sparse_optimizer):
     param = simple_sparse_parameter()
+    opt = load_optimizer(optimizer=sparse_optimizer)
 
-    optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0)
+    optimizer = opt([param], momentum=0.0)
+    optimizer.zero_grad()
+    optimizer.step()
+
+    optimizer = opt([param], momentum=0.0, eps=0.0)
     optimizer.reset()
     optimizer.zero_grad()
     optimizer.step()
 
-    optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0, eps=0.0)
-    optimizer.reset()
-    optimizer.zero_grad()
-    optimizer.step()
-
-    optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0, weight_decay=1e-3)
+    optimizer = opt([param], momentum=0.0, weight_decay=1e-3)
     optimizer.reset()
     optimizer.zero_grad()
 
