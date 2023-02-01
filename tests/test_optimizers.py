@@ -271,6 +271,12 @@ def test_reset(optimizer_config):
     optimizer.reset()
 
 
+@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD'])
+def test_d_adapt_reset(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)(MultiHeadLogisticRegression().parameters())
+    optimizer.reset()
+
+
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1])
 def test_shampoo_optimizer(pre_conditioner_type):
     (x_data, y_data), _, loss_fn = build_environment()
