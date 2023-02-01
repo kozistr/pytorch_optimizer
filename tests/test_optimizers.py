@@ -219,6 +219,7 @@ def test_pc_grad_optimizers(reduction):
 @pytest.mark.parametrize('optimizer', {config[0] for config in OPTIMIZERS}, ids=names)
 def test_closure(optimizer):
     param = simple_parameter()
+    param.grad = None
 
     optimizer_name: str = optimizer.__name__
 
