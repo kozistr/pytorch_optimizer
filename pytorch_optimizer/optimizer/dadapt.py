@@ -492,11 +492,11 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
 
         group = self.param_groups[0]
         if group['k'] == 0:
-            group['g0_norm'] = g_sq.sqrt()
+            group['g0_norm'] = g_sq.sqrt().item()
 
         g0_norm = group['g0_norm']
         d, lr = group['d'], group['lr']
-        d_lr = d * lr / g0_norm
+        d_lr = float(d * lr) / g0_norm
 
         for group in self.param_groups:
             for p in group['params']:
