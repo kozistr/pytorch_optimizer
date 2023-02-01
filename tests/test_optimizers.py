@@ -15,6 +15,7 @@ from tests.utils import (
     make_dataset,
     names,
     simple_parameter,
+    simple_sparse_parameter,
     tensor_to_numpy,
 )
 
@@ -272,9 +273,12 @@ def test_reset(optimizer_config):
     optimizer.reset()
 
 
+@pytest.mark.parametrize('sparse_gradient', [False, True])
 @pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD'])
-def test_d_adapt_reset(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)([simple_parameter()])
+def test_d_adapt_reset(sparse_gradient, optimizer_name):
+    param = simple_sparse_parameter() if sparse_gradient else simple_parameter()
+
+    optimizer = load_optimizer(optimizer_name)([param])
     assert optimizer.__str__ == optimizer_name
     optimizer.reset()
 
