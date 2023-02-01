@@ -354,27 +354,30 @@ def power_iter(
 
 
 @torch.no_grad()
-def mat_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
+def matrix_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
     r"""Compute mat_m^{p}.
 
     :param mat_m: torch.Tensor. a square matrix.
-    :param p: int. a positive integer.
+    :param p: int. a positive integer. (1, 2, 4, 8, ...).
     """
-    if p in (1, 2, 4, 8, 16, 32):
-        p_done: int = 1
-        res = mat_m
-        while p_done < p:
-            res = torch.matmul(res, res)
-            p_done *= 2
-        return res
+    exponent: int = int(np.round(np.log2(p)))
 
-    power: Optional[torch.Tensor] = None
-    while p > 0:
-        if p % 2 == 1:
-            power = torch.matmul(mat_m, power) if power is not None else mat_m
-        p //= 2
-        mat_m = torch.matmul(mat_m, mat_m)
-    return power
+    # for the reason of the performance, I unroll the loop.
+    if exponent == 0:
+        return mat_m
+
+    mat_pow_2 = torch.matmul(mat_m, mat_m)
+    if exponent == 1:
+        return mat_pow_2
+
+    mat_pow_4 = torch.matmul(mat_pow_2, mat_pow_2)
+    if exponent == 2:
+        return mat_pow_4
+
+    if exponent == 3:
+        return torch.matmul(mat_pow_4, mat_pow_4)
+
+    raise
 
 
 @torch.no_grad()
@@ -397,8 +400,8 @@ def compute_power(
     :param p: int. a positive integer.
     :param iter_count: int. Stop iterating after this many rounds.
     :param error_tolerance: float. Threshold for stopping iteration.
-    :param ridge_epsilon: float. We add this times I to G, to make is positive definite. For scaling,
-        we multiply it by the largest eigenvalue of G.
+    :param ridge_epsilon: float. We add this times I to G, to make is positive definite.
+        For scaling, we multiply it by the largest eigenvalue of G.
     :param max_error_ratio: float. Sometimes error increases after an iteration before decreasing and converging.
         1.2 factor is used to bound the maximal allowed increase.
     """
@@ -406,7 +409,7 @@ def compute_power(
     if len(shape) == 1:
         return torch.pow(mat_g + ridge_epsilon, -1 / p)
 
-    identity = torch.eye(shape[0], device=mat_g.device)
+    identity = torch.eye(shape[0], device=mat_g.device, dtype=torch.float32)
     if shape[0] == 1:
         return identity
 
@@ -425,7 +428,7 @@ def compute_power(
     while error > error_tolerance and count < iter_count:
         tmp_mat_m = (1 - alpha) * identity + alpha * mat_m
         new_mat_root = torch.matmul(mat_root, tmp_mat_m)
-        mat_m = torch.matmul(mat_power(tmp_mat_m, p), mat_m)
+        mat_m = torch.matmul(matrix_power(tmp_mat_m, p), mat_m)
 
         new_error = torch.max(torch.abs(mat_m - identity))
         if new_error > error * max_error_ratio:
