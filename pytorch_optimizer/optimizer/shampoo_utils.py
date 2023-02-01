@@ -355,15 +355,30 @@ def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: in
 def matrix_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
     r"""Compute mat_m^{p}.
 
+        Unroll the loop due to the performance.
+
     :param mat_m: torch.Tensor. a square matrix.
-    :param p: int. a positive integer. (1, 2, 4, 8, ...).
+    :param p: int. a positive integer. usually p = (1, 2, 4, 8).
     """
     exponent: int = int(np.log2(p))
 
-    power = mat_m
-    for _ in range(exponent):
-        power = torch.matmul(power, power)
-    return power
+    if exponent == 0:
+        return mat_m
+
+    mat_p2 = torch.matmul(mat_m, mat_m).float()
+    if exponent == 1:
+        return mat_p2
+
+    mat_p4 = torch.matmul(mat_p2, mat_p2).float()
+    if exponent == 2:
+        return mat_p4
+
+    mat_p8 = torch.matmul(mat_p4, mat_p4).float()
+    if exponent == 3:
+        return mat_p8
+
+    # most of the cases, never reached here.
+    return mat_p8
 
 
 @torch.no_grad()
