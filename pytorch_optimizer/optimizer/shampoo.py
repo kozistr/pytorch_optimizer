@@ -59,7 +59,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         start_preconditioning_step: int = 5,
         preconditioning_compute_steps: int = 1,
         statistics_compute_steps: int = 1,
-        block_size: int = 4096,
+        block_size: int = 128,
         shape_interpretation: bool = True,
         graft_type: int = LayerWiseGrafting.SGD,
         pre_conditioner_type: int = PreConditionerType.ALL,
