@@ -423,7 +423,7 @@ def compute_power(
     if shape[0] == 1:
         return identity
 
-    max_ev = power_iter(mat_g)
+    max_ev = power_iter(mat_g).clamp_(min=1e-16)
     ridge_epsilon *= max_ev
     mat_g += ridge_epsilon * identity
 
