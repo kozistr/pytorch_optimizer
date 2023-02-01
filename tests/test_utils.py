@@ -140,6 +140,13 @@ def test_compute_power():
         decimal=2,
     )
 
+    x = compute_power(torch.ones((2, 2)), p=8)
+    np.testing.assert_array_almost_equal(
+        np.asarray([[3.0399, -2.1229], [-2.1229, 3.0399]]),
+        x.numpy(),
+        decimal=2,
+    )
+
 
 def test_merge_small_dims():
     case1 = [1, 2, 512, 1, 2048, 1, 3, 4]
