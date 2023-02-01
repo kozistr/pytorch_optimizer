@@ -382,6 +382,15 @@ def compute_power(
             SIAM Journal on Matrix Analysis and Applications, 2006, Vol. 28, No. 3 : pp. 788-804
             https://pdfs.semanticscholar.org/0abe/7f77433cf5908bfe2b79aa91af881da83858.pdf.
 
+        The best value for z is (1 + p) * (c_max^{1/p} - c_min^{1/p}) / (c_max^{1+1/p} - c_min^{1+1/p})
+        where c_max and c_min are the largest and smallest singular values of mat_g.
+        The above estimate assumes that c_max > c_min * 2^p can replace above line by the one below,
+        but it is less accurate, hence needs more iterations to converge.
+
+        z = (1 + p) / tf.trace(mat_g)
+        If we want the method to always converge, use z = 1 / norm(mat_g) or z = 1 / tf.trace(mat_g),
+        but these can result in many extra iterations.
+
     :param mat_g: torch.Tensor. A square positive semi-definite matrix.
     :param p: int. a positive integer.
     :param iter_count: int. Stop iterating after this many rounds.
