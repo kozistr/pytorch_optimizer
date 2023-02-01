@@ -199,6 +199,7 @@ class PreConditioner:
     :param beta2: float. beta2.
     :param inverse_exponent_override: int.
     :param block_size: int.
+    :param no_preconditioning_for_layers_with_dim_gt: int.
     :param shape_interpretation: bool.
     :param matrix_eps: float.
     :param pre_conditioner_type: int. type of pre-conditioner.
@@ -210,6 +211,7 @@ class PreConditioner:
         beta2: float,
         inverse_exponent_override: int,
         block_size: int,
+        no_preconditioning_for_layers_with_dim_gt: int,
         shape_interpretation: bool,
         matrix_eps: float,
         pre_conditioner_type: int = PreConditionerType.ALL,
@@ -226,7 +228,7 @@ class PreConditioner:
 
         self.statistics: List[torch.Tensor] = []
         self.pre_conditioners: List[torch.Tensor] = []
-        if len(self.transformed_shape) > 1:
+        if len(self.transformed_shape) > 1 and self.original_shape[0] < no_preconditioning_for_layers_with_dim_gt:
             reshaped_var = torch.reshape(var, self.transformed_shape)
             self.partitioner = BlockPartitioner(reshaped_var, block_size, self.pre_conditioner_type)
 

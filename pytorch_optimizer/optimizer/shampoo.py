@@ -165,6 +165,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                         beta2,
                         self.inverse_exponent_override,
                         self.block_size,
+                        self.no_preconditioning_for_layers_with_dim_gt,
                         self.shape_interpretation,
                         self.matrix_eps,
                         self.pre_conditioner_type,
