@@ -361,7 +361,7 @@ def matrix_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
     exponent: int = int(np.round(np.log2(p)))
 
     power = mat_m
-    for i in range(exponent):
+    for _ in range(exponent):
         power = torch.matmul(power, power)
     return power
 
