@@ -16,6 +16,7 @@ from pytorch_optimizer.optimizer.utils import (
     neuron_mean,
     neuron_norm,
     normalize_gradient,
+    to_real,
     unit_norm,
 )
 from tests.utils import Example
@@ -160,3 +161,11 @@ def test_merge_small_dims():
     case3 = [1, 1, 1]
     expected_case3 = [1]
     assert expected_case3 == merge_small_dims(case3, max_dim=1)
+
+
+def test_to_real():
+    complex_tensor = torch.tensor(1.0j + 2.0, dtype=torch.complex32)
+    assert to_real(complex_tensor) == 2.0
+
+    real_tensor = torch.tensor(1.0, dtype=torch.float32)
+    assert to_real(real_tensor) == 1.0
