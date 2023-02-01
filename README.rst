@@ -114,6 +114,8 @@ Supported Optimizers
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | GSAM         | *Surrogate Gap Guided Sharpness-Aware Minimization*                                    | `github <https://github.com/juntang-zhuang/GSAM>`__                               | `https://openreview.net/pdf?id=edONMAnhLu- <https://openreview.net/pdf?id=edONMAnhLu->`__     |
 +--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| D-Adaptation | *Learning-Rate-Free Learning by D-Adaptation*                                          | `github <https://github.com/facebookresearch/dadaptation>`__                      | `https://arxiv.org/abs/2301.07733 <https://arxiv.org/abs/2301.07733>`__                       |
++--------------+----------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
 ----------------
@@ -306,6 +308,8 @@ Citations
 `Adai <https://github.com/zeke-xie/adaptive-inertia-adai#citing>`__
 
 `GSAM <https://github.com/juntang-zhuang/GSAM#citation>`__
+
+`D-Adaptation <https://ui.adsabs.harvard.edu/abs/2023arXiv230107733D/exportcitation>`__
 
 Citation
 --------
