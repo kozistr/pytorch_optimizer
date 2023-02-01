@@ -3,6 +3,7 @@
 #
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
+import math
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -386,6 +387,154 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
                     p.add_(p, alpha=-group['weight_decay'] * d_lr)
 
                 p.addcdiv_(exp_avg, de_nom, value=-1)
+
+            group['k'] += 1
+
+        return loss
+
+
+class DAdaptSGD(Optimizer, BaseOptimizer):
+    r"""SGD with D-Adaptation. Leave LR set to 1 unless you encounter instability.
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param momentum: float. momentum.
+    :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
+    :param growth_rate: float. prevent the D estimate from growing faster than this multiplicative rate.
+        Default is inf, for unrestricted.
+    :param weight_decay: float. weight decay (L2 penalty).
+    """
+
+    def __init__(
+        self,
+        params: PARAMETERS,
+        lr: float = 1.0,
+        momentum: float = 0.0,
+        d0: float = 1e-6,
+        growth_rate: float = float('inf'),
+        weight_decay: float = 0.0,
+    ):
+        self.lr = lr
+        self.momentum = momentum
+        self.d0 = d0
+        self.growth_rate = growth_rate
+        self.weight_decay = weight_decay
+        self.validate_parameters()
+
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'momentum': momentum,
+            'd': d0,
+            'growth_rate': growth_rate,
+            'weight_decay': weight_decay,
+            'gsq_weighted': 0.0,
+            'k': 0,
+        }
+        super().__init__(params, defaults)
+
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_momentum(self.momentum)
+        self.validate_weight_decay(self.weight_decay)
+
+    @property
+    def __str__(self) -> str:
+        return 'DAdaptSGD'
+
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                state = self.state[p]
+
+                state['step'] = 0
+                state['s'] = torch.zeros_like(p)
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
+
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+
+        group = self.param_groups[0]
+
+        gsq_weighted, growth_rate = group['gsq_weighted'], group['growth_rate']
+
+        g_sq = torch.tensor([0.0], device=group['params'][0].device)
+        sk_sq = torch.tensor([0.0], device=group['params'][0].device)
+
+        for group in self.param_groups:
+            weight_decay = group['weight_decay']
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                grad = p.grad
+                if grad.is_sparse and weight_decay > 0.0:
+                    raise NoSparseGradientError(self.__str__, note='w/ weight_decay')
+
+                if weight_decay > 0.0:
+                    grad.add_(p, alpha=weight_decay)
+
+                state = self.state[p]
+                if 'z' not in state:
+                    state['z'] = torch.clone(p)
+                    state['s'] = torch.zeros_like(p)
+                    state['x0'] = torch.clone(p)
+
+                g_sq.add_(grad.pow(2).sum())
+
+        group = self.param_groups[0]
+        if group['k'] == 0:
+            group['g0_norm'] = g_sq.sqrt()
+
+        g0_norm = group['g0_norm']
+        d, lr = group['d'], group['lr']
+        d_lr = d * lr / g0_norm
+
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                state = self.state[p]
+
+                s = state['s']
+                s.add_(p.grad, alpha=d_lr)
+
+                sk_sq.add_(s.pow(2).sum())
+
+        group['gsq_weighted'] = gsq_weighted + d_lr * d_lr * g_sq
+        gsq_weighted = group['gsq_weighted']
+
+        if lr > 0.0:
+            d_hat = (sk_sq - group['gsq_weighted']) / sk_sq.sqrt()
+            d = max(d, min(d_hat, d * growth_rate))
+            group['d'] = d
+
+        for group in self.param_groups:
+            group['gsq_weighted'] = gsq_weighted
+            group['d'] = d
+            group['g0_norm'] = g0_norm
+
+            momentum = group['momentum']
+
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                state = self.state[p]
+
+                s, z, x0 = state['s'], state['z'], state['x0']
+
+                z.copy_(x0 - s)
+                p.mul_(momentum).add_(z, alpha=1.0 - momentum)
 
             group['k'] += 1
 
