@@ -47,6 +47,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
             'lr': lr,
             'momentum': momentum,
             'd': d0,
+            'growth_rate': growth_rate,
             'weight_decay': weight_decay,
             'gsq_weighted': 0.0,
             'sksq_weighted': 0.0,
