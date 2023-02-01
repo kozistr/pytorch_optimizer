@@ -164,7 +164,7 @@ def test_merge_small_dims():
 
 
 def test_to_real():
-    complex_tensor = torch.tensor(1.0j + 2.0, dtype=torch.complex32)
+    complex_tensor = torch.tensor(1.0j + 2.0, dtype=torch.complex64)
     assert to_real(complex_tensor) == 2.0
 
     real_tensor = torch.tensor(1.0, dtype=torch.float32)
