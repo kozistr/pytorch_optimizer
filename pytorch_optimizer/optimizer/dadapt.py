@@ -3,7 +3,6 @@
 #
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
-import math
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -160,7 +159,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
                     sk_sq_weighted_change.add_(weighted_sk_p1_masked.sum() - weighted_sk_masked._values().sum())
 
-                    weighted_sk_p1_delta_masked = weighted_skp1_masked - weighted_sk_masked._values()
+                    weighted_sk_p1_delta_masked = weighted_sk_p1_masked - weighted_sk_masked._values()
                     weighted_sk_p1_delta = torch.sparse_coo_tensor(
                         grad.indices(), weighted_sk_p1_delta_masked, grad.shape
                     )
@@ -330,7 +329,6 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         sk_l1 = torch.tensor([0.0], device=group['params'][0].device)
 
         for group in self.param_groups:
-            weight_decay, eps = group['weight_decay'], group['eps']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -353,7 +351,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=d_lr * (1.0 - beta1))
                 exp_avg_sq.mul_(beta2).add_(grad_power, alpha=1.0 - beta2)
 
-                de_nom = exp_avg_sq.sqrt().add_(eps)
+                de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
                 g_sq.add_(grad_power.div_(de_nom).sum())
 
