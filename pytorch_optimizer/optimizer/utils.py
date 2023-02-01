@@ -22,6 +22,10 @@ def has_overflow(grad_norm: torch.Tensor) -> bool:
     return grad_norm != grad_norm or grad_norm == float('inf')  # pylint: disable=comparison-with-itself
 
 
+def to_real(x: torch.Tensor) -> torch.Tensor:
+    return x.real if torch.is_complex(x) else x
+
+
 def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> torch.Tensor:
     r"""Normalize gradient with stddev.
 
