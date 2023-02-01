@@ -227,6 +227,18 @@ class PreConditioner:
         if shape_interpretation:
             self.transformed_shape = merge_small_dims(self.original_shape, block_size)
 
+        # vector containing indicator indicating if the dim is preconditioned.
+        self.should_precondition_dims: List[bool] = (
+            [True] * len(self.transformed_shape)
+            if self.pre_conditioner_type == PreConditionerType.ALL or len(self.transformed_shape) <= 1
+            else [True] * (len(self.transformed_shape) - 1) + [False]
+        )
+        self.rank: int = sum(self.should_precondition_dims)
+        # exponent to use for inverse-pth root M^{-1/p}.
+        self.exponent_for_pre_conditioner: int = (
+            self.inverse_exponent_override if self.inverse_exponent_override > 0 else 2 * self.rank
+        )
+
         self.statistics: List[torch.Tensor] = []
         self.pre_conditioners: List[torch.Tensor] = []
         if len(self.transformed_shape) > 1 and not self.skip_precondition(var):
@@ -236,25 +248,6 @@ class PreConditioner:
             shapes = self.partitioner.shapes_for_pre_conditioners()
             self.statistics = [self.matrix_eps * torch.eye(s[0], device=var.device) for s in shapes]
             self.pre_conditioners = [torch.eye(s[0], device=var.device) for s in shapes]
-
-    @property
-    def should_precondition_dims(self) -> List[bool]:
-        r"""Vector containing indicator indicating if the dim is preconditioned."""
-        rank: int = len(self.transformed_shape)
-        return (
-            [True] * rank
-            if self.pre_conditioner_type == PreConditionerType.ALL or rank <= 1
-            else [True] * (rank - 1) + [False]
-        )
-
-    @property
-    def rank(self) -> int:
-        return sum(self.should_precondition_dims)
-
-    @property
-    def exponent_for_pre_conditioner(self) -> int:
-        r"""Return exponent to use for inverse-pth root M^{-1/p}."""
-        return self.inverse_exponent_override if self.inverse_exponent_override > 0 else 2 * self.rank
 
     def skip_precondition(self, x: torch.Tensor) -> bool:
         return (len(x.shape) < 1) or any([s > self.no_preconditioning_for_layers_with_dim_gt for s in x.shape])
@@ -279,9 +272,10 @@ class PreConditioner:
 
     def compute_pre_conditioners(self):
         r"""Compute L^{-1/exp} for each stats matrix L."""
-        exp: int = self.exponent_for_pre_conditioner
         for i, stat in enumerate(self.statistics):
-            self.pre_conditioners[i] = compute_power(stat, exp, ridge_epsilon=self.matrix_eps)
+            self.pre_conditioners[i] = compute_power(
+                mat_g=stat, p=self.exponent_for_pre_conditioner, ridge_epsilon=self.matrix_eps
+            )
 
     @staticmethod
     def precondition_block(
