@@ -218,6 +218,7 @@ class PreConditioner:
     ):
         self.beta2 = beta2
         self.inverse_exponent_override = inverse_exponent_override
+        self.no_preconditioning_for_layers_with_dim_gt = no_preconditioning_for_layers_with_dim_gt
         self.matrix_eps = matrix_eps
         self.pre_conditioner_type = pre_conditioner_type
 
@@ -228,7 +229,7 @@ class PreConditioner:
 
         self.statistics: List[torch.Tensor] = []
         self.pre_conditioners: List[torch.Tensor] = []
-        if len(self.transformed_shape) > 1 and self.original_shape[0] < no_preconditioning_for_layers_with_dim_gt:
+        if len(self.transformed_shape) > 1 and not self.skip_precondition(var):
             reshaped_var = torch.reshape(var, self.transformed_shape)
             self.partitioner = BlockPartitioner(reshaped_var, block_size, self.pre_conditioner_type)
 
@@ -254,6 +255,9 @@ class PreConditioner:
     def exponent_for_pre_conditioner(self) -> int:
         r"""Return exponent to use for inverse-pth root M^{-1/p}."""
         return self.inverse_exponent_override if self.inverse_exponent_override > 0 else 2 * self.rank
+
+    def skip_precondition(self, x: torch.Tensor) -> bool:
+        return (len(x.shape) < 1) or any([s > self.no_preconditioning_for_layers_with_dim_gt for s in x.shape])
 
     def add_statistics(self, grad: torch.Tensor):
         r"""Compute statistics from gradients and add to the correct state entries.
