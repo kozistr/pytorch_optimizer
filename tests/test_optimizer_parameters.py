@@ -223,6 +223,7 @@ def test_ranger21_warm_methods():
 @pytest.mark.parametrize('optimizer', ['ranger21', 'adai'])
 def test_size_of_parameter(optimizer):
     param = simple_parameter(require_grad=False)
+    param.grad = None
 
     with pytest.raises(ZeroParameterSizeError):
         load_optimizer(optimizer)([param], 1).step()
