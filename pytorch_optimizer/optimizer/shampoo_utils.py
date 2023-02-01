@@ -358,7 +358,7 @@ def matrix_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
     :param mat_m: torch.Tensor. a square matrix.
     :param p: int. a positive integer. (1, 2, 4, 8, ...).
     """
-    exponent: int = int(np.round(np.log2(p)))
+    exponent: int = int(np.log2(p))
 
     power = mat_m
     for _ in range(exponent):
