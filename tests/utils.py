@@ -48,6 +48,12 @@ def simple_parameter(require_grad: bool = True) -> torch.Tensor:
     return torch.zeros(1, 1).requires_grad_(require_grad)
 
 
+def simple_sparse_parameter(require_grad: bool = True) -> torch.Tensor:
+    param = torch.randn(1, 1).to_sparse(1).requires_grad_(require_grad)
+    param.grad = torch.randn(1, 1).to_sparse(1)
+    return param
+
+
 def make_dataset(num_samples: int = 100, dims: int = 2, seed: int = 42) -> Tuple[torch.Tensor, torch.Tensor]:
     torch.manual_seed(42)
     rng = np.random.RandomState(seed)
