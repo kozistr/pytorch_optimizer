@@ -71,6 +71,9 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
     def reset(self):
         for group in self.param_groups:
             for p in group['params']:
+                if p.grad is None:
+                    continue
+
                 state = self.state[p]
 
                 state['step'] = 0
@@ -103,7 +106,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
         skl1_change = torch.tensor([0.0], device=group['params'][0].device)
 
         for group in self.param_groups:
-            k, weight_decay, eps = group['k'], group['weight_decay'], group['eps']
+            weight_decay, eps = group['weight_decay'], group['eps']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -197,8 +200,6 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
             group['skl1'] = skl1
             group['d'] = d
 
-            k, eps = group['k'], group['eps']
-
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -218,13 +219,13 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                     x0_vals = x0.sparse_mask(grad).coalesce()._values()
                     p_vals = p.sparse_mask(grad).coalesce()._values()
 
-                    loc_vals = x0_vals - sk_vals.div(torch.sqrt(alpha_k_vals + eps))
+                    loc_vals = x0_vals - sk_vals.div(torch.sqrt(alpha_k_vals + group['eps']))
 
                     loc_delta_vals = loc_vals - p_vals
                     loc_delta = torch.sparse_coo_tensor(grad.indices(), loc_delta_vals, grad.shape)
                     p.add_(loc_delta)
                 else:
-                    z = x0 - sk.div(torch.sqrt(alpha_k) + eps)
+                    z = x0 - sk.div(torch.sqrt(alpha_k) + group['eps'])
 
                     if momentum > 0.0:
                         p.mul_(momentum).add_(z, alpha=1.0 - momentum)
