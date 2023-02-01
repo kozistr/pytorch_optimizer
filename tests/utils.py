@@ -49,6 +49,7 @@ def simple_parameter(require_grad: bool = True) -> torch.Tensor:
 
 
 def make_dataset(num_samples: int = 100, dims: int = 2, seed: int = 42) -> Tuple[torch.Tensor, torch.Tensor]:
+    torch.manual_seed(42)
     rng = np.random.RandomState(seed)
 
     x = rng.randn(num_samples, dims) * 2

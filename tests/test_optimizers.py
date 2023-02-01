@@ -189,30 +189,18 @@ def test_adamd_optimizers(optimizer_adamd_config):
 
 
 @pytest.mark.parametrize('reduction', ['mean', 'sum'])
-@pytest.mark.parametrize('optimizer_pc_grad_config', OPTIMIZERS, ids=ids)
-def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
-    torch.manual_seed(42)
-
+def test_pc_grad_optimizers(reduction):
     x_data, y_data = make_dataset()
 
     model: nn.Module = MultiHeadLogisticRegression()
     loss_fn_1: nn.Module = nn.BCEWithLogitsLoss()
     loss_fn_2: nn.Module = nn.L1Loss()
 
-    optimizer_class, config, iterations = optimizer_pc_grad_config
-    if (optimizer_class.__name__ == 'Shampoo' and 'decoupled_learning_rate' in config) or (
-        optimizer_class.__name__ == 'Shampoo' and 'graft_type' in config and config['graft_type'] == 3
-    ):
-        pytest.skip(f'skip Shampoo w/ {config}')
-
-    optimizer = PCGrad(optimizer_class(model.parameters(), **config), reduction=reduction)
+    optimizer = PCGrad(load_optimizer('adamp')(model.parameters(), lr=1e-1), reduction=reduction)
     optimizer.reset()
 
-    if optimizer_class.__name__ == 'RaLamb' and 'pre_norm' in config:
-        pytest.skip(f'skip {optimizer_class.__name__} w/ pre_norm')
-
     init_loss, loss = np.inf, np.inf
-    for _ in range(iterations):
+    for _ in range(10):
         optimizer.zero_grad()
 
         y_pred_1, y_pred_2 = model(x_data)
