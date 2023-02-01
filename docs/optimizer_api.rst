@@ -200,3 +200,27 @@ GSAM
 
 .. autoclass:: pytorch_optimizer.GSAM
     :members:
+
+.. _DAdaptAdaGrad:
+
+DAdaptAdaGrad
+-------------
+
+.. autoclass:: pytorch_optimizer.DAdaptAdaGrad
+    :members:
+
+.. _DAdaptAdam:
+
+DAdaptAdam
+----------
+
+.. autoclass:: pytorch_optimizer.DAdaptAdam
+    :members:
+
+.. _DAdaptSGD:
+
+DAdaptSGD
+---------
+
+.. autoclass:: pytorch_optimizer.DAdaptSGD
+    :members:
