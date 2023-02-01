@@ -11,6 +11,7 @@ from pytorch_optimizer import (
     AdamP,
     Adan,
     AdaPNM,
+    DAdaptAdaGrad,
     DiffGrad,
     DiffRGrad,
     Lamb,
@@ -28,6 +29,7 @@ PULLBACK_MOMENTUM: List[str] = ['none', 'reset', 'pullback']
 
 SPARSE_OPTIMIZERS: List[str] = [
     'madgrad',
+    'dadaptadagrad',
 ]
 NO_SPARSE_OPTIMIZERS: List[str] = [
     'adamp',
@@ -172,6 +174,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Adan, {'lr': 5e-1, 'max_grad_norm': 1.0}, 100),
     (Adan, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 200),
     (Adan, {'lr': 1e-1, 'weight_decay': 1e-3, 'use_gc': True, 'weight_decouple': True}, 100),
+    (DAdaptAdaGrad, {'lr': 1e-1, 'weight_decay': 1e-3}, 50),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 10),
