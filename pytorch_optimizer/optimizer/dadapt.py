@@ -493,6 +493,9 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
             group['g0_norm'] = g_sq.sqrt().item()
 
         g0_norm = group['g0_norm']
+        if g0_norm == 0:
+            g0_norm = 1.0
+
         d, lr = group['d'], group['lr']
         d_lr = float(d * lr) / g0_norm
 
