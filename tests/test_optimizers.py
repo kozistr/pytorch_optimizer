@@ -263,13 +263,11 @@ def test_rectified_optimizer(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 def test_reset(optimizer_config):
-    param = simple_parameter()
-
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
         config.update({'num_iterations': 1})
 
-    optimizer = optimizer_class([param], **config)
+    optimizer = optimizer_class([simple_parameter()], **config)
     optimizer.reset()
 
 
