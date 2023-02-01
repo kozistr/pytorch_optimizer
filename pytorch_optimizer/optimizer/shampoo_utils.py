@@ -325,9 +325,7 @@ class PreConditioner:
 
 
 @torch.no_grad()
-def power_iter(
-    mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 100
-) -> Tuple[torch.Tensor, torch.Tensor, int]:
+def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 100) -> torch.Tensor:
     r"""Power iteration.
 
         Compute the maximum eigenvalue of mat, for scaling. v is a random vector with values in (-1, 1).
@@ -350,7 +348,7 @@ def power_iter(
         singular_val = s_v
         iters += 1
 
-    return singular_val, v / torch.norm(v), iters
+    return singular_val
 
 
 @torch.no_grad()
@@ -413,8 +411,7 @@ def compute_power(
     if shape[0] == 1:
         return identity
 
-    max_ev, _, _ = power_iter(mat_g)
-    ridge_epsilon *= max_ev
+    ridge_epsilon *= power_iter(mat_g)
     mat_g += ridge_epsilon * identity
 
     z: torch.Tensor = (1 + p) / (2 * torch.norm(mat_g))
