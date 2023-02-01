@@ -214,14 +214,14 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                 if grad.is_sparse:
                     grad = grad.coalesce()
 
-                    sk_vals = sk.sparse_mask(grad).coalesce()._values()
-                    alpha_k_vals = alpha_k.sparse_mask(grad).coalesce()._values()
-                    x0_vals = x0.sparse_mask(grad).coalesce()._values()
-                    p_vals = p.sparse_mask(grad).coalesce()._values()
+                    sk_masked = sk.sparse_mask(grad).coalesce()._values()
+                    alpha_k_masked = alpha_k.sparse_mask(grad).coalesce()._values()
+                    x0_masked = x0.sparse_mask(grad).coalesce()._values()
+                    p_masked = p.sparse_mask(grad).coalesce()._values()
 
-                    loc_vals = x0_vals - sk_vals.div(torch.sqrt(alpha_k_vals + group['eps']))
+                    loc_masked = x0_masked - sk_masked.div(torch.sqrt(alpha_k_masked + group['eps']))
 
-                    loc_delta_vals = loc_vals - p_vals
+                    loc_delta_vals = loc_masked - p_masked
                     loc_delta = torch.sparse_coo_tensor(grad.indices(), loc_delta_vals, grad.shape)
                     p.add_(loc_delta)
                 else:
