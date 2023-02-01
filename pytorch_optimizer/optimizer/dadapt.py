@@ -87,21 +87,20 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        g_sq = 0.0
-        sksq_weighted_change = 0.0
-        skl1_change = 0.0
-
         group = self.param_groups[0]
 
         lr, momentum = group['lr'], group['momentum']
-        ck: float = 1.0 - momentum
 
         growth_rate = group['growth_rate']
         gsq_weighted, sksq_weighted = group['gsq_weighted'], group['sksq_weighted']
         skl1 = group['skl1']
 
         d = group['d']
-        d_lr = d * lr
+        d_lr = float(d * lr)
+
+        g_sq = torch.tensor([0.0], device=group['params'][0].device)
+        sksq_weighted_change = torch.tensor([0.0], device=group['params'][0].device)
+        skl1_change = torch.tensor([0.0], device=group['params'][0].device)
 
         for group in self.param_groups:
             k, weight_decay, eps = group['k'], group['weight_decay'], group['eps']
@@ -114,7 +113,10 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                 state = self.state[p]
                 if 'step' not in state:
                     state['step'] = 0
-                    state['alpha_k'] = torch.full_like(p, fill_value=1e-6)
+                    try:
+                        state['alpha_k'] = torch.full_like(p, fill_value=1e-6)
+                    except NotImplementedError:  # there's no fill_() op for SpareTensorCPU
+                        state['alpha_k'] = torch.zeros_like(p)
                     state['sk'] = torch.zeros_like(p)
                     state['x0'] = torch.clone(p)
                     if grad.is_sparse:
@@ -148,21 +150,20 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
                     de_nom = torch.sqrt(alpha_kp1_vals + eps)
 
-                    grad_sq = grad_vals.pow(2).div(de_nom).sum()
+                    grad_sq = vk_vals.div(de_nom).sum()
                     g_sq.add_(grad_sq)
 
                     # update weighted sk sq tracking
                     weighted_skp1_vals = sk_vals.pow(2).div(de_nom)
 
-                    sksq_weighted_change += weighted_skp1_vals.sum() - weighted_sk_vals.sum()
+                    sksq_weighted_change.add_(weighted_skp1_vals.sum() - weighted_sk_vals.sum())
 
                     weighted_skp1_delta_vals = weighted_skp1_vals - weighted_sk_vals
                     weighted_skp1_delta = torch.sparse_coo_tensor(grad.indices(), weighted_skp1_delta_vals, grad.shape)
                     weighted_sk.add_(weighted_skp1_delta)
 
                     skl1_vals = sk_vals.abs().sum()
-
-                    skl1_change += skl1_vals - old_skl1_vals
+                    skl1_change.add_(skl1_vals - old_skl1_vals)
                 else:
                     if weight_decay > 0.0:
                         grad.add_(p, alpha=weight_decay)
@@ -179,14 +180,12 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                     sksq_weighted_param = sk.pow(2).div(torch.sqrt(alpha_k) + eps).sum()
                     skl1_param = sk.abs().sum()
 
-                    sksq_weighted_change += sksq_weighted_param - old_sksq_weighted_param
-                    skl1_change += skl1_param - old_skl1_param
+                    sksq_weighted_change.add_(sksq_weighted_param - old_sksq_weighted_param)
+                    skl1_change.add_(skl1_param - old_skl1_param)
 
         sksq_weighted += sksq_weighted_change
-        skl1 += skl1_change
-
         gsq_weighted += d_lr * d_lr * g_sq
-        d_hat = d
+        skl1 += skl1_change
 
         if lr > 0.0:
             d_hat = (sksq_weighted - gsq_weighted) / skl1
@@ -198,7 +197,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
             group['skl1'] = skl1
             group['d'] = d
 
-            k, weight_decay, eps = group['k'], group['weight_decay'], group['eps']
+            k, eps = group['k'], group['eps']
 
             for p in group['params']:
                 if p.grad is None:
@@ -228,7 +227,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                     z = x0 - sk.div(torch.sqrt(alpha_k) + eps)
 
                     if momentum > 0.0:
-                        p.mul_(1 - ck).add_(z, alpha=ck)
+                        p.mul_(momentum).add_(z, alpha=1.0 - momentum)
                     else:
                         p.copy_(z)
 
