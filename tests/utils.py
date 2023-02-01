@@ -45,7 +45,9 @@ class Example(nn.Module):
 
 
 def simple_parameter(require_grad: bool = True) -> torch.Tensor:
-    return torch.zeros(1, 1).requires_grad_(require_grad)
+    param = torch.randn(1, 1).requires_grad_(require_grad)
+    param.grad = torch.randn(1, 1)
+    return param
 
 
 def simple_sparse_parameter(require_grad: bool = True) -> torch.Tensor:
