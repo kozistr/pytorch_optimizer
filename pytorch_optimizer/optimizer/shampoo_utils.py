@@ -399,10 +399,11 @@ def compute_power(
     if shape[0] == 1:
         return identity
 
-    ridge_epsilon *= power_iter(mat_g)
+    max_ev = power_iter(mat_g)
+    ridge_epsilon *= max_ev
     mat_g += ridge_epsilon * identity
 
-    z: torch.Tensor = (1 + p) / (2 * torch.norm(mat_g))
+    z = (1 + p) / (2 * torch.norm(mat_g))
 
     mat_root = identity * torch.pow(z, 1.0 / p)
     mat_m = mat_g * z
@@ -412,9 +413,9 @@ def compute_power(
     count: int = 0
     while error > error_tolerance and count < iter_count:
         mat_m_i = (1 - alpha) * identity + alpha * mat_m
-        new_mat_m = torch.matmul(matrix_power(mat_m_i, p), mat_m)
+        mat_m = torch.matmul(matrix_power(mat_m_i, p), mat_m)
 
-        new_error = torch.max(torch.abs(new_mat_m - identity))
+        new_error = torch.max(torch.abs(mat_m - identity))
         if new_error > error * max_error_ratio:
             break
 
