@@ -65,3 +65,108 @@ disable_running_stats
 
 .. autoclass:: pytorch_optimizer.disable_running_stats
     :members:
+
+.. _LayerWiseGrafting:
+
+LayerWiseGrafting
+-----------------
+
+.. autoclass:: pytorch_optimizer.LayerWiseGrafting
+    :members:
+
+.. _Graft:
+
+Graft
+-----
+
+.. autoclass:: pytorch_optimizer.Graft
+    :members:
+
+.. _SGDGraft:
+
+SGDGraft
+--------
+
+.. autoclass:: pytorch_optimizer.SGDGraft
+    :members:
+
+.. _SQRTNGraft:
+
+SQRTNGraft
+----------
+
+.. autoclass:: pytorch_optimizer.SQRTNGraft
+    :members:
+
+.. _AdaGradGraft:
+
+AdaGradGraft
+------------
+
+.. autoclass:: pytorch_optimizer.AdaGradGraft
+    :members:
+
+.. _RMSPropGraft:
+
+RMSPropGraft
+------------
+
+.. autoclass:: pytorch_optimizer.RMSPropGraft
+    :members:
+
+.. _BlockPartitioner:
+
+BlockPartitioner
+----------------
+
+.. autoclass:: pytorch_optimizer.BlockPartitioner
+    :members:
+
+.. _PreConditionerType:
+
+PreConditionerType
+------------------
+
+.. autoclass:: pytorch_optimizer.PreConditionerType
+    :members:
+
+.. _PreConditioner:
+
+PreConditioner
+--------------
+
+.. autoclass:: pytorch_optimizer.PreConditioner
+    :members:
+
+.. _power_iter:
+
+power_iter
+----------
+
+.. autoclass:: pytorch_optimizer.power_iter
+    :members:
+
+.. _matrix_power:
+
+matrix_power
+------------
+
+.. autoclass:: pytorch_optimizer.matrix_power
+    :members:
+
+.. _compute_power:
+
+compute_power
+-------------
+
+.. autoclass:: pytorch_optimizer.compute_power
+    :members:
+
+.. _merge_small_dims:
+
+merge_small_dims
+----------------
+
+.. autoclass:: pytorch_optimizer.merge_small_dims
+    :members:
+re

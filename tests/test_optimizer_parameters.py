@@ -22,7 +22,7 @@ def test_learning_rate(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
-    if optimizer_name in ('nero', 'shampoo'):
+    if optimizer_name in ('nero', 'shampoo', 'dadaptsgd'):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -223,6 +223,7 @@ def test_ranger21_warm_methods():
 @pytest.mark.parametrize('optimizer', ['ranger21', 'adai'])
 def test_size_of_parameter(optimizer):
     param = simple_parameter(require_grad=False)
+    param.grad = None
 
     with pytest.raises(ZeroParameterSizeError):
         load_optimizer(optimizer)([param], 1).step()

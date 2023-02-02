@@ -21,6 +21,7 @@ from pytorch_optimizer.optimizer.adamp import AdamP
 from pytorch_optimizer.optimizer.adan import Adan
 from pytorch_optimizer.optimizer.adapnm import AdaPNM
 from pytorch_optimizer.optimizer.agc import agc
+from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptSGD
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.diffrgrad import DiffRGrad
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
@@ -40,6 +41,21 @@ from pytorch_optimizer.optimizer.ranger21 import Ranger21
 from pytorch_optimizer.optimizer.sam import SAM
 from pytorch_optimizer.optimizer.sgdp import SGDP
 from pytorch_optimizer.optimizer.shampoo import Shampoo
+from pytorch_optimizer.optimizer.shampoo_utils import (
+    AdaGradGraft,
+    BlockPartitioner,
+    Graft,
+    LayerWiseGrafting,
+    PreConditioner,
+    PreConditionerType,
+    RMSPropGraft,
+    SGDGraft,
+    SQRTNGraft,
+    compute_power,
+    matrix_power,
+    merge_small_dims,
+    power_iter,
+)
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
     disable_running_stats,
@@ -69,6 +85,9 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Ranger21,
     SGDP,
     Shampoo,
+    DAdaptAdaGrad,
+    DAdaptAdam,
+    DAdaptSGD,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

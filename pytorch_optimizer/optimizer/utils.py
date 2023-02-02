@@ -22,6 +22,11 @@ def has_overflow(grad_norm: torch.Tensor) -> bool:
     return grad_norm != grad_norm or grad_norm == float('inf')  # pylint: disable=comparison-with-itself
 
 
+def to_real(x: torch.Tensor) -> torch.Tensor:
+    r"""Return real value of tensor."""
+    return x.real if torch.is_complex(x) else x
+
+
 def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> torch.Tensor:
     r"""Normalize gradient with stddev.
 
@@ -224,147 +229,3 @@ def enable_running_stats(model):
             module.momentum = module.backup_momentum
 
     model.apply(_enable)
-
-
-@torch.no_grad()
-def power_iter(
-    mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 100
-) -> Tuple[torch.Tensor, torch.Tensor, int]:
-    r"""Power iteration.
-
-        Compute the maximum eigenvalue of mat, for scaling. v is a random vector with values in (-1, 1).
-
-    :param mat_g: torch.Tensor. the symmetric PSD matrix.
-    :param error_tolerance: float. Iterative exit condition.
-    :param num_iters: int. Number of iterations.
-    """
-    v: torch.Tensor = torch.rand(list(mat_g.shape)[0], device=mat_g.device) * 2 - 1
-
-    error: torch.Tensor = 1.0
-    iters: int = 0
-    singular_val: torch.Tensor = 0
-    while error > error_tolerance and iters < num_iters:
-        v.div_(v.norm())
-        mat_v = torch.mv(mat_g, v)
-        s_v = torch.dot(v, mat_v)
-        error = torch.abs(s_v - singular_val)
-        v.copy_(mat_v)
-        singular_val = s_v
-        iters += 1
-
-    return singular_val, v / torch.norm(v), iters
-
-
-@torch.no_grad()
-def mat_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
-    r"""Compute mat_m^{p}.
-
-    :param mat_m: torch.Tensor. a square matrix.
-    :param p: int. a positive integer.
-    """
-    if p in (1, 2, 4, 8, 16, 32):
-        p_done: int = 1
-        res = mat_m
-        while p_done < p:
-            res = torch.matmul(res, res)
-            p_done *= 2
-        return res
-
-    power: Optional[torch.Tensor] = None
-    while p > 0:
-        if p % 2 == 1:
-            power = torch.matmul(mat_m, power) if power is not None else mat_m
-        p //= 2
-        mat_m = torch.matmul(mat_m, mat_m)
-    return power
-
-
-@torch.no_grad()
-def compute_power(
-    mat_g: torch.Tensor,
-    p: int,
-    iter_count: int = 100,
-    error_tolerance: float = 1e-6,
-    ridge_epsilon: float = 1e-6,
-    max_error_ratio: float = 1.2,
-) -> torch.Tensor:
-    r"""Compute G^{-1/p} using a coupled Newton iteration.
-
-        See for example equation 3.2 on page 9 of:
-            A Schur-Newton Method for the Matrix p-th Root and its Inverse by Chun-Hua Guo and Nicholas J. Higham
-            SIAM Journal on Matrix Analysis and Applications, 2006, Vol. 28, No. 3 : pp. 788-804
-            https://pdfs.semanticscholar.org/0abe/7f77433cf5908bfe2b79aa91af881da83858.pdf.
-
-    :param mat_g: torch.Tensor. A square positive semi-definite matrix.
-    :param p: int. a positive integer.
-    :param iter_count: int. Stop iterating after this many rounds.
-    :param error_tolerance: float. Threshold for stopping iteration.
-    :param ridge_epsilon: float. We add this times I to G, to make is positive definite. For scaling,
-        we multiply it by the largest eigenvalue of G.
-    :param max_error_ratio: float. Sometimes error increases after an iteration before decreasing and converging.
-        1.2 factor is used to bound the maximal allowed increase.
-    """
-    shape: List[int] = list(mat_g.shape)
-    if len(shape) == 1:
-        return torch.pow(mat_g + ridge_epsilon, -1 / p)
-
-    identity = torch.eye(shape[0], device=mat_g.device)
-    if shape[0] == 1:
-        return identity
-
-    max_ev, _, _ = power_iter(mat_g)
-    ridge_epsilon *= max_ev
-    mat_g += ridge_epsilon * identity
-
-    z: torch.Tensor = (1 + p) / (2 * torch.norm(mat_g))
-
-    mat_root = identity * torch.pow(z, 1.0 / p)
-    mat_m = mat_g * z
-
-    alpha: float = -1.0 / p
-    error = torch.max(torch.abs(mat_m - identity))
-    count: int = 0
-    while error > error_tolerance and count < iter_count:
-        tmp_mat_m = (1 - alpha) * identity + alpha * mat_m
-        new_mat_root = torch.matmul(mat_root, tmp_mat_m)
-        mat_m = torch.matmul(mat_power(tmp_mat_m, p), mat_m)
-
-        new_error = torch.max(torch.abs(mat_m - identity))
-        if new_error > error * max_error_ratio:
-            break
-
-        mat_root = new_mat_root
-        error = new_error
-        count += 1
-
-    return mat_root
-
-
-def merge_small_dims(shape_to_merge: List[int], max_dim: int) -> List[int]:
-    r"""Merge small dimensions.
-
-        If there are some small dimensions, we collapse them
-            e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if max_dim = 1024
-            [1, 2, 768, 1, 2048] --> [2, 768, 2048].
-
-    :param shape_to_merge: List. Shape to merge small dimensions.
-    :param max_dim: int. Maximal dimension of output shape used in merging.
-    """
-    if shape_to_merge and np.all(np.array(shape_to_merge) == 1):
-        return [1]
-
-    resulting_shape: List[int] = []
-
-    product: int = 1
-    for d in shape_to_merge:
-        if product * d <= max_dim:
-            product *= d
-        else:
-            if product > 1:
-                resulting_shape.append(product)
-            product = d
-
-    if product > 1:
-        resulting_shape.append(product)
-
-    return resulting_shape

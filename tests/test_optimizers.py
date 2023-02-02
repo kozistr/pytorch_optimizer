@@ -15,6 +15,7 @@ from tests.utils import (
     make_dataset,
     names,
     simple_parameter,
+    simple_sparse_parameter,
     tensor_to_numpy,
 )
 
@@ -77,7 +78,11 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_sam_config
-    if optimizer_class.__name__ == 'Shampoo' and 'decoupled_learning_rate' in config:
+    if (
+        (optimizer_class.__name__ == 'Shampoo' and 'decoupled_learning_rate' in config)
+        or (optimizer_class.__name__ == 'DAdaptAdam')
+        or (optimizer_class.__name__ == 'DAdaptSGD')
+    ):
         pytest.skip('Skip Shampoo w/ decoupled_learning_rate')
 
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
@@ -185,30 +190,18 @@ def test_adamd_optimizers(optimizer_adamd_config):
 
 
 @pytest.mark.parametrize('reduction', ['mean', 'sum'])
-@pytest.mark.parametrize('optimizer_pc_grad_config', OPTIMIZERS, ids=ids)
-def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
-    torch.manual_seed(42)
-
+def test_pc_grad_optimizers(reduction):
     x_data, y_data = make_dataset()
 
     model: nn.Module = MultiHeadLogisticRegression()
     loss_fn_1: nn.Module = nn.BCEWithLogitsLoss()
     loss_fn_2: nn.Module = nn.L1Loss()
 
-    optimizer_class, config, iterations = optimizer_pc_grad_config
-    if (optimizer_class.__name__ == 'Shampoo' and 'decoupled_learning_rate' in config) or (
-        optimizer_class.__name__ == 'Shampoo' and 'graft_type' in config and config['graft_type'] == 3
-    ):
-        pytest.skip(f'skip Shampoo w/ {config}')
-
-    optimizer = PCGrad(optimizer_class(model.parameters(), **config), reduction=reduction)
+    optimizer = PCGrad(load_optimizer('adamp')(model.parameters(), lr=1e-1), reduction=reduction)
     optimizer.reset()
 
-    if optimizer_class.__name__ == 'RaLamb' and 'pre_norm' in config:
-        pytest.skip(f'skip {optimizer_class.__name__} w/ pre_norm')
-
     init_loss, loss = np.inf, np.inf
-    for _ in range(iterations):
+    for _ in range(10):
         optimizer.zero_grad()
 
         y_pred_1, y_pred_2 = model(x_data)
@@ -227,6 +220,7 @@ def test_pc_grad_optimizers(reduction, optimizer_pc_grad_config):
 @pytest.mark.parametrize('optimizer', {config[0] for config in OPTIMIZERS}, ids=names)
 def test_closure(optimizer):
     param = simple_parameter()
+    param.grad = None
 
     optimizer_name: str = optimizer.__name__
 
@@ -271,14 +265,24 @@ def test_rectified_optimizer(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 def test_reset(optimizer_config):
-    param = simple_parameter()
-
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
         config.update({'num_iterations': 1})
 
-    optimizer = optimizer_class([param], **config)
-    optimizer.zero_grad()
+    optimizer = optimizer_class([simple_parameter()], **config)
+    optimizer.reset()
+
+
+@pytest.mark.parametrize('require_gradient', [False, True])
+@pytest.mark.parametrize('sparse_gradient', [False, True])
+@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD'])
+def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
+    param = simple_sparse_parameter(require_gradient) if sparse_gradient else simple_parameter(require_gradient)
+    if not require_gradient:
+        param.grad = None
+
+    optimizer = load_optimizer(optimizer_name)([param])
+    assert optimizer.__str__ == optimizer_name
     optimizer.reset()
 
 

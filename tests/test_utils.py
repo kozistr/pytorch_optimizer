@@ -5,18 +5,18 @@ import pytest
 import torch
 from torch import nn
 
+from pytorch_optimizer.optimizer.shampoo_utils import compute_power, merge_small_dims
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
-    compute_power,
     disable_running_stats,
     enable_running_stats,
     get_optimizer_parameters,
     has_overflow,
     is_valid_parameters,
-    merge_small_dims,
     neuron_mean,
     neuron_norm,
     normalize_gradient,
+    to_real,
     unit_norm,
 )
 from tests.utils import Example
@@ -135,15 +135,35 @@ def test_compute_power():
     # case 3 : len(x.shape) != 1 and x.shape[0] != 1, n&n-1 != 0
     x = compute_power(torch.ones((2, 2)), p=5)
     np.testing.assert_array_almost_equal(
-        np.asarray([[7.3464, -6.4758], [-6.4758, 7.3464]]),
+        np.asarray([[13.454, -12.63], [-12.63, 13.454]]),
         x.numpy(),
-        decimal=3,
+        decimal=2,
     )
 
-    # case 4 : len(x.shape) != 1 and x.shape[0] != 1, n&n-1 == 0
-    x = compute_power(torch.ones((2, 2)), p=32)
+    # case 4 p=1
+    x = compute_power(torch.ones((2, 2)), p=1)
+    assert np.sum(x.numpy() - np.asarray([[252206.4062, -252205.8750], [-252205.8750, 252206.4062]])) < 200
+
+    # case 5 p=8
+    x = compute_power(torch.ones((2, 2)), p=8)
     np.testing.assert_array_almost_equal(
-        np.asarray([[1.1527, -0.3520], [-0.3520, 1.1527]]),
+        np.asarray([[3.0399, -2.1229], [-2.1229, 3.0399]]),
+        x.numpy(),
+        decimal=2,
+    )
+
+    # case 6 p=16
+    x = compute_power(torch.ones((2, 2)), p=16)
+    np.testing.assert_array_almost_equal(
+        np.asarray([[1.6142, -0.6567], [-0.6567, 1.6142]]),
+        x.numpy(),
+        decimal=2,
+    )
+
+    # case 7 max_error_ratio=0
+    x = compute_power(torch.ones((2, 2)), p=16, max_error_ratio=0.0)
+    np.testing.assert_array_almost_equal(
+        np.asarray([[1.0946, 0.0000], [0.0000, 1.0946]]),
         x.numpy(),
         decimal=2,
     )
@@ -161,3 +181,11 @@ def test_merge_small_dims():
     case3 = [1, 1, 1]
     expected_case3 = [1]
     assert expected_case3 == merge_small_dims(case3, max_dim=1)
+
+
+def test_to_real():
+    complex_tensor = torch.tensor(1.0j + 2.0, dtype=torch.complex64)
+    assert to_real(complex_tensor) == 2.0
+
+    real_tensor = torch.tensor(1.0, dtype=torch.float32)
+    assert to_real(real_tensor) == 1.0

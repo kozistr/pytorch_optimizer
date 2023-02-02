@@ -4,7 +4,7 @@ import torch
 from pytorch_optimizer import SAM, AdamP, Lookahead, load_optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
-from tests.utils import build_environment, simple_parameter
+from tests.utils import build_environment, simple_parameter, simple_sparse_parameter
 
 
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead'])
@@ -34,8 +34,7 @@ def test_no_gradients(optimizer_name):
 
 @pytest.mark.parametrize('no_sparse_optimizer', NO_SPARSE_OPTIMIZERS)
 def test_sparse_not_supported(no_sparse_optimizer):
-    param = torch.randn(1, 1).to_sparse(1).requires_grad_(True)
-    param.grad = torch.randn(1, 1).to_sparse(1)
+    param = simple_sparse_parameter()
 
     opt = load_optimizer(optimizer=no_sparse_optimizer)
     optimizer = opt([param], num_iterations=1) if no_sparse_optimizer == 'ranger21' else opt([param])
@@ -48,32 +47,31 @@ def test_sparse_not_supported(no_sparse_optimizer):
 
 @pytest.mark.parametrize('sparse_optimizer', SPARSE_OPTIMIZERS)
 def test_sparse_supported(sparse_optimizer):
-    param = torch.randn(1, 1).to_sparse(1).requires_grad_(True)
-    param.grad = torch.randn(1, 1).to_sparse(1)
+    param = simple_sparse_parameter()
+    opt = load_optimizer(optimizer=sparse_optimizer)
 
-    optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0)
+    optimizer = opt([param], momentum=0.0)
     optimizer.zero_grad()
     optimizer.step()
 
-    optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0, eps=0.0)
+    optimizer = opt([param], momentum=0.0, eps=0.0)
+    optimizer.reset()
     optimizer.zero_grad()
     optimizer.step()
 
-    optimizer = load_optimizer(optimizer=sparse_optimizer)([param], momentum=0.0, weight_decay=1e-3)
+    optimizer = opt([param], momentum=0.0, weight_decay=1e-3)
+    optimizer.reset()
     optimizer.zero_grad()
 
-    with pytest.raises(NoSparseGradientError) as error_info:
+    if sparse_optimizer == 'madgrad':
+        with pytest.raises(NoSparseGradientError):
+            optimizer.step()
+    else:
         optimizer.step()
-
-    assert str(error_info.value) == '[-] MADGRAD w/ weight_decay does not support sparse gradient.'
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_bf16_gradient(optimizer_name):
-    # "addcmul_cpu_out" & "eye" not implemented for fp16, bfp16 but gpu op only
-    if optimizer_name in ('shampoo',):
-        pytest.skip(optimizer_name)
-
     param = torch.randn(1, 1).bfloat16().requires_grad_(True)
     param.grad = torch.randn(1, 1).bfloat16()
 
