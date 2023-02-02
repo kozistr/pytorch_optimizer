@@ -66,7 +66,7 @@ class SQRTNGraft(Graft):
         return torch.ones_like(grad) * torch.sign(grad)
 
 
-class AdagradGraft(SGDGraft):
+class AdaGradGraft(SGDGraft):
     r"""Graft using Adagrad. Essentially an implementation of Adagrad with momentum.
 
     :param var: torch.Tensor. variable.
