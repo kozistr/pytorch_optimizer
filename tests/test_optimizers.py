@@ -5,7 +5,7 @@ from torch import nn
 
 from pytorch_optimizer import GSAM, SAM, CosineScheduler, Lookahead, PCGrad, ProportionScheduler, load_optimizer
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
-from pytorch_optimizer.optimizer.shampoo_utils import BlockPartitioner
+from pytorch_optimizer.optimizer.shampoo_utils import BlockPartitioner, PreConditioner
 from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
 from tests.utils import (
     MultiHeadLogisticRegression,
@@ -305,6 +305,15 @@ def test_shampoo_optimizer(pre_conditioner_type):
     loss_fn(y_pred, y_data).backward()
 
     optimizer.step()
+
+
+def test_shampoo_pre_conditioner():
+    var = torch.zeros((1024, 128))
+    grad = torch.zeros((1024, 128))
+
+    pre_conditioner = PreConditioner(var, 0.9, 0, 128, 8192, True, 1e-6, use_svd=False)
+    pre_conditioner.add_statistics(grad)
+    pre_conditioner.compute_pre_conditioners()
 
 
 def test_shampoo_block_partitioner():
