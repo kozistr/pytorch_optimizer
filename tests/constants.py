@@ -56,6 +56,7 @@ NO_SPARSE_OPTIMIZERS: List[str] = [
     'pnm',
     'dadaptadam',
     'dadaptsgd',
+    'adams',
 ]
 VALID_OPTIMIZER_NAMES: List[str] = [
     'adamp',
