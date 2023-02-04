@@ -26,7 +26,7 @@ class AdamS(Optimizer, BaseOptimizer):
         self,
         params: PARAMETERS,
         lr: float = 1e-3,
-        betas: BETAS = (0.1, 0.99),
+        betas: BETAS = (0.9, 0.999),
         weight_decay: float = 1e-4,
         amsgrad: bool = False,
         adamd_debias_term: bool = False,
