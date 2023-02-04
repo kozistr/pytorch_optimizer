@@ -6,7 +6,6 @@ from torch.optim.optimizer import Optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
 class AdamS(Optimizer, BaseOptimizer):
@@ -16,7 +15,6 @@ class AdamS(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param amsgrad: bool. whether to use the AMSGrad variant of this algorithm from the paper.
     :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
@@ -138,11 +136,7 @@ class AdamS(Optimizer, BaseOptimizer):
                 bias_correction1 = 1.0 - beta1 ** state['step']
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
-                if self.amsgrad:
-                    max_exp_avg_sq = state['max_exp_avg_sq']
-                    exp_avg_sq_hat = max_exp_avg_sq
-                else:
-                    exp_avg_sq_hat = exp_avg_sq
+                exp_avg_sq_hat = state['max_exp_avg_sq'] if self.amsgrad else exp_avg_sq
                 exp_avg_sq_hat.div_(bias_correction2)
 
                 de_nom = exp_avg_sq_hat.sqrt().add(group['eps'])
