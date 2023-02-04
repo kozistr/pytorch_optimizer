@@ -200,9 +200,10 @@ class Shampoo(Optimizer, BaseOptimizer):
                     shampoo_grad = pre_conditioner.preconditioned_grad(grad)
 
                 # grafting
-                graft_norm = torch.norm(graft_grad)
-                shampoo_norm = torch.norm(shampoo_grad)
                 if self.graft_type != LayerWiseGrafting.NONE:
+                    graft_norm = torch.norm(graft_grad)
+                    shampoo_norm = torch.norm(shampoo_grad)
+
                     shampoo_grad.mul_(graft_norm / (shampoo_norm + 1e-16))
 
                 # apply weight decay (adam style)
