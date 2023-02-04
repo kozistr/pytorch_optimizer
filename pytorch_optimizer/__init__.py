@@ -18,6 +18,7 @@ from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
 from pytorch_optimizer.optimizer.adai import Adai
 from pytorch_optimizer.optimizer.adamp import AdamP
+from pytorch_optimizer.optimizer.adams import AdamS
 from pytorch_optimizer.optimizer.adan import Adan
 from pytorch_optimizer.optimizer.adapnm import AdaPNM
 from pytorch_optimizer.optimizer.agc import agc
@@ -88,6 +89,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     DAdaptAdaGrad,
     DAdaptAdam,
     DAdaptSGD,
+    AdamS,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

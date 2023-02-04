@@ -224,3 +224,11 @@ DAdaptSGD
 
 .. autoclass:: pytorch_optimizer.DAdaptSGD
     :members:
+
+.. _AdamS:
+
+AdamS
+-----
+
+.. autoclass:: pytorch_optimizer.AdamS
+    :members:
