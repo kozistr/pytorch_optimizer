@@ -45,6 +45,7 @@ class Shampoo(Optimizer, BaseOptimizer):
     :param nesterov: bool. Nesterov momentum.
     :param diagonal_eps: float. term added to the denominator to improve numerical stability.
     :param matrix_eps: float. term added to the denominator to improve numerical stability.
+    :param use_svd: bool. use SVD instead of Schur-Newton method to calculate M^{-1/p}.
     """
 
     def __init__(
@@ -68,6 +69,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         nesterov: bool = True,
         diagonal_eps: float = 1e-10,
         matrix_eps: float = 1e-6,
+        use_svd: bool = True,
     ):
         self.lr = lr
         self.betas = betas
@@ -87,6 +89,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         self.nesterov = nesterov
         self.diagonal_eps = diagonal_eps
         self.matrix_eps = matrix_eps
+        self.use_svd = use_svd
 
         self.validate_parameters()
 
@@ -128,6 +131,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                     self.shape_interpretation,
                     self.matrix_eps,
                     self.pre_conditioner_type,
+                    self.use_svd,
                 )
                 if self.graft_type == LayerWiseGrafting.ADAGRAD:
                     state['graft'] = AdaGradGraft(p, self.diagonal_eps)
@@ -173,6 +177,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                         self.shape_interpretation,
                         self.matrix_eps,
                         self.pre_conditioner_type,
+                        self.use_svd,
                     )
                     if self.graft_type == LayerWiseGrafting.ADAGRAD:
                         state['graft'] = AdaGradGraft(p, self.diagonal_eps)
