@@ -17,6 +17,7 @@ class Adai(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param f: bool. perform stable weight decay.
     :param dampening: float. dampening for momentum. where dampening < 1,
         it will show some adaptive-moment behavior.
     :param use_gc: bool. use gradient centralization.
@@ -30,6 +31,7 @@ class Adai(Optimizer, BaseOptimizer):
         betas: BETAS = (0.1, 0.99),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
+        use_stable_weight_decay: bool = False,
         dampening: float = 1.0,
         use_gc: bool = False,
         eps: float = 1e-3,
@@ -38,6 +40,7 @@ class Adai(Optimizer, BaseOptimizer):
         self.betas = betas
         self.weight_decay = weight_decay
         self.weight_decouple = weight_decouple
+        self.use_stable_weight_decay = use_stable_weight_decay
         self.dampening = dampening
         self.use_gc = use_gc
         self.eps = eps
@@ -111,7 +114,7 @@ class Adai(Optimizer, BaseOptimizer):
 
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
-                if group['weight_decay'] > 0.0:
+                if not self.use_stable_weight_decay and group['weight_decay'] > 0.0:
                     if self.weight_decouple:
                         p.mul_(1.0 - group['lr'] * group['weight_decay'])
                     else:
@@ -137,8 +140,13 @@ class Adai(Optimizer, BaseOptimizer):
                 grad = p.grad
                 state = self.state[p]
 
+                if self.use_stable_weight_decay and group['weight_decay'] > 0.0:
+                    if self.weight_decouple:
+                        p.mul_(1.0 - group['lr'] * group['weight_decay'])
+                    else:
+                        grad.add_(p, alpha=group['weight_decay'])
+
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                beta1_prod = state['beta1_prod']
 
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
@@ -148,11 +156,13 @@ class Adai(Optimizer, BaseOptimizer):
                 ).clamp(0.0, 1.0 - group['eps'])
                 beta3 = (1.0 - beta1).pow(group['dampening'])
 
+                beta1_prod = state['beta1_prod']
                 beta1_prod.mul_(beta1)
+
                 bias_correction1 = 1.0 - beta1_prod
 
                 exp_avg.mul_(beta1).addcmul_(beta3, grad)
-                exp_avg_hat = exp_avg / bias_correction1 * beta0_dp
+                exp_avg_hat = exp_avg.div(bias_correction1).mul(beta0_dp)
 
                 p.add_(exp_avg_hat, alpha=-group['lr'])
 
