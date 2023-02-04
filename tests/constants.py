@@ -9,6 +9,7 @@ from pytorch_optimizer import (
     AdaBound,
     Adai,
     AdamP,
+    AdamS,
     Adan,
     AdaPNM,
     DAdaptAdaGrad,
@@ -79,6 +80,7 @@ VALID_OPTIMIZER_NAMES: List[str] = [
     'dadaptadagrad',
     'dadaptadam',
     'dadaptsgd',
+    'adams',
 ]
 INVALID_OPTIMIZER_NAMES: List[str] = [
     'asam',
@@ -105,6 +107,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'adai',
     'shampoo',
     'dadaptadam',
+    'adams',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -188,6 +191,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (DAdaptAdam, {'lr': 1.0, 'weight_decay': 1e-2, 'weight_decouple': True}, 50),
     (DAdaptSGD, {'lr': 1.0, 'weight_decay': 1e-2}, 50),
     (DAdaptSGD, {'lr': 1.0, 'momentum': 0.9, 'weight_decay': 1e-3}, 50),
+    (AdamS, {'lr': 1.0, 'weight_decay': 1e-3}, 50),
+    (AdamS, {'lr': 1.0, 'weight_decay': 1e-3, 'amsgrad': True}, 50),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 10),
@@ -202,4 +207,5 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 100),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True, 'num_iterations': 200}, 200),
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 50),
+    (AdamS, {'lr': 1e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 50),
 ]
