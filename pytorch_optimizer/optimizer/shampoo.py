@@ -140,6 +140,9 @@ class Shampoo(Optimizer, BaseOptimizer):
                 else:
                     state['graft'] = Graft(p)
 
+    def is_precondition_step(self, step: int) -> bool:
+        return step >= self.start_preconditioning_step
+
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
@@ -185,6 +188,8 @@ class Shampoo(Optimizer, BaseOptimizer):
                 state['step'] += 1
                 pre_conditioner, graft = state['pre_conditioner'], state['graft']
 
+                is_precondition_step: bool = self.is_precondition_step(state['step'])
+
                 # gather statistics, compute pre-conditioners
                 graft.add_statistics(grad, beta2)
                 if state['step'] % self.statistics_compute_steps == 0:
@@ -196,7 +201,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                 pre_conditioner_multiplier: float = group['lr'] if not self.decoupled_learning_rate else 1.0
                 graft_grad: torch.Tensor = graft.precondition_gradient(grad * pre_conditioner_multiplier)
                 shampoo_grad: torch.Tensor = grad
-                if state['step'] >= self.start_preconditioning_step:
+                if is_precondition_step:
                     shampoo_grad = pre_conditioner.preconditioned_grad(grad)
 
                 # grafting
@@ -219,7 +224,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                 state['momentum'].mul_(beta1).add_(shampoo_grad)
                 graft_momentum = graft.update_momentum(grad, beta1)
 
-                if state['step'] >= self.start_preconditioning_step:
+                if is_precondition_step:
                     momentum_update = state['momentum']
                     wd_update = shampoo_grad
                 else:
