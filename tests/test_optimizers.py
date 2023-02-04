@@ -227,7 +227,7 @@ def test_closure(optimizer):
     optimizer = optimizer([param], num_iterations=1) if optimizer_name == 'Ranger21' else optimizer([param])
     optimizer.zero_grad()
 
-    if optimizer_name in ('Ranger21', 'Adai'):
+    if optimizer_name in ('Ranger21', 'Adai', 'AdamS'):
         with pytest.raises(ZeroParameterSizeError):
             optimizer.step(closure=dummy_closure)
     else:
