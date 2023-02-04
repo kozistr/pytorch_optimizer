@@ -154,12 +154,20 @@ matrix_power
 .. autoclass:: pytorch_optimizer.matrix_power
     :members:
 
-.. _compute_power:
+.. _compute_power_schur_newton:
 
-compute_power
--------------
+compute_power_schur_newton
+--------------------------
 
-.. autoclass:: pytorch_optimizer.compute_power
+.. autoclass:: pytorch_optimizer.compute_power_schur_newton
+    :members:
+
+.. _compute_power_svd:
+
+compute_power_svd
+-----------------
+
+.. autoclass:: pytorch_optimizer.compute_power_svd
     :members:
 
 .. _merge_small_dims:
