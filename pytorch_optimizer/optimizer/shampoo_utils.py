@@ -461,16 +461,16 @@ def compute_power_schur_newton(
 def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
     r"""Compute G^{-1/p} using a SVD.
 
+        Calculate SVD on the GPU. Sometimes, SVD on the CPU is faster than GPU, but based on the several experiments,
+        CUDA seems much faster than on CPU.
+
     :param matrix: torch.Tensor. a square positive semi-definite matrix.
     :param power: float. -1.0 / order.
     """
-    matrix_device = matrix.device
-
-    # calculate SVD on the CPU to speed up
-    u, s, vh = torch.linalg.svd(matrix.cpu(), full_matrices=False)
+    u, s, vh = torch.linalg.svd(matrix, full_matrices=False)
     v = vh.transpose(-2, -1).conj()
 
-    return (u @ s.pow_(power).diag() @ v.t()).to(matrix_device)
+    return u @ s.pow_(power).diag() @ v.t()
 
 
 def merge_small_dims(shape_to_merge: List[int], max_dim: int) -> List[int]:
