@@ -148,6 +148,6 @@ class AdamS(Optimizer, BaseOptimizer):
                 de_nom = exp_avg_sq_hat.sqrt().add(group['eps'])
 
                 step_size = group['lr'] if self.adamd_debias_term else group['lr'] / bias_correction1
-                p.addcdiv_(exp_avg, de_nom, alpha=-step_size)
+                p.addcdiv_(exp_avg, de_nom, value=-step_size)
 
         return loss
