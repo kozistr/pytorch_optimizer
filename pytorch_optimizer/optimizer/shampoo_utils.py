@@ -203,7 +203,7 @@ class PreConditioner:
     :param shape_interpretation: bool.
     :param matrix_eps: float.
     :param pre_conditioner_type: int. type of pre-conditioner.
-    :param use_svd: bool. use SVD instead of Schur-Newton method to calculate M^{-1/p}
+    :param use_svd: bool. use SVD instead of Schur-Newton method to calculate M^{-1/p}.
     """
 
     def __init__(
@@ -459,6 +459,11 @@ def compute_power_schur_newton(
 
 @torch.no_grad()
 def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
+    r"""Compute G^{-1/p} using a SVD.
+
+    :param matrix: torch.Tensor. a square positive semi-definite matrix.
+    :param power: float. -1.0 / order.
+    """
     matrix_device = matrix.device
 
     # calculate SVD on the CPU to speed up
