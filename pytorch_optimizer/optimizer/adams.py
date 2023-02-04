@@ -28,7 +28,6 @@ class AdamS(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.1, 0.99),
         weight_decay: float = 1e-4,
-        weight_decouple: bool = False,
         amsgrad: bool = False,
         adamd_debias_term: bool = False,
         eps: float = 1e-8,
@@ -36,7 +35,6 @@ class AdamS(Optimizer, BaseOptimizer):
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
-        self.weight_decouple = weight_decouple
         self.amsgrad = amsgrad
         self.adamd_debias_term = adamd_debias_term
         self.eps = eps
@@ -130,14 +128,10 @@ class AdamS(Optimizer, BaseOptimizer):
                 if p.grad is None:
                     continue
 
-                grad = p.grad
                 state = self.state[p]
 
                 if group['weight_decay'] > 0.0:
-                    if self.weight_decouple:
-                        p.mul_(1.0 - group['lr'] * group['weight_decay'])
-                    else:
-                        grad.add_(p, alpha=group['weight_decay'])
+                    p.mul_(1.0 - group['lr'] * group['weight_decay'] / exp_avg_sq_hat_mean)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
