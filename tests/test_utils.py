@@ -168,6 +168,14 @@ def test_compute_power():
         decimal=2,
     )
 
+    # case 8 p=2
+    x = compute_power_schur_newton(torch.ones((2, 2)), p=2)
+    np.testing.assert_array_almost_equal(
+        np.asarray([[359.1108, -358.4036], [-358.4036, 359.1108]]),
+        x.numpy(),
+        decimal=2,
+    )
+
 
 def test_merge_small_dims():
     case1 = [1, 2, 512, 1, 2048, 1, 3, 4]
