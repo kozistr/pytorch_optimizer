@@ -186,7 +186,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Nero, {'lr': 5e-1, 'constraints': False}, 50),
     (Adan, {'lr': 5e-1}, 100),
     (Adan, {'lr': 5e-1, 'max_grad_norm': 1.0}, 100),
-    (Adan, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 200),
+    (Adan, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 150),
     (Adan, {'lr': 1e-1, 'weight_decay': 1e-3, 'use_gc': True, 'weight_decouple': True}, 100),
     (DAdaptAdaGrad, {'lr': 1.0, 'weight_decay': 1e-2}, 150),
     (DAdaptAdaGrad, {'lr': 1.0, 'weight_decay': 1e-2, 'momentum': 0.1}, 150),
