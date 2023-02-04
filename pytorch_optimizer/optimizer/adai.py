@@ -18,8 +18,7 @@ class Adai(Optimizer, BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param use_stable_weight_decay: bool. perform stable weight decay.
-    :param dampening: float. dampening for momentum. where dampening < 1,
-        it will show some adaptive-moment behavior.
+    :param dampening: float. dampening for momentum. where dampening < 1, it will show some adaptive-moment behavior.
     :param use_gc: bool. use gradient centralization.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
