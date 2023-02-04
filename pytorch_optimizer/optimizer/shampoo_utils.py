@@ -203,6 +203,7 @@ class PreConditioner:
     :param shape_interpretation: bool.
     :param matrix_eps: float.
     :param pre_conditioner_type: int. type of pre-conditioner.
+    :param use_svd: bool. use SVD instead of Schur-Newton method to calculate M^{-1/p}
     """
 
     def __init__(
@@ -215,12 +216,14 @@ class PreConditioner:
         shape_interpretation: bool,
         matrix_eps: float,
         pre_conditioner_type: int = PreConditionerType.ALL,
+        use_svd: bool = True,
     ):
         self.beta2 = beta2
         self.inverse_exponent_override = inverse_exponent_override
         self.no_preconditioning_for_layers_with_dim_gt = no_preconditioning_for_layers_with_dim_gt
         self.matrix_eps = matrix_eps
         self.pre_conditioner_type = pre_conditioner_type
+        self.use_svd = use_svd
 
         self.original_shape: List[int] = var.shape
         self.transformed_shape: List[int] = var.shape
@@ -273,9 +276,12 @@ class PreConditioner:
     def compute_pre_conditioners(self):
         r"""Compute L^{-1/exp} for each stats matrix L."""
         for i, stat in enumerate(self.statistics):
-            self.pre_conditioners[i] = compute_power(
-                mat_g=stat, p=self.exponent_for_pre_conditioner, ridge_epsilon=self.matrix_eps
-            )
+            if self.use_svd:
+                self.pre_conditioners[i] = compute_power_svd(stat, -1.0 / self.exponent_for_pre_conditioner)
+            else:
+                self.pre_conditioners[i] = compute_power_schur_newton(
+                    mat_g=stat, p=self.exponent_for_pre_conditioner, ridge_epsilon=self.matrix_eps
+                )
 
     @staticmethod
     def precondition_block(
@@ -382,7 +388,7 @@ def matrix_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
 
 
 @torch.no_grad()
-def compute_power(
+def compute_power_schur_newton(
     mat_g: torch.Tensor,
     p: int,
     iter_count: int = 100,
@@ -449,6 +455,17 @@ def compute_power(
         count += 1
 
     return mat_root
+
+
+@torch.no_grad()
+def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
+    matrix_device = matrix.device
+
+    # calculate SVD on the CPU to speed up
+    u, s, vh = torch.linalg.svd(matrix.cpu(), full_matrices=False)
+    v = vh.transpose(-2, -1).conj()
+
+    return (u @ s.pow_(power).diag() @ v.t()).to(matrix_device)
 
 
 def merge_small_dims(shape_to_merge: List[int], max_dim: int) -> List[int]:
