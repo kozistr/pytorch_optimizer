@@ -5,7 +5,7 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer.optimizer.shampoo_utils import compute_power, merge_small_dims
+from pytorch_optimizer.optimizer.shampoo_utils import compute_power_schur_newton, merge_small_dims
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
     disable_running_stats,
@@ -125,15 +125,15 @@ def test_running_stats():
 
 def test_compute_power():
     # case 1 : len(x.shape) == 1
-    x = compute_power(torch.zeros((1,)), p=1)
+    x = compute_power_schur_newton(torch.zeros((1,)), p=1)
     assert torch.tensor([1000000.0]) == x
 
     # case 2 : len(x.shape) != 1 and x.shape[0] == 1
-    x = compute_power(torch.zeros((1, 2)), p=1)
+    x = compute_power_schur_newton(torch.zeros((1, 2)), p=1)
     assert torch.tensor([1.0]) == x
 
     # case 3 : len(x.shape) != 1 and x.shape[0] != 1, n&n-1 != 0
-    x = compute_power(torch.ones((2, 2)), p=5)
+    x = compute_power_schur_newton(torch.ones((2, 2)), p=5)
     np.testing.assert_array_almost_equal(
         np.asarray([[13.454, -12.63], [-12.63, 13.454]]),
         x.numpy(),
@@ -141,11 +141,11 @@ def test_compute_power():
     )
 
     # case 4 p=1
-    x = compute_power(torch.ones((2, 2)), p=1)
+    x = compute_power_schur_newton(torch.ones((2, 2)), p=1)
     assert np.sum(x.numpy() - np.asarray([[252206.4062, -252205.8750], [-252205.8750, 252206.4062]])) < 200
 
     # case 5 p=8
-    x = compute_power(torch.ones((2, 2)), p=8)
+    x = compute_power_schur_newton(torch.ones((2, 2)), p=8)
     np.testing.assert_array_almost_equal(
         np.asarray([[3.0399, -2.1229], [-2.1229, 3.0399]]),
         x.numpy(),
@@ -153,7 +153,7 @@ def test_compute_power():
     )
 
     # case 6 p=16
-    x = compute_power(torch.ones((2, 2)), p=16)
+    x = compute_power_schur_newton(torch.ones((2, 2)), p=16)
     np.testing.assert_array_almost_equal(
         np.asarray([[1.6142, -0.6567], [-0.6567, 1.6142]]),
         x.numpy(),
@@ -161,7 +161,7 @@ def test_compute_power():
     )
 
     # case 7 max_error_ratio=0
-    x = compute_power(torch.ones((2, 2)), p=16, max_error_ratio=0.0)
+    x = compute_power_schur_newton(torch.ones((2, 2)), p=16, max_error_ratio=0.0)
     np.testing.assert_array_almost_equal(
         np.asarray([[1.0946, 0.0000], [0.0000, 1.0946]]),
         x.numpy(),
