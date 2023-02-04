@@ -118,7 +118,7 @@ class AdamS(Optimizer, BaseOptimizer):
         if param_size == 0:
             raise ZeroParameterSizeError()
 
-        exp_avg_sq_hat_mean = math.sqrt(exp_avg_sq_hat_sum / param_size)
+        exp_avg_sq_hat_mean = math.sqrt(exp_avg_sq_hat_sum / param_size) + self.eps
 
         for group in self.param_groups:
             beta1, beta2 = group['betas']
