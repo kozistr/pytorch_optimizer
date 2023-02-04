@@ -276,12 +276,13 @@ class PreConditioner:
     def compute_pre_conditioners(self):
         r"""Compute L^{-1/exp} for each stats matrix L."""
         for i, stat in enumerate(self.statistics):
-            if self.use_svd:
-                self.pre_conditioners[i] = compute_power_svd(stat, -1.0 / self.exponent_for_pre_conditioner)
-            else:
-                self.pre_conditioners[i] = compute_power_schur_newton(
+            self.pre_conditioners[i] = (
+                compute_power_svd(maxtrix=stat, power=-1.0 / self.exponent_for_pre_conditioner)
+                if self.use_svd
+                else compute_power_schur_newton(
                     mat_g=stat, p=self.exponent_for_pre_conditioner, ridge_epsilon=self.matrix_eps
                 )
+            )
 
     @staticmethod
     def precondition_block(
