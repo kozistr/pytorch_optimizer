@@ -326,8 +326,6 @@ class PreConditioner:
 
         reshaped_grad = torch.reshape(grad, self.transformed_shape)
         partitioned_grads = self.partitioner.partition(reshaped_grad)
-        # print(len(partitioned_grads), [g.size() for g in partitioned_grads])
-        # print(len(self.pre_conditioners), [g.size() for g in self.pre_conditioners])
 
         pre_cond_partitioned_grads: List[torch.Tensor] = [
             self.precondition_block(
