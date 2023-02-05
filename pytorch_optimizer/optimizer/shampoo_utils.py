@@ -214,7 +214,7 @@ class PreConditioner:
         block_size: int,
         no_preconditioning_for_layers_with_dim_gt: int,
         shape_interpretation: bool,
-        matrix_eps: float,
+        matrix_eps: float = 1e-6,
         pre_conditioner_type: int = PreConditionerType.ALL,
         use_svd: bool = True,
     ):
