@@ -281,7 +281,7 @@ class PreConditioner:
 
     def compute_pre_conditioners(self):
         r"""Compute L^{-1/exp} for each stats matrix L."""
-        if self.is_same_shapes:
+        if self.use_svd and self.is_same_shapes:
             self.pre_conditioners = compute_power_svd(
                 matrix=self.statistics, power=-1.0 / self.exponent_for_pre_conditioner
             )
