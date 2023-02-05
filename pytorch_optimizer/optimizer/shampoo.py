@@ -61,7 +61,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         start_preconditioning_step: int = 5,
         preconditioning_compute_steps: int = 1,
         statistics_compute_steps: int = 1,
-        block_size: int = 128,
+        block_size: int = 512,
         no_preconditioning_for_layers_with_dim_gt: int = 8192,
         shape_interpretation: bool = True,
         graft_type: int = LayerWiseGrafting.SGD,
@@ -195,28 +195,24 @@ class Shampoo(Optimizer, BaseOptimizer):
 
                 is_precondition_step: bool = self.is_precondition_step(state['step'])
 
-                # gather statistics, compute pre-conditioners
                 graft.add_statistics(grad, beta2)
                 if state['step'] % self.statistics_compute_steps == 0:
                     pre_conditioner.add_statistics(grad)
                 if state['step'] % self.preconditioning_compute_steps == 0:
                     pre_conditioner.compute_pre_conditioners()
 
-                # pre-condition gradients
                 pre_conditioner_multiplier: float = group['lr'] if not self.decoupled_learning_rate else 1.0
                 graft_grad: torch.Tensor = graft.precondition_gradient(grad * pre_conditioner_multiplier)
                 shampoo_grad: torch.Tensor = grad
                 if is_precondition_step:
                     shampoo_grad = pre_conditioner.preconditioned_grad(grad)
 
-                # grafting
                 if self.graft_type != LayerWiseGrafting.NONE:
                     graft_norm = torch.norm(graft_grad)
                     shampoo_norm = torch.norm(shampoo_grad)
 
                     shampoo_grad.mul_(graft_norm / (shampoo_norm + 1e-16))
 
-                # apply weight decay (adam style)
                 if group['weight_decay'] > 0.0:
                     if not self.decoupled_weight_decay:
                         shampoo_grad.add_(p, alpha=group['weight_decay'])
@@ -225,7 +221,6 @@ class Shampoo(Optimizer, BaseOptimizer):
                         shampoo_grad.mul_(1.0 - group['lr'] * group['weight_decay'])
                         graft_grad.mul_(1.0 - group['lr'] * group['weight_decay'])
 
-                # Momentum and Nesterov momentum, if needed
                 state['momentum'].mul_(beta1).add_(shampoo_grad)
                 graft_momentum = graft.update_momentum(grad, beta1)
 
