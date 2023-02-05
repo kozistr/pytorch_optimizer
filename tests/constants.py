@@ -50,6 +50,7 @@ NO_SPARSE_OPTIMIZERS: List[str] = [
     'ralamb',
     'lars',
     'shampoo',
+    'scalableshampoo',
     'nero',
     'adan',
     'adai',
