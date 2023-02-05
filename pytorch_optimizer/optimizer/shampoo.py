@@ -61,7 +61,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.matrix_eps)
 
     @property
-    def __name__(self) -> str:
+    def __str__(self) -> str:
         return 'Shampoo'
 
     @torch.no_grad()
@@ -86,7 +86,7 @@ class Shampoo(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__name__)
+                    raise NoSparseGradientError(self.__str__)
 
                 momentum = group['momentum']
                 state = self.state[p]
