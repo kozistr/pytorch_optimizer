@@ -46,6 +46,9 @@ class Shampoo(Optimizer, BaseOptimizer):
     :param diagonal_eps: float. term added to the denominator to improve numerical stability.
     :param matrix_eps: float. term added to the denominator to improve numerical stability.
     :param use_svd: bool. use SVD instead of Schur-Newton method to calculate M^{-1/p}.
+        Theoretically, Schur-Newton method is faster than SVD method to calculate M^{-1/p}.
+        However, the inefficiency of the loop code, SVD is much faster than that.
+        see https://github.com/kozistr/pytorch_optimizer/pull/103
     """
 
     def __init__(
