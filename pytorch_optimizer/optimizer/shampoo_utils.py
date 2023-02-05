@@ -359,9 +359,9 @@ def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: in
     """
     v: torch.Tensor = 2.0 * torch.rand(list(mat_g.shape)[0], dtype=mat_g.dtype, device=mat_g.device) - 1
 
-    error: torch.Tensor = 1.0
+    error: Union[torch.Tensor, float] = 1.0
     iters: int = 0
-    singular_val: torch.Tensor = 0
+    singular_val: Union[torch.Tensor, float] = 0.0
     while error > error_tolerance and iters < num_iters:
         v.div_(v.norm())
         mat_v = torch.mv(mat_g, v)
@@ -372,8 +372,6 @@ def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: in
         v = mat_v
         singular_val = s_v
         iters += 1
-
-    singular_val.div_(singular_val.norm())
 
     return singular_val
 
