@@ -442,7 +442,7 @@ def compute_power_schur_newton(
     """
     shape: List[int] = list(mat_g.shape)
     if len(shape) == 1:
-        return torch.pow(mat_g + ridge_epsilon, -1 / p)
+        return torch.pow(mat_g + ridge_epsilon, -1.0 / p)
 
     identity = torch.eye(shape[0], device=mat_g.device, dtype=torch.float32)
     if shape[0] == 1:
@@ -458,10 +458,11 @@ def compute_power_schur_newton(
     mat_m = mat_g * z
 
     alpha: float = -1.0 / p
+    alpha_identity: torch.Tensor = (1.0 - alpha) * identity
     error = torch.max(torch.abs(mat_m - identity))
     count: int = 0
     while error > error_tolerance and count < iter_count:
-        mat_m_i = (1 - alpha) * identity + alpha * mat_m
+        mat_m_i = alpha_identity + alpha * mat_m
         new_mat_root = torch.matmul(mat_root, mat_m_i).float()
         mat_m = torch.matmul(matrix_power(mat_m_i, p), mat_m).float()
 
