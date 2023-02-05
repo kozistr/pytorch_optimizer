@@ -351,19 +351,19 @@ class PreConditioner:
 def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 100) -> torch.Tensor:
     r"""Power iteration.
 
-        Compute the maximum eigenvalue of mat, for scaling. v is a random vector with values in (-1, 1).
+        Compute the maximum eigenvalue of mat, for scaling. v is a random (uniform) vector with values in (-1, 1).
 
     :param mat_g: torch.Tensor. the symmetric PSD matrix.
     :param error_tolerance: float. Iterative exit condition.
     :param num_iters: int. Number of iterations.
     """
-    v: torch.Tensor = torch.rand(list(mat_g.shape)[0], device=mat_g.device) * 2 - 1
+    v: torch.Tensor = 2.0 * torch.rand(list(mat_g.shape)[0], dtype=mat_g.dtype, device=mat_g.device) - 1
 
     error: torch.Tensor = 1.0
     iters: int = 0
     singular_val: torch.Tensor = 0
     while error > error_tolerance and iters < num_iters:
-        v /= v.norm()
+        v.div_(v.norm())
         mat_v = torch.mv(mat_g, v)
         s_v = torch.dot(v, mat_v)
 
@@ -372,6 +372,8 @@ def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: in
         v = mat_v
         singular_val = s_v
         iters += 1
+
+    singular_val.div_(singular_val.norm())
 
     return singular_val
 
