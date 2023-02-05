@@ -287,7 +287,7 @@ def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
 
 
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1])
-def test_shampoo_optimizer(pre_conditioner_type):
+def test_scalable_shampoo_optimizer(pre_conditioner_type):
     (x_data, y_data), _, loss_fn = build_environment()
 
     model = nn.Sequential(
@@ -296,7 +296,7 @@ def test_shampoo_optimizer(pre_conditioner_type):
         nn.Linear(512, 1),
     )
 
-    optimizer = load_optimizer('shampoo')(
+    optimizer = load_optimizer('scalableshampoo')(
         model.parameters(), start_preconditioning_step=1, pre_conditioner_type=pre_conditioner_type
     )
     optimizer.zero_grad()
@@ -307,7 +307,7 @@ def test_shampoo_optimizer(pre_conditioner_type):
     optimizer.step()
 
 
-def test_shampoo_pre_conditioner():
+def test_pre_conditioner():
     var = torch.zeros((1024, 128))
     grad = torch.zeros((1024, 128))
 
@@ -316,7 +316,7 @@ def test_shampoo_pre_conditioner():
     pre_conditioner.compute_pre_conditioners()
 
 
-def test_shampoo_block_partitioner():
+def test_block_partitioner():
     var = torch.zeros((2, 2))
     target_var = torch.zeros((1, 1))
 
