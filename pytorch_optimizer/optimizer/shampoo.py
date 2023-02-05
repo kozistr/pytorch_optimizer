@@ -13,11 +13,133 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
     RMSPropGraft,
     SGDGraft,
     SQRTNGraft,
+    compute_power_svd,
 )
 
 
 class Shampoo(Optimizer, BaseOptimizer):
     r"""Preconditioned Stochastic Tensor Optimization.
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param momentum: float. momentum.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param preconditioning_compute_steps: int. performance tuning params for controlling memory and compute
+        requirements. How often to compute pre-conditioner.
+    :param matrix_eps: float. term added to the denominator to improve numerical stability.
+    """
+
+    def __init__(
+        self,
+        params: PARAMETERS,
+        lr: float = 1e-3,
+        momentum: float = 0.0,
+        weight_decay: float = 0.0,
+        preconditioning_compute_steps: int = 1,
+        matrix_eps: float = 1e-6,
+    ):
+        self.lr = lr
+        self.momentum = momentum
+        self.weight_decay = weight_decay
+        self.preconditioning_compute_steps = preconditioning_compute_steps
+        self.matrix_eps = matrix_eps
+
+        self.validate_parameters()
+
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'momentum': momentum,
+            'weight_decay': weight_decay,
+        }
+        super().__init__(params, defaults)
+
+    def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
+        self.validate_momentum(self.momentum)
+        self.validate_weight_decay(self.weight_decay)
+        self.validate_update_frequency(self.preconditioning_compute_steps)
+        self.validate_epsilon(self.matrix_eps)
+
+    @property
+    def __str__(self) -> str:
+        return 'Shampoo'
+
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['step'] = 0
+
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+
+        for group in self.param_groups:
+            momentum = group['momentum']
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                grad = p.grad
+                if grad.is_sparse:
+                    raise NoSparseGradientError(self.__str__)
+
+                state = self.state[p]
+                if len(state) == 0:
+                    state['step'] = 0
+
+                    if momentum > 0.0:
+                        state['momentum_buffer'] = grad.clone()
+
+                    for dim_id, dim in enumerate(grad.size()):
+                        state[f'pre_cond_{dim_id}'] = self.matrix_eps * torch.eye(dim, out=grad.new(dim, dim))
+                        state[f'inv_pre_cond_{dim_id}'] = grad.new(dim, dim).zero_()
+
+                state['step'] += 1
+
+                if momentum > 0.0:
+                    grad.mul_(1.0 - momentum).add_(state['momentum_buffer'], alpha=momentum)
+
+                if group['weight_decay'] > 0.0:
+                    grad.add_(p, alpha=group['weight_decay'])
+
+                order: int = grad.ndimension()
+                original_size: int = grad.size()
+                for dim_id, dim in enumerate(grad.size()):
+                    pre_cond = state[f'pre_cond_{dim_id}']
+                    inv_pre_cond = state[f'inv_pre_cond_{dim_id}']
+
+                    grad = grad.transpose_(0, dim_id).contiguous()
+                    transposed_size = grad.size()
+
+                    grad = grad.view(dim, -1)
+
+                    grad_t = grad.t()
+                    pre_cond.add_(grad @ grad_t)
+                    if state['step'] % self.preconditioning_compute_steps == 0:
+                        inv_pre_cond.copy_(compute_power_svd(pre_cond, -1.0 / order))
+
+                    if dim_id == order - 1:
+                        grad = grad_t @ inv_pre_cond
+                        grad = grad.view(original_size)
+                    else:
+                        grad = inv_pre_cond @ grad
+                        grad = grad.view(transposed_size)
+
+                state['momentum_buffer'] = grad
+
+                p.add_(grad, alpha=-group['lr'])
+
+        return loss
+
+
+class ScalableShampoo(Optimizer, BaseOptimizer):
+    r"""Scalable Preconditioned Stochastic Tensor Optimization.
 
         Reference : https://github.com/google-research/google-research/blob/master/scalable_shampoo/pytorch/shampoo.py.
 
@@ -45,6 +167,10 @@ class Shampoo(Optimizer, BaseOptimizer):
     :param nesterov: bool. Nesterov momentum.
     :param diagonal_eps: float. term added to the denominator to improve numerical stability.
     :param matrix_eps: float. term added to the denominator to improve numerical stability.
+    :param use_svd: bool. use SVD instead of Schur-Newton method to calculate M^{-1/p}.
+        Theoretically, Schur-Newton method is faster than SVD method to calculate M^{-1/p}.
+        However, the inefficiency of the loop code, SVD is much faster than that.
+        see https://github.com/kozistr/pytorch_optimizer/pull/103
     """
 
     def __init__(
@@ -60,7 +186,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         start_preconditioning_step: int = 5,
         preconditioning_compute_steps: int = 1,
         statistics_compute_steps: int = 1,
-        block_size: int = 128,
+        block_size: int = 256,
         no_preconditioning_for_layers_with_dim_gt: int = 8192,
         shape_interpretation: bool = True,
         graft_type: int = LayerWiseGrafting.SGD,
@@ -68,6 +194,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         nesterov: bool = True,
         diagonal_eps: float = 1e-10,
         matrix_eps: float = 1e-6,
+        use_svd: bool = False,
     ):
         self.lr = lr
         self.betas = betas
@@ -87,6 +214,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         self.nesterov = nesterov
         self.diagonal_eps = diagonal_eps
         self.matrix_eps = matrix_eps
+        self.use_svd = use_svd
 
         self.validate_parameters()
 
@@ -109,7 +237,7 @@ class Shampoo(Optimizer, BaseOptimizer):
 
     @property
     def __str__(self) -> str:
-        return 'Shampoo'
+        return 'ScalableShampoo'
 
     @torch.no_grad()
     def reset(self):
@@ -128,6 +256,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                     self.shape_interpretation,
                     self.matrix_eps,
                     self.pre_conditioner_type,
+                    self.use_svd,
                 )
                 if self.graft_type == LayerWiseGrafting.ADAGRAD:
                     state['graft'] = AdaGradGraft(p, self.diagonal_eps)
@@ -139,6 +268,9 @@ class Shampoo(Optimizer, BaseOptimizer):
                     state['graft'] = SQRTNGraft(p)
                 else:
                     state['graft'] = Graft(p)
+
+    def is_precondition_step(self, step: int) -> bool:
+        return step >= self.start_preconditioning_step
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -170,6 +302,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                         self.shape_interpretation,
                         self.matrix_eps,
                         self.pre_conditioner_type,
+                        self.use_svd,
                     )
                     if self.graft_type == LayerWiseGrafting.ADAGRAD:
                         state['graft'] = AdaGradGraft(p, self.diagonal_eps)
@@ -185,27 +318,26 @@ class Shampoo(Optimizer, BaseOptimizer):
                 state['step'] += 1
                 pre_conditioner, graft = state['pre_conditioner'], state['graft']
 
-                # gather statistics, compute pre-conditioners
+                is_precondition_step: bool = self.is_precondition_step(state['step'])
+
                 graft.add_statistics(grad, beta2)
                 if state['step'] % self.statistics_compute_steps == 0:
                     pre_conditioner.add_statistics(grad)
                 if state['step'] % self.preconditioning_compute_steps == 0:
                     pre_conditioner.compute_pre_conditioners()
 
-                # pre-condition gradients
                 pre_conditioner_multiplier: float = group['lr'] if not self.decoupled_learning_rate else 1.0
                 graft_grad: torch.Tensor = graft.precondition_gradient(grad * pre_conditioner_multiplier)
                 shampoo_grad: torch.Tensor = grad
-                if state['step'] >= self.start_preconditioning_step:
+                if is_precondition_step:
                     shampoo_grad = pre_conditioner.preconditioned_grad(grad)
 
-                # grafting
-                graft_norm = torch.norm(graft_grad)
-                shampoo_norm = torch.norm(shampoo_grad)
                 if self.graft_type != LayerWiseGrafting.NONE:
+                    graft_norm = torch.norm(graft_grad)
+                    shampoo_norm = torch.norm(shampoo_grad)
+
                     shampoo_grad.mul_(graft_norm / (shampoo_norm + 1e-16))
 
-                # apply weight decay (adam style)
                 if group['weight_decay'] > 0.0:
                     if not self.decoupled_weight_decay:
                         shampoo_grad.add_(p, alpha=group['weight_decay'])
@@ -214,11 +346,10 @@ class Shampoo(Optimizer, BaseOptimizer):
                         shampoo_grad.mul_(1.0 - group['lr'] * group['weight_decay'])
                         graft_grad.mul_(1.0 - group['lr'] * group['weight_decay'])
 
-                # Momentum and Nesterov momentum, if needed
                 state['momentum'].mul_(beta1).add_(shampoo_grad)
                 graft_momentum = graft.update_momentum(grad, beta1)
 
-                if state['step'] >= self.start_preconditioning_step:
+                if is_precondition_step:
                     momentum_update = state['momentum']
                     wd_update = shampoo_grad
                 else:

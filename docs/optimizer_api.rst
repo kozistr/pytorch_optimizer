@@ -193,6 +193,14 @@ Shampoo
 .. autoclass:: pytorch_optimizer.Shampoo
     :members:
 
+.. _ScalableShampoo:
+
+ScalableShampoo
+---------------
+
+.. autoclass:: pytorch_optimizer.ScalableShampoo
+    :members:
+
 .. _GSAM:
 
 GSAM

@@ -72,6 +72,10 @@ def test_sparse_supported(sparse_optimizer):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_bf16_gradient(optimizer_name):
+    # torch.eye does not support bf16
+    if optimizer_name == 'shampoo':
+        pytest.skip(f'skip {optimizer_name}')
+
     param = torch.randn(1, 1).bfloat16().requires_grad_(True)
     param.grad = torch.randn(1, 1).bfloat16()
 
