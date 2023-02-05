@@ -194,7 +194,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         nesterov: bool = True,
         diagonal_eps: float = 1e-10,
         matrix_eps: float = 1e-6,
-        use_svd: bool = True,
+        use_svd: bool = False,
     ):
         self.lr = lr
         self.betas = betas
