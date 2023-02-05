@@ -22,7 +22,7 @@ def test_learning_rate(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
-    if optimizer_name in ('nero', 'shampoo', 'dadaptsgd'):
+    if optimizer_name in ('nero', 'shampoo', 'scalableshampoo', 'dadaptsgd'):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -38,17 +38,17 @@ def test_epsilon(optimizer_name):
 
 
 def test_shampoo_epsilon():
-    optimizer = load_optimizer('shampoo')
+    shampoo = load_optimizer('Shampoo')
+    scalable_shampoo = load_optimizer('ScalableShampoo')
 
-    with pytest.raises(ValueError) as error_info:
-        optimizer(None, diagonal_eps=-1e-6)
+    with pytest.raises(ValueError):
+        scalable_shampoo(None, diagonal_eps=-1e-6)
 
-    assert str(error_info.value) == '[-] epsilon -1e-06 must be non-negative'
+    with pytest.raises(ValueError):
+        scalable_shampoo(None, matrix_eps=-1e-6)
 
-    with pytest.raises(ValueError) as error_info:
-        optimizer(None, matrix_eps=-1e-6)
-
-    assert str(error_info.value) == '[-] epsilon -1e-06 must be non-negative'
+    with pytest.raises(ValueError):
+        shampoo(None, matrix_eps=-1e-6)
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
@@ -139,15 +139,16 @@ def test_reduction():
         PCGrad(optimizer, reduction='wrong')
 
 
-@pytest.mark.parametrize('optimizer_name', ['shampoo'])
+@pytest.mark.parametrize('optimizer_name', ['scalableshampoo', 'shampoo'])
 def test_update_frequency(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
 
-    with pytest.raises(NegativeStepError):
-        optimizer(None, start_preconditioning_step=-1)
+    if optimizer_name == 'scalableshampoo':
+        with pytest.raises(NegativeStepError):
+            optimizer(None, start_preconditioning_step=-1)
 
-    with pytest.raises(NegativeStepError):
-        optimizer(None, statistics_compute_steps=-1)
+        with pytest.raises(NegativeStepError):
+            optimizer(None, statistics_compute_steps=-1)
 
     with pytest.raises(NegativeStepError):
         optimizer(None, preconditioning_compute_steps=-1)
