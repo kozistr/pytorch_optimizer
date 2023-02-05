@@ -280,7 +280,13 @@ class PreConditioner:
                 self.statistics[j * self.rank + i].mul_(self.beta2).add_(stat, alpha=self.w2)
 
     def compute_pre_conditioners(self):
-        r"""Compute L^{-1/exp} for each stats matrix L."""
+        r"""Compute L^{-1/exp} for each stats matrix L.
+
+        If `self.use_svd` is enabled,
+            where all shapes of statistics & pre-conditioners are same, perform batch SVD
+            else, SVD one by one.
+        else (`self.use_svd` is disabled), use Schur-Newton method
+        """
         if self.use_svd and self.is_same_shapes:
             self.pre_conditioners = compute_power_svd(
                 matrix=self.statistics, power=-1.0 / self.exponent_for_pre_conditioner
