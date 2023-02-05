@@ -80,6 +80,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            momentum = group['momentum']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -88,7 +89,6 @@ class Shampoo(Optimizer, BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(self.__str__)
 
-                momentum = group['momentum']
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
@@ -96,10 +96,11 @@ class Shampoo(Optimizer, BaseOptimizer):
                     if momentum > 0.0:
                         state['momentum_buffer'] = grad.clone()
 
-                    # pre-condition matrices
                     for dim_id, dim in enumerate(grad.size()):
                         state[f'pre_cond_{dim_id}'] = self.matrix_eps * torch.eye(dim, out=grad.new(dim, dim))
                         state[f'inv_pre_cond_{dim_id}'] = grad.new(dim, dim).zero_()
+
+                state['step'] += 1
 
                 if momentum > 0.0:
                     grad.mul_(1.0 - momentum).add_(state['momentum_buffer'], alpha=momentum)
@@ -130,7 +131,6 @@ class Shampoo(Optimizer, BaseOptimizer):
                         grad = inv_pre_cond @ grad
                         grad = grad.view(transposed_size)
 
-                state['step'] += 1
                 state['momentum_buffer'] = grad
 
                 p.add_(grad, alpha=-group['lr'])
