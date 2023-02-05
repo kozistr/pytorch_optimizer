@@ -1,6 +1,6 @@
 import itertools
 from enum import IntEnum
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
 import torch
@@ -225,25 +225,26 @@ class PreConditioner:
         self.pre_conditioner_type = pre_conditioner_type
         self.use_svd = use_svd
 
+        self.w2: float = 1.0 if self.beta2 == 1.0 else (1.0 - self.beta2)
+
         self.original_shape: List[int] = var.shape
         self.transformed_shape: List[int] = var.shape
         if shape_interpretation:
             self.transformed_shape = merge_small_dims(self.original_shape, block_size)
 
-        # vector containing indicator indicating if the dim is preconditioned.
         self.should_precondition_dims: List[bool] = (
             [True] * len(self.transformed_shape)
             if self.pre_conditioner_type == PreConditionerType.ALL or len(self.transformed_shape) <= 1
             else [True] * (len(self.transformed_shape) - 1) + [False]
         )
         self.rank: int = sum(self.should_precondition_dims)
-        # exponent to use for inverse-pth root M^{-1/p}.
         self.exponent_for_pre_conditioner: int = (
             self.inverse_exponent_override if self.inverse_exponent_override > 0 else 2 * self.rank
         )
 
-        self.statistics: List[torch.Tensor] = []
-        self.pre_conditioners: List[torch.Tensor] = []
+        self.statistics: Union[List[torch.Tensor], torch.Tensor] = []
+        self.pre_conditioners: Union[List[torch.Tensor], torch.Tensor] = []
+        self.is_same_shapes: bool = False
         if len(self.transformed_shape) > 1 and not self.skip_precondition(var):
             reshaped_var = torch.reshape(var, self.transformed_shape)
             self.partitioner = BlockPartitioner(reshaped_var, block_size, self.pre_conditioner_type)
@@ -251,6 +252,11 @@ class PreConditioner:
             shapes = self.partitioner.shapes_for_pre_conditioners()
             self.statistics = [self.matrix_eps * torch.eye(s[0], device=var.device) for s in shapes]
             self.pre_conditioners = [torch.eye(s[0], device=var.device) for s in shapes]
+            self.is_same_shapes = len(np.unique(shapes)) == 1
+
+        if self.is_same_shapes:
+            self.statistics = torch.stack(self.statistics)
+            self.pre_conditioners = torch.stack(self.pre_conditioners)
 
     def skip_precondition(self, x: torch.Tensor) -> bool:
         return (len(x.shape) < 1) or any([s > self.no_preconditioning_for_layers_with_dim_gt for s in x.shape])
@@ -260,27 +266,33 @@ class PreConditioner:
 
         :param grad: torch.Tensor. gradient to compute statistics from.
         """
-        if not self.statistics:
+        if len(self.statistics) == 0:
             return
 
         reshaped_grad: torch.Tensor = torch.reshape(grad, self.transformed_shape)
         partitioned_grads: List[torch.Tensor] = self.partitioner.partition(reshaped_grad)
 
-        w2: float = 1.0 if self.beta2 == 1.0 else (1.0 - self.beta2)
-        for j, partitioned_grad in enumerate(partitioned_grads):
+        for j in range(len(partitioned_grads)):
+            partitioned_grad: torch.Tensor = partitioned_grads[j]
             for i in range(self.rank):
                 axes: List[int] = [ax for ax in range(partitioned_grad.ndim) if ax != i]
-                stat: torch.Tensor = torch.tensordot(partitioned_grad, partitioned_grad, [axes, axes])
-                self.statistics[j * self.rank + i].mul_(self.beta2).add_(stat, alpha=w2)
+                stat: torch.Tensor = torch.tensordot(partitioned_grad, partitioned_grad, dims=[axes, axes])
+                self.statistics[j * self.rank + i].mul_(self.beta2).add_(stat, alpha=self.w2)
 
     def compute_pre_conditioners(self):
         r"""Compute L^{-1/exp} for each stats matrix L."""
-        for i, stat in enumerate(self.statistics):
+        if self.is_same_shapes:
+            self.pre_conditioners = compute_power_svd(
+                matrix=self.statistics, power=-1.0 / self.exponent_for_pre_conditioner
+            )
+            return
+
+        for i in range(len(self.statistics)):
             self.pre_conditioners[i] = (
-                compute_power_svd(matrix=stat, power=-1.0 / self.exponent_for_pre_conditioner)
+                compute_power_svd(matrix=self.statistics[i], power=-1.0 / self.exponent_for_pre_conditioner)
                 if self.use_svd
                 else compute_power_schur_newton(
-                    mat_g=stat, p=self.exponent_for_pre_conditioner, ridge_epsilon=self.matrix_eps
+                    mat_g=self.statistics[i], p=self.exponent_for_pre_conditioner, ridge_epsilon=self.matrix_eps
                 )
             )
 
@@ -309,11 +321,13 @@ class PreConditioner:
 
         :param grad: torch.Tensor. a gradient tensor to precondition.
         """
-        if not self.pre_conditioners:
+        if len(self.pre_conditioners) == 0:
             return grad
 
         reshaped_grad = torch.reshape(grad, self.transformed_shape)
         partitioned_grads = self.partitioner.partition(reshaped_grad)
+        # print(len(partitioned_grads), [g.size() for g in partitioned_grads])
+        # print(len(self.pre_conditioners), [g.size() for g in self.pre_conditioners])
 
         pre_cond_partitioned_grads: List[torch.Tensor] = [
             self.precondition_block(
@@ -469,8 +483,7 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
     :param power: float. -1.0 / order.
     """
     u, s, vh = torch.linalg.svd(matrix, full_matrices=False)
-    v = vh.mH.t()
-    return u @ s.pow_(power).diag() @ v
+    return u @ s.pow_(power).diag_embed() @ vh
 
 
 def merge_small_dims(shape_to_merge: List[int], max_dim: int) -> List[int]:
