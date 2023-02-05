@@ -41,7 +41,7 @@ from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
 from pytorch_optimizer.optimizer.sam import SAM
 from pytorch_optimizer.optimizer.sgdp import SGDP
-from pytorch_optimizer.optimizer.shampoo import Shampoo
+from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
 from pytorch_optimizer.optimizer.shampoo_utils import (
     AdaGradGraft,
     BlockPartitioner,
@@ -87,6 +87,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Ranger21,
     SGDP,
     Shampoo,
+    ScalableShampoo,
     DAdaptAdaGrad,
     DAdaptAdam,
     DAdaptSGD,
