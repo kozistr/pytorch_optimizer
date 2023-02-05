@@ -287,7 +287,7 @@ def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
 
 
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1])
-def test_scalable_shampoo_optimizer(pre_conditioner_type):
+def test_scalable_shampoo_pre_conditioner(pre_conditioner_type):
     (x_data, y_data), _, loss_fn = build_environment()
 
     model = nn.Sequential(
@@ -301,8 +301,7 @@ def test_scalable_shampoo_optimizer(pre_conditioner_type):
     )
     optimizer.zero_grad()
 
-    y_pred = model(x_data)
-    loss_fn(y_pred, y_data).backward()
+    loss_fn(model(x_data), y_data).backward()
 
     optimizer.step()
 
