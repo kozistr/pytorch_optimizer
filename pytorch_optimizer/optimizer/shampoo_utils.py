@@ -488,7 +488,8 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
     :param power: float. -1.0 / order.
     """
     u, s, vh = torch.linalg.svd(matrix, full_matrices=False)
-    return u @ s.pow_(power).diag_embed() @ vh
+    s.pow_(power)
+    return u @ (s.diag() if len(matrix.shape) == 2 else s.diag_embed()) @ vh
 
 
 def merge_small_dims(shape_to_merge: List[int], max_dim: int) -> List[int]:
