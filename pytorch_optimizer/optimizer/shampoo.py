@@ -80,7 +80,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            momentum = group['momentum']
+            momentum, weight_decay = group['momentum'], group['weight_decay']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -100,29 +100,26 @@ class Shampoo(Optimizer, BaseOptimizer):
                         state[f'pre_cond_{dim_id}'] = self.matrix_eps * torch.eye(dim, out=grad.new(dim, dim))
                         state[f'inv_pre_cond_{dim_id}'] = grad.new(dim, dim).zero_()
 
-                state['step'] += 1
-
                 if momentum > 0.0:
                     grad.mul_(1.0 - momentum).add_(state['momentum_buffer'], alpha=momentum)
 
-                if group['weight_decay'] > 0.0:
-                    grad.add_(p, alpha=group['weight_decay'])
+                if weight_decay > 0.0:
+                    grad.add_(p, alpha=weight_decay)
 
                 order: int = grad.ndimension()
                 original_size: int = grad.size()
                 for dim_id, dim in enumerate(grad.size()):
-                    pre_cond = state[f'pre_cond_{dim_id}']
-                    inv_pre_cond = state[f'inv_pre_cond_{dim_id}']
+                    pre_cond, inv_pre_cond = state[f'pre_cond_{dim_id}'], state[f'inv_pre_cond_{dim_id}']
 
                     grad = grad.transpose_(0, dim_id).contiguous()
                     transposed_size = grad.size()
 
                     grad = grad.view(dim, -1)
-
                     grad_t = grad.t()
+
                     pre_cond.add_(grad @ grad_t)
                     if state['step'] % self.preconditioning_compute_steps == 0:
-                        inv_pre_cond.copy_(compute_power_svd(pre_cond, -1.0 / order))
+                        inv_pre_cond = compute_power_svd(pre_cond, -1.0 / order)
 
                     if dim_id == order - 1:
                         grad = grad_t @ inv_pre_cond
@@ -131,6 +128,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                         grad = inv_pre_cond @ grad
                         grad = grad.view(transposed_size)
 
+                state['step'] += 1
                 state['momentum_buffer'] = grad
 
                 p.add_(grad, alpha=-group['lr'])
