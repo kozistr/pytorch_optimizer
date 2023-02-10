@@ -119,7 +119,7 @@ class Shampoo(Optimizer, BaseOptimizer):
 
                     pre_cond.add_(grad @ grad_t)
                     if state['step'] % self.preconditioning_compute_steps == 0:
-                        inv_pre_cond = compute_power_svd(pre_cond, -1.0 / order)
+                        inv_pre_cond.copy_(compute_power_svd(pre_cond, -1.0 / order))
 
                     if dim_id == order - 1:
                         grad = grad_t @ inv_pre_cond
@@ -151,8 +151,12 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
     :param inverse_exponent_override: int. fixed exponent for pre-conditioner, if > 0.
     :param start_preconditioning_step: int.
     :param preconditioning_compute_steps: int. performance tuning params for controlling memory and compute
-        requirements. How often to compute pre-conditioner.
-    :param statistics_compute_steps: int. How often to compute statistics.
+        requirements. How often to compute pre-conditioner. Ideally, 1 is the best. However, the current implementation
+        doesn't work on the distributed environment (there are no statistics & pre-conditioners sync among replicas),
+        compute on the GPU (not CPU) and the precision is fp32 (not fp64).
+        Also, followed by the paper, `preconditioning_compute_steps` does not have a significant effect on the
+        performance. So, If you have a problem with the speed, try to set this step bigger (e.g. 1000).
+    :param statistics_compute_steps: int. How often to compute statistics. usually set to 1 (or 10).
     :param block_size: int. Block size for large layers (if > 0).
         Block size = 1 ==> Adagrad (Don't do this, extremely inefficient!)
         Block size should be as large as feasible under memory/time constraints.
@@ -166,8 +170,8 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
     :param diagonal_eps: float. term added to the denominator to improve numerical stability.
     :param matrix_eps: float. term added to the denominator to improve numerical stability.
     :param use_svd: bool. use SVD instead of Schur-Newton method to calculate M^{-1/p}.
-        Theoretically, Schur-Newton method is faster than SVD method to calculate M^{-1/p}.
-        However, the inefficiency of the loop code, SVD is much faster than that.
+        Theoretically, Schur-Newton method is faster than SVD method. However, the inefficiency of the loop code and
+        proper svd kernel, SVD is much faster in some cases (usually in case of small models).
         see https://github.com/kozistr/pytorch_optimizer/pull/103
     """
 
