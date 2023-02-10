@@ -31,7 +31,7 @@ Install
 
     $ pip3 install -U pytorch-optimizer
 
-or
+If there's a version issue when installing the package, try with `--no-deps` option.
 
 ::
 
