@@ -37,7 +37,7 @@ numpy = [
     { version = "=1.21.1", python = ">=3.7,<3.8"},
     { version = "*", python = ">=3.8"},
 ]
-torch = { version = "^1.10", source = "torch"}
+torch = "^1.10"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.11.5"
@@ -45,11 +45,6 @@ black = "^23.1.0"
 ruff = "^0.0.244"
 pytest = "^7.2.1"
 pytest-cov = "^4.0.0"
-
-[[tool.poetry.source]]
-name = "torch"
-url = "https://download.pytorch.org/whl/cpu"
-secondary = true
 
 [tool.ruff]
 select = ["A", "B", "C4", "D", "E", "F", "G", "I", "N", "S", "T", "ISC", "ICN", "W", "INP", "PIE", "T20", "RET", "SIM", "TID", "ARG", "ERA", "RUF", "YTT", "PL"]
