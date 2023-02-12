@@ -204,8 +204,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (DAdaptSGD, {'lr': 1.0, 'momentum': 0.9, 'weight_decay': 1e-3}, 50),
     (AdamS, {'lr': 1.0, 'weight_decay': 1e-3}, 30),
     (AdamS, {'lr': 1.0, 'weight_decay': 1e-3, 'amsgrad': True}, 30),
-    (AdaFactor, {'lr': 1e-1, 'weight_decay': 1e-3, 'warmup_init': True}, 30),
-    (AdaFactor, {'lr': 1e-1, 'weight_decay': 1e-3, 'scale_parameter': False}, 30),
+    (AdaFactor, {'lr': 5e-1, 'weight_decay': 1e-2, 'scale_parameter': False}, 100),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 10),
