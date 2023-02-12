@@ -313,6 +313,8 @@ Citations
 
 `D-Adaptation <https://ui.adsabs.harvard.edu/abs/2023arXiv230107733D/exportcitation>`__
 
+`AdaFactor <https://ui.adsabs.harvard.edu/abs/2018arXiv180404235S/exportcitation>`__
+
 Citation
 --------
 
