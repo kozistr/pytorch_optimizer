@@ -82,8 +82,8 @@ class AdaFactor(Optimizer, BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
 
                 if factored:
-                    state['exp_avg_sq_row'] = torch.zeros(grad_shape[:-1]).type_as(grad)
-                    state['exp_avg_sq_col'] = torch.zeros(grad_shape[:-2] + grad_shape[-1:]).type_as(grad)
+                    state['exp_avg_sq_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype)
+                    state['exp_avg_sq_col'] = torch.zeros(grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype)
                 else:
                     state['exp_avg_sq'] = torch.zeros_like(grad)
 
