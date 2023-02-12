@@ -16,6 +16,7 @@ from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, Linear
 from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
+from pytorch_optimizer.optimizer.adafactor import AdaFactor
 from pytorch_optimizer.optimizer.adai import Adai
 from pytorch_optimizer.optimizer.adamp import AdamP
 from pytorch_optimizer.optimizer.adams import AdamS
@@ -92,6 +93,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     DAdaptAdam,
     DAdaptSGD,
     AdamS,
+    AdaFactor,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

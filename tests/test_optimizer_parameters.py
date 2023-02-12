@@ -22,7 +22,7 @@ def test_learning_rate(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
-    if optimizer_name in ('nero', 'shampoo', 'scalableshampoo', 'dadaptsgd'):
+    if optimizer_name in ('nero', 'shampoo', 'scalableshampoo', 'dadaptsgd', 'adafactor'):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -49,6 +49,16 @@ def test_shampoo_epsilon():
 
     with pytest.raises(ValueError):
         shampoo(None, matrix_eps=-1e-6)
+
+
+def test_adafactor_epsilon():
+    adafactor = load_optimizer('adafactor')
+
+    with pytest.raises(ValueError):
+        adafactor(None, eps1=-1e-6)
+
+    with pytest.raises(ValueError):
+        adafactor(None, eps2=-1e-6)
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
@@ -242,3 +252,21 @@ def test_ranger21_closure():
         return loss
 
     optimizer.step(closure)
+
+
+def test_adafactor_reset():
+    param = torch.zeros(1).requires_grad_(True)
+    param.grad = torch.zeros(1)
+
+    optimizer = load_optimizer('adafactor')([param])
+    optimizer.reset()
+
+
+def test_adafactor_get_lr():
+    model: nn.Module = Example()
+
+    optimizer = load_optimizer('adafactor')(model.parameters(), warmup_init=True)
+    assert optimizer.get_lr(1.0, 1, 1.0) == 1e-6
+
+    optimizer = load_optimizer('adafactor')(model.parameters(), warmup_init=False)
+    assert optimizer.get_lr(1.0, 1, 1.0) == 1e-2

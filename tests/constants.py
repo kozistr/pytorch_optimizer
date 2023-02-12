@@ -7,6 +7,7 @@ from pytorch_optimizer import (
     SGDP,
     AdaBelief,
     AdaBound,
+    AdaFactor,
     Adai,
     AdamP,
     AdamS,
@@ -59,6 +60,7 @@ NO_SPARSE_OPTIMIZERS: List[str] = [
     'dadaptadam',
     'dadaptsgd',
     'adams',
+    'adafactor',
 ]
 VALID_OPTIMIZER_NAMES: List[str] = [
     'adamp',
@@ -85,6 +87,7 @@ VALID_OPTIMIZER_NAMES: List[str] = [
     'dadaptadam',
     'dadaptsgd',
     'adams',
+    'adafactor',
 ]
 INVALID_OPTIMIZER_NAMES: List[str] = [
     'asam',
@@ -112,6 +115,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'scalableshampoo',
     'dadaptadam',
     'adams',
+    'adafactor',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -200,6 +204,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (DAdaptSGD, {'lr': 1.0, 'momentum': 0.9, 'weight_decay': 1e-3}, 50),
     (AdamS, {'lr': 1.0, 'weight_decay': 1e-3}, 30),
     (AdamS, {'lr': 1.0, 'weight_decay': 1e-3, 'amsgrad': True}, 30),
+    (AdaFactor, {'lr': 5e-1, 'weight_decay': 1e-2, 'scale_parameter': False}, 100),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 10),
