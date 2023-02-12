@@ -240,3 +240,11 @@ AdamS
 
 .. autoclass:: pytorch_optimizer.AdamS
     :members:
+
+.. _AdaFactor:
+
+AdaFactor
+---------
+
+.. autoclass:: pytorch_optimizer.AdaFactor
+    :members:
