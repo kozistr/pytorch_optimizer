@@ -537,9 +537,9 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
 
-                s, z, x0 = state['s'], state['z'], state['x0']
+                z = state['z']
+                z.copy_(state['x0'] - state['s'])
 
-                z.copy_(x0 - s)
                 p.mul_(momentum).add_(z, alpha=1.0 - momentum)
 
             group['k'] += 1
