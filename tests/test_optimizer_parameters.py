@@ -254,6 +254,13 @@ def test_ranger21_closure():
     optimizer.step(closure)
 
 
+def test_adafactor_reset():
+    model: nn.Module = Example()
+
+    optimizer = load_optimizer('adafactor')(model.parameters(), warmup_init=True)
+    optimizer.reset()
+
+
 def test_adafactor_get_lr():
     model: nn.Module = Example()
 
