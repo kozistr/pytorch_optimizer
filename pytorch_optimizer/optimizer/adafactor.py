@@ -13,7 +13,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
     r"""Adaptive Learning Rates with Sublinear Memory Cost.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: Optional[float]. learning rate. if None, use `min(1e-2, 1 / sqrt(step))`.
+    :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param decay_rate: float. coefficient used to compute running averages of square gradient.
     :param weight_decay: float. weight decay (L2 penalty).
