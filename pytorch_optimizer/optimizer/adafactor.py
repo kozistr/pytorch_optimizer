@@ -158,7 +158,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
                 state['RMS'] = self.get_rms(p)
                 lr = self.get_lr(group['lr'], state['step'], state['RMS'])
 
-                beta2_t: float = 1.0 - math.pow(state['step'], group['decay_rate'])
+                beta2_t: float = 1.0 - math.pow(state['step'], self.decay_rate)
                 update = torch.mul(grad, grad).add_(self.eps1)
 
                 if factored:
