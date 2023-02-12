@@ -252,3 +252,13 @@ def test_ranger21_closure():
         return loss
 
     optimizer.step(closure)
+
+
+def test_adafactor_get_lr():
+    model: nn.Module = Example()
+
+    optimizer = load_optimizer('adafactor')(model.parameters(), warmup_init=True)
+    assert optimizer.get_lr(1.0, 1, 1.0) == 1e-6
+
+    optimizer = load_optimizer('adafactor')(model.parameters(), warmup_init=False)
+    assert optimizer.get_lr(1.0, 1, 1.0) == 1e-2
