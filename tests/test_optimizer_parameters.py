@@ -5,7 +5,7 @@ from torch import nn
 from pytorch_optimizer import SAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError, ZeroParameterSizeError
 from tests.constants import BETA_OPTIMIZER_NAMES, PULLBACK_MOMENTUM, VALID_OPTIMIZER_NAMES
-from tests.utils import Example, LogisticRegression, simple_parameter
+from tests.utils import Example, simple_parameter
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
