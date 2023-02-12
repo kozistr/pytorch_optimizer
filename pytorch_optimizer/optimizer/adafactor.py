@@ -179,7 +179,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
 
                 # TODO: implement AMSGrad
 
-                update.div_(max(1.0, self.get_rms(update) / self.clip_threshold)).mul_(lr)
+                update.div_((self.get_rms(update) / self.clip_threshold).clamp_(min=1.0)).mul_(lr)
 
                 exp_avg = state['exp_avg']
                 exp_avg.mul_(self.betas[0]).add_(update, alpha=1.0 - self.betas[0])
