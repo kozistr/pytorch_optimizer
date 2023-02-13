@@ -110,8 +110,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
                 if momentum > 0.0 and grad.is_sparse:
                     raise NoSparseGradientError(self.__str__, note='momentum > 0.0')
 
-                grad_sum_sq = state['grad_sum_sq']
-                s = state['s']
+                grad_sum_sq, s = state['grad_sum_sq'], state['s']
 
                 if weight_decay > 0.0 and not self.decouple_decay:
                     if grad.is_sparse:
