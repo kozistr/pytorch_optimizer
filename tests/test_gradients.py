@@ -59,7 +59,7 @@ def test_sparse_supported(sparse_optimizer):
     optimizer.zero_grad()
     optimizer.step()
 
-    optimizer = opt([param], momentum=0.0, weight_decay=1e-3)
+    optimizer = opt([param], momentum=0.9, weight_decay=1e-3)
     optimizer.reset()
     optimizer.zero_grad()
 
