@@ -99,7 +99,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
                     raise NoSparseGradientError(self.__str__)
 
                 state = self.state[p]
-                g_2 = grad**2
+                g_2 = grad ** 2  # fmt: skip
 
                 if len(state) == 0:
                     state['moments'] = grad.div(g_2.sqrt() + group['eps']) + weight_decay * p
