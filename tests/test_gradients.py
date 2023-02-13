@@ -59,10 +59,6 @@ def test_sparse_supported(sparse_optimizer):
     optimizer.zero_grad()
     optimizer.step()
 
-    optimizer = opt([param], momentum=0.9, weight_decay=1e-3)
-    optimizer.reset()
-    optimizer.zero_grad()
-
     if sparse_optimizer == 'madgrad':
         optimizer = opt([param], weight_decay=1e-3, decouple_decay=True)
         optimizer.reset()
@@ -70,6 +66,10 @@ def test_sparse_supported(sparse_optimizer):
 
         with pytest.raises(NoSparseGradientError):
             optimizer.step()
+
+    optimizer = opt([param], momentum=0.9, weight_decay=1e-3)
+    optimizer.reset()
+    optimizer.zero_grad()
 
     if sparse_optimizer == 'madgrad':
         with pytest.raises(NoSparseGradientError):
