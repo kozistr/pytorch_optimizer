@@ -120,6 +120,8 @@ Supported Optimizers
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Apollo       | *An Adaptive Parameter-wise Diagonal Quasi-Newton Method for Nonconvex Stochastic Optimization* | `github <https://github.com/XuezheMax/apollo>`__                                  | `https://arxiv.org/abs/2009.13586 <https://arxiv.org/abs/2009.13586>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| NovoGrad     | *Stochastic Gradient Methods with Layer-wise Adaptive Moments for Training of Deep Networks*    | `github <https://github.com/lonePatient/NovoGrad-pytorch>`__                      | `https://arxiv.org/abs/1905.11286 <https://arxiv.org/abs/1905.11286>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
 ----------------
@@ -318,6 +320,8 @@ Citations
 `AdaFactor <https://ui.adsabs.harvard.edu/abs/2018arXiv180404235S/exportcitation>`__
 
 `Apollo <https://ui.adsabs.harvard.edu/abs/2020arXiv200913586M/exportcitation>`__
+
+`NovoGrad <https://ui.adsabs.harvard.edu/abs/2019arXiv190511286G/exportcitation>`__
 
 Citation
 --------
