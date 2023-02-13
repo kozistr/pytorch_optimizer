@@ -1,5 +1,6 @@
 from typing import Optional
 
+import numpy as np
 import torch
 from torch.optim.optimizer import Optimizer
 
@@ -124,7 +125,7 @@ class Apollo(Optimizer, BaseOptimizer):
 
                 delta_grad = grad - exp_avg_grad
                 if self.rebound == 'belief':
-                    rebound = delta_grad.norm(p='inf')
+                    rebound = delta_grad.norm(p=np.inf)
                 else:
                     rebound = 1e-2
                     eps /= rebound
