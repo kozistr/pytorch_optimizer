@@ -65,7 +65,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
                 state = self.state[p]
 
                 grad = p.grad
-                g_2 = grad**2
+                g_2 = grad ** 2  # fmt: skip
 
                 state['step'] = 0
                 state['moments'] = grad.div(g_2.sqrt() + group['eps']) + group['weight_decay'] * p
@@ -89,6 +89,10 @@ class NovoGrad(Optimizer, BaseOptimizer):
 
             bias_correction1 = 1.0 - beta1 ** group['step']
             bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
+
+            step_size: float = group['lr'] * bias_correction2_sq
+            if not self.adamd_debias_term:
+                step_size /= bias_correction1
 
             for p in group['params']:
                 if p.grad is None:
@@ -119,10 +123,6 @@ class NovoGrad(Optimizer, BaseOptimizer):
                     grad.mul_(1.0 - beta1)
 
                 moments.mul_(beta1).add_(grad)
-
-                step_size: float = group['lr'] * bias_correction2_sq
-                if not self.adamd_debias_term:
-                    step_size /= bias_correction1
 
                 p.add_(moments, alpha=-step_size)
 
