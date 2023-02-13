@@ -78,6 +78,22 @@ def test_weight_decay(optimizer_name):
     assert str(error_info.value) == '[-] weight_decay -0.001 must be non-negative'
 
 
+@pytest.mark.parametrize('optimizer_name', ['apollo'])
+def test_weight_decay_type(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+
+    with pytest.raises(ValueError):
+        optimizer(None, weight_decay_type='dummy')
+
+
+@pytest.mark.parametrize('optimizer_name', ['apollo'])
+def test_rebound(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+
+    with pytest.raises(ValueError):
+        optimizer(None, rebound='dummy')
+
+
 @pytest.mark.parametrize('optimizer_name', ['adamp', 'sgdp'])
 def test_wd_ratio(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
