@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Tuple, Union
 from pytorch_optimizer import (
     LARS,
     MADGRAD,
+    OPTIMIZERS,
     PNM,
     SGDP,
     AdaBelief,
@@ -13,6 +14,7 @@ from pytorch_optimizer import (
     AdamS,
     Adan,
     AdaPNM,
+    Apollo,
     DAdaptAdaGrad,
     DAdaptAdam,
     DAdaptSGD,
@@ -32,63 +34,7 @@ from tests.utils import build_lookahead
 ADAPTIVE_FLAGS: List[bool] = [True, False]
 PULLBACK_MOMENTUM: List[str] = ['none', 'reset', 'pullback']
 
-SPARSE_OPTIMIZERS: List[str] = [
-    'madgrad',
-    'dadaptadagrad',
-]
-NO_SPARSE_OPTIMIZERS: List[str] = [
-    'adamp',
-    'sgdp',
-    'madgrad',
-    'ranger',
-    'ranger21',
-    'radam',
-    'adabound',
-    'adabelief',
-    'diffgrad',
-    'diffrgrad',
-    'lamb',
-    'ralamb',
-    'lars',
-    'shampoo',
-    'scalableshampoo',
-    'nero',
-    'adan',
-    'adai',
-    'adapnm',
-    'pnm',
-    'dadaptadam',
-    'dadaptsgd',
-    'adams',
-    'adafactor',
-]
-VALID_OPTIMIZER_NAMES: List[str] = [
-    'adamp',
-    'adan',
-    'sgdp',
-    'madgrad',
-    'ranger',
-    'ranger21',
-    'radam',
-    'adabound',
-    'adabelief',
-    'diffgrad',
-    'diffrgrad',
-    'lamb',
-    'ralamb',
-    'lars',
-    'shampoo',
-    'scalableshampoo',
-    'pnm',
-    'adapnm',
-    'nero',
-    'adai',
-    'dadaptadagrad',
-    'dadaptadam',
-    'dadaptsgd',
-    'adams',
-    'adafactor',
-]
+VALID_OPTIMIZER_NAMES: List[str] = list(OPTIMIZERS.keys())
 INVALID_OPTIMIZER_NAMES: List[str] = [
     'asam',
     'sam',
@@ -97,6 +43,12 @@ INVALID_OPTIMIZER_NAMES: List[str] = [
     'adamd',
     'lookahead',
 ]
+
+SPARSE_OPTIMIZERS: List[str] = ['madgrad', 'dadaptadagrad']
+NO_SPARSE_OPTIMIZERS: List[str] = [
+    optimizer for optimizer in VALID_OPTIMIZER_NAMES if optimizer not in SPARSE_OPTIMIZERS
+]
+
 BETA_OPTIMIZER_NAMES: List[str] = [
     'adabelief',
     'adabound',
@@ -126,9 +78,7 @@ VALID_LR_SCHEDULER_NAMES: List[str] = [
     'CyclicLR',
     'OneCycleLR',
 ]
-INVALID_LR_SCHEDULER_NAMES: List[str] = [
-    'dummy',
-]
+INVALID_LR_SCHEDULER_NAMES: List[str] = ['dummy']
 
 OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
@@ -205,6 +155,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdamS, {'lr': 1.0, 'weight_decay': 1e-3}, 30),
     (AdamS, {'lr': 1.0, 'weight_decay': 1e-3, 'amsgrad': True}, 30),
     (AdaFactor, {'lr': 5e-1, 'weight_decay': 1e-2, 'scale_parameter': False}, 100),
+    (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3}, 25),
+    (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'rebound': 'belief'}, 25),
+    (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decay_type': 'stable'}, 25),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 10),
