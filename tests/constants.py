@@ -155,9 +155,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdamS, {'lr': 1.0, 'weight_decay': 1e-3}, 30),
     (AdamS, {'lr': 1.0, 'weight_decay': 1e-3, 'amsgrad': True}, 30),
     (AdaFactor, {'lr': 5e-1, 'weight_decay': 1e-2, 'scale_parameter': False}, 100),
-    (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3}, 25),
-    (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'rebound': 'belief'}, 25),
-    (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decay_type': 'stable'}, 25),
+    (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
+    (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'rebound': 'belief'}, 10),
+    (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decay_type': 'stable'}, 50),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 10),
