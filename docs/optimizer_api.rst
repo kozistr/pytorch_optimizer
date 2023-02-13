@@ -248,3 +248,11 @@ AdaFactor
 
 .. autoclass:: pytorch_optimizer.AdaFactor
     :members:
+
+.. _Apollo:
+
+Apollo
+------
+
+.. autoclass:: pytorch_optimizer.Apollo
+    :members:

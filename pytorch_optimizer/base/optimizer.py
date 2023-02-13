@@ -43,6 +43,13 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] weight_decay {weight_decay} must be non-negative')
 
     @staticmethod
+    def validate_weight_decay_type(weight_decay_type: str):
+        if weight_decay_type not in ('l2', 'decoupled', 'stable'):
+            raise ValueError(
+                f'[-] weight_decay_type {weight_decay_type} must be one of (\'l2\', \'decoupled\', \'stable\')'
+            )
+
+    @staticmethod
     def validate_weight_decay_ratio(weight_decay_ratio: float):
         if not 0.0 <= weight_decay_ratio < 1.0:
             raise ValueError(f'[-] weight_decay_ratio {weight_decay_ratio} must be in the range [0, 1)')
@@ -98,6 +105,11 @@ class BaseOptimizer(ABC):
     def validate_norm(norm: float):
         if norm < 0.0:
             raise ValueError(f'[-] norm {norm} must be positive')
+
+    @staticmethod
+    def validate_rebound(rebound: str):
+        if rebound not in ('constant', 'belief'):
+            raise ValueError(f'[-] rebound {rebound} must be one of (\'constant\' or \'belief\')')
 
     @abstractmethod
     def validate_parameters(self):

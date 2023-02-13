@@ -89,12 +89,9 @@ class MADGRAD(Optimizer, BaseOptimizer):
         k = self.state['k']
 
         for group in self.param_groups:
-            eps = group['eps']
+            weight_decay, momentum, eps = group['weight_decay'], group['momentum'], group['eps']
             lr = group['lr'] + eps
-            weight_decay = group['weight_decay']
-            momentum = group['momentum']
 
-            ck: float = 1.0 - momentum
             _lambda = lr * math.pow(k + 1, 0.5)
 
             for p in group['params']:
@@ -113,8 +110,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
                 if momentum > 0.0 and grad.is_sparse:
                     raise NoSparseGradientError(self.__str__, note='momentum > 0.0')
 
-                grad_sum_sq = state['grad_sum_sq']
-                s = state['s']
+                grad_sum_sq, s = state['grad_sum_sq'], state['s']
 
                 if weight_decay > 0.0 and not self.decouple_decay:
                     if grad.is_sparse:
@@ -176,7 +172,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
                         p.copy_(x0.addcdiv(s, rms, value=-1))
                     else:
                         z = x0.addcdiv(s, rms, value=-1)
-                        p.mul_(1.0 - ck).add_(z, alpha=ck)
+                        p.mul_(momentum).add_(z, alpha=1.0 - momentum)
 
                     if weight_decay > 0.0 and self.decouple_decay:
                         p.add_(p_old, alpha=-lr * weight_decay)

@@ -23,6 +23,7 @@ from pytorch_optimizer.optimizer.adams import AdamS
 from pytorch_optimizer.optimizer.adan import Adan
 from pytorch_optimizer.optimizer.adapnm import AdaPNM
 from pytorch_optimizer.optimizer.agc import agc
+from pytorch_optimizer.optimizer.apollo import Apollo
 from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptSGD
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.diffrgrad import DiffRGrad
@@ -94,6 +95,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     DAdaptSGD,
     AdamS,
     AdaFactor,
+    Apollo,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
