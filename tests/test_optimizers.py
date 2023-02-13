@@ -84,7 +84,7 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
         or (optimizer_class.__name__ == 'DAdaptSGD')
         or (optimizer_class.__name__ == 'Apollo' and 'weight_decay_type' in config)
     ):
-        pytest.skip('Skip Shampoo w/ decoupled_learning_rate')
+        pytest.skip(f'Skip {optimizer_class.__name__} w/ {config}')
 
     optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
 
