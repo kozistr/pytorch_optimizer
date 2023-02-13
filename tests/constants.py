@@ -22,6 +22,7 @@ from pytorch_optimizer import (
     DiffRGrad,
     Lamb,
     Nero,
+    NovoGrad,
     RAdam,
     RaLamb,
     Ranger,
@@ -68,6 +69,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'dadaptadam',
     'adams',
     'adafactor',
+    'novograd',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -158,6 +160,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'rebound': 'belief'}, 10),
     (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decay_type': 'stable', 'warmup_steps': 0}, 50),
+    (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'grad_averaging': True}, 50),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 10),
@@ -172,4 +175,5 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True, 'num_iterations': 200}, 200),
     (AdaPNM, {'lr': 3e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 50),
     (AdamS, {'lr': 2e1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 50),
+    (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 50),
 ]
