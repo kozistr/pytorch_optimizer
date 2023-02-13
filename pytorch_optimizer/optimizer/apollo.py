@@ -1,13 +1,11 @@
-import math
-from typing import Optional, Union
+from typing import Optional
 
 import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.optimizer.gc import centralize_gradient
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 class Apollo(Optimizer, BaseOptimizer):
@@ -97,7 +95,7 @@ class Apollo(Optimizer, BaseOptimizer):
             current_lr: float = (
                 group['lr']
                 if group['step'] >= self.warmup_steps
-                else (self.lr - group['init_lr']) * group['step'] / group['warmup'] + group['init_lr']
+                else (self.lr - group['init_lr']) * group['step'] / self.warmup_steps + group['init_lr']
             )
 
             weight_decay, eps = group['weight_decay'], group['eps']
