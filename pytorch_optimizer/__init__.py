@@ -35,6 +35,7 @@ from pytorch_optimizer.optimizer.lars import LARS
 from pytorch_optimizer.optimizer.lookahead import Lookahead
 from pytorch_optimizer.optimizer.madgrad import MADGRAD
 from pytorch_optimizer.optimizer.nero import Nero
+from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.pcgrad import PCGrad
 from pytorch_optimizer.optimizer.pnm import PNM
 from pytorch_optimizer.optimizer.radam import RAdam
@@ -96,6 +97,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdamS,
     AdaFactor,
     Apollo,
+    NovoGrad,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

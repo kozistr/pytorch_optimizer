@@ -256,3 +256,11 @@ Apollo
 
 .. autoclass:: pytorch_optimizer.Apollo
     :members:
+
+.. _NovoGrad:
+
+NovoGrad
+--------
+
+.. autoclass:: pytorch_optimizer.NovoGrad
+    :members:
