@@ -21,6 +21,7 @@ from pytorch_optimizer import (
     DiffGrad,
     DiffRGrad,
     Lamb,
+    Lion,
     Nero,
     NovoGrad,
     RAdam,
@@ -70,6 +71,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'adams',
     'adafactor',
     'novograd',
+    'lion',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -161,6 +163,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'rebound': 'belief'}, 10),
     (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decay_type': 'stable', 'warmup_steps': 0}, 50),
     (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'grad_averaging': True}, 50),
+    (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
+    (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 10),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 10),

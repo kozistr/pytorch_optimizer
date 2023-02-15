@@ -122,6 +122,8 @@ Supported Optimizers
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | NovoGrad     | *Stochastic Gradient Methods with Layer-wise Adaptive Moments for Training of Deep Networks*    | `github <https://github.com/lonePatient/NovoGrad-pytorch>`__                      | `https://arxiv.org/abs/1905.11286 <https://arxiv.org/abs/1905.11286>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Lion         | *Symbolic Discovery of Optimization Algorithms*                                                 | `github <https://github.com/google/automl/tree/master/lion>`__                    | `https://arxiv.org/abs/2302.06675 <https://arxiv.org/abs/2302.06675>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
 ----------------
@@ -322,6 +324,8 @@ Citations
 `Apollo <https://ui.adsabs.harvard.edu/abs/2020arXiv200913586M/exportcitation>`__
 
 `NovoGrad <https://ui.adsabs.harvard.edu/abs/2019arXiv190511286G/exportcitation>`__
+
+`Lion <https://github.com/google/automl/tree/master/lion#citation>`__
 
 Citation
 --------
