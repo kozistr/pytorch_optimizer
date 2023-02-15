@@ -15,5 +15,5 @@ def test_load_optimizers_invalid(invalid_optimizer_names):
         load_optimizer(invalid_optimizer_names)
 
 
-def u():
+def test_get_supported_optimizers():
     assert len(get_supported_optimizers()) == 28
