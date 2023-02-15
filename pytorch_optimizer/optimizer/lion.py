@@ -63,7 +63,7 @@ class Lion(Optimizer, BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        for group, base_lr in self.param_groups:
+        for group in self.param_groups:
             beta1, beta2 = group['betas']
             weight_decay = group['weight_decay']
             for p in group['params']:
