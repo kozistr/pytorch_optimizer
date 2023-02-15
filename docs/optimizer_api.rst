@@ -264,3 +264,11 @@ NovoGrad
 
 .. autoclass:: pytorch_optimizer.NovoGrad
     :members:
+
+.. _Lion:
+
+Lion
+----
+
+.. autoclass:: pytorch_optimizer.Lion
+    :members:
