@@ -53,7 +53,6 @@ class Lion(Optimizer, BaseOptimizer):
             for p in group['params']:
                 state = self.state[p]
 
-                state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
 
     @torch.no_grad()
@@ -77,10 +76,8 @@ class Lion(Optimizer, BaseOptimizer):
                 state = self.state[p]
 
                 if len(state) == 0:
-                    state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p)
 
-                state['step'] += 1
                 update = exp_avg = state['exp_avg']
 
                 if weight_decay > 0.0:
