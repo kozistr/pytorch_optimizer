@@ -1,7 +1,7 @@
 # ruff: noqa
 from typing import Dict, List
 
-from pytorch_optimizer.base.types import OPTIMIZER, SCHEDULER
+from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS, SCHEDULER
 from pytorch_optimizer.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
 from pytorch_optimizer.lr_scheduler import (
     ConstantLR,
@@ -129,6 +129,33 @@ def load_optimizer(optimizer: str) -> OPTIMIZER:
         raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
 
     return OPTIMIZERS[optimizer]
+
+
+def create_optimizer(
+    parameters: PARAMETERS,
+    optimizer_name: str,
+    lr: float = 1e-3,
+    weight_decay: float = 0.0,
+    wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
+    use_lookahead: bool = False,
+    **kwargs,
+):
+    optimizer_name = optimizer_name.lower()
+
+    if weight_decay > 0.0:
+        parameters = get_optimizer_parameters(parameters, weight_decay, wd_ban_list)
+
+    optimizer = load_optimizer(optimizer_name)
+
+    if optimizer_name == 'alig':
+        optimizer = optimizer(parameters, max_lr=lr, **kwargs)
+    else:
+        optimizer = optimizer(parameters, lr=lr, **kwargs)
+
+    if use_lookahead:
+        optimizer = Lookahead(optimizer, **kwargs)
+
+    return optimizer
 
 
 def load_lr_scheduler(lr_scheduler: str) -> SCHEDULER:
