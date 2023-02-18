@@ -235,6 +235,9 @@ def test_closure(optimizer):
     if optimizer_name in ('Ranger21', 'Adai', 'AdamS'):
         with pytest.raises(ZeroParameterSizeError):
             optimizer.step(closure=dummy_closure)
+    elif optimizer in ('AliG',):
+        with pytest.raises(ValueError):
+            optimizer.step()
     else:
         optimizer.step(closure=dummy_closure)
 
