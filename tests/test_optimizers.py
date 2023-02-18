@@ -45,7 +45,11 @@ def test_f32_optimizers(optimizer_fp32_config):
         loss.backward()
 
         if optimizer_name == 'AliG':
-            optimizer.step(lambda: float(loss))
+
+            def closure(x) -> float:
+                return float(x)
+
+            optimizer.step(closure(loss))
         else:
             optimizer.step()
 
