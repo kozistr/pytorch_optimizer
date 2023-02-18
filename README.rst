@@ -65,8 +65,25 @@ Also, you can load the optimizer via `torch.hub`
     opt = torch.hub.load('kozistr/pytorch_optimizer', 'adamp')
     optimizer = opt(model.parameters())
 
+If you want to build the optimizer with parameters & configs, there's `create_optimizer()` API.
 
-And you can check the supported optimizers & lr schedulers.
+::
+
+    from pytorch_optimizer import create_optimizer
+
+    optimizer = create_optimizer(
+        model,
+        'adamp',
+        lr=1e-2,
+        weight_decay=1e-3,
+        use_gc=True,
+        use_lookahead=True,
+    )
+
+Supported Optimizers
+--------------------
+
+You can check the supported optimizers & lr schedulers.
 
 ::
 
@@ -74,10 +91,6 @@ And you can check the supported optimizers & lr schedulers.
 
     supported_optimizers = get_supported_optimizers()
     supported_lr_schedulers = get_supported_lr_schedulers()
-
-
-Supported Optimizers
---------------------
 
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Optimizer    | Description                                                                                     | Official Code                                                                     | Paper                                                                                         |
