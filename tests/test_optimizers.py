@@ -39,7 +39,7 @@ def test_f32_optimizers(optimizer_fp32_config):
     parameters = list(model.parameters())
 
     if optimizer_name == 'AliG':
-        config.update({'projection_fn': l2_projection(parameters, max_norm=0.01)})
+        config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
 
     optimizer = optimizer_class(parameters, **config)
 
