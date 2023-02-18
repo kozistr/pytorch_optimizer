@@ -31,11 +31,7 @@ class Lion(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {
-            'lr': lr,
-            'betas': betas,
-            'weight_decay': weight_decay,
-        }
+        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay}
         super().__init__(params, defaults)
 
     def validate_parameters(self):

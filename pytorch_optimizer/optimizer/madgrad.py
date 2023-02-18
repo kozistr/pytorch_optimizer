@@ -42,12 +42,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {
-            'lr': lr,
-            'weight_decay': weight_decay,
-            'momentum': momentum,
-            'eps': eps,
-        }
+        defaults: DEFAULTS = {'lr': lr, 'weight_decay': weight_decay, 'momentum': momentum, 'eps': eps}
         super().__init__(params, defaults)
 
     def validate_parameters(self):
