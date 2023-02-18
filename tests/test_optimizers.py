@@ -323,6 +323,6 @@ def test_scalable_shampoo_pre_conditioner(pre_conditioner_type):
 def test_alig_projection():
     param = [simple_parameter(True)]
 
-    optimizer = load_optimizer('AliG')(param, projection_fn=l2_projection(param, max_norm=100.0))
+    optimizer = load_optimizer('AliG')(param, projection_fn=l2_projection(param, max_norm=0.01))
     optimizer.zero_grad()
     optimizer.step(lambda: 0.1)
