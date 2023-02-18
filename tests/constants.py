@@ -14,6 +14,7 @@ from pytorch_optimizer import (
     AdamS,
     Adan,
     AdaPNM,
+    AliG,
     Apollo,
     DAdaptAdaGrad,
     DAdaptAdam,
@@ -165,6 +166,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'grad_averaging': True}, 50),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 10),
+    (AliG, {'max_lr': 5e-1, 'momentum': 0.9}, 10),
+    (AliG, {'max_lr': 5e-1, 'momentum': 0.9, 'adjusted_momentum': True}, 10),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 10),

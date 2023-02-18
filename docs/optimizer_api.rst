@@ -272,3 +272,11 @@ Lion
 
 .. autoclass:: pytorch_optimizer.Lion
     :members:
+
+.. _AliG:
+
+AliG
+----
+
+.. autoclass:: pytorch_optimizer.AliG
+    :members:

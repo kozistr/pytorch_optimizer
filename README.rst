@@ -65,8 +65,25 @@ Also, you can load the optimizer via `torch.hub`
     opt = torch.hub.load('kozistr/pytorch_optimizer', 'adamp')
     optimizer = opt(model.parameters())
 
+If you want to build the optimizer with parameters & configs, there's `create_optimizer()` API.
 
-And you can check the supported optimizers & lr schedulers.
+::
+
+    from pytorch_optimizer import create_optimizer
+
+    optimizer = create_optimizer(
+        model,
+        'adamp',
+        lr=1e-2,
+        weight_decay=1e-3,
+        use_gc=True,
+        use_lookahead=True,
+    )
+
+Supported Optimizers
+--------------------
+
+You can check the supported optimizers & lr schedulers.
 
 ::
 
@@ -74,10 +91,6 @@ And you can check the supported optimizers & lr schedulers.
 
     supported_optimizers = get_supported_optimizers()
     supported_lr_schedulers = get_supported_lr_schedulers()
-
-
-Supported Optimizers
---------------------
 
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Optimizer    | Description                                                                                     | Official Code                                                                     | Paper                                                                                         |
@@ -123,6 +136,8 @@ Supported Optimizers
 | NovoGrad     | *Stochastic Gradient Methods with Layer-wise Adaptive Moments for Training of Deep Networks*    | `github <https://github.com/lonePatient/NovoGrad-pytorch>`__                      | `https://arxiv.org/abs/1905.11286 <https://arxiv.org/abs/1905.11286>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Lion         | *Symbolic Discovery of Optimization Algorithms*                                                 | `github <https://github.com/google/automl/tree/master/lion>`__                    | `https://arxiv.org/abs/2302.06675 <https://arxiv.org/abs/2302.06675>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Ali-G        | *Adaptive Learning Rates for Interpolation with Gradients*                                      | `github <https://github.com/oval-group/ali-g>`__                                  | `https://arxiv.org/abs/1906.05661 <https://arxiv.org/abs/1906.05661>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
@@ -327,6 +342,8 @@ Citations
 
 `Lion <https://github.com/google/automl/tree/master/lion#citation>`__
 
+`Ali-G <https://github.com/oval-group/ali-g#adaptive-learning-rates-for-interpolation-with-gradients>`__
+
 Citation
 --------
 
@@ -338,7 +355,7 @@ Or you can get from "cite this repository" button.
     @software{Kim_pytorch_optimizer_Bunch_of_2022,
         author = {Kim, Hyeongchan},
         month = {1},
-        title = {{pytorch_optimizer: Bunch of optimizer implementations in PyTorch with clean-code, strict types}},
+        title = {{pytorch_optimizer: optimizer & lr scheduler implementations in PyTorch}},
         version = {1.0.0},
         year = {2022}
     }

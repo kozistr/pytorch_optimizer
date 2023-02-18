@@ -168,23 +168,29 @@ def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
 
 
 def get_optimizer_parameters(
-    model: nn.Module, weight_decay: float, wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight')
+    model_or_parameter: Union[nn.Module, List],
+    weight_decay: float,
+    wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
 ) -> PARAMETERS:
     r"""Get optimizer parameters while filtering specified modules.
 
-    :param model: nn.Module. model.
+    :param model_or_parameter: Union[nn.Module, List]. model or parameters.
     :param weight_decay: float. weight_decay.
     :param wd_ban_list: List[str]. ban list not to set weight decay.
     :returns: PARAMETERS. new parameter list.
     """
-    param_optimizer: List[Tuple[str, nn.Parameter]] = list(model.named_parameters())
+    if isinstance(model_or_parameter, nn.Module):
+        model_or_parameter = list(model_or_parameter.named_parameters())
 
     return [
         {
-            'params': [p for n, p in param_optimizer if not any(nd in n for nd in wd_ban_list)],
+            'params': [p for n, p in model_or_parameter if p.requires_grad and not any(nd in n for nd in wd_ban_list)],
             'weight_decay': weight_decay,
         },
-        {'params': [p for n, p in param_optimizer if any(nd in n for nd in wd_ban_list)], 'weight_decay': 0.0},
+        {
+            'params': [p for n, p in model_or_parameter if p.requires_grad and any(nd in n for nd in wd_ban_list)],
+            'weight_decay': 0.0,
+        },
     ]
 
 
@@ -229,3 +235,13 @@ def enable_running_stats(model):
             module.momentum = module.backup_momentum
 
     model.apply(_enable)
+
+
+@torch.no_grad()
+def l2_projection(parameters: PARAMETERS, max_norm: float = 1e2):
+    r"""Get l2 normalized parameter."""
+    global_norm = torch.sqrt(sum(p.norm().pow(2) for p in parameters))
+    if global_norm > max_norm:
+        ratio = max_norm / global_norm
+        for param in parameters:
+            param *= ratio

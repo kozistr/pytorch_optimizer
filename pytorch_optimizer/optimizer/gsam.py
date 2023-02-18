@@ -33,7 +33,7 @@ class GSAM(Optimizer, BaseOptimizer):
                 lr_scheduler.step()
                 optimizer.update_rho_t()
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param base_optimizer: Optimizer. base optimizer.
     :param model: nn.Module. model.
     :param alpha: float. rho alpha.

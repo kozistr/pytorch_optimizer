@@ -5,7 +5,7 @@ from torch import nn
 
 from pytorch_optimizer import GSAM, SAM, CosineScheduler, Lookahead, PCGrad, ProportionScheduler, load_optimizer
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
-from pytorch_optimizer.optimizer.shampoo_utils import BlockPartitioner, PreConditioner
+from pytorch_optimizer.optimizer.utils import l2_projection
 from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
 from tests.utils import (
     MultiHeadLogisticRegression,
@@ -22,15 +22,26 @@ from tests.utils import (
 
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
 def test_f32_optimizers(optimizer_fp32_config):
+    def closure(x):
+        def _closure() -> float:
+            return x
+
+        return _closure
+
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_fp32_config
 
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name == 'Nero' and 'constraints' not in config:
-        pytest.skip(f'skip {optimizer_name} w/o constraints')
+        pytest.skip(f'skip {optimizer_name} w/ {config}')
 
-    optimizer = optimizer_class(model.parameters(), **config)
+    parameters = list(model.parameters())
+
+    if optimizer_name == 'AliG':
+        config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
+
+    optimizer = optimizer_class(parameters, **config)
 
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
@@ -44,7 +55,10 @@ def test_f32_optimizers(optimizer_fp32_config):
 
         loss.backward()
 
-        optimizer.step()
+        if optimizer_name == 'AliG':
+            optimizer.step(closure(loss))
+        else:
+            optimizer.step()
 
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
@@ -83,6 +97,7 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
         or (optimizer_class.__name__ == 'DAdaptAdam')
         or (optimizer_class.__name__ == 'DAdaptSGD')
         or (optimizer_class.__name__ == 'Apollo' and 'weight_decay_type' in config)
+        or (optimizer_class.__name__ == 'AliG')
     ):
         pytest.skip(f'Skip {optimizer_class.__name__} w/ {config}')
 
@@ -231,6 +246,9 @@ def test_closure(optimizer):
     if optimizer_name in ('Ranger21', 'Adai', 'AdamS'):
         with pytest.raises(ZeroParameterSizeError):
             optimizer.step(closure=dummy_closure)
+    elif optimizer_name in ('AliG',):
+        with pytest.raises(ValueError):
+            optimizer.step()
     else:
         optimizer.step(closure=dummy_closure)
 
@@ -305,21 +323,3 @@ def test_scalable_shampoo_pre_conditioner(pre_conditioner_type):
     loss_fn(model(x_data), y_data).backward()
 
     optimizer.step()
-
-
-def test_pre_conditioner():
-    var = torch.zeros((1024, 128))
-    grad = torch.zeros((1024, 128))
-
-    pre_conditioner = PreConditioner(var, 0.9, 0, 128, 8192, True, 1e-6, use_svd=False)
-    pre_conditioner.add_statistics(grad)
-    pre_conditioner.compute_pre_conditioners()
-
-
-def test_block_partitioner():
-    var = torch.zeros((2, 2))
-    target_var = torch.zeros((1, 1))
-
-    partitioner = BlockPartitioner(var, block_size=2, pre_conditioner_type=0)
-    with pytest.raises(ValueError):
-        partitioner.partition(target_var)
