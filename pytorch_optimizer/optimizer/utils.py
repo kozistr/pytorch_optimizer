@@ -168,7 +168,9 @@ def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
 
 
 def get_optimizer_parameters(
-    model_or_parameter: Union[nn.Module, List], weight_decay: float, wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight')
+    model_or_parameter: Union[nn.Module, List],
+    weight_decay: float,
+    wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
 ) -> PARAMETERS:
     r"""Get optimizer parameters while filtering specified modules.
 
