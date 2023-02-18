@@ -184,10 +184,13 @@ def get_optimizer_parameters(
 
     return [
         {
-            'params': [p for n, p in model_or_parameter if not any(nd in n for nd in wd_ban_list)],
+            'params': [p for n, p in model_or_parameter if p.requires_grad and not any(nd in n for nd in wd_ban_list)],
             'weight_decay': weight_decay,
         },
-        {'params': [p for n, p in model_or_parameter if any(nd in n for nd in wd_ban_list)], 'weight_decay': 0.0},
+        {
+            'params': [p for n, p in model_or_parameter if p.requires_grad and any(nd in n for nd in wd_ban_list)],
+            'weight_decay': 0.0,
+        },
     ]
 
 
