@@ -8,14 +8,6 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-def l2_projection(parameters: PARAMETERS, max_norm: float = 1e2):
-    global_norm = torch.sqrt(sum(p.norm().pow(2) for p in parameters))
-    if global_norm > max_norm:
-        ratio = max_norm / global_norm
-        for param in parameters:
-            param.mul_(ratio)
-
-
 class AliG(Optimizer, BaseOptimizer):
     r"""Adaptive Learning Rates for Interpolation with Gradients.
 
@@ -67,14 +59,14 @@ class AliG(Optimizer, BaseOptimizer):
                 state['momentum_buffer'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def compute_step_size(self, loss: float) -> torch.Tensor:
+    def compute_step_size(self, loss: float) -> float:
         r"""Compute step_size."""
-        global_grad_norm: torch.Tensor = torch.zeros(1, device=self.param_groups[0]['params'][0].device)
+        global_grad_norm: float = 0
 
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is not None:
-                    global_grad_norm.add_(p.grad.norm().pow(2))
+                    global_grad_norm += p.grad.norm().pow(2).item()
 
         return loss / (global_grad_norm + self.eps)
 
@@ -85,13 +77,11 @@ class AliG(Optimizer, BaseOptimizer):
 
         loss = closure()
 
-        un_clipped_step_size: torch.Tensor = self.compute_step_size(loss)
+        un_clipped_step_size: float = self.compute_step_size(loss)
 
         for group in self.param_groups:
             step_size = group['step_size'] = (
-                un_clipped_step_size.clamp(min=group['max_lr'])
-                if group['max_lr'] is not None
-                else un_clipped_step_size
+                min(un_clipped_step_size, group['max_lr']) if group['max_lr'] is not None else un_clipped_step_size
             )
             momentum = group['momentum']
 
