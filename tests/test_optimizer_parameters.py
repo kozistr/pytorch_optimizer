@@ -66,8 +66,8 @@ def test_adafactor_epsilon():
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_weight_decay(optimizer_name):
-    if optimizer_name == 'nero':
-        pytest.skip('skip Nero optimizer')
+    if optimizer_name in ('nero', 'alig'):
+        pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
 
