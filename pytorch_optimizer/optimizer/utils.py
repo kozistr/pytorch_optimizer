@@ -231,10 +231,11 @@ def enable_running_stats(model):
     model.apply(_enable)
 
 
+@torch.no_grad()
 def l2_projection(parameters: PARAMETERS, max_norm: float = 1e2):
     r"""Get l2 normalized parameter."""
     global_norm = torch.sqrt(sum(p.norm().pow(2) for p in parameters))
     if global_norm > max_norm:
         ratio = max_norm / global_norm
         for param in parameters:
-            param.mul_(ratio)
+            param *= ratio
