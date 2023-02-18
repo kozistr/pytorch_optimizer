@@ -36,7 +36,12 @@ def test_f32_optimizers(optimizer_fp32_config):
     if optimizer_name == 'Nero' and 'constraints' not in config:
         pytest.skip(f'skip {optimizer_name} w/ {config}')
 
-    optimizer = optimizer_class(model.parameters(), **config)
+    parameters = list(model.parameters())
+
+    if optimizer_name == 'AliG':
+        config.update({'projection_fn': l2_projection(parameters, max_norm=0.01)})
+
+    optimizer = optimizer_class(parameters, **config)
 
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
@@ -318,11 +323,3 @@ def test_scalable_shampoo_pre_conditioner(pre_conditioner_type):
     loss_fn(model(x_data), y_data).backward()
 
     optimizer.step()
-
-
-def test_alig_projection():
-    param = [simple_parameter(True)]
-
-    optimizer = load_optimizer('AliG')(param, projection_fn=l2_projection(param, max_norm=0.01))
-    optimizer.zero_grad()
-    optimizer.step(lambda: 0.1)
