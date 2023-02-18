@@ -39,7 +39,7 @@ class AliG(Optimizer, BaseOptimizer):
         defaults: DEFAULTS = {'max_lr': max_lr, 'momentum': momentum}
         super().__init__(params, defaults)
 
-        if projection_fn is not None:
+        if self.projection_fn is not None:
             self.projection_fn()
 
     def validate_parameters(self):
