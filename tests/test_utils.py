@@ -5,7 +5,12 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer.optimizer.shampoo_utils import compute_power_schur_newton, merge_small_dims
+from pytorch_optimizer.optimizer.shampoo_utils import (
+    BlockPartitioner,
+    PreConditioner,
+    compute_power_schur_newton,
+    merge_small_dims,
+)
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
     disable_running_stats,
@@ -193,3 +198,21 @@ def test_to_real():
 
     real_tensor = torch.tensor(1.0, dtype=torch.float32)
     assert to_real(real_tensor) == 1.0
+
+
+def test_block_partitioner():
+    var = torch.zeros((2, 2))
+    target_var = torch.zeros((1, 1))
+
+    partitioner = BlockPartitioner(var, block_size=2, pre_conditioner_type=0)
+    with pytest.raises(ValueError):
+        partitioner.partition(target_var)
+
+
+def test_pre_conditioner():
+    var = torch.zeros((1024, 128))
+    grad = torch.zeros((1024, 128))
+
+    pre_conditioner = PreConditioner(var, 0.9, 0, 128, 8192, True, 1e-6, use_svd=False)
+    pre_conditioner.add_statistics(grad)
+    pre_conditioner.compute_pre_conditioners()
