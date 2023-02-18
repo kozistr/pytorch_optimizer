@@ -8,6 +8,14 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
+def l2_projection(parameters: PARAMETERS, max_norm: float = 1e2):
+    global_norm = torch.sqrt(sum(p.norm().pow(2) for p in parameters))
+    if global_norm > max_norm:
+        ratio = max_norm / global_norm
+        for param in parameters:
+            param.mul_(ratio)
+
+
 class AliG(Optimizer, BaseOptimizer):
     r"""Adaptive Learning Rates for Interpolation with Gradients.
 
@@ -72,10 +80,10 @@ class AliG(Optimizer, BaseOptimizer):
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
-        if closure is not None:
-            with torch.enable_grad():
-                loss = closure()
+        if closure is None:
+            raise ValueError(f'[-] AliG optimizer needs closure. (eg. `optimizer.step(lambda: float(loss))`).')
+
+        loss = closure()
 
         un_clipped_step_size: torch.Tensor = self.compute_step_size(loss)
 
