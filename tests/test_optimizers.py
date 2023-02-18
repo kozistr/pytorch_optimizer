@@ -22,6 +22,12 @@ from tests.utils import (
 
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
 def test_f32_optimizers(optimizer_fp32_config):
+    def closure(x):
+        def _closure() -> float:
+            return x
+
+        return _closure
+
     (x_data, y_data), model, loss_fn = build_environment()
 
     optimizer_class, config, iterations = optimizer_fp32_config
@@ -45,10 +51,6 @@ def test_f32_optimizers(optimizer_fp32_config):
         loss.backward()
 
         if optimizer_name == 'AliG':
-
-            def closure(x) -> float:
-                return float(x)
-
             optimizer.step(closure(loss))
         else:
             optimizer.step()
