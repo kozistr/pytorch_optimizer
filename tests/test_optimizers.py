@@ -5,6 +5,7 @@ from torch import nn
 
 from pytorch_optimizer import GSAM, SAM, CosineScheduler, Lookahead, PCGrad, ProportionScheduler, load_optimizer
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
+from pytorch_optimizer.optimizer.utils import l2_projection
 from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
 from tests.utils import (
     MultiHeadLogisticRegression,
@@ -26,7 +27,7 @@ def test_f32_optimizers(optimizer_fp32_config):
     optimizer_class, config, iterations = optimizer_fp32_config
 
     optimizer_name: str = optimizer_class.__name__
-    if (optimizer_name == 'Nero' and 'constraints' not in config) or (optimizer_name == 'AliG'):
+    if optimizer_name == 'Nero' and 'constraints' not in config:
         pytest.skip(f'skip {optimizer_name} w/ {config}')
 
     optimizer = optimizer_class(model.parameters(), **config)
@@ -43,7 +44,10 @@ def test_f32_optimizers(optimizer_fp32_config):
 
         loss.backward()
 
-        optimizer.step()
+        if optimizer_name == 'AliG':
+            optimizer.step(lambda: float(loss))
+        else:
+            optimizer.step()
 
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
@@ -305,3 +309,11 @@ def test_scalable_shampoo_pre_conditioner(pre_conditioner_type):
     loss_fn(model(x_data), y_data).backward()
 
     optimizer.step()
+
+
+def test_alig_projection():
+    param = [simple_parameter(True)]
+
+    optimizer = load_optimizer('AliG')(param, projection_fn=l2_projection(param, max_norm=100.0))
+    optimizer.zero_grad()
+    optimizer.step(lambda: 0.1)
