@@ -124,6 +124,8 @@ Supported Optimizers
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Lion         | *Symbolic Discovery of Optimization Algorithms*                                                 | `github <https://github.com/google/automl/tree/master/lion>`__                    | `https://arxiv.org/abs/2302.06675 <https://arxiv.org/abs/2302.06675>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Ali-G        | *Adaptive Learning Rates for Interpolation with Gradients*                                      | `github <https://github.com/oval-group/ali-g>`__                                  | `https://arxiv.org/abs/1906.05661 <https://arxiv.org/abs/1906.05661>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
 ----------------
@@ -327,6 +329,8 @@ Citations
 
 `Lion <https://github.com/google/automl/tree/master/lion#citation>`__
 
+`Ali-G <https://github.com/oval-group/ali-g#adaptive-learning-rates-for-interpolation-with-gradients>`__
+
 Citation
 --------
 
@@ -338,7 +342,7 @@ Or you can get from "cite this repository" button.
     @software{Kim_pytorch_optimizer_Bunch_of_2022,
         author = {Kim, Hyeongchan},
         month = {1},
-        title = {{pytorch_optimizer: Bunch of optimizer implementations in PyTorch with clean-code, strict types}},
+        title = {{pytorch_optimizer: optimizer & lr scheduler implementations in PyTorch}},
         version = {1.0.0},
         year = {2022}
     }
