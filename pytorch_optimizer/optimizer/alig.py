@@ -94,14 +94,14 @@ class AliG(Optimizer, BaseOptimizer):
                     raise NoSparseGradientError(self.__str__)
 
                 state = self.state[p]
-                if len(state) == 0:
+                if len(state) == 0 and momentum > 0.0:
                     state['momentum_buffer'] = torch.zeros_like(p)
-
-                buffer = state['momentum_buffer']
 
                 p.add_(grad, alpha=-step_size)
 
                 if momentum > 0.0:
+                    buffer = state['momentum_buffer']
+
                     if self.adjusted_momentum:
                         buffer.mul_(momentum).sub_(grad)
                         p.add_(buffer, alpha=step_size * momentum)
