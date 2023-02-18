@@ -53,7 +53,6 @@ class AliG(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
-            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
@@ -81,7 +80,7 @@ class AliG(Optimizer, BaseOptimizer):
         un_clipped_step_size: torch.Tensor = self.compute_step_size(loss)
 
         for group in self.param_groups:
-            group['step_size'] = step_size = (
+            step_size = group['step_size'] = (
                 un_clipped_step_size.clamp(min=group['max_lr'])
                 if group['max_lr'] is not None
                 else un_clipped_step_size
@@ -102,14 +101,14 @@ class AliG(Optimizer, BaseOptimizer):
 
                 buffer = state['momentum_buffer']
 
-                p.add_(p.grad, alpha=-step_size)
+                p.add_(grad, alpha=-step_size)
 
                 if momentum > 0.0:
                     if self.adjusted_momentum:
-                        buffer.mul_(momentum).sub_(p.grad)
+                        buffer.mul_(momentum).sub_(grad)
                         p.add_(buffer, alpha=step_size * momentum)
                     else:
-                        buffer.mul_(momentum).add_(p.grad, alpha=-step_size)
+                        buffer.mul_(momentum).add_(grad, alpha=-step_size)
                         p.add_(buffer, alpha=momentum)
 
             if self.projection_fn is not None:
