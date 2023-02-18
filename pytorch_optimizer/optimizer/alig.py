@@ -73,7 +73,7 @@ class AliG(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         if closure is None:
-            raise ValueError(f'[-] AliG optimizer needs closure. (eg. `optimizer.step(lambda: float(loss))`).')
+            raise ValueError('[-] AliG optimizer needs closure. (eg. `optimizer.step(lambda: float(loss))`).')
 
         loss = closure()
 
