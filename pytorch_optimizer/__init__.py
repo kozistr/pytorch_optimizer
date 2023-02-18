@@ -1,6 +1,8 @@
 # ruff: noqa
 from typing import Dict, List
 
+from torch import nn
+
 from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS, SCHEDULER
 from pytorch_optimizer.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
 from pytorch_optimizer.lr_scheduler import (
@@ -132,7 +134,7 @@ def load_optimizer(optimizer: str) -> OPTIMIZER:
 
 
 def create_optimizer(
-    parameters: PARAMETERS,
+    model: nn.Module,
     optimizer_name: str,
     lr: float = 1e-3,
     weight_decay: float = 0.0,
@@ -140,10 +142,21 @@ def create_optimizer(
     use_lookahead: bool = False,
     **kwargs,
 ):
+    r"""Build optimizer.
+
+    :param model: nn.Module. model.
+    :param optimizer_name: str. name of optimizer.
+    :param lr: float. learning rate.
+    :param weight_decay: float. weight decay.
+    :param wd_ban_list: List[str]. weight decay ban list by layer.
+    :param use_lookahead: bool. use lookahead.
+    """
     optimizer_name = optimizer_name.lower()
 
     if weight_decay > 0.0:
-        parameters = get_optimizer_parameters(parameters, weight_decay, wd_ban_list)
+        parameters = get_optimizer_parameters(model, weight_decay, wd_ban_list)
+    else:
+        parameters = model.parameters()
 
     optimizer = load_optimizer(optimizer_name)
 
@@ -153,7 +166,12 @@ def create_optimizer(
         optimizer = optimizer(parameters, lr=lr, **kwargs)
 
     if use_lookahead:
-        optimizer = Lookahead(optimizer, **kwargs)
+        optimizer = Lookahead(
+            optimizer,
+            k=kwargs['k'] if 'k' in kwargs else 5,
+            alpha=kwargs['alpha'] if 'alpha' in kwargs else 0.5,
+            pullback_momentum=kwargs['pullback_momentum'] if 'pullback_momentum' in kwargs else 'none',
+        )
 
     return optimizer
 
