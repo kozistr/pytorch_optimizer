@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  OMP_NUM_THREADS: 2
+  MKL_NUM_THREADS: 2
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -30,9 +34,9 @@ jobs:
     - name: Check lint
       run: make check
     - name: Check test
-      run: |
-        export PYTHONDONTWRITEBYTECODE=1
-        make test
+      env:
+        PYTHONDONTWRITEBYTECODE: 1
+      run: make test
     - name: Check codecov
       uses: codecov/codecov-action@v3
       with:
