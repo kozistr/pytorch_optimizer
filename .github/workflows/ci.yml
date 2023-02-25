@@ -35,6 +35,7 @@ jobs:
       run: make check
     - name: Check test
       env:
+        LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libtcmalloc.so.4
         PYTHONDONTWRITEBYTECODE: 1
       run: make test
     - name: Check codecov
