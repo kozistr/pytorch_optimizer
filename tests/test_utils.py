@@ -27,14 +27,12 @@ from pytorch_optimizer.optimizer.utils import (
 from tests.utils import Example
 
 
-@pytest.mark.utils
 def test_has_overflow():
     assert has_overflow(np.inf)
     assert has_overflow(np.nan)
     assert not has_overflow(torch.Tensor([1]))
 
 
-@pytest.mark.utils
 def test_normalized_gradient():
     x = torch.arange(0, 10, dtype=torch.float32)
 
@@ -53,7 +51,6 @@ def test_normalized_gradient():
     )
 
 
-@pytest.mark.utils
 def test_clip_grad_norm():
     x = torch.arange(0, 10, dtype=torch.float32, requires_grad=True)
     x.grad = torch.arange(0, 10, dtype=torch.float32)
@@ -62,7 +59,6 @@ def test_clip_grad_norm():
     np.testing.assert_approx_equal(clip_grad_norm(x, max_norm=2), 16.881943016134134, significant=4)
 
 
-@pytest.mark.utils
 def test_unit_norm():
     x = torch.arange(0, 10, dtype=torch.float32)
 
@@ -72,7 +68,6 @@ def test_unit_norm():
     np.testing.assert_approx_equal(unit_norm(x.view(1, 10, 1, 1, 1, 1)).numpy(), 16.8819, significant=4)
 
 
-@pytest.mark.utils
 def test_neuron_mean_norm():
     x = torch.arange(-5, 5, dtype=torch.float32)
 
@@ -94,7 +89,6 @@ def test_neuron_mean_norm():
     )
 
 
-@pytest.mark.utils
 def test_get_optimizer_parameters():
     model: nn.Module = Example()
     wd_ban_list: List[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
@@ -108,7 +102,6 @@ def test_get_optimizer_parameters():
             assert after['weight_decay'] == 0.0
 
 
-@pytest.mark.utils
 def test_is_valid_parameters():
     model: nn.Module = Example()
     wd_ban_list: List[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
@@ -118,7 +111,6 @@ def test_is_valid_parameters():
     assert is_valid_parameters(after_parameters)
 
 
-@pytest.mark.utils
 def test_running_stats():
     model = nn.Sequential(
         nn.Linear(1, 1),
@@ -136,7 +128,6 @@ def test_running_stats():
     assert model[1].momentum == 0.1
 
 
-@pytest.mark.utils
 def test_compute_power():
     # case 1 : len(x.shape) == 1
     x = compute_power_schur_newton(torch.zeros((1,)), p=1)
@@ -187,7 +178,6 @@ def test_compute_power():
     assert np.sum(x.numpy() - np.asarray([[359.1108, -358.4036], [-358.4036, 359.1108]])) < 50
 
 
-@pytest.mark.utils
 def test_merge_small_dims():
     case1 = [1, 2, 512, 1, 2048, 1, 3, 4]
     expected_case1 = [1024, 2048, 12]
@@ -202,7 +192,6 @@ def test_merge_small_dims():
     assert expected_case3 == merge_small_dims(case3, max_dim=1)
 
 
-@pytest.mark.utils
 def test_to_real():
     complex_tensor = torch.tensor(1.0j + 2.0, dtype=torch.complex64)
     assert to_real(complex_tensor) == 2.0
@@ -211,7 +200,6 @@ def test_to_real():
     assert to_real(real_tensor) == 1.0
 
 
-@pytest.mark.utils
 def test_block_partitioner():
     var = torch.zeros((2, 2))
     target_var = torch.zeros((1, 1))
@@ -221,7 +209,6 @@ def test_block_partitioner():
         partitioner.partition(target_var)
 
 
-@pytest.mark.utils
 def test_pre_conditioner():
     var = torch.zeros((1024, 128))
     grad = torch.zeros((1024, 128))

@@ -8,7 +8,6 @@ from tests.constants import BETA_OPTIMIZER_NAMES, PULLBACK_MOMENTUM, VALID_OPTIM
 from tests.utils import Example, simple_parameter
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_learning_rate(optimizer_name):
     if optimizer_name in ('alig',):
@@ -24,7 +23,6 @@ def test_learning_rate(optimizer_name):
         optimizer(None, **config)
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
     if optimizer_name in ('nero', 'shampoo', 'scalableshampoo', 'dadaptsgd', 'adafactor', 'lion'):
@@ -42,7 +40,6 @@ def test_epsilon(optimizer_name):
     assert str(error_info.value) == '[-] epsilon -1e-06 must be non-negative'
 
 
-@pytest.mark.cfg
 def test_shampoo_epsilon():
     shampoo = load_optimizer('Shampoo')
     scalable_shampoo = load_optimizer('ScalableShampoo')
@@ -57,7 +54,6 @@ def test_shampoo_epsilon():
         shampoo(None, matrix_eps=-1e-6)
 
 
-@pytest.mark.cfg
 def test_adafactor_epsilon():
     adafactor = load_optimizer('adafactor')
 
@@ -68,7 +64,6 @@ def test_adafactor_epsilon():
         adafactor(None, eps2=-1e-6)
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_weight_decay(optimizer_name):
     if optimizer_name in ('nero', 'alig'):
@@ -86,7 +81,6 @@ def test_weight_decay(optimizer_name):
     assert str(error_info.value) == '[-] weight_decay -0.001 must be non-negative'
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', ['apollo'])
 def test_weight_decay_type(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
@@ -95,7 +89,6 @@ def test_weight_decay_type(optimizer_name):
         optimizer(None, weight_decay_type='dummy')
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', ['apollo'])
 def test_rebound(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
@@ -104,7 +97,6 @@ def test_rebound(optimizer_name):
         optimizer(None, rebound='dummy')
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', ['adamp', 'sgdp'])
 def test_wd_ratio(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
@@ -112,7 +104,6 @@ def test_wd_ratio(optimizer_name):
         optimizer(None, wd_ratio=-1e-3)
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', ['lars'])
 def test_trust_coefficient(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
@@ -120,7 +111,6 @@ def test_trust_coefficient(optimizer_name):
         optimizer(None, trust_coefficient=-1e-3)
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', ['madgrad', 'lars'])
 def test_momentum(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
@@ -128,7 +118,6 @@ def test_momentum(optimizer_name):
         optimizer(None, momentum=-1e-3)
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', ['ranger'])
 def test_lookahead_k(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
@@ -136,7 +125,6 @@ def test_lookahead_k(optimizer_name):
         optimizer(None, k=-1)
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', ['ranger21'])
 def test_beta0(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
@@ -144,7 +132,6 @@ def test_beta0(optimizer_name):
         optimizer(None, num_iterations=200, beta0=-0.1)
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', ['nero', 'apollo'])
 def test_beta(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
@@ -152,7 +139,6 @@ def test_beta(optimizer_name):
         optimizer(None, beta=-0.1)
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', BETA_OPTIMIZER_NAMES)
 def test_betas(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
@@ -174,7 +160,6 @@ def test_betas(optimizer_name):
             optimizer(None, betas=(0.1, 0.1, -0.1))
 
 
-@pytest.mark.cfg
 def test_reduction():
     parameters = Example().parameters()
     optimizer = load_optimizer('adamp')(parameters)
@@ -183,7 +168,6 @@ def test_reduction():
         PCGrad(optimizer, reduction='wrong')
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', ['scalableshampoo', 'shampoo'])
 def test_update_frequency(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
@@ -199,7 +183,6 @@ def test_update_frequency(optimizer_name):
         optimizer(None, preconditioning_compute_steps=-1)
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', ['adan', 'lamb'])
 def test_norm(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
@@ -207,13 +190,11 @@ def test_norm(optimizer_name):
         optimizer(None, max_grad_norm=-0.1)
 
 
-@pytest.mark.cfg
 def test_sam_parameters():
     with pytest.raises(ValueError, match=''):
         SAM(None, load_optimizer('adamp'), rho=-0.1)
 
 
-@pytest.mark.cfg
 def test_lookahead_parameters():
     param = simple_parameter()
     optimizer = load_optimizer('adamp')([param])
@@ -235,7 +216,6 @@ def test_lookahead_parameters():
         Lookahead(optimizer, pullback_momentum='invalid')
 
 
-@pytest.mark.cfg
 def test_sam_methods():
     param = simple_parameter()
 
@@ -244,7 +224,6 @@ def test_sam_methods():
     optimizer.load_state_dict(optimizer.state_dict())
 
 
-@pytest.mark.cfg
 def test_safe_fp16_methods():
     param = simple_parameter()
 
@@ -265,14 +244,12 @@ def test_safe_fp16_methods():
     assert optimizer.loss_scale == 2.0 ** (15 - 1)
 
 
-@pytest.mark.cfg
 def test_ranger21_warm_methods():
     assert Ranger21.build_warm_up_iterations(1000, 0.999) == 220
     assert Ranger21.build_warm_up_iterations(4500, 0.999) == 2000
     assert Ranger21.build_warm_down_iterations(1000) == 280
 
 
-@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer', ['ranger21', 'adai'])
 def test_size_of_parameter(optimizer):
     param = simple_parameter(require_grad=False)
@@ -282,7 +259,6 @@ def test_size_of_parameter(optimizer):
         load_optimizer(optimizer)([param], 1).step()
 
 
-@pytest.mark.cfg
 def test_ranger21_closure():
     model: nn.Module = Example()
     optimizer = load_optimizer('ranger21')(model.parameters(), num_iterations=100, betas=(0.9, 1e-9))
@@ -297,7 +273,6 @@ def test_ranger21_closure():
     optimizer.step(closure)
 
 
-@pytest.mark.cfg
 def test_adafactor_reset():
     param = torch.zeros(1).requires_grad_(True)
     param.grad = torch.zeros(1)
@@ -306,7 +281,6 @@ def test_adafactor_reset():
     optimizer.reset()
 
 
-@pytest.mark.cfg
 def test_adafactor_get_lr():
     model: nn.Module = Example()
 

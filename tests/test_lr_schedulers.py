@@ -114,7 +114,6 @@ LWP_RECIPE = [
 PROPORTION_LEARNING_RATES = [(1e-1, 1e-1, 2.0), (1e-1, 1e-3, 1.090909)]
 
 
-@pytest.mark.lr_scheduler
 @pytest.mark.parametrize('cosine_annealing_warmup_restart_param', CAWR_RECIPES)
 def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param):
     model = Example()
@@ -151,13 +150,11 @@ def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param)
         np.testing.assert_almost_equal(expected_lrs[epoch], lr)
 
 
-@pytest.mark.lr_scheduler
 def test_get_chebyshev_scheduler():
     np.testing.assert_almost_equal(get_chebyshev_schedule(3), 1.81818182, decimal=6)
     np.testing.assert_array_equal(chebyshev_perm(5), np.asarray([0, 7, 3, 4, 1, 6, 2, 5]))
 
 
-@pytest.mark.lr_scheduler
 def test_linear_warmup_linear_scheduler():
     optimizer = AdamP(Example().parameters())
     lr_scheduler = LinearScheduler(optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
@@ -167,7 +164,6 @@ def test_linear_warmup_linear_scheduler():
         np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr())
 
 
-@pytest.mark.lr_scheduler
 def test_linear_warmup_cosine_scheduler():
     optimizer = AdamP(Example().parameters())
     lr_scheduler = CosineScheduler(optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
@@ -177,7 +173,6 @@ def test_linear_warmup_cosine_scheduler():
         np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr(), 5)
 
 
-@pytest.mark.lr_scheduler
 def test_linear_warmup_poly_scheduler():
     optimizer = AdamP(Example().parameters())
     lr_scheduler = PolyScheduler(optimizer=optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
@@ -187,7 +182,6 @@ def test_linear_warmup_poly_scheduler():
         np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr(), 6)
 
 
-@pytest.mark.lr_scheduler
 @pytest.mark.parametrize('proportion_learning_rate', PROPORTION_LEARNING_RATES)
 def test_proportion_scheduler(proportion_learning_rate: Tuple[float, float, float]):
     base_optimizer = AdamP(Example().parameters())
@@ -207,7 +201,6 @@ def test_proportion_scheduler(proportion_learning_rate: Tuple[float, float, floa
         np.testing.assert_almost_equal(proportion_learning_rate[2], rho_scheduler.get_lr(), 6)
 
 
-@pytest.mark.lr_scheduler
 def test_proportion_no_last_lr_scheduler():
     base_optimizer = AdamP(Example().parameters())
     lr_scheduler = CosineAnnealingWarmupRestarts(
@@ -229,7 +222,6 @@ def test_proportion_no_last_lr_scheduler():
         np.testing.assert_almost_equal(2.0, rho_scheduler.get_lr(), 6)
 
 
-@pytest.mark.lr_scheduler
 def test_deberta_v3_large_lr_scheduler():
     try:
         from transformers import AutoConfig, AutoModel
