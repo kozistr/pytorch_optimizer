@@ -7,6 +7,7 @@ from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIM
 from tests.utils import build_environment, simple_parameter, simple_sparse_parameter
 
 
+@pytest.mark.gradient
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead'])
 def test_no_gradients(optimizer_name):
     p1 = simple_parameter(require_grad=True)
@@ -32,6 +33,7 @@ def test_no_gradients(optimizer_name):
     optimizer.step(lambda: 0.1)  # for AliG optimizer
 
 
+@pytest.mark.gradient
 @pytest.mark.parametrize('no_sparse_optimizer', NO_SPARSE_OPTIMIZERS)
 def test_sparse_not_supported(no_sparse_optimizer):
     param = simple_sparse_parameter()
@@ -45,6 +47,7 @@ def test_sparse_not_supported(no_sparse_optimizer):
         optimizer.step(lambda: 0.1)
 
 
+@pytest.mark.gradient
 @pytest.mark.parametrize('sparse_optimizer', SPARSE_OPTIMIZERS)
 def test_sparse_supported(sparse_optimizer):
     param = simple_sparse_parameter()
@@ -78,6 +81,7 @@ def test_sparse_supported(sparse_optimizer):
         optimizer.step()
 
 
+@pytest.mark.gradient
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_bf16_gradient(optimizer_name):
     # torch.eye does not support bf16
@@ -92,6 +96,7 @@ def test_bf16_gradient(optimizer_name):
     optimizer.step(lambda: 0.1)
 
 
+@pytest.mark.gradient
 def test_sam_no_gradient():
     (x_data, y_data), model, loss_fn = build_environment()
     model.fc1.weight.requires_grad = False

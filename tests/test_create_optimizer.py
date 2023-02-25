@@ -1,7 +1,10 @@
+import pytest
+
 from pytorch_optimizer import create_optimizer
 from tests.utils import LogisticRegression
 
 
+@pytest.mark.utils
 def test_create_optimizer():
     model = LogisticRegression()
 

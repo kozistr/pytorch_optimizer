@@ -8,6 +8,7 @@ from pytorch_optimizer.lr_scheduler.linear_warmup import PolyScheduler
 from tests.utils import Example
 
 
+@pytest.mark.lr_scheduler
 def test_cosine_annealing_warmup_restarts_params():
     optimizer = AdamP(Example().parameters())
 
@@ -36,6 +37,7 @@ def test_cosine_annealing_warmup_restarts_params():
         lr_scheduler.step(epoch=None)
 
 
+@pytest.mark.lr_scheduler
 def test_linear_warmup_lr_scheduler_params():
     optimizer = AdamP(Example().parameters())
 
@@ -60,6 +62,7 @@ def test_linear_warmup_lr_scheduler_params():
         PolyScheduler(optimizer=optimizer, t_max=1, max_lr=1, min_lr=1, init_lr=1, warmup_steps=-1)
 
 
+@pytest.mark.lr_scheduler
 def test_chebyshev_params():
     with pytest.raises(IndexError):
         get_chebyshev_schedule(2)

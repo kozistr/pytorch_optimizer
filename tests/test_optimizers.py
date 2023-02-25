@@ -20,6 +20,7 @@ from tests.utils import (
 )
 
 
+@pytest.mark.train
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
 def test_f32_optimizers(optimizer_fp32_config):
     def closure(x):
@@ -63,6 +64,7 @@ def test_f32_optimizers(optimizer_fp32_config):
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
+@pytest.mark.train
 @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
 def test_lookahead(pullback_momentum):
     (x_data, y_data), model, loss_fn = build_environment()
@@ -86,6 +88,7 @@ def test_lookahead(pullback_momentum):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
+@pytest.mark.train
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
 @pytest.mark.parametrize('optimizer_sam_config', OPTIMIZERS, ids=ids)
 def test_sam_optimizers(adaptive, optimizer_sam_config):
@@ -118,6 +121,7 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
+@pytest.mark.train
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
 def test_sam_optimizers_with_closure(adaptive):
     (x_data, y_data), model, loss_fn = build_environment()
@@ -143,6 +147,7 @@ def test_sam_optimizers_with_closure(adaptive):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
+@pytest.mark.train
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
 def test_gsam_optimizers(adaptive):
     if not torch.cuda.is_available():
@@ -178,6 +183,7 @@ def test_gsam_optimizers(adaptive):
     assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
 
 
+@pytest.mark.train
 @pytest.mark.parametrize('optimizer_adamd_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_adamd_optimizers(optimizer_adamd_config):
     (x_data, y_data), model, loss_fn = build_environment()
@@ -205,6 +211,7 @@ def test_adamd_optimizers(optimizer_adamd_config):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
+@pytest.mark.train
 @pytest.mark.parametrize('reduction', ['mean', 'sum'])
 def test_pc_grad_optimizers(reduction):
     x_data, y_data = make_dataset()
@@ -233,6 +240,7 @@ def test_pc_grad_optimizers(reduction):
     assert tensor_to_numpy(init_loss) > 1.25 * tensor_to_numpy(loss)
 
 
+@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer', {config[0] for config in OPTIMIZERS}, ids=names)
 def test_closure(optimizer):
     param = simple_parameter()
@@ -253,6 +261,7 @@ def test_closure(optimizer):
         optimizer.step(closure=dummy_closure)
 
 
+@pytest.mark.cfg
 def test_no_closure():
     param = simple_parameter()
 
@@ -263,6 +272,7 @@ def test_no_closure():
         optimizer.step()
 
 
+@pytest.mark.cfg
 def test_nero_zero_scale():
     param = simple_parameter()
 
@@ -272,6 +282,7 @@ def test_nero_zero_scale():
     optimizer.step()
 
 
+@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_name', ['diffrgrad', 'adabelief', 'radam', 'ralamb'])
 def test_rectified_optimizer(optimizer_name):
     param = simple_parameter()
@@ -282,6 +293,7 @@ def test_rectified_optimizer(optimizer_name):
     optimizer.step()
 
 
+@pytest.mark.cfg
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 def test_reset(optimizer_config):
     optimizer_class, config, _ = optimizer_config
@@ -292,6 +304,7 @@ def test_reset(optimizer_config):
     optimizer.reset()
 
 
+@pytest.mark.cfg
 @pytest.mark.parametrize('require_gradient', [False, True])
 @pytest.mark.parametrize('sparse_gradient', [False, True])
 @pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD'])
@@ -305,6 +318,7 @@ def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
     optimizer.reset()
 
 
+@pytest.mark.cfg
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1])
 def test_scalable_shampoo_pre_conditioner(pre_conditioner_type):
     (x_data, y_data), _, loss_fn = build_environment()
