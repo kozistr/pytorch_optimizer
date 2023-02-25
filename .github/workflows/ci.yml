@@ -16,6 +16,7 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.11']
+        testmarker: ['train', 'utils', 'gradient', 'lr_scheduler', 'cfg']
 
     steps:
     - uses: actions/checkout@v3
@@ -37,7 +38,7 @@ jobs:
       env:
         LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libtcmalloc.so.4
         PYTHONDONTWRITEBYTECODE: 1
-      run: make test
+      run: pytest -p no:pastebin -p no:nose -p no:doctest -sv -vv --cov=pytorch_optimizer --cov-report=xml -m ${{ matrix.testmarker }} tests
     - name: Check codecov
       uses: codecov/codecov-action@v3
       with:
