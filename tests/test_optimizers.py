@@ -301,7 +301,7 @@ def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
         param.grad = None
 
     optimizer = load_optimizer(optimizer_name)([param])
-    assert optimizer.__str__ == optimizer_name
+    assert str(optimizer) == optimizer_name
     optimizer.reset()
 
 

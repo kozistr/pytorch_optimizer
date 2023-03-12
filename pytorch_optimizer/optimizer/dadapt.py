@@ -65,7 +65,6 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    @property
     def __str__(self) -> str:
         return 'DAdaptAdaGrad'
 
@@ -296,7 +295,6 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    @property
     def __str__(self) -> str:
         return 'DAdaptAdam'
 
@@ -340,7 +338,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
                 if 'step' not in state:
@@ -440,7 +438,6 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
         self.validate_momentum(self.momentum)
         self.validate_weight_decay(self.weight_decay)
 
-    @property
     def __str__(self) -> str:
         return 'DAdaptSGD'
 
@@ -480,7 +477,7 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 if weight_decay > 0.0:
                     grad.add_(p, alpha=weight_decay)

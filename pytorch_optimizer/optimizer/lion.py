@@ -39,7 +39,6 @@ class Lion(Optimizer, BaseOptimizer):
         self.validate_betas(self.betas)
         self.validate_weight_decay(self.weight_decay)
 
-    @property
     def __str__(self) -> str:
         return 'Lion'
 
@@ -67,7 +66,7 @@ class Lion(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
 

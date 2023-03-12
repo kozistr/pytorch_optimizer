@@ -50,7 +50,6 @@ class PNM(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    @property
     def __str__(self) -> str:
         return 'PNM'
 
@@ -80,7 +79,7 @@ class PNM(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 if group['weight_decouple']:
                     p.mul_(1.0 - group['lr'] * group['weight_decay'])

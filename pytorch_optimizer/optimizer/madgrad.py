@@ -51,7 +51,6 @@ class MADGRAD(Optimizer, BaseOptimizer):
         self.validate_momentum(self.momentum)
         self.validate_epsilon(self.eps)
 
-    @property
     def __str__(self) -> str:
         return 'MADGRAD'
 
@@ -103,13 +102,13 @@ class MADGRAD(Optimizer, BaseOptimizer):
                         state['x0'] = torch.clone(p).detach()
 
                 if momentum > 0.0 and grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__, note='momentum > 0.0')
+                    raise NoSparseGradientError(str(self), note='momentum > 0.0')
 
                 grad_sum_sq, s = state['grad_sum_sq'], state['s']
 
                 if weight_decay > 0.0 and not self.decouple_decay:
                     if grad.is_sparse:
-                        raise NoSparseGradientError(self.__str__, note='weight_decay')
+                        raise NoSparseGradientError(str(self), note='weight_decay')
 
                     # original implementation. not AdamW style
                     grad.add_(p, alpha=weight_decay)

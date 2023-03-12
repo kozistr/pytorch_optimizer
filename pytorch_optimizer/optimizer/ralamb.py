@@ -63,7 +63,6 @@ class RaLamb(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    @property
     def __str__(self) -> str:
         return 'RaLamb'
 
@@ -110,7 +109,7 @@ class RaLamb(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 if self.pre_norm:
                     grad.div_(grad_norm)

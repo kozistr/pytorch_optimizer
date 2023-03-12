@@ -77,7 +77,6 @@ class SAM(Optimizer, BaseOptimizer):
     def validate_parameters(self):
         self.validate_rho(self.rho)
 
-    @property
     def __str__(self) -> str:
         return 'SAM'
 
@@ -123,7 +122,7 @@ class SAM(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None):
         if closure is None:
-            raise NoClosureError(self.__str__)
+            raise NoClosureError(str(self))
 
         self.first_step(zero_grad=True)
 

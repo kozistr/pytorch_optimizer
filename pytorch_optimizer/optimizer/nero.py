@@ -29,7 +29,6 @@ class Nero(Optimizer, BaseOptimizer):
         self.validate_learning_rate(self.lr)
         self.validate_beta(self.beta)
 
-    @property
     def __str__(self) -> str:
         return 'Nero'
 
@@ -64,7 +63,7 @@ class Nero(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
                 if len(state) == 0:

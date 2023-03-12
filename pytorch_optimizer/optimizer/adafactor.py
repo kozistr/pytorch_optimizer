@@ -63,7 +63,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps1)
         self.validate_epsilon(self.eps2)
 
-    @property
     def __str__(self) -> str:
         return 'AdaFactor'
 
@@ -134,7 +133,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
 

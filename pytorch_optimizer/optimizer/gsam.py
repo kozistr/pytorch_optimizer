@@ -84,7 +84,6 @@ class GSAM(Optimizer, BaseOptimizer):
     def validate_parameters(self):
         self.validate_alpha(self.alpha)
 
-    @property
     def __str__(self) -> str:
         return 'GSAM'
 
