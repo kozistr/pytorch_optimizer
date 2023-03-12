@@ -66,7 +66,6 @@ class Lamb(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
         self.validate_norm(self.max_grad_norm)
 
-    @property
     def __str__(self) -> str:
         return 'Lamb'
 
@@ -125,7 +124,7 @@ class Lamb(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 if self.pre_norm:
                     grad.div_(grad_norm)

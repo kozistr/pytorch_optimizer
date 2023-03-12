@@ -57,7 +57,6 @@ class DiffRGrad(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    @property
     def __str__(self) -> str:
         return 'diffRGrad'
 
@@ -88,7 +87,7 @@ class DiffRGrad(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
                 if len(state) == 0:

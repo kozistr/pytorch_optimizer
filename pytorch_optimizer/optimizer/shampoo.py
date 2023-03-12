@@ -46,11 +46,7 @@ class Shampoo(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {
-            'lr': lr,
-            'momentum': momentum,
-            'weight_decay': weight_decay,
-        }
+        defaults: DEFAULTS = {'lr': lr, 'momentum': momentum, 'weight_decay': weight_decay}
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -60,7 +56,6 @@ class Shampoo(Optimizer, BaseOptimizer):
         self.validate_update_frequency(self.preconditioning_compute_steps)
         self.validate_epsilon(self.matrix_eps)
 
-    @property
     def __str__(self) -> str:
         return 'Shampoo'
 
@@ -87,7 +82,7 @@ class Shampoo(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
                 if len(state) == 0:
@@ -237,7 +232,6 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.diagonal_eps)
         self.validate_epsilon(self.matrix_eps)
 
-    @property
     def __str__(self) -> str:
         return 'ScalableShampoo'
 
@@ -289,7 +283,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
                 if len(state) == 0:

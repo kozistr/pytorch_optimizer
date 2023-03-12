@@ -61,7 +61,6 @@ class Adai(Optimizer, BaseOptimizer):
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
 
-    @property
     def __str__(self) -> str:
         return 'Adai'
 
@@ -94,7 +93,7 @@ class Adai(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 param_size += p.numel()
 

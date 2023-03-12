@@ -61,7 +61,6 @@ class Adan(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
         self.validate_norm(self.max_grad_norm)
 
-    @property
     def __str__(self) -> str:
         return 'Adan'
 
@@ -122,7 +121,7 @@ class Adan(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
                 if len(state) == 0:

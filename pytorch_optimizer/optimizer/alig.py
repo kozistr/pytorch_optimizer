@@ -46,7 +46,6 @@ class AliG(Optimizer, BaseOptimizer):
         self.validate_momentum(self.momentum)
         self.validate_epsilon(self.eps)
 
-    @property
     def __str__(self) -> str:
         return 'AliG'
 
@@ -91,7 +90,7 @@ class AliG(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
                 if len(state) == 0 and momentum > 0.0:

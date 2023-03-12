@@ -57,7 +57,6 @@ class LARS(Optimizer, BaseOptimizer):
         self.validate_trust_coefficient(self.trust_coefficient)
         self.validate_epsilon(self.eps)
 
-    @property
     def __str__(self) -> str:
         return 'Lars'
 
@@ -83,7 +82,7 @@ class LARS(Optimizer, BaseOptimizer):
 
                 grad = p.grad
                 if grad.is_sparse:
-                    raise NoSparseGradientError(self.__str__)
+                    raise NoSparseGradientError(str(self))
 
                 if p.ndim > 1:  # if not normalization gamma/beta or bias
                     param_norm = p.norm(2.0)
