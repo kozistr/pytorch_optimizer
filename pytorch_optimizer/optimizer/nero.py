@@ -14,11 +14,15 @@ class Nero(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param beta: float. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param constraints: bool.
+    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
-    def __init__(self, params: PARAMETERS, lr: float = 0.01, beta: float = 0.999, constraints: bool = True):
+    def __init__(
+        self, params: PARAMETERS, lr: float = 0.01, beta: float = 0.999, constraints: bool = True, eps: float = 1e-8
+    ):
         self.lr = lr
         self.beta = beta
+        self.eps = eps
 
         self.validate_parameters()
 
@@ -28,6 +32,7 @@ class Nero(Optimizer, BaseOptimizer):
     def validate_parameters(self):
         self.validate_learning_rate(self.lr)
         self.validate_beta(self.beta)
+        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'Nero'
@@ -38,7 +43,7 @@ class Nero(Optimizer, BaseOptimizer):
             for p in group['params']:
                 if group['constraints'] and p.dim() > 1:
                     p.sub_(neuron_mean(p))
-                    p.div_(neuron_norm(p))
+                    p.div_(neuron_norm(p) + self.eps)
 
                 state = self.state[p]
 
@@ -69,7 +74,7 @@ class Nero(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     if group['constraints'] and p.dim() > 1:
                         p.sub_(neuron_mean(p))
-                        p.div_(neuron_norm(p))
+                        p.div_(neuron_norm(p) + self.eps)
 
                     state['step'] = 0
                     state['exp_avg_sq'] = torch.zeros_like(neuron_norm(p))
@@ -79,16 +84,20 @@ class Nero(Optimizer, BaseOptimizer):
 
                 state['step'] += 1
 
-                bias_correction: float = 1.0 - self.beta ** state['step']
-                state['exp_avg_sq'] = self.beta * state['exp_avg_sq'] + (1.0 - self.beta) * neuron_norm(grad) ** 2
+                grad_norm = neuron_norm(grad)
 
-                grad_normed = grad / (state['exp_avg_sq'] / bias_correction).sqrt()
-                grad_normed[torch.isnan(grad_normed)] = 0.0
+                exp_avg_sq = state['exp_avg_sq']
+                exp_avg_sq.mul_(self.beta).addcmul_(grad_norm, grad_norm, value=1.0 - self.beta)
+
+                bias_correction: float = 1.0 - self.beta ** state['step']
+
+                grad_normed = grad / ((exp_avg_sq / bias_correction).sqrt() + self.eps)
+                torch.nan_to_num(grad_normed, nan=0.0, out=grad_normed)
 
                 p.sub_(group['lr'] * state['scale'] * grad_normed)
 
                 if group['constraints'] and p.dim() > 1:
                     p.sub_(neuron_mean(p))
-                    p.div_(neuron_norm(p))
+                    p.div_(neuron_norm(p) + self.eps)
 
         return loss

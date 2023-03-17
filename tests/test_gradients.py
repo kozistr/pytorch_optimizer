@@ -39,8 +39,6 @@ def test_sparse_not_supported(no_sparse_optimizer):
     opt = load_optimizer(optimizer=no_sparse_optimizer)
     optimizer = opt([param], num_iterations=1) if no_sparse_optimizer == 'ranger21' else opt([param])
 
-    optimizer.zero_grad()
-
     with pytest.raises(NoSparseGradientError):
         optimizer.step(lambda: 0.1)
 

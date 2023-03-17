@@ -69,7 +69,8 @@ class Lookahead(Optimizer, BaseOptimizer):
                     param_state['slow_mom'] = torch.zeros_like(fast)
 
             slow = param_state['slow_param']
-            slow += (fast - slow) * self.alpha
+            slow.add_(fast - slow, alpha=self.alpha)
+
             fast.copy_(slow)
 
             if 'momentum_buffer' not in self.optimizer.state[fast]:
@@ -98,30 +99,21 @@ class Lookahead(Optimizer, BaseOptimizer):
         return loss
 
     def state_dict(self) -> STATE:
-        fast_state_dict: STATE = self.optimizer.state_dict()
-        fast_state = fast_state_dict['state']
-        param_groups = fast_state_dict['param_groups']
-
+        fast_state: STATE = self.optimizer.state_dict()
         slow_state: STATE = {(id(k) if isinstance(k, torch.Tensor) else k): v for k, v in self.state.items()}
 
         return {
-            'fast_state': fast_state,
+            'fast_state': fast_state['state'],
             'slow_state': slow_state,
-            'param_groups': param_groups,
+            'param_groups': fast_state['param_groups'],
         }
 
-    def load_state_dict(self, state_dict: STATE):
-        slow_state_dict: STATE = {
-            'state': state_dict['slow_state'],
-            'param_groups': state_dict['param_groups'],
-        }
-        fast_state_dict: STATE = {
-            'state': state_dict['fast_state'],
-            'param_groups': state_dict['param_groups'],
-        }
-        super().load_state_dict(slow_state_dict)
+    def load_state_dict(self, state: STATE):
+        slow_state: STATE = {'state': state['slow_state'], 'param_groups': state['param_groups']}
+        fast_state: STATE = {'state': state['fast_state'], 'param_groups': state['param_groups']}
+        super().load_state_dict(slow_state)
 
-        self.optimizer.load_state_dict(fast_state_dict)
+        self.optimizer.load_state_dict(fast_state)
         self.fast_state = self.optimizer.state
 
     def add_param_group(self, param_group):
