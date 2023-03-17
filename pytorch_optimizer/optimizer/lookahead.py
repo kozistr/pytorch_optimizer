@@ -61,7 +61,7 @@ class Lookahead(Optimizer, BaseOptimizer):
             if fast.grad is None:
                 continue
 
-            param_state = self.state[fast]
+            param_state = self.slow_state[fast]
             if 'slow_param' not in param_state:
                 param_state['slow_param'] = torch.empty_like(fast)
                 param_state['slow_param'].copy_(fast)
