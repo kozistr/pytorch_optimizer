@@ -33,7 +33,7 @@ class Lookahead(Optimizer, BaseOptimizer):
 
         self.param_groups = self.optimizer.param_groups
         self.fast_state: STATE = self.optimizer.state
-        self.state: STATE = defaultdict(dict)
+        self.slow_state: STATE = defaultdict(dict)
         self.reset()
 
         self.defaults: DEFAULTS = optimizer.defaults
@@ -100,7 +100,7 @@ class Lookahead(Optimizer, BaseOptimizer):
 
     def state_dict(self) -> STATE:
         fast_state: STATE = self.optimizer.state_dict()
-        slow_state: STATE = {(id(k) if isinstance(k, torch.Tensor) else k): v for k, v in self.state.items()}
+        slow_state: STATE = {(id(k) if isinstance(k, torch.Tensor) else k): v for k, v in self.slow_state.items()}
 
         return {
             'fast_state': fast_state['state'],
