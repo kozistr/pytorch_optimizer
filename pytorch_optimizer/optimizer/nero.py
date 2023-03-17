@@ -91,7 +91,7 @@ class Nero(Optimizer, BaseOptimizer):
 
                 bias_correction: float = 1.0 - self.beta ** state['step']
 
-                grad_normed = grad / (exp_avg_sq / bias_correction).sqrt() + self.eps
+                grad_normed = grad / ((exp_avg_sq / bias_correction).sqrt() + self.eps)
                 grad_normed[torch.isnan(grad_normed)] = 0.0
 
                 p.sub_(group['lr'] * state['scale'] * grad_normed)
