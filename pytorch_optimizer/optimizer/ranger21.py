@@ -247,12 +247,11 @@ class Ranger21(Optimizer, BaseOptimizer):
 
         # Phase 2 - Apply weight decay and step
         for group in self.param_groups:
-            p = group['params'][0]
-            if p.grad is None:
+            if len(self.state) == 0:
                 continue
-
-            lr = group['lr']
-            step = self.state[group['params'][0]]['step']
+            p = next(iter(self.state.keys()))
+            lr = group["lr"]
+            step = self.state[p]["step"]
 
             beta1, beta2 = group['betas']
             bias_correction1 = 1.0 - beta1 ** step  # fmt: skip
