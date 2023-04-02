@@ -49,6 +49,10 @@ def test_sparse_supported(sparse_optimizer):
     opt = load_optimizer(optimizer=sparse_optimizer)
 
     optimizer = opt([param], momentum=0.0)
+    optimizer.zero_grad()
+    optimizer.step()
+
+    optimizer = opt([param], momentum=0.0)
     with pytest.raises(RuntimeError):
         optimizer.step()
 
