@@ -182,6 +182,10 @@ class Ranger21(Optimizer, BaseOptimizer):
 
         new_lr: float = self.starting_lr - self.warm_down_lr_delta * warm_down_pct
         new_lr = max(new_lr, self.min_lr)
+
+        if new_lr < 0.0:
+            raise NegativeLRError(new_lr)
+
         self.current_lr = new_lr
 
         return new_lr
@@ -249,9 +253,11 @@ class Ranger21(Optimizer, BaseOptimizer):
         for group in self.param_groups:
             if len(self.state) == 0:
                 continue
+
             p = next(iter(self.state.keys()))
-            lr = group["lr"]
-            step = self.state[p]["step"]
+
+            lr = group['lr']
+            step = self.state[p]['step']
 
             beta1, beta2 = group['betas']
             bias_correction1 = 1.0 - beta1 ** step  # fmt: skip
@@ -264,8 +270,6 @@ class Ranger21(Optimizer, BaseOptimizer):
 
             # warm down
             lr = self.get_warm_down(lr, step)
-            if lr < 0.0:
-                raise NegativeLRError(lr)
 
             # stable decay
             decay = group['weight_decay']
@@ -273,8 +277,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                 p.mul_(1.0 - decay * lr / variance_normalized)
 
             # norm loss
-            u_norm = unit_norm(p)
-            correction = 2.0 * self.norm_loss_factor * (1.0 - torch.div(1, u_norm + self.eps))
+            correction = 2.0 * self.norm_loss_factor * (1.0 - torch.div(1, unit_norm(p) + self.eps))
             p.mul_(1.0 - lr * correction)
 
             for p in group['params']:
