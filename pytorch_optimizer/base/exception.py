@@ -31,7 +31,7 @@ class NegativeLRError(Exception):
     """Raised when learning rate is negative."""
 
     def __init__(self, lr: float, lr_type: str = ''):
-        self.note: str = 'learning rate' if not lr_type else lr_type
+        self.note: str = lr_type if lr_type else 'learning rate'
         self.message: str = f'[-] {self.note} must be positive. ({lr} > 0)'
         super().__init__(self.message)
 
@@ -40,6 +40,6 @@ class NegativeStepError(Exception):
     """Raised when step is negative."""
 
     def __init__(self, num_steps: int, step_type: str = ''):
-        self.note: str = 'step' if not step_type else step_type
+        self.note: str = step_type if step_type else 'step'
         self.message: str = f'[-] {self.note} must be positive. ({num_steps} > 0)'
         super().__init__(self.message)
