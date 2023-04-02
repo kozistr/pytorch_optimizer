@@ -259,7 +259,7 @@ class PreConditioner:
             self.pre_conditioners = torch.stack(self.pre_conditioners)
 
     def skip_precondition(self, x: torch.Tensor) -> bool:
-        return (len(x.shape) < 1) or any([s > self.no_preconditioning_for_layers_with_dim_gt for s in x.shape])
+        return (len(x.shape) < 1) or any(s > self.no_preconditioning_for_layers_with_dim_gt for s in x.shape)
 
     def add_statistics(self, grad: torch.Tensor):
         r"""Compute statistics from gradients and add to the correct state entries.
