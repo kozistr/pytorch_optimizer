@@ -16,7 +16,7 @@ class Lookahead(BaseOptimizer):
     :param pullback_momentum: str. change to inner optimizer momentum on interpolation update.
     """
 
-    def __init__(  # pylint: disable=super-init-not-called
+    def __init__(
         self,
         optimizer: OPTIMIZER,
         k: int = 5,
@@ -55,9 +55,13 @@ class Lookahead(BaseOptimizer):
             group['counter'] = 0
 
     @torch.no_grad()
+    def zero_grad(self):
+        self.optimizer.zero_grad(set_to_none=True)
+
+    @torch.no_grad()
     def update(self, group: Dict):
         for fast in group['params']:
-            if fast.grad is None:
+            if fast.grad is None or fast not in self.slow_state:
                 continue
 
             param_state = self.slow_state[fast]
@@ -84,10 +88,6 @@ class Lookahead(BaseOptimizer):
             elif self.pullback_momentum == 'reset':
                 self.optimizer.state[fast]['momentum_buffer'] = torch.zeros_like(fast)
 
-    @torch.no_grad()
-    def zero_grad(self):
-        self.optimizer.zero_grad(set_to_none=True)
-
     def update_lookahead(self):
         for group in self.param_groups:
             self.update(group)
@@ -112,11 +112,8 @@ class Lookahead(BaseOptimizer):
         }
 
     def load_state_dict(self, state: STATE):
-        slow_state: STATE = {'state': state['slow_state'], 'param_groups': state['param_groups']}
-        fast_state: STATE = {'state': state['fast_state'], 'param_groups': state['param_groups']}
-        super().load_state_dict(slow_state)
-
-        self.optimizer.load_state_dict(fast_state)
+        self.slow_state = state['slow_state']
+        self.optimizer.load_state_dict({'state': state['fast_state'], 'param_groups': state['param_groups']})
         self.fast_state = self.optimizer.state
 
     def add_param_group(self, param_group):

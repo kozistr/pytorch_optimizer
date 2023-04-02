@@ -202,7 +202,6 @@ def test_lookahead_parameters():
     for pullback_momentum in PULLBACK_MOMENTUM:
         opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
         opt.load_state_dict(opt.state_dict())
-
         opt.update_lookahead()
         opt.add_param_group({'params': [simple_parameter()]})
 
