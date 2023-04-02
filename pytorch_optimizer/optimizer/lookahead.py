@@ -2,13 +2,12 @@ from collections import defaultdict
 from typing import Dict
 
 import torch
-from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER, STATE
 
 
-class Lookahead(Optimizer, BaseOptimizer):
+class Lookahead(BaseOptimizer):
     r"""k steps forward, 1 step back.
 
     :param optimizer: OPTIMIZER. base optimizer.
@@ -84,6 +83,10 @@ class Lookahead(Optimizer, BaseOptimizer):
                 param_state['slow_mom'] = self.optimizer.state[fast]['momentum_buffer']
             elif self.pullback_momentum == 'reset':
                 self.optimizer.state[fast]['momentum_buffer'] = torch.zeros_like(fast)
+
+    @torch.no_grad()
+    def zero_grad(self):
+        self.optimizer.zero_grad(set_to_none=True)
 
     def update_lookahead(self):
         for group in self.param_groups:
