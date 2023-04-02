@@ -210,7 +210,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                 param_size += p.numel()
 
                 # Apply Adaptive Gradient Clipping (AGC)
-                p = agc(p, agc_eps=self.agc_eps, agc_clip_val=self.agc_clipping_value)
+                p = agc(p, agc_eps=self.agc_eps, agc_clip_val=self.agc_clipping_value)  # noqa: PLW2901
 
                 state = self.state[p]
                 if len(state) == 0:
