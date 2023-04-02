@@ -242,4 +242,4 @@ def l2_projection(parameters: PARAMETERS, max_norm: float = 1e2):
     if global_norm > max_norm:
         ratio = max_norm / global_norm
         for param in parameters:
-            param *= ratio
+            param *= ratio  # noqa: PLW2901
