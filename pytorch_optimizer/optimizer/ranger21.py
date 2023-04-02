@@ -5,7 +5,7 @@ import torch
 from torch.nn import functional as f
 from torch.optim import Optimizer
 
-from pytorch_optimizer.base.exception import NegativeLRError, NoSparseGradientError, ZeroParameterSizeError
+from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.agc import agc
@@ -73,6 +73,7 @@ class Ranger21(Optimizer, BaseOptimizer):
         eps: float = 1e-8,
     ):
         self.lr = lr
+        self.min_lr = warm_down_min_lr
         self.beta0 = beta0
         self.betas = betas
         self.use_softplus = use_softplus
@@ -96,7 +97,6 @@ class Ranger21(Optimizer, BaseOptimizer):
         # learning rate
         self.starting_lr = lr
         self.current_lr = lr
-        self.min_lr = warm_down_min_lr
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -183,9 +183,6 @@ class Ranger21(Optimizer, BaseOptimizer):
 
         new_lr: float = self.starting_lr - self.warm_down_lr_delta * warm_down_pct
         new_lr = max(new_lr, self.min_lr)
-
-        if new_lr < 0.0:
-            raise NegativeLRError(new_lr)
 
         self.current_lr = new_lr
 
