@@ -200,6 +200,11 @@ class Ranger21(Optimizer, BaseOptimizer):
 
         # Phase 1 - Accumulate all the variance_ma_sum to use in stable weight decay
         for group in self.param_groups:
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
             beta1, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
@@ -216,7 +221,6 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['step'] = 0
                     state['grad_ma'] = torch.zeros_like(p)
                     state['variance_ma'] = torch.zeros_like(p)
                     state['lookahead_params'] = torch.empty_like(p)
@@ -229,9 +233,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                 grad = centralize_gradient(grad, gc_conv_only=False)
                 grad = normalize_gradient(grad)
 
-                state['step'] += 1
-
-                bias_correction2 = 1.0 - beta2 ** state['step']
+                bias_correction2 = 1.0 - beta2 ** group['step']
 
                 # second moment estimation
                 # using positive-negative momentum and bias correction
@@ -239,7 +241,6 @@ class Ranger21(Optimizer, BaseOptimizer):
                 variance_ma.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                 variance_ma_sum += (variance_ma / bias_correction2).sum()
 
-        # stable weight decay
         if param_size == 0:
             raise ZeroParameterSizeError()
 
@@ -249,41 +250,32 @@ class Ranger21(Optimizer, BaseOptimizer):
 
         # Phase 2 - Apply weight decay and step
         for group in self.param_groups:
-            if len(self.state) == 0:
-                continue
-
-            p = next(iter(self.state.keys()))
-
             lr = group['lr']
-            step = self.state[p]['step']
-
             beta1, beta2 = group['betas']
-            bias_correction1 = 1.0 - beta1 ** step  # fmt: skip
-            bias_correction2_sq = math.sqrt(1.0 - beta2 ** step)  # fmt: skip
+
+            bias_correction1 = 1.0 - beta1 ** group['step']  # fmt: skip
+            bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])  # fmt: skip
 
             noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
 
-            # warm up
-            lr = self.warm_up_dampening(lr, step)
-
-            # warm down
-            lr = self.warm_down(lr, step)
-
-            # stable decay
-            decay = group['weight_decay']
-            if decay:
-                p.mul_(1.0 - decay * lr / variance_normalized)
-
-            # norm loss
-            correction = 2.0 * self.norm_loss_factor * (1.0 - torch.div(1, unit_norm(p) + self.eps))
-            p.mul_(1.0 - lr * correction)
+            # warm up & down
+            lr = self.warm_up_dampening(lr, group['step'])
+            lr = self.warm_down(lr, group['step'])
 
             for p in group['params']:
                 if p.grad is None:
                     continue
 
+                # stable weight decay
+                if group['weight_decay']:
+                    p.mul_(1.0 - group['weight_decay'] * lr / variance_normalized)
+
+                # norm loss
+                correction = 2.0 * self.norm_loss_factor * (1.0 - torch.div(1, unit_norm(p) + self.eps))
+                p.mul_(1.0 - lr * correction)
+
                 state = self.state[p]
-                if state['step'] % 2 == 1:
+                if group['step'] % 2 == 1:
                     grad_ma, neg_grad_ma = state['grad_ma'], state['neg_grad_ma']
                 else:
                     grad_ma, neg_grad_ma = state['neg_grad_ma'], state['grad_ma']
