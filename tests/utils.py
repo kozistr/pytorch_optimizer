@@ -51,8 +51,8 @@ def simple_parameter(require_grad: bool = True) -> torch.Tensor:
 
 
 def simple_sparse_parameter(require_grad: bool = True) -> torch.Tensor:
-    param = torch.randn(1, 1).to_sparse(1).requires_grad_(require_grad)
-    param.grad = torch.randn(1, 1).to_sparse(1)
+    param = torch.randn(2, 2).to_sparse(1).requires_grad_(require_grad)
+    param.grad = torch.randn(2, 2).to_sparse(1)
     return param
 
 
