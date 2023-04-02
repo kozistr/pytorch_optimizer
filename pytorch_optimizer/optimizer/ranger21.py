@@ -123,6 +123,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
     def validate_parameters(self):
         self.validate_learning_rate(self.lr)
+        self.validate_learning_rate(self.min_lr)
         self.validate_betas(self.betas)
         self.validate_beta0(self.beta0)
         self.validate_weight_decay(self.weight_decay)
@@ -169,7 +170,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
         return new_lr
 
-    def get_warm_down(self, lr: float, iteration: int) -> float:
+    def warm_down(self, lr: float, iteration: int) -> float:
         if iteration < self.start_warm_down:
             return lr
 
@@ -269,7 +270,7 @@ class Ranger21(Optimizer, BaseOptimizer):
             lr = self.warm_up_dampening(lr, step)
 
             # warm down
-            lr = self.get_warm_down(lr, step)
+            lr = self.warm_down(lr, step)
 
             # stable decay
             decay = group['weight_decay']
