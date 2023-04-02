@@ -109,7 +109,7 @@ class PCGrad(BaseOptimizer):
         return merged_grad
 
     def pc_backward(self, objectives: Iterable[nn.Module]):
-        r"""calculate the gradient of the parameters.
+        r"""Calculate the gradient of the parameters.
 
         :param objectives: Iterable[nn.Module]. a list of objectives.
         """
