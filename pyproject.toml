@@ -37,10 +37,16 @@ numpy = [
     { version = "=1.21.1", python = ">=3.7,<3.8" },
     { version = "*", python = ">=3.8" },
 ]
-torch = { version = ">=1.10", source = "torch" }
+torch = [
+    { version = ">=1.10,>=2.0", python = ">=3.8", source = "torch" },
+    { version = "^1.10", python = ">=3.7,<3.8", source = "torch" },
+]
 
 [tool.poetry.dev-dependencies]
-isort = "^5.11.5"
+isort = [
+    { version = "==5.11.5", python = ">=3.7,<3.8"},
+    { version = "^5.12.0", python = ">=3.8"}
+]
 black = "^23.3.0"
 ruff = "^0.0.260"
 pytest = "^7.2.2"
