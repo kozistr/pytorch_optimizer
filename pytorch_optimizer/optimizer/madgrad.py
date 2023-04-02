@@ -69,8 +69,6 @@ class MADGRAD(Optimizer, BaseOptimizer):
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
-        # pylint: disable=W0212
-
         loss: LOSS = None
         if closure is not None:
             with torch.enable_grad():
@@ -80,13 +78,11 @@ class MADGRAD(Optimizer, BaseOptimizer):
         if 'k' not in self.state:
             self.state['k'] = torch.tensor([0], dtype=torch.long, requires_grad=False)
 
-        k = self.state['k']
-
         for group in self.param_groups:
             weight_decay, momentum, eps = group['weight_decay'], group['momentum'], group['eps']
             lr = group['lr'] + eps
 
-            _lambda = lr * math.pow(k + 1, 0.5)
+            _lambda = lr * math.pow(self.state['k'] + 1, 0.5)
 
             for p in group['params']:
                 if p.grad is None:
