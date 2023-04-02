@@ -357,7 +357,7 @@ def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: in
     :param error_tolerance: float. Iterative exit condition.
     :param num_iters: int. Number of iterations.
     """
-    v: torch.Tensor = 2.0 * torch.rand(list(mat_g.shape)[0], dtype=mat_g.dtype, device=mat_g.device) - 1
+    v = 2.0 * torch.rand(list(mat_g.shape)[0], dtype=mat_g.dtype, device=mat_g.device) - 1
 
     error: Union[torch.Tensor, float] = 1.0
     iters: int = 0
