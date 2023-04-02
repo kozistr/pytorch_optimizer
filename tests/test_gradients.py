@@ -49,31 +49,30 @@ def test_sparse_supported(sparse_optimizer):
     opt = load_optimizer(optimizer=sparse_optimizer)
 
     optimizer = opt([param], momentum=0.0)
-    optimizer.zero_grad()
-    optimizer.step()
+    with pytest.raises(RuntimeError):
+        optimizer.step()
 
     optimizer = opt([param], momentum=0.0, eps=0.0)
     optimizer.reset()
-    optimizer.zero_grad()
-    optimizer.step()
+    with pytest.raises(RuntimeError):
+        optimizer.step()
 
     if sparse_optimizer == 'madgrad':
         optimizer = opt([param], momentum=0.0, weight_decay=1e-3, decouple_decay=False)
         optimizer.reset()
-        optimizer.zero_grad()
 
         with pytest.raises(NoSparseGradientError):
             optimizer.step()
 
     optimizer = opt([param], momentum=0.9, weight_decay=1e-3)
     optimizer.reset()
-    optimizer.zero_grad()
 
     if sparse_optimizer == 'madgrad':
         with pytest.raises(NoSparseGradientError):
             optimizer.step()
     else:
-        optimizer.step()
+        with pytest.raises(RuntimeError):
+            optimizer.step()
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
