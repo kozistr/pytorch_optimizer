@@ -145,7 +145,7 @@ class BlockPartitioner:
         self.pre_conditioner_shapes: List[List[int]] = []
         for t in itertools.product(*split_sizes):
             if not (pre_conditioner_type == PreConditionerType.ALL or self.num_splits <= 1):
-                t = t[:-1]   # noqa: PLW2901
+                t = t[:-1]  # noqa: PLW2901
             self.pre_conditioner_shapes.extend([[d, d] for d in t])
 
     def shapes_for_pre_conditioners(self) -> List[List[int]]:
@@ -458,7 +458,7 @@ def compute_power_schur_newton(
     mat_m = mat_g * z
 
     alpha: float = -1.0 / p
-    alpha_identity: torch.Tensor = (1.0 - alpha) * identity
+    alpha_identity = (1.0 - alpha) * identity
     error = torch.max(torch.abs(mat_m - identity))
     count: int = 0
     while error > error_tolerance and count < iter_count:
