@@ -89,12 +89,12 @@ class PCGrad(BaseOptimizer):
         shared: torch.Tensor = torch.stack(has_grads).prod(0).bool()
 
         pc_grad: List[torch.Tensor] = deepcopy(grads)
-        for g_i in pc_grad:
+        for i, g_i in enumerate(pc_grad):
             random.shuffle(grads)
             for g_j in grads:
                 g_i_g_j: torch.Tensor = torch.dot(g_i, g_j)
                 if g_i_g_j < 0:
-                    g_i -= g_i_g_j * g_j / (g_j.norm() ** 2)
+                    pc_grad[i] -= g_i_g_j * g_j / (g_j.norm() ** 2)
 
         merged_grad: torch.Tensor = torch.zeros_like(grads[0], device=grads[0].device)
 
