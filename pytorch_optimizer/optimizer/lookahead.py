@@ -64,7 +64,7 @@ class Lookahead(BaseOptimizer):
             group['counter'] = 0
 
     def backup_and_load_cache(self):
-        r"""Useful for performing evaluation on the slow weights (which typically generalize better)"""
+        r"""Backup cache parameters."""
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
@@ -73,7 +73,7 @@ class Lookahead(BaseOptimizer):
                 p.data.copy_(state['slow_params'])
 
     def clear_and_load_backup(self):
-        r"""Load backups"""
+        r"""Load backup parameters."""
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
@@ -84,6 +84,7 @@ class Lookahead(BaseOptimizer):
         return self.optimizer.state_dict()
 
     def load_state_dict(self, state: STATE):
+        r"""Load state."""
         self.optimizer.load_state_dict(state)
 
     @torch.no_grad()
