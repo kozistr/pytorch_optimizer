@@ -101,7 +101,6 @@ class MADGRAD(Optimizer, BaseOptimizer):
                     raise NoSparseGradientError(str(self), note='momentum > 0.0')
 
                 grad_sum_sq, s = state['grad_sum_sq'], state['s']
-
                 if weight_decay > 0.0 and not self.decouple_decay:
                     if grad.is_sparse:
                         raise NoSparseGradientError(str(self), note='weight_decay')
