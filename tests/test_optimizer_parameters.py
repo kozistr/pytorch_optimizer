@@ -196,15 +196,17 @@ def test_sam_parameters():
 
 
 def test_lookahead_parameters():
-    param = simple_parameter()
-    optimizer = load_optimizer('adamp')([param])
+    optimizer = load_optimizer('adamp')([simple_parameter()])
 
     for pullback_momentum in PULLBACK_MOMENTUM:
         opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
         opt.load_state_dict(opt.state_dict())
 
-        opt.update_lookahead()
-        opt.add_param_group({'params': [simple_parameter()]})
+    opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
+    opt.backup_and_load_cache()
+    opt.clear_and_load_backup()
+
+    _ = opt.__getstate__()
 
     with pytest.raises(ValueError):
         Lookahead(optimizer, k=0)

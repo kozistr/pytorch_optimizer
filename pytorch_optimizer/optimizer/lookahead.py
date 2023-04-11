@@ -2,13 +2,12 @@ from collections import defaultdict
 from typing import Dict
 
 import torch
-from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER, STATE
+from pytorch_optimizer.base.types import CLOSURE, LOSS, OPTIMIZER, STATE
 
 
-class Lookahead(Optimizer, BaseOptimizer):
+class Lookahead(BaseOptimizer):
     r"""k steps forward, 1 step back.
 
     :param optimizer: OPTIMIZER. base optimizer.
@@ -17,7 +16,7 @@ class Lookahead(Optimizer, BaseOptimizer):
     :param pullback_momentum: str. change to inner optimizer momentum on interpolation update.
     """
 
-    def __init__(  # pylint: disable=super-init-not-called
+    def __init__(
         self,
         optimizer: OPTIMIZER,
         k: int = 5,
@@ -32,62 +31,90 @@ class Lookahead(Optimizer, BaseOptimizer):
         self.validate_parameters()
 
         self.param_groups = self.optimizer.param_groups
-        self.fast_state: STATE = self.optimizer.state
         self.state: STATE = defaultdict(dict)
-        self.reset()
 
-        self.defaults: DEFAULTS = optimizer.defaults
-        self.defaults.update(
-            {
-                'k': k,
-                'alpha': alpha,
-                'pullback_momentum': pullback_momentum,
-            }
-        )
+        for group in self.param_groups:
+            if 'counter' not in group:
+                group['counter'] = 0
+
+            for p in group['params']:
+                state = self.state[p]
+                state['slow_params'] = torch.empty_like(p)
+                state['slow_params'].copy_(p)
+                if self.pullback_momentum == 'pullback':
+                    state['slow_momentum'] = torch.zeros_like(p)
 
     def validate_parameters(self):
         self.validate_lookahead_k(self.k)
         self.validate_alpha(self.alpha)
         self.validate_pullback_momentum(self.pullback_momentum)
 
+    def __getstate__(self):
+        return {
+            'state': self.state,
+            'optimizer': self.optimizer,
+            'alpha': self.alpha,
+            'k': self.k,
+            'pullback_momentum': self.pullback_momentum,
+        }
+
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
             group['counter'] = 0
 
+    def backup_and_load_cache(self):
+        r"""Backup cache parameters."""
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+                state['backup_params'] = torch.empty_like(p)
+                state['backup_params'].copy_(p)
+                p.data.copy_(state['slow_params'])
+
+    def clear_and_load_backup(self):
+        r"""Load backup parameters."""
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+                p.data.copy_(state['backup_params'])
+                del state['backup_params']
+
+    def state_dict(self) -> STATE:
+        return self.optimizer.state_dict()
+
+    def load_state_dict(self, state: STATE):
+        r"""Load state."""
+        self.optimizer.load_state_dict(state)
+
+    @torch.no_grad()
+    def zero_grad(self):
+        self.optimizer.zero_grad(set_to_none=True)
+
     @torch.no_grad()
     def update(self, group: Dict):
-        for fast in group['params']:
-            if fast.grad is None:
+        for p in group['params']:
+            if p.grad is None:
                 continue
 
-            param_state = self.state[fast]
-            if 'slow_param' not in param_state:
-                param_state['slow_param'] = torch.empty_like(fast)
-                param_state['slow_param'].copy_(fast)
-                if self.pullback_momentum == 'pullback':
-                    param_state['slow_mom'] = torch.zeros_like(fast)
+            state = self.state[p]
 
-            slow = param_state['slow_param']
-            slow.add_(fast - slow, alpha=self.alpha)
+            slow = state['slow_params']
 
-            fast.copy_(slow)
+            p.mul_(self.alpha).add_(slow, alpha=1.0 - self.alpha)
+            slow.copy_(p)
 
-            if 'momentum_buffer' not in self.optimizer.state[fast]:
-                self.optimizer.state[fast]['momentum_buffer'] = torch.zeros_like(fast)
+            if 'momentum_buffer' not in self.optimizer.state[p]:
+                self.optimizer.state[p]['momentum_buffer'] = torch.zeros_like(p)
 
             if self.pullback_momentum == 'pullback':
-                internal_momentum = self.optimizer.state[fast]['momentum_buffer']
-                self.optimizer.state[fast]['momentum_buffer'] = internal_momentum.mul_(self.alpha).add_(
-                    param_state['slow_mom'], alpha=1.0 - self.alpha
+                internal_momentum = self.optimizer.state[p]['momentum_buffer']
+                self.optimizer.state[p]['momentum_buffer'] = internal_momentum.mul_(self.alpha).add_(
+                    state['slow_momentum'], alpha=1.0 - self.alpha
                 )
-                param_state['slow_mom'] = self.optimizer.state[fast]['momentum_buffer']
+                state['slow_momentum'] = self.optimizer.state[p]['momentum_buffer']
             elif self.pullback_momentum == 'reset':
-                self.optimizer.state[fast]['momentum_buffer'] = torch.zeros_like(fast)
-
-    def update_lookahead(self):
-        for group in self.param_groups:
-            self.update(group)
+                self.optimizer.state[p]['momentum_buffer'] = torch.zeros_like(p)
 
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = self.optimizer.step(closure)
@@ -97,25 +124,3 @@ class Lookahead(Optimizer, BaseOptimizer):
                 group['counter'] = 0
                 self.update(group)
         return loss
-
-    def state_dict(self) -> STATE:
-        fast_state: STATE = self.optimizer.state_dict()
-        slow_state: STATE = {(id(k) if isinstance(k, torch.Tensor) else k): v for k, v in self.state.items()}
-
-        return {
-            'fast_state': fast_state['state'],
-            'slow_state': slow_state,
-            'param_groups': fast_state['param_groups'],
-        }
-
-    def load_state_dict(self, state: STATE):
-        slow_state: STATE = {'state': state['slow_state'], 'param_groups': state['param_groups']}
-        fast_state: STATE = {'state': state['fast_state'], 'param_groups': state['param_groups']}
-        super().load_state_dict(slow_state)
-
-        self.optimizer.load_state_dict(fast_state)
-        self.fast_state = self.optimizer.state
-
-    def add_param_group(self, param_group):
-        param_group['counter'] = 0
-        self.optimizer.add_param_group(param_group)

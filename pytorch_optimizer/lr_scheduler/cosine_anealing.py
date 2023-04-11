@@ -91,23 +91,20 @@ class CosineAnnealingWarmupRestarts(_LRScheduler):
                 self.cur_cycle_steps = (
                     int((self.cur_cycle_steps - self.warmup_steps) * self.cycle_mult) + self.warmup_steps
                 )
-        else:
-            if epoch >= self.first_cycle_steps:
-                if self.cycle_mult == 1.0:
-                    self.step_in_cycle = epoch % self.first_cycle_steps
-                    self.cycle = epoch // self.first_cycle_steps
-                else:
-                    n: int = int(
-                        math.log((epoch / self.first_cycle_steps * (self.cycle_mult - 1) + 1), self.cycle_mult)
-                    )
-                    self.cycle = n
-                    self.step_in_cycle = epoch - int(
-                        self.first_cycle_steps * (self.cycle_mult ** n - 1) / (self.cycle_mult - 1)
-                    )  # fmt: skip
-                    self.cur_cycle_steps = self.first_cycle_steps * self.cycle_mult ** n  # fmt: skip
+        elif epoch >= self.first_cycle_steps:
+            if self.cycle_mult == 1.0:
+                self.step_in_cycle = epoch % self.first_cycle_steps
+                self.cycle = epoch // self.first_cycle_steps
             else:
-                self.cur_cycle_steps = self.first_cycle_steps
-                self.step_in_cycle = epoch
+                n: int = int(math.log((epoch / self.first_cycle_steps * (self.cycle_mult - 1) + 1), self.cycle_mult))
+                self.cycle = n
+                self.step_in_cycle = epoch - int(
+                    self.first_cycle_steps * (self.cycle_mult ** n - 1) / (self.cycle_mult - 1)
+                )  # fmt: skip
+                self.cur_cycle_steps = self.first_cycle_steps * self.cycle_mult ** n  # fmt: skip
+        else:
+            self.cur_cycle_steps = self.first_cycle_steps
+            self.step_in_cycle = epoch
 
         self.max_lr = self.base_max_lr * (self.gamma ** self.cycle)  # fmt: skip
         self.last_epoch = math.floor(epoch)

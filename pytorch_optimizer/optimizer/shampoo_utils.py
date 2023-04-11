@@ -145,7 +145,7 @@ class BlockPartitioner:
         self.pre_conditioner_shapes: List[List[int]] = []
         for t in itertools.product(*split_sizes):
             if not (pre_conditioner_type == PreConditionerType.ALL or self.num_splits <= 1):
-                t = t[:-1]
+                t = t[:-1]  # noqa: PLW2901
             self.pre_conditioner_shapes.extend([[d, d] for d in t])
 
     def shapes_for_pre_conditioners(self) -> List[List[int]]:
@@ -259,7 +259,7 @@ class PreConditioner:
             self.pre_conditioners = torch.stack(self.pre_conditioners)
 
     def skip_precondition(self, x: torch.Tensor) -> bool:
-        return (len(x.shape) < 1) or any([s > self.no_preconditioning_for_layers_with_dim_gt for s in x.shape])
+        return (len(x.shape) < 1) or any(s > self.no_preconditioning_for_layers_with_dim_gt for s in x.shape)
 
     def add_statistics(self, grad: torch.Tensor):
         r"""Compute statistics from gradients and add to the correct state entries.
@@ -357,7 +357,7 @@ def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: in
     :param error_tolerance: float. Iterative exit condition.
     :param num_iters: int. Number of iterations.
     """
-    v: torch.Tensor = 2.0 * torch.rand(list(mat_g.shape)[0], dtype=mat_g.dtype, device=mat_g.device) - 1
+    v = 2.0 * torch.rand(list(mat_g.shape)[0], dtype=mat_g.dtype, device=mat_g.device) - 1
 
     error: Union[torch.Tensor, float] = 1.0
     iters: int = 0
@@ -458,7 +458,7 @@ def compute_power_schur_newton(
     mat_m = mat_g * z
 
     alpha: float = -1.0 / p
-    alpha_identity: torch.Tensor = (1.0 - alpha) * identity
+    alpha_identity = (1.0 - alpha) * identity
     error = torch.max(torch.abs(mat_m - identity))
     count: int = 0
     while error > error_tolerance and count < iter_count:

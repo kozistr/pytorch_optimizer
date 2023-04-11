@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytorch_optimizer"
-version = "2.5.1"
+version = "2.5.2"
 description = "optimizer & lr scheduler implementations in PyTorch with clean-code, strict types. Also, including useful optimization ideas."
 license = "Apache-2.0"
 authors = ["kozistr <kozistr@gmail.com>"]
@@ -37,13 +37,19 @@ numpy = [
     { version = "=1.21.1", python = ">=3.7,<3.8" },
     { version = "*", python = ">=3.8" },
 ]
-torch = { version = ">=1.10", source = "torch" }
+torch = [
+    { version = ">=1.10,>=2.0", python = ">=3.8", source = "torch" },
+    { version = "^1.10", python = ">=3.7,<3.8", source = "torch" },
+]
 
 [tool.poetry.dev-dependencies]
-isort = "^5.11.5"
-black = "^23.1.0"
-ruff = "^0.0.244"
-pytest = "^7.2.1"
+isort = [
+    { version = "==5.11.5", python = ">=3.7,<3.8"},
+    { version = "^5.12.0", python = ">=3.8"}
+]
+black = "^23.3.0"
+ruff = "^0.0.260"
+pytest = "^7.2.2"
 pytest-cov = "^4.0.0"
 
 [[tool.poetry.source]]

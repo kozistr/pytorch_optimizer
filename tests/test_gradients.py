@@ -34,7 +34,7 @@ def test_no_gradients(optimizer_name):
 
 @pytest.mark.parametrize('no_sparse_optimizer', NO_SPARSE_OPTIMIZERS)
 def test_sparse_not_supported(no_sparse_optimizer):
-    param = simple_sparse_parameter()
+    param = simple_sparse_parameter()[1]
 
     opt = load_optimizer(optimizer=no_sparse_optimizer)
     optimizer = opt([param], num_iterations=1) if no_sparse_optimizer == 'ranger21' else opt([param])
@@ -44,31 +44,53 @@ def test_sparse_not_supported(no_sparse_optimizer):
 
 
 @pytest.mark.parametrize('sparse_optimizer', SPARSE_OPTIMIZERS)
-def test_sparse_supported(sparse_optimizer):
-    param = simple_sparse_parameter()
+def test_sparse(sparse_optimizer):
     opt = load_optimizer(optimizer=sparse_optimizer)
 
-    optimizer = opt([param], momentum=0.0)
+    weight, weight_sparse = simple_sparse_parameter()
+
+    opt_dense = opt([weight], lr=1e-3, momentum=0.0)
+    opt_sparse = opt([weight_sparse], lr=1e-3, momentum=0.0)
+
+    opt_dense.step()
+    opt_sparse.step()
+    assert torch.allclose(weight, weight_sparse)
+
+    weight.grad = torch.rand_like(weight)
+    weight.grad[1] = 0.0
+    weight_sparse.grad = weight.grad.to_sparse()
+
+    opt_dense.step()
+    opt_sparse.step()
+    assert torch.allclose(weight, weight_sparse)
+
+    weight.grad = torch.rand_like(weight)
+    weight.grad[0] = 0.0
+    weight_sparse.grad = weight.grad.to_sparse()
+
+    opt_dense.step()
+    opt_sparse.step()
+    assert torch.allclose(weight, weight_sparse)
+
+
+@pytest.mark.parametrize('sparse_optimizer', SPARSE_OPTIMIZERS)
+def test_sparse_supported(sparse_optimizer):
+    opt = load_optimizer(optimizer=sparse_optimizer)
+
+    optimizer = opt([simple_sparse_parameter()[1]], momentum=0.0)
     optimizer.zero_grad()
     optimizer.step()
 
-    optimizer = opt([param], momentum=0.0, eps=0.0)
-    optimizer.reset()
-    optimizer.zero_grad()
+    optimizer = opt([simple_sparse_parameter()[1]], momentum=0.0, eps=0.0)
     optimizer.step()
 
     if sparse_optimizer == 'madgrad':
-        optimizer = opt([param], momentum=0.0, weight_decay=1e-3, decouple_decay=False)
-        optimizer.reset()
-        optimizer.zero_grad()
-
+        optimizer = opt([simple_sparse_parameter()[1]], momentum=0.0, weight_decay=1e-3, decouple_decay=False)
         with pytest.raises(NoSparseGradientError):
             optimizer.step()
 
-    optimizer = opt([param], momentum=0.9, weight_decay=1e-3)
+    optimizer = opt([simple_sparse_parameter()[1]], momentum=0.9, weight_decay=1e-3)
     optimizer.reset()
-    optimizer.zero_grad()
-
     if sparse_optimizer == 'madgrad':
         with pytest.raises(NoSparseGradientError):
             optimizer.step()

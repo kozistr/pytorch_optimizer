@@ -44,7 +44,7 @@ class PCGrad(BaseOptimizer):
                 idx += 1
 
     def retrieve_grad(self) -> Tuple[List[torch.Tensor], List[int], List[torch.Tensor]]:
-        r"""get the gradient of the parameters of the network with specific objective."""
+        r"""Get the gradient of the parameters of the network with specific objective."""
         grad, shape, has_grad = [], [], []
         for group in self.optimizer.param_groups:
             for p in group['params']:
@@ -61,7 +61,7 @@ class PCGrad(BaseOptimizer):
         return grad, shape, has_grad
 
     def pack_grad(self, objectives: Iterable) -> Tuple[List[torch.Tensor], List[List[int]], List[torch.Tensor]]:
-        r"""pack the gradient of the parameters of the network for each objective.
+        r"""Pack the gradient of the parameters of the network for each objective.
 
         :param objectives: Iterable[nn.Module]. a list of objectives.
         :return: torch.Tensor. packed gradients.
@@ -80,7 +80,7 @@ class PCGrad(BaseOptimizer):
         return grads, shapes, has_grads
 
     def project_conflicting(self, grads: List[torch.Tensor], has_grads: List[torch.Tensor]) -> torch.Tensor:
-        r"""project conflicting.
+        r"""Project conflicting.
 
         :param grads: a list of the gradient of the parameters.
         :param has_grads: a list of mask represent whether the parameter has gradient.
@@ -89,12 +89,12 @@ class PCGrad(BaseOptimizer):
         shared: torch.Tensor = torch.stack(has_grads).prod(0).bool()
 
         pc_grad: List[torch.Tensor] = deepcopy(grads)
-        for g_i in pc_grad:
+        for i, g_i in enumerate(pc_grad):
             random.shuffle(grads)
             for g_j in grads:
                 g_i_g_j: torch.Tensor = torch.dot(g_i, g_j)
                 if g_i_g_j < 0:
-                    g_i -= g_i_g_j * g_j / (g_j.norm() ** 2)
+                    pc_grad[i] -= g_i_g_j * g_j / (g_j.norm() ** 2)
 
         merged_grad: torch.Tensor = torch.zeros_like(grads[0], device=grads[0].device)
 
@@ -109,7 +109,7 @@ class PCGrad(BaseOptimizer):
         return merged_grad
 
     def pc_backward(self, objectives: Iterable[nn.Module]):
-        r"""calculate the gradient of the parameters.
+        r"""Calculate the gradient of the parameters.
 
         :param objectives: Iterable[nn.Module]. a list of objectives.
         """

@@ -69,8 +69,6 @@ class MADGRAD(Optimizer, BaseOptimizer):
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
-        # pylint: disable=W0212
-
         loss: LOSS = None
         if closure is not None:
             with torch.enable_grad():
@@ -80,13 +78,11 @@ class MADGRAD(Optimizer, BaseOptimizer):
         if 'k' not in self.state:
             self.state['k'] = torch.tensor([0], dtype=torch.long, requires_grad=False)
 
-        k = self.state['k']
-
         for group in self.param_groups:
             weight_decay, momentum, eps = group['weight_decay'], group['momentum'], group['eps']
             lr = group['lr'] + eps
 
-            _lambda = lr * math.pow(k + 1, 0.5)
+            _lambda = lr * math.pow(self.state['k'] + 1, 0.5)
 
             for p in group['params']:
                 if p.grad is None:
@@ -105,7 +101,6 @@ class MADGRAD(Optimizer, BaseOptimizer):
                     raise NoSparseGradientError(str(self), note='momentum > 0.0')
 
                 grad_sum_sq, s = state['grad_sum_sq'], state['s']
-
                 if weight_decay > 0.0 and not self.decouple_decay:
                     if grad.is_sparse:
                         raise NoSparseGradientError(str(self), note='weight_decay')
@@ -120,11 +115,9 @@ class MADGRAD(Optimizer, BaseOptimizer):
                     grad_sum_sq_masked = grad_sum_sq.sparse_mask(grad)
                     s_masked = s.sparse_mask(grad)
 
-                    # Compute x_0 from other known quantities
                     rms_masked_values = grad_sum_sq_masked._values().pow(1 / 3).add_(eps)
                     x0_masked_values = p_masked._values().addcdiv(s_masked._values(), rms_masked_values, value=1)
 
-                    # Dense + sparse op
                     grad_sq = grad * grad
                     grad_sum_sq.add_(grad_sq, alpha=_lambda)
                     grad_sum_sq_masked.add_(grad_sq, alpha=_lambda)

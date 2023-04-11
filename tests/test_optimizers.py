@@ -296,7 +296,7 @@ def test_reset(optimizer_config):
 @pytest.mark.parametrize('sparse_gradient', [False, True])
 @pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD'])
 def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
-    param = simple_sparse_parameter(require_gradient) if sparse_gradient else simple_parameter(require_gradient)
+    param = simple_sparse_parameter(require_gradient)[1] if sparse_gradient else simple_parameter(require_gradient)
     if not require_gradient:
         param.grad = None
 
