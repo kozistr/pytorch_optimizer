@@ -116,11 +116,9 @@ class MADGRAD(Optimizer, BaseOptimizer):
                     grad_sum_sq_masked = grad_sum_sq.sparse_mask(grad)
                     s_masked = s.sparse_mask(grad)
 
-                    # Compute x_0 from other known quantities
                     rms_masked_values = grad_sum_sq_masked._values().pow(1 / 3).add_(eps)
                     x0_masked_values = p_masked._values().addcdiv(s_masked._values(), rms_masked_values, value=1)
 
-                    # Dense + sparse op
                     grad_sq = grad * grad
                     grad_sum_sq.add_(grad_sq, alpha=_lambda)
                     grad_sum_sq_masked.add_(grad_sq, alpha=_lambda)
