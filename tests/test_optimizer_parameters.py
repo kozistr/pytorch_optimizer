@@ -206,6 +206,8 @@ def test_lookahead_parameters():
     opt.backup_and_load_cache()
     opt.clear_and_load_backup()
 
+    _ = opt.__getstate__()
+
     with pytest.raises(ValueError):
         Lookahead(optimizer, k=0)
 
