@@ -53,6 +53,11 @@ def simple_parameter(require_grad: bool = True) -> torch.Tensor:
 def simple_sparse_parameter(require_grad: bool = True) -> Tuple[torch.Tensor, torch.Tensor]:
     weight = torch.randn(5, 1).requires_grad_(require_grad)
     weight_sparse = weight.detach().requires_grad_(require_grad)
+
+    weight.grad = torch.rand_like(weight)
+    weight.grad[0] = 0.0
+    weight_sparse.grad = weight.grad.to_sparse()
+
     return weight, weight_sparse
 
 
