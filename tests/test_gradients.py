@@ -34,7 +34,7 @@ def test_no_gradients(optimizer_name):
 
 @pytest.mark.parametrize('no_sparse_optimizer', NO_SPARSE_OPTIMIZERS)
 def test_sparse_not_supported(no_sparse_optimizer):
-    param = simple_sparse_parameter()
+    param = simple_sparse_parameter()[1]
 
     opt = load_optimizer(optimizer=no_sparse_optimizer)
     optimizer = opt([param], num_iterations=1) if no_sparse_optimizer == 'ranger21' else opt([param])
