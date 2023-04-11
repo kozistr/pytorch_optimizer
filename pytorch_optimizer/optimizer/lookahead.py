@@ -30,9 +30,10 @@ class Lookahead(BaseOptimizer):
 
         self.validate_parameters()
 
+        self.param_groups = self.optimizer.param_groups
         self.state: STATE = defaultdict(dict)
 
-        for group in self.optimizer.param_groups:
+        for group in self.param_groups:
             if 'counter' not in group:
                 group['counter'] = 0
 
@@ -59,12 +60,12 @@ class Lookahead(BaseOptimizer):
 
     @torch.no_grad()
     def reset(self):
-        for group in self.optimizer.param_groups:
+        for group in self.param_groups:
             group['counter'] = 0
 
     def backup_and_load_cache(self):
         r"""Useful for performing evaluation on the slow weights (which typically generalize better)"""
-        for group in self.optimizer.param_groups:
+        for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
                 state['backup_params'] = torch.empty_like(p)
@@ -73,7 +74,7 @@ class Lookahead(BaseOptimizer):
 
     def clear_and_load_backup(self):
         r"""Load backups"""
-        for group in self.optimizer.param_groups:
+        for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
                 p.data.copy_(state['backup_params'])
@@ -99,7 +100,7 @@ class Lookahead(BaseOptimizer):
 
             slow = state['slow_params']
 
-            p.mul_(self.alpha).add_(1.0 - self.alpha, slow)
+            p.mul_(self.alpha).add_(slow, alpha=1.0 - self.alpha)
             slow.copy_(p)
 
             if 'momentum_buffer' not in self.optimizer.state[p]:
@@ -116,7 +117,7 @@ class Lookahead(BaseOptimizer):
 
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = self.optimizer.step(closure)
-        for group in self.optimizer.param_groups:
+        for group in self.param_groups:
             group['counter'] += 1
             if group['counter'] >= self.k:
                 group['counter'] = 0
