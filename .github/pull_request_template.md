@@ -18,8 +18,6 @@ _What problem are you trying to solve?_
 
 _How did you solve the problem? Please provide a complete description and explanation!_
 
-_It'd be appreciated to attach Change Logs or `Notion`, `Jira` link. If you train a model, then attach `Tensorboard` or `WanDB` reports with accessible URLs_
-
 ## Other changes (bug fixes, small refactors)
 
 _Are there any small changes?_

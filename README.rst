@@ -5,27 +5,26 @@ pytorch-optimizer
 +--------------+------------------------------------------+
 | Build        | |workflow| |Documentation Status|        |
 +--------------+------------------------------------------+
-| Quality      | |codecov| |black|                        |
+| Quality      | |codecov| |black| |ruff|                 |
 +--------------+------------------------------------------+
 | Package      | |PyPI version| |PyPI pyversions|         |
 +--------------+------------------------------------------+
 | Status       | |PyPi download| |PyPi month download|    |
++--------------+------------------------------------------+
+| License      | |apache|                                 |
 +--------------+------------------------------------------+
 
 | **pytorch-optimizer** is bunch of optimizer collections in PyTorch. Also, including useful optimization ideas.
 | Most of the implementations are based on the original paper, but I added some tweaks.
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
-Documentation
--------------
+Getting Started
+---------------
 
-https://pytorch-optimizers.readthedocs.io/en/latest/
+For more, see the `documentation <https://pytorch-optimizers.readthedocs.io/en/latest/>`__.
 
-Usage
------
-
-Install
-~~~~~~~
+Installation
+~~~~~~~~~~~~
 
 ::
 
@@ -74,7 +73,7 @@ If you want to build the optimizer with parameters & configs, there's `create_op
     optimizer = create_optimizer(
         model,
         'adamp',
-        lr=1e-2,
+        lr=1e-3,
         weight_decay=1e-3,
         use_gc=True,
         use_lookahead=True,
@@ -377,5 +376,9 @@ Hyeongchan Kim / `@kozistr <http://kozistr.tech/about>`__
 .. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/pytorch-optimizer.svg
    :target: https://pypi.python.org/pypi/pytorch-optimizer/
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+.. |ruff| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v1.json
+   :target: https://github.com/charliermarsh/ruff
 .. |codecov| image:: https://codecov.io/gh/kozistr/pytorch_optimizer/branch/main/graph/badge.svg?token=L4K00EA0VD
    :target: https://codecov.io/gh/kozistr/pytorch_optimizer
+.. |apache| image:: https://img.shields.io/badge/License-Apache_2.0-blue.svg
+   :target: https://opensource.org/licenses/Apache-2.0
