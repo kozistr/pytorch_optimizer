@@ -11,6 +11,8 @@ pytorch-optimizer
 +--------------+------------------------------------------+
 | Status       | |PyPi download| |PyPi month download|    |
 +--------------+------------------------------------------+
+| License      | |apache|                                 |
++--------------+------------------------------------------+
 
 | **pytorch-optimizer** is bunch of optimizer collections in PyTorch. Also, including useful optimization ideas.
 | Most of the implementations are based on the original paper, but I added some tweaks.
@@ -375,5 +377,8 @@ Hyeongchan Kim / `@kozistr <http://kozistr.tech/about>`__
    :target: https://pypi.python.org/pypi/pytorch-optimizer/
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
 .. |ruff| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v1.json
+   :target: https://github.com/charliermarsh/ruff
 .. |codecov| image:: https://codecov.io/gh/kozistr/pytorch_optimizer/branch/main/graph/badge.svg?token=L4K00EA0VD
    :target: https://codecov.io/gh/kozistr/pytorch_optimizer
+.. |apache| image:: https://img.shields.io/badge/License-Apache_2.0-blue.svg
+   :target: https://opensource.org/licenses/Apache-2.0
