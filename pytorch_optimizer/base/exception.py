@@ -22,8 +22,8 @@ class ZeroParameterSizeError(Exception):
 class NoClosureError(Exception):
     """Raised when there's no closure function."""
 
-    def __init__(self, optimizer_name: str):
-        self.message: str = f'[-] {optimizer_name} requires closure.'
+    def __init__(self, optimizer_name: str, note: str = ''):
+        self.message: str = f'[-] {optimizer_name} requires closure.{note}'
         super().__init__(self.message)
 
 
