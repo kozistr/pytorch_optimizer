@@ -429,10 +429,9 @@ def compute_power_schur_newton(
     if shape[0] == 1:
         return identity
 
-    max_ev = power_iter(mat_g)
-    mat_g.add_(ridge_epsilon * max_ev * identity)
+    mat_g.add_(ridge_epsilon * power_iter(mat_g) * identity)
 
-    z = (1 + p) / (2 * torch.norm(mat_g))
+    z = (1 + p) / (2 * torch.linalg.norm(mat_g))
 
     mat_root = identity * torch.pow(z, 1.0 / p)
     mat_m = mat_g * z
