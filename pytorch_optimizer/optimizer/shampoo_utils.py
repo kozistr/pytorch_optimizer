@@ -422,11 +422,10 @@ def compute_power_schur_newton(
         1.2 factor is used to bound the maximal allowed increase.
     """
     shape: List[int] = mat_g.shape
-    identity = torch.eye(shape[0], device=mat_g.device, dtype=mat_g.dtype)
-
     if len(shape) == 1:
-        return torch.linalg.inv(mat_g + ridge_epsilon * identity).pow(1 / p)
+        return torch.pow(mat_g + ridge_epsilon, -1.0 / p)
 
+    identity = torch.eye(shape[0], device=mat_g.device, dtype=mat_g.dtype)
     if shape[0] == 1:
         return identity
 
