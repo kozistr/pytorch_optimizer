@@ -247,7 +247,7 @@ def test_closure(optimizer):
         with pytest.raises(ZeroParameterSizeError):
             optimizer.step(closure=dummy_closure)
     elif optimizer_name in ('AliG',):
-        with pytest.raises(ValueError):
+        with pytest.raises(NoClosureError):
             optimizer.step()
     else:
         optimizer.step(closure=dummy_closure)
