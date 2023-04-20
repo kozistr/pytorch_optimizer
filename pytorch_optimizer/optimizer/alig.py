@@ -3,7 +3,7 @@ from typing import Callable, Optional
 import torch
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoClosureError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
@@ -72,7 +72,7 @@ class AliG(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         if closure is None:
-            raise ValueError('[-] AliG optimizer needs closure. (eg. `optimizer.step(lambda: float(loss))`).')
+            raise NoClosureError('AliG', '(e.g. `optimizer.step(lambda: float(loss))`).')
 
         loss = closure()
 

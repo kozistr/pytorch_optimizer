@@ -140,7 +140,7 @@ def test_compute_power():
     # case 3 : len(x.shape) != 1 and x.shape[0] != 1, n&n-1 != 0
     x = compute_power_schur_newton(torch.ones((2, 2)), p=5)
     np.testing.assert_array_almost_equal(
-        np.asarray([[13.454, -12.63], [-12.63, 13.454]]),
+        np.asarray([[7.35, -6.48], [-6.48, 7.35]]),
         x.numpy(),
         decimal=2,
     )

@@ -347,70 +347,51 @@ class PreConditioner:
         return torch.reshape(merged_grad, self.original_shape)
 
 
-@torch.no_grad()
-def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 100) -> torch.Tensor:
-    r"""Power iteration.
+def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
+    r"""Build Graft by given graft_type."""
+    if graft_type == LayerWiseGrafting.ADAGRAD:
+        return AdaGradGraft(p, diagonal_eps)
+    if graft_type == LayerWiseGrafting.RMSPROP:
+        return RMSPropGraft(p, diagonal_eps)
+    if graft_type == LayerWiseGrafting.SGD:
+        return SGDGraft(p)
+    if graft_type == LayerWiseGrafting.SQRTN:
+        return SQRTNGraft(p)
+    return Graft(p)
 
-        Compute the maximum eigenvalue of mat, for scaling. v is a random (uniform) vector with values in (-1, 1).
+
+@torch.no_grad()
+def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 50) -> torch.Tensor:
+    r"""Compute the maximum eigenvalue of matrix, for scaling.
 
     :param mat_g: torch.Tensor. the symmetric PSD matrix.
     :param error_tolerance: float. Iterative exit condition.
     :param num_iters: int. Number of iterations.
     """
-    v = 2.0 * torch.rand(list(mat_g.shape)[0], dtype=mat_g.dtype, device=mat_g.device) - 1
+    v = torch.randn(mat_g.shape[0], dtype=mat_g.dtype, device=mat_g.device)
 
-    error: Union[torch.Tensor, float] = 1.0
-    iters: int = 0
-    singular_val: Union[torch.Tensor, float] = 0.0
-    while error > error_tolerance and iters < num_iters:
-        v.div_(v.norm())
+    singular_val = 1e-16
+
+    for _ in range(num_iters):
+        v.div_(torch.linalg.norm(v))
+
         mat_v = torch.mv(mat_g, v)
         s_v = torch.dot(v, mat_v)
 
-        error = torch.abs(s_v - singular_val)
+        if torch.abs_(s_v - singular_val) <= error_tolerance:
+            break
 
         v = mat_v
         singular_val = s_v
-        iters += 1
 
     return singular_val
-
-
-@torch.no_grad()
-def matrix_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
-    r"""Compute mat_m^{p}.
-
-        Unroll the loop due to the performance.
-
-    :param mat_m: torch.Tensor. a square matrix.
-    :param p: int. a positive integer. usually p = (1, 2, 4, 8).
-    """
-    exponent: int = int(np.log2(p))
-
-    if exponent == 0:
-        return mat_m
-
-    mat_p2 = torch.matmul(mat_m, mat_m).float()
-    if exponent == 1:
-        return mat_p2
-
-    mat_p4 = torch.matmul(mat_p2, mat_p2).float()
-    if exponent == 2:
-        return mat_p4
-
-    mat_p8 = torch.matmul(mat_p4, mat_p4).float()
-    if exponent == 3:
-        return mat_p8
-
-    # most of the cases, never reached here.
-    return torch.matmul(mat_p8, mat_p8).float()
 
 
 @torch.no_grad()
 def compute_power_schur_newton(
     mat_g: torch.Tensor,
     p: int,
-    iter_count: int = 100,
+    max_iters: int = 100,
     error_tolerance: float = 1e-6,
     ridge_epsilon: float = 1e-6,
     max_error_ratio: float = 1.2,
@@ -433,26 +414,24 @@ def compute_power_schur_newton(
 
     :param mat_g: torch.Tensor. A square positive semi-definite matrix.
     :param p: int. a positive integer.
-    :param iter_count: int. Stop iterating after this many rounds.
+    :param max_iters: int. Stop iterating after this many rounds.
     :param error_tolerance: float. Threshold for stopping iteration.
     :param ridge_epsilon: float. We add this times I to G, to make is positive definite.
         For scaling, we multiply it by the largest eigenvalue of G.
     :param max_error_ratio: float. Sometimes error increases after an iteration before decreasing and converging.
         1.2 factor is used to bound the maximal allowed increase.
     """
-    shape: List[int] = list(mat_g.shape)
+    shape: List[int] = mat_g.shape
     if len(shape) == 1:
         return torch.pow(mat_g + ridge_epsilon, -1.0 / p)
 
-    identity = torch.eye(shape[0], device=mat_g.device, dtype=torch.float32)
+    identity = torch.eye(shape[0], device=mat_g.device, dtype=mat_g.dtype)
     if shape[0] == 1:
         return identity
 
-    max_ev = power_iter(mat_g).clamp_(min=1e-16)
-    ridge_epsilon *= max_ev
-    mat_g += ridge_epsilon * identity
+    mat_g.add_(ridge_epsilon * power_iter(mat_g) * identity)
 
-    z = (1 + p) / (2 * torch.norm(mat_g))
+    z = (1 + p) / (2 * torch.linalg.norm(mat_g))
 
     mat_root = identity * torch.pow(z, 1.0 / p)
     mat_m = mat_g * z
@@ -460,19 +439,21 @@ def compute_power_schur_newton(
     alpha: float = -1.0 / p
     alpha_identity = (1.0 - alpha) * identity
     error = torch.max(torch.abs(mat_m - identity))
-    count: int = 0
-    while error > error_tolerance and count < iter_count:
+
+    new_mat_root = torch.empty_like(mat_root)
+
+    for _ in range(max_iters):
         mat_m_i = alpha_identity + alpha * mat_m
-        new_mat_root = torch.matmul(mat_root, mat_m_i).float()
-        mat_m = torch.matmul(matrix_power(mat_m_i, p), mat_m).float()
+
+        torch.matmul(mat_root, mat_m_i, out=new_mat_root)
+        torch.matmul(torch.linalg.matrix_power(mat_m_i, p), mat_m, out=mat_m)
 
         new_error = torch.max(torch.abs(mat_m - identity))
-        if new_error > error * max_error_ratio:
+        if new_error <= error_tolerance or new_error > error * max_error_ratio:
             break
 
         mat_root = new_mat_root
         error = new_error
-        count += 1
 
     return mat_root
 
@@ -499,24 +480,18 @@ def merge_small_dims(shape_to_merge: List[int], max_dim: int) -> List[int]:
             e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if max_dim = 1024
             [1, 2, 768, 1, 2048] --> [2, 768, 2048].
 
-    :param shape_to_merge: List. Shape to merge small dimensions.
+    :param shape_to_merge: List[int]. Shape to merge small dimensions.
     :param max_dim: int. Maximal dimension of output shape used in merging.
     """
-    if shape_to_merge and np.all(np.array(shape_to_merge) == 1):
-        return [1]
-
-    resulting_shape: List[int] = []
+    merged_shape: List[int] = []
 
     product: int = 1
-    for d in shape_to_merge:
-        if product * d <= max_dim:
-            product *= d
-        else:
-            if product > 1:
-                resulting_shape.append(product)
-            product = d
+    for dim in shape_to_merge:
+        product *= dim
+        if product > max_dim:
+            merged_shape.append(product // dim)
+            product = dim
 
-    if product > 1:
-        resulting_shape.append(product)
+    merged_shape.append(product)
 
-    return resulting_shape
+    return merged_shape if len(merged_shape) > 1 else [1]

@@ -5,14 +5,10 @@ from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.shampoo_utils import (
-    AdaGradGraft,
-    Graft,
     LayerWiseGrafting,
     PreConditioner,
     PreConditionerType,
-    RMSPropGraft,
-    SGDGraft,
-    SQRTNGraft,
+    build_graft,
     compute_power_svd,
 )
 
@@ -215,11 +211,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {
-            'lr': lr,
-            'betas': betas,
-            'weight_decay': weight_decay,
-        }
+        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay}
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -254,16 +246,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                     self.pre_conditioner_type,
                     self.use_svd,
                 )
-                if self.graft_type == LayerWiseGrafting.ADAGRAD:
-                    state['graft'] = AdaGradGraft(p, self.diagonal_eps)
-                elif self.graft_type == LayerWiseGrafting.RMSPROP:
-                    state['graft'] = RMSPropGraft(p, self.diagonal_eps)
-                elif self.graft_type == LayerWiseGrafting.SGD:
-                    state['graft'] = SGDGraft(p)
-                elif self.graft_type == LayerWiseGrafting.SQRTN:
-                    state['graft'] = SQRTNGraft(p)
-                else:
-                    state['graft'] = Graft(p)
+                state['graft'] = build_graft(p, self.graft_type, self.diagonal_eps)
 
     def is_precondition_step(self, step: int) -> bool:
         return step >= self.start_preconditioning_step
@@ -300,21 +283,10 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                         self.pre_conditioner_type,
                         self.use_svd,
                     )
-                    if self.graft_type == LayerWiseGrafting.ADAGRAD:
-                        state['graft'] = AdaGradGraft(p, self.diagonal_eps)
-                    elif self.graft_type == LayerWiseGrafting.RMSPROP:
-                        state['graft'] = RMSPropGraft(p, self.diagonal_eps)
-                    elif self.graft_type == LayerWiseGrafting.SGD:
-                        state['graft'] = SGDGraft(p)
-                    elif self.graft_type == LayerWiseGrafting.SQRTN:
-                        state['graft'] = SQRTNGraft(p)
-                    else:
-                        state['graft'] = Graft(p)
+                    state['graft'] = build_graft(p, self.graft_type, self.diagonal_eps)
 
                 state['step'] += 1
                 pre_conditioner, graft = state['pre_conditioner'], state['graft']
-
-                is_precondition_step: bool = self.is_precondition_step(state['step'])
 
                 graft.add_statistics(grad, beta2)
                 if state['step'] % self.statistics_compute_steps == 0:
@@ -322,11 +294,13 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                 if state['step'] % self.preconditioning_compute_steps == 0:
                     pre_conditioner.compute_pre_conditioners()
 
+                is_precondition_step: bool = self.is_precondition_step(state['step'])
                 pre_conditioner_multiplier: float = group['lr'] if not self.decoupled_learning_rate else 1.0
+
                 graft_grad: torch.Tensor = graft.precondition_gradient(grad * pre_conditioner_multiplier)
-                shampoo_grad: torch.Tensor = grad
-                if is_precondition_step:
-                    shampoo_grad = pre_conditioner.preconditioned_grad(grad)
+                shampoo_grad: torch.Tensor = (
+                    pre_conditioner.preconditioned_grad(grad) if is_precondition_step else grad
+                )
 
                 if self.graft_type != LayerWiseGrafting.NONE:
                     graft_norm = torch.norm(graft_grad)
@@ -336,11 +310,11 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
 
                 if group['weight_decay'] > 0.0:
                     if not self.decoupled_weight_decay:
-                        shampoo_grad.add_(p, alpha=group['weight_decay'])
                         graft_grad.add_(p, alpha=group['weight_decay'])
+                        shampoo_grad.add_(p, alpha=group['weight_decay'])
                     else:
-                        shampoo_grad.mul_(1.0 - group['lr'] * group['weight_decay'])
                         graft_grad.mul_(1.0 - group['lr'] * group['weight_decay'])
+                        shampoo_grad.mul_(1.0 - group['lr'] * group['weight_decay'])
 
                 state['momentum'].mul_(beta1).add_(shampoo_grad)
                 graft_momentum = graft.update_momentum(grad, beta1)
