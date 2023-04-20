@@ -61,7 +61,6 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
     SQRTNGraft,
     compute_power_schur_newton,
     compute_power_svd,
-    matrix_power,
     merge_small_dims,
     power_iter,
 )
