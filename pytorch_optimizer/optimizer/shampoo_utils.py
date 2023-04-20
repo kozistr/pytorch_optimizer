@@ -442,19 +442,17 @@ def compute_power_schur_newton(
     alpha_identity = (1.0 - alpha) * identity
     error = torch.max(torch.abs(mat_m - identity))
 
-    count: int = 0
-    while error > error_tolerance and count < max_iters:
+    for _ in range(max_iters):
         mat_m_i = alpha_identity + alpha * mat_m
         new_mat_root = torch.matmul(mat_root, mat_m_i)
         mat_m = torch.matmul(torch.linalg.matrix_power(mat_m_i, p), mat_m)
 
         new_error = torch.max(torch.abs(mat_m - identity))
-        if new_error > error * max_error_ratio:
+        if new_error <= error_tolerance or new_error > error * max_error_ratio:
             break
 
         mat_root = new_mat_root
         error = new_error
-        count += 1
 
     return mat_root
 
