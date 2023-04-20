@@ -361,24 +361,24 @@ def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
 
 
 @torch.no_grad()
-def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 100) -> torch.Tensor:
-    r"""Compute the maximum eigenvalue of matrix, for scaling. v is a random (uniform) vector with values in (-1, 1).
+def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 50) -> torch.Tensor:
+    r"""Compute the maximum eigenvalue of matrix, for scaling.
 
     :param mat_g: torch.Tensor. the symmetric PSD matrix.
     :param error_tolerance: float. Iterative exit condition.
     :param num_iters: int. Number of iterations.
     """
-    v = torch.empty(mat_g.shape[0], dtype=mat_g.dtype, device=mat_g.device).uniform_(-1.0, 1.0)
+    v = torch.randn(mat_g.shape[0], dtype=mat_g.dtype, device=mat_g.device)
 
     singular_val = 1e-16
 
     for _ in range(num_iters):
-        v.div_(torch.linalg.norm(v))
+        v.div_(torch.linalg.vector_norm(v))
 
         mat_v = torch.mv(mat_g, v)
-        s_v = torch.dot(v, mat_v)
+        s_v = torch.sum(v * mat_v)  # this way is faster than torch.dot for small tensors
 
-        if torch.abs(s_v - singular_val) <= error_tolerance:
+        if torch.abs_(s_v - singular_val) <= error_tolerance:
             break
 
         v = mat_v
@@ -421,7 +421,7 @@ def compute_power_schur_newton(
     :param max_error_ratio: float. Sometimes error increases after an iteration before decreasing and converging.
         1.2 factor is used to bound the maximal allowed increase.
     """
-    shape: List[int] = list(mat_g.shape)
+    shape: List[int] = mat_g.shape
     if len(shape) == 1:
         return torch.pow(mat_g + ridge_epsilon, -1.0 / p)
 
