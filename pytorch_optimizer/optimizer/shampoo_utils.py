@@ -422,10 +422,11 @@ def compute_power_schur_newton(
         1.2 factor is used to bound the maximal allowed increase.
     """
     shape: List[int] = mat_g.shape
-    if len(shape) == 1:
-        return torch.pow(mat_g + ridge_epsilon, -1.0 / p)
-
     identity = torch.eye(shape[0], device=mat_g.device, dtype=mat_g.dtype)
+
+    if len(shape) == 1:
+        return torch.linalg.inv(mat_g + ridge_epsilon * identity).pow(1 / p)
+
     if shape[0] == 1:
         return identity
 
@@ -440,10 +441,13 @@ def compute_power_schur_newton(
     alpha_identity = (1.0 - alpha) * identity
     error = torch.max(torch.abs(mat_m - identity))
 
+    new_mat_root = torch.empty_like(mat_root)
+
     for _ in range(max_iters):
         mat_m_i = alpha_identity + alpha * mat_m
-        new_mat_root = torch.matmul(mat_root, mat_m_i)
-        mat_m = torch.matmul(torch.linalg.matrix_power(mat_m_i, p), mat_m)
+
+        torch.matmul(mat_root, mat_m_i, out=new_mat_root)
+        torch.matmul(torch.linalg.matrix_power(mat_m_i, p), mat_m, out=mat_m)
 
         new_error = torch.max(torch.abs(mat_m - identity))
         if new_error <= error_tolerance or new_error > error * max_error_ratio:
