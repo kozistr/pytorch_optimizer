@@ -512,24 +512,18 @@ def merge_small_dims(shape_to_merge: List[int], max_dim: int) -> List[int]:
             e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if max_dim = 1024
             [1, 2, 768, 1, 2048] --> [2, 768, 2048].
 
-    :param shape_to_merge: List. Shape to merge small dimensions.
+    :param shape_to_merge: List[int]. Shape to merge small dimensions.
     :param max_dim: int. Maximal dimension of output shape used in merging.
     """
-    if shape_to_merge and np.all(np.array(shape_to_merge) == 1):
-        return [1]
-
-    resulting_shape: List[int] = []
+    merged_shape: List[int] = []
 
     product: int = 1
-    for d in shape_to_merge:
-        if product * d <= max_dim:
-            product *= d
-        else:
-            if product > 1:
-                resulting_shape.append(product)
-            product = d
+    for dim in shape_to_merge:
+        product *= dim
+        if product > max_dim:
+            merged_shape.append(product // dim)
+            product = dim
 
-    if product > 1:
-        resulting_shape.append(product)
+    merged_shape.append(product)
 
-    return resulting_shape
+    return merged_shape if len(merged_shape) > 1 else [1]
