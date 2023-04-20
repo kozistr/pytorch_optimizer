@@ -146,14 +146,6 @@ power_iter
 .. autoclass:: pytorch_optimizer.power_iter
     :members:
 
-.. _matrix_power:
-
-matrix_power
-------------
-
-.. autoclass:: pytorch_optimizer.matrix_power
-    :members:
-
 .. _compute_power_schur_newton:
 
 compute_power_schur_newton
