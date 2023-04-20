@@ -362,29 +362,27 @@ def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
 
 @torch.no_grad()
 def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 100) -> torch.Tensor:
-    r"""Power iteration.
-
-        Compute the maximum eigenvalue of mat, for scaling. v is a random (uniform) vector with values in (-1, 1).
+    r"""Compute the maximum eigenvalue of matrix, for scaling. v is a random (uniform) vector with values in (-1, 1).
 
     :param mat_g: torch.Tensor. the symmetric PSD matrix.
     :param error_tolerance: float. Iterative exit condition.
     :param num_iters: int. Number of iterations.
     """
-    v = 2.0 * torch.rand(list(mat_g.shape)[0], dtype=mat_g.dtype, device=mat_g.device) - 1
+    v = torch.empty(mat_g.shape[0], dtype=mat_g.dtype, device=mat_g.device).uniform_(-1.0, 1.0)
 
-    error: Union[torch.Tensor, float] = 1.0
-    iters: int = 0
-    singular_val: Union[torch.Tensor, float] = 0.0
-    while error > error_tolerance and iters < num_iters:
-        v.div_(v.norm())
+    singular_val = 0.0
+
+    for i in range(num_iters):
+        v.div_(torch.linalg.norm(v))
+
         mat_v = torch.mv(mat_g, v)
         s_v = torch.dot(v, mat_v)
 
-        error = torch.abs(s_v - singular_val)
+        if torch.abs(s_v - singular_val) <= error_tolerance:
+            break
 
         v = mat_v
         singular_val = s_v
-        iters += 1
 
     return singular_val
 
@@ -423,7 +421,7 @@ def matrix_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
 def compute_power_schur_newton(
     mat_g: torch.Tensor,
     p: int,
-    iter_count: int = 100,
+    max_iters: int = 100,
     error_tolerance: float = 1e-6,
     ridge_epsilon: float = 1e-6,
     max_error_ratio: float = 1.2,
@@ -446,7 +444,7 @@ def compute_power_schur_newton(
 
     :param mat_g: torch.Tensor. A square positive semi-definite matrix.
     :param p: int. a positive integer.
-    :param iter_count: int. Stop iterating after this many rounds.
+    :param max_iters: int. Stop iterating after this many rounds.
     :param error_tolerance: float. Threshold for stopping iteration.
     :param ridge_epsilon: float. We add this times I to G, to make is positive definite.
         For scaling, we multiply it by the largest eigenvalue of G.
@@ -473,11 +471,12 @@ def compute_power_schur_newton(
     alpha: float = -1.0 / p
     alpha_identity = (1.0 - alpha) * identity
     error = torch.max(torch.abs(mat_m - identity))
+
     count: int = 0
-    while error > error_tolerance and count < iter_count:
+    while error > error_tolerance and count < max_iters:
         mat_m_i = alpha_identity + alpha * mat_m
-        new_mat_root = torch.matmul(mat_root, mat_m_i).float()
-        mat_m = torch.matmul(matrix_power(mat_m_i, p), mat_m).float()
+        new_mat_root = torch.matmul(mat_root, mat_m_i)
+        mat_m = torch.matmul(matrix_power(mat_m_i, p), mat_m)
 
         new_error = torch.max(torch.abs(mat_m - identity))
         if new_error > error * max_error_ratio:
