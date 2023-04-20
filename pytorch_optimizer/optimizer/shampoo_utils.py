@@ -370,7 +370,7 @@ def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: in
     """
     v = torch.empty(mat_g.shape[0], dtype=mat_g.dtype, device=mat_g.device).uniform_(-1.0, 1.0)
 
-    singular_val = 0.0
+    singular_val = 1e-16
 
     for _ in range(num_iters):
         v.div_(torch.linalg.norm(v))
@@ -429,7 +429,7 @@ def compute_power_schur_newton(
     if shape[0] == 1:
         return identity
 
-    max_ev = power_iter(mat_g).clamp_(min=1e-16)
+    max_ev = power_iter(mat_g)
     ridge_epsilon *= max_ev
     mat_g += ridge_epsilon * identity
 
