@@ -388,36 +388,6 @@ def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: in
 
 
 @torch.no_grad()
-def matrix_power(mat_m: torch.Tensor, p: int) -> torch.Tensor:
-    r"""Compute mat_m^{p}.
-
-        Unroll the loop due to the performance.
-
-    :param mat_m: torch.Tensor. a square matrix.
-    :param p: int. a positive integer. usually p = (1, 2, 4, 8).
-    """
-    exponent: int = int(np.log2(p))
-
-    if exponent == 0:
-        return mat_m
-
-    mat_p2 = torch.matmul(mat_m, mat_m).float()
-    if exponent == 1:
-        return mat_p2
-
-    mat_p4 = torch.matmul(mat_p2, mat_p2).float()
-    if exponent == 2:
-        return mat_p4
-
-    mat_p8 = torch.matmul(mat_p4, mat_p4).float()
-    if exponent == 3:
-        return mat_p8
-
-    # most of the cases, never reached here.
-    return torch.matmul(mat_p8, mat_p8).float()
-
-
-@torch.no_grad()
 def compute_power_schur_newton(
     mat_g: torch.Tensor,
     p: int,
@@ -476,7 +446,7 @@ def compute_power_schur_newton(
     while error > error_tolerance and count < max_iters:
         mat_m_i = alpha_identity + alpha * mat_m
         new_mat_root = torch.matmul(mat_root, mat_m_i)
-        mat_m = torch.matmul(matrix_power(mat_m_i, p), mat_m)
+        mat_m = torch.matmul(torch.linalg.matrix_power(mat_m_i, p), mat_m)
 
         new_error = torch.max(torch.abs(mat_m - identity))
         if new_error > error * max_error_ratio:
