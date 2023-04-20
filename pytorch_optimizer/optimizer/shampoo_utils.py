@@ -347,6 +347,19 @@ class PreConditioner:
         return torch.reshape(merged_grad, self.original_shape)
 
 
+def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
+    r"""Build Graft by given graft_type."""
+    if graft_type == LayerWiseGrafting.ADAGRAD:
+        return AdaGradGraft(p, diagonal_eps)
+    if graft_type == LayerWiseGrafting.RMSPROP:
+        return RMSPropGraft(p, diagonal_eps)
+    if graft_type == LayerWiseGrafting.SGD:
+        return SGDGraft(p)
+    if graft_type == LayerWiseGrafting.SQRTN:
+        return SQRTNGraft(p)
+    return Graft(p)
+
+
 @torch.no_grad()
 def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 100) -> torch.Tensor:
     r"""Power iteration.
