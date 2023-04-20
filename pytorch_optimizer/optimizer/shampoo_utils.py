@@ -373,10 +373,10 @@ def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: in
     singular_val = 1e-16
 
     for _ in range(num_iters):
-        v.div_(torch.linalg.vector_norm(v))
+        v.div_(torch.linalg.norm(v))
 
         mat_v = torch.mv(mat_g, v)
-        s_v = torch.sum(v * mat_v)  # this way is faster than torch.dot for small tensors
+        s_v = torch.dot(v, mat_v)
 
         if torch.abs_(s_v - singular_val) <= error_tolerance:
             break
