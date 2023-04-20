@@ -425,13 +425,12 @@ def compute_power_schur_newton(
     if len(shape) == 1:
         return torch.pow(mat_g + ridge_epsilon, -1.0 / p)
 
-    identity = torch.eye(shape[0], device=mat_g.device, dtype=torch.float32)
+    identity = torch.eye(shape[0], device=mat_g.device, dtype=mat_g.dtype)
     if shape[0] == 1:
         return identity
 
     max_ev = power_iter(mat_g)
-    ridge_epsilon *= max_ev
-    mat_g += ridge_epsilon * identity
+    mat_g.add_(ridge_epsilon * max_ev * identity)
 
     z = (1 + p) / (2 * torch.norm(mat_g))
 
