@@ -372,7 +372,7 @@ def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: in
 
     singular_val = 0.0
 
-    for i in range(num_iters):
+    for _ in range(num_iters):
         v.div_(torch.linalg.norm(v))
 
         mat_v = torch.mv(mat_g, v)
