@@ -204,7 +204,7 @@ def test_block_partitioner():
     var = torch.zeros((2, 2))
     target_var = torch.zeros((1, 1))
 
-    partitioner = BlockPartitioner(var, block_size=2, pre_conditioner_type=0)
+    partitioner = BlockPartitioner(var, block_size=2, rank=2, pre_conditioner_type=0)
     with pytest.raises(ValueError):
         partitioner.partition(target_var)
 
@@ -213,6 +213,17 @@ def test_pre_conditioner():
     var = torch.zeros((1024, 128))
     grad = torch.zeros((1024, 128))
 
-    pre_conditioner = PreConditioner(var, 0.9, 0, 128, 8192, True, 1e-6, use_svd=False)
+    pre_conditioner = PreConditioner(var, 0.9, 0, 128, 1, 8192, True, 0)
     pre_conditioner.add_statistics(grad)
     pre_conditioner.compute_pre_conditioners()
+
+
+@pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2, 3])
+def test_pre_conditioner_type(pre_conditioner_type):
+    var = torch.zeros((4, 4, 32))
+    if pre_conditioner_type in (0, 1, 2):
+        PreConditioner(var, 0.9, 0, 128, 1, 8192, True, pre_conditioner_type=pre_conditioner_type)
+    else:
+        # invalid pre-conditioner type
+        with pytest.raises(ValueError):
+            PreConditioner(var, 0.9, 0, 128, 1, 8192, True, pre_conditioner_type=pre_conditioner_type)

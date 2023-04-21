@@ -62,7 +62,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
     compute_power_schur_newton,
     compute_power_svd,
     merge_small_dims,
-    power_iter,
+    power_iteration,
 )
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,

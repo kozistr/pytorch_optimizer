@@ -1,6 +1,6 @@
 import itertools
 from enum import IntEnum
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -63,7 +63,7 @@ class SQRTNGraft(Graft):
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         r"""Get preconditioned gradient."""
-        return torch.ones_like(grad) * torch.sign(grad)
+        return grad.sign_()
 
 
 class AdaGradGraft(SGDGraft):
@@ -115,11 +115,12 @@ class BlockPartitioner:
         so we effectively have 4 variables of size (1024, 512) each.
 
     :param var: torch.Tensor. tensor variable.
+    :param rank: int. rank.
     :param block_size: int. block size.
     :param pre_conditioner_type: int type of pre-conditioner.
     """
 
-    def __init__(self, var: torch.Tensor, block_size: int, pre_conditioner_type: int):
+    def __init__(self, var: torch.Tensor, rank: int, block_size: int, pre_conditioner_type: int):
         self.shape: List[int] = var.shape
 
         self.splits: List[Tuple[int, np.ndarray]] = []
@@ -129,24 +130,30 @@ class BlockPartitioner:
 
         # We split var into smaller blocks. Here we store the metadata to make that split.
         for i, d in enumerate(self.shape):
-            if 0 < block_size < d:
-                # d - 1, otherwise split appends a 0-size array.
-                num_split: int = (d - 1) // block_size
-                indices = (np.arange(num_split, dtype=np.int32) + 1) * block_size
-                sizes = np.ones(num_split + 1, dtype=np.int32) * block_size
-                sizes[-1] = d - indices[-1]
-                self.splits.append((i, indices))
-                self.split_sizes.append((i, sizes))
-                split_sizes.append(sizes)
-            else:
+            if block_size <= 0 or block_size >= d:
                 split_sizes.append(np.array([d], dtype=np.int32))
+                continue
+
+            # d - 1, otherwise split appends a 0-size array.
+            num_split: int = (d - 1) // block_size
+            indices = (np.arange(num_split, dtype=np.int32) + 1) * block_size
+
+            sizes = np.ones(num_split + 1, dtype=np.int32) * block_size
+            sizes[-1] = d - indices[-1]
+
+            self.splits.append((i, indices))
+            self.split_sizes.append((i, sizes))
+            split_sizes.append(sizes)
 
         self.num_splits: int = len(split_sizes)
         self.pre_conditioner_shapes: List[List[int]] = []
         for t in itertools.product(*split_sizes):
-            if not (pre_conditioner_type == PreConditionerType.ALL or self.num_splits <= 1):
-                t = t[:-1]  # noqa: PLW2901
-            self.pre_conditioner_shapes.extend([[d, d] for d in t])
+            t_shape: List[Optional[List[int]]] = [[d, d] for d in t]
+            if pre_conditioner_type == PreConditionerType.INPUT:
+                t_shape = t_shape[:-1] + [None]
+            if pre_conditioner_type == PreConditionerType.OUTPUT:
+                t_shape = [None] * (rank - 1) + t_shape[-1:]
+            self.pre_conditioner_shapes.extend(t_shape)
 
     def shapes_for_pre_conditioners(self) -> List[List[int]]:
         r"""Get shapes of pre-conditioner."""
@@ -184,12 +191,13 @@ class PreConditionerType(IntEnum):
     r"""Type of PreConditioner.
 
     In default (ALL), computes pre-conditioner for each dim.
-    INPUT is one-sided Shampoo, in this case only on input dim.
+    INPUT/OUTPUT is one-sided Shampoo, in this case only on input/output dim.
     Assumes last dim is always the output dim and everything else input dim.
     """
 
     ALL = 0
     INPUT = 1
+    OUTPUT = 2
 
 
 class PreConditioner:
@@ -199,10 +207,11 @@ class PreConditioner:
     :param beta2: float. beta2.
     :param inverse_exponent_override: int.
     :param block_size: int.
+    :param skip_preconditioning_rank_lt: int.
     :param no_preconditioning_for_layers_with_dim_gt: int.
     :param shape_interpretation: bool.
-    :param matrix_eps: float.
     :param pre_conditioner_type: int. type of pre-conditioner.
+    :param matrix_eps: float.
     :param use_svd: bool. use SVD instead of Schur-Newton method to calculate M^{-1/p}.
     """
 
@@ -212,31 +221,29 @@ class PreConditioner:
         beta2: float,
         inverse_exponent_override: int,
         block_size: int,
+        skip_preconditioning_rank_lt: int,
         no_preconditioning_for_layers_with_dim_gt: int,
         shape_interpretation: bool,
+        pre_conditioner_type: int,
         matrix_eps: float = 1e-6,
-        pre_conditioner_type: int = PreConditionerType.ALL,
         use_svd: bool = False,
     ):
         self.beta2 = beta2
         self.inverse_exponent_override = inverse_exponent_override
+        self.skip_preconditioning_rank_lt = skip_preconditioning_rank_lt
         self.no_preconditioning_for_layers_with_dim_gt = no_preconditioning_for_layers_with_dim_gt
-        self.matrix_eps = matrix_eps
         self.pre_conditioner_type = pre_conditioner_type
+        self.matrix_eps = matrix_eps
         self.use_svd = use_svd
 
         self.w2: float = 1.0 if self.beta2 == 1.0 else (1.0 - self.beta2)
 
         self.original_shape: List[int] = var.shape
-        self.transformed_shape: List[int] = var.shape
-        if shape_interpretation:
-            self.transformed_shape = merge_small_dims(self.original_shape, block_size)
-
-        self.should_precondition_dims: List[bool] = (
-            [True] * len(self.transformed_shape)
-            if self.pre_conditioner_type == PreConditionerType.ALL or len(self.transformed_shape) <= 1
-            else [True] * (len(self.transformed_shape) - 1) + [False]
+        self.transformed_shape: List[int] = (
+            merge_small_dims(self.original_shape, block_size) if shape_interpretation else var.shape
         )
+
+        self.should_precondition_dims: List[bool] = self.get_should_precondition_dims()
         self.rank: int = sum(self.should_precondition_dims)
         self.exponent_for_pre_conditioner: int = (
             self.inverse_exponent_override if self.inverse_exponent_override > 0 else 2 * self.rank
@@ -244,22 +251,39 @@ class PreConditioner:
 
         self.statistics: Union[List[torch.Tensor], torch.Tensor] = []
         self.pre_conditioners: Union[List[torch.Tensor], torch.Tensor] = []
+
         self.is_same_shapes: bool = False
         if len(self.transformed_shape) > 1 and not self.skip_precondition(var):
-            reshaped_var = torch.reshape(var, self.transformed_shape)
-            self.partitioner = BlockPartitioner(reshaped_var, block_size, self.pre_conditioner_type)
+            self.partitioner = BlockPartitioner(
+                var=torch.reshape(var, self.transformed_shape),
+                rank=self.rank,
+                block_size=block_size,
+                pre_conditioner_type=self.pre_conditioner_type,
+            )
 
-            shapes = self.partitioner.shapes_for_pre_conditioners()
-            self.statistics = [self.matrix_eps * torch.eye(s[0], device=var.device) for s in shapes]
-            self.pre_conditioners = [torch.eye(s[0], device=var.device) for s in shapes]
-            self.is_same_shapes = len(np.unique(shapes)) == 1
+            shapes: List[Optional[List[int]]] = self.partitioner.shapes_for_pre_conditioners()
+            self.statistics = [self.matrix_eps * torch.eye(shape[0], device=var.device) for shape in shapes if shape]
+            self.pre_conditioners = [torch.eye(shape[0], device=var.device) for shape in shapes if shape]
+            self.is_same_shapes = None not in shapes and len(np.unique(shapes)) == 1
 
         if self.is_same_shapes:
-            self.statistics = torch.stack(self.statistics)
-            self.pre_conditioners = torch.stack(self.pre_conditioners)
+            self.statistics = torch.stack(self.statistics, dim=0)
+            self.pre_conditioners = torch.stack(self.pre_conditioners, dim=0)
+
+    def get_should_precondition_dims(self) -> List[bool]:
+        r"""Get pre-condition dimensions by the type of conditioner."""
+        if self.pre_conditioner_type == PreConditionerType.ALL or len(self.transformed_shape) <= 1:
+            return [True] * len(self.transformed_shape)
+        if self.pre_conditioner_type == PreConditionerType.INPUT:
+            return [True] * (len(self.transformed_shape) - 1) + [False]
+        if self.pre_conditioner_type == PreConditionerType.OUTPUT:
+            return [False] * (len(self.transformed_shape) - 1) + [True]
+        raise ValueError
 
     def skip_precondition(self, x: torch.Tensor) -> bool:
-        return (len(x.shape) < 1) or any(s > self.no_preconditioning_for_layers_with_dim_gt for s in x.shape)
+        return (len(x.shape) < self.skip_preconditioning_rank_lt) or any(
+            dim > self.no_preconditioning_for_layers_with_dim_gt for dim in x.shape
+        )
 
     def add_statistics(self, grad: torch.Tensor):
         r"""Compute statistics from gradients and add to the correct state entries.
@@ -293,12 +317,12 @@ class PreConditioner:
             )
             return
 
-        for i in range(len(self.statistics)):
+        for i, statistic in enumerate(self.statistics):
             self.pre_conditioners[i] = (
-                compute_power_svd(matrix=self.statistics[i], power=-1.0 / self.exponent_for_pre_conditioner)
+                compute_power_svd(matrix=statistic, power=-1.0 / self.exponent_for_pre_conditioner)
                 if self.use_svd
                 else compute_power_schur_newton(
-                    mat_g=self.statistics[i], p=self.exponent_for_pre_conditioner, ridge_epsilon=self.matrix_eps
+                    mat_g=statistic, p=self.exponent_for_pre_conditioner, ridge_epsilon=self.matrix_eps
                 )
             )
 
@@ -315,11 +339,16 @@ class PreConditioner:
         """
         rank: int = len(partitioned_grad.shape)
         roll: Tuple[int, ...] = (*tuple(range(1, rank)), 0)
-        for j, should_precondition in enumerate(should_preconditioned_dims):
-            if not should_precondition:
-                partitioned_grad = torch.permute(partitioned_grad, roll).contiguous()
+
+        i: int = 0
+        for should_precondition_dim in should_preconditioned_dims:
+            if not should_precondition_dim:
+                partitioned_grad = torch.permute(partitioned_grad, roll)
                 continue
-            partitioned_grad = torch.tensordot(partitioned_grad, pre_conditioners_for_grad[j], dims=[[0], [0]])
+
+            partitioned_grad = torch.tensordot(partitioned_grad, pre_conditioners_for_grad[i], dims=[[0], [0]])
+            i += 1
+
         return partitioned_grad
 
     def preconditioned_grad(self, grad: torch.Tensor) -> torch.Tensor:
@@ -361,8 +390,10 @@ def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
 
 
 @torch.no_grad()
-def power_iter(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 50) -> torch.Tensor:
+def power_iteration(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 50) -> torch.Tensor:
     r"""Compute the maximum eigenvalue of matrix, for scaling.
+
+        Usually, power_iteration method is faster than torch.einval in case of the symmetric PSD matrix.
 
     :param mat_g: torch.Tensor. the symmetric PSD matrix.
     :param error_tolerance: float. Iterative exit condition.
@@ -429,7 +460,7 @@ def compute_power_schur_newton(
     if shape[0] == 1:
         return identity
 
-    mat_g.add_(ridge_epsilon * power_iter(mat_g) * identity)
+    mat_g.add_(ridge_epsilon * power_iteration(mat_g) * identity)
 
     z = (1 + p) / (2 * torch.linalg.norm(mat_g))
 
@@ -438,6 +469,7 @@ def compute_power_schur_newton(
 
     alpha: float = -1.0 / p
     alpha_identity = (1.0 - alpha) * identity
+
     error = torch.max(torch.abs(mat_m - identity))
 
     new_mat_root = torch.empty_like(mat_root)
