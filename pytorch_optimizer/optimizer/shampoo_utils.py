@@ -208,8 +208,8 @@ class PreConditioner:
     :param block_size: int.
     :param no_preconditioning_for_layers_with_dim_gt: int.
     :param shape_interpretation: bool.
-    :param matrix_eps: float.
     :param pre_conditioner_type: int. type of pre-conditioner.
+    :param matrix_eps: float.
     :param use_svd: bool. use SVD instead of Schur-Newton method to calculate M^{-1/p}.
     """
 
@@ -221,15 +221,15 @@ class PreConditioner:
         block_size: int,
         no_preconditioning_for_layers_with_dim_gt: int,
         shape_interpretation: bool,
+        pre_conditioner_type: int,
         matrix_eps: float = 1e-6,
-        pre_conditioner_type: int = PreConditionerType.ALL,
         use_svd: bool = False,
     ):
         self.beta2 = beta2
         self.inverse_exponent_override = inverse_exponent_override
         self.no_preconditioning_for_layers_with_dim_gt = no_preconditioning_for_layers_with_dim_gt
-        self.matrix_eps = matrix_eps
         self.pre_conditioner_type = pre_conditioner_type
+        self.matrix_eps = matrix_eps
         self.use_svd = use_svd
 
         self.w2: float = 1.0 if self.beta2 == 1.0 else (1.0 - self.beta2)
