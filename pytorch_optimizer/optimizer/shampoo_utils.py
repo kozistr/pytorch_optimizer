@@ -228,9 +228,9 @@ class PreConditioner:
         self.w2: float = 1.0 if self.beta2 == 1.0 else (1.0 - self.beta2)
 
         self.original_shape: List[int] = var.shape
-        self.transformed_shape: List[int] = var.shape
-        if shape_interpretation:
-            self.transformed_shape = merge_small_dims(self.original_shape, block_size)
+        self.transformed_shape: List[int] = (
+            merge_small_dims(self.original_shape, block_size) if shape_interpretation else var.shape
+        )
 
         self.should_precondition_dims: List[bool] = (
             [True] * len(self.transformed_shape)
@@ -244,6 +244,7 @@ class PreConditioner:
 
         self.statistics: Union[List[torch.Tensor], torch.Tensor] = []
         self.pre_conditioners: Union[List[torch.Tensor], torch.Tensor] = []
+
         self.is_same_shapes: bool = False
         if len(self.transformed_shape) > 1 and not self.skip_precondition(var):
             reshaped_var = torch.reshape(var, self.transformed_shape)
