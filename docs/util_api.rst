@@ -138,12 +138,12 @@ PreConditioner
 .. autoclass:: pytorch_optimizer.PreConditioner
     :members:
 
-.. _power_iter:
+.. _power_iteration:
 
-power_iter
-----------
+power_iteration
+---------------
 
-.. autoclass:: pytorch_optimizer.power_iter
+.. autoclass:: pytorch_optimizer.power_iteration
     :members:
 
 .. _compute_power_schur_newton:
