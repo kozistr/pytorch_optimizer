@@ -1,6 +1,6 @@
 import itertools
 from enum import IntEnum
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -115,11 +115,12 @@ class BlockPartitioner:
         so we effectively have 4 variables of size (1024, 512) each.
 
     :param var: torch.Tensor. tensor variable.
+    :param rank: int. rank.
     :param block_size: int. block size.
     :param pre_conditioner_type: int type of pre-conditioner.
     """
 
-    def __init__(self, var: torch.Tensor, block_size: int, pre_conditioner_type: int):
+    def __init__(self, var: torch.Tensor, rank: int, block_size: int, pre_conditioner_type: int):
         self.shape: List[int] = var.shape
 
         self.splits: List[Tuple[int, np.ndarray]] = []
@@ -147,12 +148,12 @@ class BlockPartitioner:
         self.num_splits: int = len(split_sizes)
         self.pre_conditioner_shapes: List[List[int]] = []
         for t in itertools.product(*split_sizes):
+            t_shape: List[Optional[List[int]]] = [[d, d] for d in t]
             if pre_conditioner_type == PreConditionerType.INPUT:
-                t = t[:-1]  # noqa: PLW2901
-            elif pre_conditioner_type == PreConditionerType.OUTPUT:
-                t = t[1:]  # noqa: PLW2901
-
-            self.pre_conditioner_shapes.extend([[d, d] for d in t])
+                t_shape = t_shape[:-1] + [None]
+            if pre_conditioner_type == PreConditionerType.OUTPUT:
+                t_shape = [None] * (rank - 1) + t_shape[-1:]
+            self.pre_conditioner_shapes.extend(t_shape)
 
     def shapes_for_pre_conditioners(self) -> List[List[int]]:
         r"""Get shapes of pre-conditioner."""
@@ -252,14 +253,15 @@ class PreConditioner:
         if len(self.transformed_shape) > 1 and not self.skip_precondition(var):
             self.partitioner = BlockPartitioner(
                 var=torch.reshape(var, self.transformed_shape),
+                rank=self.rank,
                 block_size=block_size,
                 pre_conditioner_type=self.pre_conditioner_type,
             )
 
-            shapes: List[List[int]] = self.partitioner.shapes_for_pre_conditioners()
-            self.statistics = [self.matrix_eps * torch.eye(shape[0], device=var.device) for shape in shapes]
-            self.pre_conditioners = [torch.eye(shape[0], device=var.device) for shape in shapes]
-            self.is_same_shapes = len(np.unique(shapes)) == 1
+            shapes: List[Optional[List[int]]] = self.partitioner.shapes_for_pre_conditioners()
+            self.statistics = [self.matrix_eps * torch.eye(shape[0], device=var.device) for shape in shapes if shape]
+            self.pre_conditioners = [torch.eye(shape[0], device=var.device) for shape in shapes if shape]
+            self.is_same_shapes = None not in shapes and len(np.unique(shapes)) == 1
 
         if self.is_same_shapes:
             self.statistics = torch.stack(self.statistics, dim=0)
@@ -332,11 +334,16 @@ class PreConditioner:
         """
         rank: int = len(partitioned_grad.shape)
         roll: Tuple[int, ...] = (*tuple(range(1, rank)), 0)
-        for j, should_precondition in enumerate(should_preconditioned_dims):
+
+        i: int = 0
+        for should_precondition in should_preconditioned_dims:
             if not should_precondition:
-                partitioned_grad = torch.permute(partitioned_grad, roll).contiguous()
+                partitioned_grad = torch.permute(partitioned_grad, roll)
                 continue
-            partitioned_grad = torch.tensordot(partitioned_grad, pre_conditioners_for_grad[j], dims=[[0], [0]])
+
+            partitioned_grad = torch.tensordot(partitioned_grad, pre_conditioners_for_grad[i], dims=[[0], [0]])
+            i += 1
+
         return partitioned_grad
 
     def preconditioned_grad(self, grad: torch.Tensor) -> torch.Tensor:
