@@ -176,7 +176,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         decoupled_weight_decay: bool = False,
         decoupled_learning_rate: bool = True,
         inverse_exponent_override: int = 0,
-        start_preconditioning_step: int = 5,
+        start_preconditioning_step: int = 25,
         preconditioning_compute_steps: int = 1,
         statistics_compute_steps: int = 1,
         block_size: int = 256,
