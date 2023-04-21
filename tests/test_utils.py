@@ -216,3 +216,7 @@ def test_pre_conditioner():
     pre_conditioner = PreConditioner(var, 0.9, 0, 128, 8192, True, 1e-6, use_svd=False)
     pre_conditioner.add_statistics(grad)
     pre_conditioner.compute_pre_conditioners()
+
+    # invalid pre-conditioner type
+    with pytest.raises(ValueError):
+        PreConditioner(var, 0.9, 0, 128, 8192, True, 1e-6, pre_conditioner_type=3, use_svd=False)
