@@ -316,7 +316,11 @@ def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
     )
 
     optimizer = load_optimizer('scalableshampoo')(
-        model.parameters(), start_preconditioning_step=1, pre_conditioner_type=pre_conditioner_type, use_svd=True
+        model.parameters(),
+        start_preconditioning_step=1,
+        preconditioning_compute_steps=1,
+        pre_conditioner_type=pre_conditioner_type,
+        use_svd=True,
     )
     optimizer.zero_grad()
 
