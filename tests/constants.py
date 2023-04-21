@@ -135,7 +135,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
             'lr': 1e-1,
             'weight_decay': 1e-3,
             'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 10,
+            'preconditioning_compute_steps': 9,
             'graft_type': 0,
         },
         10,
