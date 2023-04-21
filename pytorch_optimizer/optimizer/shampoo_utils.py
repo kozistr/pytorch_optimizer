@@ -129,17 +129,19 @@ class BlockPartitioner:
 
         # We split var into smaller blocks. Here we store the metadata to make that split.
         for i, d in enumerate(self.shape):
-            if 0 < block_size < d:
-                # d - 1, otherwise split appends a 0-size array.
-                num_split: int = (d - 1) // block_size
-                indices = (np.arange(num_split, dtype=np.int32) + 1) * block_size
-                sizes = np.ones(num_split + 1, dtype=np.int32) * block_size
-                sizes[-1] = d - indices[-1]
-                self.splits.append((i, indices))
-                self.split_sizes.append((i, sizes))
-                split_sizes.append(sizes)
-            else:
+            if block_size <= 0 or block_size >= d:
                 split_sizes.append(np.array([d], dtype=np.int32))
+                continue
+
+            # d - 1, otherwise split appends a 0-size array.
+            num_split: int = (d - 1) // block_size
+            indices = (np.arange(num_split, dtype=np.int32) + 1) * block_size
+            sizes = np.ones(num_split + 1, dtype=np.int32) * block_size
+            sizes[-1] = d - indices[-1]
+
+            self.splits.append((i, indices))
+            self.split_sizes.append((i, sizes))
+            split_sizes.append(sizes)
 
         self.num_splits: int = len(split_sizes)
         self.pre_conditioner_shapes: List[List[int]] = []
