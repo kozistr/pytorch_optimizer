@@ -131,8 +131,8 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
     r"""Scalable Preconditioned Stochastic Tensor Optimization.
 
         This version of Scalable Shampoo Optimizer aims for a single GPU environment, not for a distributed environment
-        or XLA devices. So, the original intention is to compute pre-conditioners on the (lots of) distributed CPUs,
-        but this implementation calculates them, which takes 99% of the optimization time, on a GPU, synchronously.
+        or XLA devices. So, the original intention is to compute pre-conditioners asynchronously on the distributed
+        CPUs, but this implementation calculates them which takes 99% of the optimization time on a GPU synchronously.
 
         Still, it is much faster than the previous Shampoo Optimizer because using coupled Newton iteration when
         computing G^{-1/p} matrices while the previous one uses SVD which is really slow.
