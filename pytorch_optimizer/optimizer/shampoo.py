@@ -242,8 +242,8 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                     self.block_size,
                     self.no_preconditioning_for_layers_with_dim_gt,
                     self.shape_interpretation,
-                    self.matrix_eps,
                     self.pre_conditioner_type,
+                    self.matrix_eps,
                     self.use_svd,
                 )
                 state['graft'] = build_graft(p, self.graft_type, self.diagonal_eps)
@@ -286,8 +286,8 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                         self.block_size,
                         self.no_preconditioning_for_layers_with_dim_gt,
                         self.shape_interpretation,
-                        self.matrix_eps,
                         self.pre_conditioner_type,
+                        self.matrix_eps,
                         self.use_svd,
                     )
                     state['graft'] = build_graft(p, self.graft_type, self.diagonal_eps)
