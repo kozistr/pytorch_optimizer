@@ -247,20 +247,23 @@ class PreConditioner:
 
         self.is_same_shapes: bool = False
         if len(self.transformed_shape) > 1 and not self.skip_precondition(var):
-            reshaped_var = torch.reshape(var, self.transformed_shape)
-            self.partitioner = BlockPartitioner(reshaped_var, block_size, self.pre_conditioner_type)
+            self.partitioner = BlockPartitioner(
+                var=torch.reshape(var, self.transformed_shape),
+                block_size=block_size,
+                pre_conditioner_type=self.pre_conditioner_type,
+            )
 
-            shapes = self.partitioner.shapes_for_pre_conditioners()
-            self.statistics = [self.matrix_eps * torch.eye(s[0], device=var.device) for s in shapes]
-            self.pre_conditioners = [torch.eye(s[0], device=var.device) for s in shapes]
+            shapes: List[List[int]] = self.partitioner.shapes_for_pre_conditioners()
+            self.statistics = [self.matrix_eps * torch.eye(shape[0], device=var.device) for shape in shapes]
+            self.pre_conditioners = [torch.eye(shape[0], device=var.device) for shape in shapes]
             self.is_same_shapes = len(np.unique(shapes)) == 1
 
         if self.is_same_shapes:
-            self.statistics = torch.stack(self.statistics)
-            self.pre_conditioners = torch.stack(self.pre_conditioners)
+            self.statistics = torch.stack(self.statistics, dim=0)
+            self.pre_conditioners = torch.stack(self.pre_conditioners, dim=0)
 
     def skip_precondition(self, x: torch.Tensor) -> bool:
-        return (len(x.shape) < 1) or any(s > self.no_preconditioning_for_layers_with_dim_gt for s in x.shape)
+        return (len(x.shape) < 1) or any(dim > self.no_preconditioning_for_layers_with_dim_gt for dim in x.shape)
 
     def add_statistics(self, grad: torch.Tensor):
         r"""Compute statistics from gradients and add to the correct state entries.
