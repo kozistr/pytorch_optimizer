@@ -235,11 +235,7 @@ class PreConditioner:
             merge_small_dims(self.original_shape, block_size) if shape_interpretation else var.shape
         )
 
-        self.should_precondition_dims: List[bool] = (
-            [True] * len(self.transformed_shape)
-            if self.pre_conditioner_type == PreConditionerType.ALL or len(self.transformed_shape) <= 1
-            else [True] * (len(self.transformed_shape) - 1) + [False]
-        )
+        self.should_precondition_dims: List[bool] = self.get_should_precondition_dims()
         self.rank: int = sum(self.should_precondition_dims)
         self.exponent_for_pre_conditioner: int = (
             self.inverse_exponent_override if self.inverse_exponent_override > 0 else 2 * self.rank
@@ -264,6 +260,16 @@ class PreConditioner:
         if self.is_same_shapes:
             self.statistics = torch.stack(self.statistics, dim=0)
             self.pre_conditioners = torch.stack(self.pre_conditioners, dim=0)
+
+    def get_should_precondition_dims(self) -> List[bool]:
+        r"""Get pre-condition dimensions by the type of conditioner."""
+        if self.pre_conditioner_type == PreConditionerType.ALL or len(self.transformed_shape) <= 1:
+            return [True] * len(self.transformed_shape)
+        if self.pre_conditioner_type == PreConditionerType.INPUT:
+            return [True] * (len(self.transformed_shape) - 1) + [False]
+        if self.pre_conditioner_type == PreConditionerType.OUTPUT:
+            return [False] * (len(self.transformed_shape) - 1) + [True]
+        raise ValueError
 
     def skip_precondition(self, x: torch.Tensor) -> bool:
         return (len(x.shape) < 1) or any(dim > self.no_preconditioning_for_layers_with_dim_gt for dim in x.shape)
