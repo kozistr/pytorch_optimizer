@@ -190,7 +190,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         decoupled_learning_rate: bool = True,
         inverse_exponent_override: int = 0,
         start_preconditioning_step: int = 25,
-        preconditioning_compute_steps: int = 1,
+        preconditioning_compute_steps: int = 1000,
         statistics_compute_steps: int = 1,
         block_size: int = 256,
         skip_preconditioning_rank_lt: int = 1,
