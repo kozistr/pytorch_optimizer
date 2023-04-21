@@ -204,7 +204,7 @@ def test_block_partitioner():
     var = torch.zeros((2, 2))
     target_var = torch.zeros((1, 1))
 
-    partitioner = BlockPartitioner(var, block_size=2, pre_conditioner_type=0)
+    partitioner = BlockPartitioner(var, block_size=2, rank=2, pre_conditioner_type=0)
     with pytest.raises(ValueError):
         partitioner.partition(target_var)
 
