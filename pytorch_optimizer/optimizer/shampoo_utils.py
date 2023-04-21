@@ -207,6 +207,7 @@ class PreConditioner:
     :param beta2: float. beta2.
     :param inverse_exponent_override: int.
     :param block_size: int.
+    :param skip_preconditioning_rank_lt: int.
     :param no_preconditioning_for_layers_with_dim_gt: int.
     :param shape_interpretation: bool.
     :param pre_conditioner_type: int. type of pre-conditioner.
@@ -220,6 +221,7 @@ class PreConditioner:
         beta2: float,
         inverse_exponent_override: int,
         block_size: int,
+        skip_preconditioning_rank_lt: int,
         no_preconditioning_for_layers_with_dim_gt: int,
         shape_interpretation: bool,
         pre_conditioner_type: int,
@@ -228,6 +230,7 @@ class PreConditioner:
     ):
         self.beta2 = beta2
         self.inverse_exponent_override = inverse_exponent_override
+        self.skip_preconditioning_rank_lt = skip_preconditioning_rank_lt
         self.no_preconditioning_for_layers_with_dim_gt = no_preconditioning_for_layers_with_dim_gt
         self.pre_conditioner_type = pre_conditioner_type
         self.matrix_eps = matrix_eps
@@ -278,7 +281,9 @@ class PreConditioner:
         raise ValueError
 
     def skip_precondition(self, x: torch.Tensor) -> bool:
-        return (len(x.shape) < 1) or any(dim > self.no_preconditioning_for_layers_with_dim_gt for dim in x.shape)
+        return (len(x.shape) < self.skip_preconditioning_rank_lt) or any(
+            dim > self.no_preconditioning_for_layers_with_dim_gt for dim in x.shape
+        )
 
     def add_statistics(self, grad: torch.Tensor):
         r"""Compute statistics from gradients and add to the correct state entries.

@@ -151,6 +151,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
     :param block_size: int. Block size for large layers (if > 0).
         Block size = 1 ==> Adagrad (Don't do this, extremely inefficient!)
         Block size should be as large as feasible under memory/time constraints.
+    :param skip_preconditioning_rank_lt: int. Skips preconditioning for parameters with rank less than this value.
     :param no_preconditioning_for_layers_with_dim_gt: int. avoid preconditioning large layers to reduce overall memory.
     :param shape_interpretation: bool. Automatic shape interpretation (for eg: [4, 3, 1024, 512] would
         result in 12 x [1024, 512] L and R statistics. Disabled by default which results in Shampoo constructing
@@ -180,6 +181,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         preconditioning_compute_steps: int = 1,
         statistics_compute_steps: int = 1,
         block_size: int = 256,
+        skip_preconditioning_rank_lt: int = 1,
         no_preconditioning_for_layers_with_dim_gt: int = 8192,
         shape_interpretation: bool = True,
         graft_type: int = LayerWiseGrafting.SGD,
@@ -200,6 +202,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         self.preconditioning_compute_steps = preconditioning_compute_steps
         self.statistics_compute_steps = statistics_compute_steps
         self.block_size = block_size
+        self.skip_preconditioning_rank_lt = skip_preconditioning_rank_lt
         self.no_preconditioning_for_layers_with_dim_gt = no_preconditioning_for_layers_with_dim_gt
         self.shape_interpretation = shape_interpretation
         self.graft_type = graft_type
@@ -240,6 +243,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                     group['betas'][1],  # beta2
                     self.inverse_exponent_override,
                     self.block_size,
+                    self.skip_preconditioning_rank_lt,
                     self.no_preconditioning_for_layers_with_dim_gt,
                     self.shape_interpretation,
                     self.pre_conditioner_type,
@@ -284,6 +288,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                         beta2,
                         self.inverse_exponent_override,
                         self.block_size,
+                        self.skip_preconditioning_rank_lt,
                         self.no_preconditioning_for_layers_with_dim_gt,
                         self.shape_interpretation,
                         self.pre_conditioner_type,
