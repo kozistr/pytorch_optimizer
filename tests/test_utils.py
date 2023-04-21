@@ -219,7 +219,7 @@ def test_pre_conditioner():
 
 
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2, 3])
-def test_pre_conditioner_type(pre_conditioner_type: int):
+def test_pre_conditioner_type(pre_conditioner_type):
     var = torch.zeros((4, 4, 32))
     if pre_conditioner_type in (0, 1, 2):
         PreConditioner(var, 0.9, 0, 128, 8192, True, pre_conditioner_type=pre_conditioner_type)
