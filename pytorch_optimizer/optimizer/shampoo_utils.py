@@ -248,6 +248,7 @@ class PreConditioner:
         self.statistics: Union[List[torch.Tensor], torch.Tensor] = []
         self.pre_conditioners: Union[List[torch.Tensor], torch.Tensor] = []
 
+        self.is_same_shapes: bool = False
         if len(self.transformed_shape) > 1 and not self.skip_precondition(var):
             self.partitioner = BlockPartitioner(
                 var=torch.reshape(var, self.transformed_shape),
@@ -258,10 +259,11 @@ class PreConditioner:
             shapes: List[List[int]] = self.partitioner.shapes_for_pre_conditioners()
             self.statistics = [self.matrix_eps * torch.eye(shape[0], device=var.device) for shape in shapes]
             self.pre_conditioners = [torch.eye(shape[0], device=var.device) for shape in shapes]
+            self.is_same_shapes = len(np.unique(shapes)) == 1
 
-            if len(np.unique(shapes)) == 1:  # if all tensors have a same shape
-                self.statistics = torch.stack(self.statistics, dim=0)
-                self.pre_conditioners = torch.stack(self.pre_conditioners, dim=0)
+        if self.is_same_shapes:
+            self.statistics = torch.stack(self.statistics, dim=0)
+            self.pre_conditioners = torch.stack(self.pre_conditioners, dim=0)
 
     def get_should_precondition_dims(self) -> List[bool]:
         r"""Get pre-condition dimensions by the type of conditioner."""
