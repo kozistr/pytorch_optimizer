@@ -230,10 +230,10 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
-                state['step'] = 0
                 state['momentum'] = torch.zeros_like(p)
                 state['pre_conditioner'] = PreConditioner(
                     p,
@@ -259,6 +259,14 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
+            is_precondition_step: bool = self.is_precondition_step(group['step'])
+            pre_conditioner_multiplier: float = group['lr'] if not self.decoupled_learning_rate else 1.0
+
             beta1, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
@@ -270,7 +278,6 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['step'] = 0
                     state['momentum'] = torch.zeros_like(p)
                     state['pre_conditioner'] = PreConditioner(
                         p,
@@ -285,17 +292,13 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                     )
                     state['graft'] = build_graft(p, self.graft_type, self.diagonal_eps)
 
-                state['step'] += 1
                 pre_conditioner, graft = state['pre_conditioner'], state['graft']
 
                 graft.add_statistics(grad, beta2)
-                if state['step'] % self.statistics_compute_steps == 0:
+                if group['step'] % self.statistics_compute_steps == 0:
                     pre_conditioner.add_statistics(grad)
-                if state['step'] % self.preconditioning_compute_steps == 0:
+                if group['step'] % self.preconditioning_compute_steps == 0:
                     pre_conditioner.compute_pre_conditioners()
-
-                is_precondition_step: bool = self.is_precondition_step(state['step'])
-                pre_conditioner_multiplier: float = group['lr'] if not self.decoupled_learning_rate else 1.0
 
                 graft_grad: torch.Tensor = graft.precondition_gradient(grad * pre_conditioner_multiplier)
                 shampoo_grad: torch.Tensor = (
@@ -303,8 +306,8 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                 )
 
                 if self.graft_type != LayerWiseGrafting.NONE:
-                    graft_norm = torch.norm(graft_grad)
-                    shampoo_norm = torch.norm(shampoo_grad)
+                    graft_norm = torch.linalg.norm(graft_grad)
+                    shampoo_norm = torch.linalg.norm(shampoo_grad)
 
                     shampoo_grad.mul_(graft_norm / (shampoo_norm + 1e-16))
 
@@ -319,15 +322,12 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                 state['momentum'].mul_(beta1).add_(shampoo_grad)
                 graft_momentum = graft.update_momentum(grad, beta1)
 
-                if is_precondition_step:
-                    momentum_update = state['momentum']
-                    wd_update = shampoo_grad
-                else:
-                    momentum_update = graft_momentum
-                    wd_update = graft_grad
+                momentum_update = state['momentum'] if is_precondition_step else graft_momentum
 
                 if self.nesterov:
                     w: float = (1.0 - beta1) if self.moving_average_for_momentum else 1.0
+
+                    wd_update = shampoo_grad if is_precondition_step else graft_grad
                     wd_update.mul_(w)
 
                     momentum_update.mul_(beta1).add_(wd_update)
