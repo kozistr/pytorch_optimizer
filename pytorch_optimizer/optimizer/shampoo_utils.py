@@ -336,8 +336,8 @@ class PreConditioner:
         roll: Tuple[int, ...] = (*tuple(range(1, rank)), 0)
 
         i: int = 0
-        for should_precondition in should_preconditioned_dims:
-            if not should_precondition:
+        for should_precondition_dim in should_preconditioned_dims:
+            if not should_precondition_dim:
                 partitioned_grad = torch.permute(partitioned_grad, roll)
                 continue
 
