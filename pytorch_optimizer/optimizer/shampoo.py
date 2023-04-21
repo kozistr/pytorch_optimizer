@@ -132,7 +132,15 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
 
         This version of Scalable Shampoo Optimizer aims for a single GPU environment, not for a distributed environment
         or XLA devices. So, the original intention is to compute pre-conditioners on the (lots of) distributed CPUs,
-        but this implementation calculates on a GPU.
+        but this implementation calculates them, which takes 99% of the optimization time, on a GPU.
+
+        Still, it is much faster than the previous Shampoo Optimizer because using coupled Newton iteration when
+        computing G^{-1/p} matrices while the previous one uses SVD which is really slow.
+
+        Also, this implementation offers
+            1. lots of plug-ins (e.g. gradient grafting, type of pre-conditioning, etc)
+            2. not-yet implemented features in the official Pytorch code.
+            3. readable, organized, clean code.
 
         Reference : https://github.com/google-research/google-research/blob/master/scalable_shampoo/pytorch/shampoo.py.
 
