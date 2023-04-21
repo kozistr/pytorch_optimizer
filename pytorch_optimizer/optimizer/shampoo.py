@@ -130,6 +130,10 @@ class Shampoo(Optimizer, BaseOptimizer):
 class ScalableShampoo(Optimizer, BaseOptimizer):
     r"""Scalable Preconditioned Stochastic Tensor Optimization.
 
+        This version of Scalable Shampoo Optimizer aims for a single GPU environment, not for a distributed environment
+        or XLA devices. So, the original intention is to compute pre-conditioners on the (lots of) distributed CPUs,
+        but this implementation calculates on a GPU.
+
         Reference : https://github.com/google-research/google-research/blob/master/scalable_shampoo/pytorch/shampoo.py.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
