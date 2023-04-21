@@ -136,7 +136,17 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (ScalableShampoo, {'lr': 1e-1, 'weight_decay': 1e-3, 'start_preconditioning_step': 9, 'graft_type': 4}, 10),
     (
         ScalableShampoo,
+        {'lr': 1e-1, 'weight_decay': 1e-3, 'start_preconditioning_step': 9, 'pre_conditioner_type': 0},
+        10,
+    ),
+    (
+        ScalableShampoo,
         {'lr': 1e-1, 'weight_decay': 1e-3, 'start_preconditioning_step': 9, 'pre_conditioner_type': 1},
+        10,
+    ),
+    (
+        ScalableShampoo,
+        {'lr': 1e-1, 'weight_decay': 1e-3, 'start_preconditioning_step': 9, 'pre_conditioner_type': 2},
         10,
     ),
     (
