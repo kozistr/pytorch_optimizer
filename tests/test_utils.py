@@ -213,10 +213,17 @@ def test_pre_conditioner():
     var = torch.zeros((1024, 128))
     grad = torch.zeros((1024, 128))
 
-    pre_conditioner = PreConditioner(var, 0.9, 0, 128, 8192, True, 1e-6, use_svd=False)
+    pre_conditioner = PreConditioner(var, 0.9, 0, 128, 8192, True, 0)
     pre_conditioner.add_statistics(grad)
     pre_conditioner.compute_pre_conditioners()
 
-    # invalid pre-conditioner type
-    with pytest.raises(ValueError):
-        PreConditioner(var, 0.9, 0, 128, 8192, True, 1e-6, pre_conditioner_type=3, use_svd=False)
+
+@pytest.mark.parametrize('pc_type', [0, 1, 2, 3])
+def test_pre_conditioner_type(pc_type: int):
+    var = torch.zeros((4, 4, 128))
+    if pc_type not in (0, 1, 2):
+        # invalid pre-conditioner type
+        with pytest.raises(ValueError):
+            PreConditioner(var, 0.9, 0, 128, 8192, True, pre_conditioner_type=pc_type)
+    else:
+        PreConditioner(var, 0.9, 0, 128, 8192, True, pre_conditioner_type=pc_type)
