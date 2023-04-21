@@ -218,12 +218,12 @@ def test_pre_conditioner():
     pre_conditioner.compute_pre_conditioners()
 
 
-@pytest.mark.parametrize('pc_type', [0, 1, 2, 3])
-def test_pre_conditioner_type(pc_type: int):
+@pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2, 3])
+def test_pre_conditioner_type(pre_conditioner_type: int):
     var = torch.zeros((4, 4, 32))
-    if pc_type not in (0, 1, 2):
+    if pre_conditioner_type in (0, 1, 2):
+        PreConditioner(var, 0.9, 0, 128, 8192, True, pre_conditioner_type=pre_conditioner_type)
+    else:
         # invalid pre-conditioner type
         with pytest.raises(ValueError):
-            PreConditioner(var, 0.9, 0, 128, 8192, True, pre_conditioner_type=pc_type)
-    else:
-        PreConditioner(var, 0.9, 0, 128, 8192, True, pre_conditioner_type=pc_type)
+            PreConditioner(var, 0.9, 0, 128, 8192, True, pre_conditioner_type=pre_conditioner_type)
