@@ -136,6 +136,7 @@ class BlockPartitioner:
             # d - 1, otherwise split appends a 0-size array.
             num_split: int = (d - 1) // block_size
             indices = (np.arange(num_split, dtype=np.int32) + 1) * block_size
+
             sizes = np.ones(num_split + 1, dtype=np.int32) * block_size
             sizes[-1] = d - indices[-1]
 
@@ -146,8 +147,11 @@ class BlockPartitioner:
         self.num_splits: int = len(split_sizes)
         self.pre_conditioner_shapes: List[List[int]] = []
         for t in itertools.product(*split_sizes):
-            if not (pre_conditioner_type == PreConditionerType.ALL or self.num_splits <= 1):
+            if pre_conditioner_type == PreConditionerType.INPUT:
                 t = t[:-1]  # noqa: PLW2901
+            elif pre_conditioner_type == PreConditionerType.OUTPUT:
+                t = t[1:]  # noqa: PLW2901
+
             self.pre_conditioner_shapes.extend([[d, d] for d in t])
 
     def shapes_for_pre_conditioners(self) -> List[List[int]]:
