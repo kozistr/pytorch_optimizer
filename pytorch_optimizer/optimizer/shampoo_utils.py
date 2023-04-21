@@ -297,12 +297,12 @@ class PreConditioner:
             )
             return
 
-        for i in range(len(self.statistics)):
+        for i, statistic in enumerate(self.statistics):
             self.pre_conditioners[i] = (
-                compute_power_svd(matrix=self.statistics[i], power=-1.0 / self.exponent_for_pre_conditioner)
+                compute_power_svd(matrix=statistic, power=-1.0 / self.exponent_for_pre_conditioner)
                 if self.use_svd
                 else compute_power_schur_newton(
-                    mat_g=self.statistics[i], p=self.exponent_for_pre_conditioner, ridge_epsilon=self.matrix_eps
+                    mat_g=statistic, p=self.exponent_for_pre_conditioner, ridge_epsilon=self.matrix_eps
                 )
             )
 
