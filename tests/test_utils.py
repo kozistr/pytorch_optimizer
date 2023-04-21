@@ -220,7 +220,7 @@ def test_pre_conditioner():
 
 @pytest.mark.parametrize('pc_type', [0, 1, 2, 3])
 def test_pre_conditioner_type(pc_type: int):
-    var = torch.zeros((4, 4, 128))
+    var = torch.zeros((4, 4, 32))
     if pc_type not in (0, 1, 2):
         # invalid pre-conditioner type
         with pytest.raises(ValueError):
