@@ -47,7 +47,7 @@ class SM3(Optimizer, BaseOptimizer):
             for p in group['params']:
                 state = self.state[p]
 
-                state['momentum_buffer'] = torch.zeros_like(p)
+                state['momentum_buffer'] = 0.0
 
     @staticmethod
     def max_reduce_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
@@ -56,8 +56,8 @@ class SM3(Optimizer, BaseOptimizer):
         if rank == 0:
             return x
 
-        if dim < rank:
-            raise ValueError(f'[-] given dim is smaller than rank. {dim} < {rank}')
+        if dim >= rank:
+            raise ValueError(f'[-] given dim is bigger than rank. {dim} >= {rank}')
 
         for d in range(rank):
             if d != dim:
@@ -96,7 +96,7 @@ class SM3(Optimizer, BaseOptimizer):
                     if grad.is_sparse:
                         state['accumulator_0'] = torch.zeros(shape[0])
                     elif rank == 0:
-                        state['accumulator_0'] = torch.zeros_like(p)
+                        state['accumulator_0'] = torch.zeros(shape)
                     else:
                         for i in range(rank):
                             state[f'accumulator_{i}'] = torch.zeros([1] * i + [shape[i]] + [1] * (rank - 1 - i))
@@ -130,13 +130,14 @@ class SM3(Optimizer, BaseOptimizer):
 
                     update = acc_list[0].clone()
                     for i in range(1, rank):
-                        torch.min(update, acc_list[i], out=update)
+                        update = torch.min(update, acc_list[i])
 
                     if beta > 0.0:
                         update.mul_(beta)
                     update.addcmul_(grad, grad, value=1.0 - beta)
 
                     for i, acc in enumerate(acc_list):
+                        print(i, len(update.shape))
                         nu_max = self.max_reduce_except_dim(update, i)
                         if beta > 0.0:
                             torch.max(acc, nu_max, out=acc)
