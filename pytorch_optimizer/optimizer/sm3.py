@@ -105,12 +105,13 @@ class SM3(Optimizer, BaseOptimizer):
 
                 if grad.is_sparse:
                     grad = grad.coalesce()
+                    grad_values = grad._values()
 
                     acc = state['accumulator_0']
                     update_values = torch.gather(acc, 0, grad._indices()[0])
                     if beta > 0.0:
                         update_values.mul_(beta)
-                    update_values.addcmul_(grad._values(), grad._values(), value=1.0 - beta)
+                    update_values.addcmul_(grad_values, grad_values, value=1.0 - beta)
 
                     sparse_update_values = self.make_sparse(grad, update_values)
 
@@ -120,7 +121,7 @@ class SM3(Optimizer, BaseOptimizer):
                     else:
                         acc.copy_(nu_max)
 
-                    update_values.add_(self.eps).rsqrt_().mul_(grad._values())
+                    update_values.add_(self.eps).rsqrt_().mul_(grad_values)
 
                     update = self.make_sparse(grad, update_values)
                 else:
@@ -144,10 +145,9 @@ class SM3(Optimizer, BaseOptimizer):
 
                     if momentum > 0.0:
                         m = state['momentum_buffer']
+                        m.mul_(momentum).add_(update, alpha=1.0 - momentum)
+                        update = m
 
-                        update.mul_(1.0 - momentum).add_(m, alpha=momentum)
-                        state['momentum_buffer'] = update.detach()
-
-                p.sub_(update, alpha=group['lr'])
+                p.add_(update, alpha=-group['lr'])
 
         return loss
