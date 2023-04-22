@@ -124,19 +124,16 @@ class SM3(Optimizer, BaseOptimizer):
 
                     update = self.make_sparse(grad, update_values)
                 else:
-                    acc_list = (
-                        [state[f'accumulator_{i}'] for i in range(rank)] if rank > 1 else [state['accumulator_0']]
-                    )
-
-                    update = acc_list[0].clone()
+                    update = state['accumulator_0'].clone()
                     for i in range(1, rank):
-                        update = torch.min(update, acc_list[i])
+                        update = torch.min(update, state[f'accumulator_{i}'])
 
                     if beta > 0.0:
                         update.mul_(beta)
                     update.addcmul_(grad, grad, value=1.0 - beta)
 
-                    for i, acc in enumerate(acc_list):
+                    for i in range(rank):
+                        acc = state[f'accumulator_{i}']
                         nu_max = self.max_reduce_except_dim(update, i)
                         if beta > 0.0:
                             torch.max(acc, nu_max, out=acc)
