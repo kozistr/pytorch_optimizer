@@ -137,7 +137,6 @@ class SM3(Optimizer, BaseOptimizer):
                     update.addcmul_(grad, grad, value=1.0 - beta)
 
                     for i, acc in enumerate(acc_list):
-                        print(i, len(update.shape))
                         nu_max = self.max_reduce_except_dim(update, i)
                         if beta > 0.0:
                             torch.max(acc, nu_max, out=acc)
