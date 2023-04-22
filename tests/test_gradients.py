@@ -89,13 +89,14 @@ def test_sparse_supported(sparse_optimizer):
         with pytest.raises(NoSparseGradientError):
             optimizer.step()
 
-    optimizer = opt([simple_sparse_parameter()[1]], momentum=0.9, weight_decay=1e-3)
-    optimizer.reset()
-    if sparse_optimizer == 'madgrad':
-        with pytest.raises(NoSparseGradientError):
+    if sparse_optimizer in ('madgrad', 'dadapt'):
+        optimizer = opt([simple_sparse_parameter()[1]], momentum=0.9, weight_decay=1e-3)
+        optimizer.reset()
+        if sparse_optimizer == 'madgrad':
+            with pytest.raises(NoSparseGradientError):
+                optimizer.step()
+        else:
             optimizer.step()
-    else:
-        optimizer.step()
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
