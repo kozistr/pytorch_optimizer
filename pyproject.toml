@@ -38,7 +38,7 @@ numpy = [
     { version = "*", python = ">=3.8" },
 ]
 torch = [
-    { version = ">=1.10,>=2.0", python = ">=3.8", source = "torch" },
+    { version = ">=1.10", python = ">=3.8", source = "torch" },
     { version = "^1.10", python = ">=3.7,<3.8", source = "torch" },
 ]
 
@@ -48,8 +48,8 @@ isort = [
     { version = "^5.12.0", python = ">=3.8"}
 ]
 black = "^23.3.0"
-ruff = "^0.0.260"
-pytest = "^7.2.2"
+ruff = "^0.0.262"
+pytest = "^7.3.1"
 pytest-cov = "^4.0.0"
 
 [[tool.poetry.source]]
