@@ -44,6 +44,12 @@ class Example(nn.Module):
         return self.norm1(self.fc1(x))
 
 
+def simple_zero_rank_parameter(require_grad: bool = True) -> torch.Tensor:
+    param = torch.tensor(0.0).requires_grad_(require_grad)
+    param.grad = torch.tensor(0.0)
+    return param
+
+
 def simple_parameter(require_grad: bool = True) -> torch.Tensor:
     param = torch.zeros(1, 1).requires_grad_(require_grad)
     param.grad = torch.zeros(1, 1)

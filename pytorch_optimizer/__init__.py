@@ -64,6 +64,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
     merge_small_dims,
     power_iteration,
 )
+from pytorch_optimizer.optimizer.sm3 import SM3
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
     disable_running_stats,
@@ -103,6 +104,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     NovoGrad,
     Lion,
     AliG,
+    SM3,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

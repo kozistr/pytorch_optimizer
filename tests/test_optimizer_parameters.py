@@ -66,7 +66,7 @@ def test_adafactor_epsilon():
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_weight_decay(optimizer_name):
-    if optimizer_name in ('nero', 'alig'):
+    if optimizer_name in ('nero', 'alig', 'sm3'):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -111,7 +111,7 @@ def test_trust_coefficient(optimizer_name):
         optimizer(None, trust_coefficient=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_name', ['madgrad', 'lars'])
+@pytest.mark.parametrize('optimizer_name', ['madgrad', 'lars', 'sm3'])
 def test_momentum(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
@@ -132,7 +132,7 @@ def test_beta0(optimizer_name):
         optimizer(None, num_iterations=200, beta0=-0.1)
 
 
-@pytest.mark.parametrize('optimizer_name', ['nero', 'apollo'])
+@pytest.mark.parametrize('optimizer_name', ['nero', 'apollo', 'sm3'])
 def test_beta(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):

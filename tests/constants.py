@@ -6,6 +6,7 @@ from pytorch_optimizer import (
     OPTIMIZERS,
     PNM,
     SGDP,
+    SM3,
     AdaBelief,
     AdaBound,
     AdaFactor,
@@ -47,7 +48,7 @@ INVALID_OPTIMIZER_NAMES: List[str] = [
     'lookahead',
 ]
 
-SPARSE_OPTIMIZERS: List[str] = ['madgrad', 'dadaptadagrad']
+SPARSE_OPTIMIZERS: List[str] = ['madgrad', 'dadaptadagrad', 'sm3']
 NO_SPARSE_OPTIMIZERS: List[str] = [
     optimizer for optimizer in VALID_OPTIMIZER_NAMES if optimizer not in SPARSE_OPTIMIZERS
 ]
@@ -300,6 +301,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 10),
     (AliG, {'max_lr': 5e-1, 'momentum': 0.9}, 10),
     (AliG, {'max_lr': 5e-1, 'momentum': 0.9, 'adjusted_momentum': True}, 10),
+    (SM3, {'lr': 5e-1, 'momentum': 0.9, 'beta': 0.9}, 10),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias_term': True}, 10),

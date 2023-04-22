@@ -49,8 +49,12 @@ def test_sparse(sparse_optimizer):
 
     weight, weight_sparse = simple_sparse_parameter()
 
-    opt_dense = opt([weight], lr=1e-3, momentum=0.0)
-    opt_sparse = opt([weight_sparse], lr=1e-3, momentum=0.0)
+    params = {'lr': 1e-3, 'momentum': 0.0}
+    if sparse_optimizer == 'sm3':
+        params.update({'beta': 0.9})
+
+    opt_dense = opt([weight], **params)
+    opt_sparse = opt([weight_sparse], **params)
 
     opt_dense.step()
     opt_sparse.step()
@@ -89,13 +93,14 @@ def test_sparse_supported(sparse_optimizer):
         with pytest.raises(NoSparseGradientError):
             optimizer.step()
 
-    optimizer = opt([simple_sparse_parameter()[1]], momentum=0.9, weight_decay=1e-3)
-    optimizer.reset()
-    if sparse_optimizer == 'madgrad':
-        with pytest.raises(NoSparseGradientError):
+    if sparse_optimizer in ('madgrad', 'dadapt'):
+        optimizer = opt([simple_sparse_parameter()[1]], momentum=0.9, weight_decay=1e-3)
+        optimizer.reset()
+        if sparse_optimizer == 'madgrad':
+            with pytest.raises(NoSparseGradientError):
+                optimizer.step()
+        else:
             optimizer.step()
-    else:
-        optimizer.step()
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)

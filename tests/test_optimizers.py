@@ -16,6 +16,7 @@ from tests.utils import (
     names,
     simple_parameter,
     simple_sparse_parameter,
+    simple_zero_rank_parameter,
     tensor_to_numpy,
 )
 
@@ -326,4 +327,30 @@ def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
 
     loss_fn(model(x_data), y_data).backward()
 
+    optimizer.step()
+
+
+def test_sm3_max_reduce():
+    optimizer = load_optimizer('sm3')([simple_parameter(True)])
+
+    x = torch.tensor(1.0)
+    assert optimizer.max_reduce_except_dim(x, 0) == x
+
+    x = torch.zeros((1, 1))
+    with pytest.raises(ValueError):
+        optimizer.max_reduce_except_dim(x, 3)
+
+
+def test_sm3_make_sparse():
+    _, weight_sparse = simple_sparse_parameter(True)
+
+    optimizer = load_optimizer('sm3')([weight_sparse])
+
+    values = torch.tensor(1.0)
+    optimizer.make_sparse(weight_sparse.grad, values)
+
+
+def test_sm3_rank0():
+    optimizer = load_optimizer('sm3')([simple_zero_rank_parameter(True)])
+    assert str(optimizer) == 'SM3'
     optimizer.step()
