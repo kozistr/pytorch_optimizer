@@ -280,3 +280,11 @@ AliG
 
 .. autoclass:: pytorch_optimizer.AliG
     :members:
+
+.. _SM3:
+
+SM3
+---
+
+.. autoclass:: pytorch_optimizer.SM3
+    :members:
