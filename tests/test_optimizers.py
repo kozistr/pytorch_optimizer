@@ -338,3 +338,12 @@ def test_sm3_max_reduce():
     x = torch.zeros((1, 1))
     with pytest.raises(ValueError):
         optimizer.max_reduce_except_dim(x, 3)
+
+
+def test_sm3_make_sparse():
+    _, weight_sparse = simple_sparse_parameter(True)
+
+    optimizer = load_optimizer('sm3')([weight_sparse])
+
+    values = torch.tensor(1.0)
+    optimizer.make_sparse(weight_sparse.grad, values)
