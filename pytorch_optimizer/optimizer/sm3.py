@@ -50,7 +50,8 @@ class SM3(Optimizer, BaseOptimizer):
             for p in group['params']:
                 state = self.state[p]
 
-                state['momentum_buffer'] = 0.0
+                state['step'] = 0
+                state['momentum_buffer'] = torch.zeros_like(p)
 
     @staticmethod
     def max_reduce_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
