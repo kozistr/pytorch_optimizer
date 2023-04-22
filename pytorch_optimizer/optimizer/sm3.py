@@ -8,10 +8,13 @@ from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 class SM3(Optimizer, BaseOptimizer):
     r"""Memory-Efficient Adaptive Optimization.
 
+        Reference : https://github.com/Enealor/PyTorch-SM3/blob/master/src/SM3/SM3.py
+
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
-    :param momentum: float.
-    :param beta: float.
+    :param momentum: float. coefficient used to scale prior updates before adding. This drastically increases
+        memory usage if `momentum > 0.0`. This is ignored if the parameter's gradient is sparse.
+    :param beta: float. coefficient used for exponential moving averages.
     """
 
     def __init__(
