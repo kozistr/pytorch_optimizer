@@ -16,6 +16,7 @@ from tests.utils import (
     names,
     simple_parameter,
     simple_sparse_parameter,
+    simple_zero_rank_parameter,
     tensor_to_numpy,
 )
 
@@ -347,3 +348,8 @@ def test_sm3_make_sparse():
 
     values = torch.tensor(1.0)
     optimizer.make_sparse(weight_sparse.grad, values)
+
+
+def test_sm3_rank0():
+    optimizer = load_optimizer('sm3')([simple_zero_rank_parameter(True)])
+    optimizer.step()
