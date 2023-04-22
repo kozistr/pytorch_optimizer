@@ -81,8 +81,10 @@ class AdaFactor(Optimizer, BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
 
                 if factored:
-                    state['exp_avg_sq_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype)
-                    state['exp_avg_sq_col'] = torch.zeros(grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype)
+                    state['exp_avg_sq_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype, device=grad.device)
+                    state['exp_avg_sq_col'] = torch.zeros(
+                        grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype, device=grad.device
+                    )
                 else:
                     state['exp_avg_sq'] = torch.zeros_like(grad)
 
@@ -145,8 +147,10 @@ class AdaFactor(Optimizer, BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
 
                     if factored:
-                        state['exp_avg_sq_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype)
-                        state['exp_avg_sq_col'] = torch.zeros(grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype)
+                        state['exp_avg_sq_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype, device=grad.device)
+                        state['exp_avg_sq_col'] = torch.zeros(
+                            grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype, device=grad.device
+                        )
                     else:
                         state['exp_avg_sq'] = torch.zeros_like(grad)
 
@@ -170,7 +174,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
                     self.approximate_sq_grad(exp_avg_sq_row, exp_avg_sq_col, update)
                 else:
                     exp_avg_sq = state['exp_avg_sq']
-
                     exp_avg_sq.mul_(beta2_t).add_(update, alpha=1.0 - beta2_t)
                     torch.rsqrt(exp_avg_sq, out=update)
 
