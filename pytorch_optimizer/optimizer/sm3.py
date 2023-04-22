@@ -91,7 +91,7 @@ class SM3(Optimizer, BaseOptimizer):
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
-                    state['momentum_buffer'] = 0.0
+                    state['momentum_buffer'] = torch.zeros_like(p)
 
                     if grad.is_sparse:
                         state['accumulator_0'] = torch.zeros(shape[0])
@@ -105,23 +105,24 @@ class SM3(Optimizer, BaseOptimizer):
 
                 if grad.is_sparse:
                     grad = grad.coalesce()
-                    grad_values = grad._values()
 
                     acc = state['accumulator_0']
                     update_values = torch.gather(acc, 0, grad._indices()[0])
                     if beta > 0.0:
                         update_values.mul_(beta)
-                    update_values.addcmul_(grad_values, grad_values, value=1.0 - beta)
+                    update_values.addcmul_(grad._values(), grad._values(), value=1.0 - beta)
 
-                    sparse_update_values = self.make_sparse(grad, update_values)
+                    nu_max = self.max_reduce_except_dim(
+                        x=self.make_sparse(grad, update_values).to_dense(),
+                        dim=0,
+                    ).squeeze_()
 
-                    nu_max = self.max_reduce_except_dim(sparse_update_values.to_dense(), 0).squeeze()
                     if beta > 0.0:
-                        torch.max(acc, nu_max, acc)
+                        torch.max(acc, nu_max, out=acc)
                     else:
                         acc.copy_(nu_max)
 
-                    update_values.add_(self.eps).rsqrt_().mul_(grad_values)
+                    update_values.add_(self.eps).rsqrt_().mul_(grad._values())
 
                     update = self.make_sparse(grad, update_values)
                 else:
