@@ -50,7 +50,7 @@ def test_sparse(sparse_optimizer):
     weight, weight_sparse = simple_sparse_parameter()
 
     params = {'lr': 1e-3, 'momentum': 0.0}
-    if str(opt) == 'sm3':
+    if sparse_optimizer == 'sm3':
         params.update({'beta': 0.9})
 
     opt_dense = opt([weight], **params)
