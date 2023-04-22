@@ -352,4 +352,5 @@ def test_sm3_make_sparse():
 
 def test_sm3_rank0():
     optimizer = load_optimizer('sm3')([simple_zero_rank_parameter(True)])
+    assert str(optimizer) == 'SM3'
     optimizer.step()
