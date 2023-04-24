@@ -110,9 +110,8 @@ class AdaNorm(Optimizer, BaseOptimizer):
 
                 if self.weight_decouple:
                     p.mul_(1.0 - group['weight_decay'] * (1 if self.fixed_decay else group['lr']))
-                else:
-                    if group['weight_decay'] > 0.0:
-                        grad.add_(p, alpha=group['weight_decay'])
+                elif group['weight_decay'] > 0.0:
+                    grad.add_(p, alpha=group['weight_decay'])
 
                 exp_avg, exp_avg_var, exp_grad_norm = state['exp_avg'], state['exp_avg_var'], state['exp_grad_norm']
 
