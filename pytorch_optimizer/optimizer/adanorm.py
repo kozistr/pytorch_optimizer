@@ -8,7 +8,7 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class AdamNorm(Optimizer, BaseOptimizer):
+class AdaNorm(Optimizer, BaseOptimizer):
     r"""Symbolic Discovery of Optimization Algorithms.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
