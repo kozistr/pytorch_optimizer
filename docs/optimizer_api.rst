@@ -288,3 +288,11 @@ SM3
 
 .. autoclass:: pytorch_optimizer.SM3
     :members:
+
+.. _AdaNorm:
+
+AdaNorm
+-------
+
+.. autoclass:: pytorch_optimizer.AdaNorm
+    :members:
