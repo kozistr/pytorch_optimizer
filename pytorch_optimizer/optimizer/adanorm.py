@@ -58,7 +58,7 @@ class AdamNorm(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
-        return 'AdamNorm'
+        return 'AdaNorm'
 
     @torch.no_grad()
     def reset(self):
