@@ -69,7 +69,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
                 state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_var'] = torch.zeros_like(p)
-                state['exp_grad_norm'] = 0.0
+                state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
                 if self.amsgrad:
                     state['max_exp_avg_var'] = torch.zeros_like(p)
 
@@ -104,7 +104,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_var'] = torch.zeros_like(p)
-                    state['exp_grad_norm'] = 0.0
+                    state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
                     if self.amsgrad:
                         state['max_exp_avg_var'] = torch.zeros_like(p)
 
