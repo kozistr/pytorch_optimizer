@@ -113,16 +113,17 @@ class AdaNorm(Optimizer, BaseOptimizer):
                 elif group['weight_decay'] > 0.0:
                     grad.add_(p, alpha=group['weight_decay'])
 
-                exp_avg, exp_avg_var, exp_grad_norm = state['exp_avg'], state['exp_avg_var'], state['exp_grad_norm']
-
                 # gradient norm correction (GNC)
                 grad_norm = torch.linalg.norm(grad)
+
+                exp_grad_norm = state['exp_grad_norm']
                 exp_grad_norm.mul_(self.r).add_(grad_norm, alpha=1.0 - self.r)
 
                 s_grad = grad
                 if exp_grad_norm > grad_norm:
                     s_grad *= exp_grad_norm / grad_norm
 
+                exp_avg, exp_avg_var = state['exp_avg'], state['exp_avg_var']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_var.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
