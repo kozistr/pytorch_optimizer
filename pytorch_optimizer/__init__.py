@@ -23,6 +23,7 @@ from pytorch_optimizer.optimizer.adai import Adai
 from pytorch_optimizer.optimizer.adamp import AdamP
 from pytorch_optimizer.optimizer.adams import AdamS
 from pytorch_optimizer.optimizer.adan import Adan
+from pytorch_optimizer.optimizer.adanorm import AdaNorm
 from pytorch_optimizer.optimizer.adapnm import AdaPNM
 from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.alig import AliG
@@ -105,6 +106,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Lion,
     AliG,
     SM3,
+    AdaNorm,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
