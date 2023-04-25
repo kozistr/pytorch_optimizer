@@ -382,17 +382,6 @@ def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
     optimizer.step()
 
 
-def test_sm3_max_reduce():
-    optimizer = load_optimizer('sm3')([simple_parameter(True)])
-
-    x = torch.tensor(1.0)
-    assert optimizer.max_reduce_except_dim(x, 0) == x
-
-    x = torch.zeros((1, 1))
-    with pytest.raises(ValueError):
-        optimizer.max_reduce_except_dim(x, 3)
-
-
 def test_sm3_make_sparse():
     _, weight_sparse = simple_sparse_parameter(True)
 

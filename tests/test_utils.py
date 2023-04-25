@@ -18,6 +18,7 @@ from pytorch_optimizer.optimizer.utils import (
     get_optimizer_parameters,
     has_overflow,
     is_valid_parameters,
+    max_reduce_except_dim,
     neuron_mean,
     neuron_norm,
     normalize_gradient,
@@ -227,3 +228,12 @@ def test_pre_conditioner_type(pre_conditioner_type):
         # invalid pre-conditioner type
         with pytest.raises(ValueError):
             PreConditioner(var, 0.9, 0, 128, 1, 8192, True, pre_conditioner_type=pre_conditioner_type)
+
+
+def test_max_reduce_except_dim():
+    x = torch.tensor(1.0)
+    assert max_reduce_except_dim(x, 0) == x
+
+    x = torch.zeros((1, 1))
+    with pytest.raises(ValueError):
+        max_reduce_except_dim(x, 3)
