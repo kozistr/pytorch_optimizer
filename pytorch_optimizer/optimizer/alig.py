@@ -65,7 +65,7 @@ class AliG(Optimizer, BaseOptimizer):
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is not None:
-                    global_grad_norm += torch.linalg.norm(p.grad).pow(2).item()
+                    global_grad_norm += p.grad.norm(2.0).pow(2).item()
 
         return loss / (global_grad_norm + self.eps)
 
