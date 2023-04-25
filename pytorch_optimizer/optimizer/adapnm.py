@@ -17,6 +17,8 @@ class AdaPNM(Optimizer, BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. use weight_decouple.
     :param amsgrad: bool. whether to use the AMSGrad variant of this algorithm from the paper.
+    :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
+    :param adanorm: bool. whether to use the AdaNorm variant.
     :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
@@ -29,6 +31,8 @@ class AdaPNM(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
         amsgrad: bool = True,
+        r: float = 0.95,
+        adanorm: bool = False,
         adamd_debias: bool = False,
         eps: float = 1e-8,
     ):
@@ -46,6 +50,8 @@ class AdaPNM(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'amsgrad': amsgrad,
+            'r': r,
+            'adanorm': adanorm,
             'adamd_debias': adamd_debias,
             'eps': eps,
         }
@@ -72,6 +78,8 @@ class AdaPNM(Optimizer, BaseOptimizer):
                 state['neg_exp_avg'] = torch.zeros_like(p)
                 if group['amsgrad']:
                     state['max_exp_avg_sq'] = torch.zeros_like(p)
+                if group['adanorm']:
+                    state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -118,8 +126,18 @@ class AdaPNM(Optimizer, BaseOptimizer):
                 else:
                     exp_avg, neg_exp_avg = state['neg_exp_avg'], state['exp_avg']
 
+                s_grad = grad
+                if group['adanorm']:
+                    grad_norm = torch.linalg.norm(grad)
+
+                    exp_grad_norm = state['exp_grad_norm']
+                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
+
+                    if exp_grad_norm > grad_norm:
+                        s_grad *= exp_grad_norm / grad_norm
+
                 exp_avg_sq = state['exp_avg_sq']
-                exp_avg.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
+                exp_avg.mul_(beta1 ** 2).add_(s_grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 if group['amsgrad']:
