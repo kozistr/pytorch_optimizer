@@ -22,7 +22,7 @@ class AdamP(Optimizer, BaseOptimizer):
         on scale-variant parameters.
     :param use_gc: bool. use gradient centralization.
     :param nesterov: bool. enables Nesterov momentum.
-    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -36,7 +36,7 @@ class AdamP(Optimizer, BaseOptimizer):
         wd_ratio: float = 0.1,
         use_gc: bool = False,
         nesterov: bool = False,
-        adamd_debias_term: bool = False,
+        adamd_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -55,7 +55,7 @@ class AdamP(Optimizer, BaseOptimizer):
             'delta': delta,
             'wd_ratio': wd_ratio,
             'nesterov': nesterov,
-            'adamd_debias_term': adamd_debias_term,
+            'adamd_debias_term': adamd_debias,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -73,10 +73,10 @@ class AdamP(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
-                state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
@@ -88,7 +88,15 @@ class AdamP(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
             beta1, beta2 = group['betas']
+            bias_correction1 = 1.0 - beta1 ** group['step']
+            bias_correction2_sq = math.sqrt(1.0 - group ** state['step'])
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -99,15 +107,10 @@ class AdamP(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
-                state['step'] += 1
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
-                bias_correction1 = 1.0 - beta1 ** state['step']
-                bias_correction2_sq = math.sqrt(1.0 - beta2 ** state['step'])
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
@@ -137,7 +140,7 @@ class AdamP(Optimizer, BaseOptimizer):
                 if group['weight_decay'] > 0.0:
                     p.mul_(1.0 - group['lr'] * group['weight_decay'] * wd_ratio)
 
-                step_size: float = group['lr'] if group['adamd_debias_term'] else group['lr'] / bias_correction1
+                step_size: float = group['lr'] if group['adamd_debias'] else group['lr'] / bias_correction1
                 p.add_(perturb, alpha=-step_size)
 
         return loss
