@@ -194,6 +194,7 @@ def test_adanorm_optimizers(optimizer_adanorm_config):
         config.update({'num_iterations': num_iterations})
 
     optimizer = optimizer_class(model.parameters(), **config)
+    optimizer.reset()
 
     init_loss, loss = np.inf, np.inf
     for _ in range(num_iterations):
