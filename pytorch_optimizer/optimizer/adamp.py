@@ -22,6 +22,8 @@ class AdamP(Optimizer, BaseOptimizer):
         on scale-variant parameters.
     :param use_gc: bool. use gradient centralization.
     :param nesterov: bool. enables Nesterov momentum.
+    :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
+    :param adanorm: bool. whether to use the AdaNorm variant.
     :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
@@ -36,6 +38,8 @@ class AdamP(Optimizer, BaseOptimizer):
         wd_ratio: float = 0.1,
         use_gc: bool = False,
         nesterov: bool = False,
+        r: float = 0.95,
+        adanorm: bool = False,
         adamd_debias: bool = False,
         eps: float = 1e-8,
     ):
@@ -55,7 +59,9 @@ class AdamP(Optimizer, BaseOptimizer):
             'delta': delta,
             'wd_ratio': wd_ratio,
             'nesterov': nesterov,
-            'adamd_debias_term': adamd_debias,
+            'r': r,
+            'adanorm': adanorm,
+            'adamd_debias': adamd_debias,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -79,6 +85,8 @@ class AdamP(Optimizer, BaseOptimizer):
 
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
+                if group['adanorm']:
+                    state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -109,13 +117,25 @@ class AdamP(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
+                    if group['adanorm']:
+                        state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                s_grad = grad
+                if group['adanorm']:
+                    grad_norm = torch.linalg.norm(grad)
+
+                    exp_grad_norm = state['exp_grad_norm']
+                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
+
+                    if exp_grad_norm > grad_norm:
+                        s_grad *= exp_grad_norm / grad_norm
+
+                exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 inv_de_nom = 1.0 / (exp_avg_sq.sqrt() / bias_correction2_sq).add_(group['eps'])
