@@ -255,8 +255,6 @@ def get_global_gradient_norm(param_groups: List[Dict], device: torch.device) -> 
             if p.grad is not None:
                 global_grad_norm.add_(torch.linalg.norm(p.grad).pow(2))
 
-    global_grad_norm.sqrt_()
-
     return global_grad_norm
 
 
