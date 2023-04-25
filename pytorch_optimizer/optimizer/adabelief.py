@@ -21,7 +21,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
     :param rectify: bool. perform the rectified update similar to RAdam.
     :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high.
     :param amsgrad: bool. whether to use the AMSBound variant.
-    :param r: float. EMA factor.
+    :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param use_adanorm: bool. use AdaNorm features.
     :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
@@ -52,6 +52,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
         self.fixed_decay = fixed_decay
         self.rectify = rectify
         self.degenerated_to_sgd = degenerated_to_sgd
+        self.amsgrad = amsgrad
         self.r = r
         self.use_adanorm = use_adanorm
         self.adamd_debias_term = adamd_debias_term
@@ -59,15 +60,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {
-            'lr': lr,
-            'betas': betas,
-            'eps': eps,
-            'weight_decay': weight_decay,
-            'amsgrad': amsgrad,
-            'adamd_debias_term': adamd_debias_term,
-            'buffer': [[None, None, None] for _ in range(10)],
-        }
+        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay}
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -90,7 +83,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 state['exp_avg_var'] = torch.zeros_like(p)
                 if self.use_adanorm:
                     state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
-                if group['amsgrad']:
+                if self.amsgrad:
                     state['max_exp_avg_var'] = torch.zeros_like(p)
 
     @torch.no_grad()
@@ -114,6 +107,8 @@ class AdaBelief(Optimizer, BaseOptimizer):
 
             if self.rectify:
                 n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
+                beta2_t: float = beta2 ** group['step']
+                n_sma: float = n_sma_max - 2 * group['step'] * beta2_t / (1.0 - beta2_t)
 
             for p in group['params']:
                 if p.grad is None:
@@ -130,11 +125,11 @@ class AdaBelief(Optimizer, BaseOptimizer):
                     state['exp_avg_var'] = torch.zeros_like(p)
                     if self.use_adanorm:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
-                    if group['amsgrad']:
+                    if self.amsgrad:
                         state['max_exp_avg_var'] = torch.zeros_like(p)
 
                 if self.weight_decouple:
-                    p.mul_(1.0 - group['weight_decay'] * (1 if self.fixed_decay else group['lr']))
+                    p.mul_(1.0 - group['weight_decay'] * (1.0 if self.fixed_decay else group['lr']))
                 elif weight_decay > 0.0:
                     grad.add_(p, alpha=weight_decay)
 
@@ -142,9 +137,9 @@ class AdaBelief(Optimizer, BaseOptimizer):
 
                 s_grad = grad
                 if self.use_adanorm:
-                    exp_grad_norm = state['exp_grad_norm']
-
                     grad_norm = torch.linalg.norm(grad)
+
+                    exp_grad_norm = state['exp_grad_norm']
                     exp_grad_norm.mul_(self.r).add_(grad_norm, alpha=1.0 - self.r)
 
                     if exp_grad_norm > grad_norm:
@@ -152,52 +147,42 @@ class AdaBelief(Optimizer, BaseOptimizer):
 
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 grad_residual = s_grad - exp_avg
-                exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2).add_(group['eps'])
+                exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2).add_(self.eps)
 
-                if group['amsgrad']:
+                if self.amsgrad:
                     max_exp_avg_var = state['max_exp_avg_var']
                     torch.max(max_exp_avg_var, exp_avg_var, out=max_exp_avg_var)
-                    de_nom = max_exp_avg_var.add(group['eps']).sqrt()
+                    de_nom = max_exp_avg_var.add(self.eps).sqrt()
                 else:
-                    de_nom = exp_avg_var.add(group['eps']).sqrt()
+                    de_nom = exp_avg_var.add(self.eps).sqrt()
 
-                de_nom.div_(bias_correction2_sq).add_(group['eps'])
+                de_nom.div_(bias_correction2_sq).add_(self.eps)
 
                 if not self.rectify:
                     step_size: float = group['lr'] if group['adamd_debias_term'] else group['lr'] / bias_correction1
                     p.addcdiv_(exp_avg, de_nom, value=-step_size)
                     continue
 
-                buffered = group['buffer'][group['step'] % 10]
-                if group['step'] == buffered[0]:
-                    n_sma, step_size = buffered[1], buffered[2]
+                if n_sma >= self.n_sma_threshold:
+                    step_size = math.sqrt(
+                        (1 - beta2_t)
+                        * (n_sma - 4)
+                        / (n_sma_max - 4)
+                        * (n_sma - 2)
+                        / n_sma
+                        * n_sma_max
+                        / (n_sma_max - 2)
+                    )
+                elif self.degenerated_to_sgd:
+                    step_size = 1.0
                 else:
-                    buffered[0] = group['step']
-                    beta2_t = beta2 ** group['step']
-                    n_sma = n_sma_max - 2 * group['step'] * beta2_t / (1 - beta2_t)
-                    buffered[1] = n_sma
+                    step_size = -1
 
-                    if n_sma >= self.n_sma_threshold:
-                        step_size = math.sqrt(
-                            (1 - beta2_t)
-                            * (n_sma - 4)
-                            / (n_sma_max - 4)
-                            * (n_sma - 2)
-                            / n_sma
-                            * n_sma_max
-                            / (n_sma_max - 2)
-                        )
-                        if not group['adamd_debias_term']:
-                            step_size /= bias_correction1
-                    elif self.degenerated_to_sgd:
-                        step_size = 1.0 / bias_correction1
-                    else:
-                        step_size = -1
-
-                    buffered[2] = step_size
+                if not group['adamd_debias_term']:
+                    step_size /= bias_correction1
 
                 if n_sma >= self.n_sma_threshold:
-                    de_nom = exp_avg_var.sqrt().add_(group['eps'])
+                    de_nom = exp_avg_var.sqrt().add_(self.eps)
                     p.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
                 elif step_size > 0:
                     p.add_(exp_avg, alpha=-step_size * group['lr'])
