@@ -87,8 +87,19 @@ class RAdam(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
             beta1, beta2 = group['betas']
+
+            bias_correction1 = 1.0 - beta1 ** group['step']
+
             n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
+            beta2_t: float = beta2 ** group['step']
+            n_sma: float = n_sma_max - 2 * group['step'] * beta2_t / (1.0 - beta2_t)
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -106,11 +117,6 @@ class RAdam(Optimizer, BaseOptimizer):
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
-                state['step'] += 1
-                bias_correction1 = 1.0 - beta1 ** state['step']
-
                 s_grad = grad
                 if group['adanorm']:
                     grad_norm = torch.linalg.norm(grad)
@@ -121,35 +127,28 @@ class RAdam(Optimizer, BaseOptimizer):
                     if exp_grad_norm > grad_norm:
                         s_grad *= exp_grad_norm / grad_norm
 
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                buffered = group['buffer'][state['step'] % 10]
-                if state['step'] == buffered[0]:
-                    n_sma, step_size = buffered[1], buffered[2]
+                if n_sma >= self.n_sma_threshold:
+                    step_size = math.sqrt(
+                        (1 - beta2_t)
+                        * (n_sma - 4)
+                        / (n_sma_max - 4)
+                        * (n_sma - 2)
+                        / n_sma
+                        * n_sma_max
+                        / (n_sma_max - 2)
+                    )
+                elif self.degenerated_to_sgd:
+                    step_size = 1.0
                 else:
-                    buffered[0] = state['step']
-                    beta2_t = beta2 ** state['step']
-                    n_sma = n_sma_max - 2.0 * state['step'] * beta2_t / (1.0 - beta2_t)
-                    buffered[1] = n_sma
+                    step_size = -1
 
-                    if n_sma >= self.n_sma_threshold:
-                        step_size = math.sqrt(
-                            (1 - beta2_t)
-                            * (n_sma - 4)
-                            / (n_sma_max - 4)
-                            * (n_sma - 2)
-                            / n_sma
-                            * n_sma_max
-                            / (n_sma_max - 2)
-                        )
-                        if not group['adamd_debias']:
-                            step_size /= bias_correction1
-                    elif self.degenerated_to_sgd:
-                        step_size = 1.0 / bias_correction1
-                    else:
-                        step_size = -1
-                    buffered[2] = step_size
+                if not group['adamd_debias']:
+                    step_size /= bias_correction1
 
                 if group['weight_decay'] > 0.0 and (n_sma >= self.n_sma_threshold or step_size > 0):
                     p.add_(p, alpha=-group['weight_decay'] * group['lr'])
