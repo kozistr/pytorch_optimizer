@@ -113,6 +113,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'grad_averaging': False}, 25),
     (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam': True, 'eps': 1e-8}, 10),
     (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 25),
+    (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True, 'degenerated_to_sgd': True}, 10),
     (LARS, {'lr': 5e-1, 'weight_decay': 1e-3}, 25),
     (LARS, {'lr': 5e-1, 'nesterov': True}, 25),
     (MADGRAD, {'lr': 5e-2, 'weight_decay': 1e-3}, 25),
