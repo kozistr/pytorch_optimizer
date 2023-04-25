@@ -127,8 +127,8 @@ def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = Fal
 
 
 def projection(
-    p,
-    grad,
+    p: torch.Tensor,
+    grad: torch.Tensor,
     perturb: torch.Tensor,
     delta: float,
     wd_ratio: float,
@@ -164,7 +164,7 @@ def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
     else:
         dim = tuple(range(1, x_len))
 
-    return x.norm(dim=dim, keepdim=keep_dim, p=norm)
+    return x.norm(p=norm, dim=dim, keepdim=keep_dim)
 
 
 def get_optimizer_parameters(
