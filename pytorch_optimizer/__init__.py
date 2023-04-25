@@ -71,6 +71,7 @@ from pytorch_optimizer.optimizer.utils import (
     get_optimizer_parameters,
     normalize_gradient,
     unit_norm,
+    reduce_max_except_dim,
 )
 
 OPTIMIZER_LIST: List[OPTIMIZER] = [
