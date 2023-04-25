@@ -130,7 +130,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_var'] = torch.zeros_like(p)
                     if group['adanorm']:
-                        state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
+                        state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
                     if group['amsgrad']:
                         state['max_exp_avg_var'] = torch.zeros_like(p)
 
