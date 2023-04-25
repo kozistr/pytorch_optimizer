@@ -36,7 +36,7 @@ class AdaBound(Optimizer, BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         amsbound: bool = False,
-        adamd_debias_term: bool = False,
+        adamd_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -55,7 +55,7 @@ class AdaBound(Optimizer, BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'amsbound': amsbound,
-            'adamd_debias_term': adamd_debias_term,
+            'adamd_debias': adamd_debias,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -102,7 +102,7 @@ class AdaBound(Optimizer, BaseOptimizer):
             bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
 
             step_size = group['lr'] * bias_correction2_sq
-            if not group['adamd_debias_term']:
+            if not group['adamd_debias']:
                 step_size /= bias_correction1
 
             final_lr = group['final_lr'] * group['lr'] / base_lr
