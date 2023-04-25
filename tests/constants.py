@@ -106,6 +106,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 10),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'nesterov': True}, 5),
     (DiffGrad, {'lr': 5e-2, 'weight_decay': 1e-3}, 10),
+    (DiffGrad, {'lr': 5e-2, 'weight_decay': 1e-3, 'amsgrad': True}, 10),
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True}, 20),
     (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3}, 25),
     (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'max_grad_norm': 0.0}, 25),
