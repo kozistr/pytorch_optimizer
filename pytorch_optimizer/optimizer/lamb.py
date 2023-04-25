@@ -19,6 +19,8 @@ class Lamb(Optimizer, BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param grad_averaging: bool. whether apply (1 - beta2) to gradient when calculating running averages of gradient.
     :param max_grad_norm: float. max gradient norm to clip.
+    :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
+    :param adanorm: bool. whether to use the AdaNorm variant.
     :param adam: bool. always use trust ratio = 1, which turns this into Adam. Useful for comparison purposes.
     :param pre_norm: bool. perform pre-normalization of all gradients.
     :param eps: float. term added to the denominator to improve numerical stability.
@@ -34,6 +36,8 @@ class Lamb(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         grad_averaging: bool = True,
         max_grad_norm: float = 1.0,
+        r: float = 0.95,
+        adanorm: bool = False,
         adam: bool = False,
         pre_norm: bool = False,
         eps: float = 1e-6,
@@ -53,9 +57,13 @@ class Lamb(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'grad_averaging': grad_averaging,
             'max_grad_norm': max_grad_norm,
+            'adanorm': adanorm,
             'adam': adam,
             'eps': eps,
         }
+        if adanorm:
+            defaults.update({'r': r})
+
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -77,6 +85,8 @@ class Lamb(Optimizer, BaseOptimizer):
                 state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
+                if group['adanorm']:
+                    state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
     @torch.no_grad()
     def get_global_gradient_norm(self) -> Union[torch.Tensor, float]:
@@ -133,10 +143,22 @@ class Lamb(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
+                    if group['adanorm']:
+                        state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=beta3)
+                s_grad = grad
+                if group['adanorm']:
+                    grad_norm = torch.linalg.norm(grad)
+
+                    exp_grad_norm = state['exp_grad_norm']
+                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
+
+                    if exp_grad_norm > grad_norm:
+                        s_grad *= exp_grad_norm / grad_norm
+
+                exp_avg.mul_(beta1).add_(s_grad, alpha=beta3)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 adam_step = exp_avg / exp_avg_sq.sqrt().add(group['eps'])
