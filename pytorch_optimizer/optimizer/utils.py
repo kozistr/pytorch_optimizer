@@ -243,3 +243,19 @@ def l2_projection(parameters: PARAMETERS, max_norm: float = 1e2):
         ratio = max_norm / global_norm
         for param in parameters:
             param *= ratio  # noqa: PLW2901
+
+
+@torch.no_grad()
+def max_reduce_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
+    r"""Perform reduce-max along all dimensions except the given dim."""
+    rank: int = len(x.shape)
+    if rank == 0:
+        return x
+
+    if dim >= rank:
+        raise ValueError(f'[-] given dim is bigger than rank. {dim} >= {rank}')
+
+    for d in range(rank):
+        if d != dim:
+            x = x.max(dim=d, keepdim=True).values
+    return x
