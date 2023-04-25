@@ -91,7 +91,7 @@ class Adan(Optimizer, BaseOptimizer):
                 if p.grad is not None:
                     global_grad_norm.add_(torch.linalg.norm(p.grad).pow(2))
 
-        global_grad_norm = torch.sqrt(global_grad_norm)
+        global_grad_norm.sqrt_()
 
         return torch.clamp(max_grad_norm / (global_grad_norm + self.eps), max=1.0)
 
@@ -130,8 +130,6 @@ class Adan(Optimizer, BaseOptimizer):
                     state['exp_avg_nest'] = torch.zeros_like(p)
                     state['previous_grad'] = grad.clone()
 
-                exp_avg, exp_avg_diff, exp_avg_nest = state['exp_avg'], state['exp_avg_diff'], state['exp_avg_nest']
-
                 grad.mul_(clip_global_grad_norm)
 
                 if self.use_gc:
@@ -142,6 +140,8 @@ class Adan(Optimizer, BaseOptimizer):
                 state['previous_grad'].copy_(grad)
 
                 update = grad + beta2 * grad_diff
+
+                exp_avg, exp_avg_diff, exp_avg_nest = state['exp_avg'], state['exp_avg_diff'], state['exp_avg_nest']
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_diff.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
