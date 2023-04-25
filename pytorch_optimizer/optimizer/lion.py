@@ -27,11 +27,15 @@ class Lion(Optimizer, BaseOptimizer):
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
-        self.weight_decouple = weight_decouple
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay}
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -76,7 +80,7 @@ class Lion(Optimizer, BaseOptimizer):
                 update = exp_avg = state['exp_avg']
 
                 if weight_decay > 0.0:
-                    if self.weight_decouple:
+                    if group['weight_decouple']:
                         p.mul_(1.0 - group['lr'] * weight_decay)
                     else:
                         grad.add_(p, alpha=weight_decay)
