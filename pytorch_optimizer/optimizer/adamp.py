@@ -95,7 +95,7 @@ class AdamP(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
             bias_correction1 = 1.0 - beta1 ** group['step']
-            bias_correction2_sq = math.sqrt(1.0 - group ** state['step'])
+            bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
 
             for p in group['params']:
                 if p.grad is None:
