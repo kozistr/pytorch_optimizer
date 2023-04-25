@@ -1,3 +1,4 @@
+import math
 from typing import Union
 
 import torch
@@ -17,10 +18,14 @@ class Lamb(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param rectify: bool. perform the rectified update similar to RAdam.
+    :param degenerated_to_sgd: bool. degenerated to SGD.
+    :param n_sma_threshold: int. (recommended is 5).
     :param grad_averaging: bool. whether apply (1 - beta2) to gradient when calculating running averages of gradient.
     :param max_grad_norm: float. max gradient norm to clip.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
+    :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param adam: bool. always use trust ratio = 1, which turns this into Adam. Useful for comparison purposes.
     :param pre_norm: bool. perform pre-normalization of all gradients.
     :param eps: float. term added to the denominator to improve numerical stability.
@@ -34,17 +39,23 @@ class Lamb(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
+        rectify: bool = False,
+        degenerated_to_sgd: bool = False,
+        n_sma_threshold: int = 5,
         grad_averaging: bool = True,
         max_grad_norm: float = 1.0,
-        r: float = 0.95,
-        adanorm: bool = False,
         adam: bool = False,
         pre_norm: bool = False,
+        r: float = 0.95,
+        adanorm: bool = False,
+        adamd_debias: bool = False,
         eps: float = 1e-6,
     ):
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
+        self.degenerated_to_sgd = degenerated_to_sgd
+        self.n_sma_threshold = n_sma_threshold
         self.max_grad_norm = max_grad_norm
         self.pre_norm = pre_norm
         self.eps = eps
@@ -55,10 +66,12 @@ class Lamb(Optimizer, BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
+            'rectify': rectify,
             'grad_averaging': grad_averaging,
             'max_grad_norm': max_grad_norm,
-            'adanorm': adanorm,
             'adam': adam,
+            'adanorm': adanorm,
+            'adamd_debias': adamd_debias,
             'eps': eps,
         }
         if adanorm:
@@ -127,6 +140,13 @@ class Lamb(Optimizer, BaseOptimizer):
             beta1, beta2 = group['betas']
             beta3 = 1.0 - beta1 if group['grad_averaging'] else 1.0
 
+            bias_correction1 = 1.0 - beta1 ** group['step']
+
+            if group['rectify']:
+                n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
+                beta2_t: float = beta2 ** group['step']
+                n_sma: float = n_sma_max - 2 * group['step'] * beta2_t / (1.0 - beta2_t)
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -146,8 +166,6 @@ class Lamb(Optimizer, BaseOptimizer):
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
                 s_grad = grad
                 if group['adanorm']:
                     grad_norm = torch.linalg.norm(grad)
@@ -158,26 +176,62 @@ class Lamb(Optimizer, BaseOptimizer):
                     if exp_grad_norm > grad_norm:
                         s_grad *= exp_grad_norm / grad_norm
 
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
                 exp_avg.mul_(beta1).add_(s_grad, alpha=beta3)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                adam_step = exp_avg / exp_avg_sq.sqrt().add(group['eps'])
                 if group['weight_decay'] > 0.0:
-                    adam_step.add_(p, alpha=group['weight_decay'])
+                    p.add_(p, alpha=-group['weight_decay'] * group['lr'])
 
-                weight_norm = p.norm(2).clamp(0, self.clamp)
-                adam_norm = adam_step.norm(2)
-                trust_ratio: float = (
-                    1.0 if weight_norm == 0 or adam_norm == 0 else weight_norm / (adam_norm + self.eps)
-                )
+                if group['rectify']:
+                    if n_sma >= self.n_sma_threshold:
+                        step_size = math.sqrt(
+                            (1 - beta2_t)
+                            * (n_sma - 4)
+                            / (n_sma_max - 4)
+                            * (n_sma - 2)
+                            / n_sma
+                            * n_sma_max
+                            / (n_sma_max - 2)
+                        )
+                    elif self.degenerated_to_sgd:
+                        step_size = 1.0
+                    else:
+                        step_size = -1
+
+                    if not group['adamd_debias']:
+                        step_size /= bias_correction1
+                else:
+                    step_size = group['lr']
+
+                if group['rectify']:
+                    update = p.clone()
+                    if n_sma >= self.n_sma_threshold:
+                        de_nom = exp_avg_sq.sqrt().add_(group['eps'])
+                        update.addcdiv_(exp_avg, de_nom, value=-step_size)
+                    else:
+                        update.add_(exp_avg, alpha=-step_size)
+                else:
+                    update = exp_avg / exp_avg_sq.sqrt().add(group['eps'])
+
+                weight_norm = torch.linalg.norm(p).clamp(0, self.clamp)
+                p_norm = torch.linalg.norm(update)
+                trust_ratio: float = 1.0 if weight_norm == 0 or p_norm == 0 else weight_norm / (p_norm + self.eps)
 
                 state['weight_norm'] = weight_norm
-                state['adam_norm'] = adam_norm
+                state['adam_norm'] = p_norm
                 state['trust_ratio'] = trust_ratio
 
                 if group['adam']:
                     trust_ratio = 1.0
 
-                p.add_(adam_step, alpha=-group['lr'] * trust_ratio)
+                if group['rectify']:
+                    if n_sma >= self.n_sma_threshold:
+                        p.addcdiv_(exp_avg, de_nom, value=-step_size * trust_ratio)
+                    else:
+                        p.add_(exp_avg, alpha=-step_size * trust_ratio)
+                else:
+                    p.add_(update, alpha=-step_size * trust_ratio)
 
         return loss
