@@ -215,6 +215,7 @@ def test_adanorm_optimizers(optimizer_config):
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_adanorm_condition(optimizer_config):
     param = simple_parameter(True)
+    param.grad = torch.ones(1, 1)
 
     optimizer_class, config = optimizer_config[:2]
 
