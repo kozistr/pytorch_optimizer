@@ -103,6 +103,7 @@ target-version = "py39"
 omit = [
     "./pytorch_optimizer/optimizer/gsam.py",
     "./pytorch_optimizer/optimizer/fp16.py",
+    "./pytorch_optimizer/optimizer/rotograd.py",
 ]
 
 [build-system]
