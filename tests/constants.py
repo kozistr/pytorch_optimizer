@@ -292,8 +292,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (DAdaptAdam, {'lr': 1.0, 'weight_decay': 1e-2, 'weight_decouple': True}, 50),
     (DAdaptSGD, {'lr': 2.0, 'weight_decay': 1e-2}, 25),
     (DAdaptSGD, {'lr': 2.0, 'momentum': 0.9, 'weight_decay': 1e-3}, 25),
-    (AdamS, {'lr': 1.0, 'weight_decay': 1e-3}, 25),
-    (AdamS, {'lr': 1.0, 'weight_decay': 1e-3, 'amsgrad': True}, 25),
+    (AdamS, {'lr': 1.0, 'weight_decay': 1e-3}, 20),
+    (AdamS, {'lr': 1.0, 'weight_decay': 1e-3, 'amsgrad': True}, 20),
     (AdaFactor, {'lr': 5e-1, 'weight_decay': 1e-2, 'scale_parameter': False}, 100),
     (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'rebound': 'belief'}, 10),
@@ -310,14 +310,16 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaNorm, {'lr': 5e-1, 'weight_decay': 1e-3, 'amsgrad': True}, 10),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 15),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
+    (AdamS, {'lr': 7.5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 25),
     (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'adamd_debias': True}, 50),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
+    (AdamS, {'lr': 2e1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
     (DiffRGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 25),
     (RaLamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 25),
@@ -325,7 +327,6 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 75),
     (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True, 'num_iterations': 150}, 150),
     (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
-    (AdamS, {'lr': 2e1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
     (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
     (AdaNorm, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
 ]

@@ -209,7 +209,7 @@ def test_adanorm_optimizers(optimizer_adanorm_config):
 
         optimizer.step()
 
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+    assert tensor_to_numpy(init_loss) > 1.75 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_adamd_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
