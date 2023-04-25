@@ -194,7 +194,6 @@ def test_adanorm_optimizers(optimizer_adanorm_config):
         config.update({'num_iterations': num_iterations})
 
     optimizer = optimizer_class(model.parameters(), **config)
-    optimizer.reset()
 
     init_loss, loss = np.inf, np.inf
     for _ in range(num_iterations):
@@ -322,7 +321,7 @@ def test_rectified_optimizer(optimizer_name):
     optimizer.step()
 
 
-@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_reset(optimizer_config):
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
