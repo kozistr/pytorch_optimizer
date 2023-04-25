@@ -65,14 +65,6 @@ diffGrad
 .. autoclass:: pytorch_optimizer.DiffGrad
     :members:
 
-.. _diffRGrad:
-
-diffRGrad
----------
-
-.. autoclass:: pytorch_optimizer.DiffRGrad
-    :members:
-
 .. _GC:
 
 GC
@@ -143,14 +135,6 @@ RAdam
 -----
 
 .. autoclass:: pytorch_optimizer.RAdam
-    :members:
-
-.. _RaLamb:
-
-RaLamb
-------
-
-.. autoclass:: pytorch_optimizer.RaLamb
     :members:
 
 .. _Ranger:
@@ -287,4 +271,12 @@ SM3
 ---
 
 .. autoclass:: pytorch_optimizer.SM3
+    :members:
+
+.. _AdaNorm:
+
+AdaNorm
+-------
+
+.. autoclass:: pytorch_optimizer.AdaNorm
     :members:

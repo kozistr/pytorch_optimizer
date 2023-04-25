@@ -6,7 +6,13 @@ from torch import nn
 from pytorch_optimizer import GSAM, SAM, CosineScheduler, Lookahead, PCGrad, ProportionScheduler, load_optimizer
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from pytorch_optimizer.optimizer.utils import l2_projection
-from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
+from tests.constants import (
+    ADAMD_SUPPORTED_OPTIMIZERS,
+    ADANORM_SUPPORTED_OPTIMIZERS,
+    ADAPTIVE_FLAGS,
+    OPTIMIZERS,
+    PULLBACK_MOMENTUM,
+)
 from tests.utils import (
     MultiHeadLogisticRegression,
     build_environment,
@@ -179,11 +185,52 @@ def test_gsam_optimizers(adaptive):
     assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('optimizer_adamd_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adamd_optimizers(optimizer_adamd_config):
+@pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
+def test_adanorm_optimizers(optimizer_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
-    optimizer_class, config, num_iterations = optimizer_adamd_config
+    optimizer_class, config, num_iterations = optimizer_config
+    if optimizer_class.__name__ == 'Ranger21':
+        config.update({'num_iterations': num_iterations})
+
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(num_iterations):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward()
+
+        optimizer.step()
+
+    assert tensor_to_numpy(init_loss) > 1.75 * tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
+def test_adanorm_condition(optimizer_config):
+    param = simple_parameter(True)
+    param.grad = torch.ones(1, 1)
+
+    optimizer_class, config = optimizer_config[:2]
+
+    optimizer = optimizer_class([param], adanorm=True)
+    optimizer.step()
+
+    param.grad = torch.zeros(1, 1)
+    optimizer.step()
+
+
+@pytest.mark.parametrize('optimizer_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
+def test_adamd_optimizers(optimizer_config):
+    (x_data, y_data), model, loss_fn = build_environment()
+
+    optimizer_class, config, num_iterations = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
         config.update({'num_iterations': num_iterations})
 
@@ -273,17 +320,22 @@ def test_nero_zero_scale():
     optimizer.step()
 
 
-@pytest.mark.parametrize('optimizer_name', ['diffrgrad', 'adabelief', 'radam', 'ralamb'])
+@pytest.mark.parametrize('optimizer_name', ['adabelief', 'radam', 'lamb', 'diffgrad', 'ranger'])
 def test_rectified_optimizer(optimizer_name):
     param = simple_parameter()
 
-    optimizer = load_optimizer(optimizer_name)([param], n_sma_threshold=1000, degenerated_to_sgd=False)
+    parameters = {'n_sma_threshold': 1000, 'degenerated_to_sgd': False}
+    if optimizer_name not in ('adabelief', 'radam', 'ranger'):
+        parameters.update({'rectify': True})
+
+    optimizer = load_optimizer(optimizer_name)([param], **parameters)
     optimizer.zero_grad()
+
     param.grad = torch.zeros(1, 1)
     optimizer.step()
 
 
-@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_reset(optimizer_config):
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
@@ -328,17 +380,6 @@ def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
     loss_fn(model(x_data), y_data).backward()
 
     optimizer.step()
-
-
-def test_sm3_max_reduce():
-    optimizer = load_optimizer('sm3')([simple_parameter(True)])
-
-    x = torch.tensor(1.0)
-    assert optimizer.max_reduce_except_dim(x, 0) == x
-
-    x = torch.zeros((1, 1))
-    with pytest.raises(ValueError):
-        optimizer.max_reduce_except_dim(x, 3)
 
 
 def test_sm3_make_sparse():

@@ -16,7 +16,9 @@ class AdamS(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param amsgrad: bool. whether to use the AMSGrad variant of this algorithm from the paper.
-    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
+    :param adanorm: bool. whether to use the AdaNorm variant.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -27,19 +29,30 @@ class AdamS(Optimizer, BaseOptimizer):
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 1e-4,
         amsgrad: bool = False,
-        adamd_debias_term: bool = False,
+        r: float = 0.95,
+        adanorm: bool = False,
+        adam_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
-        self.amsgrad = amsgrad
-        self.adamd_debias_term = adamd_debias_term
         self.eps = eps
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps}
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'amsgrad': amsgrad,
+            'adanorm': adanorm,
+            'adam_debias': adam_debias,
+            'eps': eps,
+        }
+        if adanorm:
+            defaults.update({'r': r})
+
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -60,6 +73,10 @@ class AdamS(Optimizer, BaseOptimizer):
                 state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
+                if group['amsgrad']:
+                    state['max_exp_avg_sq'] = torch.zeros_like(p)
+                if group['adanorm']:
+                    state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -89,18 +106,30 @@ class AdamS(Optimizer, BaseOptimizer):
                     state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
-                    if self.amsgrad:
+                    if group['amsgrad']:
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
+                    if group['adanorm']:
+                        state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
                 state['step'] += 1
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                s_grad = grad
+                if group['adanorm']:
+                    grad_norm = torch.linalg.norm(grad)
+
+                    exp_grad_norm = state['exp_grad_norm']
+                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
+
+                    if exp_grad_norm > grad_norm:
+                        s_grad *= exp_grad_norm / grad_norm
+
+                exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                if self.amsgrad:
+                if group['amsgrad']:
                     max_exp_avg_sq = state['max_exp_avg_sq']
                     torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
                     exp_avg_sq_hat = max_exp_avg_sq
@@ -130,12 +159,12 @@ class AdamS(Optimizer, BaseOptimizer):
                 bias_correction1 = 1.0 - beta1 ** state['step']
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
-                exp_avg_sq_hat = state['max_exp_avg_sq'] if self.amsgrad else exp_avg_sq
+                exp_avg_sq_hat = state['max_exp_avg_sq'] if group['amsgrad'] else exp_avg_sq
                 exp_avg_sq_hat.div_(bias_correction2)
 
                 de_nom = exp_avg_sq_hat.sqrt().add(group['eps'])
 
-                step_size = group['lr'] if self.adamd_debias_term else group['lr'] / bias_correction1
+                step_size = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
 
         return loss

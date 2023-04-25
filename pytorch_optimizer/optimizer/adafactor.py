@@ -20,8 +20,8 @@ class AdaFactor(Optimizer, BaseOptimizer):
     :param clip_threshold: float. threshold of root-mean-square of final gradient update.
     :param scale_parameter: bool. if true, learning rate is scaled by root-mean-square of parameter.
     :param relative_step: bool. if true, time-dependent learning rate is computed instead of external learning rate.
-    :param warmup_init: bool. time-dependent learning rate computation depends on
-        whether warm-up initialization is being used.
+    :param warmup_init: bool. time-dependent learning rate computation depends on whether warm-up initialization
+        is being used.
     :param eps1: float. term added to the denominator to improve numerical stability.
     :param eps2: float. term added to the denominator to improve numerical stability.
     """
@@ -45,15 +45,21 @@ class AdaFactor(Optimizer, BaseOptimizer):
         self.decay_rate = decay_rate
         self.weight_decay = weight_decay
         self.clip_threshold = clip_threshold
-        self.scale_parameter = scale_parameter
         self.relative_step = relative_step
-        self.warmup_init = warmup_init
         self.eps1 = eps1
         self.eps2 = eps2
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {'lr': lr, 'weight_decay': weight_decay}
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'weight_decay': weight_decay,
+            'scale_parameter': scale_parameter,
+            'relative_step': relative_step,
+            'warmup_init': warmup_init,
+            'eps1': eps1,
+            'eps2': eps2,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -69,6 +75,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
@@ -77,24 +84,28 @@ class AdaFactor(Optimizer, BaseOptimizer):
                 grad_shape: Tuple[int, ...] = grad.shape
                 factored: bool = self.get_options(grad_shape)
 
-                state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
 
                 if factored:
-                    state['exp_avg_sq_row'] = torch.zeros(grad_shape[:-1]).to(grad)
-                    state['exp_avg_sq_col'] = torch.zeros(grad_shape[:-2] + grad_shape[-1:]).to(grad)
+                    state['exp_avg_sq_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype, device=grad.device)
+                    state['exp_avg_sq_col'] = torch.zeros(
+                        grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype, device=grad.device
+                    )
                 else:
                     state['exp_avg_sq'] = torch.zeros_like(grad)
 
                 state['RMS'] = 0.0
 
-    def get_lr(self, lr: float, step: int, rms: float) -> float:
+    def get_lr(
+        self, lr: float, step: int, rms: float, relative_step: bool, warmup_init: bool, scale_parameter: bool
+    ) -> float:
+        r"""Get AdaFactor learning rate."""
         relative_step_size: float = lr
-        if self.relative_step:
-            min_step: float = 1e-6 * step if self.warmup_init else 1e-2
+        if relative_step:
+            min_step: float = 1e-6 * step if warmup_init else 1e-2
             relative_step_size = min(min_step, 1.0 / math.sqrt(step))
 
-        param_scale: float = 1.0 if self.scale_parameter else max(self.eps2, rms)
+        param_scale: float = 1.0 if scale_parameter else max(self.eps2, rms)
 
         return param_scale * relative_step_size
 
@@ -127,6 +138,13 @@ class AdaFactor(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
+            beta2_t: float = 1.0 - math.pow(group['step'], self.decay_rate)
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -141,7 +159,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
                 factored: bool = self.get_options(grad_shape)
 
                 if len(state) == 0:
-                    state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p)
 
                     if factored:
@@ -154,12 +171,17 @@ class AdaFactor(Optimizer, BaseOptimizer):
 
                     state['RMS'] = 0.0
 
-                state['step'] += 1
-
                 state['RMS'] = self.get_rms(p)
-                lr = self.get_lr(group['lr'], state['step'], state['RMS'])
 
-                beta2_t: float = 1.0 - math.pow(state['step'], self.decay_rate)
+                lr = self.get_lr(
+                    group['lr'],
+                    group['step'],
+                    state['RMS'],
+                    relative_step=group['relative_step'],
+                    warmup_init=group['warmup_init'],
+                    scale_parameter=group['scale_parameter'],
+                )
+
                 update = torch.mul(grad, grad).add_(self.eps1)
 
                 if factored:
@@ -183,11 +205,9 @@ class AdaFactor(Optimizer, BaseOptimizer):
                 exp_avg = state['exp_avg']
                 exp_avg.mul_(self.betas[0]).add_(update, alpha=1.0 - self.betas[0])
 
-                update = exp_avg
-
                 if group['weight_decay'] > 0.0:
                     p.add_(p, alpha=-lr * group['weight_decay'])
 
-                p.add_(-update)
+                p.add_(-exp_avg)
 
         return loss

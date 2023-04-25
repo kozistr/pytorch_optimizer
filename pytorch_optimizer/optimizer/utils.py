@@ -127,8 +127,8 @@ def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = Fal
 
 
 def projection(
-    p,
-    grad,
+    p: torch.Tensor,
+    grad: torch.Tensor,
     perturb: torch.Tensor,
     delta: float,
     wd_ratio: float,
@@ -164,7 +164,7 @@ def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
     else:
         dim = tuple(range(1, x_len))
 
-    return x.norm(dim=dim, keepdim=keep_dim, p=norm)
+    return x.norm(p=norm, dim=dim, keepdim=keep_dim)
 
 
 def get_optimizer_parameters(
@@ -243,3 +243,23 @@ def l2_projection(parameters: PARAMETERS, max_norm: float = 1e2):
         ratio = max_norm / global_norm
         for param in parameters:
             param *= ratio  # noqa: PLW2901
+
+
+@torch.no_grad()
+def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
+    r"""Perform reduce-max along all dimensions except the given dim.
+
+    :param x: torch.Tensor. tensor to reduce-max.
+    :param dim: int. dimension to exclude.
+    """
+    rank: int = len(x.shape)
+    if rank == 0:
+        return x
+
+    if dim >= rank:
+        raise ValueError(f'[-] given dim is bigger than rank. {dim} >= {rank}')
+
+    for d in range(rank):
+        if d != dim:
+            x = x.max(dim=d, keepdim=True).values
+    return x

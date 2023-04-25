@@ -37,7 +37,6 @@ class Adan(Optimizer, BaseOptimizer):
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
-        self.weight_decouple = weight_decouple
         self.max_grad_norm = max_grad_norm
         self.use_gc = use_gc
         self.eps = eps
@@ -81,19 +80,16 @@ class Adan(Optimizer, BaseOptimizer):
         if self.defaults['max_grad_norm'] == 0.0:
             return 1.0
 
-        device = self.param_groups[0]['params'][0].device
-
-        global_grad_norm = torch.zeros(1, device=device)
-        max_grad_norm = torch.tensor(self.defaults['max_grad_norm'], device=device)
+        global_grad_norm = torch.zeros(1, dtype=torch.float32, device=self.param_groups[0]['params'][0].device)
 
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is not None:
                     global_grad_norm.add_(torch.linalg.norm(p.grad).pow(2))
 
-        global_grad_norm = torch.sqrt(global_grad_norm)
+        global_grad_norm.sqrt_()
 
-        return torch.clamp(max_grad_norm / (global_grad_norm + self.eps), max=1.0)
+        return torch.clamp(self.defaults['max_grad_norm'] / (global_grad_norm + self.eps), max=1.0)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -130,8 +126,6 @@ class Adan(Optimizer, BaseOptimizer):
                     state['exp_avg_nest'] = torch.zeros_like(p)
                     state['previous_grad'] = grad.clone()
 
-                exp_avg, exp_avg_diff, exp_avg_nest = state['exp_avg'], state['exp_avg_diff'], state['exp_avg_nest']
-
                 grad.mul_(clip_global_grad_norm)
 
                 if self.use_gc:
@@ -142,6 +136,8 @@ class Adan(Optimizer, BaseOptimizer):
                 state['previous_grad'].copy_(grad)
 
                 update = grad + beta2 * grad_diff
+
+                exp_avg, exp_avg_diff, exp_avg_nest = state['exp_avg'], state['exp_avg_diff'], state['exp_avg_nest']
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_diff.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)

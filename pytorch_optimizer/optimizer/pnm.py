@@ -31,7 +31,6 @@ class PNM(Optimizer, BaseOptimizer):
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
-        self.weight_decouple = weight_decouple
         self.eps = eps
 
         self.validate_parameters()
@@ -95,11 +94,9 @@ class PNM(Optimizer, BaseOptimizer):
                 state['step'] += 1
 
                 if state['step'] % 2 == 1:
-                    pos_momentum = state['pos_momentum']
-                    neg_momentum = state['neg_momentum']
+                    pos_momentum, neg_momentum = state['pos_momentum'], state['neg_momentum']
                 else:
-                    neg_momentum = state['pos_momentum']
-                    pos_momentum = state['neg_momentum']
+                    neg_momentum, pos_momentum = state['pos_momentum'], state['neg_momentum']
 
                 pos_momentum.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
                 delta_p = pos_momentum.mul(1 + beta2).add(neg_momentum, alpha=-beta2).mul(1.0 / noise_norm)

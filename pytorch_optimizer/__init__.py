@@ -23,13 +23,13 @@ from pytorch_optimizer.optimizer.adai import Adai
 from pytorch_optimizer.optimizer.adamp import AdamP
 from pytorch_optimizer.optimizer.adams import AdamS
 from pytorch_optimizer.optimizer.adan import Adan
+from pytorch_optimizer.optimizer.adanorm import AdaNorm
 from pytorch_optimizer.optimizer.adapnm import AdaPNM
 from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.alig import AliG
 from pytorch_optimizer.optimizer.apollo import Apollo
 from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptSGD
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
-from pytorch_optimizer.optimizer.diffrgrad import DiffRGrad
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
 from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.gsam import GSAM
@@ -43,7 +43,6 @@ from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.pcgrad import PCGrad
 from pytorch_optimizer.optimizer.pnm import PNM
 from pytorch_optimizer.optimizer.radam import RAdam
-from pytorch_optimizer.optimizer.ralamb import RaLamb
 from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
 from pytorch_optimizer.optimizer.sam import SAM
@@ -71,6 +70,7 @@ from pytorch_optimizer.optimizer.utils import (
     enable_running_stats,
     get_optimizer_parameters,
     normalize_gradient,
+    reduce_max_except_dim,
     unit_norm,
 )
 
@@ -82,14 +82,12 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Adan,
     AdaPNM,
     DiffGrad,
-    DiffRGrad,
     Lamb,
     LARS,
     MADGRAD,
     Nero,
     PNM,
     RAdam,
-    RaLamb,
     Ranger,
     Ranger21,
     SGDP,
@@ -105,6 +103,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Lion,
     AliG,
     SM3,
+    AdaNorm,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

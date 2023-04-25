@@ -16,7 +16,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param grad_averaging: bool. multiply ck (1 - momentum).
-    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -27,19 +27,24 @@ class NovoGrad(Optimizer, BaseOptimizer):
         betas: BETAS = (0.95, 0.98),
         weight_decay: float = 0.0,
         grad_averaging: bool = False,
-        adamd_debias_term: bool = False,
+        adam_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
-        self.grad_averaging = grad_averaging
-        self.adamd_debias_term = adamd_debias_term
         self.eps = eps
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps}
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'grad_averaging': grad_averaging,
+            'adam_debias': adam_debias,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -85,7 +90,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
             bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
 
             step_size: float = group['lr'] * bias_correction2_sq
-            if not self.adamd_debias_term:
+            if not group['adam_debias']:
                 step_size /= bias_correction1
 
             for p in group['params']:
@@ -113,7 +118,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
                 if weight_decay > 0.0:
                     grad.add_(p, alpha=weight_decay)
 
-                if self.grad_averaging:
+                if group['grad_averaging']:
                     grad.mul_(1.0 - beta1)
 
                 moments.mul_(beta1).add_(grad)

@@ -31,12 +31,11 @@ class AliG(Optimizer, BaseOptimizer):
         self.max_lr = max_lr
         self.projection_fn = projection_fn
         self.momentum = momentum
-        self.adjusted_momentum = adjusted_momentum
         self.eps = eps
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {'max_lr': max_lr, 'momentum': momentum}
+        defaults: DEFAULTS = {'max_lr': max_lr, 'adjusted_momentum': adjusted_momentum, 'momentum': momentum}
         super().__init__(params, defaults)
 
         if self.projection_fn is not None:
@@ -55,7 +54,8 @@ class AliG(Optimizer, BaseOptimizer):
             for p in group['params']:
                 state = self.state[p]
 
-                state['momentum_buffer'] = torch.zeros_like(p)
+                if group['momentum'] > 0.0:
+                    state['momentum_buffer'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def compute_step_size(self, loss: float) -> float:
@@ -65,7 +65,7 @@ class AliG(Optimizer, BaseOptimizer):
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is not None:
-                    global_grad_norm += p.grad.norm().pow(2).item()
+                    global_grad_norm += p.grad.norm(2.0).pow(2).item()
 
         return loss / (global_grad_norm + self.eps)
 
@@ -101,7 +101,7 @@ class AliG(Optimizer, BaseOptimizer):
                 if momentum > 0.0:
                     buffer = state['momentum_buffer']
 
-                    if self.adjusted_momentum:
+                    if group['adjusted_momentum']:
                         buffer.mul_(momentum).sub_(grad)
                         p.add_(buffer, alpha=step_size * momentum)
                     else:

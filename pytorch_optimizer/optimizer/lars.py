@@ -85,9 +85,10 @@ class LARS(Optimizer, BaseOptimizer):
                     raise NoSparseGradientError(str(self))
 
                 if p.ndim > 1:  # if not normalization gamma/beta or bias
-                    param_norm = p.norm(2.0)
-                    update_norm = grad.norm(2.0)
-                    one = torch.ones_like(param_norm, device=param_norm.device)
+                    param_norm = torch.linalg.norm(p)
+                    update_norm = torch.linalg.norm(grad)
+
+                    one = torch.ones_like(param_norm)
 
                     trust_ratio = torch.where(
                         param_norm > 0.0,

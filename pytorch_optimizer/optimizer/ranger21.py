@@ -45,7 +45,7 @@ class Ranger21(Optimizer, BaseOptimizer):
     :param lookahead_blending_alpha: float. blending alpha.
     :param weight_decay: float. weight decay (L2 penalty).
     :param norm_loss_factor: float. norm loss factor.
-    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -69,7 +69,7 @@ class Ranger21(Optimizer, BaseOptimizer):
         lookahead_blending_alpha: float = 0.5,
         weight_decay: float = 1e-4,
         norm_loss_factor: float = 1e-4,
-        adamd_debias_term: bool = False,
+        adam_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -86,7 +86,6 @@ class Ranger21(Optimizer, BaseOptimizer):
         self.lookahead_blending_alpha = lookahead_blending_alpha
         self.weight_decay = weight_decay
         self.norm_loss_factor = norm_loss_factor
-        self.adamd_debias_term = adamd_debias_term
         self.eps = eps
 
         self.validate_parameters()
@@ -102,7 +101,7 @@ class Ranger21(Optimizer, BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
-            'adamd_debias_term': adamd_debias_term,
+            'adam_debias': adam_debias,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -291,7 +290,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
 
-                step_size: float = lr if group['adamd_debias_term'] else lr / bias_correction1
+                step_size: float = lr if group['adam_debias'] else lr / bias_correction1
 
                 if self.use_softplus:
                     de_nom = f.softplus(de_nom, beta=self.beta_softplus)

@@ -51,7 +51,9 @@ class Apollo(Optimizer, BaseOptimizer):
             'lr': lr,
             'init_lr': self.init_lr,
             'beta': beta,
+            'rebound': rebound,
             'weight_decay': weight_decay,
+            'weight_decay_type': weight_decay_type,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -74,7 +76,6 @@ class Apollo(Optimizer, BaseOptimizer):
             for p in group['params']:
                 state = self.state[p]
 
-                state['step'] = 0
                 state['exp_avg_grad'] = torch.zeros_like(p)
                 state['approx_hessian'] = torch.zeros_like(p)
                 state['update'] = torch.zeros_like(p)
@@ -117,13 +118,13 @@ class Apollo(Optimizer, BaseOptimizer):
                     state['approx_hessian'] = torch.zeros_like(p)
                     state['update'] = torch.zeros_like(p)
 
-                exp_avg_grad, b, d_p = state['exp_avg_grad'], state['approx_hessian'], state['update']
-
-                if weight_decay > 0.0 and self.weight_decay_type == 'l2':
+                if weight_decay > 0.0 and group['weight_decay_type'] == 'l2':
                     grad.add_(p, alpha=weight_decay)
 
+                exp_avg_grad, b, d_p = state['exp_avg_grad'], state['approx_hessian'], state['update']
+
                 delta_grad = grad - exp_avg_grad
-                if self.rebound == 'belief':
+                if group['rebound'] == 'belief':
                     rebound = delta_grad.norm(p=np.inf)
                 else:
                     rebound = 1e-2
@@ -140,13 +141,13 @@ class Apollo(Optimizer, BaseOptimizer):
                 b.addcmul_(v_sq, delta)
 
                 de_nom = b.abs().clamp_(min=rebound)
-                if self.rebound == 'belief':
+                if group['rebound'] == 'belief':
                     de_nom.add_(eps / alpha)
 
                 d_p.copy_(exp_avg_grad.div(de_nom))
 
-                if weight_decay > 0.0 and self.weight_decay_type != 'l2':
-                    if self.weight_decay_type == 'stable':
+                if weight_decay > 0.0 and group['weight_decay_type'] != 'l2':
+                    if group['weight_decay_type'] == 'stable':
                         weight_decay /= de_nom.mean().item()
 
                     d_p.add_(p, alpha=weight_decay)

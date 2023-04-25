@@ -169,4 +169,11 @@ merge_small_dims
 
 .. autoclass:: pytorch_optimizer.merge_small_dims
     :members:
-re
+
+.. _reduce_max_except_dim:
+
+reduce_max_except_dim
+---------------------
+
+.. autoclass:: pytorch_optimizer.reduce_max_except_dim
+    :members:
