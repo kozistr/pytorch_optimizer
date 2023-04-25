@@ -121,7 +121,7 @@ class AdaPNM(Optimizer, BaseOptimizer):
                     if group['amsgrad']:
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
 
-                if state['step'] % 2 == 1:
+                if group['step'] % 2 == 1:
                     exp_avg, neg_exp_avg = state['exp_avg'], state['neg_exp_avg']
                 else:
                     exp_avg, neg_exp_avg = state['neg_exp_avg'], state['exp_avg']
