@@ -41,7 +41,6 @@ class Lamb(Optimizer, BaseOptimizer):
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
-        self.grad_averaging = grad_averaging
         self.max_grad_norm = max_grad_norm
         self.adam = adam
         self.pre_norm = pre_norm
@@ -94,7 +93,7 @@ class Lamb(Optimizer, BaseOptimizer):
                 if p.grad is not None:
                     global_grad_norm.add_(torch.linalg.norm(p.grad).pow(2))
 
-        global_grad_norm = torch.sqrt(global_grad_norm)
+        global_grad_norm.sqrt_()
 
         return torch.clamp(max_grad_norm / (global_grad_norm + self.eps), max=1.0)
 
