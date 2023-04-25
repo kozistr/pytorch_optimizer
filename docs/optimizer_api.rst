@@ -280,3 +280,11 @@ AdaNorm
 
 .. autoclass:: pytorch_optimizer.AdaNorm
     :members:
+
+.. _RotoGrad:
+
+RotoGrad
+--------
+
+.. autoclass:: pytorch_optimizer.RotoGrad
+    :members:
