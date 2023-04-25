@@ -252,7 +252,6 @@ def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
     :param x: torch.Tensor. tensor to reduce-max.
     :param dim: int. dimension to exclude.
     """
-
     rank: int = len(x.shape)
     if rank == 0:
         return x
