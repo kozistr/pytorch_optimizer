@@ -42,8 +42,6 @@ class AdaBound(Optimizer, BaseOptimizer):
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
-        self.weight_decouple = weight_decouple
-        self.fixed_decay = fixed_decay
         self.eps = eps
 
         self.validate_parameters()
@@ -54,6 +52,8 @@ class AdaBound(Optimizer, BaseOptimizer):
             'final_lr': final_lr,
             'gamma': gamma,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'amsbound': amsbound,
             'adamd_debias_term': adamd_debias_term,
             'eps': eps,
@@ -91,7 +91,24 @@ class AdaBound(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group, base_lr in zip(self.param_groups, self.base_lrs):
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
             beta1, beta2 = group['betas']
+
+            bias_correction1 = 1.0 - beta1 ** group['step']
+            bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
+
+            step_size = group['lr'] * bias_correction2_sq
+            if not group['adamd_debias_term']:
+                step_size /= bias_correction1
+
+            final_lr = group['final_lr'] * group['lr'] / base_lr
+            lower_bound = final_lr * (1 - 1 / (group['gamma'] * group['step'] + 1))
+            upper_bound = final_lr * (1 + 1 / (group['gamma'] * group['step']))
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -103,42 +120,29 @@ class AdaBound(Optimizer, BaseOptimizer):
                 state = self.state[p]
 
                 if len(state) == 0:
-                    state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
                     if group['amsbound']:
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
 
-                state['step'] += 1
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+                if group['weight_decouple']:
+                    p.mul_(1.0 - group['weight_decay'] * (1.0 if group['fixed_decay'] else group['lr']))
+                elif group['weight_decay'] > 0.0:
+                    grad.add_(p, alpha=group['weight_decay'])
 
-                if group['weight_decay'] > 0.0:
-                    if self.weight_decouple:
-                        p.mul_(
-                            1.0 - (group['weight_decay'] if self.fixed_decay else group['lr'] * group['weight_decay'])
-                        )
-                    else:
-                        grad.add_(p, alpha=group['weight_decay'])
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+
                 if group['amsbound']:
-                    torch.max(state['max_exp_avg_sq'], exp_avg_sq, out=exp_avg_sq)
+                    max_exp_avg_var = state['max_exp_avg_var']
+                    torch.max(max_exp_avg_var, exp_avg_sq, out=max_exp_avg_var)
+                    de_nom = max_exp_avg_var.add(group['eps']).sqrt()
+                else:
+                    de_nom = exp_avg_sq.add(group['eps']).sqrt()
 
-                de_nom = exp_avg_sq.sqrt().add_(group['eps'])
-
-                bias_correction1 = 1.0 - beta1 ** state['step']
-                bias_correction2_sq = math.sqrt(1.0 - beta2 ** state['step'])
-
-                step_size = group['lr'] * bias_correction2_sq
-                if not group['adamd_debias_term']:
-                    step_size /= bias_correction1
-
-                final_lr = group['final_lr'] * group['lr'] / base_lr
-                lower_bound = final_lr * (1 - 1 / (group['gamma'] * state['step'] + 1))
-                upper_bound = final_lr * (1 + 1 / (group['gamma'] * state['step']))
-
-                step_size = torch.full_like(de_nom, step_size)
+                step_size = torch.full_like(de_nom, fill_value=step_size)
                 step_size.div_(de_nom).clamp_(lower_bound, upper_bound).mul_(exp_avg)
 
                 p.add_(-step_size)
