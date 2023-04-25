@@ -299,8 +299,8 @@ def test_adafactor_reset():
 def test_adafactor_get_lr():
     model: nn.Module = Example()
 
-    optimizer = load_optimizer('adafactor')(model.parameters(), True, True, True)
-    assert optimizer.get_lr(1.0, 1, 1.0) == 1e-6
+    optimizer = load_optimizer('adafactor')(model.parameters())
+    assert optimizer.get_lr(1.0, 1, 1.0, True, True, True) == 1e-6
 
-    optimizer = load_optimizer('adafactor')(model.parameters(), True, False, True)
-    assert optimizer.get_lr(1.0, 1, 1.0) == 1e-2
+    optimizer = load_optimizer('adafactor')(model.parameters())
+    assert optimizer.get_lr(1.0, 1, 1.0, True, False, True) == 1e-2
