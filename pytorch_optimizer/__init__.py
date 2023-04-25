@@ -43,7 +43,6 @@ from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.pcgrad import PCGrad
 from pytorch_optimizer.optimizer.pnm import PNM
 from pytorch_optimizer.optimizer.radam import RAdam
-from pytorch_optimizer.optimizer.ralamb import RaLamb
 from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
 from pytorch_optimizer.optimizer.sam import SAM
@@ -88,7 +87,6 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Nero,
     PNM,
     RAdam,
-    RaLamb,
     Ranger,
     Ranger21,
     SGDP,
