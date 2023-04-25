@@ -6,6 +6,7 @@ from torch.optim.optimizer import Optimizer
 from pytorch_optimizer.base.exception import NoClosureError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
 class AliG(Optimizer, BaseOptimizer):
@@ -60,14 +61,10 @@ class AliG(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def compute_step_size(self, loss: float) -> float:
         r"""Compute step_size."""
-        global_grad_norm: float = 0
+        global_grad_norm = get_global_gradient_norm(self.param_groups, torch.device('cpu'))
+        global_grad_norm.add_(self.eps)
 
-        for group in self.param_groups:
-            for p in group['params']:
-                if p.grad is not None:
-                    global_grad_norm += p.grad.norm(2.0).pow(2).item()
-
-        return loss / (global_grad_norm + self.eps)
+        return loss / global_grad_norm.item()
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
