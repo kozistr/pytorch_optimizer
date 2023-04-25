@@ -108,7 +108,7 @@ class Lamb(Optimizer, BaseOptimizer):
             return 1.0
 
         global_grad_norm = get_global_gradient_norm(self.param_groups, device=self.param_groups[0]['params'][0].device)
-        global_grad_norm.sqrt_().add_(self.eps)
+        global_grad_norm.add_(self.eps)
 
         return torch.clamp(self.defaults['max_grad_norm'] / global_grad_norm, max=1.0)
 
