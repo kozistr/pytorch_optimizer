@@ -58,10 +58,7 @@ class Shampoo(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
-
-                state['step'] = 0
+            group['step'] = 0
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -71,6 +68,11 @@ class Shampoo(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
             momentum, weight_decay = group['momentum'], group['weight_decay']
             for p in group['params']:
                 if p.grad is None:
@@ -82,8 +84,6 @@ class Shampoo(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['step'] = 0
-
                     if momentum > 0.0:
                         state['momentum_buffer'] = grad.clone()
 
@@ -119,7 +119,6 @@ class Shampoo(Optimizer, BaseOptimizer):
                         grad = inv_pre_cond @ grad
                         grad = grad.view(transposed_size)
 
-                state['step'] += 1
                 state['momentum_buffer'] = grad
 
                 p.add_(grad, alpha=-group['lr'])
@@ -205,10 +204,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
     ):
         self.lr = lr
         self.betas = betas
-        self.moving_average_for_momentum = moving_average_for_momentum
         self.weight_decay = weight_decay
-        self.decoupled_weight_decay = decoupled_weight_decay
-        self.decoupled_learning_rate = decoupled_learning_rate
         self.inverse_exponent_override = inverse_exponent_override
         self.start_preconditioning_step = start_preconditioning_step
         self.preconditioning_compute_steps = preconditioning_compute_steps
@@ -219,14 +215,21 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         self.shape_interpretation = shape_interpretation
         self.graft_type = graft_type
         self.pre_conditioner_type = pre_conditioner_type
-        self.nesterov = nesterov
         self.diagonal_eps = diagonal_eps
         self.matrix_eps = matrix_eps
         self.use_svd = use_svd
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay}
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'decoupled_weight_decay': decoupled_weight_decay,
+            'decoupled_learning_rate': decoupled_learning_rate,
+            'moving_average_for_momentum': moving_average_for_momentum,
+            'nesterov': nesterov,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -281,7 +284,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             is_precondition_step: bool = self.is_precondition_step(group['step'])
-            pre_conditioner_multiplier: float = group['lr'] if not self.decoupled_learning_rate else 1.0
+            pre_conditioner_multiplier: float = 1.0 if group['decoupled_learning_rate'] else group['lr']
 
             beta1, beta2 = group['betas']
             for p in group['params']:
@@ -329,7 +332,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
                     shampoo_grad.mul_(graft_norm / (shampoo_norm + 1e-16))
 
                 if group['weight_decay'] > 0.0:
-                    if not self.decoupled_weight_decay:
+                    if not group['decoupled_weight_decay']:
                         graft_grad.add_(p, alpha=group['weight_decay'])
                         shampoo_grad.add_(p, alpha=group['weight_decay'])
                     else:
@@ -341,8 +344,8 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
 
                 momentum_update = state['momentum'] if is_precondition_step else graft_momentum
 
-                if self.nesterov:
-                    w: float = (1.0 - beta1) if self.moving_average_for_momentum else 1.0
+                if group['nesterov']:
+                    w: float = (1.0 - beta1) if group['moving_average_for_momentum'] else 1.0
 
                     wd_update = shampoo_grad if is_precondition_step else graft_grad
                     wd_update.mul_(w)
