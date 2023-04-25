@@ -105,7 +105,6 @@ class DiffGrad(Optimizer, BaseOptimizer):
             beta1, beta2 = group['betas']
 
             bias_correction1 = 1.0 - beta1 ** group['step']
-            bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
 
             if group['rectify']:
                 n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
