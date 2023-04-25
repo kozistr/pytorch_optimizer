@@ -61,7 +61,6 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'radam',
     'ranger',
     'ranger21',
-    'ralamb',
     'pnm',
     'adapnm',
     'adan',
