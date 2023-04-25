@@ -50,11 +50,13 @@ class AdaPNM(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'amsgrad': amsgrad,
-            'r': r,
             'adanorm': adanorm,
             'adamd_debias': adamd_debias,
             'eps': eps,
         }
+        if adanorm:
+            defaults.update({'r': r})
+
         super().__init__(params, defaults)
 
     def validate_parameters(self):
