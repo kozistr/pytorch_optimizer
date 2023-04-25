@@ -375,10 +375,12 @@ class RotoGrad(RotateOnly):
         grad_norms = [torch.linalg.norm(g, keepdim=True).clamp_min(1e-15) for g in self.original_grads]
         if self.initial_grads is None or self.counter == self.burn_in_period:
             self.initial_grads = grad_norms
+            conv_ratios = [torch.ones((1,)) for _ in range(len(self.initial_grads))]
+        else:
+            conv_ratios = [x / y for x, y, in zip(grad_norms, self.initial_grads)]
 
         self.counter += 1
 
-        conv_ratios = [x / y for x, y, in zip(grad_norms, self.initial_grads)]
         alphas = [x / torch.clamp(sum(conv_ratios), 1e-15) for x in conv_ratios]
         weighted_sum_norms = sum(a * g for a, g in zip(alphas, grad_norms))
 
