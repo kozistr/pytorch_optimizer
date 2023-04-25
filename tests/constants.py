@@ -307,10 +307,10 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
-    (AdamS, {'lr': 7.5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 20),
-    (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 20),
+    (AdamS, {'lr': 7.5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 25),
+    (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 25),
     (DiffGrad, {'lr': 5e-2, 'weight_decay': 1e-3, 'adanorm': True}, 20),
-    (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 15),
+    (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 25),
     (RAdam, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 25),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 100),
 ]
