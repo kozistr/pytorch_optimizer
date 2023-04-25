@@ -6,7 +6,7 @@ from torch import nn
 from pytorch_optimizer import GSAM, SAM, CosineScheduler, Lookahead, PCGrad, ProportionScheduler, load_optimizer
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from pytorch_optimizer.optimizer.utils import l2_projection
-from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
+from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADANORM_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
 from tests.utils import (
     MultiHeadLogisticRegression,
     build_environment,
@@ -177,6 +177,33 @@ def test_gsam_optimizers(adaptive):
         optimizer.update_rho_t()
 
     assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('optimizer_adanorm_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
+def test_adanorm_optimizers(optimizer_adanorm_config):
+    (x_data, y_data), model, loss_fn = build_environment()
+
+    optimizer_class, config, num_iterations = optimizer_adanorm_config
+    if optimizer_class.__name__ == 'Ranger21':
+        config.update({'num_iterations': num_iterations})
+
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(num_iterations):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward()
+
+        optimizer.step()
+
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_adamd_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
