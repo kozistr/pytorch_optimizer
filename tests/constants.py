@@ -124,7 +124,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SGDP, {'lr': 5e-1, 'weight_decay': 1e-4}, 10),
     (SGDP, {'lr': 5e-1, 'weight_decay': 1e-4, 'nesterov': True}, 10),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3}, 100),
-    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 250}, 200),
+    (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 50),
+    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 100}, 100),
     (Shampoo, {'lr': 5e-1, 'weight_decay': 1e-3, 'momentum': 0.1}, 10),
     (
         ScalableShampoo,
@@ -311,6 +312,7 @@ ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]]
     (DiffGrad, {'lr': 5e-2, 'weight_decay': 1e-3, 'adanorm': True}, 5),
     (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 15),
     (RAdam, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 25),
+    (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 100),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
@@ -323,8 +325,8 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True, 'adamd_debias': True}, 25),
     (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True, 'adamd_debias': True}, 10),
     (RAdam, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
-    (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 75),
-    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True, 'num_iterations': 150}, 100),
+    (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 50),
+    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True, 'num_iterations': 100}, 100),
     (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
     (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
     (AdaNorm, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),
