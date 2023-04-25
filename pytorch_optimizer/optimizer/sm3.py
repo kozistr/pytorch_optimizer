@@ -3,13 +3,11 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.optimizer.utils import max_reduce_except_dim
+from pytorch_optimizer.optimizer.utils import reduce_max_except_dim
 
 
 class SM3(Optimizer, BaseOptimizer):
     r"""Memory-Efficient Adaptive Optimization.
-
-        Reference : https://github.com/Enealor/PyTorch-SM3/blob/master/src/SM3/SM3.py
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
@@ -104,7 +102,7 @@ class SM3(Optimizer, BaseOptimizer):
                         update_values.mul_(beta)
                     update_values.addcmul_(grad._values(), grad._values(), value=1.0 - beta)
 
-                    nu_max = max_reduce_except_dim(self.make_sparse(grad, update_values).to_dense(), 0).squeeze_()
+                    nu_max = reduce_max_except_dim(self.make_sparse(grad, update_values).to_dense(), 0).squeeze_()
 
                     if beta > 0.0:
                         torch.max(acc, nu_max, out=acc)
@@ -125,7 +123,7 @@ class SM3(Optimizer, BaseOptimizer):
 
                     for i in range(rank):
                         acc = state[f'accumulator_{i}']
-                        nu_max = max_reduce_except_dim(update, i)
+                        nu_max = reduce_max_except_dim(update, i)
                         if beta > 0.0:
                             torch.max(acc, nu_max, out=acc)
                         else:

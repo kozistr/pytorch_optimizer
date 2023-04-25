@@ -246,7 +246,7 @@ def l2_projection(parameters: PARAMETERS, max_norm: float = 1e2):
 
 
 @torch.no_grad()
-def max_reduce_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
+def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
     r"""Perform reduce-max along all dimensions except the given dim."""
     rank: int = len(x.shape)
     if rank == 0:
