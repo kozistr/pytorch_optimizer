@@ -310,7 +310,7 @@ ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]]
     (AdamS, {'lr': 7.5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 25),
     (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 25),
     (DiffGrad, {'lr': 5e-2, 'weight_decay': 1e-3, 'adanorm': True}, 20),
-    (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 25),
+    (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 15),
     (RAdam, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 25),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 100),
 ]
