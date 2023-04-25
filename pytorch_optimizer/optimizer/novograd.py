@@ -118,7 +118,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
                 if weight_decay > 0.0:
                     grad.add_(p, alpha=weight_decay)
 
-                if grad['grad_averaging']:
+                if group['grad_averaging']:
                     grad.mul_(1.0 - beta1)
 
                 moments.mul_(beta1).add_(grad)
