@@ -106,10 +106,7 @@ class Lamb(Optimizer, BaseOptimizer):
         if self.defaults['max_grad_norm'] == 0.0:
             return 1.0
 
-        device = self.param_groups[0]['params'][0].device
-
-        global_grad_norm = torch.zeros(1, device=device)
-        max_grad_norm = torch.tensor(self.defaults['max_grad_norm'], device=device)
+        global_grad_norm = torch.zeros(1, dtype=torch.float32, device=self.param_groups[0]['params'][0].device)
 
         for group in self.param_groups:
             for p in group['params']:
@@ -118,7 +115,7 @@ class Lamb(Optimizer, BaseOptimizer):
 
         global_grad_norm.sqrt_()
 
-        return torch.clamp(max_grad_norm / (global_grad_norm + self.eps), max=1.0)
+        return torch.clamp(self.defaults['max_grad_norm'] / (global_grad_norm + self.eps), max=1.0)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
