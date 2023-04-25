@@ -101,10 +101,6 @@ class AdaBound(Optimizer, BaseOptimizer):
             bias_correction1 = 1.0 - beta1 ** group['step']
             bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
 
-            step_size = group['lr'] * bias_correction2_sq
-            if not group['adamd_debias']:
-                step_size /= bias_correction1
-
             final_lr = group['final_lr'] * group['lr'] / base_lr
             lower_bound = final_lr * (1 - 1 / (group['gamma'] * group['step'] + 1))
             upper_bound = final_lr * (1 + 1 / (group['gamma'] * group['step']))
@@ -136,13 +132,17 @@ class AdaBound(Optimizer, BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 if group['amsbound']:
-                    max_exp_avg_var = state['max_exp_avg_var']
-                    torch.max(max_exp_avg_var, exp_avg_sq, out=max_exp_avg_var)
-                    de_nom = max_exp_avg_var.add(group['eps']).sqrt()
+                    max_exp_avg_sq = state['max_exp_avg_sq']
+                    torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
+                    de_nom = max_exp_avg_sq.add(group['eps']).sqrt()
                 else:
                     de_nom = exp_avg_sq.add(group['eps']).sqrt()
 
-                step_size = torch.full_like(de_nom, fill_value=step_size)
+                step_size = group['lr'] * bias_correction2_sq
+                if not group['adamd_debias']:
+                    step_size /= bias_correction1
+
+                step_size = torch.full_like(de_nom, step_size)
                 step_size.div_(de_nom).clamp_(lower_bound, upper_bound).mul_(exp_avg)
 
                 p.add_(-step_size)
