@@ -70,8 +70,8 @@ from pytorch_optimizer.optimizer.utils import (
     enable_running_stats,
     get_optimizer_parameters,
     normalize_gradient,
-    unit_norm,
     reduce_max_except_dim,
+    unit_norm,
 )
 
 OPTIMIZER_LIST: List[OPTIMIZER] = [
