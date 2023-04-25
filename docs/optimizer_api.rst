@@ -137,14 +137,6 @@ RAdam
 .. autoclass:: pytorch_optimizer.RAdam
     :members:
 
-.. _RaLamb:
-
-RaLamb
-------
-
-.. autoclass:: pytorch_optimizer.RaLamb
-    :members:
-
 .. _Ranger:
 
 Ranger
