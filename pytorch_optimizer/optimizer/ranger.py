@@ -22,7 +22,7 @@ class Ranger(Optimizer, BaseOptimizer):
     :param gc_conv_only: bool. use Gradient Centralization (only convolution layer).
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
-    :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -41,7 +41,7 @@ class Ranger(Optimizer, BaseOptimizer):
         gc_conv_only: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
-        adamd_debias: bool = False,
+        adam_debias: bool = False,
     ):
         self.lr = lr
         self.alpha = alpha
@@ -66,7 +66,7 @@ class Ranger(Optimizer, BaseOptimizer):
             'n_sma_threshold': n_sma_threshold,
             'weight_decay': weight_decay,
             'adanorm': adanorm,
-            'adamd_debias': adamd_debias,
+            'adam_debias': adam_debias,
             'eps': eps,
         }
         if adanorm:
@@ -169,7 +169,7 @@ class Ranger(Optimizer, BaseOptimizer):
                 else:
                     step_size = -1
 
-                if not group['adamd_debias']:
+                if not group['adam_debias']:
                     step_size /= bias_correction1
 
                 if group['weight_decay'] > 0.0:

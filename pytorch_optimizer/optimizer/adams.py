@@ -18,7 +18,7 @@ class AdamS(Optimizer, BaseOptimizer):
     :param amsgrad: bool. whether to use the AMSGrad variant of this algorithm from the paper.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
-    :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -31,7 +31,7 @@ class AdamS(Optimizer, BaseOptimizer):
         amsgrad: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
-        adamd_debias: bool = False,
+        adam_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -47,7 +47,7 @@ class AdamS(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'amsgrad': amsgrad,
             'adanorm': adanorm,
-            'adamd_debias': adamd_debias,
+            'adam_debias': adam_debias,
             'eps': eps,
         }
         if adanorm:
@@ -164,7 +164,7 @@ class AdamS(Optimizer, BaseOptimizer):
 
                 de_nom = exp_avg_sq_hat.sqrt().add(group['eps'])
 
-                step_size = group['lr'] if group['adamd_debias'] else group['lr'] / bias_correction1
+                step_size = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
 
         return loss

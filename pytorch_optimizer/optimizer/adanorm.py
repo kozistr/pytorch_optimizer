@@ -19,7 +19,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param amsgrad: bool. whether to use the AMSGrad variant of this algorithm from the paper.
-    :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -33,7 +33,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         amsgrad: bool = False,
-        adamd_debias: bool = False,
+        adam_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -51,7 +51,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'amsgrad': amsgrad,
-            'adamd_debias': adamd_debias,
+            'adam_debias': adam_debias,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -140,7 +140,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
 
                 de_nom.div_(bias_correction2_sq).add_(self.eps)
 
-                step_size = group['lr'] if group['adamd_debias'] else group['lr'] / bias_correction1
+                step_size = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
 
         return loss

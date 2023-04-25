@@ -19,7 +19,7 @@ class AdaPNM(Optimizer, BaseOptimizer):
     :param amsgrad: bool. whether to use the AMSGrad variant of this algorithm from the paper.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
-    :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -33,7 +33,7 @@ class AdaPNM(Optimizer, BaseOptimizer):
         amsgrad: bool = True,
         r: float = 0.95,
         adanorm: bool = False,
-        adamd_debias: bool = False,
+        adam_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -51,7 +51,7 @@ class AdaPNM(Optimizer, BaseOptimizer):
             'weight_decouple': weight_decouple,
             'amsgrad': amsgrad,
             'adanorm': adanorm,
-            'adamd_debias': adamd_debias,
+            'adam_debias': adam_debias,
             'eps': eps,
         }
         if adanorm:
@@ -153,7 +153,7 @@ class AdaPNM(Optimizer, BaseOptimizer):
 
                 de_nom = (exp_avg_sq_hat.sqrt() / bias_correction2_sq).add_(group['eps'])
 
-                step_size: float = group['lr'] if group['adamd_debias'] else group['lr'] / bias_correction1
+                step_size: float = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
                 pn_momentum = exp_avg.mul(1.0 + beta3).add(neg_exp_avg, alpha=-beta3).mul(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)
 

@@ -21,7 +21,7 @@ class AdaBound(Optimizer, BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param amsbound: bool. whether to use the AMSBound variant.
-    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adam_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -36,7 +36,7 @@ class AdaBound(Optimizer, BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         amsbound: bool = False,
-        adamd_debias: bool = False,
+        adam_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -55,7 +55,7 @@ class AdaBound(Optimizer, BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'amsbound': amsbound,
-            'adamd_debias': adamd_debias,
+            'adam_debias': adam_debias,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -139,7 +139,7 @@ class AdaBound(Optimizer, BaseOptimizer):
                     de_nom = exp_avg_sq.add(group['eps']).sqrt()
 
                 step_size = group['lr'] * bias_correction2_sq
-                if not group['adamd_debias']:
+                if not group['adam_debias']:
                     step_size /= bias_correction1
 
                 step_size = torch.full_like(de_nom, step_size)

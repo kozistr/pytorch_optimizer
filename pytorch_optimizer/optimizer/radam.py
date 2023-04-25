@@ -19,7 +19,7 @@ class RAdam(Optimizer, BaseOptimizer):
     :param degenerated_to_sgd: float. degenerated to SGD.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
-    :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -33,7 +33,7 @@ class RAdam(Optimizer, BaseOptimizer):
         degenerated_to_sgd: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
-        adamd_debias: bool = False,
+        adam_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -50,7 +50,7 @@ class RAdam(Optimizer, BaseOptimizer):
             'betas': betas,
             'weight_decay': weight_decay,
             'adanorm': adanorm,
-            'adamd_debias': adamd_debias,
+            'adam_debias': adam_debias,
             'eps': eps,
         }
         if adanorm:
@@ -147,7 +147,7 @@ class RAdam(Optimizer, BaseOptimizer):
                 else:
                     step_size = -1
 
-                if not group['adamd_debias']:
+                if not group['adam_debias']:
                     step_size /= bias_correction1
 
                 if group['weight_decay'] > 0.0 and (n_sma >= self.n_sma_threshold or step_size > 0):

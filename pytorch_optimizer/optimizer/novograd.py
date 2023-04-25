@@ -16,7 +16,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param grad_averaging: bool. multiply ck (1 - momentum).
-    :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -27,7 +27,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
         betas: BETAS = (0.95, 0.98),
         weight_decay: float = 0.0,
         grad_averaging: bool = False,
-        adamd_debias: bool = False,
+        adam_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -42,7 +42,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
             'betas': betas,
             'weight_decay': weight_decay,
             'grad_averaging': grad_averaging,
-            'adamd_debias': adamd_debias,
+            'adam_debias': adam_debias,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -90,7 +90,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
             bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
 
             step_size: float = group['lr'] * bias_correction2_sq
-            if not group['adamd_debias']:
+            if not group['adam_debias']:
                 step_size /= bias_correction1
 
             for p in group['params']:

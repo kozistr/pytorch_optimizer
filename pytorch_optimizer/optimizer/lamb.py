@@ -25,7 +25,7 @@ class Lamb(Optimizer, BaseOptimizer):
     :param max_grad_norm: float. max gradient norm to clip.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
-    :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param adam: bool. always use trust ratio = 1, which turns this into Adam. Useful for comparison purposes.
     :param pre_norm: bool. perform pre-normalization of all gradients.
     :param eps: float. term added to the denominator to improve numerical stability.
@@ -48,7 +48,7 @@ class Lamb(Optimizer, BaseOptimizer):
         pre_norm: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
-        adamd_debias: bool = False,
+        adam_debias: bool = False,
         eps: float = 1e-6,
     ):
         self.lr = lr
@@ -71,7 +71,7 @@ class Lamb(Optimizer, BaseOptimizer):
             'max_grad_norm': max_grad_norm,
             'adam': adam,
             'adanorm': adanorm,
-            'adamd_debias': adamd_debias,
+            'adam_debias': adam_debias,
             'eps': eps,
         }
         if adanorm:
@@ -200,7 +200,7 @@ class Lamb(Optimizer, BaseOptimizer):
                     else:
                         step_size = -1
 
-                    if not group['adamd_debias']:
+                    if not group['adam_debias']:
                         step_size /= bias_correction1
                 else:
                     step_size = group['lr']
