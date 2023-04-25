@@ -185,11 +185,11 @@ def test_gsam_optimizers(adaptive):
     assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('optimizer_adanorm_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adanorm_optimizers(optimizer_adanorm_config):
+@pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
+def test_adanorm_optimizers(optimizer_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
-    optimizer_class, config, num_iterations = optimizer_adanorm_config
+    optimizer_class, config, num_iterations = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
         config.update({'num_iterations': num_iterations})
 
@@ -212,11 +212,24 @@ def test_adanorm_optimizers(optimizer_adanorm_config):
     assert tensor_to_numpy(init_loss) > 1.75 * tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('optimizer_adamd_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adamd_optimizers(optimizer_adamd_config):
+@pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
+def test_adanorm_condition(optimizer_config):
+    param = simple_parameter(True)
+
+    optimizer_class, config = optimizer_config[:2]
+
+    optimizer = optimizer_class([param], adanorm=True)
+    optimizer.step()
+
+    param.grad = torch.zeros(1, 1)
+    optimizer.step()
+
+
+@pytest.mark.parametrize('optimizer_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
+def test_adamd_optimizers(optimizer_config):
     (x_data, y_data), model, loss_fn = build_environment()
 
-    optimizer_class, config, num_iterations = optimizer_adamd_config
+    optimizer_class, config, num_iterations = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
         config.update({'num_iterations': num_iterations})
 
