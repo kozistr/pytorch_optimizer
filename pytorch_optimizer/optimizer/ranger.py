@@ -19,7 +19,7 @@ class Ranger(Optimizer, BaseOptimizer):
     :param n_sma_threshold: int. (recommended is 5).
     :param use_gc: bool. use Gradient Centralization (both convolution & fc layers).
     :param gc_conv_only: bool. use Gradient Centralization (only convolution layer).
-    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -35,7 +35,7 @@ class Ranger(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         use_gc: bool = True,
         gc_conv_only: bool = False,
-        adamd_debias_term: bool = False,
+        adamd_debias: bool = False,
     ):
         self.lr = lr
         self.alpha = alpha
@@ -58,7 +58,7 @@ class Ranger(Optimizer, BaseOptimizer):
             'step_counter': 0,
             'n_sma_threshold': n_sma_threshold,
             'weight_decay': weight_decay,
-            'adamd_debias_term': adamd_debias_term,
+            'adamd_debias': adamd_debias,
             'buffer': [[None, None, None] for _ in range(10)],
             'eps': eps,
         }
@@ -141,17 +141,18 @@ class Ranger(Optimizer, BaseOptimizer):
                             * n_sma_max
                             / (n_sma_max - 2)
                         )
-                        if not group['adamd_debias_term']:
-                            step_size /= bias_correction1
                     else:
-                        step_size = 1.0 / bias_correction1
+                        step_size = 1.0
 
                     buffered[2] = step_size
+
+                if not group['adamd_debias']:
+                    step_size /= bias_correction1
 
                 if group['weight_decay'] > 0.0:
                     p.add_(p, alpha=-group['weight_decay'] * group['lr'])
 
-                if n_sma > self.n_sma_threshold:
+                if n_sma >= self.n_sma_threshold:
                     de_nom = exp_avg_sq.sqrt().add_(group['eps'])
                     p.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
                 else:
