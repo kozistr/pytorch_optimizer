@@ -42,7 +42,6 @@ class Lamb(Optimizer, BaseOptimizer):
         self.betas = betas
         self.weight_decay = weight_decay
         self.max_grad_norm = max_grad_norm
-        self.adam = adam
         self.pre_norm = pre_norm
         self.eps = eps
 
@@ -54,6 +53,7 @@ class Lamb(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'grad_averaging': grad_averaging,
             'max_grad_norm': max_grad_norm,
+            'adam': adam,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -153,7 +153,7 @@ class Lamb(Optimizer, BaseOptimizer):
                 state['adam_norm'] = adam_norm
                 state['trust_ratio'] = trust_ratio
 
-                if self.adam:
+                if group['adam']:
                     trust_ratio = 1.0
 
                 p.add_(adam_step, alpha=-group['lr'] * trust_ratio)
