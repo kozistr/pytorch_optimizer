@@ -17,7 +17,7 @@ class AdaPNM(Optimizer, BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. use weight_decouple.
     :param amsgrad: bool. whether to use the AMSGrad variant of this algorithm from the paper.
-    :param adamd_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -29,15 +29,13 @@ class AdaPNM(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
         amsgrad: bool = True,
-        adamd_debias_term: bool = False,
+        adamd_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
         self.weight_decouple = weight_decouple
-        self.amsgrad = amsgrad
-        self.adamd_debias_term = adamd_debias_term
         self.eps = eps
 
         self.validate_parameters()
@@ -48,7 +46,7 @@ class AdaPNM(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'amsgrad': amsgrad,
-            'adamd_debias_term': adamd_debias_term,
+            'adamd_debias': adamd_debias,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -120,12 +118,17 @@ class AdaPNM(Optimizer, BaseOptimizer):
 
                 exp_avg.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+
                 if group['amsgrad']:
-                    torch.max(state['max_exp_avg_sq'], exp_avg_sq, out=exp_avg_sq)
+                    max_exp_avg_sq = state['max_exp_avg_sq']
+                    torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
+                    exp_avg_sq_hat = max_exp_avg_sq.add_(group['eps'])
+                else:
+                    exp_avg_sq_hat = exp_avg_sq.add_(group['eps'])
 
-                de_nom = (exp_avg_sq.sqrt() / bias_correction2_sq).add_(group['eps'])
+                de_nom = (exp_avg_sq_hat.sqrt() / bias_correction2_sq).add_(group['eps'])
 
-                step_size: float = group['lr'] if group['adamd_debias_term'] else group['lr'] / bias_correction1
+                step_size: float = group['lr'] if group['adamd_debias'] else group['lr'] / bias_correction1
                 pn_momentum = exp_avg.mul(1.0 + beta3).add(neg_exp_avg, alpha=-beta3).mul(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)
 
