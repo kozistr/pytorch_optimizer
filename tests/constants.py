@@ -106,9 +106,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Adai, {'lr': 2e-1, 'weight_decay': 1e-4, 'weight_decouple': True}, 25),
     (Adai, {'lr': 2e-1, 'weight_decay': 1e-4, 'weight_decouple': False, 'stable_weight_decay': True}, 25),
     (Adai, {'lr': 2e-1, 'weight_decay': 1e-4, 'weight_decouple': True, 'stable_weight_decay': True}, 25),
-    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
+    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 10),
-    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'nesterov': True}, 10),
+    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'nesterov': True}, 5),
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (DiffRGrad, {'lr': 5e-1, 'weight_decay': 1e-3}, 50),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 50),
@@ -310,7 +310,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaNorm, {'lr': 5e-1, 'weight_decay': 1e-3, 'amsgrad': True}, 10),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 15),
+    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamd_debias': True}, 10),

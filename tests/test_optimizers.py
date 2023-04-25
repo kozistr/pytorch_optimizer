@@ -6,7 +6,13 @@ from torch import nn
 from pytorch_optimizer import GSAM, SAM, CosineScheduler, Lookahead, PCGrad, ProportionScheduler, load_optimizer
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from pytorch_optimizer.optimizer.utils import l2_projection
-from tests.constants import ADAMD_SUPPORTED_OPTIMIZERS, ADANORM_SUPPORTED_OPTIMIZERS, ADAPTIVE_FLAGS, OPTIMIZERS, PULLBACK_MOMENTUM
+from tests.constants import (
+    ADAMD_SUPPORTED_OPTIMIZERS,
+    ADANORM_SUPPORTED_OPTIMIZERS,
+    ADAPTIVE_FLAGS,
+    OPTIMIZERS,
+    PULLBACK_MOMENTUM,
+)
 from tests.utils import (
     MultiHeadLogisticRegression,
     build_environment,
