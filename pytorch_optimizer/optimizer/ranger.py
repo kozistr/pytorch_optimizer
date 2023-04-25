@@ -17,8 +17,11 @@ class Ranger(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param n_sma_threshold: int. (recommended is 5).
+    :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high.
     :param use_gc: bool. use Gradient Centralization (both convolution & fc layers).
     :param gc_conv_only: bool. use Gradient Centralization (only convolution layer).
+    :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
+    :param adanorm: bool. whether to use the AdaNorm variant.
     :param adamd_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
@@ -30,17 +33,21 @@ class Ranger(Optimizer, BaseOptimizer):
         alpha: float = 0.5,
         k: int = 6,
         n_sma_threshold: int = 5,
+        degenerated_to_sgd: bool = False,
         betas: BETAS = (0.95, 0.999),
         eps: float = 1e-5,
         weight_decay: float = 0.0,
         use_gc: bool = True,
         gc_conv_only: bool = False,
+        r: float = 0.95,
+        adanorm: bool = False,
         adamd_debias: bool = False,
     ):
         self.lr = lr
         self.alpha = alpha
         self.k = k
         self.n_sma_threshold = n_sma_threshold
+        self.degenerated_to_sgd = degenerated_to_sgd
         self.betas = betas
         self.weight_decay = weight_decay
         self.use_gc = use_gc
@@ -58,10 +65,13 @@ class Ranger(Optimizer, BaseOptimizer):
             'step_counter': 0,
             'n_sma_threshold': n_sma_threshold,
             'weight_decay': weight_decay,
+            'adanorm': adanorm,
             'adamd_debias': adamd_debias,
-            'buffer': [[None, None, None] for _ in range(10)],
             'eps': eps,
         }
+        if adanorm:
+            defaults.update({'r': r})
+
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -77,14 +87,16 @@ class Ranger(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
-                state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['slow_buffer'] = torch.empty_like(p)
                 state['slow_buffer'].copy_(p)
+                if group['adanorm']:
+                    state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -94,8 +106,19 @@ class Ranger(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
             beta1, beta2 = group['betas']
+
+            bias_correction1 = 1.0 - beta1 ** group['step']
+
             n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
+            beta2_t: float = beta2 ** group['step']
+            n_sma: float = n_sma_max - 2 * group['step'] * beta2_t / (1.0 - beta2_t)
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -106,45 +129,45 @@ class Ranger(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
                     state['slow_buffer'] = torch.empty_like(p)
                     state['slow_buffer'].copy_(p)
+                    if group['adanorm']:
+                        state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
-                state['step'] += 1
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 if self.use_gc and grad.dim() > self.gc_gradient_threshold:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                s_grad = grad
+                if group['adanorm']:
+                    grad_norm = torch.linalg.norm(grad)
+
+                    exp_grad_norm = state['exp_grad_norm']
+                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
+
+                    if exp_grad_norm > grad_norm:
+                        s_grad *= exp_grad_norm / grad_norm
+
+                exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                bias_correction1 = 1.0 - beta1 ** state['step']
-
-                buffered = group['buffer'][state['step'] % 10]
-                if state['step'] == buffered[0]:
-                    n_sma, step_size = buffered[1], buffered[2]
+                if n_sma >= self.n_sma_threshold:
+                    step_size = math.sqrt(
+                        (1 - beta2_t)
+                        * (n_sma - 4)
+                        / (n_sma_max - 4)
+                        * (n_sma - 2)
+                        / n_sma
+                        * n_sma_max
+                        / (n_sma_max - 2)
+                    )
+                elif self.degenerated_to_sgd:
+                    step_size = 1.0
                 else:
-                    buffered[0] = state['step']
-                    beta2_t = beta2 ** state['step']
-                    n_sma = n_sma_max - 2 * state['step'] * beta2_t / (1 - beta2_t)
-                    buffered[1] = n_sma
-                    if n_sma > self.n_sma_threshold:
-                        step_size = math.sqrt(
-                            (1 - beta2_t)
-                            * (n_sma - 4)
-                            / (n_sma_max - 4)
-                            * (n_sma - 2)
-                            / n_sma
-                            * n_sma_max
-                            / (n_sma_max - 2)
-                        )
-                    else:
-                        step_size = 1.0
-
-                    buffered[2] = step_size
+                    step_size = -1
 
                 if not group['adamd_debias']:
                     step_size /= bias_correction1
@@ -158,7 +181,7 @@ class Ranger(Optimizer, BaseOptimizer):
                 else:
                     p.add_(exp_avg, alpha=-step_size * group['lr'])
 
-                if state['step'] % group['k'] == 0:
+                if group['step'] % group['k'] == 0:
                     slow_p = state['slow_buffer']
                     slow_p.add_(p - slow_p, alpha=self.alpha)
                     p.copy_(slow_p)
