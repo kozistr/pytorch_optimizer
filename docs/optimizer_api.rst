@@ -65,14 +65,6 @@ diffGrad
 .. autoclass:: pytorch_optimizer.DiffGrad
     :members:
 
-.. _diffRGrad:
-
-diffRGrad
----------
-
-.. autoclass:: pytorch_optimizer.DiffRGrad
-    :members:
-
 .. _GC:
 
 GC
