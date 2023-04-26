@@ -28,7 +28,7 @@ from pytorch_optimizer.optimizer.adapnm import AdaPNM
 from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.alig import AliG
 from pytorch_optimizer.optimizer.apollo import Apollo
-from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptSGD
+from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptSGD
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
 from pytorch_optimizer.optimizer.gc import centralize_gradient
@@ -98,6 +98,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     DAdaptAdaGrad,
     DAdaptAdam,
     DAdaptSGD,
+    DAdaptAdan,
     AdamS,
     AdaFactor,
     Apollo,
