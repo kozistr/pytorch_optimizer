@@ -358,7 +358,7 @@ def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
     optimizer.reset()
 
 
-@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD'])
+@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan'])
 def test_d_adapt_no_progress(optimizer_name):
     param = simple_parameter(True)
     param.grad = None
