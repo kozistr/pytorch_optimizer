@@ -101,9 +101,10 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
         d = group['d']
         d_lr = float(d * lr)
 
-        g_sq = torch.tensor([0.0], device=group['params'][0].device)
-        sk_sq_weighted_change = torch.tensor([0.0], device=group['params'][0].device)
-        sk_l1_change = torch.tensor([0.0], device=group['params'][0].device)
+        device = group['params'][0].device
+        g_sq = torch.tensor([0.0], device=device)
+        sk_sq_weighted_change = torch.tensor([0.0], device=device)
+        sk_l1_change = torch.tensor([0.0], device=device)
 
         for group in self.param_groups:
             weight_decay, eps = group['weight_decay'], group['eps']
@@ -185,6 +186,9 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
         sk_sq_weighted += sk_sq_weighted_change
         gsq_weighted += d_lr * d_lr * g_sq
         sk_l1 += sk_l1_change
+
+        if sk_l1 == 0:
+            return loss
 
         if lr > 0.0:
             d_hat = (sk_sq_weighted - gsq_weighted) / sk_l1
@@ -356,6 +360,9 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
                 sk_sq_weighted.add_(to_real(s * s.conj()).div_(de_nom).sum())
                 sk_l1.add_(s.abs().sum())
 
+        if sk_l1 == 0:
+            return loss
+
         gsq_weighted = beta2 * gsq_weighted + g_sq * (d_lr**2) * (1 - beta2)
         if lr > 0.0:
             d_hat = (sk_sq_weighted / (1.0 - beta2) - gsq_weighted) / sk_l1
@@ -481,6 +488,9 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
                     state['x0'] = torch.clone(p)
 
                 g_sq.add_(grad.pow(2).sum())
+
+        if g_sq == 0:
+            return loss
 
         group = self.param_groups[0]
         if group['k'] == 0:
