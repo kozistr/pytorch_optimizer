@@ -432,7 +432,6 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
             'd': d0,
             'growth_rate': growth_rate,
             'weight_decay': weight_decay,
-            'gsq_weighted': 0.0,
             'k': 0,
         }
         super().__init__(params, defaults)
