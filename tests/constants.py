@@ -315,6 +315,7 @@ ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]]
     (Lamb, {'lr': 5e-1, 'adanorm': True}, 15),
     (RAdam, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 25),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 100),
+    (Adan, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True}, 10),
