@@ -649,6 +649,8 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
                     continue
 
                 grad = p.grad
+                if grad.is_sparse:
+                    raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
                 if 'step' not in state:
