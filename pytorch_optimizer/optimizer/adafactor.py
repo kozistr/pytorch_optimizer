@@ -18,7 +18,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
     :param decay_rate: float. coefficient used to compute running averages of square gradient.
     :param weight_decay: float. weight decay (L2 penalty).
     :param clip_threshold: float. threshold of root-mean-square of final gradient update.
-    :param amsgrad: bool.
+    :param amsgrad: bool. whether to use the AMSBound variant.
     :param scale_parameter: bool. if true, learning rate is scaled by root-mean-square of parameter.
     :param relative_step: bool. if true, time-dependent learning rate is computed instead of external learning rate.
     :param warmup_init: bool. time-dependent learning rate computation depends on whether warm-up initialization
