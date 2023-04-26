@@ -119,16 +119,16 @@ class Adan(Optimizer, BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_diff'] = torch.zeros_like(p)
                     state['exp_avg_nest'] = torch.zeros_like(p)
-                    state['previous_grad'] = grad.clone()
+                    state['previous_grad'] = -grad.clone()
 
                 grad.mul_(clip_global_grad_norm)
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
-                grad_diff = -state['previous_grad']
+                grad_diff = state['previous_grad']
                 grad_diff.add_(grad)
-                state['previous_grad'].copy_(grad)
+                state['previous_grad'].copy_(-grad)
 
                 update = grad + beta2 * grad_diff
 
