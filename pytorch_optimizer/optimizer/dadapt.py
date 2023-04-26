@@ -468,10 +468,13 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
 
         group = self.param_groups[0]
 
-        gsq_weighted, growth_rate = group['gsq_weighted'], group['growth_rate']
+        growth_rate = group['growth_rate']
 
         g_sq = torch.tensor([0.0], device=group['params'][0].device)
         sk_sq = torch.tensor([0.0], device=group['params'][0].device)
+        if 'gsq_weighted' not in group:
+            group['gsq_weighted'] = torch.tensor([0.0], device=group['params'][0].device)
+        gsq_weighted = group['gsq_weighted']
 
         for group in self.param_groups:
             weight_decay = group['weight_decay']
@@ -520,20 +523,16 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
 
                 sk_sq.add_(s.pow(2).sum())
 
-        group['gsq_weighted'] = gsq_weighted + d_lr * d_lr * g_sq
-        gsq_weighted = group['gsq_weighted']
+        gsq_weighted.add_(g_sq, alpha=d_lr ** 2)  # fmt: skip
 
         if lr > 0.0:
-            d_hat = (sk_sq - group['gsq_weighted']) / sk_sq.sqrt()
+            d_hat = (sk_sq - gsq_weighted) / sk_sq.sqrt()
             d = max(d, min(d_hat, d * growth_rate))
-            group['d'] = d
 
         for group in self.param_groups:
             group['gsq_weighted'] = gsq_weighted
             group['d'] = d
             group['g0_norm'] = g0_norm
-
-            momentum = group['momentum']
 
             for p in group['params']:
                 if p.grad is None:
@@ -544,7 +543,7 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
                 z = state['z']
                 z.copy_(state['x0'] - state['s'])
 
-                p.mul_(momentum).add_(z, alpha=1.0 - momentum)
+                p.mul_(group['momentum']).add_(z, alpha=1.0 - group['momentum'])
 
             group['k'] += 1
 
