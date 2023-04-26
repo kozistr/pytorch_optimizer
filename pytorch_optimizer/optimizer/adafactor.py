@@ -18,6 +18,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
     :param decay_rate: float. coefficient used to compute running averages of square gradient.
     :param weight_decay: float. weight decay (L2 penalty).
     :param clip_threshold: float. threshold of root-mean-square of final gradient update.
+    :param amsgrad: bool.
     :param scale_parameter: bool. if true, learning rate is scaled by root-mean-square of parameter.
     :param relative_step: bool. if true, time-dependent learning rate is computed instead of external learning rate.
     :param warmup_init: bool. time-dependent learning rate computation depends on whether warm-up initialization
@@ -34,6 +35,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
         decay_rate: float = -0.8,
         weight_decay: float = 0.0,
         clip_threshold: float = 1.0,
+        amsgrad: bool = False,
         scale_parameter: bool = True,
         relative_step: bool = True,
         warmup_init: bool = False,
@@ -45,6 +47,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
         self.decay_rate = decay_rate
         self.weight_decay = weight_decay
         self.clip_threshold = clip_threshold
+        self.amsgrad = amsgrad
         self.relative_step = relative_step
         self.eps1 = eps1
         self.eps2 = eps2
@@ -54,6 +57,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
         defaults: DEFAULTS = {
             'lr': lr,
             'weight_decay': weight_decay,
+            'amsgrad': amsgrad,
             'scale_parameter': scale_parameter,
             'relative_step': relative_step,
             'warmup_init': warmup_init,
@@ -93,6 +97,9 @@ class AdaFactor(Optimizer, BaseOptimizer):
                     )
                 else:
                     state['exp_avg_sq'] = torch.zeros_like(grad)
+
+                if group['amsgrad']:
+                    state['exp_avg_sq_hat'] = torch.zeros_like(grad)
 
                 state['RMS'] = 0.0
 
@@ -169,6 +176,9 @@ class AdaFactor(Optimizer, BaseOptimizer):
                     else:
                         state['exp_avg_sq'] = torch.zeros_like(grad)
 
+                    if group['amsgrad']:
+                        state['exp_avg_sq_hat'] = torch.zeros_like(grad)
+
                     state['RMS'] = 0.0
 
                 state['RMS'] = self.get_rms(p)
@@ -190,15 +200,18 @@ class AdaFactor(Optimizer, BaseOptimizer):
                     exp_avg_sq_row.mul_(beta2_t).add_(update.mean(dim=-1), alpha=1.0 - beta2_t)
                     exp_avg_sq_col.mul_(beta2_t).add_(update.mean(dim=-2), alpha=1.0 - beta2_t)
 
-                    self.approximate_sq_grad(exp_avg_sq_row, exp_avg_sq_col, output=update)
+                    self.approximate_sq_grad(exp_avg_sq_row, exp_avg_sq_col, update)
                 else:
                     exp_avg_sq = state['exp_avg_sq']
                     exp_avg_sq.mul_(beta2_t).add_(update, alpha=1.0 - beta2_t)
                     torch.rsqrt(exp_avg_sq, out=update)
 
-                update.mul_(grad)
+                if group['amsgrad']:
+                    exp_avg_sq_hat = state['exp_avg_sq_hat']
+                    torch.max(exp_avg_sq_hat, 1 / update, out=exp_avg_sq_hat)
+                    torch.rsqrt(exp_avg_sq_hat / beta2_t, out=update)
 
-                # TODO: implement AMSGrad
+                update.mul_(grad)
 
                 update.div_((self.get_rms(update) / self.clip_threshold).clamp_(min=1.0)).mul_(lr)
 
