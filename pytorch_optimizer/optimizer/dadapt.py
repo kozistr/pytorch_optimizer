@@ -500,12 +500,10 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
             return loss
 
         group = self.param_groups[0]
+
         if group['k'] == 0:
             group['g0_norm'] = g_sq.sqrt().item()
-
         g0_norm = group['g0_norm']
-        if g0_norm == 0:
-            g0_norm = 1.0
 
         d, lr = group['d'], group['lr']
         d_lr = float(d * lr) / g0_norm
