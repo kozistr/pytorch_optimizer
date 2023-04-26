@@ -51,9 +51,6 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
             'd': d0,
             'growth_rate': growth_rate,
             'weight_decay': weight_decay,
-            'gsq_weighted': 0.0,
-            'sk_sq_weighted': 0.0,
-            'sk_l1': 0.0,
             'k': 0,
             'eps': eps,
         }
@@ -92,19 +89,24 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
         group = self.param_groups[0]
 
-        lr, momentum = group['lr'], group['momentum']
-
-        growth_rate = group['growth_rate']
-        gsq_weighted, sk_sq_weighted = group['gsq_weighted'], group['sk_sq_weighted']
-        sk_l1 = group['sk_l1']
+        lr, momentum, growth_rate= group['lr'], group['momentum'], group['growth_rate']
 
         d = group['d']
         d_lr = float(d * lr)
 
-        device = group['params'][0].device
-        g_sq = torch.tensor([0.0], device=device)
-        sk_sq_weighted_change = torch.tensor([0.0], device=device)
-        sk_l1_change = torch.tensor([0.0], device=device)
+        g_sq = torch.tensor([0.0], device=group['params'][0].device)
+        sk_sq_weighted_change = torch.tensor([0.0], device=group['params'][0].device)
+        sk_l1_change = torch.tensor([0.0], device=group['params'][0].device)
+        if 'gsq_weighted' not in group:
+            group['gsq_weighted'] = torch.tensor([0.0], device=group['params'][0].device)
+        if 'sk_sq_weighted' not in group:
+            group['sk_sq_weighted'] = torch.tensor([0.0], device=group['params'][0].device)
+        if 'sk_l1' not in group:
+            group['sk_l1'] = torch.tensor([0.0], device=group['params'][0].device)
+
+        gsq_weighted = group['gsq_weighted']
+        sk_sq_weighted = group['sk_sq_weighted']
+        sk_l1 = group['sk_l1']
 
         for group in self.param_groups:
             weight_decay, eps = group['weight_decay'], group['eps']
@@ -183,9 +185,9 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                     sk_sq_weighted_change.add_(sk_sq_weighted_param - old_sk_sq_weighted_param)
                     sk_l1_change.add_(sk_l1_param - old_sk_l1_param)
 
-        sk_sq_weighted += sk_sq_weighted_change
-        gsq_weighted += d_lr * d_lr * g_sq
-        sk_l1 += sk_l1_change
+        sk_sq_weighted.add_(sk_sq_weighted_change)
+        gsq_weighted.add_(g_sq, alpha=d_lr ** 2)  # fmt: skip
+        sk_l1.add_(sk_l1_change)
 
         if sk_l1 == 0:
             return loss
@@ -279,7 +281,6 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
             'growth_rate': growth_rate,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
-            'gsq_weighted': 0.0,
             'k': 0,
             'eps': eps,
         }
@@ -318,7 +319,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         group = self.param_groups[0]
 
         beta1, beta2 = group['betas']
-        gsq_weighted, growth_rate = group['gsq_weighted'], group['growth_rate']
+        growth_rate = group['growth_rate']
 
         d, lr = group['d'], group['lr']
         d_lr = float(d * lr)
@@ -326,6 +327,9 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         g_sq = torch.tensor([0.0], device=group['params'][0].device)
         sk_sq_weighted = torch.tensor([0.0], device=group['params'][0].device)
         sk_l1 = torch.tensor([0.0], device=group['params'][0].device)
+        if 'gsq_weighted' not in group:
+            group['gsq_weighted'] = torch.tensor([0.0], device=group['params'][0].device)
+        gsq_weighted = group['gsq_weighted']
 
         for group in self.param_groups:
             for p in group['params']:
@@ -363,7 +367,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         if sk_l1 == 0:
             return loss
 
-        gsq_weighted.mul_(beta2).add_(g_sq, alpha=(d_lr**2) * (1.0 - beta2))  # skip: fmt
+        gsq_weighted.mul_(beta2).add_(g_sq, alpha=(d_lr ** 2) * (1.0 - beta2))  # fmt: skip
 
         if lr > 0.0:
             d_hat = (sk_sq_weighted / (1.0 - beta2) - gsq_weighted) / sk_l1
@@ -583,12 +587,13 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
 
         defaults: DEFAULTS = {
             'lr': lr,
+            'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'd': d0,
             'growth_rate': growth_rate,
             'k': 0,
-            'gsq_weighted': 0.0,
+            'eps': eps,
         }
         super().__init__(params, defaults)
 
@@ -596,6 +601,7 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
         self.validate_learning_rate(self.lr)
         self.validate_betas(self.betas)
         self.validate_weight_decay(self.weight_decay)
+        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'DAdaptAdan'
@@ -603,7 +609,6 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
-            group['gsq_weighted'] = 0.0
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -626,7 +631,7 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
         group = self.param_groups[0]
 
         beta1, beta2, beta3 = group['betas']
-        gsq_weighted, growth_rate = group['gsq_weighted'], group['growth_rate']
+        growth_rate = group['growth_rate']
 
         d, lr = group['d'], group['lr']
         d_lr = float(d * lr)
@@ -634,6 +639,9 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
         g_sq = torch.tensor([0.0], device=group['params'][0].device)
         sk_sq_weighted = torch.tensor([0.0], device=group['params'][0].device)
         sk_l1 = torch.tensor([0.0], device=group['params'][0].device)
+        if 'gsq_weighted' not in group:
+            group['gsq_weighted'] = torch.tensor([0.0], device=group['params'][0].device)
+        gsq_weighted = group['gsq_weighted']
 
         for group in self.param_groups:
             for p in group['params']:
@@ -678,7 +686,7 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
         if sk_l1 == 0:
             return loss
 
-        gsq_weighted.mul_(beta3).add_(g_sq, alpha=(d_lr**2) * (1.0 - beta3))  # skip: fmt
+        gsq_weighted.mul_(beta3).add_(g_sq, alpha=(d_lr ** 2) * (1.0 - beta3))  # fmt: skip
 
         if lr > 0.0:
             d_hat = (sk_sq_weighted / (1.0 - beta3) - gsq_weighted) / sk_l1
