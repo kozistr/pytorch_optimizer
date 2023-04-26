@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytorch_optimizer"
-version = "2.6.1"
+version = "2.7.0"
 description = "optimizer & lr scheduler implementations in PyTorch with clean-code, strict types. Also, including useful optimization ideas."
 license = "Apache-2.0"
 authors = ["kozistr <kozistr@gmail.com>"]
@@ -103,6 +103,7 @@ target-version = "py39"
 omit = [
     "./pytorch_optimizer/optimizer/gsam.py",
     "./pytorch_optimizer/optimizer/fp16.py",
+    "./pytorch_optimizer/optimizer/rotograd.py",
 ]
 
 [build-system]

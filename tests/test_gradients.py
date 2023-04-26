@@ -131,3 +131,30 @@ def test_sam_no_gradient():
 
     loss_fn(y_data, model(x_data)).backward()
     optimizer.second_step(zero_grad=True)
+
+
+@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan'])
+def test_d_adapt_no_progress(optimizer_name):
+    param = simple_parameter(True)
+    param.grad = None
+
+    optimizer = load_optimizer(optimizer_name)([param])
+    optimizer.zero_grad()
+    optimizer.step()
+
+
+@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan'])
+def test_d_adapt_2nd_stage_gradient(optimizer_name):
+    p1 = simple_parameter(require_grad=False)
+    p2 = simple_parameter(require_grad=True)
+    p3 = simple_parameter(require_grad=True)
+    params = [{'params': [p1]}] + [{'params': [p2]}] + [{'params': [p3]}]
+
+    optimizer = load_optimizer(optimizer_name)(params)
+    optimizer.zero_grad()
+
+    p1.grad = None
+    p2.grad = torch.randn(1, 1)
+    p3.grad = torch.randn(1, 1)
+
+    optimizer.step()

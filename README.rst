@@ -140,7 +140,9 @@ You can check the supported optimizers & lr schedulers.
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | SM3          | *Memory-Efficient Adaptive Optimization*                                                        | `github <https://github.com/google-research/google-research/tree/master/sm3>`__   | `https://arxiv.org/abs/1901.11150 <https://arxiv.org/abs/1901.11150>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
-| AdaNorm`     | *Adaptive Gradient Norm Correction based Optimizer for CNNs*                                    | `github <https://github.com/shivram1987/AdaNorm>`__                               | `https://arxiv.org/abs/2210.06364 <https://arxiv.org/abs/2210.06364>`__                       |
+| AdaNorm      | *Adaptive Gradient Norm Correction based Optimizer for CNNs*                                    | `github <https://github.com/shivram1987/AdaNorm>`__                               | `https://arxiv.org/abs/2210.06364 <https://arxiv.org/abs/2210.06364>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| RotoGrad     | *Gradient Homogenization in Multitask Learning*                                                 | `github <https://github.com/adrianjav/rotograd>`__                                | `https://openreview.net/pdf?id=T8wHz4rnuGL <https://openreview.net/pdf?id=T8wHz4rnuGL>`__     |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
@@ -350,6 +352,8 @@ Citations
 `SM3 <https://ui.adsabs.harvard.edu/abs/2019arXiv190111150A/exportcitation>`__
 
 `AdaNorm <https://github.com/shivram1987/AdaNorm/tree/main#citation>`__
+
+`RotoGrad <https://github.com/adrianjav/rotograd#citing>`__
 
 Citation
 --------

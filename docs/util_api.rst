@@ -177,3 +177,11 @@ reduce_max_except_dim
 
 .. autoclass:: pytorch_optimizer.reduce_max_except_dim
     :members:
+
+.. _get_global_gradient_norm:
+
+get_global_gradient_norm
+------------------------
+
+.. autoclass:: pytorch_optimizer.get_global_gradient_norm
+    :members:

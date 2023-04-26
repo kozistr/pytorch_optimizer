@@ -217,6 +217,14 @@ DAdaptSGD
 .. autoclass:: pytorch_optimizer.DAdaptSGD
     :members:
 
+.. _DAdaptAdan:
+
+DAdaptAdan
+----------
+
+.. autoclass:: pytorch_optimizer.DAdaptAdan
+    :members:
+
 .. _AdamS:
 
 AdamS
@@ -279,4 +287,12 @@ AdaNorm
 -------
 
 .. autoclass:: pytorch_optimizer.AdaNorm
+    :members:
+
+.. _RotoGrad:
+
+RotoGrad
+--------
+
+.. autoclass:: pytorch_optimizer.RotoGrad
     :members:

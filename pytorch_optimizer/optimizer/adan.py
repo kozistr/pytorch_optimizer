@@ -8,6 +8,7 @@ from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.gc import centralize_gradient
+from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
 class Adan(Optimizer, BaseOptimizer):
@@ -20,6 +21,8 @@ class Adan(Optimizer, BaseOptimizer):
     :param weight_decouple: bool. decoupled weight decay.
     :param max_grad_norm: float. max gradient norm to clip.
     :param use_gc: bool. use gradient centralization.
+    :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
+    :param adanorm: bool. whether to use the AdaNorm variant.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -32,6 +35,8 @@ class Adan(Optimizer, BaseOptimizer):
         weight_decouple: bool = False,
         max_grad_norm: float = 0.0,
         use_gc: bool = False,
+        r: float = 0.95,
+        adanorm: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -49,8 +54,12 @@ class Adan(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'max_grad_norm': max_grad_norm,
+            'adanorm': adanorm,
             'eps': eps,
         }
+        if adanorm:
+            defaults.update({'r': r})
+
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -71,25 +80,21 @@ class Adan(Optimizer, BaseOptimizer):
                 state = self.state[p]
 
                 state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
                 state['exp_avg_diff'] = torch.zeros_like(p)
-                state['exp_avg_nest'] = torch.zeros_like(p)
                 state['previous_grad'] = torch.zeros_like(p)
+                if group['adanorm']:
+                    state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
     @torch.no_grad()
     def get_global_gradient_norm(self) -> Union[torch.Tensor, float]:
         if self.defaults['max_grad_norm'] == 0.0:
             return 1.0
 
-        global_grad_norm = torch.zeros(1, dtype=torch.float32, device=self.param_groups[0]['params'][0].device)
+        global_grad_norm = get_global_gradient_norm(self.param_groups, self.param_groups[0]['params'][0].device)
+        global_grad_norm.sqrt_().add_(self.eps)
 
-        for group in self.param_groups:
-            for p in group['params']:
-                if p.grad is not None:
-                    global_grad_norm.add_(torch.linalg.norm(p.grad).pow(2))
-
-        global_grad_norm.sqrt_()
-
-        return torch.clamp(self.defaults['max_grad_norm'] / (global_grad_norm + self.eps), max=1.0)
+        return torch.clamp(self.defaults['max_grad_norm'] / global_grad_norm, max=1.0)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -122,35 +127,50 @@ class Adan(Optimizer, BaseOptimizer):
                 state = self.state[p]
                 if len(state) == 0:
                     state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
                     state['exp_avg_diff'] = torch.zeros_like(p)
-                    state['exp_avg_nest'] = torch.zeros_like(p)
-                    state['previous_grad'] = grad.clone()
+                    state['previous_grad'] = grad.clone().mul_(-clip_global_grad_norm)
+                    if group['adanorm']:
+                        state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 grad.mul_(clip_global_grad_norm)
 
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
-                grad_diff = -state['previous_grad']
+                grad_diff = state['previous_grad']
                 grad_diff.add_(grad)
-                state['previous_grad'].copy_(grad)
 
-                update = grad + beta2 * grad_diff
+                s_grad = grad
+                if group['adanorm']:
+                    grad_norm = torch.linalg.norm(grad)
 
-                exp_avg, exp_avg_diff, exp_avg_nest = state['exp_avg'], state['exp_avg_diff'], state['exp_avg_nest']
+                    exp_grad_norm = state['exp_grad_norm']
+                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                    if exp_grad_norm > grad_norm:
+                        s_grad *= exp_grad_norm / grad_norm
+
+                exp_avg, exp_avg_sq, exp_avg_diff = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_diff']
+
+                exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_diff.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
-                exp_avg_nest.mul_(beta3).addcmul_(update, update, value=1.0 - beta3)
 
-                de_nom = (exp_avg_nest.sqrt_() / bias_correction3_sq).add_(self.eps)
-                perturb = (exp_avg / bias_correction1 + beta2 * exp_avg_diff / bias_correction2).div_(de_nom)
+                grad_diff.mul_(beta2).add_(grad)
+                exp_avg_sq.mul_(beta3).addcmul_(grad_diff, grad_diff, value=1.0 - beta3)
+
+                de_nom = exp_avg_sq.sqrt()
+                de_nom.div_(bias_correction3_sq).add_(group['eps'])
 
                 if group['weight_decouple']:
                     p.mul_(1.0 - group['lr'] * group['weight_decay'])
-                    p.add_(perturb, alpha=-group['lr'])
-                else:
-                    p.add_(perturb, alpha=-group['lr'])
+
+                p.addcdiv_(exp_avg, de_nom, value=-group['lr'] / bias_correction1)
+                p.addcdiv_(exp_avg_diff, de_nom, value=-group['lr'] * beta2 / bias_correction2)
+
+                if not group['weight_decouple']:
                     p.div_(1.0 + group['lr'] * group['weight_decay'])
+
+                state['previous_grad'].copy_(-grad)
 
         return loss

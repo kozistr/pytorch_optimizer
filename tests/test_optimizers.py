@@ -103,6 +103,7 @@ def test_sam_optimizers(adaptive, optimizer_sam_config):
         (optimizer_class.__name__ == 'Shampoo' and 'decoupled_learning_rate' in config)
         or (optimizer_class.__name__ == 'DAdaptAdam')
         or (optimizer_class.__name__ == 'DAdaptSGD')
+        or (optimizer_class.__name__ == 'DAdaptAdan')
         or (optimizer_class.__name__ == 'Apollo' and 'weight_decay_type' in config)
         or (optimizer_class.__name__ == 'AliG')
     ):
@@ -347,7 +348,7 @@ def test_reset(optimizer_config):
 
 @pytest.mark.parametrize('require_gradient', [False, True])
 @pytest.mark.parametrize('sparse_gradient', [False, True])
-@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD'])
+@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan'])
 def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
     param = simple_sparse_parameter(require_gradient)[1] if sparse_gradient else simple_parameter(require_gradient)
     if not require_gradient:

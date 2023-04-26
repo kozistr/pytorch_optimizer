@@ -1,5 +1,5 @@
 import math
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -243,6 +243,19 @@ def l2_projection(parameters: PARAMETERS, max_norm: float = 1e2):
         ratio = max_norm / global_norm
         for param in parameters:
             param *= ratio  # noqa: PLW2901
+
+
+@torch.no_grad()
+def get_global_gradient_norm(param_groups: List[Dict], device: torch.device) -> torch.Tensor:
+    r"""Get global gradient norm."""
+    global_grad_norm = torch.zeros(1, dtype=torch.float32, device=device)
+
+    for group in param_groups:
+        for p in group['params']:
+            if p.grad is not None:
+                global_grad_norm.add_(p.grad.norm().pow(2))
+
+    return global_grad_norm
 
 
 @torch.no_grad()

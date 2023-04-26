@@ -28,7 +28,7 @@ from pytorch_optimizer.optimizer.adapnm import AdaPNM
 from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.alig import AliG
 from pytorch_optimizer.optimizer.apollo import Apollo
-from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptSGD
+from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptSGD
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
 from pytorch_optimizer.optimizer.gc import centralize_gradient
@@ -45,6 +45,7 @@ from pytorch_optimizer.optimizer.pnm import PNM
 from pytorch_optimizer.optimizer.radam import RAdam
 from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
+from pytorch_optimizer.optimizer.rotograd import RotoGrad
 from pytorch_optimizer.optimizer.sam import SAM
 from pytorch_optimizer.optimizer.sgdp import SGDP
 from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
@@ -68,6 +69,7 @@ from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
     disable_running_stats,
     enable_running_stats,
+    get_global_gradient_norm,
     get_optimizer_parameters,
     normalize_gradient,
     reduce_max_except_dim,
@@ -96,6 +98,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     DAdaptAdaGrad,
     DAdaptAdam,
     DAdaptSGD,
+    DAdaptAdan,
     AdamS,
     AdaFactor,
     Apollo,
