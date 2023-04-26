@@ -134,6 +134,16 @@ def test_sam_no_gradient():
 
 
 @pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan'])
+def test_d_adapt_no_progress(optimizer_name):
+    param = simple_parameter(True)
+    param.grad = None
+
+    optimizer = load_optimizer(optimizer_name)([param])
+    optimizer.zero_grad()
+    optimizer.step()
+
+
+@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan'])
 def test_d_adapt_2nd_stage_gradient(optimizer_name):
     p1 = simple_parameter(require_grad=False)
     p2 = simple_parameter(require_grad=True)

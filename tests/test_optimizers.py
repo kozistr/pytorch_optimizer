@@ -359,16 +359,6 @@ def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
     optimizer.reset()
 
 
-@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan'])
-def test_d_adapt_no_progress(optimizer_name):
-    param = simple_parameter(True)
-    param.grad = None
-
-    optimizer = load_optimizer(optimizer_name)([param])
-    optimizer.zero_grad()
-    optimizer.step()
-
-
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2])
 def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
     (x_data, y_data), _, loss_fn = build_environment()
