@@ -685,7 +685,7 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
                 sk_sq_weighted.add_(to_real(s * s.conj()).div_(de_nom).sum())
                 sk_l1.add_(s.abs().sum())
 
-                state['previous_grad'].copy(-grad)
+                state['previous_grad'].copy_(-grad)
 
         if sk_l1 == 0:
             return loss
