@@ -89,7 +89,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
         group = self.param_groups[0]
 
-        lr, momentum, growth_rate= group['lr'], group['momentum'], group['growth_rate']
+        lr, momentum, growth_rate = group['lr'], group['momentum'], group['growth_rate']
 
         d = group['d']
         d_lr = float(d * lr)
@@ -684,6 +684,8 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
 
                 sk_sq_weighted.add_(to_real(s * s.conj()).div_(de_nom).sum())
                 sk_l1.add_(s.abs().sum())
+
+                state['previous_grad'].copy(-grad)
 
         if sk_l1 == 0:
             return loss
