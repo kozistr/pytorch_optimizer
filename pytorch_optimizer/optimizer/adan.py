@@ -72,8 +72,8 @@ class Adan(Optimizer, BaseOptimizer):
                 state = self.state[p]
 
                 state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
                 state['exp_avg_diff'] = torch.zeros_like(p)
-                state['exp_avg_nest'] = torch.zeros_like(p)
                 state['previous_grad'] = torch.zeros_like(p)
 
     @torch.no_grad()
@@ -117,9 +117,9 @@ class Adan(Optimizer, BaseOptimizer):
                 state = self.state[p]
                 if len(state) == 0:
                     state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
                     state['exp_avg_diff'] = torch.zeros_like(p)
-                    state['exp_avg_nest'] = torch.zeros_like(p)
-                    state['previous_grad'] = -grad.clone()
+                    state['previous_grad'] = grad.clone().mul_(-clip_global_grad_norm)
 
                 grad.mul_(clip_global_grad_norm)
 
@@ -128,17 +128,16 @@ class Adan(Optimizer, BaseOptimizer):
 
                 grad_diff = state['previous_grad']
                 grad_diff.add_(grad)
-                state['previous_grad'].copy_(-grad)
 
-                update = grad + beta2 * grad_diff
-
-                exp_avg, exp_avg_diff, exp_avg_nest = state['exp_avg'], state['exp_avg_diff'], state['exp_avg_nest']
+                exp_avg, exp_avg_sq, exp_avg_diff = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_diff']
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_diff.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
-                exp_avg_nest.mul_(beta3).addcmul_(update, update, value=1.0 - beta3)
 
-                de_nom = exp_avg_nest.sqrt()
+                grad_diff.mul_(beta2).add_(grad)
+                exp_avg_sq.mul_(beta3).addcmul_(grad_diff, grad_diff, value=1.0 - beta3)
+
+                de_nom = exp_avg_sq.sqrt()
                 de_nom.div_(bias_correction3_sq).add_(group['eps'])
 
                 if group['weight_decouple']:
@@ -149,5 +148,7 @@ class Adan(Optimizer, BaseOptimizer):
 
                 if not group['weight_decouple']:
                     p.div_(1.0 + group['lr'] * group['weight_decay'])
+
+                state['previous_grad'].copy_(-grad)
 
         return loss
