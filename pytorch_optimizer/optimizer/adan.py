@@ -141,13 +141,13 @@ class Adan(Optimizer, BaseOptimizer):
                 de_nom = exp_avg_nest.sqrt()
                 de_nom.div_(bias_correction3_sq).add_(group['eps'])
 
-                perturb = (exp_avg / bias_correction1 + beta2 * exp_avg_diff / bias_correction2).div_(de_nom)
-
                 if group['weight_decouple']:
                     p.mul_(1.0 - group['lr'] * group['weight_decay'])
-                    p.add_(perturb, alpha=-group['lr'])
-                else:
-                    p.add_(perturb, alpha=-group['lr'])
+
+                p.addcdiv_(exp_avg, de_nom, value=-group['lr'] / bias_correction1)
+                p.addcdiv_(exp_avg_diff, de_nom, value=-group['lr'] * beta2 / bias_correction2)
+
+                if not group['weight_decouple']:
                     p.div_(1.0 + group['lr'] * group['weight_decay'])
 
         return loss
