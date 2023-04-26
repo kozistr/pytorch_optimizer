@@ -138,7 +138,9 @@ class Adan(Optimizer, BaseOptimizer):
                 exp_avg_diff.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
                 exp_avg_nest.mul_(beta3).addcmul_(update, update, value=1.0 - beta3)
 
-                de_nom = (exp_avg_nest.sqrt_() / bias_correction3_sq).add_(self.eps)
+                de_nom = exp_avg_nest.sqrt()
+                de_nom.div_(bias_correction3_sq).add_(group['eps'])
+
                 perturb = (exp_avg / bias_correction1 + beta2 * exp_avg_diff / bias_correction2).div_(de_nom)
 
                 if group['weight_decouple']:
