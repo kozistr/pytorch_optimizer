@@ -21,6 +21,8 @@ class Adan(Optimizer, BaseOptimizer):
     :param weight_decouple: bool. decoupled weight decay.
     :param max_grad_norm: float. max gradient norm to clip.
     :param use_gc: bool. use gradient centralization.
+    :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
+    :param adanorm: bool. whether to use the AdaNorm variant.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -33,6 +35,8 @@ class Adan(Optimizer, BaseOptimizer):
         weight_decouple: bool = False,
         max_grad_norm: float = 0.0,
         use_gc: bool = False,
+        r: float = 0.95,
+        adanorm: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -50,8 +54,12 @@ class Adan(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'max_grad_norm': max_grad_norm,
+            'adanorm': adanorm,
             'eps': eps,
         }
+        if adanorm:
+            defaults.update({'r': r})
+
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -75,6 +83,8 @@ class Adan(Optimizer, BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['exp_avg_diff'] = torch.zeros_like(p)
                 state['previous_grad'] = torch.zeros_like(p)
+                if group['adanorm']:
+                    state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
     @torch.no_grad()
     def get_global_gradient_norm(self) -> Union[torch.Tensor, float]:
@@ -120,6 +130,8 @@ class Adan(Optimizer, BaseOptimizer):
                     state['exp_avg_sq'] = torch.zeros_like(p)
                     state['exp_avg_diff'] = torch.zeros_like(p)
                     state['previous_grad'] = grad.clone().mul_(-clip_global_grad_norm)
+                    if group['adanorm']:
+                        state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 grad.mul_(clip_global_grad_norm)
 
@@ -129,9 +141,19 @@ class Adan(Optimizer, BaseOptimizer):
                 grad_diff = state['previous_grad']
                 grad_diff.add_(grad)
 
+                s_grad = grad
+                if group['adanorm']:
+                    grad_norm = torch.linalg.norm(grad)
+
+                    exp_grad_norm = state['exp_grad_norm']
+                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
+
+                    if exp_grad_norm > grad_norm:
+                        s_grad *= exp_grad_norm / grad_norm
+
                 exp_avg, exp_avg_sq, exp_avg_diff = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_diff']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_diff.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
 
                 grad_diff.mul_(beta2).add_(grad)
