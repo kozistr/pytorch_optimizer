@@ -77,7 +77,7 @@ class Lion(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['exp_avg'] = torch.zeros_like(p)
 
-                update = exp_avg = state['exp_avg']
+                exp_avg = state['exp_avg']
 
                 if weight_decay > 0.0:
                     if group['weight_decouple']:
@@ -85,9 +85,10 @@ class Lion(Optimizer, BaseOptimizer):
                     else:
                         grad.add_(p, alpha=weight_decay)
 
-                update.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                update = exp_avg.clone()
+                update.mul_(beta1).add_(grad, alpha=1.0 - beta1).sign_()
                 exp_avg.mul_(beta2).add_(grad, alpha=1.0 - beta2)
 
-                p.add_(update.sign(), alpha=-group['lr'])
+                p.add_(update, alpha=-group['lr'])
 
         return loss
