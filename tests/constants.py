@@ -302,6 +302,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'grad_averaging': True}, 50),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
+    (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 10),
     (AliG, {'max_lr': 5e-1, 'momentum': 0.9}, 5),
     (AliG, {'max_lr': 5e-1, 'momentum': 0.9, 'adjusted_momentum': True}, 5),
     (SM3, {'lr': 5e-1, 'momentum': 0.9, 'beta': 0.9}, 5),
@@ -320,6 +321,7 @@ ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]]
     (RAdam, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 25),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 100),
     (Adan, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
+    (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True}, 10),
