@@ -96,8 +96,6 @@ class Lion(Optimizer, BaseOptimizer):
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
-                exp_avg = state['exp_avg']
-
                 if weight_decay > 0.0:
                     if group['weight_decouple']:
                         p.mul_(1.0 - group['lr'] * weight_decay)
@@ -114,7 +112,9 @@ class Lion(Optimizer, BaseOptimizer):
                     if exp_grad_norm > grad_norm:
                         s_grad *= exp_grad_norm / grad_norm
 
+                exp_avg = state['exp_avg']
                 update = exp_avg.clone()
+
                 update.mul_(beta1).add_(grad, alpha=1.0 - beta1).sign_()
                 exp_avg.mul_(beta2).add_(s_grad, alpha=1.0 - beta2)
 
