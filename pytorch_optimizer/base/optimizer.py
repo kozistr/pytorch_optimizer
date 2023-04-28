@@ -136,6 +136,11 @@ class BaseOptimizer(ABC):
         if constant > boundary:
             raise ValueError(f'[-] constant {constant} must be in a range of (-inf, {boundary}]')
 
+    @staticmethod
+    def validate_amplifier(amplifier: float):
+        if amplifier < 0.0:
+            raise ValueError(f'[-] amplifier {amplifier} must be non-negative')
+
     @abstractmethod
     def validate_parameters(self):
         raise NotImplementedError
