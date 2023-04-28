@@ -312,3 +312,19 @@ AccSGD
 
 .. autoclass:: pytorch_optimizer.AccSGD
     :members:
+
+.. _SGDW:
+
+SGDW
+----
+
+.. autoclass:: pytorch_optimizer.SGDW
+    :members:
+
+.. _ASGD:
+
+ASGD
+----
+
+.. autoclass:: pytorch_optimizer.ASGD
+    :members:

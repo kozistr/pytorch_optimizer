@@ -23,7 +23,7 @@ def test_learning_rate(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
-    if optimizer_name in ('shampoo', 'scalableshampoo', 'dadaptsgd', 'adafactor', 'lion', 'a2grad', 'accsgd'):
+    if optimizer_name in ('shampoo', 'scalableshampoo', 'dadaptsgd', 'adafactor', 'lion', 'a2grad', 'accsgd', 'sgdw'):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -85,7 +85,7 @@ def test_trust_coefficient(optimizer_name):
         optimizer(None, trust_coefficient=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_name', ['madgrad', 'lars', 'sm3'])
+@pytest.mark.parametrize('optimizer_name', ['madgrad', 'lars', 'sm3', 'sgdw'])
 def test_momentum(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
@@ -199,3 +199,10 @@ def test_size_of_parameter(optimizer):
 
     with pytest.raises(ZeroParameterSizeError):
         load_optimizer(optimizer)([param], 1).step()
+
+
+@pytest.mark.parametrize('optimizer_name', ['asgd'])
+def test_amplifier(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer([simple_parameter(False)], amplifier=-1.0)
