@@ -15,7 +15,8 @@ pytorch-optimizer
 +--------------+------------------------------------------+
 
 | **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. It includes useful and practical optimization ideas.
-| I just re-implemented (speed & memory tweaks) the algorithm while based on the original paper.
+| I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper.
+| Currently, about 40 optimizers, 6 lr schedulers are supported!
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
 Getting Started
