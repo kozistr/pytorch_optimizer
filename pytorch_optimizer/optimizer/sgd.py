@@ -92,11 +92,11 @@ class AccSGD(Optimizer, BaseOptimizer):
                     state['momentum_buffer'] = p.clone()
 
                 if group['weight_decay'] > 0.0:
-                    p.add_(p, alpha=group['weight_decay'])
+                    grad.add_(p, alpha=group['weight_decay'])
 
                 buf = state['momentum_buffer']
-                buf.mul_(1.0 / beta - 1.0).add_(p, alpha=1.0 - large_lr).mul_(beta)
+                buf.mul_((1.0 / beta) - 1.0).add_(grad, alpha=-large_lr).add_(p).mul_(beta)
 
-                p.add_(p, alpha=-group['lr']).mul_(zeta).add_(buf, alpha=1.0 - zeta)
+                p.add_(grad, alpha=-group['lr']).mul_(zeta).add_(buf, alpha=1.0 - zeta)
 
         return loss
