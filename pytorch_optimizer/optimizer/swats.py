@@ -36,7 +36,7 @@ class SWATS(Optimizer, BaseOptimizer):
         r: float = 0.95,
         adanorm: bool = False,
         adam_debias: bool = False,
-        eps: float = 1e-8,
+        eps: float = 1e-9,
     ):
         self.lr = lr
         self.betas = betas
@@ -130,12 +130,12 @@ class SWATS(Optimizer, BaseOptimizer):
 
                 if group['phase'] == 'sgd':
                     if 'momentum_buffer' not in state:
-                        state['momentum_buffer'] = grad.clone()
+                        state['momentum_buffer'] = torch.zeros_like(grad)
 
                     buf = state['momentum_buffer']
                     buf.mul_(beta1).add_(grad)
 
-                    grad = buf
+                    grad = buf.clone()
 
                     grad.mul_(1.0 - beta1)
                     if group['nesterov']:
@@ -178,14 +178,14 @@ class SWATS(Optimizer, BaseOptimizer):
                 pg = perturb_view.dot(grad.view(-1))
 
                 if pg != 0:
-                    scaling = perturb_view.dot(perturb_view) / -pg
+                    scaling = perturb_view.dot(perturb_view).div_(-pg)
 
                     exp_avg2 = state['exp_avg2']
                     exp_avg2.mul_(beta2).add_(scaling, alpha=1.0 - beta2)
 
                     corrected_exp_avg = exp_avg2 / bias_correction2
 
-                    if group['step'] > 1 and corrected_exp_avg > 0 and corrected_exp_avg.allclose(scaling, rtol=1e-6):
+                    if group['step'] > 1 and corrected_exp_avg.allclose(scaling, rtol=1e-6):
                         group['phase'] = 'sgd'
                         group['lr'] = corrected_exp_avg.item()
 
