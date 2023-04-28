@@ -36,7 +36,7 @@ class SWATS(Optimizer, BaseOptimizer):
         r: float = 0.95,
         adanorm: bool = False,
         adam_debias: bool = False,
-        eps: float = 1e-3,
+        eps: float = 1e-8,
     ):
         self.lr = lr
         self.betas = betas
@@ -69,7 +69,7 @@ class SWATS(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
-        return 'Yogi'
+        return 'SWATS'
 
     @torch.no_grad()
     def reset(self):
@@ -79,7 +79,7 @@ class SWATS(Optimizer, BaseOptimizer):
 
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
-                state['exp_avg2'] = p.new(1).fill_(0)
+                state['exp_avg2'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
                 if group['amsgrad']:
                     state['max_exp_avg_sq'] = torch.zeros_like(p)
                 if group['adanorm']:
@@ -115,7 +115,7 @@ class SWATS(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
-                    state['exp_avg2'] = p.new(1).fill_(0)
+                    state['exp_avg2'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
                     if group['amsgrad']:
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
                     if group['adanorm']:
@@ -156,7 +156,7 @@ class SWATS(Optimizer, BaseOptimizer):
                         s_grad *= exp_grad_norm / grad_norm
 
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1 - beta2)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 if group['amsgrad']:
                     max_exp_avg_sq = state['max_exp_avg_sq']
