@@ -77,6 +77,7 @@ from pytorch_optimizer.optimizer.utils import (
     reduce_max_except_dim,
     unit_norm,
 )
+from pytorch_optimizer.optimizer.yogi import Yogi
 
 OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaBelief,
@@ -112,6 +113,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     A2Grad,
     AccSGD,
     SGDW,
+    Yogi,
     ASGD,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}

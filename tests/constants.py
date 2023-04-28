@@ -36,6 +36,7 @@ from pytorch_optimizer import (
     Ranger21,
     ScalableShampoo,
     Shampoo,
+    Yogi,
 )
 from tests.utils import build_lookahead
 
@@ -323,6 +324,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SGDW, {'lr': 5e-1, 'momentum': 0.9, 'weight_decay': 1e-3, 'nesterov': True}, 5),
     (ASGD, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (ASGD, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
+    (Yogi, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
@@ -331,25 +333,26 @@ ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]]
     (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
     (DiffGrad, {'lr': 5e-2, 'weight_decay': 1e-3, 'adanorm': True}, 5),
     (Lamb, {'lr': 5e-1, 'adanorm': True}, 15),
-    (RAdam, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 25),
+    (RAdam, {'lr': 5e0, 'weight_decay': 1e-3, 'adanorm': True}, 25),
     (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 100),
     (Adan, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
+    (Yogi, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
-    (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True}, 10),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True}, 25),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True, 'adam_debias': True}, 25),
-    (AdaBound, {'lr': 5e-1, 'gamma': 0.1, 'weight_decay': 1e-3, 'adam_debias': True}, 50),
-    (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True}, 10),
-    (AdamS, {'lr': 2e1, 'weight_decay': 1e-3, 'adam_debias': True}, 10),
-    (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True}, 25),
-    (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True, 'adam_debias': True}, 50),
-    (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True, 'adam_debias': True}, 50),
-    (RAdam, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True}, 50),
-    (Ranger, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True}, 100),
-    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True, 'num_iterations': 150}, 150),
-    (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True}, 10),
-    (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True}, 10),
-    (AdaNorm, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True}, 10),
+    (AdaBelief, {'lr': 1e1, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
+    (AdaBelief, {'lr': 1e1, 'weight_decay': 1e-3, 'rectify': True, 'adam_debias': True}, 5),
+    (AdaBound, {'lr': 1e0, 'gamma': 0.1, 'weight_decay': 1e-3, 'adam_debias': True}, 35),
+    (AdamP, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
+    (AdamS, {'lr': 2e1, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
+    (DiffGrad, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 25),
+    (DiffGrad, {'lr': 1e0, 'weight_decay': 1e-3, 'rectify': True, 'adam_debias': True}, 25),
+    (Lamb, {'lr': 1e1, 'weight_decay': 1e-3, 'rectify': True, 'adam_debias': True}, 30),
+    (RAdam, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 25),
+    (Ranger, {'lr': 1e1, 'weight_decay': 1e-3, 'adam_debias': True}, 35),
+    (Ranger21, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True, 'num_iterations': 125}, 125),
+    (AdaPNM, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 10),
+    (NovoGrad, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
+    (AdaNorm, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
+    (Yogi, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
 ]

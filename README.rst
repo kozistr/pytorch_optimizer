@@ -14,8 +14,9 @@ pytorch-optimizer
 | License      | |apache|                                 |
 +--------------+------------------------------------------+
 
-| **pytorch-optimizer** is bunch of optimizer collections in PyTorch. Also, including useful optimization ideas.
-| Most of the implementations are based on the original paper, but I added some tweaks.
+| **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. It includes useful and practical optimization ideas.
+| I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper.
+| Currently, about 40 optimizers, 6 lr schedulers are supported!
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
 Getting Started
@@ -150,7 +151,9 @@ You can check the supported optimizers & lr schedulers.
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | SGDW         | *Decoupled Weight Decay Regularization*                                                         | `github <https://github.com/loshchil/AdamW-and-SGDW>`__                           | `https://arxiv.org/abs/1711.05101 <https://arxiv.org/abs/1711.05101>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
-| ASGD         | *Adaptive Gradient Descent without Descent”*                                                    | `github <https://github.com/ymalitsky/adaptive_GD>`__                             | `https://arxiv.org/abs/1910.09529 <https://arxiv.org/abs/1910.09529>`__                       |
+| ASGD         | *Adaptive Gradient Descent without Descent*                                                     | `github <https://github.com/ymalitsky/adaptive_GD>`__                             | `https://arxiv.org/abs/1910.09529 <https://arxiv.org/abs/1910.09529>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Yogi         | *Adaptive Methods for Nonconvex Optimization*                                                   | `github <https://github.com/ymalitsky/adaptive_GD>`__                             | `NIPS 2018 <https://papers.nips.cc/paper/8186-adaptive-methods-for-nonconvex-optimization>`__ |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
@@ -371,6 +374,8 @@ Citations
 
 `Adaptive SGD <https://github.com/ymalitsky/adaptive_GD#reference>`__
 
+`Yogi <https://proceedings.neurips.cc/paper_files/paper/2018/hash/90365351ccc7437a1309dc64e4db32a3-Abstract.html>`__
+
 Citation
 --------
 
@@ -379,10 +384,10 @@ Or you can get from "cite this repository" button.
 
 ::
 
-    @software{Kim_pytorch_optimizer_Bunch_of_2022,
+    @software{Kim_pytorch_optimizer_Optimizer_and_2022,
         author = {Kim, Hyeongchan},
         month = {1},
-        title = {{pytorch_optimizer: optimizer & lr scheduler implementations in PyTorch}},
+        title = {{pytorch_optimizer: optimizer and lr scheduler collections in PyTorch}},
         version = {1.0.0},
         year = {2022}
     }
