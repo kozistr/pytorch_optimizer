@@ -40,6 +40,7 @@ class Yogi(Optimizer, BaseOptimizer):
         self.betas = betas
         self.initial_accumulator = initial_accumulator
         self.weight_decay = weight_decay
+        self.eps = eps
 
         self.validate_parameters()
 
@@ -62,6 +63,7 @@ class Yogi(Optimizer, BaseOptimizer):
         self.validate_learning_rate(self.lr)
         self.validate_betas(self.betas)
         self.validate_weight_decay(self.weight_decay)
+        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'Yogi'
