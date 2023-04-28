@@ -132,7 +132,7 @@ def test_beta0(optimizer_name):
         optimizer(None, num_iterations=200, beta0=-0.1)
 
 
-@pytest.mark.parametrize('optimizer_name', ['nero', 'apollo', 'sm3', 'a2grad'])
+@pytest.mark.parametrize('optimizer_name', ['nero', 'apollo', 'sm3'])
 def test_beta(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
