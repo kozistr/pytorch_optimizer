@@ -25,7 +25,7 @@ def test_learning_rate(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
-    if optimizer_name in ('shampoo', 'scalableshampoo', 'dadaptsgd', 'adafactor', 'lion', 'a2grad'):
+    if optimizer_name in ('shampoo', 'scalableshampoo', 'dadaptsgd', 'adafactor', 'lion', 'a2grad', 'accsgd'):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -195,6 +195,27 @@ def test_rho(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
         optimizer(None, rho=-0.1)
+
+
+@pytest.mark.parametrize('optimizer_name', ['accsgd'])
+def test_kappa(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer([simple_parameter(False)], kappa=-0.1)
+
+
+@pytest.mark.parametrize('optimizer_name', ['accsgd'])
+def test_xi(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer([simple_parameter(False)], xi=-0.1)
+
+
+@pytest.mark.parametrize('optimizer_name', ['accsgd'])
+def test_constant(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer([simple_parameter(False)], constant=42)
 
 
 def test_sam_parameters():
