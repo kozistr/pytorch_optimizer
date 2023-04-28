@@ -34,6 +34,7 @@ from pytorch_optimizer import (
     Ranger21,
     ScalableShampoo,
     Shampoo,
+SGDW,
 )
 from tests.utils import build_lookahead
 
@@ -316,6 +317,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (A2Grad, {'variant': 'inc', 'beta': 1.0, 'lips': 1.0}, 5),
     (A2Grad, {'variant': 'exp', 'beta': 1.0, 'lips': 1.0, 'rho': 0.9}, 5),
     (AccSGD, {'lr': 1e-0, 'weight_decay': 1e-3}, 5),
+    (SGDW, {'lr': 5e-1, 'momentum': 0.9, 'weight_decay': 1e-3}, 5),
+    (SGDW, {'lr': 5e-1, 'momentum': 0.9, 'weight_decay': 1e-3, 'weight_decoupled': False}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
