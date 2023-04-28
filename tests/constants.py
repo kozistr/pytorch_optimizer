@@ -320,6 +320,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AccSGD, {'lr': 1e-0, 'weight_decay': 1e-3}, 5),
     (SGDW, {'lr': 5e-1, 'momentum': 0.9, 'weight_decay': 1e-3}, 5),
     (SGDW, {'lr': 5e-1, 'momentum': 0.9, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
+    (SGDW, {'lr': 5e-1, 'weight_decay': 1e-3, 'nesterov': False}, 5),
     (ASGD, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (ASGD, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
 ]
