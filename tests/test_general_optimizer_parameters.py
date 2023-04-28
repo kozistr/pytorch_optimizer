@@ -199,3 +199,10 @@ def test_size_of_parameter(optimizer):
 
     with pytest.raises(ZeroParameterSizeError):
         load_optimizer(optimizer)([param], 1).step()
+
+
+@pytest.mark.parametrize('optimizer_name', ['asgd'])
+def test_amplifier(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer([simple_parameter(False)], amplifier=-1.0)
