@@ -44,13 +44,12 @@ class A2Grad(Optimizer, BaseOptimizer):
 
     def validate_parameters(self):
         self.validate_learning_rate(self.lr)
-        self.validate_beta(self.beta)
         self.validate_lipschitz_constant(self.lips)
         self.validate_rho(self.rho)
         self.validate_a2grad_variant(self.variant)
 
     def __str__(self) -> str:
-        return 'Lion'
+        return 'A2Grad'
 
     @torch.no_grad()
     def reset(self):
