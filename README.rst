@@ -384,10 +384,10 @@ Or you can get from "cite this repository" button.
 
 ::
 
-    @software{Kim_pytorch_optimizer_Bunch_of_2022,
+    @software{Kim_pytorch_optimizer_Optimizer_and_2022,
         author = {Kim, Hyeongchan},
         month = {1},
-        title = {{pytorch_optimizer: optimizer & lr scheduler implementations in PyTorch}},
+        title = {{pytorch_optimizer: optimizer and lr scheduler collections in PyTorch}},
         version = {1.0.0},
         year = {2022}
     }
