@@ -190,6 +190,13 @@ def test_norm(optimizer_name):
         optimizer(None, max_grad_norm=-0.1)
 
 
+@pytest.mark.parametrize('optimizer_name', ['a2grad'])
+def test_rho(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer(None, rho=-0.1)
+
+
 def test_sam_parameters():
     with pytest.raises(ValueError):
         SAM(None, load_optimizer('adamp'), rho=-0.1)
