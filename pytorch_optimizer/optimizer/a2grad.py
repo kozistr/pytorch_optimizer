@@ -22,7 +22,7 @@ class A2Grad(Optimizer, BaseOptimizer):
     def __init__(
         self,
         params: PARAMETERS,
-        lr: float = 1e-4,
+        lr: float = 1e-3,
         beta: float = 10.0,
         lips: float = 10.0,
         rho: float = 0.5,
@@ -91,7 +91,7 @@ class A2Grad(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['alpha_k'] = 1.0
                     state['v_k'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
-                    state['exp_avg'] = grad.clone()
+                    state['avg_grad'] = grad.clone()
                     state['x_k'] = p.clone()
 
                 avg_grad = state['avg_grad']
@@ -109,7 +109,7 @@ class A2Grad(Optimizer, BaseOptimizer):
                 if self.variant != 'uni':
                     h_k.mul_(math.sqrt(group['step'] + 1))
 
-                coefficient = -1.0 / (gamma_k + group['beta'] * h_k)
+                coefficient = -1.0 / (gamma_k + group['beta'] * h_k.item())
 
                 x_k = state['x_k']
                 x_k.add_(grad, alpha=coefficient)
