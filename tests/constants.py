@@ -9,6 +9,7 @@ from pytorch_optimizer import (
     SGDP,
     SGDW,
     SM3,
+    SWATS,
     A2Grad,
     AccSGD,
     AdaBelief,
@@ -79,6 +80,8 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'novograd',
     'lion',
     'adanorm',
+    'yogi',
+    'swats',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
