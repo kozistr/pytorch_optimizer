@@ -34,7 +34,7 @@ class Yogi(Optimizer, BaseOptimizer):
         r: float = 0.95,
         adanorm: bool = False,
         adam_debias: bool = False,
-        eps: float = 1e-6,
+        eps: float = 1e-3,
     ):
         self.lr = lr
         self.betas = betas
