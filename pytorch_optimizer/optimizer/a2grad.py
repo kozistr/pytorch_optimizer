@@ -1,4 +1,5 @@
 import math
+from typing import Optional
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -12,7 +13,7 @@ class A2Grad(Optimizer, BaseOptimizer):
     r"""Optimal Adaptive and Accelerated Stochastic Gradient Descent.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
+    :param lr: Optional[float]. learning rate. no needed.
     :param beta: float. beta.
     :param lips. float. Lipschitz constant.
     :param rho: float. represents the degree of weighting decrease, a constant smoothing factor between 0 and 1.
@@ -22,7 +23,7 @@ class A2Grad(Optimizer, BaseOptimizer):
     def __init__(
         self,
         params: PARAMETERS,
-        lr: float = 1e-3,
+        lr: Optional[None] = None,
         beta: float = 10.0,
         lips: float = 10.0,
         rho: float = 0.5,
@@ -36,14 +37,13 @@ class A2Grad(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {'lr': lr, 'beta': beta, 'lips': lips}
+        defaults: DEFAULTS = {'beta': beta, 'lips': lips}
         if variant == 'exp':
             defaults.update({'rho': rho})
 
         super().__init__(params, defaults)
 
     def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
         self.validate_lipschitz_constant(self.lips)
         self.validate_rho(self.rho)
         self.validate_a2grad_variant(self.variant)
@@ -93,6 +93,8 @@ class A2Grad(Optimizer, BaseOptimizer):
                     state['v_k'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
                     state['avg_grad'] = grad.clone()
                     state['x_k'] = p.clone()
+                    if self.variant == 'exp':
+                        state['v_kk'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 avg_grad = state['avg_grad']
                 avg_grad.add_(grad - avg_grad, alpha=group['step'] + 1)
@@ -100,10 +102,17 @@ class A2Grad(Optimizer, BaseOptimizer):
                 delta_k = grad.clone()
                 delta_k.add_(avg_grad, alpha=-1.0)
 
+                delta_k_sq = delta_k.pow(2).sum()
+
                 v_k = state['v_k']
-                if self.variant == 'inc':
-                    v_k.mul_((group['step'] / (group['step'] + 1)) ** 2)
-                v_k.add_(delta_k.pow(2).sum())
+                if self.variant in ('uni', 'inc'):
+                    if self.variant == 'inc':
+                        v_k.mul_((group['step'] / (group['step'] + 1)) ** 2)
+                    v_k.add_(delta_k_sq)
+                else:
+                    v_kk = state['v_kk']
+                    v_kk.mul_(group['rho']).add_(delta_k_sq, alpha=1.0 - group['rho'])
+                    torch.max(v_kk, v_k, out=v_k)
 
                 h_k = v_k.sqrt()
                 if self.variant != 'uni':
