@@ -85,7 +85,7 @@ def test_trust_coefficient(optimizer_name):
         optimizer(None, trust_coefficient=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_name', ['madgrad', 'lars', 'sm3'])
+@pytest.mark.parametrize('optimizer_name', ['madgrad', 'lars', 'sm3', 'sgdw'])
 def test_momentum(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
