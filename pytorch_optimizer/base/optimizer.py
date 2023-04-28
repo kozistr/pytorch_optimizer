@@ -113,7 +113,7 @@ class BaseOptimizer(ABC):
 
     @staticmethod
     def validate_lipschitz_constant(lips: float):
-        if not 0.0 <= lips:
+        if lips < 0:
             raise ValueError(f'[-] Lipschitz constant {lips} must be in the range [0, inf)')
 
     @staticmethod
