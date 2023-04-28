@@ -150,7 +150,9 @@ You can check the supported optimizers & lr schedulers.
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | SGDW         | *Decoupled Weight Decay Regularization*                                                         | `github <https://github.com/loshchil/AdamW-and-SGDW>`__                           | `https://arxiv.org/abs/1711.05101 <https://arxiv.org/abs/1711.05101>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
-| ASGD         | *Adaptive Gradient Descent without Descent”*                                                    | `github <https://github.com/ymalitsky/adaptive_GD>`__                             | `https://arxiv.org/abs/1910.09529 <https://arxiv.org/abs/1910.09529>`__                       |
+| ASGD         | *Adaptive Gradient Descent without Descent*                                                     | `github <https://github.com/ymalitsky/adaptive_GD>`__                             | `https://arxiv.org/abs/1910.09529 <https://arxiv.org/abs/1910.09529>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Yogi         | *Adaptive Methods for Nonconvex Optimization*                                                   | `github <https://github.com/ymalitsky/adaptive_GD>`__                             | `NIPS 2018 <https://papers.nips.cc/paper/8186-adaptive-methods-for-nonconvex-optimization>`__ |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
@@ -370,6 +372,8 @@ Citations
 `SGDW <https://github.com/loshchil/AdamW-and-SGDW#contact>`__
 
 `Adaptive SGD <https://github.com/ymalitsky/adaptive_GD#reference>`__
+
+`Yogi <https://proceedings.neurips.cc/paper_files/paper/2018/hash/90365351ccc7437a1309dc64e4db32a3-Abstract.html>`__
 
 Citation
 --------
