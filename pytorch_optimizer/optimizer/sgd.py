@@ -23,13 +23,13 @@ class AccSGD(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         kappa: float = 1000.0,
         xi: float = 10.0,
-        small_const: float = 0.7,
+        constant: float = 0.7,
         weight_decay: float = 0.0,
     ):
         self.lr = lr
         self.kappa = kappa
         self.xi = xi
-        self.small_const = small_const
+        self.constant = constant
         self.weight_decay = weight_decay
 
         self.validate_parameters()
@@ -38,7 +38,7 @@ class AccSGD(Optimizer, BaseOptimizer):
             'lr': lr,
             'kappa': kappa,
             'xi': xi,
-            'small_const': small_const,
+            'constant': constant,
             'weight_decay': weight_decay,
         }
         super().__init__(params, defaults)
@@ -47,7 +47,7 @@ class AccSGD(Optimizer, BaseOptimizer):
         self.validate_kappa(self.kappa)
         self.validate_xi(self.xi)
         self.validate_weight_decay(self.weight_decay)
-        self.validate_constant(self.small_const, boundary=1.0)
+        self.validate_constant(self.constant, boundary=1.0)
 
     def __str__(self) -> str:
         return 'AccSGD'
@@ -73,10 +73,10 @@ class AccSGD(Optimizer, BaseOptimizer):
             else:
                 group['step'] = 1
 
-            large_lr: float = group['lr'] * group['kappa'] / group['small_const']
-            alpha: float = 1.0 - (group['xi'] * (group['small_const'] ** 2) / group['kappa'])
+            large_lr: float = group['lr'] * group['kappa'] / group['constant']
+            alpha: float = 1.0 - (group['xi'] * (group['constant'] ** 2) / group['kappa'])
             beta: float = 1.0 - alpha
-            zeta: float = group['small_const'] / (group['small_const'] + beta)
+            zeta: float = group['constant'] / (group['constant'] + beta)
 
             for p in group['params']:
                 if p.grad is None:
