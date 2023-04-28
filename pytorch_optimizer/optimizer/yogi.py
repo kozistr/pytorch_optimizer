@@ -17,6 +17,8 @@ class Yogi(Optimizer, BaseOptimizer):
     :param initial_accumulator: float. initial values for first and second moments.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
+    :param adanorm: bool. whether to use the AdaNorm variant.
     :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
@@ -29,6 +31,8 @@ class Yogi(Optimizer, BaseOptimizer):
         initial_accumulator: float = 1e-6,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        r: float = 0.95,
+        adanorm: bool = False,
         adam_debias: bool = False,
         eps: float = 1e-6,
     ):
@@ -45,9 +49,12 @@ class Yogi(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'initial_accumulator': initial_accumulator,
+            'adanorm': adanorm,
             'adam_debias': adam_debias,
             'eps': eps,
         }
+        if adanorm:
+            defaults.update({'r': r})
 
         super().__init__(params, defaults)
 
@@ -67,6 +74,8 @@ class Yogi(Optimizer, BaseOptimizer):
 
                 state['exp_avg'] = torch.full_like(p, fill_value=group['initial_accumulator'])
                 state['exp_avg_sq'] = torch.full_like(p, fill_value=group['initial_accumulator'])
+                if group['adanorm']:
+                    state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -98,12 +107,24 @@ class Yogi(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['exp_avg'] = torch.full_like(p, fill_value=group['initial_accumulator'])
                     state['exp_avg_sq'] = torch.full_like(p, fill_value=group['initial_accumulator'])
+                    if group['adanorm']:
+                        state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 grad_p2 = grad.mul(grad)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                s_grad = grad
+                if group['adanorm']:
+                    grad_norm = torch.linalg.norm(grad)
+
+                    exp_grad_norm = state['exp_grad_norm']
+                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
+
+                    if exp_grad_norm > grad_norm:
+                        s_grad *= exp_grad_norm / grad_norm
+
+                exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.addcmul_((exp_avg_sq - grad_p2).sign_(), grad_p2, value=-(1.0 - beta2))
 
                 de_nom = exp_avg_sq.sqrt()
