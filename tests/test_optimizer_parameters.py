@@ -313,10 +313,21 @@ def test_adafactor_get_lr():
     assert optimizer.get_lr(1.0, 1, 1.0, True, False, True) == 1e-2
 
 
-def test_a2grad_variant():
-    load_optimizer('a2grad')(None, variant='uni')
-    load_optimizer('a2grad')(None, variant='inc')
-    load_optimizer('a2grad')(None, variant='exp')
+def test_a2grad_lipschitz_constant():
+    param = simple_parameter(require_grad=False)
+
+    load_optimizer('a2grad')([param], lips=1.0)
 
     with pytest.raises(ValueError):
-        load_optimizer('a2grad')(None, variant='dummy')
+        load_optimizer('a2grad')([param], lips=-1.0)
+
+
+def test_a2grad_variant():
+    param = simple_parameter(require_grad=False)
+
+    load_optimizer('a2grad')([param], variant='uni')
+    load_optimizer('a2grad')([param], variant='inc')
+    load_optimizer('a2grad')([param], variant='exp')
+
+    with pytest.raises(ValueError):
+        load_optimizer('a2grad')([param], variant='dummy')
