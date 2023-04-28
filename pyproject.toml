@@ -91,6 +91,7 @@ target-version = "py39"
 "./tests/test_gradients.py" = ["D", "S101"]
 "./tests/test_optimizers.py" = ["D", "S101"]
 "./tests/test_optimizer_parameters.py" = ["D", "S101"]
+"./tests/test_general_optimizer_parameters.py" = ["D", "S101"]
 "./tests/test_load_optimizers.py" = ["D", "S101"]
 "./tests/test_load_lr_schedulers.py" = ["D", "S101"]
 "./tests/test_lr_schedulers.py" = ["D"]
