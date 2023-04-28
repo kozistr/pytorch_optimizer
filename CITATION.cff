@@ -4,6 +4,6 @@ authors:
   - family-names: Kim
     given-names: Hyeongchan
     orcid: https://orcid.org/0000-0002-1729-0580
-title: "pytorch_optimizer: Bunch of optimizer implementations in PyTorch with clean-code, strict types"
+title: "pytorch_optimizer: optimizer & lr scheduler collections in PyTorch"
 version: 1.0.0
 date-released: 2022-01-29
