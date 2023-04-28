@@ -30,7 +30,7 @@ class SWATS(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
-        weight_decouple: bool = True,
+        weight_decouple: bool = False,
         amsgrad: bool = False,
         nesterov: bool = False,
         r: float = 0.95,
