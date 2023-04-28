@@ -13,7 +13,7 @@ class AccSGD(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param kappa: float. ratio of long to short step.
     :param xi: float. statistical advantage parameter.
-    :param small_const: float. any small constant under 1.
+    :param constant: float. any small constant under 1.
     :param weight_decay: float. weight decay.
     """
 
