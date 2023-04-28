@@ -116,6 +116,11 @@ class BaseOptimizer(ABC):
         if not 0.0 <= lips:
             raise ValueError(f'[-] Lipschitz constant {lips} must be in the range [0, inf)')
 
+    @staticmethod
+    def validate_a2grad_variant(variant: str):
+        if variant not in ('uni', 'inc', 'exp'):
+            raise ValueError(f'[-] A2Grad variant {variant} must be one of (\'uni\' or \'inc\' or \'exp\')')
+
     @abstractmethod
     def validate_parameters(self):
         raise NotImplementedError

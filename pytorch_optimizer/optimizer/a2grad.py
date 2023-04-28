@@ -47,6 +47,7 @@ class A2Grad(Optimizer, BaseOptimizer):
         self.validate_beta(self.beta)
         self.validate_lipschitz_constant(self.lips)
         self.validate_rho(self.rho)
+        self.validate_a2grad_variant(self.variant)
 
     def __str__(self) -> str:
         return 'Lion'
