@@ -10,7 +10,7 @@ from tests.utils import Example, simple_parameter
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_learning_rate(optimizer_name):
-    if optimizer_name in ('alig',):
+    if optimizer_name in ('alig', 'a2grad'):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -25,7 +25,7 @@ def test_learning_rate(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
-    if optimizer_name in ('shampoo', 'scalableshampoo', 'dadaptsgd', 'adafactor', 'lion'):
+    if optimizer_name in ('shampoo', 'scalableshampoo', 'dadaptsgd', 'adafactor', 'lion', 'a2grad'):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -66,7 +66,7 @@ def test_adafactor_epsilon():
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_weight_decay(optimizer_name):
-    if optimizer_name in ('nero', 'alig', 'sm3'):
+    if optimizer_name in ('nero', 'alig', 'sm3', 'a2grad'):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -190,8 +190,15 @@ def test_norm(optimizer_name):
         optimizer(None, max_grad_norm=-0.1)
 
 
+@pytest.mark.parametrize('optimizer_name', ['a2grad'])
+def test_rho(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer(None, rho=-0.1)
+
+
 def test_sam_parameters():
-    with pytest.raises(ValueError, match=''):
+    with pytest.raises(ValueError):
         SAM(None, load_optimizer('adamp'), rho=-0.1)
 
 
@@ -304,3 +311,23 @@ def test_adafactor_get_lr():
 
     optimizer = load_optimizer('adafactor')(model.parameters())
     assert optimizer.get_lr(1.0, 1, 1.0, True, False, True) == 1e-2
+
+
+def test_a2grad_lipschitz_constant():
+    param = simple_parameter(require_grad=False)
+
+    load_optimizer('a2grad')([param], lips=1.0)
+
+    with pytest.raises(ValueError):
+        load_optimizer('a2grad')([param], lips=-1.0)
+
+
+def test_a2grad_variant():
+    param = simple_parameter(require_grad=False)
+
+    load_optimizer('a2grad')([param], variant='uni')
+    load_optimizer('a2grad')([param], variant='inc')
+    load_optimizer('a2grad')([param], variant='exp')
+
+    with pytest.raises(ValueError):
+        load_optimizer('a2grad')([param], variant='dummy')

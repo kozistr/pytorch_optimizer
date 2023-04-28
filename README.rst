@@ -144,6 +144,8 @@ You can check the supported optimizers & lr schedulers.
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | RotoGrad     | *Gradient Homogenization in Multitask Learning*                                                 | `github <https://github.com/adrianjav/rotograd>`__                                | `https://openreview.net/pdf?id=T8wHz4rnuGL <https://openreview.net/pdf?id=T8wHz4rnuGL>`__     |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| A2Grad       | *Optimal Adaptive and Accelerated Stochastic Gradient Descent*                                  | `github <https://github.com/severilov/A2Grad_optimizer>`__                        | `https://arxiv.org/abs/1810.00553 <https://arxiv.org/abs/1810.00553>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
 ----------------
@@ -354,6 +356,8 @@ Citations
 `AdaNorm <https://github.com/shivram1987/AdaNorm/tree/main#citation>`__
 
 `RotoGrad <https://github.com/adrianjav/rotograd#citing>`__
+
+`A2Grad <https://ui.adsabs.harvard.edu/abs/2018arXiv181000553D/exportcitation>`__
 
 Citation
 --------

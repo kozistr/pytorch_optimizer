@@ -48,10 +48,10 @@ class SAM(Optimizer, BaseOptimizer):
                 optimizer.step(closure)
                 optimizer.zero_grad()
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups
-    :param base_optimizer: Optimizer. base optimizer
-    :param rho: float. size of the neighborhood for computing the max loss
-    :param adaptive: bool. element-wise Adaptive SAM
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param base_optimizer: Optimizer. base optimizer.
+    :param rho: float. size of the neighborhood for computing the max loss.
+    :param adaptive: bool. element-wise Adaptive SAM.
     :param kwargs: Dict. parameters for optimizer.
     """
 

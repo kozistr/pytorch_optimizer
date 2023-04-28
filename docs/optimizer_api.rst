@@ -296,3 +296,11 @@ RotoGrad
 
 .. autoclass:: pytorch_optimizer.RotoGrad
     :members:
+
+.. _A2Grad:
+
+A2Grad
+------
+
+.. autoclass:: pytorch_optimizer.A2Grad
+    :members:

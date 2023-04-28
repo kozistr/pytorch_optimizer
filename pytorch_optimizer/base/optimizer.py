@@ -111,6 +111,16 @@ class BaseOptimizer(ABC):
         if rebound not in ('constant', 'belief'):
             raise ValueError(f'[-] rebound {rebound} must be one of (\'constant\' or \'belief\')')
 
+    @staticmethod
+    def validate_lipschitz_constant(lips: float):
+        if lips < 0:
+            raise ValueError(f'[-] Lipschitz constant {lips} must be in the range [0, inf)')
+
+    @staticmethod
+    def validate_a2grad_variant(variant: str):
+        if variant not in ('uni', 'inc', 'exp'):
+            raise ValueError(f'[-] A2Grad variant {variant} must be one of (\'uni\' or \'inc\' or \'exp\')')
+
     @abstractmethod
     def validate_parameters(self):
         raise NotImplementedError
