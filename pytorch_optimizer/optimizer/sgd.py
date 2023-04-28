@@ -44,6 +44,7 @@ class AccSGD(Optimizer, BaseOptimizer):
         super().__init__(params, defaults)
 
     def validate_parameters(self):
+        self.validate_learning_rate(self.lr)
         self.validate_kappa(self.kappa)
         self.validate_xi(self.xi)
         self.validate_weight_decay(self.weight_decay)
