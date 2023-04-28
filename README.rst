@@ -14,8 +14,8 @@ pytorch-optimizer
 | License      | |apache|                                 |
 +--------------+------------------------------------------+
 
-| **pytorch-optimizer** is bunch of optimizer collections in PyTorch. Also, including useful optimization ideas.
-| Most of the implementations are based on the original paper, but I added some tweaks.
+| **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. It includes useful and practical optimization ideas.
+| I just re-implemented (speed & memory tweaks) the algorithm while based on the original paper.
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
 Getting Started
