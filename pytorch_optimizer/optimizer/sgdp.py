@@ -94,9 +94,9 @@ class SGDP(Optimizer, BaseOptimizer):
                 buf = state['momentum']
                 buf.mul_(momentum).add_(grad, alpha=1.0 - group['dampening'])
 
-                d_p = buf
+                d_p = buf.clone()
                 if group['nesterov']:
-                    d_p = d_p.mul(momentum).add_(grad)
+                    d_p = d_p.mul_(momentum).add_(grad)
 
                 wd_ratio: float = 1.0
                 if len(p.shape) > 1:
