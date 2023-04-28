@@ -191,7 +191,7 @@ def test_norm(optimizer_name):
 
 
 def test_sam_parameters():
-    with pytest.raises(ValueError, match=''):
+    with pytest.raises(ValueError):
         SAM(None, load_optimizer('adamp'), rho=-0.1)
 
 
