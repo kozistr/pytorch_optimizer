@@ -304,3 +304,11 @@ A2Grad
 
 .. autoclass:: pytorch_optimizer.A2Grad
     :members:
+
+.. _AccSGD:
+
+AccSGD
+------
+
+.. autoclass:: pytorch_optimizer.AccSGD
+    :members:

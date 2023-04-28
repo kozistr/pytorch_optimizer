@@ -146,6 +146,8 @@ You can check the supported optimizers & lr schedulers.
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | A2Grad       | *Optimal Adaptive and Accelerated Stochastic Gradient Descent*                                  | `github <https://github.com/severilov/A2Grad_optimizer>`__                        | `https://arxiv.org/abs/1810.00553 <https://arxiv.org/abs/1810.00553>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| AccSGD       | *Accelerating Stochastic Gradient Descent For Least Squares Regression*                         | `github <https://github.com/rahulkidambi/AccSGD>`__                               | `https://arxiv.org/abs/1704.08227 <https://arxiv.org/abs/1704.08227>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
 ----------------
@@ -358,6 +360,8 @@ Citations
 `RotoGrad <https://github.com/adrianjav/rotograd#citing>`__
 
 `A2Grad <https://ui.adsabs.harvard.edu/abs/2018arXiv181000553D/exportcitation>`__
+
+`AccSGD <https://github.com/rahulkidambi/AccSGD#citation>`__
 
 Citation
 --------
