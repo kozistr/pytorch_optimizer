@@ -7,6 +7,7 @@ from pytorch_optimizer import (
     PNM,
     SGDP,
     SM3,
+    A2Grad,
     AdaBelief,
     AdaBound,
     AdaFactor,
@@ -310,6 +311,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaNorm, {'lr': 5e-1, 'weight_decay': 1e-3, 'fixed_decay': True}, 5),
     (AdaNorm, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
     (AdaNorm, {'lr': 5e-1, 'weight_decay': 1e-3, 'amsgrad': True}, 5),
+    (A2Grad, {'lr': 5e-1, 'variant': 'uni'}, 5),
+    (A2Grad, {'lr': 5e-1, 'variant': 'inc'}, 5),
+    (A2Grad, {'lr': 5e-1, 'variant': 'exp'}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
