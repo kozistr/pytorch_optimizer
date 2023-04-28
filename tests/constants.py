@@ -36,7 +36,7 @@ from pytorch_optimizer import (
     Ranger21,
     ScalableShampoo,
     Shampoo,
-Yogi,
+    Yogi,
 )
 from tests.utils import build_lookahead
 
