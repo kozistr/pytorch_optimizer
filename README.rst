@@ -153,7 +153,9 @@ You can check the supported optimizers & lr schedulers.
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | ASGD         | *Adaptive Gradient Descent without Descent*                                                     | `github <https://github.com/ymalitsky/adaptive_GD>`__                             | `https://arxiv.org/abs/1910.09529 <https://arxiv.org/abs/1910.09529>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
-| Yogi         | *Adaptive Methods for Nonconvex Optimization*                                                   | `github <https://github.com/ymalitsky/adaptive_GD>`__                             | `NIPS 2018 <https://papers.nips.cc/paper/8186-adaptive-methods-for-nonconvex-optimization>`__ |
+| Yogi         | *Adaptive Methods for Nonconvex Optimization*                                                   |                                                                                   | `NIPS 2018 <https://papers.nips.cc/paper/8186-adaptive-methods-for-nonconvex-optimization>`__ |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| SWATS        | *Improving Generalization Performance by Switching from Adam to SGD*                            |                                                                                   | `https://arxiv.org/abs/1712.07628 <https://arxiv.org/abs/1712.07628>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
@@ -375,6 +377,8 @@ Citations
 `Adaptive SGD <https://github.com/ymalitsky/adaptive_GD#reference>`__
 
 `Yogi <https://proceedings.neurips.cc/paper_files/paper/2018/hash/90365351ccc7437a1309dc64e4db32a3-Abstract.html>`__
+
+`SWATS <https://ui.adsabs.harvard.edu/abs/2017arXiv171207628S/exportcitation>`__
 
 Citation
 --------

@@ -79,6 +79,8 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'novograd',
     'lion',
     'adanorm',
+    'yogi',
+    'swats',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [

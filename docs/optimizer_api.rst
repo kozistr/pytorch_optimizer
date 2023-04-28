@@ -336,3 +336,11 @@ Yogi
 
 .. autoclass:: pytorch_optimizer.Yogi
     :members:
+
+.. _SWATS:
+
+SWATS
+-----
+
+.. autoclass:: pytorch_optimizer.SWATS
+    :members:

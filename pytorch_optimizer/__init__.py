@@ -67,6 +67,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
     power_iteration,
 )
 from pytorch_optimizer.optimizer.sm3 import SM3
+from pytorch_optimizer.optimizer.swats import SWATS
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
     disable_running_stats,
@@ -105,6 +106,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdamS,
     AdaFactor,
     Apollo,
+    SWATS,
     NovoGrad,
     Lion,
     AliG,

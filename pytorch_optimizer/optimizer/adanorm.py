@@ -134,11 +134,11 @@ class AdaNorm(Optimizer, BaseOptimizer):
                 if group['amsgrad']:
                     max_exp_avg_var = state['max_exp_avg_var']
                     torch.max(max_exp_avg_var, exp_avg_var, out=max_exp_avg_var)
-                    de_nom = max_exp_avg_var.add(self.eps).sqrt()
+                    de_nom = max_exp_avg_var.sqrt().add_(group['eps'])
                 else:
-                    de_nom = exp_avg_var.add(self.eps).sqrt()
+                    de_nom = exp_avg_var.sqrt().add_(group['eps'])
 
-                de_nom.div_(bias_correction2_sq).add_(self.eps)
+                de_nom.div_(bias_correction2_sq).add_(group['eps'])
 
                 step_size = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
