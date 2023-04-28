@@ -96,7 +96,7 @@ class SGDP(Optimizer, BaseOptimizer):
 
                 d_p = buf
                 if group['nesterov']:
-                    d_p.mul_(momentum).add_(grad)
+                    d_p = d_p.mul(momentum).add_(grad)
 
                 wd_ratio: float = 1.0
                 if len(p.shape) > 1:
