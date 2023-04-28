@@ -133,7 +133,7 @@ class BaseOptimizer(ABC):
 
     @staticmethod
     def validate_constant(constant: float, boundary: float):
-        if constant <= 1.0:
+        if constant > boundary:
             raise ValueError(f'[-] constant {constant} must be in a range of (-inf, {boundary}]')
 
     @abstractmethod
