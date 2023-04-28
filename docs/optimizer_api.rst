@@ -321,10 +321,18 @@ SGDW
 .. autoclass:: pytorch_optimizer.SGDW
     :members:
 
-.. _ASGD:
+.. _AdaptiveSGD:
 
-ASGD
+AdaptiveSGD
 ----
 
 .. autoclass:: pytorch_optimizer.ASGD
+    :members:
+
+.. _Yogi:
+
+Yogi
+----
+
+.. autoclass:: pytorch_optimizer.Yogi
     :members:
