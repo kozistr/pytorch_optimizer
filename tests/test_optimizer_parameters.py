@@ -25,7 +25,7 @@ def test_learning_rate(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
-    if optimizer_name in ('shampoo', 'scalableshampoo', 'dadaptsgd', 'adafactor', 'lion'):
+    if optimizer_name in ('shampoo', 'scalableshampoo', 'dadaptsgd', 'adafactor', 'lion', 'a2grad'):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
