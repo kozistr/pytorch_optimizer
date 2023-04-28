@@ -16,6 +16,7 @@ from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
 from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
+from pytorch_optimizer.optimizer.a2grad import A2Grad
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
 from pytorch_optimizer.optimizer.adafactor import AdaFactor
@@ -107,6 +108,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AliG,
     SM3,
     AdaNorm,
+    A2Grad,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
