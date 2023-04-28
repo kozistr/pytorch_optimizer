@@ -9,7 +9,6 @@ from pytorch_optimizer import (
     SGDP,
     SGDW,
     SM3,
-    SWATS,
     A2Grad,
     AccSGD,
     AdaBelief,
