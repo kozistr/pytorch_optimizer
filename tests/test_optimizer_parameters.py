@@ -311,3 +311,12 @@ def test_adafactor_get_lr():
 
     optimizer = load_optimizer('adafactor')(model.parameters())
     assert optimizer.get_lr(1.0, 1, 1.0, True, False, True) == 1e-2
+
+
+def test_a2grad_variant():
+    load_optimizer('a2grad')(None, variant='uni')
+    load_optimizer('a2grad')(None, variant='inc')
+    load_optimizer('a2grad')(None, variant='exp')
+
+    with pytest.raises(ValueError):
+        load_optimizer('a2grad')(None, variant='dummy')
