@@ -114,12 +114,27 @@ class BaseOptimizer(ABC):
     @staticmethod
     def validate_lipschitz_constant(lips: float):
         if lips < 0:
-            raise ValueError(f'[-] Lipschitz constant {lips} must be in the range [0, inf)')
+            raise ValueError(f'[-] Lipschitz constant {lips} must be non-negative')
 
     @staticmethod
     def validate_a2grad_variant(variant: str):
         if variant not in ('uni', 'inc', 'exp'):
             raise ValueError(f'[-] A2Grad variant {variant} must be one of (\'uni\' or \'inc\' or \'exp\')')
+
+    @staticmethod
+    def validate_kappa(kappa: float):
+        if kappa < 0.0:
+            raise ValueError(f'[-] kappa {kappa} must be non-negative')
+
+    @staticmethod
+    def validate_xi(xi: float):
+        if xi < 0.0:
+            raise ValueError(f'[-] xi {xi} must be non-negative')
+
+    @staticmethod
+    def validate_constant(constant: float, boundary: float):
+        if constant <= 1.0:
+            raise ValueError(f'[-] constant {constant} must be in a range of (-inf, {boundary}]')
 
     @abstractmethod
     def validate_parameters(self):
