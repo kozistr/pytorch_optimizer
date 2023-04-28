@@ -320,3 +320,11 @@ SGDW
 
 .. autoclass:: pytorch_optimizer.SGDW
     :members:
+
+.. _ASGD:
+
+ASGD
+----
+
+.. autoclass:: pytorch_optimizer.ASGD
+    :members:
