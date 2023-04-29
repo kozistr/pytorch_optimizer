@@ -97,7 +97,7 @@ def test_lookahead(pullback_momentum):
 def test_sam_optimizers(adaptive):
     (x_data, y_data), model, loss_fn = build_environment()
 
-    optimizer = SAM(model.parameters(), load_optimizer('adamp'), lr=5e-1, adaptive=adaptive)
+    optimizer = SAM(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive)
 
     init_loss, loss = np.inf, np.inf
     for _ in range(5):
