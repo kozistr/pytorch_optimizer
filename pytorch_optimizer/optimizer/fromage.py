@@ -30,13 +30,11 @@ class Fromage(Optimizer, BaseOptimizer):
         p_bound: Optional[float] = None,
     ):
         self.lr = lr
+        self.p_bound = p_bound
 
         self.validate_parameters()
 
         defaults: DEFAULTS = {'lr': lr}
-        if p_bound is not None:
-            defaults.update({'p_bound': p_bound})
-
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -51,8 +49,8 @@ class Fromage(Optimizer, BaseOptimizer):
             for p in group['params']:
                 state = self.state[p]
 
-                if group['p_bound'] is not None:
-                    state['max'] = p.norm().mul_(group['p_bound'])
+                if self.p_bound is not None:
+                    state['max'] = p.norm().mul_(self.p_bound)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -62,7 +60,7 @@ class Fromage(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            prefactor: float = math.sqrt(1 + group['lr'] ** 2)
+            pre_factor: float = math.sqrt(1 + group['lr'] ** 2)
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -73,8 +71,8 @@ class Fromage(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
 
-                if len(state) == 0 and group['p_bound'] is not None:
-                    state['max'] = p.norm().mul_(group['p_bound'])
+                if len(state) == 0 and self.p_bound is not None:
+                    state['max'] = p.norm().mul_(self.p_bound)
 
                 p_norm, g_norm = p.norm(), grad.norm()
 
@@ -83,9 +81,9 @@ class Fromage(Optimizer, BaseOptimizer):
                 else:
                     p.add_(grad, alpha=-group['lr'])
 
-                p.div_(prefactor)
+                p.div_(pre_factor)
 
-                if group['p_bound'] is not None:
+                if self.p_bound is not None:
                     p_norm = p.norm()
                     if p_norm > state['max']:
                         p.mul_(state['max']).div_(p_norm)
