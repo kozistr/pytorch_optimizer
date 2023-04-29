@@ -46,6 +46,7 @@ from pytorch_optimizer.optimizer.msvag import MSVAG
 from pytorch_optimizer.optimizer.nero import Nero
 from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.pcgrad import PCGrad
+from pytorch_optimizer.optimizer.pid import PID
 from pytorch_optimizer.optimizer.pnm import PNM
 from pytorch_optimizer.optimizer.qhadam import QHAdam
 from pytorch_optimizer.optimizer.qhm import QHM
@@ -89,6 +90,7 @@ from pytorch_optimizer.optimizer.yogi import Yogi
 OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaBelief,
     AdaBound,
+    PID,
     AdamP,
     Adai,
     Adan,
