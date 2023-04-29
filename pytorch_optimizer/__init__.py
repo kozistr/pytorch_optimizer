@@ -48,6 +48,7 @@ from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.pcgrad import PCGrad
 from pytorch_optimizer.optimizer.pnm import PNM
 from pytorch_optimizer.optimizer.qhadam import QHAdam
+from pytorch_optimizer.optimizer.qhm import QHM
 from pytorch_optimizer.optimizer.radam import RAdam
 from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
@@ -97,6 +98,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Lamb,
     LARS,
     QHAdam,
+    QHM,
     MADGRAD,
     Nero,
     PNM,
