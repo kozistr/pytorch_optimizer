@@ -169,17 +169,16 @@ class BlockPartitioner:
         r"""Get shapes of pre-conditioner."""
         return self.pre_conditioner_shapes
 
+    @torch.no_grad()
     def partition(self, x: torch.Tensor) -> List[torch.Tensor]:
         r"""Partition tensor into blocks."""
         if x.shape != self.shape:
             raise ValueError(f'self._shape != x.shape ({self.shape} vs {x.shape})')
 
-        tensors: List[torch.Tensor] = [x]
+        tensors = [x]
         for i, sizes in self.split_sizes:
-            tensors_local: List[torch.Tensor] = []
-            for t in tensors:
-                tensors_local.extend(torch.split(t, list(sizes), dim=i))
-            tensors = tensors_local
+            tensors = [torch.split(t, list(sizes), dim=i) for t in tensors]
+            tensors = [t for tensor in tensors for t in tensor]
         return tensors
 
     def merge_partitions(self, partitions: List[torch.Tensor]) -> torch.Tensor:
