@@ -27,6 +27,7 @@ from pytorch_optimizer import (
     DAdaptAdan,
     DAdaptSGD,
     DiffGrad,
+    Fromage,
     Lamb,
     Lion,
     Nero,
@@ -327,6 +328,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (ASGD, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (ASGD, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
     (Yogi, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
+    (Fromage, {'lr': 5e-1, 'p_bound': 2.0}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),

@@ -158,3 +158,10 @@ def test_d_adapt_2nd_stage_gradient(optimizer_name):
     p3.grad = torch.randn(1, 1)
 
     optimizer.step()
+
+
+def test_fromage_zero_norm():
+    param = simple_parameter(require_grad=True)
+
+    optimizer = load_optimizer('fromage')([param])
+    optimizer.step()
