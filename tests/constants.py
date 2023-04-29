@@ -18,6 +18,7 @@ from pytorch_optimizer import (
     AdaBound,
     AdaFactor,
     Adai,
+    AdaMax,
     AdaMod,
     AdamP,
     AdamS,
@@ -44,7 +45,6 @@ from pytorch_optimizer import (
     ScalableShampoo,
     Shampoo,
     Yogi,
-    AdaMax,
 )
 from tests.utils import build_lookahead
 
