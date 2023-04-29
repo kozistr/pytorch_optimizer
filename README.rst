@@ -167,7 +167,9 @@ You can check the supported optimizers & lr schedulers.
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | AdaMod       | *An Adaptive and Momental Bound Method for Stochastic Learning*                                 | `github <https://github.com/lancopku/AdaMod>`__                                   | `https://arxiv.org/abs/1910.12249 <https://arxiv.org/abs/1910.12249>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
-| AggMo        | *Aggregated Momentum: Stability Through Passive Damping*                                        | `github <https://github.com/AtheMathmo/AggMo`__                                   | `https://arxiv.org/abs/1804.00325 <https://arxiv.org/abs/1804.00325>`__                       |
+| AggMo        | *Aggregated Momentum: Stability Through Passive Damping*                                        | `github <https://github.com/AtheMathmo/AggMo>`__                                  | `https://arxiv.org/abs/1804.00325 <https://arxiv.org/abs/1804.00325>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| QHAdam       | *Quasi-hyperbolic momentum and Adam for deep learning*                                          | `github <https://github.com/facebookresearch/qhoptim>`__                          | `https://arxiv.org/abs/1810.06801 <https://arxiv.org/abs/1810.06801>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
@@ -399,6 +401,8 @@ Citations
 `AdaMod <https://github.com/lancopku/AdaMod#citation>`__
 
 `AggMo <https://ui.adsabs.harvard.edu/abs/2018arXiv180400325L/exportcitation>`__
+
+`QHAdam <https://github.com/facebookresearch/qhoptim#reference>`__
 
 Citation
 --------
