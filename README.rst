@@ -14,9 +14,10 @@ pytorch-optimizer
 | License      | |apache|                                 |
 +--------------+------------------------------------------+
 
-| **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. It includes useful and practical optimization ideas.
-| I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper.
+| **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch.
+| I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.
 | Currently, about 40 optimizers, 6 lr schedulers are supported!
+|
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
 Getting Started
@@ -156,6 +157,8 @@ You can check the supported optimizers & lr schedulers.
 | Yogi         | *Adaptive Methods for Nonconvex Optimization*                                                   |                                                                                   | `NIPS 2018 <https://papers.nips.cc/paper/8186-adaptive-methods-for-nonconvex-optimization>`__ |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | SWATS        | *Improving Generalization Performance by Switching from Adam to SGD*                            |                                                                                   | `https://arxiv.org/abs/1712.07628 <https://arxiv.org/abs/1712.07628>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Fromage      | *On the distance between two neural networks and the stability of learning*                     | `github <https://github.com/jxbz/fromage>`__                                      | `https://arxiv.org/abs/2002.03432 <https://arxiv.org/abs/2002.03432>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
@@ -379,6 +382,8 @@ Citations
 `Yogi <https://proceedings.neurips.cc/paper_files/paper/2018/hash/90365351ccc7437a1309dc64e4db32a3-Abstract.html>`__
 
 `SWATS <https://ui.adsabs.harvard.edu/abs/2017arXiv171207628S/exportcitation>`__
+
+`Fromage <https://github.com/jxbz/fromage#citation>`__
 
 Citation
 --------
