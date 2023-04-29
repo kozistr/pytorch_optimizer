@@ -6,6 +6,7 @@ from pytorch_optimizer import (
     MADGRAD,
     MSVAG,
     OPTIMIZERS,
+    PID,
     PNM,
     QHM,
     SGDP,
@@ -346,6 +347,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (QHAdam, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
     (QHM, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (QHM, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
+    (PID, {'lr': 1e0, 'momentum': 0.9, 'dampening': 1.0, 'weight_decay': 1e-3}, 5),
+    (PID, {'lr': 1e0, 'momentum': 0.9, 'dampening': 1.0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
