@@ -14,12 +14,7 @@ class MSVAG(Optimizer, BaseOptimizer):
     :param beta: float. Moving average (momentum) constant (scalar tensor or float value).
     """
 
-    def __init__(
-        self,
-        params: PARAMETERS,
-        lr: float = 1e-2,
-        beta: float = 0.9,
-    ):
+    def __init__(self, params: PARAMETERS, lr: float = 1e-2, beta: float = 0.9):
         self.lr = lr
         self.beta = beta
 
