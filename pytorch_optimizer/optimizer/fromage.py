@@ -29,7 +29,6 @@ class Fromage(Optimizer, BaseOptimizer):
         p_bound: Optional[float] = None,
     ):
         self.lr = lr
-        self.p_bound = p_bound
 
         self.validate_parameters()
 
