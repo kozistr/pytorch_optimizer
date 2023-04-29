@@ -218,3 +218,14 @@ def test_amplifier(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
         optimizer([simple_parameter(False)], amplifier=-1.0)
+
+
+@pytest.mark.parametrize('optimizer_name', ['qhadam'])
+def test_nus(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+
+    with pytest.raises(ValueError):
+        optimizer([simple_parameter(False)], nus=(-0.1, 0.1))
+
+    with pytest.raises(ValueError):
+        optimizer([simple_parameter(False)], nus=(0.1, -0.1))
