@@ -20,6 +20,7 @@ from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
 from pytorch_optimizer.optimizer.adafactor import AdaFactor
 from pytorch_optimizer.optimizer.adai import Adai
+from pytorch_optimizer.optimizer.adamax import AdaMax
 from pytorch_optimizer.optimizer.adamod import AdaMod
 from pytorch_optimizer.optimizer.adamp import AdamP
 from pytorch_optimizer.optimizer.adams import AdamS
@@ -130,6 +131,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     SGDW,
     Yogi,
     ASGD,
+    AdaMax,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
