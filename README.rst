@@ -16,7 +16,7 @@ pytorch-optimizer
 
 | **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch.
 | I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.
-| Currently, about 40 optimizers, 6 lr schedulers are supported!
+| Currently, 43 optimizers, 6 lr schedulers are supported!
 |
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
@@ -170,6 +170,8 @@ You can check the supported optimizers & lr schedulers.
 | AggMo        | *Aggregated Momentum: Stability Through Passive Damping*                                        | `github <https://github.com/AtheMathmo/AggMo>`__                                  | `https://arxiv.org/abs/1804.00325 <https://arxiv.org/abs/1804.00325>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | QHAdam       | *Quasi-hyperbolic momentum and Adam for deep learning*                                          | `github <https://github.com/facebookresearch/qhoptim>`__                          | `https://arxiv.org/abs/1810.06801 <https://arxiv.org/abs/1810.06801>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| PID          | *A PID Controller Approach for Stochastic Optimization of Deep Networks*                        | `github <https://github.com/tensorboy/PIDOptimizer>`__                            | `CVPR 18 <http://www4.comp.polyu.edu.hk/~cslzhang/paper/CVPR18_PID.pdf>`__                    |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
@@ -403,6 +405,8 @@ Citations
 `AggMo <https://ui.adsabs.harvard.edu/abs/2018arXiv180400325L/exportcitation>`__
 
 `QHAdam <https://github.com/facebookresearch/qhoptim#reference>`__
+
+`PID <https://github.com/tensorboy/PIDOptimizer#citation>`__
 
 Citation
 --------
