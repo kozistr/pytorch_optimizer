@@ -33,6 +33,7 @@ def test_epsilon(optimizer_name):
         'accsgd',
         'sgdw',
         'fromage',
+        'msvag',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
@@ -50,7 +51,7 @@ def test_epsilon(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_weight_decay(optimizer_name):
-    if optimizer_name in ('nero', 'alig', 'sm3', 'a2grad', 'fromage'):
+    if optimizer_name in ('nero', 'alig', 'sm3', 'a2grad', 'fromage', 'msvag'):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -116,7 +117,7 @@ def test_beta0(optimizer_name):
         optimizer(None, num_iterations=200, beta0=-0.1)
 
 
-@pytest.mark.parametrize('optimizer_name', ['nero', 'apollo', 'sm3'])
+@pytest.mark.parametrize('optimizer_name', ['nero', 'apollo', 'sm3', 'msvag'])
 def test_beta(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
     with pytest.raises(ValueError):
