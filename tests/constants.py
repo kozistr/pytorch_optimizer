@@ -16,6 +16,7 @@ from pytorch_optimizer import (
     AdaBound,
     AdaFactor,
     Adai,
+    AdaMod,
     AdamP,
     AdamS,
     Adan,
@@ -331,6 +332,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Yogi, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (Fromage, {'lr': 5e-1, 'p_bound': 2.0}, 5),
     (MSVAG, {'lr': 5e-1}, 10),
+    (AdaMod, {'lr': 5e1, 'weight_decay': 1e-3}, 10),
+    (AdaMod, {'lr': 5e1, 'weight_decay': 1e-3, 'weight_decouple': False}, 10),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
@@ -361,4 +364,5 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (NovoGrad, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
     (AdaNorm, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
     (Yogi, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
+    (AdaMod, {'lr': 1e2, 'weight_decay': 1e-3, 'adam_debias': True}, 20),
 ]

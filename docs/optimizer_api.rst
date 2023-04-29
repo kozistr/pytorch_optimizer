@@ -360,3 +360,11 @@ MSVAG
 
 .. autoclass:: pytorch_optimizer.MSVAG
     :members:
+
+.. _AdaMod:
+
+AdaMod
+------
+
+.. autoclass:: pytorch_optimizer.AdaMod
+    :members:
