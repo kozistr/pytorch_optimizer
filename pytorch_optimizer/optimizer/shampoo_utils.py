@@ -146,14 +146,24 @@ class BlockPartitioner:
             split_sizes.append(sizes)
 
         self.num_splits: int = len(split_sizes)
-        self.pre_conditioner_shapes: List[List[int]] = []
+        self.pre_conditioner_shapes: List[List[int]] = self.build_pre_conditioner_shapes(
+            split_sizes, pre_conditioner_type, rank
+        )
+
+    @staticmethod
+    def build_pre_conditioner_shapes(
+        split_sizes: List[np.ndarray], pre_conditioner_type: int, rank: int
+    ) -> List[List[int]]:
+        r"""Build pre-conditioner shapes."""
+        pre_conditioner_shapes: List[List[int]] = []
         for t in itertools.product(*split_sizes):
             t_shape: List[Optional[List[int]]] = [[d, d] for d in t]
             if pre_conditioner_type == PreConditionerType.INPUT:
                 t_shape = t_shape[:-1] + [None]
             if pre_conditioner_type == PreConditionerType.OUTPUT:
                 t_shape = [None] * (rank - 1) + t_shape[-1:]
-            self.pre_conditioner_shapes.extend(t_shape)
+            pre_conditioner_shapes.extend(t_shape)
+        return pre_conditioner_shapes
 
     def shapes_for_pre_conditioners(self) -> List[List[int]]:
         r"""Get shapes of pre-conditioner."""
