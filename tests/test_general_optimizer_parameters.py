@@ -35,6 +35,7 @@ def test_epsilon(optimizer_name):
         'fromage',
         'msvag',
         'aggmo',
+        'qhm',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
