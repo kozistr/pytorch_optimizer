@@ -86,7 +86,7 @@ class MSVAG(Optimizer, BaseOptimizer):
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta).add_(grad, alpha=1.0 - beta)
-                exp_avg_sq.mul_(beta).addcmul_(grad, grad, alpha=1.0 - beta)
+                exp_avg_sq.mul_(beta).addcmul_(grad, grad, value=1.0 - beta)
 
                 beta_power = state['beta_power']
 
@@ -103,6 +103,7 @@ class MSVAG(Optimizer, BaseOptimizer):
                 factor.clamp_(0.0, 1.0)
 
                 p.add_(m * factor, alpha=-group['lr'])
-                beta_power.mul_(beta)
+
+                state['beta_power'] *= beta
 
         return loss
