@@ -67,7 +67,7 @@ class SQRTNGraft(Graft):
 
 
 class AdaGradGraft(SGDGraft):
-    r"""Graft using Adagrad. Essentially an implementation of Adagrad with momentum.
+    r"""Graft using AdaGrad. Essentially an implementation of AdaGrad with momentum.
 
     :param var: torch.Tensor. variable.
     :param diagonal_eps: float. diagonal epsilon.
@@ -76,7 +76,7 @@ class AdaGradGraft(SGDGraft):
     def __init__(self, var: torch.Tensor, diagonal_eps: float):
         super().__init__(var)
         self.diagonal_eps = diagonal_eps
-        self.statistics: torch.Tensor = torch.zeros_like(var, device=var.device)
+        self.statistics: torch.Tensor = torch.zeros_like(var)
 
     def add_statistics(self, grad: torch.Tensor, _):
         r"""Add the statistics."""
@@ -97,7 +97,7 @@ class RMSPropGraft(SGDGraft):
     def __init__(self, var: torch.Tensor, diagonal_eps: float):
         super().__init__(var)
         self.diagonal_eps = diagonal_eps
-        self.statistics: torch.Tensor = torch.zeros_like(var, device=var.device)
+        self.statistics: torch.Tensor = torch.zeros_like(var)
 
     def add_statistics(self, grad: torch.Tensor, beta2: float):
         r"""Add the statistics."""
