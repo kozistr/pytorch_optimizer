@@ -1,6 +1,3 @@
-import math
-from typing import Optional
-
 import torch
 from torch.optim.optimizer import Optimizer
 
