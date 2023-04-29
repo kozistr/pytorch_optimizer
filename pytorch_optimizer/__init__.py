@@ -28,6 +28,7 @@ from pytorch_optimizer.optimizer.adan import Adan
 from pytorch_optimizer.optimizer.adanorm import AdaNorm
 from pytorch_optimizer.optimizer.adapnm import AdaPNM
 from pytorch_optimizer.optimizer.agc import agc
+from pytorch_optimizer.optimizer.aggmo import AggMo
 from pytorch_optimizer.optimizer.alig import AliG
 from pytorch_optimizer.optimizer.apollo import Apollo
 from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptSGD
@@ -106,6 +107,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     ScalableShampoo,
     DAdaptAdaGrad,
     Fromage,
+    AggMo,
     DAdaptAdam,
     DAdaptSGD,
     DAdaptAdan,

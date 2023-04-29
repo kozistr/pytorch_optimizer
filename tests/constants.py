@@ -22,6 +22,7 @@ from pytorch_optimizer import (
     Adan,
     AdaNorm,
     AdaPNM,
+    AggMo,
     AliG,
     Apollo,
     DAdaptAdaGrad,
@@ -334,6 +335,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (MSVAG, {'lr': 5e-1}, 10),
     (AdaMod, {'lr': 5e1, 'weight_decay': 1e-3}, 10),
     (AdaMod, {'lr': 5e1, 'weight_decay': 1e-3, 'weight_decouple': False}, 10),
+    (AggMo, {'lr': 5e0, 'weight_decay': 1e-3}, 5),
+    (AggMo, {'lr': 5e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),

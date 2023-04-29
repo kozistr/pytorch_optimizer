@@ -368,3 +368,11 @@ AdaMod
 
 .. autoclass:: pytorch_optimizer.AdaMod
     :members:
+
+.. _AggMo:
+
+AggMo
+-----
+
+.. autoclass:: pytorch_optimizer.AggMo
+    :members:
