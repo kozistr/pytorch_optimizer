@@ -1,4 +1,3 @@
-import math
 from typing import Tuple
 
 import torch
@@ -18,7 +17,6 @@ class QHAdam(Optimizer, BaseOptimizer):
     :param nus: Tuple[float, float]. immediate discount factors used to estimate the gradient and its square.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -30,7 +28,6 @@ class QHAdam(Optimizer, BaseOptimizer):
         nus: Tuple[float, float] = (1.0, 1.0),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
-        adam_debias: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -47,7 +44,6 @@ class QHAdam(Optimizer, BaseOptimizer):
             'nus': nus,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
-            'adam_debias': adam_debias,
             'eps': eps,
         }
         super().__init__(params, defaults)
