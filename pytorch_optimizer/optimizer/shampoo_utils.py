@@ -173,7 +173,7 @@ class BlockPartitioner:
     def partition(self, x: torch.Tensor) -> List[torch.Tensor]:
         r"""Partition tensor into blocks."""
         if x.shape != self.shape:
-            raise ValueError(f'self._shape != x.shape ({self.shape} vs {x.shape})')
+            raise ValueError(f'self.shape != x.shape ({self.shape} vs {x.shape})')
 
         tensors = [x]
         for i, sizes in self.split_sizes:
