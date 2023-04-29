@@ -305,6 +305,7 @@ def test_nero_zero_scale():
 
     optimizer = load_optimizer('nero')([param], constraints=False)
     optimizer.zero_grad()
+
     param.grad = torch.zeros(1, 1)
     optimizer.step()
 
