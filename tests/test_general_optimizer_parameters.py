@@ -134,7 +134,7 @@ def test_betas(optimizer_name):
         config1.update({'num_iterations': 100})
         config2.update({'num_iterations': 100})
 
-    if optimizer_name not in ('adapnm', 'adan'):
+    if optimizer_name not in ('adapnm', 'adan', 'adamod'):
         with pytest.raises(ValueError):
             optimizer(None, **config1)
 
