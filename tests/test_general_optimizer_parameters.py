@@ -233,4 +233,4 @@ def test_nus(optimizer_name):
             optimizer([simple_parameter(False)], nus=(0.1, -0.1))
     else:
         with pytest.raises(ValueError):
-            optimizer([simple_parameter(False)], nus=-0.1)
+            optimizer([simple_parameter(False)], nu=-0.1)
