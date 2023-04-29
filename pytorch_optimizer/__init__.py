@@ -40,6 +40,7 @@ from pytorch_optimizer.optimizer.lars import LARS
 from pytorch_optimizer.optimizer.lion import Lion
 from pytorch_optimizer.optimizer.lookahead import Lookahead
 from pytorch_optimizer.optimizer.madgrad import MADGRAD
+from pytorch_optimizer.optimizer.msvag import MSVAG
 from pytorch_optimizer.optimizer.nero import Nero
 from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.pcgrad import PCGrad
@@ -94,6 +95,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     MADGRAD,
     Nero,
     PNM,
+    MSVAG,
     RAdam,
     Ranger,
     Ranger21,
