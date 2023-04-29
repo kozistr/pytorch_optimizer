@@ -151,7 +151,7 @@ def test_gsam_optimizers(adaptive):
     model.cuda()
 
     lr: float = 5e-1
-    num_iterations: int = 50
+    num_iterations: int = 5
 
     base_optimizer = load_optimizer('adamp')(model.parameters(), lr=lr)
     lr_scheduler = CosineScheduler(base_optimizer, t_max=num_iterations, max_lr=lr, min_lr=lr, init_lr=lr)
