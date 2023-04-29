@@ -116,8 +116,8 @@ class QHAdam(Optimizer, BaseOptimizer):
                 grad_p2 = grad.pow(2)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                exp_avg.mul_(beta1_adj).add_(grad, alpha=1.0 - beta1_adj)
-                exp_avg_sq.mul_(beta2_adj).add_(grad_p2, value=1.0 - beta2_adj)
+                exp_avg.mul_(beta1_adj).add_((1.0 - beta1_adj) * grad)
+                exp_avg_sq.mul_(beta2_adj).add_(1.0 - beta2_adj * grad_p2)
 
                 avg_grad = exp_avg.mul(nu1)
                 if nu1 != 1.0:
