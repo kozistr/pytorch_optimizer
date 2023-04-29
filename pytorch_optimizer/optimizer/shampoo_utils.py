@@ -63,7 +63,7 @@ class SQRTNGraft(Graft):
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         r"""Get preconditioned gradient."""
-        return grad.sign_()
+        return grad.sign()
 
 
 class AdaGradGraft(SGDGraft):
