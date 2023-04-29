@@ -296,7 +296,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 10),
     (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'amsgrad': False}, 10),
     (Nero, {'lr': 5e-1}, 25),
-    (Nero, {'lr': 5e-1, 'constraints': False}, 25),
+    (Nero, {'lr': 5e0, 'constraints': False}, 5),
     (Adan, {'lr': 5e-1}, 5),
     (Adan, {'lr': 5e-1, 'max_grad_norm': 1.0}, 5),
     (Adan, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 5),
