@@ -352,3 +352,11 @@ Fromage
 
 .. autoclass:: pytorch_optimizer.Fromage
     :members:
+
+.. _MSVAG:
+
+MSVAG
+-----
+
+.. autoclass:: pytorch_optimizer.MSVAG
+    :members:
