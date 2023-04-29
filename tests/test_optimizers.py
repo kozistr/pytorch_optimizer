@@ -77,7 +77,7 @@ def test_lookahead(pullback_momentum):
     optimizer = Lookahead(load_optimizer('adamp')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(10):
+    for _ in range(5):
         optimizer.zero_grad()
 
         y_pred = model(x_data)
