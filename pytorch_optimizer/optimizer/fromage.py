@@ -32,7 +32,10 @@ class Fromage(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {'lr': lr, 'p_bound': p_bound}
+        defaults: DEFAULTS = {'lr': lr}
+        if p_bound is not None:
+            defaults.update({'p_bound': p_bound})
+
         super().__init__(params, defaults)
 
     def validate_parameters(self):
