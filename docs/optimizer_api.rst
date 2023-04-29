@@ -344,3 +344,11 @@ SWATS
 
 .. autoclass:: pytorch_optimizer.SWATS
     :members:
+
+.. _Fromage:
+
+Fromage
+-------
+
+.. autoclass:: pytorch_optimizer.Fromage
+    :members:
