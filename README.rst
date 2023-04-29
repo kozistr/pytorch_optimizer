@@ -171,6 +171,8 @@ You can check the supported optimizers & lr schedulers.
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | QHAdam       | *Quasi-hyperbolic momentum and Adam for deep learning*                                          | `github <https://github.com/facebookresearch/qhoptim>`__                          | `https://arxiv.org/abs/1810.06801 <https://arxiv.org/abs/1810.06801>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| PID          | *A PID Controller Approach for Stochastic Optimization of Deep Networks*                        | `github <https://github.com/tensorboy/PIDOptimizer>`__                            | `CVPR 18 <http://www4.comp.polyu.edu.hk/~cslzhang/paper/CVPR18_PID.pdf>`__                    |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
 ----------------
@@ -403,6 +405,8 @@ Citations
 `AggMo <https://ui.adsabs.harvard.edu/abs/2018arXiv180400325L/exportcitation>`__
 
 `QHAdam <https://github.com/facebookresearch/qhoptim#reference>`__
+
+`PID <https://github.com/tensorboy/PIDOptimizer#citation>`__
 
 Citation
 --------
