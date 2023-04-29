@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Tuple
 
 import torch
 
@@ -140,6 +141,13 @@ class BaseOptimizer(ABC):
     def validate_amplifier(amplifier: float):
         if amplifier < 0.0:
             raise ValueError(f'[-] amplifier {amplifier} must be non-negative')
+
+    @staticmethod
+    def validate_nus(nus: Tuple[float, float]):
+        if not 0.0 <= nus[0] <= 1.0:
+            raise ValueError(f'[-] nus1 {nus[0]} must be in the range [0, 1]')
+        if not 0.0 <= nus[1] <= 1.0:
+            raise ValueError(f'[-] nus2 {nus[1]} must be in the range [0, 1]')
 
     @abstractmethod
     def validate_parameters(self):

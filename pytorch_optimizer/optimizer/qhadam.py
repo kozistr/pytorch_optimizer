@@ -53,6 +53,7 @@ class QHAdam(Optimizer, BaseOptimizer):
         self.validate_betas(self.betas)
         self.validate_weight_decay(self.weight_decay)
         self.validate_epsilon(self.eps)
+        self.validate_nus(self.nus)
 
     def __str__(self) -> str:
         return 'QHAdam'
