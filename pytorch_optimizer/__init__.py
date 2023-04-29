@@ -21,6 +21,7 @@ from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
 from pytorch_optimizer.optimizer.adafactor import AdaFactor
 from pytorch_optimizer.optimizer.adai import Adai
+from pytorch_optimizer.optimizer.adamod import AdaMod
 from pytorch_optimizer.optimizer.adamp import AdamP
 from pytorch_optimizer.optimizer.adams import AdamS
 from pytorch_optimizer.optimizer.adan import Adan
@@ -88,6 +89,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdamP,
     Adai,
     Adan,
+    AdaMod,
     AdaPNM,
     DiffGrad,
     Lamb,
