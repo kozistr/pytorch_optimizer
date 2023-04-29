@@ -384,3 +384,11 @@ QHAdam
 
 .. autoclass:: pytorch_optimizer.QHAdam
     :members:
+
+.. _QHM:
+
+QHM
+---
+
+.. autoclass:: pytorch_optimizer.QHM
+    :members:
