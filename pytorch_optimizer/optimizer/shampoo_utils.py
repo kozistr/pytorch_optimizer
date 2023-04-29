@@ -138,7 +138,7 @@ class BlockPartitioner:
             num_split: int = (d - 1) // block_size
             indices = (np.arange(num_split, dtype=np.int32) + 1) * block_size
 
-            sizes = np.ones(num_split + 1, dtype=np.int32) * block_size
+            sizes: np.ndarray = np.ones(num_split + 1, dtype=np.int32) * block_size
             sizes[-1] = d - indices[-1]
 
             self.splits.append((i, indices))
