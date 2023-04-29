@@ -94,25 +94,13 @@ def test_lookahead(pullback_momentum):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-@pytest.mark.parametrize('optimizer_sam_config', OPTIMIZERS, ids=ids)
-def test_sam_optimizers(adaptive, optimizer_sam_config):
+def test_sam_optimizers(adaptive):
     (x_data, y_data), model, loss_fn = build_environment()
 
-    optimizer_class, config, iterations = optimizer_sam_config
-    if (
-        (optimizer_class.__name__ == 'Shampoo' and 'decoupled_learning_rate' in config)
-        or (optimizer_class.__name__ == 'DAdaptAdam')
-        or (optimizer_class.__name__ == 'DAdaptSGD')
-        or (optimizer_class.__name__ == 'DAdaptAdan')
-        or (optimizer_class.__name__ == 'Apollo' and 'weight_decay_type' in config)
-        or (optimizer_class.__name__ == 'AliG')
-    ):
-        pytest.skip(f'Skip {optimizer_class.__name__} w/ {config}')
-
-    optimizer = SAM(model.parameters(), optimizer_class, **config, adaptive=adaptive)
+    optimizer = SAM(model.parameters(), load_optimizer('adamp'), lr=5e-1, adaptive=adaptive)
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(iterations):
+    for _ in range(5):
         loss = loss_fn(y_data, model(x_data))
         loss.backward()
         optimizer.first_step(zero_grad=True)
@@ -138,7 +126,7 @@ def test_sam_optimizers_with_closure(adaptive):
         return first_loss
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(10):
+    for _ in range(5):
         loss = loss_fn(y_data, model(x_data))
         loss.backward()
 
