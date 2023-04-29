@@ -44,7 +44,7 @@ class MSVAG(Optimizer, BaseOptimizer):
     @staticmethod
     def get_rho(beta_power: float, beta: float) -> float:
         r"""Get rho."""
-        rho: float = (1.0 - beta_power**2) * (1.0 - beta) ** 2
+        rho: float = (1.0 - beta_power ** 2) * (1.0 - beta) ** 2  # fmt: skip
         rho /= (1.0 - beta) * (1.0 - beta_power) ** 2
         return min(rho, 0.9999)
 
