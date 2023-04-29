@@ -53,7 +53,7 @@ class AggMo(Optimizer, BaseOptimizer):
             for p in group['params']:
                 state = self.state[p]
 
-                state['momentum_buffer'] = {beta: torch.zeros_like(p) for beta in group['beta']}
+                state['momentum_buffer'] = {beta: torch.zeros_like(p) for beta in group['betas']}
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
