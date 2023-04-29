@@ -41,7 +41,7 @@ def test_f32_optimizers(optimizer_fp32_config):
 
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name == 'Nero' and 'constraints' not in config:
-        pytest.skip(f'skip {optimizer_name} w/ {config}')
+        pytest.skip(f'skip {optimizer_name} w/o {config}')
 
     parameters = list(model.parameters())
 
