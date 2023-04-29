@@ -38,7 +38,6 @@ class MSVAG(Optimizer, BaseOptimizer):
 
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
-                state['beta_power'] = group['beta']
                 state['s'] = torch.zeros_like(p)
 
     @staticmethod
@@ -62,6 +61,7 @@ class MSVAG(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta: float = group['beta']
+            beta_power: float = beta ** group['step']
 
             for p in group['params']:
                 if p.grad is None:
@@ -76,14 +76,11 @@ class MSVAG(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
-                    state['beta_power'] = beta
                     state['s'] = torch.zeros_like(p)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta).add_(grad, alpha=1.0 - beta)
                 exp_avg_sq.mul_(beta).addcmul_(grad, grad, value=1.0 - beta)
-
-                beta_power = state['beta_power']
 
                 m = exp_avg.div(beta_power)
                 v = exp_avg_sq.div(beta_power)
@@ -98,7 +95,5 @@ class MSVAG(Optimizer, BaseOptimizer):
                 factor.clamp_(0.0, 1.0)
 
                 p.add_(m * factor, alpha=-group['lr'])
-
-                state['beta_power'] *= beta
 
         return loss
