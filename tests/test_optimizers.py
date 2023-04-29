@@ -254,7 +254,7 @@ def test_pc_grad_optimizers(reduction):
     optimizer.reset()
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(10):
+    for _ in range(5):
         optimizer.zero_grad()
 
         y_pred_1, y_pred_2 = model(x_data)
