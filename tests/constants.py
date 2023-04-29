@@ -44,6 +44,7 @@ from pytorch_optimizer import (
     ScalableShampoo,
     Shampoo,
     Yogi,
+    AdaMax,
 )
 from tests.utils import build_lookahead
 
@@ -91,6 +92,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'adamod',
     'aggmo',
     'qhadam',
+    'adamax',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -349,6 +351,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (QHM, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
     (PID, {'lr': 1e0, 'momentum': 0.9, 'dampening': 1.0, 'weight_decay': 1e-3}, 5),
     (PID, {'lr': 1e0, 'momentum': 0.9, 'dampening': 1.0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
+    (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
+    (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
