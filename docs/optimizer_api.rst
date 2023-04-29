@@ -376,3 +376,11 @@ AggMo
 
 .. autoclass:: pytorch_optimizer.AggMo
     :members:
+
+.. _QHAdam:
+
+QHAdam
+------
+
+.. autoclass:: pytorch_optimizer.QHAdam
+    :members:
