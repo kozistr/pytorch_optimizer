@@ -420,7 +420,7 @@ def compute_power_schur_newton(
     mat_g: torch.Tensor,
     p: int,
     max_iters: int = 100,
-    error_tolerance: float = 1e-6,
+    error_tolerance: float = 1e-3,
     ridge_epsilon: float = 1e-6,
     max_error_ratio: float = 1.2,
 ) -> torch.Tensor:
@@ -467,22 +467,22 @@ def compute_power_schur_newton(
     alpha: float = -1.0 / p
     alpha_identity = (1.0 - alpha) * identity
 
-    error = torch.max(torch.abs(mat_m - identity))
-
-    new_mat_root = torch.empty_like(mat_root)
+    prev_error = torch.max(torch.abs(mat_m - identity))
 
     for _ in range(max_iters):
         mat_m_i = alpha_identity + alpha * mat_m
 
-        torch.matmul(mat_root, mat_m_i, out=new_mat_root)
+        new_mat_root = torch.matmul(mat_root, mat_m_i)
         torch.matmul(torch.linalg.matrix_power(mat_m_i, p), mat_m, out=mat_m)
 
-        new_error = torch.max(torch.abs(mat_m - identity))
-        if new_error <= error_tolerance or new_error > error * max_error_ratio:
+        error = torch.max(torch.abs(mat_m - identity))
+
+        # this is the main bottleneck that Scalable Shampoo on GPU makes slow.
+        if torch.logical_or(error > prev_error * max_error_ratio, error <= error_tolerance):
             break
 
         mat_root = new_mat_root
-        error = new_error
+        prev_error = error
 
     return mat_root
 
