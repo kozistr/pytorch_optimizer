@@ -190,9 +190,6 @@ class BlockPartitioner:
                 torch.cat(partitions[idx:idx + n], dim=i) for idx in range(0, len(partitions), n)  # fmt: skip
             ]
 
-        # TODO
-        # when length of partitions is 1, raise error
-
         return partitions[0]
 
 
