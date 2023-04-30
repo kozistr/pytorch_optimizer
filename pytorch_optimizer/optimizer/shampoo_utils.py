@@ -321,14 +321,12 @@ class PreConditioner:
         else (`self.use_svd` is disabled), use Schur-Newton method
         """
         if self.use_svd and self.is_same_shapes:
-            self.pre_conditioners = compute_power_svd(
-                matrix=self.statistics, power=-1.0 / self.exponent_for_pre_conditioner
-            )
+            self.pre_conditioners = compute_power_svd(matrix=self.statistics, power=self.exponent_for_pre_conditioner)
             return
 
         for i, statistic in enumerate(self.statistics):
             self.pre_conditioners[i] = (
-                compute_power_svd(matrix=statistic, power=-1.0 / self.exponent_for_pre_conditioner)
+                compute_power_svd(matrix=statistic, power=self.exponent_for_pre_conditioner)
                 if self.use_svd
                 else compute_power_schur_newton(
                     mat_g=statistic, p=self.exponent_for_pre_conditioner, ridge_epsilon=self.matrix_eps
@@ -507,10 +505,10 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
         CUDA seems much faster than on CPU.
 
     :param matrix: torch.Tensor. a square positive semi-definite matrix.
-    :param power: float. -1.0 / order.
+    :param power: float. rank.
     """
     u, s, vh = torch.linalg.svd(matrix, full_matrices=False)
-    s.pow_(power)
+    s.pow_(-1.0 / power)
     return u @ (s.diag() if len(matrix.shape) == 2 else s.diag_embed()) @ vh
 
 
