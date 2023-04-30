@@ -477,7 +477,10 @@ def compute_power_schur_newton(
 
         error = torch.max(torch.abs(mat_m - identity))
 
-        # this is the main bottleneck that Scalable Shampoo on GPU makes slow.
+        # NOTE
+        # this is the main bottleneck that makes Scalable Shampoo slow.
+        # because it is handled on the Python side so values need to be on the CPU
+        # while XLA devices (e.g. TPU) doesn't seem to be affected.
         if torch.logical_or(error > prev_error * max_error_ratio, error <= error_tolerance):
             break
 
