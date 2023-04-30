@@ -191,7 +191,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         start_preconditioning_step: int = 25,
         preconditioning_compute_steps: int = 1000,
         statistics_compute_steps: int = 1,
-        block_size: int = 256,
+        block_size: int = 512,
         skip_preconditioning_rank_lt: int = 1,
         no_preconditioning_for_layers_with_dim_gt: int = 8192,
         shape_interpretation: bool = True,
