@@ -110,7 +110,7 @@ class Shampoo(Optimizer, BaseOptimizer):
 
                     pre_cond.add_(grad @ grad_t)
                     if group['step'] % self.preconditioning_compute_steps == 0:
-                        inv_pre_cond.copy_(compute_power_svd(pre_cond, -1.0 / order))
+                        inv_pre_cond.copy_(compute_power_svd(pre_cond, order))
 
                     if dim_id == order - 1:
                         grad = grad_t @ inv_pre_cond
@@ -191,7 +191,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         start_preconditioning_step: int = 25,
         preconditioning_compute_steps: int = 1000,
         statistics_compute_steps: int = 1,
-        block_size: int = 256,
+        block_size: int = 512,
         skip_preconditioning_rank_lt: int = 1,
         no_preconditioning_for_layers_with_dim_gt: int = 8192,
         shape_interpretation: bool = True,

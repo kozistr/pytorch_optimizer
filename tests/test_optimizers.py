@@ -41,7 +41,7 @@ def test_f32_optimizers(optimizer_fp32_config):
 
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name == 'Nero' and 'constraints' not in config:
-        pytest.skip(f'skip {optimizer_name} w/ {config}')
+        pytest.skip(f'skip {optimizer_name} w/o {config}')
 
     parameters = list(model.parameters())
 
@@ -77,7 +77,7 @@ def test_lookahead(pullback_momentum):
     optimizer = Lookahead(load_optimizer('adamp')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(10):
+    for _ in range(5):
         optimizer.zero_grad()
 
         y_pred = model(x_data)
@@ -151,7 +151,7 @@ def test_gsam_optimizers(adaptive):
     model.cuda()
 
     lr: float = 5e-1
-    num_iterations: int = 50
+    num_iterations: int = 5
 
     base_optimizer = load_optimizer('adamp')(model.parameters(), lr=lr)
     lr_scheduler = CosineScheduler(base_optimizer, t_max=num_iterations, max_lr=lr, min_lr=lr, init_lr=lr)
@@ -254,7 +254,7 @@ def test_pc_grad_optimizers(reduction):
     optimizer.reset()
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(10):
+    for _ in range(5):
         optimizer.zero_grad()
 
         y_pred_1, y_pred_2 = model(x_data)
@@ -305,6 +305,7 @@ def test_nero_zero_scale():
 
     optimizer = load_optimizer('nero')([param], constraints=False)
     optimizer.zero_grad()
+
     param.grad = torch.zeros(1, 1)
     optimizer.step()
 

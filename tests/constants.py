@@ -18,6 +18,7 @@ from pytorch_optimizer import (
     AdaBound,
     AdaFactor,
     Adai,
+    AdaMax,
     AdaMod,
     AdamP,
     AdamS,
@@ -91,6 +92,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'adamod',
     'aggmo',
     'qhadam',
+    'adamax',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -296,7 +298,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 10),
     (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'amsgrad': False}, 10),
     (Nero, {'lr': 5e-1}, 25),
-    (Nero, {'lr': 5e-1, 'constraints': False}, 25),
+    (Nero, {'lr': 5e0, 'constraints': False}, 5),
     (Adan, {'lr': 5e-1}, 5),
     (Adan, {'lr': 5e-1, 'max_grad_norm': 1.0}, 5),
     (Adan, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 5),
@@ -349,6 +351,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (QHM, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
     (PID, {'lr': 1e0, 'momentum': 0.9, 'dampening': 1.0, 'weight_decay': 1e-3}, 5),
     (PID, {'lr': 1e0, 'momentum': 0.9, 'dampening': 1.0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
+    (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
+    (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),

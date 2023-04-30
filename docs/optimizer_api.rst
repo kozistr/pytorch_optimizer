@@ -392,3 +392,19 @@ QHM
 
 .. autoclass:: pytorch_optimizer.QHM
     :members:
+
+.. _PID:
+
+PID
+---
+
+.. autoclass:: pytorch_optimizer.PID
+    :members:
+
+.. _AdaMax:
+
+AdaMax
+------
+
+.. autoclass:: pytorch_optimizer.AdaMax
+    :members:

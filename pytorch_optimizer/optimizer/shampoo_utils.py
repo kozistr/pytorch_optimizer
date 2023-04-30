@@ -63,11 +63,11 @@ class SQRTNGraft(Graft):
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         r"""Get preconditioned gradient."""
-        return grad.sign_()
+        return grad.sign()
 
 
 class AdaGradGraft(SGDGraft):
-    r"""Graft using Adagrad. Essentially an implementation of Adagrad with momentum.
+    r"""Graft using AdaGrad. Essentially an implementation of AdaGrad with momentum.
 
     :param var: torch.Tensor. variable.
     :param diagonal_eps: float. diagonal epsilon.
@@ -76,7 +76,7 @@ class AdaGradGraft(SGDGraft):
     def __init__(self, var: torch.Tensor, diagonal_eps: float):
         super().__init__(var)
         self.diagonal_eps = diagonal_eps
-        self.statistics: torch.Tensor = torch.zeros_like(var, device=var.device)
+        self.statistics: torch.Tensor = torch.zeros_like(var)
 
     def add_statistics(self, grad: torch.Tensor, _):
         r"""Add the statistics."""
@@ -97,7 +97,7 @@ class RMSPropGraft(SGDGraft):
     def __init__(self, var: torch.Tensor, diagonal_eps: float):
         super().__init__(var)
         self.diagonal_eps = diagonal_eps
-        self.statistics: torch.Tensor = torch.zeros_like(var, device=var.device)
+        self.statistics: torch.Tensor = torch.zeros_like(var)
 
     def add_statistics(self, grad: torch.Tensor, beta2: float):
         r"""Add the statistics."""
@@ -138,7 +138,7 @@ class BlockPartitioner:
             num_split: int = (d - 1) // block_size
             indices = (np.arange(num_split, dtype=np.int32) + 1) * block_size
 
-            sizes = np.ones(num_split + 1, dtype=np.int32) * block_size
+            sizes: np.ndarray = np.ones(num_split + 1, dtype=np.int32) * block_size
             sizes[-1] = d - indices[-1]
 
             self.splits.append((i, indices))
@@ -146,30 +146,39 @@ class BlockPartitioner:
             split_sizes.append(sizes)
 
         self.num_splits: int = len(split_sizes)
-        self.pre_conditioner_shapes: List[List[int]] = []
+        self.pre_conditioner_shapes: List[List[int]] = self.build_pre_conditioner_shapes(
+            split_sizes, pre_conditioner_type, rank
+        )
+
+    @staticmethod
+    def build_pre_conditioner_shapes(
+        split_sizes: List[np.ndarray], pre_conditioner_type: int, rank: int
+    ) -> List[List[int]]:
+        r"""Build pre-conditioner shapes."""
+        pre_conditioner_shapes: List[List[int]] = []
         for t in itertools.product(*split_sizes):
             t_shape: List[Optional[List[int]]] = [[d, d] for d in t]
             if pre_conditioner_type == PreConditionerType.INPUT:
                 t_shape = t_shape[:-1] + [None]
             if pre_conditioner_type == PreConditionerType.OUTPUT:
                 t_shape = [None] * (rank - 1) + t_shape[-1:]
-            self.pre_conditioner_shapes.extend(t_shape)
+            pre_conditioner_shapes.extend(t_shape)
+        return pre_conditioner_shapes
 
     def shapes_for_pre_conditioners(self) -> List[List[int]]:
         r"""Get shapes of pre-conditioner."""
         return self.pre_conditioner_shapes
 
+    @torch.no_grad()
     def partition(self, x: torch.Tensor) -> List[torch.Tensor]:
         r"""Partition tensor into blocks."""
         if x.shape != self.shape:
-            raise ValueError(f'self._shape != x.shape ({self.shape} vs {x.shape})')
+            raise ValueError(f'self.shape != x.shape ({self.shape} vs {x.shape})')
 
-        tensors: List[torch.Tensor] = [x]
+        tensors = [x]
         for i, sizes in self.split_sizes:
-            tensors_local: List[torch.Tensor] = []
-            for t in tensors:
-                tensors_local.extend(torch.split(t, list(sizes), dim=i))
-            tensors = tensors_local
+            tensors = [torch.split(t, list(sizes), dim=i) for t in tensors]
+            tensors = [t for tensor in tensors for t in tensor]
         return tensors
 
     def merge_partitions(self, partitions: List[torch.Tensor]) -> torch.Tensor:
@@ -178,11 +187,8 @@ class BlockPartitioner:
             n: int = len(indices) + 1
 
             partitions: List[torch.Tensor] = [
-                torch.cat(partitions[idx:idx + n], axis=i) for idx in range(0, len(partitions), n)  # fmt: skip
+                torch.cat(partitions[idx:idx + n], dim=i) for idx in range(0, len(partitions), n)  # fmt: skip
             ]
-
-        # TODO
-        # when length of partitions is 1, raise error
 
         return partitions[0]
 
@@ -312,14 +318,12 @@ class PreConditioner:
         else (`self.use_svd` is disabled), use Schur-Newton method
         """
         if self.use_svd and self.is_same_shapes:
-            self.pre_conditioners = compute_power_svd(
-                matrix=self.statistics, power=-1.0 / self.exponent_for_pre_conditioner
-            )
+            self.pre_conditioners = compute_power_svd(matrix=self.statistics, power=self.exponent_for_pre_conditioner)
             return
 
         for i, statistic in enumerate(self.statistics):
             self.pre_conditioners[i] = (
-                compute_power_svd(matrix=statistic, power=-1.0 / self.exponent_for_pre_conditioner)
+                compute_power_svd(matrix=statistic, power=self.exponent_for_pre_conditioner)
                 if self.use_svd
                 else compute_power_schur_newton(
                     mat_g=statistic, p=self.exponent_for_pre_conditioner, ridge_epsilon=self.matrix_eps
@@ -390,32 +394,23 @@ def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
 
 
 @torch.no_grad()
-def power_iteration(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 50) -> torch.Tensor:
+def power_iteration(mat_g: torch.Tensor, num_iters: int = 100) -> torch.Tensor:
     r"""Compute the maximum eigenvalue of matrix, for scaling.
 
-        Usually, power_iteration method is faster than torch.einval in case of the symmetric PSD matrix.
+        Mostly, power_iteration method is faster than torch.einval in case of the symmetric PSD matrix.
+        Also, I removed the validation, error of singular value every iteration, so that boosting the speed.
 
     :param mat_g: torch.Tensor. the symmetric PSD matrix.
-    :param error_tolerance: float. Iterative exit condition.
     :param num_iters: int. Number of iterations.
     """
     v = torch.randn(mat_g.shape[0], dtype=mat_g.dtype, device=mat_g.device)
-
-    singular_val = 1e-16
+    mat_v = torch.empty_like(v)
 
     for _ in range(num_iters):
-        v.div_(torch.linalg.norm(v))
+        torch.mv(mat_g, v, out=mat_v)
+        v = mat_v.div(torch.linalg.norm(mat_v))
 
-        mat_v = torch.mv(mat_g, v)
-        s_v = torch.dot(v, mat_v)
-
-        if torch.abs_(s_v - singular_val) <= error_tolerance:
-            break
-
-        v = mat_v
-        singular_val = s_v
-
-    return singular_val
+    return (v.t() @ mat_g @ v).clamp_min_(1e-16)
 
 
 @torch.no_grad()
@@ -423,7 +418,7 @@ def compute_power_schur_newton(
     mat_g: torch.Tensor,
     p: int,
     max_iters: int = 100,
-    error_tolerance: float = 1e-6,
+    error_tolerance: float = 1e-3,
     ridge_epsilon: float = 1e-6,
     max_error_ratio: float = 1.2,
 ) -> torch.Tensor:
@@ -456,36 +451,40 @@ def compute_power_schur_newton(
     if len(shape) == 1:
         return torch.pow(mat_g + ridge_epsilon, -1.0 / p)
 
-    identity = torch.eye(shape[0], device=mat_g.device, dtype=mat_g.dtype)
+    identity = torch.eye(shape[0], dtype=mat_g.dtype, device=mat_g.device)
     if shape[0] == 1:
         return identity
 
-    mat_g.add_(ridge_epsilon * power_iteration(mat_g) * identity)
+    mat_g += power_iteration(mat_g) * identity * ridge_epsilon
 
     z = (1 + p) / (2 * torch.linalg.norm(mat_g))
 
     mat_root = identity * torch.pow(z, 1.0 / p)
+
     mat_m = mat_g * z
 
     alpha: float = -1.0 / p
     alpha_identity = (1.0 - alpha) * identity
 
-    error = torch.max(torch.abs(mat_m - identity))
-
-    new_mat_root = torch.empty_like(mat_root)
+    prev_error = torch.max(torch.abs(mat_m - identity))
 
     for _ in range(max_iters):
         mat_m_i = alpha_identity + alpha * mat_m
 
-        torch.matmul(mat_root, mat_m_i, out=new_mat_root)
+        new_mat_root = torch.matmul(mat_root, mat_m_i)
         torch.matmul(torch.linalg.matrix_power(mat_m_i, p), mat_m, out=mat_m)
 
-        new_error = torch.max(torch.abs(mat_m - identity))
-        if new_error <= error_tolerance or new_error > error * max_error_ratio:
+        error = torch.max(torch.abs(mat_m - identity))
+
+        # NOTE
+        # this is the main bottleneck that makes Scalable Shampoo slow.
+        # because it is handled on the Python side so values need to be on the CPU
+        # while XLA devices (e.g. TPU) doesn't seem to be affected.
+        if torch.logical_or(error > prev_error * max_error_ratio, error <= error_tolerance):
             break
 
         mat_root = new_mat_root
-        error = new_error
+        prev_error = error
 
     return mat_root
 
@@ -498,10 +497,10 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
         CUDA seems much faster than on CPU.
 
     :param matrix: torch.Tensor. a square positive semi-definite matrix.
-    :param power: float. -1.0 / order.
+    :param power: float. rank.
     """
     u, s, vh = torch.linalg.svd(matrix, full_matrices=False)
-    s.pow_(power)
+    s.pow_(-1.0 / power)
     return u @ (s.diag() if len(matrix.shape) == 2 else s.diag_embed()) @ vh
 
 

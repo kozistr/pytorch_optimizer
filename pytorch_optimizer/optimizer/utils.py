@@ -37,10 +37,10 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
     """
     size: int = x.dim()
     if size > 1 and use_channels:
-        s = x.std(dim=tuple(range(1, size)), keepdim=True) + epsilon
+        s = x.std(dim=tuple(range(1, size)), keepdim=True).add_(epsilon)
         x.div_(s)
     elif torch.numel(x) > 2:
-        s = x.std() + epsilon
+        s = x.std().add_(epsilon)
         x.div_(s)
     return x
 
@@ -96,10 +96,10 @@ def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = Fal
         since each worker only stores their shard of the gradients.
 
     :param parameters: PARAMETERS. Parameters whose gradients we wish to clip.
-    :param max_norm: float. Maximum norm we wish the gradients to have. If non-positive, then
-        we will not perform clipping.
-    :param sync: bool. Boolean indicating whether we should aggregate across the distributed group.
-        Used only in combination with FSDP.
+    :param max_norm: float. Maximum norm we wish the gradients to have. If non-positive, then we will not perform
+        clipping.
+    :param sync: bool. Boolean indicating whether we should aggregate across the distributed group. Used only in
+        combination with FSDP.
     :returns: The gradient norm across all parameters, before clipping.
     """
     if isinstance(parameters, torch.Tensor):

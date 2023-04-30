@@ -252,8 +252,8 @@ class Ranger21(Optimizer, BaseOptimizer):
             lr = group['lr']
             beta1, beta2 = group['betas']
 
-            bias_correction1 = 1.0 - beta1 ** group['step']  # fmt: skip
-            bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])  # fmt: skip
+            bias_correction1: float = 1.0 - beta1 ** group['step']  # fmt: skip
+            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])  # fmt: skip
 
             noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
 

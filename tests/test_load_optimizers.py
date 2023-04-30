@@ -16,4 +16,4 @@ def test_load_optimizers_invalid(invalid_optimizer_names):
 
 
 def test_get_supported_optimizers():
-    assert len(get_supported_optimizers()) == 43
+    assert len(get_supported_optimizers()) == 44
