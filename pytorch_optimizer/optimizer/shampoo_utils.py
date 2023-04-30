@@ -465,7 +465,7 @@ def compute_power_schur_newton(
     if len(shape) == 1:
         return torch.pow(mat_g + ridge_epsilon, -1.0 / p)
 
-    identity = torch.eye(shape[0], device=mat_g.device, dtype=mat_g.dtype)
+    identity = torch.eye(shape[0], dtype=mat_g.dtype, device=mat_g.device)
     if shape[0] == 1:
         return identity
 
