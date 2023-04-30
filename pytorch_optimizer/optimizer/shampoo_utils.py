@@ -396,6 +396,7 @@ def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
     return Graft(p)
 
 
+@torch.no_grad()
 def power_iteration(mat_g: torch.Tensor, num_iters: int = 100) -> torch.Tensor:
     r"""Compute the maximum eigenvalue of matrix, for scaling.
 
@@ -412,9 +413,10 @@ def power_iteration(mat_g: torch.Tensor, num_iters: int = 100) -> torch.Tensor:
         torch.mv(mat_g, v, out=mat_v)
         v = mat_v.div(torch.linalg.norm(mat_v))
 
-    return v.t() @ mat_g @ v
+    return (v.t() @ mat_g @ v).clamp_min_(1e-16)
 
 
+@torch.no_grad()
 def compute_power_schur_newton(
     mat_g: torch.Tensor,
     p: int,
@@ -456,11 +458,12 @@ def compute_power_schur_newton(
     if shape[0] == 1:
         return identity
 
-    mat_g.add_(power_iteration(mat_g) * identity, alpha=ridge_epsilon)
+    mat_g += power_iteration(mat_g) * identity * ridge_epsilon
 
     z = (1 + p) / (2 * torch.linalg.norm(mat_g))
 
     mat_root = identity * torch.pow(z, 1.0 / p)
+
     mat_m = mat_g * z
 
     alpha: float = -1.0 / p
