@@ -399,7 +399,7 @@ def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
 
 
 @torch.no_grad()
-def power_iteration(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iters: int = 50) -> torch.Tensor:
+def power_iteration(mat_g: torch.Tensor, error_tolerance: float = 1e-4, num_iters: int = 100) -> torch.Tensor:
     r"""Compute the maximum eigenvalue of matrix, for scaling.
 
         Usually, power_iteration method is faster than torch.einval in case of the symmetric PSD matrix.
@@ -418,7 +418,7 @@ def power_iteration(mat_g: torch.Tensor, error_tolerance: float = 1e-6, num_iter
         mat_v = torch.mv(mat_g, v)
         s_v = torch.dot(v, mat_v)
 
-        if torch.abs_(s_v - singular_val) <= error_tolerance:
+        if (s_v - singular_val).abs_() <= error_tolerance:
             break
 
         v = mat_v
