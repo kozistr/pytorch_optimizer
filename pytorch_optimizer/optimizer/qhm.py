@@ -15,7 +15,6 @@ class QHM(Optimizer, BaseOptimizer):
     :param nu: float. immediate discount factor used to estimate the gradient and its square.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(

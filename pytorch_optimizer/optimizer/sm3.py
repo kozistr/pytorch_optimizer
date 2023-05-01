@@ -14,6 +14,7 @@ class SM3(Optimizer, BaseOptimizer):
     :param momentum: float. coefficient used to scale prior updates before adding. This drastically increases
         memory usage if `momentum > 0.0`. This is ignored if the parameter's gradient is sparse.
     :param beta: float. coefficient used for exponential moving averages.
+    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(

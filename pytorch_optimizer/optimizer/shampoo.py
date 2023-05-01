@@ -160,7 +160,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         performance. So, If you have a problem with the speed, try to set this step bigger (e.g. 1000).
     :param statistics_compute_steps: int. How often to compute statistics. usually set to 1 (or 10).
     :param block_size: int. Block size for large layers (if > 0).
-        Block size = 1 ==> Adagrad (Don't do this, extremely inefficient!)
+        Block size = 1 ==> AdaGrad (Don't do this, extremely inefficient!)
         Block size should be as large as feasible under memory/time constraints.
     :param skip_preconditioning_rank_lt: int. Skips preconditioning for parameters with rank less than this value.
     :param no_preconditioning_for_layers_with_dim_gt: int. avoid preconditioning large layers to reduce overall memory.

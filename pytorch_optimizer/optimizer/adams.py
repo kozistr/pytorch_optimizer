@@ -15,7 +15,7 @@ class AdamS(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
-    :param ams_bound: bool. whether to use the ams_bound variant of this algorithm from the paper.
+    :param ams_bound: bool. whether to use the AMSBound variant.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
     :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
