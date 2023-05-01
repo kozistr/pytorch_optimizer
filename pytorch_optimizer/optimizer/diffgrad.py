@@ -146,11 +146,11 @@ class DiffGrad(Optimizer, BaseOptimizer):
                 if group['amsgrad']:
                     max_exp_avg_sq = state['max_exp_avg_sq']
                     torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
-                    de_nom = max_exp_avg_sq.add(group['eps']).sqrt()
+                    de_nom = max_exp_avg_sq.add(group['eps'])
                 else:
-                    de_nom = exp_avg_sq.add(group['eps']).sqrt()
+                    de_nom = exp_avg_sq.add(group['eps'])
 
-                de_nom.add_(group['eps'])
+                de_nom.sqrt_().add_(group['eps'])
 
                 # compute diffGrad coefficient (dfc)
                 dfc = state['previous_grad'].clone()
