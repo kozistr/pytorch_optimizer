@@ -18,31 +18,32 @@ class BaseOptimizer(ABC):
         lr: float,
         beta2: float,
         bias_correction1: float,
-        n_sma_threshold: int = 5,
-        degenerated_to_sgd: bool = False,
-        adam_debias: bool = False,
+        n_sma_threshold: int,
+        degenerated_to_sgd: bool,
+        adam_debias: bool,
     ) -> Tuple[float, float]:
         r"""Get step size for rectify optimizer."""
-        n_sma: float = 0.0
         step_size: float = lr
+        n_sma: float = 0.0
 
         if is_rectify:
-            n_sma_max: float = 2 / (1 - beta2) - 1
+            n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
             beta2_t: float = beta2 ** step  # fmt: skip
-            n_sma: float = n_sma_max - 2 * step * beta2_t / (1 - beta2_t)
+            n_sma: float = n_sma_max - 2 * step * beta2_t / (1.0 - beta2_t)
 
             if n_sma >= n_sma_threshold:
                 rt = math.sqrt(
-                    (1 - beta2_t) * (n_sma - 4) / (n_sma_max - 4) * (n_sma - 2) / n_sma * n_sma_max / (n_sma_max - 2)
+                    (1.0 - beta2_t) * (n_sma - 4) / (n_sma_max - 4) * (n_sma - 2) / n_sma * n_sma_max / (n_sma_max - 2)
                 )
-                if not adam_debias:
-                    rt /= bias_correction1
             elif degenerated_to_sgd:
-                rt = 1
+                rt = 1.0
             else:
-                rt = -1
+                rt = -1.0
 
             step_size *= rt
+
+        if not adam_debias:
+            step_size /= bias_correction1
 
         return step_size, n_sma
 
