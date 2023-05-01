@@ -161,9 +161,11 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 if group['ams_bound']:
                     max_exp_avg_var = state['max_exp_avg_var']
                     torch.max(max_exp_avg_var, exp_avg_var, out=max_exp_avg_var)
-                    de_nom = max_exp_avg_var.add(group['eps']).sqrt_()
+                    de_nom = max_exp_avg_var.add(group['eps'])
                 else:
-                    de_nom = exp_avg_var.add(group['eps']).sqrt_()
+                    de_nom = exp_avg_var.add(group['eps'])
+
+                de_nom.sqrt_().add_(group['eps'])
 
                 if not group['rectify']:
                     de_nom.div_(bias_correction2_sq).add_(group['eps'])
@@ -171,7 +173,6 @@ class AdaBelief(Optimizer, BaseOptimizer):
                     continue
 
                 if n_sma >= self.n_sma_threshold:
-                    de_nom = exp_avg_var.sqrt().add_(group['eps'])
                     p.addcdiv_(exp_avg, de_nom, value=-step_size)
                 elif step_size > 0:
                     p.add_(exp_avg, alpha=-step_size)
