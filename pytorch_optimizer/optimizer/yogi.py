@@ -112,25 +112,20 @@ class Yogi(Optimizer, BaseOptimizer):
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
+                s_grad = self.get_adanorm_gradient(
+                    grad=grad,
+                    adanorm=group['adanorm'],
+                    exp_grad_norm=state.get('exp_grad_norm', None),
+                    r=group.get('r', None),
+                )
+
                 grad_p2 = grad.mul(grad)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
-                s_grad = grad
-                if group['adanorm']:
-                    grad_norm = torch.linalg.norm(grad)
-
-                    exp_grad_norm = state['exp_grad_norm']
-                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
-
-                    if exp_grad_norm > grad_norm:
-                        s_grad *= exp_grad_norm / grad_norm
-
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.addcmul_((exp_avg_sq - grad_p2).sign_(), grad_p2, value=-(1.0 - beta2))
 
-                de_nom = exp_avg_sq.sqrt()
-                de_nom.div_(bias_correction2_sq).add_(group['eps'])
+                de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
                 step_size: float = group['lr'] / bias_correction1 if not group['adam_debias'] else group['lr']
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
