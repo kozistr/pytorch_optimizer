@@ -112,10 +112,16 @@ class AdaBelief(Optimizer, BaseOptimizer):
             bias_correction1 = 1.0 - beta1 ** group['step']
             bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
 
-            if group['rectify']:
-                n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
-                beta2_t: float = beta2 ** group['step']
-                n_sma: float = n_sma_max - 2 * group['step'] * beta2_t / (1.0 - beta2_t)
+            step_size, n_sma = self.get_rectify_step_size(
+                is_rectify=group['rectify'],
+                step=group['step'],
+                lr=group['lr'],
+                beta2=beta2,
+                bias_correction1=bias_correction1,
+                n_sma_threshold=self.n_sma_threshold,
+                degenerated_to_sgd=self.degenerated_to_sgd,
+                adam_debias=group['adam_debias'],
+            )
 
             for p in group['params']:
                 if p.grad is None:
@@ -152,45 +158,25 @@ class AdaBelief(Optimizer, BaseOptimizer):
                         s_grad *= exp_grad_norm / grad_norm
 
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
+
                 grad_residual = s_grad - exp_avg
-                exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2).add_(self.eps)
+                exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2).add_(group['eps'])
 
                 if group['amsgrad']:
                     max_exp_avg_var = state['max_exp_avg_var']
                     torch.max(max_exp_avg_var, exp_avg_var, out=max_exp_avg_var)
-                    de_nom = max_exp_avg_var.add(self.eps).sqrt()
+                    de_nom = max_exp_avg_var.add(group['eps']).sqrt()
                 else:
-                    de_nom = exp_avg_var.add(self.eps).sqrt()
-
-                de_nom.div_(bias_correction2_sq).add_(self.eps)
+                    de_nom = exp_avg_var.add(group['eps']).sqrt()
 
                 if not group['rectify']:
-                    step_size: float = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
+                    de_nom.div_(bias_correction2_sq).add_(group['eps'])
                     p.addcdiv_(exp_avg, de_nom, value=-step_size)
                     continue
 
                 if n_sma >= self.n_sma_threshold:
-                    step_size = math.sqrt(
-                        (1 - beta2_t)
-                        * (n_sma - 4)
-                        / (n_sma_max - 4)
-                        * (n_sma - 2)
-                        / n_sma
-                        * n_sma_max
-                        / (n_sma_max - 2)
-                    )
-                elif self.degenerated_to_sgd:
-                    step_size = 1.0
-                else:
-                    step_size = -1
-
-                if not group['adam_debias']:
-                    step_size /= bias_correction1
-
-                if n_sma >= self.n_sma_threshold:
-                    de_nom = exp_avg_var.sqrt().add_(self.eps)
-                    p.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
+                    p.addcdiv_(exp_avg, de_nom, value=-step_size)
                 elif step_size > 0:
-                    p.add_(exp_avg, alpha=-step_size * group['lr'])
+                    p.add_(exp_avg, alpha=-step_size)
 
         return loss
