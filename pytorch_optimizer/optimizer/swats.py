@@ -18,7 +18,7 @@ class SWATS(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param amsgrad: bool. whether to use the AMSGrad variant of this algorithm from the paper.
+    :param ams_bound: bool. whether to use the ams_bound variant of this algorithm from the paper.
     :param nesterov: bool. enables Nesterov momentum.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
@@ -33,7 +33,7 @@ class SWATS(Optimizer, BaseOptimizer):
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
-        amsgrad: bool = False,
+        ams_bound: bool = False,
         nesterov: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
@@ -52,7 +52,7 @@ class SWATS(Optimizer, BaseOptimizer):
             'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
-            'amsgrad': amsgrad,
+            'ams_bound': ams_bound,
             'nesterov': nesterov,
             'adanorm': adanorm,
             'adam_debias': adam_debias,
@@ -82,7 +82,7 @@ class SWATS(Optimizer, BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['exp_avg2'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
-                if group['amsgrad']:
+                if group['ams_bound']:
                     state['max_exp_avg_sq'] = torch.zeros_like(p)
                 if group['adanorm']:
                     state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
@@ -118,7 +118,7 @@ class SWATS(Optimizer, BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
                     state['exp_avg2'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
-                    if group['amsgrad']:
+                    if group['ams_bound']:
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
@@ -156,7 +156,7 @@ class SWATS(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                if group['amsgrad']:
+                if group['ams_bound']:
                     max_exp_avg_sq = state['max_exp_avg_sq']
                     torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
                     de_nom = max_exp_avg_sq.sqrt().add_(group['eps'])

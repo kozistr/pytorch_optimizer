@@ -18,7 +18,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
-    :param amsgrad: bool. whether to use the AMSGrad variant of this algorithm from the paper.
+    :param ams_bound: bool. whether to use the ams_bound variant of this algorithm from the paper.
     :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
@@ -32,7 +32,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
-        amsgrad: bool = False,
+        ams_bound: bool = False,
         adam_debias: bool = False,
         eps: float = 1e-8,
     ):
@@ -50,7 +50,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
-            'amsgrad': amsgrad,
+            'ams_bound': ams_bound,
             'adam_debias': adam_debias,
             'eps': eps,
         }
@@ -75,7 +75,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_var'] = torch.zeros_like(p)
                 state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
-                if group['amsgrad']:
+                if group['ams_bound']:
                     state['max_exp_avg_var'] = torch.zeros_like(p)
 
     @torch.no_grad()
@@ -110,7 +110,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_var'] = torch.zeros_like(p)
                     state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
-                    if group['amsgrad']:
+                    if group['ams_bound']:
                         state['max_exp_avg_var'] = torch.zeros_like(p)
 
                 if group['weight_decouple']:
@@ -129,7 +129,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_var.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                if group['amsgrad']:
+                if group['ams_bound']:
                     max_exp_avg_var = state['max_exp_avg_var']
                     torch.max(max_exp_avg_var, exp_avg_var, out=max_exp_avg_var)
                     de_nom = max_exp_avg_var.sqrt().add_(group['eps'])

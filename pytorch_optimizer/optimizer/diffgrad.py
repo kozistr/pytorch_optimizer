@@ -16,7 +16,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
     :param rectify: bool. perform the rectified update similar to RAdam.
     :param n_sma_threshold: int. (recommended is 5).
     :param degenerated_to_sgd: bool. degenerated to SGD.
-    :param amsgrad: bool. whether to use the AMSBound variant.
+    :param ams_bound: bool. whether to use the AMSBound variant.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
     :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
@@ -32,7 +32,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
         rectify: bool = False,
         n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = True,
-        amsgrad: bool = False,
+        ams_bound: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
         adam_debias: bool = False,
@@ -53,7 +53,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
             'betas': betas,
             'weight_decay': weight_decay,
             'rectify': rectify,
-            'amsgrad': amsgrad,
+            'ams_bound': ams_bound,
             'adanorm': adanorm,
             'adam_debias': adam_debias,
             'eps': eps,
@@ -82,7 +82,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['previous_grad'] = torch.zeros_like(p)
-                if group['amsgrad']:
+                if group['ams_bound']:
                     state['max_exp_avg_sq'] = torch.zeros_like(p)
                 if group['adanorm']:
                     state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
@@ -128,7 +128,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
                     state['previous_grad'] = torch.zeros_like(p)
-                    if group['amsgrad']:
+                    if group['ams_bound']:
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
@@ -144,7 +144,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                if group['amsgrad']:
+                if group['ams_bound']:
                     max_exp_avg_sq = state['max_exp_avg_sq']
                     torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
                     de_nom = max_exp_avg_sq.add(group['eps'])

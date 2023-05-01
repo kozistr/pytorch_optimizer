@@ -15,7 +15,7 @@ class AdamS(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
-    :param amsgrad: bool. whether to use the AMSGrad variant of this algorithm from the paper.
+    :param ams_bound: bool. whether to use the ams_bound variant of this algorithm from the paper.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
     :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
@@ -28,7 +28,7 @@ class AdamS(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 1e-4,
-        amsgrad: bool = False,
+        ams_bound: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
         adam_debias: bool = False,
@@ -45,7 +45,7 @@ class AdamS(Optimizer, BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
-            'amsgrad': amsgrad,
+            'ams_bound': ams_bound,
             'adanorm': adanorm,
             'adam_debias': adam_debias,
             'eps': eps,
@@ -73,7 +73,7 @@ class AdamS(Optimizer, BaseOptimizer):
                 state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
-                if group['amsgrad']:
+                if group['ams_bound']:
                     state['max_exp_avg_sq'] = torch.zeros_like(p)
                 if group['adanorm']:
                     state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
@@ -106,7 +106,7 @@ class AdamS(Optimizer, BaseOptimizer):
                     state['step'] = 0
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
-                    if group['amsgrad']:
+                    if group['ams_bound']:
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
@@ -126,7 +126,7 @@ class AdamS(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                if group['amsgrad']:
+                if group['ams_bound']:
                     max_exp_avg_sq = state['max_exp_avg_sq']
                     torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
                     exp_avg_sq_hat = max_exp_avg_sq
@@ -154,7 +154,7 @@ class AdamS(Optimizer, BaseOptimizer):
                 bias_correction1 = 1.0 - beta1 ** state['step']
                 bias_correction2 = 1.0 - beta2 ** state['step']
 
-                exp_avg_sq_hat = state['max_exp_avg_sq'] if group['amsgrad'] else state['exp_avg_sq']
+                exp_avg_sq_hat = state['max_exp_avg_sq'] if group['ams_bound'] else state['exp_avg_sq']
                 exp_avg_sq_hat.div_(bias_correction2)
 
                 de_nom = exp_avg_sq_hat.sqrt().add(group['eps'])

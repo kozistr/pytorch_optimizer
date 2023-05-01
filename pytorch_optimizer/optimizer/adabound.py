@@ -20,8 +20,8 @@ class AdaBound(Optimizer, BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
-    :param amsbound: bool. whether to use the AMSBound variant.
-    :param adam_debias_term: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param ams_bound: bool. whether to use the ams_bound variant.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -35,7 +35,7 @@ class AdaBound(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
-        amsbound: bool = False,
+        ams_bound: bool = False,
         adam_debias: bool = False,
         eps: float = 1e-8,
     ):
@@ -54,7 +54,7 @@ class AdaBound(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
-            'amsbound': amsbound,
+            'ams_bound': ams_bound,
             'adam_debias': adam_debias,
             'eps': eps,
         }
@@ -80,7 +80,7 @@ class AdaBound(Optimizer, BaseOptimizer):
                 state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
-                if group['amsbound']:
+                if group['ams_bound']:
                     state['max_exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
@@ -118,7 +118,7 @@ class AdaBound(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
-                    if group['amsbound']:
+                    if group['ams_bound']:
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
 
                 if group['weight_decouple']:
@@ -131,12 +131,14 @@ class AdaBound(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                if group['amsbound']:
+                if group['ams_bound']:
                     max_exp_avg_sq = state['max_exp_avg_sq']
                     torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
-                    de_nom = max_exp_avg_sq.add(group['eps']).sqrt()
+                    de_nom = max_exp_avg_sq.add(group['eps'])
                 else:
-                    de_nom = exp_avg_sq.add(group['eps']).sqrt()
+                    de_nom = exp_avg_sq.add(group['eps'])
+
+                de_nom.sqrt_()
 
                 step_size = group['lr'] * bias_correction2_sq
                 if not group['adam_debias']:

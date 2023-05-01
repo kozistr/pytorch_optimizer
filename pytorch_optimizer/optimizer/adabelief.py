@@ -20,7 +20,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
     :param fixed_decay: bool. fix weight decay.
     :param rectify: bool. perform the rectified update similar to RAdam.
     :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high.
-    :param amsgrad: bool. whether to use the AMSBound variant.
+    :param ams_bound: bool. whether to use the AMSBound variant.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
     :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
@@ -38,7 +38,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
         fixed_decay: bool = False,
         rectify: bool = True,
         degenerated_to_sgd: bool = True,
-        amsgrad: bool = False,
+        ams_bound: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
         adam_debias: bool = False,
@@ -60,7 +60,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'rectify': rectify,
-            'amsgrad': amsgrad,
+            'ams_bound': ams_bound,
             'adanorm': adanorm,
             'adam_debias': adam_debias,
             'eps': eps,
@@ -90,7 +90,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 state['exp_avg_var'] = torch.zeros_like(p)
                 if group['adanorm']:
                     state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
-                if group['amsgrad']:
+                if group['ams_bound']:
                     state['max_exp_avg_var'] = torch.zeros_like(p)
 
     @torch.no_grad()
@@ -137,7 +137,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
                     state['exp_avg_var'] = torch.zeros_like(p)
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
-                    if group['amsgrad']:
+                    if group['ams_bound']:
                         state['max_exp_avg_var'] = torch.zeros_like(p)
 
                 if group['weight_decouple']:
@@ -158,7 +158,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 grad_residual = grad - exp_avg
                 exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2).add_(group['eps'])
 
-                if group['amsgrad']:
+                if group['ams_bound']:
                     max_exp_avg_var = state['max_exp_avg_var']
                     torch.max(max_exp_avg_var, exp_avg_var, out=max_exp_avg_var)
                     de_nom = max_exp_avg_var.add(group['eps']).sqrt_()
