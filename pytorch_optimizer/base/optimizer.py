@@ -12,6 +12,17 @@ class BaseOptimizer(ABC):
     r"""Base optimizer class."""
 
     @staticmethod
+    def apply_weight_decay(
+        p: torch.Tensor, grad: torch.Tensor, lr: float, weight_decay: float, weight_decouple: bool, fixed_decay: bool
+    ):
+        r"""Apply weight decay."""
+
+        if weight_decouple:
+            p.mul_(1.0 - weight_decay * (1.0 if fixed_decay else lr))
+        elif weight_decay > 0.0:
+            grad.add_(p, alpha=weight_decay)
+
+    @staticmethod
     def get_rectify_step_size(
         is_rectify: bool,
         step: int,
