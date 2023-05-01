@@ -140,7 +140,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (MADGRAD, {'lr': 5e-2, 'weight_decay': 1e-3}, 20),
     (MADGRAD, {'lr': 5e-2, 'weight_decay': 1e-3, 'eps': 0.0}, 20),
     (MADGRAD, {'lr': 1e-2, 'weight_decay': 1e-3, 'momentum': 0.0}, 20),
-    (MADGRAD, {'lr': 5e-2, 'weight_decay': 1e-3, 'decouple_decay': True}, 20),
+    (MADGRAD, {'lr': 5e-2, 'weight_decay': 1e-3, 'weight_decouple': True}, 20),
     (RAdam, {'lr': 5e-0, 'weight_decay': 1e-3}, 10),
     (RAdam, {'lr': 5e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 5),
     (SGDP, {'lr': 5e-1, 'weight_decay': 1e-4}, 10),
