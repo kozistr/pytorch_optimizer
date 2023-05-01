@@ -86,10 +86,11 @@ class NovoGrad(Optimizer, BaseOptimizer):
             beta1, beta2 = group['betas']
             weight_decay = group['weight_decay']
 
-            bias_correction1 = 1.0 - beta1 ** group['step']
-            bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
+            bias_correction1: float = 1.0 - beta1 ** group['step']
+            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
 
             step_size: float = group['lr'] * bias_correction2_sq
+
             if not group['adam_debias']:
                 step_size /= bias_correction1
 
@@ -102,15 +103,15 @@ class NovoGrad(Optimizer, BaseOptimizer):
                     raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
-                g_2 = grad ** 2  # fmt: skip
+
+                grad_p2 = grad.pow(2)  # fmt: skip
 
                 if len(state) == 0:
-                    state['moments'] = grad.div(g_2.sqrt() + group['eps']) + weight_decay * p
-                    state['grads_ema'] = g_2
+                    state['moments'] = grad.div(grad_p2.sqrt() + group['eps']) + weight_decay * p
+                    state['grads_ema'] = grad_p2
 
-                moments, grads_ema = state['moments'], state['grads_ema']
-
-                grads_ema.mul_(beta2).add_(g_2, alpha=1.0 - beta2)
+                grads_ema = state['grads_ema']
+                grads_ema.mul_(beta2).add_(grad_p2, alpha=1.0 - beta2)
 
                 de_nom = grads_ema.sqrt().add_(group['eps'])
                 grad.div_(de_nom)
@@ -121,6 +122,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
                 if group['grad_averaging']:
                     grad.mul_(1.0 - beta1)
 
+                moments = state['moments']
                 moments.mul_(beta1).add_(grad)
 
                 p.add_(moments, alpha=-step_size)

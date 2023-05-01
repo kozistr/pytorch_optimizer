@@ -71,7 +71,7 @@ class PNM(Optimizer, BaseOptimizer):
 
         for group in self.param_groups:
             beta1, beta2 = group['betas']
-            noise_norm = math.sqrt((1 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
+            noise_norm: float = math.sqrt((1 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -99,8 +99,8 @@ class PNM(Optimizer, BaseOptimizer):
                     neg_momentum, pos_momentum = state['pos_momentum'], state['neg_momentum']
 
                 pos_momentum.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
-                delta_p = pos_momentum.mul(1 + beta2).add(neg_momentum, alpha=-beta2).mul(1.0 / noise_norm)
 
+                delta_p = pos_momentum.mul(1 + beta2).add_(neg_momentum, alpha=-beta2).mul_(1.0 / noise_norm)
                 p.add_(delta_p, alpha=-group['lr'])
 
         return loss
