@@ -59,7 +59,7 @@ class BaseOptimizer(ABC):
 
         exp_grad_norm.mul_(r).add_(grad_norm, alpha=1.0 - r)
 
-        return grad * exp_grad_norm / grad_norm if exp_grad_norm > grad else grad
+        return grad * exp_grad_norm / grad_norm if exp_grad_norm > grad_norm else grad
 
     @staticmethod
     def validate_learning_rate(learning_rate: float):
