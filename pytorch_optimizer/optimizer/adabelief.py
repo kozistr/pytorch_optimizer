@@ -15,10 +15,10 @@ class AdaBelief(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
-    :param n_sma_threshold: number of SMA threshold (recommended is 5).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param rectify: bool. perform the rectified update similar to RAdam.
+    :param n_sma_threshold: number of SMA threshold (recommended is 5).
     :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high.
     :param ams_bound: bool. whether to use the AMSBound variant.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
@@ -33,10 +33,10 @@ class AdaBelief(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
-        n_sma_threshold: int = 5,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         rectify: bool = True,
+        n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = True,
         ams_bound: bool = False,
         r: float = 0.95,
@@ -107,7 +107,6 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
-            weight_decay = group['weight_decay']
 
             bias_correction1: float = 1.0 - beta1 ** group['step']
             bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
@@ -140,10 +139,14 @@ class AdaBelief(Optimizer, BaseOptimizer):
                     if group['ams_bound']:
                         state['max_exp_avg_var'] = torch.zeros_like(p)
 
-                if group['weight_decouple']:
-                    p.mul_(1.0 - group['weight_decay'] * (1.0 if group['fixed_decay'] else group['lr']))
-                elif weight_decay > 0.0:
-                    grad.add_(p, alpha=weight_decay)
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,

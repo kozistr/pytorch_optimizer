@@ -15,6 +15,7 @@ class QHM(Optimizer, BaseOptimizer):
     :param nu: float. immediate discount factor used to estimate the gradient and its square.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     """
 
     def __init__(
@@ -25,6 +26,7 @@ class QHM(Optimizer, BaseOptimizer):
         nu: float = 1.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
+        fixed_decay: bool = False,
     ):
         self.lr = lr
         self.momentum = momentum
@@ -39,6 +41,7 @@ class QHM(Optimizer, BaseOptimizer):
             'nu': nu,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
         }
         super().__init__(params, defaults)
 
@@ -86,10 +89,14 @@ class QHM(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['momentum_buffer'] = torch.zeros_like(p)
 
-                if group['weight_decouple']:
-                    p.mul_(1.0 - group['weight_decay'] * group['lr'])
-                elif group['weight_decay'] > 0.0:
-                    grad.add_(p, alpha=group['weight_decay'])
+                self.apply_weight_decay(
+                    p=p,
+                    grad=p.grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 buf = state['momentum_buffer']
                 buf.mul_(group['momentum']).add_(grad, alpha=1.0 - group['momentum'])

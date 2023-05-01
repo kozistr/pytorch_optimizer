@@ -18,6 +18,7 @@ class SWATS(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param ams_bound: bool. whether to use the ams_bound variant of this algorithm from the paper.
     :param nesterov: bool. enables Nesterov momentum.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
@@ -33,6 +34,7 @@ class SWATS(Optimizer, BaseOptimizer):
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
+        fixed_decay: bool = False,
         ams_bound: bool = False,
         nesterov: bool = False,
         r: float = 0.95,
@@ -52,6 +54,7 @@ class SWATS(Optimizer, BaseOptimizer):
             'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'ams_bound': ams_bound,
             'nesterov': nesterov,
             'adanorm': adanorm,
@@ -76,6 +79,7 @@ class SWATS(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
@@ -101,8 +105,9 @@ class SWATS(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
-            bias_correction1 = 1.0 - beta1 ** group['step']
-            bias_correction2 = 1.0 - beta2 ** group['step']
+
+            bias_correction1: float = 1.0 - beta1 ** group['step']
+            bias_correction2: float = 1.0 - beta2 ** group['step']
 
             for p in group['params']:
                 if p.grad is None:
@@ -123,10 +128,14 @@ class SWATS(Optimizer, BaseOptimizer):
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
-                if group['weight_decouple']:
-                    p.mul_(1.0 - group['weight_decay'] * group['lr'])
-                elif group['weight_decay'] > 0.0:
-                    grad.add_(p, alpha=group['weight_decay'])
+                self.apply_weight_decay(
+                    p=p,
+                    grad=p.grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 if group['phase'] == 'sgd':
                     if 'momentum_buffer' not in state:

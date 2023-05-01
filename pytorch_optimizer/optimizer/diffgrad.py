@@ -13,6 +13,8 @@ class DiffGrad(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param rectify: bool. perform the rectified update similar to RAdam.
     :param n_sma_threshold: int. (recommended is 5).
     :param degenerated_to_sgd: bool. degenerated to SGD.
@@ -29,6 +31,8 @@ class DiffGrad(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
+        weight_decouple: bool = True,
+        fixed_decay: bool = False,
         rectify: bool = False,
         n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = True,
@@ -52,6 +56,8 @@ class DiffGrad(Optimizer, BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'rectify': rectify,
             'ams_bound': ams_bound,
             'adanorm': adanorm,
@@ -162,8 +168,14 @@ class DiffGrad(Optimizer, BaseOptimizer):
                     p.addcdiv_(exp_avg, de_nom, value=-step_size)
                     continue
 
-                if group['weight_decay'] > 0.0:
-                    p.add_(p, alpha=-group['weight_decay'] * group['lr'])
+                self.apply_weight_decay(
+                    p=p,
+                    grad=None,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 if n_sma >= self.n_sma_threshold:
                     p.addcdiv_(dfc, de_nom, value=-step_size)

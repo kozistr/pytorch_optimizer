@@ -17,6 +17,8 @@ class AdamP(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param delta: float. threshold that determines whether a set of parameters is scale invariant or not.
     :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
         on scale-variant parameters.
@@ -34,6 +36,8 @@ class AdamP(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
+        weight_decouple: bool = True,
+        fixed_decay: bool = False,
         delta: float = 0.1,
         wd_ratio: float = 0.1,
         use_gc: bool = False,
@@ -56,6 +60,8 @@ class AdamP(Optimizer, BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'delta': delta,
             'wd_ratio': wd_ratio,
             'nesterov': nesterov,
@@ -156,8 +162,15 @@ class AdamP(Optimizer, BaseOptimizer):
                         group['eps'],
                     )
 
-                if group['weight_decay'] > 0.0:
-                    p.mul_(1.0 - group['lr'] * group['weight_decay'] * wd_ratio)
+                self.apply_weight_decay(
+                    p=p,
+                    grad=None,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                    ratio=wd_ratio,
+                )
 
                 step_size: float = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
                 p.add_(perturb, alpha=-step_size)

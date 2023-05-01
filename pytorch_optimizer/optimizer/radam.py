@@ -13,6 +13,8 @@ class RAdam(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param n_sma_threshold: int. (recommended is 5).
     :param degenerated_to_sgd: float. degenerated to SGD.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
@@ -27,6 +29,8 @@ class RAdam(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
+        weight_decouple: bool = True,
+        fixed_decay: bool = False,
         n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = False,
         r: float = 0.95,
@@ -47,6 +51,8 @@ class RAdam(Optimizer, BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'adanorm': adanorm,
             'adam_debias': adam_debias,
             'eps': eps,
@@ -91,6 +97,7 @@ class RAdam(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
+
             bias_correction1: float = 1.0 - beta1 ** group['step']
 
             step_size, n_sma = self.get_rectify_step_size(
@@ -120,6 +127,16 @@ class RAdam(Optimizer, BaseOptimizer):
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
+                if step_size > 0 or n_sma >= self.n_sma_threshold:
+                    self.apply_weight_decay(
+                        p=p,
+                        grad=None,
+                        lr=group['lr'],
+                        weight_decay=group['weight_decay'],
+                        weight_decouple=group['weight_decouple'],
+                        fixed_decay=group['fixed_decay'],
+                    )
+
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,
                     adanorm=group['adanorm'],
@@ -130,9 +147,6 @@ class RAdam(Optimizer, BaseOptimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
-
-                if group['weight_decay'] > 0.0 and (step_size > 0 or n_sma >= self.n_sma_threshold):
-                    p.add_(p, alpha=-group['weight_decay'] * group['lr'])
 
                 if n_sma >= self.n_sma_threshold:
                     de_nom = exp_avg_sq.sqrt().add_(group['eps'])

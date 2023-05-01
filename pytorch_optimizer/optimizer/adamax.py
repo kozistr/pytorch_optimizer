@@ -14,6 +14,7 @@ class AdaMax(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
     :param eps: float. term added to the denominator to improve numerical stability.
@@ -26,6 +27,7 @@ class AdaMax(Optimizer, BaseOptimizer):
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
+        fixed_decay: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
         eps: float = 1e-8,
@@ -42,6 +44,7 @@ class AdaMax(Optimizer, BaseOptimizer):
             'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'adanorm': adanorm,
             'eps': eps,
         }
@@ -103,6 +106,15 @@ class AdaMax(Optimizer, BaseOptimizer):
                     state['exp_inf'] = torch.zeros_like(p)
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
+
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,

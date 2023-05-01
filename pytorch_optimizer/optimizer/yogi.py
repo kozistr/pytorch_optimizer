@@ -17,6 +17,7 @@ class Yogi(Optimizer, BaseOptimizer):
     :param initial_accumulator: float. initial values for first and second moments.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
     :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
@@ -31,6 +32,7 @@ class Yogi(Optimizer, BaseOptimizer):
         initial_accumulator: float = 1e-6,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        fixed_decay: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
         adam_debias: bool = False,
@@ -49,6 +51,7 @@ class Yogi(Optimizer, BaseOptimizer):
             'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'initial_accumulator': initial_accumulator,
             'adanorm': adanorm,
             'adam_debias': adam_debias,
@@ -71,6 +74,7 @@ class Yogi(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
@@ -93,8 +97,9 @@ class Yogi(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
-            bias_correction1 = 1.0 - beta1 ** group['step']
-            bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
+
+            bias_correction1: float = 1.0 - beta1 ** group['step']
+            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
 
             for p in group['params']:
                 if p.grad is None:
@@ -111,6 +116,15 @@ class Yogi(Optimizer, BaseOptimizer):
                     state['exp_avg_sq'] = torch.full_like(p, fill_value=group['initial_accumulator'])
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
+
+                self.apply_weight_decay(
+                    p=p,
+                    grad=p.grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,

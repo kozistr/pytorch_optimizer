@@ -112,9 +112,10 @@ class Adan(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2, beta3 = group['betas']
-            bias_correction1 = 1.0 - beta1 ** group['step']
-            bias_correction2 = 1.0 - beta2 ** group['step']
-            bias_correction3_sq = math.sqrt(1.0 - beta3 ** group['step'])
+
+            bias_correction1: float = 1.0 - beta1 ** group['step']
+            bias_correction2: float = 1.0 - beta2 ** group['step']
+            bias_correction3_sq: float = math.sqrt(1.0 - beta3 ** group['step'])
 
             for p in group['params']:
                 if p.grad is None:

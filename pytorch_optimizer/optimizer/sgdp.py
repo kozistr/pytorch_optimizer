@@ -15,6 +15,8 @@ class SGDP(Optimizer, BaseOptimizer):
     :param momentum: float. momentum factor.
     :param dampening: float. dampening for momentum.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param delta: float. threshold that determines whether a set of parameters is scale invariant or not.
     :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
         on scale-variant parameters.
@@ -29,6 +31,8 @@ class SGDP(Optimizer, BaseOptimizer):
         momentum: float = 0.0,
         dampening: float = 0.0,
         weight_decay: float = 0.0,
+        weight_decouple: bool = True,
+        fixed_decay: bool = False,
         delta: float = 0.1,
         wd_ratio: float = 0.1,
         nesterov: bool = False,
@@ -44,6 +48,8 @@ class SGDP(Optimizer, BaseOptimizer):
         defaults: DEFAULTS = {
             'lr': lr,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'momentum': momentum,
             'dampening': dampening,
             'delta': delta,
@@ -109,8 +115,15 @@ class SGDP(Optimizer, BaseOptimizer):
                         group['eps'],
                     )
 
-                if group['weight_decay'] > 0.0:
-                    p.mul_(1.0 - group['lr'] * group['weight_decay'] * wd_ratio / (1.0 - momentum))
+                self.apply_weight_decay(
+                    p=p,
+                    grad=None,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                    ratio=wd_ratio / (1.0 - momentum),
+                )
 
                 p.add_(d_p, alpha=-group['lr'])
 

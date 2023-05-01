@@ -44,6 +44,8 @@ class Ranger21(Optimizer, BaseOptimizer):
     :param lookahead_merge_time: int. merge time.
     :param lookahead_blending_alpha: float. blending alpha.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param norm_loss_factor: float. norm loss factor.
     :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
@@ -68,6 +70,8 @@ class Ranger21(Optimizer, BaseOptimizer):
         lookahead_merge_time: int = 5,
         lookahead_blending_alpha: float = 0.5,
         weight_decay: float = 1e-4,
+        weight_decouple: bool = True,
+        fixed_decay: bool = False,
         norm_loss_factor: float = 1e-4,
         adam_debias: bool = False,
         eps: float = 1e-8,
@@ -101,6 +105,8 @@ class Ranger21(Optimizer, BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'adam_debias': adam_debias,
             'eps': eps,
         }
@@ -261,8 +267,15 @@ class Ranger21(Optimizer, BaseOptimizer):
                     continue
 
                 # stable weight decay
-                if group['weight_decay']:
-                    p.mul_(1.0 - group['weight_decay'] * lr / variance_normalized)
+                self.apply_weight_decay(
+                    p=p,
+                    grad=None,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                    ratio=1.0 / variance_normalized,
+                )
 
                 # norm loss
                 correction = 2.0 * self.norm_loss_factor * (1.0 - 1.0 / unit_norm(p).add_(group['eps']))

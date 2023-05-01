@@ -16,6 +16,7 @@ class AdaPNM(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. use weight_decouple.
+    :param fixed_decay: bool. fix weight decay.
     :param ams_bound: bool. whether to use the ams_bound variant.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
@@ -30,6 +31,7 @@ class AdaPNM(Optimizer, BaseOptimizer):
         betas: BETAS = (0.9, 0.999, 1.0),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        fixed_decay: bool = False,
         ams_bound: bool = True,
         r: float = 0.95,
         adanorm: bool = False,
@@ -39,7 +41,6 @@ class AdaPNM(Optimizer, BaseOptimizer):
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay
-        self.weight_decouple = weight_decouple
         self.eps = eps
 
         self.validate_parameters()
@@ -49,6 +50,7 @@ class AdaPNM(Optimizer, BaseOptimizer):
             'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'ams_bound': ams_bound,
             'adanorm': adanorm,
             'adam_debias': adam_debias,
@@ -71,10 +73,10 @@ class AdaPNM(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
-                state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['neg_exp_avg'] = torch.zeros_like(p)
@@ -110,11 +112,6 @@ class AdaPNM(Optimizer, BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
-                if group['weight_decouple']:
-                    p.mul_(1.0 - group['lr'] * group['weight_decay'])
-                else:
-                    grad.add_(p, alpha=group['weight_decay'])
-
                 state = self.state[p]
                 if len(state) == 0:
                     state['exp_avg'] = torch.zeros_like(p)
@@ -124,6 +121,15 @@ class AdaPNM(Optimizer, BaseOptimizer):
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
+
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 if group['step'] % 2 == 1:
                     exp_avg, neg_exp_avg = state['exp_avg'], state['neg_exp_avg']

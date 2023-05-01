@@ -93,8 +93,8 @@ class AdaNorm(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction1 = 1 - beta1 ** group['step']
-            bias_correction2_sq = math.sqrt(1 - beta2 ** group['step'])
+            bias_correction1: float = 1.0 - beta1 ** group['step']
+            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
 
             for p in group['params']:
                 if p.grad is None:
@@ -113,10 +113,14 @@ class AdaNorm(Optimizer, BaseOptimizer):
                     if group['ams_bound']:
                         state['max_exp_avg_var'] = torch.zeros_like(p)
 
-                if group['weight_decouple']:
-                    p.mul_(1.0 - group['weight_decay'] * (1.0 if group['fixed_decay'] else group['lr']))
-                elif group['weight_decay'] > 0.0:
-                    grad.add_(p, alpha=group['weight_decay'])
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,
@@ -138,7 +142,7 @@ class AdaNorm(Optimizer, BaseOptimizer):
 
                 de_nom.div_(bias_correction2_sq).add_(group['eps'])
 
-                step_size = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
+                step_size: float = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
 
         return loss

@@ -14,6 +14,8 @@ class Ranger(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param n_sma_threshold: int. (recommended is 5).
     :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high.
     :param use_gc: bool. use Gradient Centralization (both convolution & fc layers).
@@ -35,6 +37,8 @@ class Ranger(Optimizer, BaseOptimizer):
         betas: BETAS = (0.95, 0.999),
         eps: float = 1e-5,
         weight_decay: float = 0.0,
+        weight_decouple: bool = True,
+        fixed_decay: bool = False,
         use_gc: bool = True,
         gc_conv_only: bool = False,
         r: float = 0.95,
@@ -63,6 +67,8 @@ class Ranger(Optimizer, BaseOptimizer):
             'step_counter': 0,
             'n_sma_threshold': n_sma_threshold,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'adanorm': adanorm,
             'adam_debias': adam_debias,
             'eps': eps,
@@ -143,6 +149,15 @@ class Ranger(Optimizer, BaseOptimizer):
                 if self.use_gc and grad.dim() > self.gc_gradient_threshold:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
+                self.apply_weight_decay(
+                    p=p,
+                    grad=None,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
+
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,
                     adanorm=group['adanorm'],
@@ -153,9 +168,6 @@ class Ranger(Optimizer, BaseOptimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
-
-                if group['weight_decay'] > 0.0:
-                    p.add_(p, alpha=-group['weight_decay'] * group['lr'])
 
                 if n_sma >= self.n_sma_threshold:
                     de_nom = exp_avg_sq.sqrt().add_(group['eps'])
