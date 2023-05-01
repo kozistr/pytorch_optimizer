@@ -13,13 +13,18 @@ class BaseOptimizer(ABC):
 
     @staticmethod
     def apply_weight_decay(
-        p: torch.Tensor, grad: torch.Tensor, lr: float, weight_decay: float, weight_decouple: bool, fixed_decay: bool
+        p: torch.Tensor,
+        grad: Optional[torch.Tensor],
+        lr: float,
+        weight_decay: float,
+        weight_decouple: bool,
+        fixed_decay: bool,
+        ratio: Optional[float] = None,
     ):
         r"""Apply weight decay."""
-
         if weight_decouple:
-            p.mul_(1.0 - weight_decay * (1.0 if fixed_decay else lr))
-        elif weight_decay > 0.0:
+            p.mul_(1.0 - weight_decay * (1.0 if fixed_decay else lr) * (ratio if ratio is not None else 1.0))
+        elif weight_decay > 0.0 and grad is not None:
             grad.add_(p, alpha=weight_decay)
 
     @staticmethod
