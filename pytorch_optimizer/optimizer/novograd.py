@@ -71,7 +71,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
 
                 grad = p.grad
 
-                g_2 = grad.pow(2).sum_()  # fmt: skip
+                g_2 = grad.pow(2).sum()  # fmt: skip
 
                 state['moments'] = grad.div(g_2.sqrt() + group['eps']) + group['weight_decay'] * p
                 state['grads_ema'] = g_2
@@ -108,7 +108,7 @@ class NovoGrad(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
 
-                grad_p2 = grad.pow(2).sum_()
+                grad_p2 = grad.pow(2).sum()
 
                 if len(state) == 0:
                     state['moments'] = grad.div(grad_p2.sqrt() + group['eps']) + group['weight_decay'] * p
