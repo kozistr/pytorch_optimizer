@@ -1,4 +1,3 @@
-import math
 from typing import Union
 
 import torch
@@ -130,14 +129,19 @@ class Lamb(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
-            beta3 = 1.0 - beta1 if group['grad_averaging'] else 1.0
+            beta3: float = 1.0 - beta1 if group['grad_averaging'] else 1.0
+            bias_correction1: float = 1.0 - beta1 ** group['step']
 
-            bias_correction1 = 1.0 - beta1 ** group['step']
-
-            if group['rectify']:
-                n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
-                beta2_t: float = beta2 ** group['step']
-                n_sma: float = n_sma_max - 2 * group['step'] * beta2_t / (1.0 - beta2_t)
+            step_size, n_sma = self.get_rectify_step_size(
+                is_rectify=group['rectify'],
+                step=group['step'],
+                lr=group['lr'],
+                beta2=beta2,
+                bias_correction1=bias_correction1,
+                n_sma_threshold=self.n_sma_threshold,
+                degenerated_to_sgd=self.degenerated_to_sgd,
+                adam_debias=group['adam_debias'],
+            )
 
             for p in group['params']:
                 if p.grad is None:
@@ -169,33 +173,11 @@ class Lamb(Optimizer, BaseOptimizer):
                         s_grad *= exp_grad_norm / grad_norm
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
                 exp_avg.mul_(beta1).add_(s_grad, alpha=beta3)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 if group['weight_decay'] > 0.0:
                     p.add_(p, alpha=-group['weight_decay'] * group['lr'])
-
-                if group['rectify']:
-                    if n_sma >= self.n_sma_threshold:
-                        step_size = math.sqrt(
-                            (1 - beta2_t)
-                            * (n_sma - 4)
-                            / (n_sma_max - 4)
-                            * (n_sma - 2)
-                            / n_sma
-                            * n_sma_max
-                            / (n_sma_max - 2)
-                        )
-                    elif self.degenerated_to_sgd:
-                        step_size = 1.0
-                    else:
-                        step_size = -1
-
-                    if not group['adam_debias']:
-                        step_size /= bias_correction1
-                else:
-                    step_size = group['lr']
 
                 if group['rectify']:
                     update = p.clone()
@@ -205,11 +187,11 @@ class Lamb(Optimizer, BaseOptimizer):
                     else:
                         update.add_(exp_avg, alpha=-step_size)
                 else:
-                    update = exp_avg / exp_avg_sq.sqrt().add(group['eps'])
+                    update = exp_avg / exp_avg_sq.sqrt().add_(group['eps'])
 
-                weight_norm = torch.linalg.norm(p).clamp(0, self.clamp)
+                weight_norm = torch.linalg.norm(p).clamp_(min=0, max=self.clamp)
                 p_norm = torch.linalg.norm(update)
-                trust_ratio: float = 1.0 if weight_norm == 0 or p_norm == 0 else weight_norm / (p_norm + self.eps)
+                trust_ratio: float = 1.0 if weight_norm == 0 or p_norm == 0 else weight_norm / (p_norm + group['eps'])
 
                 state['weight_norm'] = weight_norm
                 state['adam_norm'] = p_norm
