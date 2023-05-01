@@ -1,3 +1,4 @@
+import math
 from abc import ABC, abstractmethod
 from typing import Tuple, Union
 
@@ -9,6 +10,41 @@ from pytorch_optimizer.base.types import BETAS
 
 class BaseOptimizer(ABC):
     r"""Base optimizer class."""
+
+    @staticmethod
+    def get_rectify_step_size(
+        is_rectify: bool,
+        step: int,
+        lr: float,
+        beta2: float,
+        bias_correction1: float,
+        n_sma_threshold: int = 5,
+        degenerated_to_sgd: bool = False,
+        adam_debias: bool = False,
+    ) -> Tuple[float, float]:
+        r"""Get step size for rectify optimizer."""
+        n_sma: float = 0.0
+        step_size: float = lr
+
+        if is_rectify:
+            n_sma_max: float = 2 / (1 - beta2) - 1
+            beta2_t: float = beta2 ** step  # fmt: skip
+            n_sma: float = n_sma_max - 2 * step * beta2_t / (1 - beta2_t)
+
+            if n_sma >= n_sma_threshold:
+                rt = math.sqrt(
+                    (1 - beta2_t) * (n_sma - 4) / (n_sma_max - 4) * (n_sma - 2) / n_sma * n_sma_max / (n_sma_max - 2)
+                )
+                if not adam_debias:
+                    rt /= bias_correction1
+            elif degenerated_to_sgd:
+                rt = 1
+            else:
+                rt = -1
+
+            step_size *= rt
+
+        return step_size, n_sma
 
     @staticmethod
     def validate_learning_rate(learning_rate: float):
