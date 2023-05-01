@@ -56,6 +56,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
 
         defaults: DEFAULTS = {
             'lr': lr,
+            'betas': betas,
             'weight_decay': weight_decay,
             'amsgrad': amsgrad,
             'scale_parameter': scale_parameter,
@@ -150,6 +151,8 @@ class AdaFactor(Optimizer, BaseOptimizer):
             else:
                 group['step'] = 1
 
+            beta1, _ = group['betas']
+
             beta2_t: float = 1.0 - math.pow(group['step'], self.decay_rate)
 
             for p in group['params']:
@@ -216,7 +219,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
                 update.div_((self.get_rms(update) / self.clip_threshold).clamp_(min=1.0)).mul_(lr)
 
                 exp_avg = state['exp_avg']
-                exp_avg.mul_(self.betas[0]).add_(update, alpha=1.0 - self.betas[0])
+                exp_avg.mul_(beta1).add_(update, alpha=1.0 - beta1)
 
                 if group['weight_decay'] > 0.0:
                     p.add_(p, alpha=-lr * group['weight_decay'])
