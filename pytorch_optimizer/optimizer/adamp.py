@@ -104,8 +104,9 @@ class AdamP(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
-            bias_correction1 = 1.0 - beta1 ** group['step']
-            bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
+
+            bias_correction1: float = 1.0 - beta1 ** group['step']
+            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
 
             for p in group['params']:
                 if p.grad is None:
@@ -122,21 +123,17 @@ class AdamP(Optimizer, BaseOptimizer):
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
-                s_grad = grad
-                if group['adanorm']:
-                    grad_norm = torch.linalg.norm(grad)
+                s_grad = self.get_adanorm_gradient(
+                    grad=grad,
+                    adanorm=group['adanorm'],
+                    exp_grad_norm=state.get('exp_grad_norm', None),
+                    r=group.get('r', None),
+                )
 
-                    exp_grad_norm = state['exp_grad_norm']
-                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
-
-                    if exp_grad_norm > grad_norm:
-                        s_grad *= exp_grad_norm / grad_norm
-
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 

@@ -97,10 +97,10 @@ class AdaPNM(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2, beta3 = group['betas']
-            noise_norm = math.sqrt((1 + beta3) ** 2 + beta3 ** 2)  # fmt: skip
 
-            bias_correction1 = 1 - beta1 ** group['step']
-            bias_correction2_sq = math.sqrt(1 - beta2 ** group['step'])
+            noise_norm: float = math.sqrt((1 + beta3) ** 2 + beta3 ** 2)  # fmt: skip
+            bias_correction1: float = 1.0 - beta1 ** group['step']
+            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
 
             for p in group['params']:
                 if p.grad is None:
@@ -130,15 +130,12 @@ class AdaPNM(Optimizer, BaseOptimizer):
                 else:
                     exp_avg, neg_exp_avg = state['neg_exp_avg'], state['exp_avg']
 
-                s_grad = grad
-                if group['adanorm']:
-                    grad_norm = torch.linalg.norm(grad)
-
-                    exp_grad_norm = state['exp_grad_norm']
-                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
-
-                    if exp_grad_norm > grad_norm:
-                        s_grad *= exp_grad_norm / grad_norm
+                s_grad = self.get_adanorm_gradient(
+                    grad=grad,
+                    adanorm=group['adanorm'],
+                    exp_grad_norm=state.get('exp_grad_norm', None),
+                    r=group.get('r', None),
+                )
 
                 exp_avg_sq = state['exp_avg_sq']
                 exp_avg.mul_(beta1 ** 2).add_(s_grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
@@ -147,14 +144,15 @@ class AdaPNM(Optimizer, BaseOptimizer):
                 if group['amsgrad']:
                     max_exp_avg_sq = state['max_exp_avg_sq']
                     torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
-                    exp_avg_sq_hat = max_exp_avg_sq.add_(group['eps'])
+                    de_nom = max_exp_avg_sq.add(group['eps'])
                 else:
-                    exp_avg_sq_hat = exp_avg_sq.add_(group['eps'])
+                    de_nom = exp_avg_sq.add(group['eps'])
 
-                de_nom = (exp_avg_sq_hat.sqrt() / bias_correction2_sq).add_(group['eps'])
+                de_nom.sqrt_().div_(bias_correction2_sq).add_(group['eps'])
 
                 step_size: float = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
-                pn_momentum = exp_avg.mul(1.0 + beta3).add(neg_exp_avg, alpha=-beta3).mul(1.0 / noise_norm)
+
+                pn_momentum = exp_avg.mul(1.0 + beta3).add_(neg_exp_avg, alpha=-beta3).mul_(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)
 
         return loss

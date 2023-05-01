@@ -162,15 +162,12 @@ class Lamb(Optimizer, BaseOptimizer):
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
-                s_grad = grad
-                if group['adanorm']:
-                    grad_norm = torch.linalg.norm(grad)
-
-                    exp_grad_norm = state['exp_grad_norm']
-                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
-
-                    if exp_grad_norm > grad_norm:
-                        s_grad *= exp_grad_norm / grad_norm
+                s_grad = self.get_adanorm_gradient(
+                    grad=grad,
+                    adanorm=group['adanorm'],
+                    exp_grad_norm=state.get('exp_grad_norm', None),
+                    r=group.get('r', None),
+                )
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=beta3)
