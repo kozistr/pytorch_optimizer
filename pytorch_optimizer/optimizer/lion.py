@@ -15,6 +15,7 @@ class Lion(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param use_gc: bool. use gradient centralization.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
@@ -27,6 +28,7 @@ class Lion(Optimizer, BaseOptimizer):
         betas: BETAS = (0.9, 0.99),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        fixed_decay: bool = False,
         use_gc: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
@@ -43,6 +45,7 @@ class Lion(Optimizer, BaseOptimizer):
             'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'adanorm': adanorm,
         }
         if adanorm:
@@ -77,7 +80,6 @@ class Lion(Optimizer, BaseOptimizer):
 
         for group in self.param_groups:
             beta1, beta2 = group['betas']
-            weight_decay = group['weight_decay']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -96,21 +98,21 @@ class Lion(Optimizer, BaseOptimizer):
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
-                if weight_decay > 0.0:
-                    if group['weight_decouple']:
-                        p.mul_(1.0 - group['lr'] * weight_decay)
-                    else:
-                        grad.add_(p, alpha=weight_decay)
+                self.apply_weight_decay(
+                    p=p,
+                    grad=p.grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
-                s_grad = grad
-                if group['adanorm']:
-                    grad_norm = torch.linalg.norm(grad)
-
-                    exp_grad_norm = state['exp_grad_norm']
-                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
-
-                    if exp_grad_norm > grad_norm:
-                        s_grad *= exp_grad_norm / grad_norm
+                s_grad = self.get_adanorm_gradient(
+                    grad=grad,
+                    adanorm=group['adanorm'],
+                    exp_grad_norm=state.get('exp_grad_norm', None),
+                    r=group.get('r', None),
+                )
 
                 exp_avg = state['exp_avg']
                 update = exp_avg.clone()

@@ -31,18 +31,23 @@ class MADGRAD(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
-        decouple_decay: bool = False,
+        weight_decouple: bool = False,
         eps: float = 1e-6,
     ):
         self.lr = lr
         self.momentum = momentum
         self.weight_decay = weight_decay
-        self.decouple_decay = decouple_decay
         self.eps = eps
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {'lr': lr, 'weight_decay': weight_decay, 'momentum': momentum, 'eps': eps}
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'momentum': momentum,
+            'eps': eps,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -101,7 +106,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
                     raise NoSparseGradientError(str(self), note='momentum > 0.0')
 
                 grad_sum_sq, s = state['grad_sum_sq'], state['s']
-                if weight_decay > 0.0 and not self.decouple_decay:
+                if weight_decay > 0.0 and not group['weight_decouple']:
                     if grad.is_sparse:
                         raise NoSparseGradientError(str(self), note='weight_decay')
 
@@ -152,7 +157,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
 
                     s.add_(grad, alpha=_lambda)
 
-                    if weight_decay > 0.0 and self.decouple_decay:
+                    if weight_decay > 0.0 and group['weight_decouple']:
                         p_old = p.clone()
 
                     if momentum == 0.0:
@@ -161,7 +166,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
                         z = x0.addcdiv(s, rms, value=-1)
                         p.mul_(momentum).add_(z, alpha=1.0 - momentum)
 
-                    if weight_decay > 0.0 and self.decouple_decay:
+                    if weight_decay > 0.0 and group['weight_decouple']:
                         p.add_(p_old, alpha=-lr * weight_decay)
 
         self.state['k'] += 1

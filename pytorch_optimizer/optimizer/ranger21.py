@@ -44,6 +44,8 @@ class Ranger21(Optimizer, BaseOptimizer):
     :param lookahead_merge_time: int. merge time.
     :param lookahead_blending_alpha: float. blending alpha.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param norm_loss_factor: float. norm loss factor.
     :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
@@ -68,6 +70,8 @@ class Ranger21(Optimizer, BaseOptimizer):
         lookahead_merge_time: int = 5,
         lookahead_blending_alpha: float = 0.5,
         weight_decay: float = 1e-4,
+        weight_decouple: bool = True,
+        fixed_decay: bool = False,
         norm_loss_factor: float = 1e-4,
         adam_debias: bool = False,
         eps: float = 1e-8,
@@ -101,6 +105,8 @@ class Ranger21(Optimizer, BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'adam_debias': adam_debias,
             'eps': eps,
         }
@@ -134,10 +140,10 @@ class Ranger21(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
-                state['step'] = 0
                 state['grad_ma'] = torch.zeros_like(p)
                 state['variance_ma'] = torch.zeros_like(p)
                 state['lookahead_params'] = torch.empty_like(p)
@@ -149,9 +155,7 @@ class Ranger21(Optimizer, BaseOptimizer):
     def build_warm_up_iterations(total_iterations: int, beta2: float, warm_up_pct: float = 0.22) -> int:
         warm_up_iterations: int = math.ceil(2.0 / (1.0 - beta2))  # default un-tuned linear warmup
         beta_pct: float = warm_up_iterations / total_iterations
-        if beta_pct > 0.45:
-            return int(warm_up_pct * total_iterations)
-        return warm_up_iterations
+        return int(warm_up_pct * total_iterations) if beta_pct > 0.45 else warm_up_iterations
 
     @staticmethod
     def build_warm_down_iterations(total_iterations: int, warm_down_pct: float = 0.72) -> int:
@@ -205,6 +209,8 @@ class Ranger21(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
+            bias_correction2: float = 1.0 - beta2 ** group['step']
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -215,9 +221,6 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 param_size += p.numel()
 
-                # Apply Adaptive Gradient Clipping (AGC)
-                p = agc(p, agc_eps=self.agc_eps, agc_clip_val=self.agc_clipping_value)  # noqa: PLW2901
-
                 state = self.state[p]
                 if len(state) == 0:
                     state['grad_ma'] = torch.zeros_like(p)
@@ -227,12 +230,12 @@ class Ranger21(Optimizer, BaseOptimizer):
                     state['neg_grad_ma'] = torch.zeros_like(p)
                     state['max_variance_ma'] = torch.zeros_like(p)
 
-                # Apply GC & GradNorm
-                # TODO : Gradient Clipping (Norm)
+                # Apply Adaptive Gradient Clipping (AGC)
+                grad.copy_(agc(p, grad, self.agc_eps, self.agc_clipping_value))
+
+                # Apply gradient centralization & normalization
                 grad = centralize_gradient(grad, gc_conv_only=False)
                 grad = normalize_gradient(grad)
-
-                bias_correction2 = 1.0 - beta2 ** group['step']
 
                 # second moment estimation
                 # using positive-negative momentum and bias correction
@@ -244,12 +247,10 @@ class Ranger21(Optimizer, BaseOptimizer):
             raise ZeroParameterSizeError()
 
         variance_normalized = math.sqrt(variance_ma_sum / param_size)
-        if math.isnan(variance_normalized):
-            raise RuntimeError('hit nan for variance_normalized')
 
         # Phase 2 - Apply weight decay and step
         for group in self.param_groups:
-            lr = group['lr']
+            lr: float = group['lr']
             beta1, beta2 = group['betas']
 
             bias_correction1: float = 1.0 - beta1 ** group['step']  # fmt: skip
@@ -266,11 +267,18 @@ class Ranger21(Optimizer, BaseOptimizer):
                     continue
 
                 # stable weight decay
-                if group['weight_decay']:
-                    p.mul_(1.0 - group['weight_decay'] * lr / variance_normalized)
+                self.apply_weight_decay(
+                    p=p,
+                    grad=None,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                    ratio=1.0 / variance_normalized,
+                )
 
                 # norm loss
-                correction = 2.0 * self.norm_loss_factor * (1.0 - torch.div(1, unit_norm(p) + self.eps))
+                correction = 2.0 * self.norm_loss_factor * (1.0 - 1.0 / unit_norm(p).add_(group['eps']))
                 p.mul_(1.0 - lr * correction)
 
                 state = self.state[p]
@@ -280,8 +288,8 @@ class Ranger21(Optimizer, BaseOptimizer):
                     grad_ma, neg_grad_ma = state['neg_grad_ma'], state['grad_ma']
 
                 variance_ma = state['variance_ma']
-
                 torch.max(state['max_variance_ma'], variance_ma, out=variance_ma)
+
                 de_nom = (variance_ma.sqrt() / bias_correction2_sq).add_(group['eps'])
 
                 grad = p.grad
@@ -311,10 +319,10 @@ class Ranger21(Optimizer, BaseOptimizer):
                     if p.grad is None:
                         continue
 
-                    param_state = self.state[p]
+                    state = self.state[p]
 
                     p.mul_(self.lookahead_blending_alpha).add_(
-                        param_state['lookahead_params'],
+                        state['lookahead_params'],
                         alpha=1.0 - self.lookahead_blending_alpha,
                     )
-                    param_state['lookahead_params'].copy_(p)
+                    state['lookahead_params'].copy_(p)

@@ -112,9 +112,10 @@ class Adan(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2, beta3 = group['betas']
-            bias_correction1 = 1.0 - beta1 ** group['step']
-            bias_correction2 = 1.0 - beta2 ** group['step']
-            bias_correction3_sq = math.sqrt(1.0 - beta3 ** group['step'])
+
+            bias_correction1: float = 1.0 - beta1 ** group['step']
+            bias_correction2: float = 1.0 - beta2 ** group['step']
+            bias_correction3_sq: float = math.sqrt(1.0 - beta3 ** group['step'])
 
             for p in group['params']:
                 if p.grad is None:
@@ -141,15 +142,12 @@ class Adan(Optimizer, BaseOptimizer):
                 grad_diff = state['previous_grad']
                 grad_diff.add_(grad)
 
-                s_grad = grad
-                if group['adanorm']:
-                    grad_norm = torch.linalg.norm(grad)
-
-                    exp_grad_norm = state['exp_grad_norm']
-                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
-
-                    if exp_grad_norm > grad_norm:
-                        s_grad *= exp_grad_norm / grad_norm
+                s_grad = self.get_adanorm_gradient(
+                    grad=grad,
+                    adanorm=group['adanorm'],
+                    exp_grad_norm=state.get('exp_grad_norm', None),
+                    r=group.get('r', None),
+                )
 
                 exp_avg, exp_avg_sq, exp_avg_diff = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_diff']
 
@@ -159,8 +157,7 @@ class Adan(Optimizer, BaseOptimizer):
                 grad_diff.mul_(beta2).add_(grad)
                 exp_avg_sq.mul_(beta3).addcmul_(grad_diff, grad_diff, value=1.0 - beta3)
 
-                de_nom = exp_avg_sq.sqrt()
-                de_nom.div_(bias_correction3_sq).add_(group['eps'])
+                de_nom = exp_avg_sq.sqrt().div_(bias_correction3_sq).add_(group['eps'])
 
                 if group['weight_decouple']:
                     p.mul_(1.0 - group['lr'] * group['weight_decay'])

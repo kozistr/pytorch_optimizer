@@ -1,5 +1,3 @@
-import math
-
 import torch
 from torch.optim.optimizer import Optimizer
 
@@ -15,10 +13,12 @@ class DiffGrad(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param rectify: bool. perform the rectified update similar to RAdam.
     :param n_sma_threshold: int. (recommended is 5).
     :param degenerated_to_sgd: bool. degenerated to SGD.
-    :param amsgrad: bool. whether to use the AMSBound variant.
+    :param ams_bound: bool. whether to use the AMSBound variant.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
     :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
@@ -31,10 +31,12 @@ class DiffGrad(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
+        weight_decouple: bool = True,
+        fixed_decay: bool = False,
         rectify: bool = False,
         n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = True,
-        amsgrad: bool = False,
+        ams_bound: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
         adam_debias: bool = False,
@@ -54,8 +56,10 @@ class DiffGrad(Optimizer, BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'rectify': rectify,
-            'amsgrad': amsgrad,
+            'ams_bound': ams_bound,
             'adanorm': adanorm,
             'adam_debias': adam_debias,
             'eps': eps,
@@ -72,7 +76,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
         self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
-        return 'diffRGrad' if self.rectify else 'diffGrad'
+        return 'diffGrad'
 
     @torch.no_grad()
     def reset(self):
@@ -84,7 +88,7 @@ class DiffGrad(Optimizer, BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['previous_grad'] = torch.zeros_like(p)
-                if group['amsgrad']:
+                if group['ams_bound']:
                     state['max_exp_avg_sq'] = torch.zeros_like(p)
                 if group['adanorm']:
                     state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
@@ -104,12 +108,18 @@ class DiffGrad(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction1 = 1.0 - beta1 ** group['step']
+            bias_correction1: float = 1.0 - beta1 ** group['step']
 
-            if group['rectify']:
-                n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
-                beta2_t: float = beta2 ** group['step']
-                n_sma: float = n_sma_max - 2 * group['step'] * beta2_t / (1.0 - beta2_t)
+            step_size, n_sma = self.get_rectify_step_size(
+                is_rectify=group['rectify'],
+                step=group['step'],
+                lr=group['lr'],
+                beta2=beta2,
+                bias_correction1=bias_correction1,
+                n_sma_threshold=self.n_sma_threshold,
+                degenerated_to_sgd=self.degenerated_to_sgd,
+                adam_debias=group['adam_debias'],
+            )
 
             for p in group['params']:
                 if p.grad is None:
@@ -124,34 +134,30 @@ class DiffGrad(Optimizer, BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
                     state['previous_grad'] = torch.zeros_like(p)
-                    if group['amsgrad']:
+                    if group['ams_bound']:
                         state['max_exp_avg_sq'] = torch.zeros_like(p)
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
+                s_grad = self.get_adanorm_gradient(
+                    grad=grad,
+                    adanorm=group['adanorm'],
+                    exp_grad_norm=state.get('exp_grad_norm', None),
+                    r=group.get('r', None),
+                )
+
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
-                s_grad = grad
-                if group['adanorm']:
-                    grad_norm = torch.linalg.norm(grad)
-
-                    exp_grad_norm = state['exp_grad_norm']
-                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
-
-                    if exp_grad_norm > grad_norm:
-                        s_grad *= exp_grad_norm / grad_norm
-
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                if group['amsgrad']:
+                if group['ams_bound']:
                     max_exp_avg_sq = state['max_exp_avg_sq']
                     torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
-                    de_nom = max_exp_avg_sq.add(group['eps']).sqrt()
+                    de_nom = max_exp_avg_sq.add(group['eps'])
                 else:
-                    de_nom = exp_avg_sq.add(group['eps']).sqrt()
+                    de_nom = exp_avg_sq.add(group['eps'])
 
-                de_nom.add_(group['eps'])
+                de_nom.sqrt_().add_(group['eps'])
 
                 # compute diffGrad coefficient (dfc)
                 dfc = state['previous_grad'].clone()
@@ -159,35 +165,21 @@ class DiffGrad(Optimizer, BaseOptimizer):
                 state['previous_grad'].copy_(grad)
 
                 if not group['rectify']:
-                    step_size: float = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
                     p.addcdiv_(exp_avg, de_nom, value=-step_size)
                     continue
 
-                if n_sma >= self.n_sma_threshold:
-                    step_size = math.sqrt(
-                        (1 - beta2_t)
-                        * (n_sma - 4)
-                        / (n_sma_max - 4)
-                        * (n_sma - 2)
-                        / n_sma
-                        * n_sma_max
-                        / (n_sma_max - 2)
-                    )
-                elif self.degenerated_to_sgd:
-                    step_size = 1.0
-                else:
-                    step_size = -1
-
-                if not group['adam_debias']:
-                    step_size /= bias_correction1
-
-                if group['weight_decay'] > 0.0:
-                    p.add_(p, alpha=-group['weight_decay'] * group['lr'])
+                self.apply_weight_decay(
+                    p=p,
+                    grad=None,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 if n_sma >= self.n_sma_threshold:
-                    de_nom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p.addcdiv_(dfc, de_nom, value=-step_size * group['lr'])
+                    p.addcdiv_(dfc, de_nom, value=-step_size)
                 elif step_size > 0:
-                    p.add_(exp_avg, alpha=-step_size * group['lr'])
+                    p.add_(exp_avg, alpha=-step_size)
 
         return loss

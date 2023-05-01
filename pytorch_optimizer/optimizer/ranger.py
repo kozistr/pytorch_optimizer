@@ -1,5 +1,3 @@
-import math
-
 import torch
 from torch.optim.optimizer import Optimizer
 
@@ -16,6 +14,8 @@ class Ranger(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param n_sma_threshold: int. (recommended is 5).
     :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high.
     :param use_gc: bool. use Gradient Centralization (both convolution & fc layers).
@@ -37,6 +37,8 @@ class Ranger(Optimizer, BaseOptimizer):
         betas: BETAS = (0.95, 0.999),
         eps: float = 1e-5,
         weight_decay: float = 0.0,
+        weight_decouple: bool = True,
+        fixed_decay: bool = False,
         use_gc: bool = True,
         gc_conv_only: bool = False,
         r: float = 0.95,
@@ -65,6 +67,8 @@ class Ranger(Optimizer, BaseOptimizer):
             'step_counter': 0,
             'n_sma_threshold': n_sma_threshold,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'adanorm': adanorm,
             'adam_debias': adam_debias,
             'eps': eps,
@@ -112,12 +116,18 @@ class Ranger(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
+            bias_correction1: float = 1.0 - beta1 ** group['step']
 
-            bias_correction1 = 1.0 - beta1 ** group['step']
-
-            n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
-            beta2_t: float = beta2 ** group['step']
-            n_sma: float = n_sma_max - 2 * group['step'] * beta2_t / (1.0 - beta2_t)
+            step_size, n_sma = self.get_rectify_step_size(
+                is_rectify=True,
+                step=group['step'],
+                lr=group['lr'],
+                beta2=beta2,
+                bias_correction1=bias_correction1,
+                n_sma_threshold=self.n_sma_threshold,
+                degenerated_to_sgd=self.degenerated_to_sgd,
+                adam_debias=group['adam_debias'],
+            )
 
             for p in group['params']:
                 if p.grad is None:
@@ -136,50 +146,34 @@ class Ranger(Optimizer, BaseOptimizer):
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
                 if self.use_gc and grad.dim() > self.gc_gradient_threshold:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
-                s_grad = grad
-                if group['adanorm']:
-                    grad_norm = torch.linalg.norm(grad)
+                self.apply_weight_decay(
+                    p=p,
+                    grad=None,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
-                    exp_grad_norm = state['exp_grad_norm']
-                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
+                s_grad = self.get_adanorm_gradient(
+                    grad=grad,
+                    adanorm=group['adanorm'],
+                    exp_grad_norm=state.get('exp_grad_norm', None),
+                    r=group.get('r', None),
+                )
 
-                    if exp_grad_norm > grad_norm:
-                        s_grad *= exp_grad_norm / grad_norm
-
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 if n_sma >= self.n_sma_threshold:
-                    step_size = math.sqrt(
-                        (1 - beta2_t)
-                        * (n_sma - 4)
-                        / (n_sma_max - 4)
-                        * (n_sma - 2)
-                        / n_sma
-                        * n_sma_max
-                        / (n_sma_max - 2)
-                    )
-                elif self.degenerated_to_sgd:
-                    step_size = 1.0
-                else:
-                    step_size = -1
-
-                if not group['adam_debias']:
-                    step_size /= bias_correction1
-
-                if group['weight_decay'] > 0.0:
-                    p.add_(p, alpha=-group['weight_decay'] * group['lr'])
-
-                if n_sma >= self.n_sma_threshold:
                     de_nom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
+                    p.addcdiv_(exp_avg, de_nom, value=-step_size)
                 else:
-                    p.add_(exp_avg, alpha=-step_size * group['lr'])
+                    p.add_(exp_avg, alpha=-step_size)
 
                 if group['step'] % group['k'] == 0:
                     slow_p = state['slow_buffer']

@@ -20,6 +20,8 @@ class Shampoo(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param momentum: float. momentum.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param preconditioning_compute_steps: int. performance tuning params for controlling memory and compute
         requirements. How often to compute pre-conditioner.
     :param matrix_eps: float. term added to the denominator to improve numerical stability.
@@ -31,6 +33,8 @@ class Shampoo(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         momentum: float = 0.0,
         weight_decay: float = 0.0,
+        weight_decouple: bool = False,
+        fixed_decay: bool = False,
         preconditioning_compute_steps: int = 1,
         matrix_eps: float = 1e-6,
     ):
@@ -42,7 +46,13 @@ class Shampoo(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {'lr': lr, 'momentum': momentum, 'weight_decay': weight_decay}
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'momentum': momentum,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
+        }
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -73,7 +83,8 @@ class Shampoo(Optimizer, BaseOptimizer):
             else:
                 group['step'] = 1
 
-            momentum, weight_decay = group['momentum'], group['weight_decay']
+            momentum = group['momentum']
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -94,8 +105,14 @@ class Shampoo(Optimizer, BaseOptimizer):
                 if momentum > 0.0:
                     grad.mul_(1.0 - momentum).add_(state['momentum_buffer'], alpha=momentum)
 
-                if weight_decay > 0.0:
-                    grad.add_(p, alpha=weight_decay)
+                self.apply_weight_decay(
+                    p=p,
+                    grad=p.grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 order: int = grad.ndimension()
                 original_size: int = grad.size()
@@ -160,7 +177,7 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         performance. So, If you have a problem with the speed, try to set this step bigger (e.g. 1000).
     :param statistics_compute_steps: int. How often to compute statistics. usually set to 1 (or 10).
     :param block_size: int. Block size for large layers (if > 0).
-        Block size = 1 ==> Adagrad (Don't do this, extremely inefficient!)
+        Block size = 1 ==> AdaGrad (Don't do this, extremely inefficient!)
         Block size should be as large as feasible under memory/time constraints.
     :param skip_preconditioning_rank_lt: int. Skips preconditioning for parameters with rank less than this value.
     :param no_preconditioning_for_layers_with_dim_gt: int. avoid preconditioning large layers to reduce overall memory.

@@ -23,6 +23,8 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
     :param growth_rate: float. prevent the D estimate from growing faster than this multiplicative rate.
         Default is inf, for unrestricted.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -34,6 +36,8 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
         d0: float = 1e-6,
         growth_rate: float = float('inf'),
         weight_decay: float = 0.0,
+        weight_decouple: bool = False,
+        fixed_decay: bool = False,
         eps: float = 0.0,
     ):
         self.lr = lr
@@ -51,6 +55,8 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
             'd': d0,
             'growth_rate': growth_rate,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'k': 0,
             'eps': eps,
         }
@@ -109,7 +115,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
         sk_l1 = group['sk_l1']
 
         for group in self.param_groups:
-            weight_decay, eps = group['weight_decay'], group['eps']
+            eps = group['eps']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -167,8 +173,14 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                     sk_l1_masked = sk_masked._values().abs().sum()
                     sk_l1_change.add_(sk_l1_masked - old_sk_l1_masked)
                 else:
-                    if weight_decay > 0.0:
-                        grad.add_(p, alpha=weight_decay)
+                    self.apply_weight_decay(
+                        p=p,
+                        grad=grad,
+                        lr=group['lr'],
+                        weight_decay=group['weight_decay'],
+                        weight_decouple=group['weight_decouple'],
+                        fixed_decay=group['fixed_decay'],
+                    )
 
                     old_sk_sq_weighted_param = sk.pow(2).div(torch.sqrt(alpha_k) + eps).sum()
                     old_sk_l1_param = sk.abs().sum()
@@ -250,6 +262,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         Default is inf, for unrestricted.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. use AdamW style weight decay.
+    :param fixed_decay: bool. fix weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -262,6 +275,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         growth_rate: float = float('inf'),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
+        fixed_decay: bool = False,
         eps: float = 1e-8,
     ):
         self.lr = lr
@@ -269,7 +283,6 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         self.d0 = d0
         self.growth_rate = growth_rate
         self.weight_decay = weight_decay
-        self.weight_decouple = weight_decouple
         self.eps = eps
 
         self.validate_parameters()
@@ -281,6 +294,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
             'growth_rate': growth_rate,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'k': 0,
             'eps': eps,
         }
@@ -383,13 +397,19 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
                 state = self.state[p]
 
                 state['step'] += 1
+
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                de_nom = exp_avg_sq.sqrt().add_(group['eps'])
-                de_nom = de_nom.type(p.type())
+                de_nom = exp_avg_sq.sqrt().add_(group['eps']).type(p.type())
 
-                if group['weight_decay'] > 0.0 and group['weight_decouple']:
-                    p.add_(p, alpha=-group['weight_decay'] * d_lr)
+                self.apply_weight_decay(
+                    p=p,
+                    grad=None,
+                    lr=d_lr,
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 p.addcdiv_(exp_avg, de_nom, value=-1)
 
@@ -408,6 +428,8 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
     :param growth_rate: float. prevent the D estimate from growing faster than this multiplicative rate.
         Default is inf, for unrestricted.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     """
 
     def __init__(
@@ -418,12 +440,15 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
         d0: float = 1e-6,
         growth_rate: float = float('inf'),
         weight_decay: float = 0.0,
+        weight_decouple: bool = False,
+        fixed_decay: bool = False,
     ):
         self.lr = lr
         self.momentum = momentum
         self.d0 = d0
         self.growth_rate = growth_rate
         self.weight_decay = weight_decay
+
         self.validate_parameters()
 
         defaults: DEFAULTS = {
@@ -432,6 +457,8 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
             'd': d0,
             'growth_rate': growth_rate,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'k': 0,
         }
         super().__init__(params, defaults)
@@ -476,7 +503,6 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
         gsq_weighted = group['gsq_weighted']
 
         for group in self.param_groups:
-            weight_decay = group['weight_decay']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -485,8 +511,14 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
-                if weight_decay > 0.0:
-                    grad.add_(p, alpha=weight_decay)
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 state = self.state[p]
                 if 'z' not in state:

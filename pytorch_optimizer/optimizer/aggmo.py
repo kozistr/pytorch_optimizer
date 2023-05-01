@@ -14,6 +14,7 @@ class AggMo(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     """
 
     def __init__(
@@ -23,6 +24,7 @@ class AggMo(Optimizer, BaseOptimizer):
         betas: BETAS = (0.0, 0.9, 0.99),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
+        fixed_decay: bool = False,
     ):
         self.lr = lr
         self.betas = betas
@@ -35,6 +37,7 @@ class AggMo(Optimizer, BaseOptimizer):
             'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
         }
         super().__init__(params, defaults)
 
@@ -83,10 +86,14 @@ class AggMo(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['momentum_buffer'] = {beta: torch.zeros_like(p) for beta in betas}
 
-                if group['weight_decouple']:
-                    p.mul_(1.0 - group['weight_decay'] * group['lr'])
-                elif group['weight_decay'] > 0.0:
-                    grad.add_(p, alpha=group['weight_decay'])
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 for beta in betas:
                     buf = state['momentum_buffer'][beta]

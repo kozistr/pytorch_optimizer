@@ -26,7 +26,7 @@ class Nero(Optimizer, BaseOptimizer):
 
         self.validate_parameters()
 
-        defaults: DEFAULTS = {'lr': lr, 'constraints': constraints}
+        defaults: DEFAULTS = {'lr': lr, 'beta': beta, 'constraints': constraints, 'eps': eps}
         super().__init__(params, defaults)
 
     def validate_parameters(self):
@@ -43,7 +43,7 @@ class Nero(Optimizer, BaseOptimizer):
             for p in group['params']:
                 if group['constraints'] and p.dim() > 1:
                     p.sub_(neuron_mean(p))
-                    p.div_(neuron_norm(p) + self.eps)
+                    p.div_(neuron_norm(p) + group['eps'])
 
                 state = self.state[p]
 
@@ -87,17 +87,17 @@ class Nero(Optimizer, BaseOptimizer):
                 grad_norm = neuron_norm(grad)
 
                 exp_avg_sq = state['exp_avg_sq']
-                exp_avg_sq.mul_(self.beta).addcmul_(grad_norm, grad_norm, value=1.0 - self.beta)
+                exp_avg_sq.mul_(self.beta).addcmul_(grad_norm, grad_norm, value=1.0 - group['beta'])
 
-                bias_correction: float = 1.0 - self.beta ** state['step']
+                bias_correction: float = 1.0 - group['beta'] ** state['step']
 
-                grad_normed = grad / ((exp_avg_sq / bias_correction).sqrt() + self.eps)
+                grad_normed = grad / ((exp_avg_sq / bias_correction).sqrt_().add_(group['eps']))
                 torch.nan_to_num(grad_normed, nan=0.0, out=grad_normed)
 
-                p.sub_(group['lr'] * state['scale'] * grad_normed)
+                p.sub_(grad_normed, alpha=group['lr'] * state['scale'])
 
                 if group['constraints'] and p.dim() > 1:
                     p.sub_(neuron_mean(p))
-                    p.div_(neuron_norm(p) + self.eps)
+                    p.div_(neuron_norm(p) + group['eps'])
 
         return loss

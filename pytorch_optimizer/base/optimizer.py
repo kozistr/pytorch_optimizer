@@ -1,5 +1,6 @@
+import math
 from abc import ABC, abstractmethod
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import torch
 
@@ -9,6 +10,72 @@ from pytorch_optimizer.base.types import BETAS
 
 class BaseOptimizer(ABC):
     r"""Base optimizer class."""
+
+    @staticmethod
+    def apply_weight_decay(
+        p: torch.Tensor,
+        grad: Optional[torch.Tensor],
+        lr: float,
+        weight_decay: float,
+        weight_decouple: bool,
+        fixed_decay: bool,
+        ratio: Optional[float] = None,
+    ):
+        r"""Apply weight decay."""
+        if weight_decouple:
+            p.mul_(1.0 - weight_decay * (1.0 if fixed_decay else lr) * (ratio if ratio is not None else 1.0))
+        elif weight_decay > 0.0 and grad is not None:
+            grad.add_(p, alpha=weight_decay)
+
+    @staticmethod
+    def get_rectify_step_size(
+        is_rectify: bool,
+        step: int,
+        lr: float,
+        beta2: float,
+        bias_correction1: float,
+        n_sma_threshold: int,
+        degenerated_to_sgd: bool,
+        adam_debias: bool,
+    ) -> Tuple[float, float]:
+        r"""Get step size for rectify optimizer."""
+        step_size: float = lr
+        n_sma: float = 0.0
+
+        if is_rectify:
+            n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
+            beta2_t: float = beta2 ** step  # fmt: skip
+            n_sma: float = n_sma_max - 2 * step * beta2_t / (1.0 - beta2_t)
+
+            if n_sma >= n_sma_threshold:
+                rt = math.sqrt(
+                    (1.0 - beta2_t) * (n_sma - 4) / (n_sma_max - 4) * (n_sma - 2) / n_sma * n_sma_max / (n_sma_max - 2)
+                )
+            elif degenerated_to_sgd:
+                rt = 1.0
+            else:
+                rt = -1.0
+
+            step_size *= rt
+
+        if not adam_debias:
+            step_size /= bias_correction1
+
+        return step_size, n_sma
+
+    @staticmethod
+    def get_adanorm_gradient(
+        grad: torch.Tensor, adanorm: bool, exp_grad_norm: Optional[torch.Tensor] = None, r: Optional[float] = 0.95
+    ) -> torch.Tensor:
+        r"""Get AdaNorm gradient."""
+        if not adanorm:
+            return grad
+
+        grad_norm = torch.linalg.norm(grad)
+
+        exp_grad_norm.mul_(r).add_(grad_norm, alpha=1.0 - r)
+
+        return grad * exp_grad_norm / grad_norm if exp_grad_norm > grad_norm else grad
 
     @staticmethod
     def validate_learning_rate(learning_rate: float):

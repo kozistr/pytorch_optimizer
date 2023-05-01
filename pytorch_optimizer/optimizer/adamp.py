@@ -17,6 +17,8 @@ class AdamP(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param delta: float. threshold that determines whether a set of parameters is scale invariant or not.
     :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
         on scale-variant parameters.
@@ -34,6 +36,8 @@ class AdamP(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
+        weight_decouple: bool = True,
+        fixed_decay: bool = False,
         delta: float = 0.1,
         wd_ratio: float = 0.1,
         use_gc: bool = False,
@@ -56,6 +60,8 @@ class AdamP(Optimizer, BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'delta': delta,
             'wd_ratio': wd_ratio,
             'nesterov': nesterov,
@@ -104,8 +110,9 @@ class AdamP(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
-            bias_correction1 = 1.0 - beta1 ** group['step']
-            bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
+
+            bias_correction1: float = 1.0 - beta1 ** group['step']
+            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
 
             for p in group['params']:
                 if p.grad is None:
@@ -122,21 +129,17 @@ class AdamP(Optimizer, BaseOptimizer):
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
                 if self.use_gc:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
-                s_grad = grad
-                if group['adanorm']:
-                    grad_norm = torch.linalg.norm(grad)
+                s_grad = self.get_adanorm_gradient(
+                    grad=grad,
+                    adanorm=group['adanorm'],
+                    exp_grad_norm=state.get('exp_grad_norm', None),
+                    r=group.get('r', None),
+                )
 
-                    exp_grad_norm = state['exp_grad_norm']
-                    exp_grad_norm.mul_(group['r']).add_(grad_norm, alpha=1.0 - group['r'])
-
-                    if exp_grad_norm > grad_norm:
-                        s_grad *= exp_grad_norm / grad_norm
-
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
@@ -159,8 +162,15 @@ class AdamP(Optimizer, BaseOptimizer):
                         group['eps'],
                     )
 
-                if group['weight_decay'] > 0.0:
-                    p.mul_(1.0 - group['lr'] * group['weight_decay'] * wd_ratio)
+                self.apply_weight_decay(
+                    p=p,
+                    grad=None,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                    ratio=wd_ratio,
+                )
 
                 step_size: float = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
                 p.add_(perturb, alpha=-step_size)

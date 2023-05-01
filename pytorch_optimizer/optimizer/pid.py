@@ -17,6 +17,7 @@ class PID(Optimizer, BaseOptimizer):
     :param integral: float. I part of the PID.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     """
 
     def __init__(
@@ -29,6 +30,7 @@ class PID(Optimizer, BaseOptimizer):
         integral: float = 5.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
+        fixed_decay: bool = False,
     ):
         self.lr = lr
         self.momentum = momentum
@@ -47,6 +49,7 @@ class PID(Optimizer, BaseOptimizer):
             'integral': integral,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
         }
         super().__init__(params, defaults)
 
@@ -98,10 +101,14 @@ class PID(Optimizer, BaseOptimizer):
                     state['i_buffer'] = torch.zeros_like(p)
                     state['d_buffer'] = torch.zeros_like(p)
 
-                if group['weight_decouple']:
-                    p.mul_(1.0 - group['weight_decay'] * group['lr'])
-                elif group['weight_decay'] > 0.0:
-                    grad.add_(p, alpha=group['weight_decay'])
+                self.apply_weight_decay(
+                    p=p,
+                    grad=p.grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 if group['momentum'] > 0.0:
                     i_buf = state['i_buffer']
