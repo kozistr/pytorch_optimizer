@@ -15,6 +15,8 @@ class NovoGrad(Optimizer, BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param grad_averaging: bool. multiply ck (1 - momentum).
     :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
@@ -26,6 +28,8 @@ class NovoGrad(Optimizer, BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.95, 0.98),
         weight_decay: float = 0.0,
+        weight_decouple: bool = False,
+        fixed_decay: bool = False,
         grad_averaging: bool = False,
         adam_debias: bool = False,
         eps: float = 1e-8,
@@ -41,6 +45,8 @@ class NovoGrad(Optimizer, BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'grad_averaging': grad_averaging,
             'adam_debias': adam_debias,
             'eps': eps,
@@ -64,9 +70,9 @@ class NovoGrad(Optimizer, BaseOptimizer):
                 state = self.state[p]
 
                 grad = p.grad
-                g_2 = grad ** 2  # fmt: skip
 
-                state['step'] = 0
+                g_2 = grad.pow(2).sum_()  # fmt: skip
+
                 state['moments'] = grad.div(g_2.sqrt() + group['eps']) + group['weight_decay'] * p
                 state['grads_ema'] = g_2
 
@@ -84,13 +90,11 @@ class NovoGrad(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
-            weight_decay = group['weight_decay']
 
             bias_correction1: float = 1.0 - beta1 ** group['step']
             bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
 
             step_size: float = group['lr'] * bias_correction2_sq
-
             if not group['adam_debias']:
                 step_size /= bias_correction1
 
@@ -104,10 +108,10 @@ class NovoGrad(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
 
-                grad_p2 = grad.pow(2)  # fmt: skip
+                grad_p2 = grad.pow(2).sum_()
 
                 if len(state) == 0:
-                    state['moments'] = grad.div(grad_p2.sqrt() + group['eps']) + weight_decay * p
+                    state['moments'] = grad.div(grad_p2.sqrt() + group['eps']) + group['weight_decay'] * p
                     state['grads_ema'] = grad_p2
 
                 grads_ema = state['grads_ema']
@@ -116,8 +120,14 @@ class NovoGrad(Optimizer, BaseOptimizer):
                 de_nom = grads_ema.sqrt().add_(group['eps'])
                 grad.div_(de_nom)
 
-                if weight_decay > 0.0:
-                    grad.add_(p, alpha=weight_decay)
+                self.apply_weight_decay(
+                    p=p,
+                    grad=p.grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 if group['grad_averaging']:
                     grad.mul_(1.0 - beta1)
