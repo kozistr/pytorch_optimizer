@@ -1,6 +1,6 @@
 import math
 from abc import ABC, abstractmethod
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import torch
 
@@ -46,6 +46,20 @@ class BaseOptimizer(ABC):
             step_size /= bias_correction1
 
         return step_size, n_sma
+
+    @staticmethod
+    def get_adanorm_gradient(
+        grad: torch.Tensor, adanorm: bool, exp_grad_norm: Optional[torch.Tensor] = None, r: Optional[float] = 0.95
+    ) -> torch.Tensor:
+        r"""Get AdaNorm gradient."""
+        if not adanorm:
+            return grad
+
+        grad_norm = torch.linalg.norm(grad)
+
+        exp_grad_norm.mul_(r).add_(grad_norm, alpha=1.0 - r)
+
+        return grad * exp_grad_norm / grad_norm if exp_grad_norm > grad else grad
 
     @staticmethod
     def validate_learning_rate(learning_rate: float):
