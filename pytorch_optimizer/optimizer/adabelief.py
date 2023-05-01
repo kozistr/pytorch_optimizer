@@ -109,8 +109,8 @@ class AdaBelief(Optimizer, BaseOptimizer):
             beta1, beta2 = group['betas']
             weight_decay = group['weight_decay']
 
-            bias_correction1 = 1.0 - beta1 ** group['step']
-            bias_correction2_sq = math.sqrt(1.0 - beta2 ** group['step'])
+            bias_correction1: float = 1.0 - beta1 ** group['step']
+            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
 
             step_size, n_sma = self.get_rectify_step_size(
                 is_rectify=group['rectify'],
@@ -145,8 +145,6 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 elif weight_decay > 0.0:
                     grad.add_(p, alpha=weight_decay)
 
-                exp_avg, exp_avg_var = state['exp_avg'], state['exp_avg_var']
-
                 s_grad = grad
                 if group['adanorm']:
                     grad_norm = torch.linalg.norm(grad)
@@ -157,6 +155,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
                     if exp_grad_norm > grad_norm:
                         s_grad *= exp_grad_norm / grad_norm
 
+                exp_avg, exp_avg_var = state['exp_avg'], state['exp_avg_var']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
 
                 grad_residual = s_grad - exp_avg
@@ -165,9 +164,9 @@ class AdaBelief(Optimizer, BaseOptimizer):
                 if group['amsgrad']:
                     max_exp_avg_var = state['max_exp_avg_var']
                     torch.max(max_exp_avg_var, exp_avg_var, out=max_exp_avg_var)
-                    de_nom = max_exp_avg_var.add(group['eps']).sqrt()
+                    de_nom = max_exp_avg_var.add(group['eps']).sqrt_()
                 else:
-                    de_nom = exp_avg_var.add(group['eps']).sqrt()
+                    de_nom = exp_avg_var.add(group['eps']).sqrt_()
 
                 if not group['rectify']:
                     de_nom.div_(bias_correction2_sq).add_(group['eps'])
@@ -175,6 +174,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
                     continue
 
                 if n_sma >= self.n_sma_threshold:
+                    de_nom = exp_avg_var.sqrt().add_(group['eps'])
                     p.addcdiv_(exp_avg, de_nom, value=-step_size)
                 elif step_size > 0:
                     p.add_(exp_avg, alpha=-step_size)
