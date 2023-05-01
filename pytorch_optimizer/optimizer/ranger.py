@@ -1,5 +1,3 @@
-import math
-
 import torch
 from torch.optim.optimizer import Optimizer
 
@@ -112,12 +110,18 @@ class Ranger(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
+            bias_correction1: float = 1.0 - beta1 ** group['step']
 
-            bias_correction1 = 1.0 - beta1 ** group['step']
-
-            n_sma_max: float = 2.0 / (1.0 - beta2) - 1.0
-            beta2_t: float = beta2 ** group['step']
-            n_sma: float = n_sma_max - 2 * group['step'] * beta2_t / (1.0 - beta2_t)
+            step_size, n_sma = self.get_rectify_step_size(
+                is_rectify=True,
+                step=group['step'],
+                lr=group['lr'],
+                beta2=beta2,
+                bias_correction1=bias_correction1,
+                n_sma_threshold=self.n_sma_threshold,
+                degenerated_to_sgd=self.degenerated_to_sgd,
+                adam_debias=group['adam_debias'],
+            )
 
             for p in group['params']:
                 if p.grad is None:
@@ -136,8 +140,6 @@ class Ranger(Optimizer, BaseOptimizer):
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
                 if self.use_gc and grad.dim() > self.gc_gradient_threshold:
                     grad = centralize_gradient(grad, gc_conv_only=False)
 
@@ -151,35 +153,18 @@ class Ranger(Optimizer, BaseOptimizer):
                     if exp_grad_norm > grad_norm:
                         s_grad *= exp_grad_norm / grad_norm
 
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
-
-                if n_sma >= self.n_sma_threshold:
-                    step_size = math.sqrt(
-                        (1 - beta2_t)
-                        * (n_sma - 4)
-                        / (n_sma_max - 4)
-                        * (n_sma - 2)
-                        / n_sma
-                        * n_sma_max
-                        / (n_sma_max - 2)
-                    )
-                elif self.degenerated_to_sgd:
-                    step_size = 1.0
-                else:
-                    step_size = -1
-
-                if not group['adam_debias']:
-                    step_size /= bias_correction1
 
                 if group['weight_decay'] > 0.0:
                     p.add_(p, alpha=-group['weight_decay'] * group['lr'])
 
                 if n_sma >= self.n_sma_threshold:
                     de_nom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p.addcdiv_(exp_avg, de_nom, value=-step_size * group['lr'])
+                    p.addcdiv_(exp_avg, de_nom, value=-step_size)
                 else:
-                    p.add_(exp_avg, alpha=-step_size * group['lr'])
+                    p.add_(exp_avg, alpha=-step_size)
 
                 if group['step'] % group['k'] == 0:
                     slow_p = state['slow_buffer']
