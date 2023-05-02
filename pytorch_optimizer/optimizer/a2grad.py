@@ -87,7 +87,7 @@ class A2Grad(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['alpha_k'] = 1.0
                     state['v_k'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
-                    state['avg_grad'] = torch.zeros_like(p)
+                    state['avg_grad'] = grad.clone()
                     state['x_k'] = p.clone()
                     if self.variant == 'exp':
                         state['v_kk'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
