@@ -385,4 +385,5 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (AdaNorm, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
     (Yogi, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
     (AdaMod, {'lr': 1e2, 'weight_decay': 1e-3, 'adam_debias': True}, 20),
+    (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
 ]
