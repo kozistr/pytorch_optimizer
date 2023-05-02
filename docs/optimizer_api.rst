@@ -408,3 +408,11 @@ AdaMax
 
 .. autoclass:: pytorch_optimizer.AdaMax
     :members:
+
+.. _Gravity:
+
+Gravity
+-------
+
+.. autoclass:: pytorch_optimizer.Gravity
+    :members:

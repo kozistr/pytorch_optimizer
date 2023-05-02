@@ -151,7 +151,7 @@ def test_gsam_optimizers(adaptive):
     model.cuda()
 
     lr: float = 5e-1
-    num_iterations: int = 5
+    num_iterations: int = 25
 
     base_optimizer = load_optimizer('adamp')(model.parameters(), lr=lr)
     lr_scheduler = CosineScheduler(base_optimizer, t_max=num_iterations, max_lr=lr, min_lr=lr, init_lr=lr)
@@ -171,7 +171,7 @@ def test_gsam_optimizers(adaptive):
         lr_scheduler.step()
         optimizer.update_rho_t()
 
-    assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
+    assert tensor_to_numpy(init_loss) > 1.2 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)

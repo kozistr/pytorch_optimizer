@@ -34,6 +34,7 @@ from pytorch_optimizer import (
     DAdaptSGD,
     DiffGrad,
     Fromage,
+    Gravity,
     Lamb,
     Lion,
     Nero,
@@ -106,7 +107,7 @@ VALID_LR_SCHEDULER_NAMES: List[str] = [
 INVALID_LR_SCHEDULER_NAMES: List[str] = ['dummy']
 
 OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
-    (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
+    (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 10),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 10),
@@ -353,6 +354,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (PID, {'lr': 1e0, 'momentum': 0.9, 'dampening': 1.0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
     (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
+    (Gravity, {'lr': 1e0}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),

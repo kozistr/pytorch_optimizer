@@ -39,6 +39,7 @@ def test_epsilon(optimizer_name):
         'pid',
         'lars',
         'alig',
+        'gravity',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
@@ -56,7 +57,7 @@ def test_epsilon(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_weight_decay(optimizer_name):
-    if optimizer_name in ('nero', 'alig', 'sm3', 'a2grad', 'fromage', 'msvag'):
+    if optimizer_name in ('nero', 'alig', 'sm3', 'a2grad', 'fromage', 'msvag', 'gravity'):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
