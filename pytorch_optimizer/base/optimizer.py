@@ -28,15 +28,31 @@ class BaseOptimizer(ABC):
             grad.add_(p, alpha=weight_decay)
 
     @staticmethod
+    def apply_ams_bound(
+        ams_bound: bool, exp_avg_sq: torch.Tensor, max_exp_avg_sq: Optional[torch.Tensor], eps: float
+    ) -> torch.Tensor:
+        r"""Apply AMSBound variant."""
+        if ams_bound:
+            torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
+            de_nom = max_exp_avg_sq.add(eps)
+        else:
+            de_nom = exp_avg_sq.add(eps)
+
+        return de_nom.sqrt_().add_(eps)
+
+    @staticmethod
+    def apply_adam_debias(adam_debias: bool, step_size: float, bias_correction1: float) -> float:
+        r"""Apply AdamD variant."""
+        return step_size if adam_debias else step_size / bias_correction1
+
+    @staticmethod
     def get_rectify_step_size(
         is_rectify: bool,
         step: int,
         lr: float,
         beta2: float,
-        bias_correction1: float,
         n_sma_threshold: int,
         degenerated_to_sgd: bool,
-        adam_debias: bool,
     ) -> Tuple[float, float]:
         r"""Get step size for rectify optimizer."""
         step_size: float = lr
@@ -58,9 +74,6 @@ class BaseOptimizer(ABC):
 
             step_size *= rt
 
-        if not adam_debias:
-            step_size /= bias_correction1
-
         return step_size, n_sma
 
     @staticmethod
@@ -78,8 +91,8 @@ class BaseOptimizer(ABC):
         return grad * exp_grad_norm / grad_norm if exp_grad_norm > grad_norm else grad
 
     @staticmethod
-    def validate_learning_rate(learning_rate: float):
-        if learning_rate < 0.0:
+    def validate_learning_rate(learning_rate: Optional[float]):
+        if learning_rate is not None and learning_rate < 0.0:
             raise NegativeLRError(learning_rate)
 
     @staticmethod
@@ -221,10 +234,5 @@ class BaseOptimizer(ABC):
                 raise ValueError(f'[-] nus2 {nus[1]} must be in the range [0, 1]')
 
     @abstractmethod
-    def validate_parameters(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    @torch.no_grad()
     def reset(self):
         raise NotImplementedError
