@@ -36,6 +36,7 @@ from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
 from pytorch_optimizer.optimizer.fromage import Fromage
 from pytorch_optimizer.optimizer.gc import centralize_gradient
+from pytorch_optimizer.optimizer.gravity import Gravity
 from pytorch_optimizer.optimizer.gsam import GSAM
 from pytorch_optimizer.optimizer.lamb import Lamb
 from pytorch_optimizer.optimizer.lars import LARS
@@ -132,6 +133,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Yogi,
     ASGD,
     AdaMax,
+    Gravity,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
