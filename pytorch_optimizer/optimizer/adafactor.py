@@ -46,17 +46,16 @@ class AdaFactor(Optimizer, BaseOptimizer):
         eps1: float = 1e-30,
         eps2: float = 1e-3,
     ):
-        self.lr = lr
-        self.betas = betas
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps1)
+        self.validate_epsilon(eps2)
+
         self.decay_rate = decay_rate
-        self.weight_decay = weight_decay
         self.clip_threshold = clip_threshold
-        self.ams_bound = ams_bound
-        self.relative_step = relative_step
         self.eps1 = eps1
         self.eps2 = eps2
-
-        self.validate_parameters()
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -72,13 +71,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
             'eps2': eps2,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps1)
-        self.validate_epsilon(self.eps2)
 
     def __str__(self) -> str:
         return 'AdaFactor'

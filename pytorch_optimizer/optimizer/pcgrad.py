@@ -18,13 +18,10 @@ class PCGrad(BaseOptimizer):
     """
 
     def __init__(self, optimizer: OPTIMIZER, reduction: str = 'mean'):
+        self.validate_reduction(reduction)
+
         self.optimizer = optimizer
         self.reduction = reduction
-
-        self.validate_parameters()
-
-    def validate_parameters(self):
-        self.validate_reduction(self.reduction)
 
     @torch.no_grad()
     def reset(self):
@@ -96,7 +93,7 @@ class PCGrad(BaseOptimizer):
                 if g_i_g_j < 0:
                     pc_grad[i] -= g_i_g_j * g_j / (g_j.norm() ** 2)
 
-        merged_grad: torch.Tensor = torch.zeros_like(grads[0], device=grads[0].device)
+        merged_grad: torch.Tensor = torch.zeros_like(grads[0])
 
         shared_pc_gradients: torch.Tensor = torch.stack([g[shared] for g in pc_grad])
         if self.reduction == 'mean':

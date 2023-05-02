@@ -37,14 +37,12 @@ class Adai(Optimizer, BaseOptimizer):
         use_gc: bool = False,
         eps: float = 1e-3,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
-        self.dampening = dampening
-        self.use_gc = use_gc
-        self.eps = eps
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
 
-        self.validate_parameters()
+        self.use_gc = use_gc
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -57,12 +55,6 @@ class Adai(Optimizer, BaseOptimizer):
             'eps': eps,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'Adai'
@@ -137,7 +129,7 @@ class Adai(Optimizer, BaseOptimizer):
 
         for group in self.param_groups:
             beta0, beta2 = group['betas']
-            beta0_dp = math.pow(beta0, 1.0 - group['dampening'])
+            beta0_dp: float = math.pow(beta0, 1.0 - group['dampening'])
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -170,10 +162,8 @@ class Adai(Optimizer, BaseOptimizer):
                 beta1_prod = state['beta1_prod']
                 beta1_prod.mul_(beta1)
 
-                bias_correction1 = 1.0 - beta1_prod
-
                 exp_avg.mul_(beta1).addcmul_(beta3, grad)
-                exp_avg_hat = exp_avg.div(bias_correction1).mul_(beta0_dp)
+                exp_avg_hat = exp_avg.div(1.0 - beta1_prod).mul_(beta0_dp)
 
                 p.add_(exp_avg_hat, alpha=-group['lr'])
 

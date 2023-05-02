@@ -29,13 +29,11 @@ class AccSGD(Optimizer, BaseOptimizer):
         constant: float = 0.7,
         weight_decay: float = 0.0,
     ):
-        self.lr = lr
-        self.kappa = kappa
-        self.xi = xi
-        self.constant = constant
-        self.weight_decay = weight_decay
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_kappa(kappa)
+        self.validate_xi(xi)
+        self.validate_weight_decay(weight_decay)
+        self.validate_constant(constant, boundary=1.0)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -45,13 +43,6 @@ class AccSGD(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_kappa(self.kappa)
-        self.validate_xi(self.xi)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_constant(self.constant, boundary=1.0)
 
     def __str__(self) -> str:
         return 'AccSGD'
@@ -128,11 +119,9 @@ class SGDW(Optimizer, BaseOptimizer):
         dampening: float = 0.0,
         nesterov: bool = False,
     ):
-        self.lr = lr
-        self.momentum = momentum
-        self.weight_decay = weight_decay
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_momentum(momentum)
+        self.validate_weight_decay(weight_decay)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -144,11 +133,6 @@ class SGDW(Optimizer, BaseOptimizer):
         }
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_momentum(self.momentum)
-        self.validate_weight_decay(self.weight_decay)
 
     def __str__(self) -> str:
         return 'SGDW'
@@ -212,6 +196,7 @@ class ASGD(Optimizer, BaseOptimizer):
     :param amplifier: float. amplifier.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
     :param theta: float. theta.
     :param dampening: float. dampening for momentum.
     :param eps: float. term added to the denominator to improve numerical stability.
@@ -224,35 +209,28 @@ class ASGD(Optimizer, BaseOptimizer):
         amplifier: float = 0.02,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        fixed_decay: bool = False,
         theta: float = 1.0,
         dampening: float = 1.0,
         eps: float = 1e-5,
     ):
-        self.lr = lr
-        self.amplifier = amplifier
-        self.theta = theta
-        self.weight_decay = weight_decay
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_amplifier(amplifier)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {
             'lr': lr,
             'amplifier': amplifier,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
             'theta': theta,
             'dampening': dampening,
             'eps': eps,
         }
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_amplifier(self.amplifier)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'ASGD'
@@ -321,11 +299,14 @@ class ASGD(Optimizer, BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
-                if group['weight_decay'] > 0.0:
-                    if group['weight_decouple']:
-                        p.mul_(1.0 - group['lr'] * group['weight_decay'])
-                    else:
-                        grad.add_(p, alpha=group['weight_decay'])
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 p.add_(grad, alpha=-new_lr)
 

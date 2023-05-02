@@ -55,16 +55,15 @@ class Lamb(Optimizer, BaseOptimizer):
         adam_debias: bool = False,
         eps: float = 1e-6,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_norm(max_grad_norm)
+        self.validate_epsilon(eps)
+
         self.degenerated_to_sgd = degenerated_to_sgd
         self.n_sma_threshold = n_sma_threshold
-        self.max_grad_norm = max_grad_norm
         self.pre_norm = pre_norm
-        self.eps = eps
-
-        self.validate_parameters()
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -84,13 +83,6 @@ class Lamb(Optimizer, BaseOptimizer):
             defaults.update({'r': r})
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
-        self.validate_norm(self.max_grad_norm)
 
     def __str__(self) -> str:
         return 'Lamb'
@@ -113,7 +105,7 @@ class Lamb(Optimizer, BaseOptimizer):
             return 1.0
 
         global_grad_norm = get_global_gradient_norm(self.param_groups, self.param_groups[0]['params'][0].device)
-        global_grad_norm.sqrt_().add_(self.eps)
+        global_grad_norm.sqrt_().add_(self.defaults['eps'])
 
         return torch.clamp(self.defaults['max_grad_norm'] / global_grad_norm, max=1.0)
 
@@ -144,10 +136,14 @@ class Lamb(Optimizer, BaseOptimizer):
                 step=group['step'],
                 lr=group['lr'],
                 beta2=beta2,
-                bias_correction1=bias_correction1,
                 n_sma_threshold=self.n_sma_threshold,
                 degenerated_to_sgd=self.degenerated_to_sgd,
+            )
+
+            step_size = self.apply_adam_debias(
                 adam_debias=group['adam_debias'],
+                step_size=step_size,
+                bias_correction1=bias_correction1,
             )
 
             for p in group['params']:

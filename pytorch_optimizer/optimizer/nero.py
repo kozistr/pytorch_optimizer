@@ -20,19 +20,12 @@ class Nero(Optimizer, BaseOptimizer):
     def __init__(
         self, params: PARAMETERS, lr: float = 0.01, beta: float = 0.999, constraints: bool = True, eps: float = 1e-8
     ):
-        self.lr = lr
-        self.beta = beta
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_beta(beta)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {'lr': lr, 'beta': beta, 'constraints': constraints, 'eps': eps}
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_beta(self.beta)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'Nero'
@@ -74,7 +67,7 @@ class Nero(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     if group['constraints'] and p.dim() > 1:
                         p.sub_(neuron_mean(p))
-                        p.div_(neuron_norm(p) + self.eps)
+                        p.div_(neuron_norm(p) + group['eps'])
 
                     state['step'] = 0
                     state['exp_avg_sq'] = torch.zeros_like(neuron_norm(p))
@@ -87,7 +80,7 @@ class Nero(Optimizer, BaseOptimizer):
                 grad_norm = neuron_norm(grad)
 
                 exp_avg_sq = state['exp_avg_sq']
-                exp_avg_sq.mul_(self.beta).addcmul_(grad_norm, grad_norm, value=1.0 - group['beta'])
+                exp_avg_sq.mul_(group['beta']).addcmul_(grad_norm, grad_norm, value=1.0 - group['beta'])
 
                 bias_correction: float = 1.0 - group['beta'] ** state['step']
 

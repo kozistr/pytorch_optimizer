@@ -28,12 +28,10 @@ class QHM(Optimizer, BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
     ):
-        self.lr = lr
-        self.momentum = momentum
-        self.nu = nu
-        self.weight_decay = weight_decay
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_momentum(momentum)
+        self.validate_weight_decay(weight_decay)
+        self.validate_nus(nu)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -44,12 +42,6 @@ class QHM(Optimizer, BaseOptimizer):
             'fixed_decay': fixed_decay,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_momentum(self.momentum)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_nus(self.nu)
 
     def __str__(self) -> str:
         return 'QHM'

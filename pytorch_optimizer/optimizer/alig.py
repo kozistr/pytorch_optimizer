@@ -17,7 +17,6 @@ class AliG(Optimizer, BaseOptimizer):
     :param projection_fn : Callable. projection function to enforce constraints.
     :param momentum: float. momentum.
     :param adjusted_momentum: bool. if True, use pytorch-like momentum, instead of standard Nesterov momentum.
-    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(
@@ -27,24 +26,17 @@ class AliG(Optimizer, BaseOptimizer):
         projection_fn: Optional[Callable] = None,
         momentum: float = 0.0,
         adjusted_momentum: bool = False,
-        eps: float = 1e-5,
     ):
-        self.max_lr = max_lr
-        self.projection_fn = projection_fn
-        self.momentum = momentum
-        self.eps = eps
+        self.validate_learning_rate(max_lr)
+        self.validate_momentum(momentum)
 
-        self.validate_parameters()
+        self.projection_fn = projection_fn
 
         defaults: DEFAULTS = {'max_lr': max_lr, 'adjusted_momentum': adjusted_momentum, 'momentum': momentum}
         super().__init__(params, defaults)
 
         if self.projection_fn is not None:
             self.projection_fn()
-
-    def validate_parameters(self):
-        self.validate_momentum(self.momentum)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'AliG'
@@ -62,7 +54,7 @@ class AliG(Optimizer, BaseOptimizer):
     def compute_step_size(self, loss: float) -> float:
         r"""Compute step_size."""
         global_grad_norm = get_global_gradient_norm(self.param_groups, torch.device('cpu'))
-        global_grad_norm.add_(self.eps)
+        global_grad_norm.add_(1e-6)
 
         return loss / global_grad_norm.item()
 

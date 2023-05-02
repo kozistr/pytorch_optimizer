@@ -23,30 +23,24 @@ class A2Grad(Optimizer, BaseOptimizer):
     def __init__(
         self,
         params: PARAMETERS,
-        lr: Optional[None] = None,
+        lr: Optional[float] = None,
         beta: float = 10.0,
         lips: float = 10.0,
         rho: float = 0.5,
         variant: str = 'uni',
     ):
-        self.lr = lr
-        self.beta = beta
-        self.lips = lips
-        self.rho = rho
-        self.variant = variant
+        self.validate_learning_rate(lr)
+        self.validate_lipschitz_constant(lips)
+        self.validate_rho(rho)
+        self.validate_a2grad_variant(variant)
 
-        self.validate_parameters()
+        self.variant = variant
 
         defaults: DEFAULTS = {'beta': beta, 'lips': lips}
         if variant == 'exp':
             defaults.update({'rho': rho})
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_lipschitz_constant(self.lips)
-        self.validate_rho(self.rho)
-        self.validate_a2grad_variant(self.variant)
 
     def __str__(self) -> str:
         return 'A2Grad'
@@ -62,6 +56,8 @@ class A2Grad(Optimizer, BaseOptimizer):
                 state['v_k'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
                 state['avg_grad'] = torch.zeros_like(p)
                 state['x_k'] = p.clone()
+                if self.variant == 'exp':
+                    state['v_kk'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -88,7 +84,6 @@ class A2Grad(Optimizer, BaseOptimizer):
                     raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
-
                 if len(state) == 0:
                     state['alpha_k'] = 1.0
                     state['v_k'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)

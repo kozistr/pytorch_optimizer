@@ -42,15 +42,13 @@ class DiffGrad(Optimizer, BaseOptimizer):
         adam_debias: bool = False,
         eps: float = 1e-8,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
-        self.rectify = rectify
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
+
         self.n_sma_threshold = n_sma_threshold
         self.degenerated_to_sgd = degenerated_to_sgd
-        self.eps = eps
-
-        self.validate_parameters()
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -68,12 +66,6 @@ class DiffGrad(Optimizer, BaseOptimizer):
             defaults.update({'r': r})
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'diffGrad'
@@ -115,10 +107,14 @@ class DiffGrad(Optimizer, BaseOptimizer):
                 step=group['step'],
                 lr=group['lr'],
                 beta2=beta2,
-                bias_correction1=bias_correction1,
                 n_sma_threshold=self.n_sma_threshold,
                 degenerated_to_sgd=self.degenerated_to_sgd,
+            )
+
+            step_size = self.apply_adam_debias(
                 adam_debias=group['adam_debias'],
+                step_size=step_size,
+                bias_correction1=bias_correction1,
             )
 
             for p in group['params']:
@@ -150,14 +146,12 @@ class DiffGrad(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                if group['ams_bound']:
-                    max_exp_avg_sq = state['max_exp_avg_sq']
-                    torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
-                    de_nom = max_exp_avg_sq.add(group['eps'])
-                else:
-                    de_nom = exp_avg_sq.add(group['eps'])
-
-                de_nom.sqrt_().add_(group['eps'])
+                de_nom = self.apply_ams_bound(
+                    ams_bound=group['ams_bound'],
+                    exp_avg_sq=exp_avg_sq,
+                    max_exp_avg_sq=state.get('max_exp_avg_sq', None),
+                    eps=group['eps'],
+                )
 
                 # compute diffGrad coefficient (dfc)
                 dfc = state['previous_grad'].clone()

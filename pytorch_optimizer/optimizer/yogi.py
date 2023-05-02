@@ -38,13 +38,10 @@ class Yogi(Optimizer, BaseOptimizer):
         adam_debias: bool = False,
         eps: float = 1e-3,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.initial_accumulator = initial_accumulator
-        self.weight_decay = weight_decay
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -61,12 +58,6 @@ class Yogi(Optimizer, BaseOptimizer):
             defaults.update({'r': r})
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'Yogi'
@@ -141,7 +132,10 @@ class Yogi(Optimizer, BaseOptimizer):
 
                 de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
-                step_size: float = group['lr'] / bias_correction1 if not group['adam_debias'] else group['lr']
+                step_size: float = self.apply_adam_debias(
+                    adam_debias=group['adam_debias'], step_size=group['lr'], bias_correction1=bias_correction1
+                )
+
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
 
         return loss

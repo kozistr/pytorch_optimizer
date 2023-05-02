@@ -76,10 +76,14 @@ class Ranger21(Optimizer, BaseOptimizer):
         adam_debias: bool = False,
         eps: float = 1e-8,
     ):
-        self.lr = lr
+        self.validate_learning_rate(lr)
+        self.validate_learning_rate(warm_down_min_lr)
+        self.validate_betas(betas)
+        self.validate_beta0(beta0)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
+
         self.min_lr = warm_down_min_lr
-        self.beta0 = beta0
-        self.betas = betas
         self.use_softplus = use_softplus
         self.beta_softplus = beta_softplus
         self.agc_clipping_value = agc_clipping_value
@@ -88,11 +92,7 @@ class Ranger21(Optimizer, BaseOptimizer):
         self.normalize_gradients = normalize_gradients
         self.lookahead_merge_time = lookahead_merge_time
         self.lookahead_blending_alpha = lookahead_blending_alpha
-        self.weight_decay = weight_decay
         self.norm_loss_factor = norm_loss_factor
-        self.eps = eps
-
-        self.validate_parameters()
 
         # lookahead
         self.lookahead_step: int = 0
@@ -125,14 +125,6 @@ class Ranger21(Optimizer, BaseOptimizer):
         )
         self.start_warm_down: int = num_iterations - self.num_warm_down_iterations
         self.warm_down_lr_delta: float = self.starting_lr - self.min_lr
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_learning_rate(self.min_lr)
-        self.validate_betas(self.betas)
-        self.validate_beta0(self.beta0)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'Ranger21'
@@ -209,6 +201,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
+
             bias_correction2: float = 1.0 - beta2 ** group['step']
 
             for p in group['params']:

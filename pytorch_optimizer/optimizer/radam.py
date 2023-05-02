@@ -105,10 +105,14 @@ class RAdam(Optimizer, BaseOptimizer):
                 step=group['step'],
                 lr=group['lr'],
                 beta2=beta2,
-                bias_correction1=bias_correction1,
                 n_sma_threshold=self.n_sma_threshold,
                 degenerated_to_sgd=self.degenerated_to_sgd,
+            )
+
+            step_size = self.apply_adam_debias(
                 adam_debias=group['adam_debias'],
+                step_size=step_size,
+                bias_correction1=bias_correction1,
             )
 
             for p in group['params']:

@@ -40,14 +40,10 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
         fixed_decay: bool = False,
         eps: float = 0.0,
     ):
-        self.lr = lr
-        self.momentum = momentum
-        self.d0 = d0
-        self.growth_rate = growth_rate
-        self.weight_decay = weight_decay
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_momentum(momentum)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -61,12 +57,6 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
             'eps': eps,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_momentum(self.momentum)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'DAdaptAdaGrad'
@@ -100,15 +90,17 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
         d = group['d']
         d_lr = float(d * lr)
 
-        g_sq = torch.tensor([0.0], device=group['params'][0].device)
-        sk_sq_weighted_change = torch.tensor([0.0], device=group['params'][0].device)
-        sk_l1_change = torch.tensor([0.0], device=group['params'][0].device)
+        device = group['params'][0].device
+
+        g_sq = torch.tensor([0.0], device=device)
+        sk_sq_weighted_change = torch.tensor([0.0], device=device)
+        sk_l1_change = torch.tensor([0.0], device=device)
         if 'gsq_weighted' not in group:
-            group['gsq_weighted'] = torch.tensor([0.0], device=group['params'][0].device)
+            group['gsq_weighted'] = torch.tensor([0.0], device=device)
         if 'sk_sq_weighted' not in group:
-            group['sk_sq_weighted'] = torch.tensor([0.0], device=group['params'][0].device)
+            group['sk_sq_weighted'] = torch.tensor([0.0], device=device)
         if 'sk_l1' not in group:
-            group['sk_l1'] = torch.tensor([0.0], device=group['params'][0].device)
+            group['sk_l1'] = torch.tensor([0.0], device=device)
 
         gsq_weighted = group['gsq_weighted']
         sk_sq_weighted = group['sk_sq_weighted']
@@ -206,7 +198,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
         if lr > 0.0:
             d_hat = (sk_sq_weighted - gsq_weighted) / sk_l1
-            d = self.d0 = max(d, min(d_hat, d * growth_rate))
+            d = group['d'] = max(d, min(d_hat, d * growth_rate))
 
         for group in self.param_groups:
             group['gsq_weighted'] = gsq_weighted
@@ -278,14 +270,10 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         fixed_decay: bool = False,
         eps: float = 1e-8,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.d0 = d0
-        self.growth_rate = growth_rate
-        self.weight_decay = weight_decay
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -299,12 +287,6 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
             'eps': eps,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'DAdaptAdam'
@@ -443,13 +425,9 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
     ):
-        self.lr = lr
-        self.momentum = momentum
-        self.d0 = d0
-        self.growth_rate = growth_rate
-        self.weight_decay = weight_decay
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_momentum(momentum)
+        self.validate_weight_decay(weight_decay)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -462,11 +440,6 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
             'k': 0,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_momentum(self.momentum)
-        self.validate_weight_decay(self.weight_decay)
 
     def __str__(self) -> str:
         return 'DAdaptSGD'
@@ -604,14 +577,10 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
         growth_rate: float = float('inf'),
         eps: float = 1e-8,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
-        self.d0 = d0
-        self.growth_rate = growth_rate
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -624,12 +593,6 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
             'eps': eps,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'DAdaptAdan'

@@ -38,12 +38,12 @@ class AdamS(Optimizer, BaseOptimizer):
         adam_debias: bool = False,
         eps: float = 1e-8,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
-        self.eps = eps
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
 
-        self.validate_parameters()
+        self.eps = eps
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -60,12 +60,6 @@ class AdamS(Optimizer, BaseOptimizer):
             defaults.update({'r': r})
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'AdamS'
@@ -172,7 +166,12 @@ class AdamS(Optimizer, BaseOptimizer):
 
                 de_nom = exp_avg_sq_hat.sqrt().add_(group['eps'])
 
-                step_size: float = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
+                step_size: float = self.apply_adam_debias(
+                    adam_debias=group['adam_debias'],
+                    step_size=group['lr'],
+                    bias_correction1=bias_correction1,
+                )
+
                 p.addcdiv_(state['exp_avg'], de_nom, value=-step_size)
 
         return loss

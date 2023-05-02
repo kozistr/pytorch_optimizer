@@ -37,6 +37,8 @@ def test_epsilon(optimizer_name):
         'aggmo',
         'qhm',
         'pid',
+        'lars',
+        'alig',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 

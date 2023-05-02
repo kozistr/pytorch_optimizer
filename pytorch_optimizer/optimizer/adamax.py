@@ -17,6 +17,7 @@ class AdaMax(Optimizer, BaseOptimizer):
     :param fixed_decay: bool. fix weight decay.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -30,14 +31,13 @@ class AdaMax(Optimizer, BaseOptimizer):
         fixed_decay: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
+        adam_debias: bool = False,
         eps: float = 1e-8,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -46,18 +46,13 @@ class AdaMax(Optimizer, BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'adanorm': adanorm,
+            'adam_debias': adam_debias,
             'eps': eps,
         }
         if adanorm:
             defaults.update({'r': r})
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'AdaMax'
@@ -132,6 +127,12 @@ class AdaMax(Optimizer, BaseOptimizer):
                 )
                 torch.max(norm_buf, dim=0, keepdim=False, out=(exp_inf, exp_inf.new().long()))
 
-                p.addcdiv_(exp_avg, exp_inf, value=-group['lr'] / bias_correction1)
+                step_size: float = self.apply_adam_debias(
+                    adam_debias=group['adam_debias'],
+                    step_size=group['lr'],
+                    bias_correction1=bias_correction1,
+                )
+
+                p.addcdiv_(exp_avg, exp_inf, value=-step_size)
 
         return loss

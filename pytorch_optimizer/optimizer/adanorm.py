@@ -36,12 +36,10 @@ class AdaNorm(Optimizer, BaseOptimizer):
         adam_debias: bool = False,
         eps: float = 1e-8,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -55,12 +53,6 @@ class AdaNorm(Optimizer, BaseOptimizer):
             'eps': eps,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'AdaNorm'
@@ -133,16 +125,20 @@ class AdaNorm(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_var.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                if group['ams_bound']:
-                    max_exp_avg_var = state['max_exp_avg_var']
-                    torch.max(max_exp_avg_var, exp_avg_var, out=max_exp_avg_var)
-                    de_nom = max_exp_avg_var.sqrt().add_(group['eps'])
-                else:
-                    de_nom = exp_avg_var.sqrt().add_(group['eps'])
+                de_nom = self.apply_ams_bound(
+                    ams_bound=group['ams_bound'],
+                    exp_avg_sq=exp_avg_var,
+                    max_exp_avg_sq=state.get('max_exp_avg_var', None),
+                    eps=group['eps'],
+                )
+                de_nom.div_(bias_correction2_sq)
 
-                de_nom.div_(bias_correction2_sq).add_(group['eps'])
+                step_size: float = self.apply_adam_debias(
+                    adam_debias=group['adam_debias'],
+                    step_size=group['lr'],
+                    bias_correction1=bias_correction1,
+                )
 
-                step_size: float = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
 
         return loss

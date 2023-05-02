@@ -47,14 +47,13 @@ class AdamP(Optimizer, BaseOptimizer):
         adam_debias: bool = False,
         eps: float = 1e-8,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
-        self.eps = eps
-        self.wd_ratio = wd_ratio
-        self.use_gc = use_gc
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_weight_decay_ratio(wd_ratio)
+        self.validate_epsilon(eps)
 
-        self.validate_parameters()
+        self.use_gc = use_gc
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -73,13 +72,6 @@ class AdamP(Optimizer, BaseOptimizer):
             defaults.update({'r': r})
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_weight_decay_ratio(self.wd_ratio)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'AdamP'
@@ -172,7 +164,12 @@ class AdamP(Optimizer, BaseOptimizer):
                     ratio=wd_ratio,
                 )
 
-                step_size: float = group['lr'] if group['adam_debias'] else group['lr'] / bias_correction1
+                step_size: float = self.apply_adam_debias(
+                    adam_debias=group['adam_debias'],
+                    step_size=group['lr'],
+                    bias_correction1=bias_correction1,
+                )
+
                 p.add_(perturb, alpha=-step_size)
 
         return loss

@@ -38,13 +38,14 @@ class Shampoo(Optimizer, BaseOptimizer):
         preconditioning_compute_steps: int = 1,
         matrix_eps: float = 1e-6,
     ):
-        self.lr = lr
-        self.momentum = momentum
-        self.weight_decay = weight_decay
+        self.validate_learning_rate(lr)
+        self.validate_momentum(momentum)
+        self.validate_weight_decay(weight_decay)
+        self.validate_update_frequency(preconditioning_compute_steps)
+        self.validate_epsilon(matrix_eps)
+
         self.preconditioning_compute_steps = preconditioning_compute_steps
         self.matrix_eps = matrix_eps
-
-        self.validate_parameters()
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -54,13 +55,6 @@ class Shampoo(Optimizer, BaseOptimizer):
             'fixed_decay': fixed_decay,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_momentum(self.momentum)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_update_frequency(self.preconditioning_compute_steps)
-        self.validate_epsilon(self.matrix_eps)
 
     def __str__(self) -> str:
         return 'Shampoo'
@@ -219,9 +213,15 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         matrix_eps: float = 1e-6,
         use_svd: bool = False,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_update_frequency(start_preconditioning_step)
+        self.validate_update_frequency(statistics_compute_steps)
+        self.validate_update_frequency(preconditioning_compute_steps)
+        self.validate_epsilon(diagonal_eps)
+        self.validate_epsilon(matrix_eps)
+
         self.inverse_exponent_override = inverse_exponent_override
         self.start_preconditioning_step = start_preconditioning_step
         self.preconditioning_compute_steps = preconditioning_compute_steps
@@ -236,8 +236,6 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
         self.matrix_eps = matrix_eps
         self.use_svd = use_svd
 
-        self.validate_parameters()
-
         defaults: DEFAULTS = {
             'lr': lr,
             'betas': betas,
@@ -248,16 +246,6 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
             'nesterov': nesterov,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_update_frequency(self.start_preconditioning_step)
-        self.validate_update_frequency(self.statistics_compute_steps)
-        self.validate_update_frequency(self.preconditioning_compute_steps)
-        self.validate_epsilon(self.diagonal_eps)
-        self.validate_epsilon(self.matrix_eps)
 
     def __str__(self) -> str:
         return 'ScalableShampoo'

@@ -32,13 +32,11 @@ class QHAdam(Optimizer, BaseOptimizer):
         fixed_decay: bool = False,
         eps: float = 1e-8,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.nus = nus
-        self.weight_decay = weight_decay
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_nus(nus)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -50,13 +48,6 @@ class QHAdam(Optimizer, BaseOptimizer):
             'eps': eps,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
-        self.validate_nus(self.nus)
 
     def __str__(self) -> str:
         return 'QHAdam'

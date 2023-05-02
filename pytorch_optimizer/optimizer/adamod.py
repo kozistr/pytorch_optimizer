@@ -33,12 +33,10 @@ class AdaMod(Optimizer, BaseOptimizer):
         adam_debias: bool = False,
         eps: float = 1e-8,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -50,12 +48,6 @@ class AdaMod(Optimizer, BaseOptimizer):
             'eps': eps,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'AdaMod'
@@ -119,12 +111,13 @@ class AdaMod(Optimizer, BaseOptimizer):
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
-                step_size = torch.full_like(
-                    de_nom,
-                    fill_value=group['lr']
-                    * bias_correction2_sq
-                    / (bias_correction1 if not group['adam_debias'] else 1.0),
+                step_size = self.apply_adam_debias(
+                    adam_debias=group['adam_debias'],
+                    step_size=group['lr'] * bias_correction2_sq,
+                    bias_correction1=bias_correction1,
                 )
+
+                step_size = torch.full_like(de_nom, fill_value=step_size)
                 step_size.div_(de_nom)
 
                 exp_avg_lr = state['exp_avg_lr']

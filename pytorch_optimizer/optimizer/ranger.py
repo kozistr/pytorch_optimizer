@@ -45,19 +45,16 @@ class Ranger(Optimizer, BaseOptimizer):
         adanorm: bool = False,
         adam_debias: bool = False,
     ):
-        self.lr = lr
-        self.alpha = alpha
-        self.k = k
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_lookahead_k(k)
+        self.validate_epsilon(eps)
+
         self.n_sma_threshold = n_sma_threshold
         self.degenerated_to_sgd = degenerated_to_sgd
-        self.betas = betas
-        self.weight_decay = weight_decay
         self.use_gc = use_gc
-        self.eps = eps
-
         self.gc_gradient_threshold: int = 3 if gc_conv_only else 1
-
-        self.validate_parameters()
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -65,7 +62,6 @@ class Ranger(Optimizer, BaseOptimizer):
             'alpha': alpha,
             'k': k,
             'step_counter': 0,
-            'n_sma_threshold': n_sma_threshold,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
@@ -77,13 +73,6 @@ class Ranger(Optimizer, BaseOptimizer):
             defaults.update({'r': r})
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_lookahead_k(self.k)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'Ranger'
@@ -123,10 +112,14 @@ class Ranger(Optimizer, BaseOptimizer):
                 step=group['step'],
                 lr=group['lr'],
                 beta2=beta2,
-                bias_correction1=bias_correction1,
                 n_sma_threshold=self.n_sma_threshold,
                 degenerated_to_sgd=self.degenerated_to_sgd,
+            )
+
+            step_size = self.apply_adam_debias(
                 adam_debias=group['adam_debias'],
+                step_size=step_size,
+                bias_correction1=bias_correction1,
             )
 
             for p in group['params']:
@@ -177,7 +170,7 @@ class Ranger(Optimizer, BaseOptimizer):
 
                 if group['step'] % group['k'] == 0:
                     slow_p = state['slow_buffer']
-                    slow_p.add_(p - slow_p, alpha=self.alpha)
+                    slow_p.add_(p - slow_p, alpha=group['alpha'])
                     p.copy_(slow_p)
 
         return loss

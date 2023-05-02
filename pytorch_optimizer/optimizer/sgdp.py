@@ -38,12 +38,10 @@ class SGDP(Optimizer, BaseOptimizer):
         nesterov: bool = False,
         eps: float = 1e-8,
     ):
-        self.lr = lr
-        self.weight_decay = weight_decay
-        self.wd_ratio = wd_ratio
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_weight_decay(weight_decay)
+        self.validate_weight_decay_ratio(wd_ratio)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -58,12 +56,6 @@ class SGDP(Optimizer, BaseOptimizer):
             'eps': eps,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_weight_decay_ratio(self.wd_ratio)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'SGDP'

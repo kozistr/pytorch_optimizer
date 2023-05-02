@@ -15,17 +15,11 @@ class MSVAG(Optimizer, BaseOptimizer):
     """
 
     def __init__(self, params: PARAMETERS, lr: float = 1e-2, beta: float = 0.9):
-        self.lr = lr
-        self.beta = beta
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_beta(beta)
 
         defaults: DEFAULTS = {'lr': lr, 'beta': beta}
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_beta(self.beta)
 
     def __str__(self) -> str:
         return 'MSVAG'
