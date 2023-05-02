@@ -16,7 +16,6 @@ class LARS(Optimizer, BaseOptimizer):
     :param dampening: float. dampening for momentum.
     :param trust_coefficient: float. trust_coefficient.
     :param nesterov: bool. enables nesterov momentum.
-    :param eps: float. epsilon.
     """
 
     def __init__(
@@ -28,17 +27,11 @@ class LARS(Optimizer, BaseOptimizer):
         dampening: float = 0.0,
         trust_coefficient: float = 1e-3,
         nesterov: bool = False,
-        eps: float = 1e-6,
     ):
-        self.lr = lr
-        self.weight_decay = weight_decay
-        self.momentum = momentum
-        self.dampening = dampening
-        self.trust_coefficient = trust_coefficient
-        self.nesterov = nesterov
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_weight_decay(weight_decay)
+        self.validate_momentum(momentum)
+        self.validate_trust_coefficient(trust_coefficient)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -49,13 +42,6 @@ class LARS(Optimizer, BaseOptimizer):
             'nesterov': nesterov,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_momentum(self.momentum)
-        self.validate_trust_coefficient(self.trust_coefficient)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'Lars'

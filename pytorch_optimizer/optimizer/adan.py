@@ -39,14 +39,14 @@ class Adan(Optimizer, BaseOptimizer):
         adanorm: bool = False,
         eps: float = 1e-8,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_norm(max_grad_norm)
+        self.validate_epsilon(eps)
+
         self.max_grad_norm = max_grad_norm
         self.use_gc = use_gc
-        self.eps = eps
-
-        self.validate_parameters()
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -61,13 +61,6 @@ class Adan(Optimizer, BaseOptimizer):
             defaults.update({'r': r})
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
-        self.validate_norm(self.max_grad_norm)
 
     def __str__(self) -> str:
         return 'Adan'
@@ -92,7 +85,7 @@ class Adan(Optimizer, BaseOptimizer):
             return 1.0
 
         global_grad_norm = get_global_gradient_norm(self.param_groups, self.param_groups[0]['params'][0].device)
-        global_grad_norm.sqrt_().add_(self.eps)
+        global_grad_norm.sqrt_().add_(self.defaults['eps'])
 
         return torch.clamp(self.defaults['max_grad_norm'] / global_grad_norm, max=1.0)
 

@@ -23,13 +23,15 @@ class Lookahead(BaseOptimizer):
         alpha: float = 0.5,
         pullback_momentum: str = 'none',
     ):
-        self.optimizer = optimizer
-        self.k = k
+        self.validate_lookahead_k(k)
+        self.validate_alpha(alpha)
+        self.validate_pullback_momentum(pullback_momentum)
+
         self.alpha = alpha
+        self.k = k
         self.pullback_momentum = pullback_momentum
 
-        self.validate_parameters()
-
+        self.optimizer = optimizer
         self.param_groups = self.optimizer.param_groups
         self.state: STATE = defaultdict(dict)
 
@@ -43,11 +45,6 @@ class Lookahead(BaseOptimizer):
                 state['slow_params'].copy_(p)
                 if self.pullback_momentum == 'pullback':
                     state['slow_momentum'] = torch.zeros_like(p)
-
-    def validate_parameters(self):
-        self.validate_lookahead_k(self.k)
-        self.validate_alpha(self.alpha)
-        self.validate_pullback_momentum(self.pullback_momentum)
 
     def __getstate__(self):
         return {

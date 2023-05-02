@@ -25,21 +25,13 @@ class SM3(Optimizer, BaseOptimizer):
         beta: float = 0.0,
         eps: float = 1e-30,
     ):
-        self.lr = lr
-        self.momentum = momentum
-        self.beta = beta
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_momentum(momentum)
+        self.validate_beta(beta)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {'lr': lr, 'momentum': momentum, 'beta': beta, 'eps': eps}
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_momentum(self.momentum)
-        self.validate_beta(self.beta)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'SM3'

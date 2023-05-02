@@ -32,14 +32,9 @@ class PID(Optimizer, BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
     ):
-        self.lr = lr
-        self.momentum = momentum
-        self.dampening = dampening
-        self.derivative = derivative
-        self.integral = integral
-        self.weight_decay = weight_decay
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_momentum(momentum)
+        self.validate_weight_decay(weight_decay)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -52,11 +47,6 @@ class PID(Optimizer, BaseOptimizer):
             'fixed_decay': fixed_decay,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_momentum(self.momentum)
-        self.validate_weight_decay(self.weight_decay)
 
     def __str__(self) -> str:
         return 'PID'

@@ -24,16 +24,12 @@ class Fromage(Optimizer, BaseOptimizer):
     """
 
     def __init__(self, params: PARAMETERS, lr: float = 1e-2, p_bound: Optional[float] = None):
-        self.lr = lr
-        self.p_bound = p_bound
+        self.validate_learning_rate(lr)
 
-        self.validate_parameters()
+        self.p_bound = p_bound
 
         defaults: DEFAULTS = {'lr': lr}
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
 
     def __str__(self) -> str:
         return 'Fromage'

@@ -42,12 +42,10 @@ class SWATS(Optimizer, BaseOptimizer):
         adam_debias: bool = False,
         eps: float = 1e-9,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
-        self.eps = eps
-
-        self.validate_parameters()
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
+        self.validate_epsilon(eps)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -66,12 +64,6 @@ class SWATS(Optimizer, BaseOptimizer):
             defaults.update({'r': r})
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'SWATS'
@@ -165,16 +157,18 @@ class SWATS(Optimizer, BaseOptimizer):
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                if group['ams_bound']:
-                    max_exp_avg_sq = state['max_exp_avg_sq']
-                    torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
-                    de_nom = max_exp_avg_sq.sqrt().add_(group['eps'])
-                else:
-                    de_nom = exp_avg_sq.sqrt().add_(group['eps'])
+                de_nom = self.apply_ams_bound(
+                    ams_bound=group['ams_bound'],
+                    exp_avg_sq=exp_avg_sq,
+                    max_exp_avg_sq=state.get('max_exp_avg_sq', None),
+                    eps=group['eps'],
+                )
 
-                step_size: float = group['lr'] * math.sqrt(bias_correction2)
-                if not group['adam_debias']:
-                    step_size /= bias_correction1
+                step_size: float = self.apply_adam_debias(
+                    adam_debias=group['adam_debias'],
+                    step_size=group['lr'] * math.sqrt(bias_correction2),
+                    bias_correction1=bias_correction1,
+                )
 
                 perturb = exp_avg.clone()
                 perturb.div_(de_nom).mul(-step_size)

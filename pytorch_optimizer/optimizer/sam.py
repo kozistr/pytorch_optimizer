@@ -63,9 +63,7 @@ class SAM(Optimizer, BaseOptimizer):
         adaptive: bool = False,
         **kwargs,
     ):
-        self.rho = rho
-
-        self.validate_parameters()
+        self.validate_rho(rho)
 
         defaults: DEFAULTS = {'rho': rho, 'adaptive': adaptive}
         defaults.update(kwargs)
@@ -73,9 +71,6 @@ class SAM(Optimizer, BaseOptimizer):
 
         self.base_optimizer = base_optimizer(self.param_groups, **kwargs)
         self.param_groups = self.base_optimizer.param_groups
-
-    def validate_parameters(self):
-        self.validate_rho(self.rho)
 
     def __str__(self) -> str:
         return 'SAM'

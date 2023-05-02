@@ -35,16 +35,15 @@ class Apollo(Optimizer, BaseOptimizer):
         warmup_steps: int = 500,
         eps: float = 1e-4,
     ):
+        self.validate_learning_rate(lr)
+        self.validate_beta(beta)
+        self.validate_rebound(rebound)
+        self.validate_weight_decay(weight_decay)
+        self.validate_weight_decay_type(weight_decay_type)
+        self.validate_epsilon(eps)
+
         self.lr = lr
-        self.beta = beta
-        self.rebound = rebound
-        self.weight_decay = weight_decay
-        self.weight_decay_type = weight_decay_type
         self.warmup_steps = warmup_steps
-        self.eps = eps
-
-        self.validate_parameters()
-
         self.init_lr: float = init_lr if init_lr is not None else lr / 1000.0
 
         defaults: DEFAULTS = {
@@ -57,14 +56,6 @@ class Apollo(Optimizer, BaseOptimizer):
             'eps': eps,
         }
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_beta(self.beta)
-        self.validate_rebound(self.rebound)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_weight_decay_type(self.weight_decay_type)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'Apollo'
@@ -132,7 +123,7 @@ class Apollo(Optimizer, BaseOptimizer):
 
                 exp_avg_grad.add_(delta_grad, alpha=alpha)
 
-                de_nom = d_p.norm(p=4).add(eps)
+                de_nom = d_p.norm(p=4).add_(eps)
                 d_p.div_(de_nom)
 
                 v_sq = d_p.mul(d_p)

@@ -33,12 +33,11 @@ class Lion(Optimizer, BaseOptimizer):
         r: float = 0.95,
         adanorm: bool = False,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
-        self.use_gc = use_gc
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_weight_decay(weight_decay)
 
-        self.validate_parameters()
+        self.use_gc = use_gc
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -52,11 +51,6 @@ class Lion(Optimizer, BaseOptimizer):
             defaults.update({'r': r})
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
 
     def __str__(self) -> str:
         return 'Lion'

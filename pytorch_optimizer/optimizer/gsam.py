@@ -54,6 +54,8 @@ class GSAM(Optimizer, BaseOptimizer):
         perturb_eps: float = 1e-12,
         **kwargs,
     ):
+        self.validate_alpha(alpha)
+
         self.model = model
         self.rho_scheduler = rho_scheduler
         self.alpha = alpha
@@ -73,16 +75,11 @@ class GSAM(Optimizer, BaseOptimizer):
         self.base_optimizer = base_optimizer
         self.param_groups = self.base_optimizer.param_groups
 
-        self.validate_parameters()
-
         defaults: DEFAULTS = {'adaptive': adaptive}
         defaults.update(kwargs)
         super().__init__(params, defaults)
 
         self.update_rho_t()
-
-    def validate_parameters(self):
-        self.validate_alpha(self.alpha)
 
     def __str__(self) -> str:
         return 'GSAM'
