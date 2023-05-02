@@ -16,7 +16,7 @@ pytorch-optimizer
 
 | **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch.
 | I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.
-| Currently, 43 optimizers, 6 lr schedulers are supported!
+| Currently, 45 optimizers, 6 lr schedulers are supported!
 |
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
@@ -172,6 +172,8 @@ You can check the supported optimizers & lr schedulers.
 | QHAdam       | *Quasi-hyperbolic momentum and Adam for deep learning*                                          | `github <https://github.com/facebookresearch/qhoptim>`__                          | `https://arxiv.org/abs/1810.06801 <https://arxiv.org/abs/1810.06801>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | PID          | *A PID Controller Approach for Stochastic Optimization of Deep Networks*                        | `github <https://github.com/tensorboy/PIDOptimizer>`__                            | `CVPR 18 <http://www4.comp.polyu.edu.hk/~cslzhang/paper/CVPR18_PID.pdf>`__                    |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| Gravity      | *a Kinematic Approach on Optimization in Deep Learning*                                         | `github <https://github.com/dariush-bahrami/gravity.optimizer>`__                 | `https://arxiv.org/abs/2101.09192 <https://arxiv.org/abs/2101.09192>`__                       |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
@@ -407,6 +409,8 @@ Citations
 `QHAdam <https://github.com/facebookresearch/qhoptim#reference>`__
 
 `PID <https://github.com/tensorboy/PIDOptimizer#citation>`__
+
+`Gravity <https://ui.adsabs.harvard.edu/abs/2021arXiv210109192B/exportcitation>`__
 
 Citation
 --------
