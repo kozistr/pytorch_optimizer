@@ -25,6 +25,7 @@ from pytorch_optimizer import (
     Adan,
     AdaNorm,
     AdaPNM,
+    AdaSmooth,
     AggMo,
     AliG,
     Apollo,
@@ -94,6 +95,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'aggmo',
     'qhadam',
     'adamax',
+    'adasmooth',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -355,6 +357,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
     (Gravity, {'lr': 1e0}, 5),
+    (AdaSmooth, {'lr': 5e-1}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
