@@ -17,11 +17,11 @@ class SRMM(Optimizer, BaseOptimizer):
     :param l: Optional[int]. internal memory length for moving average. None for no refreshing.
     """
 
-    def __init__(self, params: PARAMETERS, lr: float = 0.01, beta: float = 0.5, l: Optional[int] = 100):
+    def __init__(self, params: PARAMETERS, lr: float = 0.01, beta: float = 0.5, memory_length: Optional[int] = 100):
         self.validate_learning_rate(lr)
         self.validate_beta(beta)
 
-        defaults: DEFAULTS = {'lr': lr, 'beta': beta, 'l': l}
+        defaults: DEFAULTS = {'lr': lr, 'beta': beta, 'memory_length': memory_length}
         super().__init__(params, defaults)
 
         self.base_lrs: List[float] = [group['lr'] for group in self.param_groups]
@@ -52,7 +52,9 @@ class SRMM(Optimizer, BaseOptimizer):
             else:
                 group['step'] = 1
 
-            w_t: float = ((group['step'] + 1) % (group['l'] if group['l'] is not None else 1)) ** -group['beta']
+            w_t: float = (
+                (group['step'] + 1) % (group['memory_length'] if group['memory_length'] is not None else 1)
+            ) ** -group['beta']
 
             for p in group['params']:
                 if p.grad is None:
