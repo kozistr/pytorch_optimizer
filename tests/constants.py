@@ -12,6 +12,7 @@ from pytorch_optimizer import (
     SGDP,
     SGDW,
     SM3,
+    SRMM,
     A2Grad,
     AccSGD,
     AdaBelief,
@@ -358,6 +359,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
     (Gravity, {'lr': 1e0}, 5),
     (AdaSmooth, {'lr': 5e-1}, 5),
+    (SRMM, {'lr': 5e-1}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
