@@ -16,7 +16,7 @@ pytorch-optimizer
 
 | **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch.
 | I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.
-| Currently, 45 optimizers, 6 lr schedulers are supported!
+| Currently, 46 optimizers, 6 lr schedulers are supported!
 |
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
@@ -174,6 +174,8 @@ You can check the supported optimizers & lr schedulers.
 | PID          | *A PID Controller Approach for Stochastic Optimization of Deep Networks*                        | `github <https://github.com/tensorboy/PIDOptimizer>`__                            | `CVPR 18 <http://www4.comp.polyu.edu.hk/~cslzhang/paper/CVPR18_PID.pdf>`__                    |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | Gravity      | *a Kinematic Approach on Optimization in Deep Learning*                                         | `github <https://github.com/dariush-bahrami/gravity.optimizer>`__                 | `https://arxiv.org/abs/2101.09192 <https://arxiv.org/abs/2101.09192>`__                       |
++--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| AdaSmooth    | *An Adaptive Learning Rate Method based on Effective Ratio*                                     |                                                                                   | `https://arxiv.org/abs/2204.00825v1 <https://arxiv.org/abs/2204.00825v1>`__                   |
 +--------------+-------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
@@ -411,6 +413,8 @@ Citations
 `PID <https://github.com/tensorboy/PIDOptimizer#citation>`__
 
 `Gravity <https://ui.adsabs.harvard.edu/abs/2021arXiv210109192B/exportcitation>`__
+
+`AdaSmooth <https://ui.adsabs.harvard.edu/abs/2022arXiv220400825L/exportcitation>`__
 
 Citation
 --------
