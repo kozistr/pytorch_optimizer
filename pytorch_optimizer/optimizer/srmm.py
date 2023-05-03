@@ -8,7 +8,7 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class Nero(Optimizer, BaseOptimizer):
+class SRMM(Optimizer, BaseOptimizer):
     """Stochastic regularized majorization-minimization with weakly convex and multi-convex surrogates.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
