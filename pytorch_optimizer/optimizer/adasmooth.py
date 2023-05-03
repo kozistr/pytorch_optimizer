@@ -57,7 +57,7 @@ class AdaSmooth(Optimizer, BaseOptimizer):
                 state['prev_param'] = torch.zeros_like(p)
                 state['s'] = torch.zeros_like(p)
                 state['n'] = torch.zeros_like(p)
-                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -88,7 +88,7 @@ class AdaSmooth(Optimizer, BaseOptimizer):
                     state['prev_param'] = torch.zeros_like(p)
                     state['s'] = torch.zeros_like(p)
                     state['n'] = torch.zeros_like(p)
-                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
 
                 self.apply_weight_decay(
                     p=p,
@@ -111,11 +111,11 @@ class AdaSmooth(Optimizer, BaseOptimizer):
 
                 c_p2 = c.pow(2)
 
-                exp_avg = state['exp_avg']
-                exp_avg.mul_(1.0 - c_p2).addcmul_(grad, grad, value=c_p2)
+                exp_avg_sq = state['exp_avg_sq']
+                exp_avg_sq.mul_(1.0 - c_p2).addcmul_(grad, grad, value=c_p2)
 
-                step_size = torch.full_like(exp_avg, fill_value=group['lr'])
-                step_size.div_((exp_avg + group['eps']).sqrt()).mul_(grad)
+                step_size = torch.full_like(exp_avg_sq, fill_value=group['lr'])
+                step_size.div_((exp_avg_sq + group['eps']).sqrt()).mul_(grad)
 
                 p.add_(-step_size)
 
