@@ -22,7 +22,7 @@ class MADGRAD(Optimizer, BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
         MADGRAD optimizer requires less weight decay than other methods, often as little as zero.
         On sparse problems both weight_decay and momentum should be set to 0.
-    :param decouple_decay: float. Apply AdamW style decoupled weight decay.
+    :param weight_decouple: float. Apply AdamW style decoupled weight decay.
     """
 
     def __init__(
