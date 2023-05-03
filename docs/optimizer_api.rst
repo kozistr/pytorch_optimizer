@@ -424,3 +424,11 @@ AdaSmooth
 
 .. autoclass:: pytorch_optimizer.AdaSmooth
     :members:
+
+.. _SRMM:
+
+SRMM
+----
+
+.. autoclass:: pytorch_optimizer.SRMM
+    :members:
