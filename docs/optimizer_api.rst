@@ -416,3 +416,11 @@ Gravity
 
 .. autoclass:: pytorch_optimizer.Gravity
     :members:
+
+.. _AdaSmooth:
+
+AdaSmooth
+---------
+
+.. autoclass:: pytorch_optimizer.AdaSmooth
+    :members:
