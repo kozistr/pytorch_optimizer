@@ -15,7 +15,7 @@ class A2Grad(Optimizer, BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: Optional[float]. learning rate. no needed.
     :param beta: float. beta.
-    :param lips. float. Lipschitz constant.
+    :param lips: float. Lipschitz constant.
     :param rho: float. represents the degree of weighting decrease, a constant smoothing factor between 0 and 1.
     :param variant: str. type of A2Grad optimizer. 'uni', 'inc', 'exp'.
     """
