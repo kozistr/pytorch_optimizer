@@ -24,7 +24,7 @@ copyright = '2021, kozistr'
 author = 'kozistr'
 
 # The full version, including alpha/beta/rc tags
-release = '2.2.1'
+release = '2.8.0'
 
 
 # -- General configuration ---------------------------------------------------
