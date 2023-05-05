@@ -329,7 +329,7 @@ Acceleration via Fractal Learning Rate Schedules.
 On the Convergence of Adam and Beyond
 -------------------------------------
 
-| Convergence issues can be fixed by endowing such algorithms with `long-term memory' of past gradients
+| Convergence issues can be fixed by endowing such algorithms with 'long-term memory' of past gradients.
 
 Improved bias-correction in Adam
 --------------------------------
