@@ -26,7 +26,7 @@ class AdaShift(Optimizer, BaseOptimizer):
         self,
         params: PARAMETERS,
         lr: float = 1e-3,
-        betas: BETAS = (0.9, 0.99),
+        betas: BETAS = (0.9, 0.999),
         keep_num: int = 10,
         reduce_func: Optional[Callable] = torch.max,
         eps: float = 1e-10,
