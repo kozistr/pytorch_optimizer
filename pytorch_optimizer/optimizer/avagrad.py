@@ -130,6 +130,6 @@ class AvaGrad(Optimizer, BaseOptimizer):
                 squared_norm += param_wise_lr.norm(-2) ** -2
                 num_params += param_wise_lr.numel()
 
-            group['gamma'] = 1.0 / math.sqrt(squared_norm / num_params)
+            group['gamma'] = 0.0 if num_params == 0.0 else 1.0 / math.sqrt(squared_norm / num_params)
 
         return loss
