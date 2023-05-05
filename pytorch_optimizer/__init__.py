@@ -32,6 +32,7 @@ from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.aggmo import AggMo
 from pytorch_optimizer.optimizer.alig import AliG
 from pytorch_optimizer.optimizer.apollo import Apollo
+from pytorch_optimizer.optimizer.avagrad import AvaGrad
 from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptSGD
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
@@ -138,6 +139,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Gravity,
     AdaSmooth,
     SRMM,
+    AvaGrad,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
