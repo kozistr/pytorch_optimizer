@@ -432,3 +432,11 @@ SRMM
 
 .. autoclass:: pytorch_optimizer.SRMM
     :members:
+
+.. _AvaGrad:
+
+AvaGrad
+-------
+
+.. autoclass:: pytorch_optimizer.AvaGrad
+    :members:
