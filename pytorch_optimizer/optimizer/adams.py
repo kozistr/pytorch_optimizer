@@ -40,10 +40,8 @@ class AdamS(Optimizer, BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
-        self.validate_weight_decay(weight_decay)
-        self.validate_epsilon(eps)
-
-        self.eps = eps
+        self.validate_negative(weight_decay, 'weight_decay')
+        self.validate_negative(eps, 'eps')
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -138,7 +136,7 @@ class AdamS(Optimizer, BaseOptimizer):
         if param_size == 0:
             raise ZeroParameterSizeError()
 
-        exp_avg_sq_hat_mean: float = math.sqrt(exp_avg_sq_hat_sum / param_size) + self.eps
+        exp_avg_sq_hat_mean: float = math.sqrt(exp_avg_sq_hat_sum / param_size) + self.defaults['eps']
 
         for group in self.param_groups:
             beta1, beta2 = group['betas']

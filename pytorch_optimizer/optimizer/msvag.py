@@ -16,7 +16,7 @@ class MSVAG(Optimizer, BaseOptimizer):
 
     def __init__(self, params: PARAMETERS, lr: float = 1e-2, beta: float = 0.9):
         self.validate_learning_rate(lr)
-        self.validate_beta(beta)
+        self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')
 
         defaults: DEFAULTS = {'lr': lr, 'beta': beta}
         super().__init__(params, defaults)

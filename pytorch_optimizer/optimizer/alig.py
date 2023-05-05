@@ -28,7 +28,7 @@ class AliG(Optimizer, BaseOptimizer):
         adjusted_momentum: bool = False,
     ):
         self.validate_learning_rate(max_lr)
-        self.validate_momentum(momentum)
+        self.validate_range(momentum, 'momentum', 0.0, 1.0)
 
         self.projection_fn = projection_fn
 

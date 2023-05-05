@@ -48,9 +48,9 @@ class AdaFactor(Optimizer, BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
-        self.validate_weight_decay(weight_decay)
-        self.validate_epsilon(eps1)
-        self.validate_epsilon(eps2)
+        self.validate_negative(weight_decay, 'weight_decay')
+        self.validate_negative(eps1, 'eps1')
+        self.validate_negative(eps2, 'eps2')
 
         self.decay_rate = decay_rate
         self.clip_threshold = clip_threshold

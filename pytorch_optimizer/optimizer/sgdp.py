@@ -39,9 +39,9 @@ class SGDP(Optimizer, BaseOptimizer):
         eps: float = 1e-8,
     ):
         self.validate_learning_rate(lr)
-        self.validate_weight_decay(weight_decay)
-        self.validate_weight_decay_ratio(wd_ratio)
-        self.validate_epsilon(eps)
+        self.validate_negative(weight_decay, 'weight_decay')
+        self.validate_range(wd_ratio, 'wd_ratio', 0.0, 1.0)
+        self.validate_negative(eps, 'eps')
 
         defaults: DEFAULTS = {
             'lr': lr,

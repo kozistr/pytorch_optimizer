@@ -23,8 +23,8 @@ class Gravity(Optimizer, BaseOptimizer):
         beta: float = 0.9,
     ):
         self.validate_learning_rate(lr)
-        self.validate_alpha(alpha)
-        self.validate_beta(beta)
+        self.validate_range(alpha, 'alpha', 0.0, 1.0)
+        self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')
 
         defaults: DEFAULTS = {'lr': lr, 'alpha': alpha, 'beta': beta}
         super().__init__(params, defaults)

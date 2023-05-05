@@ -96,16 +96,6 @@ class BaseOptimizer(ABC):
             raise NegativeLRError(learning_rate)
 
     @staticmethod
-    def validate_beta(beta: float):
-        if not 0.0 <= beta <= 1.0:
-            raise ValueError(f'[-] beta {beta} must be in the range [0, 1]')
-
-    @staticmethod
-    def validate_beta0(beta_0: float):
-        if not 0.0 <= beta_0 <= 1.0:
-            raise ValueError(f'[-] beta0 {beta_0} must be in the range [0, 1]')
-
-    @staticmethod
     def validate_betas(betas: BETAS):
         if not 0.0 <= betas[0] <= 1.0:
             raise ValueError(f'[-] beta1 {betas[0]} must be in the range [0, 1]')
@@ -119,11 +109,6 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] beta3 {betas[2]} must be in the range [0, 1]')
 
     @staticmethod
-    def validate_weight_decay(weight_decay: float):
-        if weight_decay < 0.0:
-            raise ValueError(f'[-] weight_decay {weight_decay} must be non-negative')
-
-    @staticmethod
     def validate_weight_decay_type(weight_decay_type: str):
         if weight_decay_type not in ('l2', 'decoupled', 'stable'):
             raise ValueError(
@@ -131,39 +116,37 @@ class BaseOptimizer(ABC):
             )
 
     @staticmethod
-    def validate_weight_decay_ratio(weight_decay_ratio: float):
-        if not 0.0 <= weight_decay_ratio < 1.0:
-            raise ValueError(f'[-] weight_decay_ratio {weight_decay_ratio} must be in the range [0, 1)')
+    def validate_range(x: float, name: str, low: float, high: float, range_type: str = '[)'):
+        if range_type == '[)' and not low <= x < high:
+            raise ValueError(f'[-] {name} must be in the range [{low}, {high})')
+        if range_type == '[]' and not low <= x <= high:
+            raise ValueError(f'[-] {name} must be in the range [{low}, {high}]')
+        if range_type == '(]' and not low < x <= high:
+            raise ValueError(f'[-] {name} must be in the range ({low}, {high}]')
+        if range_type == '()' and not low < x < high:
+            raise ValueError(f'[-] {name} must be in the range ({low}, {high})')
 
     @staticmethod
-    def validate_trust_coefficient(trust_coefficient: float):
-        if trust_coefficient < 0.0:
-            raise ValueError(f'[-] trust_coefficient {trust_coefficient} must be non-negative')
+    def validate_negative(x: float, name: str):
+        if x < 0.0:
+            raise ValueError(f'[-] {name} must be non-negative')
 
     @staticmethod
-    def validate_momentum(momentum: float):
-        if not 0.0 <= momentum < 1.0:
-            raise ValueError(f'[-] momentum {momentum} must be in the range [0, 1)')
+    def validate_positive(x: Union[float, int], name: str):
+        if x < 1:
+            raise ValueError(f'[-] {name} must be positive')
 
     @staticmethod
-    def validate_lookahead_k(k: int):
-        if k < 1:
-            raise ValueError(f'[-] k {k} must be positive')
+    def validate_boundary(constant: float, boundary: float, bound_type: str = 'upper'):
+        if bound_type == 'upper' and constant > boundary:
+            raise ValueError(f'[-] constant {constant} must be in a range of (-inf, {boundary}]')
+        if bound_type == 'lower' and constant < boundary:
+            raise ValueError(f'[-] constant {constant} must be in a range of [{boundary}, inf)')
 
     @staticmethod
-    def validate_rho(rho: float):
-        if rho < 0.0:
-            raise ValueError(f'[-] rho {rho} must be non-negative')
-
-    @staticmethod
-    def validate_epsilon(epsilon: float):
-        if epsilon < 0.0:
-            raise ValueError(f'[-] epsilon {epsilon} must be non-negative')
-
-    @staticmethod
-    def validate_alpha(alpha: float):
-        if not 0.0 <= alpha < 1.0:
-            raise ValueError(f'[-] alpha {alpha} must be in the range [0, 1)')
+    def validate_step(step: int, step_type: str):
+        if step < 1:
+            raise NegativeStepError(step, step_type=step_type)
 
     @staticmethod
     def validate_pullback_momentum(pullback_momentum: str):
@@ -178,49 +161,14 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] reduction {reduction} must be one of (\'mean\' or \'sum\')')
 
     @staticmethod
-    def validate_update_frequency(update_frequency: int):
-        if update_frequency < 1:
-            raise NegativeStepError(update_frequency, step_type='update_frequency')
-
-    @staticmethod
-    def validate_norm(norm: float):
-        if norm < 0.0:
-            raise ValueError(f'[-] norm {norm} must be positive')
-
-    @staticmethod
     def validate_rebound(rebound: str):
         if rebound not in ('constant', 'belief'):
             raise ValueError(f'[-] rebound {rebound} must be one of (\'constant\' or \'belief\')')
 
     @staticmethod
-    def validate_lipschitz_constant(lips: float):
-        if lips < 0:
-            raise ValueError(f'[-] Lipschitz constant {lips} must be non-negative')
-
-    @staticmethod
     def validate_a2grad_variant(variant: str):
         if variant not in ('uni', 'inc', 'exp'):
             raise ValueError(f'[-] A2Grad variant {variant} must be one of (\'uni\' or \'inc\' or \'exp\')')
-
-    @staticmethod
-    def validate_kappa(kappa: float):
-        if kappa < 0.0:
-            raise ValueError(f'[-] kappa {kappa} must be non-negative')
-
-    @staticmethod
-    def validate_xi(xi: float):
-        if xi < 0.0:
-            raise ValueError(f'[-] xi {xi} must be non-negative')
-
-    @staticmethod
-    def validate_constant(constant: float, boundary: float):
-        if constant > boundary:
-            raise ValueError(f'[-] constant {constant} must be in a range of (-inf, {boundary}]')
-
-    @staticmethod
-    def validate_amplifier(amplifier: float):
-        if amplifier < 0.0:
-            raise ValueError(f'[-] amplifier {amplifier} must be non-negative')
 
     @staticmethod
     def validate_nus(nus: Union[float, Tuple[float, float]]):

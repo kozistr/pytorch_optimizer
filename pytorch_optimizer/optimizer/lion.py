@@ -35,7 +35,7 @@ class Lion(Optimizer, BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
-        self.validate_weight_decay(weight_decay)
+        self.validate_negative(weight_decay, 'weight_decay')
 
         self.use_gc = use_gc
 

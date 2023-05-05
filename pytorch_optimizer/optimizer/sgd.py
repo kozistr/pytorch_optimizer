@@ -30,10 +30,10 @@ class AccSGD(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
     ):
         self.validate_learning_rate(lr)
-        self.validate_kappa(kappa)
-        self.validate_xi(xi)
-        self.validate_weight_decay(weight_decay)
-        self.validate_constant(constant, boundary=1.0)
+        self.validate_negative(kappa, 'kappa')
+        self.validate_negative(xi, 'xi')
+        self.validate_negative(weight_decay, 'weight_decay')
+        self.validate_boundary(constant, boundary=1.0, bound_type='upper')
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -120,8 +120,8 @@ class SGDW(Optimizer, BaseOptimizer):
         nesterov: bool = False,
     ):
         self.validate_learning_rate(lr)
-        self.validate_momentum(momentum)
-        self.validate_weight_decay(weight_decay)
+        self.validate_range(momentum, 'momentum', 0.0, 1.0)
+        self.validate_negative(weight_decay, 'weight_decay')
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -215,9 +215,9 @@ class ASGD(Optimizer, BaseOptimizer):
         eps: float = 1e-5,
     ):
         self.validate_learning_rate(lr)
-        self.validate_amplifier(amplifier)
-        self.validate_weight_decay(weight_decay)
-        self.validate_epsilon(eps)
+        self.validate_negative(amplifier, 'amplifier')
+        self.validate_negative(weight_decay, 'weight_decay')
+        self.validate_negative(eps, 'eps')
 
         defaults: DEFAULTS = {
             'lr': lr,
