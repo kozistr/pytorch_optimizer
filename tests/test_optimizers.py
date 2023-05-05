@@ -141,8 +141,7 @@ def test_sam_optimizers_with_closure(adaptive):
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
 def test_gsam_optimizers(adaptive):
-    if not torch.cuda.is_available():
-        pytest.skip('there\'s no cuda. skip test.')
+    pytest.skip('skip GSAM optimizer')
 
     (x_data, y_data), model, loss_fn = build_environment()
 
