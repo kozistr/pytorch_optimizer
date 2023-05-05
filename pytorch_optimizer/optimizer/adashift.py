@@ -1,6 +1,6 @@
 import math
-from typing import Callable, Optional
 from collections import deque
+from typing import Callable, Optional
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -36,11 +36,7 @@ class AdaShift(Optimizer, BaseOptimizer):
         self.validate_betas(betas)
         self.validate_non_negative(eps, 'eps')
 
-        self.reduce_func = reduce_func
-
-        self.exp_weight_sum: int = sum(betas[0] ** i for i in range(keep_num))
-        self.first_grad_weight: float = betas[0] ** (keep_num - 1) / self.exp_weight_sum
-        self.last_grad_weight: float = 1.0 / self.exp_weight_sum
+        self.reduce_func: Callable = reduce_func if reduce_func is not None else lambda x: x
 
         defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'keep_num': keep_num, 'eps': eps}
         super().__init__(params, defaults)
@@ -74,8 +70,11 @@ class AdaShift(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction1: float = 1.0 - beta1 ** group['step']
-            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
+            exp_weight_sum: int = sum(beta1**i for i in range(group['keep_num']))
+            first_grad_weight: float = beta1 ** (group['keep_num'] - 1) / exp_weight_sum
+            last_grad_weight: float = 1.0 / exp_weight_sum
+
+            bias_correction: float = 1.0 - beta2 ** (group['step'] - group['keep_num'])
 
             for p in group['params']:
                 if p.grad is None:
@@ -92,40 +91,24 @@ class AdaShift(Optimizer, BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
+                grad_queue = state['grad_queue']
+                grad_queue.append(grad.clone())
 
-                s_grad = self.get_adanorm_gradient(
-                    grad=grad,
-                    adanorm=True,
-                    exp_grad_norm=state['exp_grad_norm'],
-                    r=group['r'],
-                )
+                if len(grad_queue) != group['keep_num']:
+                    continue
 
-                exp_avg, exp_avg_var = state['exp_avg'], state['exp_avg_var']
-                exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
-                exp_avg_var.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+                offset_grad = grad_queue[0]
 
-                de_nom = self.apply_ams_bound(
-                    ams_bound=group['ams_bound'],
-                    exp_avg_sq=exp_avg_var,
-                    max_exp_avg_sq=state.get('max_exp_avg_var', None),
-                    eps=group['eps'],
-                )
-                de_nom.div_(bias_correction2_sq)
+                exp_avg = state['exp_avg']
+                exp_avg.sub_(offset_grad, alpha=first_grad_weight).mul_(beta1).add_(grad, alpha=last_grad_weight)
 
-                step_size: float = self.apply_adam_debias(
-                    adam_debias=group['adam_debias'],
-                    step_size=group['lr'],
-                    bias_correction1=bias_correction1,
-                )
+                reduced_grad_sq = self.reduce_func(offset_grad.mul_(offset_grad))
 
-                p.addcdiv_(exp_avg, de_nom, value=-step_size)
+                exp_avg_sq = state['exp_avg_sq']
+                exp_avg_sq.mul_(beta2).add_(reduced_grad_sq, alpha=1.0 - beta2)
+
+                de_nom = exp_avg_sq.div(bias_correction).sqrt_().add_(group['eps'])
+
+                p.addcdiv_(exp_avg, de_nom, value=-group['lr'])
 
         return loss
