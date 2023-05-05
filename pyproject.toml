@@ -87,6 +87,7 @@ target-version = "py39"
 "./tests/__init__.py" = ["D"]
 "./tests/constants.py" = ["D"]
 "./tests/utils.py" = ["D"]
+"./tests/test_base.py" = ["D", "S101"]
 "./tests/test_utils.py" = ["D", "S101"]
 "./tests/test_gradients.py" = ["D", "S101"]
 "./tests/test_optimizers.py" = ["D", "S101"]
