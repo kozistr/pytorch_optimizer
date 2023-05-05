@@ -19,7 +19,7 @@ def is_valid_parameters(parameters: PARAMETERS) -> bool:
 
 def has_overflow(grad_norm: torch.Tensor) -> bool:
     r"""Detect inf and NaN in grad_norm."""
-    return grad_norm != grad_norm or grad_norm == float('inf')  # pylint: disable=comparison-with-itself
+    return grad_norm != grad_norm or grad_norm == float('inf')
 
 
 def to_real(x: torch.Tensor) -> torch.Tensor:
@@ -242,7 +242,7 @@ def l2_projection(parameters: PARAMETERS, max_norm: float = 1e2):
     if global_norm > max_norm:
         ratio = max_norm / global_norm
         for param in parameters:
-            param *= ratio  # noqa: PLW2901
+            param.mul_(ratio)
 
 
 @torch.no_grad()
