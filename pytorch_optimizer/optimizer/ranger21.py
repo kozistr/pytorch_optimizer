@@ -80,10 +80,10 @@ class Ranger21(Optimizer, BaseOptimizer):
         self.validate_learning_rate(warm_down_min_lr)
         self.validate_betas(betas)
         self.validate_range(beta0, 'beta0', 0.0, 1.0, range_type='[]')
-        self.validate_negative(weight_decay, 'weight_decay')
-        self.validate_negative(agc_clipping_value, 'agc_clipping_value')
-        self.validate_negative(eps, 'eps')
-        self.validate_negative(agc_eps, 'agc_eps')
+        self.validate_non_negative(weight_decay, 'weight_decay')
+        self.validate_non_negative(agc_clipping_value, 'agc_clipping_value')
+        self.validate_non_negative(eps, 'eps')
+        self.validate_non_negative(agc_eps, 'agc_eps')
 
         self.min_lr = warm_down_min_lr
         self.use_softplus = use_softplus

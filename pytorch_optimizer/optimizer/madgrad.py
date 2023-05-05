@@ -35,9 +35,9 @@ class MADGRAD(Optimizer, BaseOptimizer):
         eps: float = 1e-6,
     ):
         self.validate_learning_rate(lr)
-        self.validate_negative(weight_decay, 'weight_decay')
+        self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
-        self.validate_negative(eps, 'eps')
+        self.validate_non_negative(eps, 'eps')
 
         defaults: DEFAULTS = {
             'lr': lr,

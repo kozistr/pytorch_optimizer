@@ -38,8 +38,8 @@ class AdaNorm(Optimizer, BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
-        self.validate_negative(weight_decay, 'weight_decay')
-        self.validate_negative(eps, 'eps')
+        self.validate_non_negative(weight_decay, 'weight_decay')
+        self.validate_non_negative(eps, 'eps')
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -60,10 +60,10 @@ class AdaNorm(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
-                state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_var'] = torch.zeros_like(p)
                 state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)

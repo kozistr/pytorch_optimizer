@@ -28,7 +28,7 @@ class SM3(Optimizer, BaseOptimizer):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
         self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')
-        self.validate_negative(eps, 'eps')
+        self.validate_non_negative(eps, 'eps')
 
         defaults: DEFAULTS = {'lr': lr, 'momentum': momentum, 'beta': beta, 'eps': eps}
         super().__init__(params, defaults)

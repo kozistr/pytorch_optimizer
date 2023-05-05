@@ -63,7 +63,7 @@ class SAM(Optimizer, BaseOptimizer):
         adaptive: bool = False,
         **kwargs,
     ):
-        self.validate_negative(rho, 'rho')
+        self.validate_non_negative(rho, 'rho')
 
         defaults: DEFAULTS = {'rho': rho, 'adaptive': adaptive}
         defaults.update(kwargs)
