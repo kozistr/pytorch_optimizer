@@ -246,7 +246,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
 
 class DAdaptAdam(Optimizer, BaseOptimizer):
-    r"""Adam with D-Adaptation. Leave LR set to 1 unless you encounter instability.
+    r"""Adam with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
