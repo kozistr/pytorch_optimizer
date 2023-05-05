@@ -31,8 +31,8 @@ class AdaShift(Optimizer, BaseOptimizer):
         eps: float = 1e-10,
     ):
         self.validate_learning_rate(lr)
-        self.validate_positive(keep_num, 'keep_num')
         self.validate_betas(betas)
+        self.validate_positive(keep_num, 'keep_num')
         self.validate_non_negative(eps, 'eps')
 
         self.reduce_func: Callable = reduce_func if reduce_func is not None else lambda x: x
