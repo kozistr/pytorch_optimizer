@@ -40,8 +40,8 @@ class RAdam(Optimizer, BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
-        self.validate_negative(weight_decay, 'weight_decay')
-        self.validate_negative(eps, 'eps')
+        self.validate_non_negative(weight_decay, 'weight_decay')
+        self.validate_non_negative(eps, 'eps')
 
         self.n_sma_threshold = n_sma_threshold
         self.degenerated_to_sgd = degenerated_to_sgd

@@ -440,3 +440,11 @@ AvaGrad
 
 .. autoclass:: pytorch_optimizer.AvaGrad
     :members:
+
+.. _AdaShift:
+
+AdaShift
+--------
+
+.. autoclass:: pytorch_optimizer.AdaShift
+    :members:

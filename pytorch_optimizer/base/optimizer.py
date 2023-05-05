@@ -127,7 +127,7 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] {name} must be in the range ({low}, {high})')
 
     @staticmethod
-    def validate_negative(x: float, name: str):
+    def validate_non_negative(x: float, name: str):
         if x < 0.0:
             raise ValueError(f'[-] {name} must be non-negative')
 
