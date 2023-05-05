@@ -315,15 +315,10 @@ Lookahead
 | ``k`` steps forward, 1 step back. ``Lookahead`` consisting of keeping an exponential moving average of the weights that is
 | updated and substituted to the current weights every ``k_{lookahead}`` steps (5 by default).
 
--  code : `github <https://github.com/alphadl/lookahead.pytorch>`__
--  paper : `arXiv <https://arxiv.org/abs/1907.08610v2>`__
-
 Chebyshev learning rate schedule
 --------------------------------
 
 Acceleration via Fractal Learning Rate Schedules.
-
--  paper : `arXiv <https://arxiv.org/abs/2103.01338v1>`__
 
 (Adaptive) Sharpness-Aware Minimization
 ---------------------------------------
@@ -331,28 +326,20 @@ Acceleration via Fractal Learning Rate Schedules.
 | Sharpness-Aware Minimization (SAM) simultaneously minimizes loss value and loss sharpness.
 | In particular, it seeks parameters that lie in neighborhoods having uniformly low loss.
 
--  SAM paper : `paper <https://arxiv.org/abs/2010.01412>`__
--  ASAM paper : `paper <https://arxiv.org/abs/2102.11600>`__
--  A/SAM code : `github <https://github.com/davda54/sam>`__
-
 On the Convergence of Adam and Beyond
 -------------------------------------
 
-- paper : `paper <https://openreview.net/forum?id=ryQu7f-RZ>`__
+| Convergence issues can be fixed by endowing such algorithms with `long-term memory' of past gradients
 
 Improved bias-correction in Adam
 --------------------------------
 
 | With the default bias-correction, Adam may actually make larger than requested gradient updates early in training.
 
-- paper : `arXiv <https://arxiv.org/abs/2110.10828>`_
-
 Adaptive Gradient Norm Correction
 ---------------------------------
 
 | Correcting the norm of gradient in each iteration based on the adaptive training history of gradient norm.
-
-- paper : `arXiv <https://arxiv.org/abs/2210.06364>`__
 
 Citation
 --------
