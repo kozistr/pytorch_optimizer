@@ -16,7 +16,7 @@ pytorch-optimizer
 
 | **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch.
 | I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.
-| Currently, 47 optimizers, 6 lr schedulers are supported!
+| Currently, 48 optimizers, 6 lr schedulers are supported!
 |
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
@@ -179,6 +179,10 @@ You can check the supported optimizers & lr schedulers.
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 | SRMM         | *Stochastic regularized majorization-minimization with weakly convex and multi-convex surrogates* | `github <https://github.com/HanbaekLyu/SRMM>`__                                   | `https://arxiv.org/abs/2201.01652 <https://arxiv.org/abs/2201.01652>`__                       |
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| AvaGrad      | *Domain-independent Dominance of Adaptive Methods*                                                | `github <https://github.com/lolemacs/avagrad>`__                                  | `https://arxiv.org/abs/1912.01823 <https://arxiv.org/abs/1912.01823>`__                       |
++--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
+| PCGrad       | *Gradient Surgery for Multi-Task Learning*                                                        | `github <https://github.com/tianheyu927/PCGrad>`__                                | `https://arxiv.org/abs/2001.06782 <https://arxiv.org/abs/2001.06782>`__                       |
++--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+
 
 Useful Resources
 ----------------
@@ -197,7 +201,7 @@ Also, most of the captures are taken from ``Ranger21`` paper.
 +------------------------------------------+---------------------------------------------+--------------------------------------------+
 | `Lookahead`_                             | `Chebyshev learning rate schedule`_         | `(Adaptive) Sharpness-Aware Minimization`_ |
 +------------------------------------------+---------------------------------------------+--------------------------------------------+
-| `On the Convergence of Adam and Beyond`_ | `Gradient Surgery for Multi-Task Learning`_ |                                            |
+| `On the Convergence of Adam and Beyond`_ | `Improved bias-correction in Adam`_         | `Adaptive Gradient Norm Correction`_       |
 +------------------------------------------+---------------------------------------------+--------------------------------------------+
 
 Adaptive Gradient Clipping
@@ -291,7 +295,7 @@ Lookahead
 Chebyshev learning rate schedule
 --------------------------------
 
-Acceleration via Fractal Learning Rate Schedules
+Acceleration via Fractal Learning Rate Schedules.
 
 -  paper : `arXiv <https://arxiv.org/abs/2103.01338v1>`__
 
@@ -310,10 +314,16 @@ On the Convergence of Adam and Beyond
 
 - paper : `paper <https://openreview.net/forum?id=ryQu7f-RZ>`__
 
-Gradient Surgery for Multi-Task Learning
-----------------------------------------
+Improved bias-correction in Adam
+--------------------------------
 
-- paper : `paper <https://arxiv.org/abs/2001.06782>`__
+| With the default bias-correction, Adam may actually make larger than requested gradient updates early in training.
+
+- paper : `arXiv <https://arxiv.org/abs/2110.10828>`_
+
+Adaptive Gradient Norm Correction
+---------------------------------
+
 
 Citations
 ---------
@@ -358,7 +368,7 @@ Citations
 
 `On the Convergence of Adam and Beyond <https://ui.adsabs.harvard.edu/abs/2019arXiv190409237R/exportcitation>`__
 
-`Gradient surgery for multi-task learning <https://ui.adsabs.harvard.edu/abs/2020arXiv200106782Y/exportcitation>`__
+`Gradient surgery for multi-task learning <https://github.com/tianheyu927/PCGrad#reference>`__
 
 `AdamD <https://ui.adsabs.harvard.edu/abs/2021arXiv211010828S/exportcitation>`__
 
@@ -419,6 +429,8 @@ Citations
 `AdaSmooth <https://ui.adsabs.harvard.edu/abs/2022arXiv220400825L/exportcitation>`__
 
 `SRMM <https://ui.adsabs.harvard.edu/abs/2022arXiv220101652L/exportcitation>`__
+
+`AvaGrad <https://ui.adsabs.harvard.edu/abs/2019arXiv191201823S/exportcitation>`__
 
 Citation
 --------
