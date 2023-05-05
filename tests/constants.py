@@ -30,6 +30,7 @@ from pytorch_optimizer import (
     AggMo,
     AliG,
     Apollo,
+    AvaGrad,
     DAdaptAdaGrad,
     DAdaptAdam,
     DAdaptAdan,
@@ -360,6 +361,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Gravity, {'lr': 1e0}, 5),
     (AdaSmooth, {'lr': 5e-1}, 5),
     (SRMM, {'lr': 5e-1}, 5),
+    (AvaGrad, {'lr': 1e1}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
@@ -393,4 +395,5 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (Yogi, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
     (AdaMod, {'lr': 1e2, 'weight_decay': 1e-3, 'adam_debias': True}, 20),
     (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
+    (AvaGrad, {'lr': 1e1, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
 ]
