@@ -4,6 +4,8 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+import math
+
 import torch
 from torch.optim.optimizer import Optimizer
 
@@ -255,6 +257,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. use AdamW style weight decay.
     :param fixed_decay: bool. fix weight decay.
+    :param bias_correction: bool. Turn on Adam's bias correction.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -268,7 +271,8 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
-        eps: float = 1e-8,
+        bias_correction: bool = False,
+        eps: float = 0.0,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
@@ -283,6 +287,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
+            'bias_correction': bias_correction,
             'k': 0,
             'eps': eps,
         }
@@ -315,17 +320,23 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         group = self.param_groups[0]
 
         beta1, beta2 = group['betas']
-        growth_rate = group['growth_rate']
+        k: int = group['k']
 
-        d, lr = group['d'], group['lr']
-        d_lr = float(d * lr)
+        beta2_sq: float = math.sqrt(beta2)
 
-        g_sq = torch.tensor([0.0], device=group['params'][0].device)
-        sk_sq_weighted = torch.tensor([0.0], device=group['params'][0].device)
+        d: float = group['d']
+        lr: float = max(group['lr'] for group in self.param_groups)
+        bias_correction: float = (
+            ((1.0 - beta2 ** (k + 1)) ** 0.5) / (1.0 - beta1 ** (k + 1)) if group['bias_correction'] else 1.0
+        )
+        d_lr = float(d * lr * bias_correction)
+
+        if 'numerator_weighted' not in group:
+            group['numerator_weighted'] = torch.tensor([0.0], device=group['params'][0].device)
+        numerator_weighted = group['numerator_weighted']
+
         sk_l1 = torch.tensor([0.0], device=group['params'][0].device)
-        if 'gsq_weighted' not in group:
-            group['gsq_weighted'] = torch.tensor([0.0], device=group['params'][0].device)
-        gsq_weighted = group['gsq_weighted']
+        numerator_acc = torch.tensor([0.0], device=group['params'][0].device)
 
         for group in self.param_groups:
             for p in group['params']:
@@ -344,33 +355,29 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
-                grad_power = to_real(grad * grad.conj())
-
-                exp_avg.mul_(beta1).add_(grad, alpha=d_lr * (1.0 - beta1))
-                exp_avg_sq.mul_(beta2).add_(grad_power, alpha=1.0 - beta2)
+                s = state['s']
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
+                numerator_acc.add_(torch.dot(grad.flatten(), s.div(de_nom).flatten()), alpha=d_lr)
 
-                g_sq.add_(grad_power.div_(de_nom).sum())
+                exp_avg.mul_(beta1).add_(grad, alpha=d_lr * (1.0 - beta1))
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, alpha=1.0 - beta2)
 
-                s = state['s']
-                s.mul_(beta2).add_(grad, alpha=d_lr * (1.0 - beta2))
+                s.mul_(beta2_sq).add_(grad, alpha=d_lr * (1.0 - beta2_sq))
 
-                sk_sq_weighted.add_(to_real(s * s.conj()).div_(de_nom).sum())
                 sk_l1.add_(s.abs().sum())
 
         if sk_l1 == 0:
             return loss
 
-        gsq_weighted.mul_(beta2).add_(g_sq, alpha=(d_lr ** 2) * (1.0 - beta2))  # fmt: skip
+        numerator_weighted.mul_(beta2_sq).add_(numerator_acc, alpha=1.0 - beta2_sq)  # fmt: skip
 
         if lr > 0.0:
-            d_hat = (sk_sq_weighted / (1.0 - beta2) - gsq_weighted) / sk_l1
-            d = max(d, min(d_hat, d * growth_rate))
+            d_hat = numerator_weighted / (1.0 - beta2_sq) * sk_l1
+            d = max(d, min(d_hat, d * group['growth_rate']))
 
         for group in self.param_groups:
-            group['gsq_weighted'] = gsq_weighted
+            group['numerator_weighted'] = numerator_weighted
             group['d'] = d
             for p in group['params']:
                 if p.grad is None:
@@ -382,7 +389,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                de_nom = exp_avg_sq.sqrt().add_(group['eps']).type(p.type())
+                de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
                 self.apply_weight_decay(
                     p=p,
