@@ -324,6 +324,9 @@ Improved bias-correction in Adam
 Adaptive Gradient Norm Correction
 ---------------------------------
 
+| Correcting the norm of gradient in each iteration based on the adaptive training history of gradient norm.
+
+- paper : `arXiv <https://arxiv.org/abs/2210.06364>`__
 
 Citations
 ---------
