@@ -39,10 +39,10 @@ class Shampoo(Optimizer, BaseOptimizer):
         matrix_eps: float = 1e-6,
     ):
         self.validate_learning_rate(lr)
-        self.validate_momentum(momentum)
-        self.validate_weight_decay(weight_decay)
-        self.validate_update_frequency(preconditioning_compute_steps)
-        self.validate_epsilon(matrix_eps)
+        self.validate_range(momentum, 'momentum', 0.0, 1.0)
+        self.validate_negative(weight_decay, 'weight_decay')
+        self.validate_step(preconditioning_compute_steps, 'preconditioning_compute_steps')
+        self.validate_negative(matrix_eps, 'matrix_eps')
 
         self.preconditioning_compute_steps = preconditioning_compute_steps
         self.matrix_eps = matrix_eps
@@ -215,12 +215,12 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
-        self.validate_weight_decay(weight_decay)
-        self.validate_update_frequency(start_preconditioning_step)
-        self.validate_update_frequency(statistics_compute_steps)
-        self.validate_update_frequency(preconditioning_compute_steps)
-        self.validate_epsilon(diagonal_eps)
-        self.validate_epsilon(matrix_eps)
+        self.validate_negative(weight_decay, 'weight_decay')
+        self.validate_step(start_preconditioning_step, 'start_preconditioning_step')
+        self.validate_step(preconditioning_compute_steps, 'preconditioning_compute_steps')
+        self.validate_step(statistics_compute_steps, 'statistics_compute_steps')
+        self.validate_negative(diagonal_eps, 'diagonal_eps')
+        self.validate_negative(matrix_eps, 'matrix_eps')
 
         self.inverse_exponent_override = inverse_exponent_override
         self.start_preconditioning_step = start_preconditioning_step

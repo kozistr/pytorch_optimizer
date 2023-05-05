@@ -36,11 +36,11 @@ class Apollo(Optimizer, BaseOptimizer):
         eps: float = 1e-4,
     ):
         self.validate_learning_rate(lr)
-        self.validate_beta(beta)
+        self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')
         self.validate_rebound(rebound)
-        self.validate_weight_decay(weight_decay)
+        self.validate_negative(weight_decay, 'weight_decay')
         self.validate_weight_decay_type(weight_decay_type)
-        self.validate_epsilon(eps)
+        self.validate_negative(eps, 'eps')
 
         self.lr = lr
         self.warmup_steps = warmup_steps

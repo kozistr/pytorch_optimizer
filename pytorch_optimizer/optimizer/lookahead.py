@@ -23,8 +23,8 @@ class Lookahead(BaseOptimizer):
         alpha: float = 0.5,
         pullback_momentum: str = 'none',
     ):
-        self.validate_lookahead_k(k)
-        self.validate_alpha(alpha)
+        self.validate_positive(k, 'k')
+        self.validate_range(alpha, 'alpha', 0.0, 1.0)
         self.validate_pullback_momentum(pullback_momentum)
 
         self.alpha = alpha

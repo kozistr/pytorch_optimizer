@@ -19,7 +19,7 @@ class SRMM(Optimizer, BaseOptimizer):
 
     def __init__(self, params: PARAMETERS, lr: float = 0.01, beta: float = 0.5, memory_length: Optional[int] = 100):
         self.validate_learning_rate(lr)
-        self.validate_beta(beta)
+        self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')
 
         defaults: DEFAULTS = {'lr': lr, 'beta': beta, 'memory_length': memory_length}
         super().__init__(params, defaults)

@@ -14,7 +14,7 @@ class AliG(Optimizer, BaseOptimizer):
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param max_lr: Optional[float]. max learning rate.
-    :param projection_fn : Callable. projection function to enforce constraints.
+    :param projection_fn: Callable. projection function to enforce constraints.
     :param momentum: float. momentum.
     :param adjusted_momentum: bool. if True, use pytorch-like momentum, instead of standard Nesterov momentum.
     """
@@ -28,7 +28,7 @@ class AliG(Optimizer, BaseOptimizer):
         adjusted_momentum: bool = False,
     ):
         self.validate_learning_rate(max_lr)
-        self.validate_momentum(momentum)
+        self.validate_range(momentum, 'momentum', 0.0, 1.0)
 
         self.projection_fn = projection_fn
 

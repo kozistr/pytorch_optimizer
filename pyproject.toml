@@ -9,7 +9,7 @@ readme = "README.rst"
 homepage = "https://github.com/kozistr/pytorch_optimizer"
 repository = "https://github.com/kozistr/pytorch_optimizer"
 documentation = "https://pytorch-optimizers.readthedocs.io/en/latest"
-keywords = ["pytorch", "deep-learning", "optimizer", "lr scheduler"]
+keywords = ["pytorch", "deep-learning", "optimizer", "lr scheduler", "A2Grad", "ASGD", "AccSGD", "AdaBelief", "AdaBound", "AdaFactor", "AdaMax", "AdaMod", "AdaNorm", "AdaPNM", "AdaSmooth", "Adai", "AdamP", "AdamS", "Adan", "AggMo", "AliG", "Apollo", "AvaGrad", "DAdaptAdaGrad", "DAdaptAdam", "DAdaptAdan", "DAdaptSGD", "DiffGrad", "Fromage", "Gravity", "LARS", "Lamb", "Lion", "MADGRAD", "MSVAG", "Nero", "NovoGrad", "PID", "PNM", "QHAdam", "QHM", "RAdam", "Ranger", "Ranger21", "SGDP", "SGDW", "SM3", "SRMM", "SWATS", "ScalableShampoo", "Shampoo", "Yogi", "SAM", "GSAM", "PCGrad", "RotoGrad"]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Development Status :: 5 - Production/Stable",
@@ -48,7 +48,7 @@ isort = [
     { version = "^5.12.0", python = ">=3.8"}
 ]
 black = "^23.3.0"
-ruff = "^0.0.262"
+ruff = "^0.0.264"
 pytest = "^7.3.1"
 pytest-cov = "^4.0.0"
 
@@ -87,6 +87,7 @@ target-version = "py39"
 "./tests/__init__.py" = ["D"]
 "./tests/constants.py" = ["D"]
 "./tests/utils.py" = ["D"]
+"./tests/test_base.py" = ["D", "S101"]
 "./tests/test_utils.py" = ["D", "S101"]
 "./tests/test_gradients.py" = ["D", "S101"]
 "./tests/test_optimizers.py" = ["D", "S101"]

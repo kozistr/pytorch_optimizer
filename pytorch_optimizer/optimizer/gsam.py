@@ -54,7 +54,7 @@ class GSAM(Optimizer, BaseOptimizer):
         perturb_eps: float = 1e-12,
         **kwargs,
     ):
-        self.validate_alpha(alpha)
+        self.validate_range(alpha, 'alpha', 0.0, 1.0)
 
         self.model = model
         self.rho_scheduler = rho_scheduler

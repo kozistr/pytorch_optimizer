@@ -50,10 +50,8 @@ def test_epsilon(optimizer_name):
     if optimizer_name == 'ranger21':
         config.update({'num_iterations': 100})
 
-    with pytest.raises(ValueError) as error_info:
+    with pytest.raises(ValueError):
         optimizer(None, **config)
-
-    assert str(error_info.value) == '[-] epsilon -1e-06 must be non-negative'
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
@@ -67,10 +65,8 @@ def test_weight_decay(optimizer_name):
     if optimizer_name == 'ranger21':
         config.update({'num_iterations': 100})
 
-    with pytest.raises(ValueError) as error_info:
+    with pytest.raises(ValueError):
         optimizer(None, **config)
-
-    assert str(error_info.value) == '[-] weight_decay -0.001 must be non-negative'
 
 
 @pytest.mark.parametrize('optimizer_name', ['apollo'])

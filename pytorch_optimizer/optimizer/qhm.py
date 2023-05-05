@@ -29,8 +29,8 @@ class QHM(Optimizer, BaseOptimizer):
         fixed_decay: bool = False,
     ):
         self.validate_learning_rate(lr)
-        self.validate_momentum(momentum)
-        self.validate_weight_decay(weight_decay)
+        self.validate_range(momentum, 'momentum', 0.0, 1.0)
+        self.validate_negative(weight_decay, 'weight_decay')
         self.validate_nus(nu)
 
         defaults: DEFAULTS = {

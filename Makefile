@@ -13,7 +13,7 @@ test:
 
 check:
 	black -S -l 119 --check pytorch_optimizer tests hubconf.py
-	ruff pytorch_optimizer tests hubconf.py
+	ruff check pytorch_optimizer tests hubconf.py
 
 requirements:
 	python -m poetry export -f requirements.txt --output requirements.txt --without-hashes

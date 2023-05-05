@@ -41,9 +41,9 @@ class Adan(Optimizer, BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
-        self.validate_weight_decay(weight_decay)
-        self.validate_norm(max_grad_norm)
-        self.validate_epsilon(eps)
+        self.validate_negative(weight_decay, 'weight_decay')
+        self.validate_negative(max_grad_norm, 'max_grad_norm')
+        self.validate_negative(eps, 'eps')
 
         self.max_grad_norm = max_grad_norm
         self.use_gc = use_gc

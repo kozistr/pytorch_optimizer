@@ -207,17 +207,17 @@ class PreConditionerType(IntEnum):
 
 
 class PreConditioner:
-    r"""Compute statistics/shape from gradients for preconditioning.
+    r"""Compute statistics & shape from gradients for preconditioning.
 
     :param var: torch.Tensor. variable.
     :param beta2: float. beta2.
-    :param inverse_exponent_override: int.
-    :param block_size: int.
-    :param skip_preconditioning_rank_lt: int.
-    :param no_preconditioning_for_layers_with_dim_gt: int.
-    :param shape_interpretation: bool.
+    :param inverse_exponent_override: int. override inv exp.
+    :param block_size: int. size of block.
+    :param skip_preconditioning_rank_lt: int. skip low-rank parameter.
+    :param no_preconditioning_for_layers_with_dim_gt: int. skip large size of dim of parameter.
+    :param shape_interpretation: bool. reshaping parameter.
     :param pre_conditioner_type: int. type of pre-conditioner.
-    :param matrix_eps: float.
+    :param matrix_eps: float. epsilon of matrix.
     :param use_svd: bool. use SVD instead of Schur-Newton method to calculate M^{-1/p}.
     """
 
@@ -312,10 +312,9 @@ class PreConditioner:
     def compute_pre_conditioners(self):
         r"""Compute L^{-1/exp} for each stats matrix L.
 
-        If `self.use_svd` is enabled,
-            where all shapes of statistics & pre-conditioners are same, perform batch SVD
-            else, SVD one by one.
-        else (`self.use_svd` is disabled), use Schur-Newton method
+        If `self.use_svd` is enabled and where all shapes of statistics & pre-conditioners are same, perform batch SVD.
+        else, SVD one by one.
+        If `self.use_svd` is disabled, use Schur-Newton method, which is usually much faster.
         """
         if self.use_svd and self.is_same_shapes:
             self.pre_conditioners = compute_power_svd(matrix=self.statistics, power=self.exponent_for_pre_conditioner)

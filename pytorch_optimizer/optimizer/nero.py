@@ -21,8 +21,8 @@ class Nero(Optimizer, BaseOptimizer):
         self, params: PARAMETERS, lr: float = 0.01, beta: float = 0.999, constraints: bool = True, eps: float = 1e-8
     ):
         self.validate_learning_rate(lr)
-        self.validate_beta(beta)
-        self.validate_epsilon(eps)
+        self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')
+        self.validate_negative(eps, 'eps')
 
         defaults: DEFAULTS = {'lr': lr, 'beta': beta, 'constraints': constraints, 'eps': eps}
         super().__init__(params, defaults)

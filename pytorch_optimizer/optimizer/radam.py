@@ -38,14 +38,13 @@ class RAdam(Optimizer, BaseOptimizer):
         adam_debias: bool = False,
         eps: float = 1e-8,
     ):
-        self.lr = lr
-        self.betas = betas
-        self.weight_decay = weight_decay
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_negative(weight_decay, 'weight_decay')
+        self.validate_negative(eps, 'eps')
+
         self.n_sma_threshold = n_sma_threshold
         self.degenerated_to_sgd = degenerated_to_sgd
-        self.eps = eps
-
-        self.validate_parameters()
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -61,12 +60,6 @@ class RAdam(Optimizer, BaseOptimizer):
             defaults.update({'r': r})
 
         super().__init__(params, defaults)
-
-    def validate_parameters(self):
-        self.validate_learning_rate(self.lr)
-        self.validate_betas(self.betas)
-        self.validate_weight_decay(self.weight_decay)
-        self.validate_epsilon(self.eps)
 
     def __str__(self) -> str:
         return 'RAdam'
