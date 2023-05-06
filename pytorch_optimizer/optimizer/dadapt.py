@@ -251,7 +251,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. use AdamW style weight decay.
     :param fixed_decay: bool. fix weight decay.
-    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
+    :param bias_correction: bool. Turn on Adam's bias correction.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -265,7 +265,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
-        adam_debias: bool = False,
+        bias_correction: bool = False,
         eps: float = 0.0,
     ):
         self.validate_learning_rate(lr)
@@ -281,7 +281,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
-            'adam_debias': adam_debias,
+            'bias_correction': bias_correction,
             'step': 0,
             'eps': eps,
         }
@@ -321,8 +321,14 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         d: float = group['d']
         lr: float = group['lr']
 
-        bias_correction: float = 1.0 - pow(beta1, group['step'] + 1)
-        d_lr: float = self.apply_adam_debias(group['adam_debias'], step_size=d * lr, bias_correction1=bias_correction)
+        bias_correction1: float = 1.0 - beta1 ** (group['step'] + 1)
+        bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** (group['step'] + 1))
+        bias_correction: float = bias_correction1 / bias_correction2_sq
+
+        # it's not Adam Debias
+        d_lr: float = self.apply_adam_debias(
+            group['bias_correction'], step_size=d * lr, bias_correction1=bias_correction
+        )
 
         sk_l1 = torch.tensor([0.0], device=device)
         numerator_acc = torch.tensor([0.0], device=device)
