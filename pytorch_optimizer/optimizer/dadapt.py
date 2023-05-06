@@ -42,7 +42,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
         eps: float = 0.0,
     ):
         self.validate_learning_rate(lr)
-        self.validate_range(momentum, 'momentum', 0.0, 1.0)
+        self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='[)')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
@@ -85,13 +85,10 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                 loss = closure()
 
         group = self.param_groups[0]
-
-        lr, momentum, growth_rate = group['lr'], group['momentum'], group['growth_rate']
-
-        d = group['d']
-        d_lr = float(d * lr)
-
         device = group['params'][0].device
+
+        d, lr = group['d'], group['lr']
+        d_lr: float = d * lr
 
         g_sq = torch.tensor([0.0], device=device)
         sk_sq_weighted_change = torch.tensor([0.0], device=device)
@@ -199,7 +196,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
         if lr > 0.0:
             d_hat = (sk_sq_weighted - gsq_weighted) / sk_l1
-            d = group['d'] = max(d, min(d_hat, d * growth_rate))
+            d = group['d'] = max(d, min(d_hat, d * group['growth_rate']))
 
         for group in self.param_groups:
             group['gsq_weighted'] = gsq_weighted
@@ -212,11 +209,10 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                     continue
 
                 grad = p.grad
+
                 state = self.state[p]
 
-                alpha_k = state['alpha_k']
-                sk = state['sk']
-                x0 = state['x0']
+                alpha_k, sk, x0 = state['alpha_k'], state['sk'], state['x0']
 
                 if grad.is_sparse:
                     grad = grad.coalesce()
@@ -232,10 +228,10 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
                     loc_delta = torch.sparse_coo_tensor(grad.indices(), loc_delta_masked, grad.shape)
                     p.add_(loc_delta)
                 else:
-                    z = x0 - sk.div(torch.sqrt(alpha_k) + group['eps'])
+                    z = x0 - sk.div(alpha_k.sqrt().add_(group['eps']))
 
-                    if momentum > 0.0:
-                        p.mul_(momentum).add_(z, alpha=1.0 - momentum)
+                    if group['momentum'] > 0.0:
+                        p.mul_(group['momentum']).add_(z, alpha=1.0 - group['momentum'])
                     else:
                         p.copy_(z)
 
