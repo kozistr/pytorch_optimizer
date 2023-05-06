@@ -196,7 +196,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
 
         if lr > 0.0:
             d_hat = (sk_sq_weighted - gsq_weighted) / sk_l1
-            d = group['d'] = max(d, min(d_hat, d * group['growth_rate']))
+            d = group['d'] = max(d, min(d_hat.item(), d * group['growth_rate']))
 
         for group in self.param_groups:
             group['gsq_weighted'] = gsq_weighted
