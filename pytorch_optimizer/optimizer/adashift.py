@@ -69,7 +69,7 @@ class AdaShift(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            exp_weight_sum: int = sum(beta1**i for i in range(group['keep_num']))
+            exp_weight_sum: int = sum(beta1 ** i for i in range(group['keep_num']))  # fmt: skip
             first_grad_weight: float = beta1 ** (group['keep_num'] - 1) / exp_weight_sum
             last_grad_weight: float = 1.0 / exp_weight_sum
 
