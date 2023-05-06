@@ -512,10 +512,7 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
             d = max(d, min(d_hat.item(), d * group['growth_rate']))
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
-                group['step'] = 1
+            group['step'] += 1
 
             group['numerator_weighted'] = numerator_weighted
             group['d'] = d
