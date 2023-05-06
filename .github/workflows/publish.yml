@@ -35,8 +35,8 @@ jobs:
           cache: 'pip'
       - name: Install dependencies
         run: |
-          pip install poetry
-          pip install -r requirements.txt
+          pip --disable-pip-version-check install --no-compile poetry
+          pip --disable-pip-version-check install --no-compile -r requirements.txt
       - name: Publish package to PyPI
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
