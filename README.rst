@@ -16,7 +16,7 @@ pytorch-optimizer
 
 | **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch.
 | I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.
-| Currently, 49 optimizers, 6 lr schedulers are supported!
+| Currently, 50 optimizers, 6 lr schedulers are supported!
 |
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
@@ -210,6 +210,8 @@ You can check the supported optimizers & lr schedulers.
 | Un-tuned WU  | *On the adequacy of untuned warmup for adaptive optimization*                                     |                                                                                   | `https://arxiv.org/abs/1910.04209 <https://arxiv.org/abs/1910.04209>`__                       | `cite <https://ui.adsabs.harvard.edu/abs/2019arXiv191004209M/exportcitation>`__                                      |
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 | AdaShift     | *Decorrelation and Convergence of Adaptive Learning Rate Methods*                                 | `github <https://github.com/MichaelKonobeev/adashift>`__                          | `https://arxiv.org/abs/1810.00143v4 <https://arxiv.org/abs/1810.00143v4>`__                   | `cite <https://ui.adsabs.harvard.edu/abs/2018arXiv181000143Z/exportcitation>`__                                      |
++--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
+| AdaDelta     | *An Adaptive Learning Rate Method*                                                                |                                                                                   | `https://arxiv.org/abs/1212.5701v1 <https://arxiv.org/abs/1212.5701v1>`__                     | `cite <https://ui.adsabs.harvard.edu/abs/2012arXiv1212.5701Z/exportcitation>`__                                      |
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 
 Useful Resources
