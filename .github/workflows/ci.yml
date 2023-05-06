@@ -30,7 +30,7 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
         restore-keys: ${{ runner.os }}-pip-
     - name: Install dependencies
-      run: pip install -r requirements-dev.txt
+      run: pip --disable-pip-version-check install -r requirements-dev.txt
     - name: Check lint
       run: make check
     - name: Check test
