@@ -21,10 +21,10 @@ class AdaDelta(Optimizer, BaseOptimizer):
     def __init__(
         self,
         params: PARAMETERS,
-        lr: float = 1e-3,
+        lr: float = 1.0,
         rho: float = 0.9,
         weight_decay: float = 0.0,
-        weight_decouple: bool = True,
+        weight_decouple: bool = False,
         fixed_decay: bool = False,
         eps: float = 1e-6,
     ):
