@@ -32,7 +32,7 @@ class A2Grad(Optimizer, BaseOptimizer):
         self.validate_learning_rate(lr)
         self.validate_non_negative(lips, 'lips')
         self.validate_non_negative(rho, 'rho')
-        self.validate_a2grad_variant(variant)
+        self.validate_options(variant, 'variant', ['uni', 'inc', 'exp'])
 
         self.variant = variant
 

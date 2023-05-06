@@ -1,6 +1,6 @@
 import math
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import torch
 
@@ -91,31 +91,6 @@ class BaseOptimizer(ABC):
         return grad * exp_grad_norm / grad_norm if exp_grad_norm > grad_norm else grad
 
     @staticmethod
-    def validate_learning_rate(learning_rate: Optional[float]):
-        if learning_rate is not None and learning_rate < 0.0:
-            raise NegativeLRError(learning_rate)
-
-    @staticmethod
-    def validate_betas(betas: BETAS):
-        if not 0.0 <= betas[0] <= 1.0:
-            raise ValueError(f'[-] beta1 {betas[0]} must be in the range [0, 1]')
-        if not 0.0 <= betas[1] <= 1.0:
-            raise ValueError(f'[-] beta2 {betas[1]} must be in the range [0, 1]')
-
-        if len(betas) < 3:
-            return
-
-        if not 0.0 <= betas[2] <= 1.0:
-            raise ValueError(f'[-] beta3 {betas[2]} must be in the range [0, 1]')
-
-    @staticmethod
-    def validate_weight_decay_type(weight_decay_type: str):
-        if weight_decay_type not in ('l2', 'decoupled', 'stable'):
-            raise ValueError(
-                f'[-] weight_decay_type {weight_decay_type} must be one of (\'l2\', \'decoupled\', \'stable\')'
-            )
-
-    @staticmethod
     def validate_range(x: float, name: str, low: float, high: float, range_type: str = '[)'):
         if range_type == '[)' and not low <= x < high:
             raise ValueError(f'[-] {name} must be in the range [{low}, {high})')
@@ -149,37 +124,31 @@ class BaseOptimizer(ABC):
             raise NegativeStepError(step, step_type=step_type)
 
     @staticmethod
-    def validate_pullback_momentum(pullback_momentum: str):
-        if pullback_momentum not in ('none', 'reset', 'pullback'):
-            raise ValueError(
-                f'[-] pullback_momentum {pullback_momentum} must be one of (\'none\' or \'reset\' or \'pullback\')'
-            )
+    def validate_options(x: str, name: str, options: List[str]):
+        if x not in options:
+            opts: str = ' or '.join([f'\'{option}\'' for option in options]).strip()
+            raise ValueError(f'[-] {name} {x} must be one of ({opts})')
 
     @staticmethod
-    def validate_reduction(reduction: str):
-        if reduction not in ('mean', 'sum'):
-            raise ValueError(f'[-] reduction {reduction} must be one of (\'mean\' or \'sum\')')
+    def validate_learning_rate(learning_rate: Optional[float]):
+        if learning_rate is not None and learning_rate < 0.0:
+            raise NegativeLRError(learning_rate)
 
-    @staticmethod
-    def validate_rebound(rebound: str):
-        if rebound not in ('constant', 'belief'):
-            raise ValueError(f'[-] rebound {rebound} must be one of (\'constant\' or \'belief\')')
+    def validate_betas(self, betas: BETAS):
+        self.validate_range(betas[0], 'beta1', 0.0, 1.0, range_type='[]')
+        self.validate_range(betas[1], 'beta2', 0.0, 1.0, range_type='[]')
 
-    @staticmethod
-    def validate_a2grad_variant(variant: str):
-        if variant not in ('uni', 'inc', 'exp'):
-            raise ValueError(f'[-] A2Grad variant {variant} must be one of (\'uni\' or \'inc\' or \'exp\')')
+        if len(betas) < 3:
+            return
 
-    @staticmethod
-    def validate_nus(nus: Union[float, Tuple[float, float]]):
+        self.validate_range(betas[2], 'beta3', 0.0, 1.0, range_type='[]')
+
+    def validate_nus(self, nus: Union[float, Tuple[float, float]]):
         if isinstance(nus, float):
-            if not 0.0 <= nus <= 1.0:
-                raise ValueError(f'[-] nus {nus} must be in the range [0, 1]')
+            self.validate_range(nus, 'nu', 0.0, 1.0, range_type='[]')
         else:
-            if not 0.0 <= nus[0] <= 1.0:
-                raise ValueError(f'[-] nus1 {nus[0]} must be in the range [0, 1]')
-            if not 0.0 <= nus[1] <= 1.0:
-                raise ValueError(f'[-] nus2 {nus[1]} must be in the range [0, 1]')
+            self.validate_range(nus[0], 'nu1', 0.0, 1.0, range_type='[]')
+            self.validate_range(nus[1], 'nu2', 0.0, 1.0, range_type='[]')
 
     @abstractmethod
     def reset(self):
