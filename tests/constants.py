@@ -17,6 +17,7 @@ from pytorch_optimizer import (
     AccSGD,
     AdaBelief,
     AdaBound,
+    AdaDelta,
     AdaFactor,
     Adai,
     AdaMax,
@@ -312,7 +313,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Adan, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
     (DAdaptAdaGrad, {'lr': 3e0, 'weight_decay': 1e-3}, 30),
     (DAdaptAdaGrad, {'lr': 5e0, 'weight_decay': 1e-3, 'momentum': 0.1}, 20),
-    (DAdaptAdam, {'lr': 5e4, 'weight_decay': 1e-1}, 10),
+    (DAdaptAdam, {'lr': 5e4, 'weight_decay': 1e-3}, 5),
     (DAdaptSGD, {'lr': 2e0, 'weight_decay': 1e-3}, 25),
     (DAdaptAdan, {'lr': 2e0, 'weight_decay': 1e-3}, 20),
     (DAdaptAdan, {'lr': 2e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 20),
@@ -363,6 +364,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SRMM, {'lr': 5e-1}, 5),
     (AvaGrad, {'lr': 1e1}, 5),
     (AdaShift, {'lr': 1e0, 'keep_num': 1}, 5),
+    (AdaDelta, {'lr': 5e1}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),

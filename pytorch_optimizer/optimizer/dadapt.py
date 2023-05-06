@@ -327,7 +327,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
 
         # it's not Adam Debias
         d_lr: float = self.apply_adam_debias(
-            group['bias_correction'], step_size=d * lr, bias_correction1=bias_correction
+            not group['bias_correction'], step_size=d * lr, bias_correction1=bias_correction
         )
 
         sk_l1 = torch.tensor([0.0], device=device)

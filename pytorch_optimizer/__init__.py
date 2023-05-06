@@ -19,6 +19,7 @@ from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from pytorch_optimizer.optimizer.a2grad import A2Grad
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
+from pytorch_optimizer.optimizer.adadelta import AdaDelta
 from pytorch_optimizer.optimizer.adafactor import AdaFactor
 from pytorch_optimizer.optimizer.adai import Adai
 from pytorch_optimizer.optimizer.adamax import AdaMax
@@ -143,6 +144,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     SRMM,
     AvaGrad,
     AdaShift,
+    AdaDelta,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

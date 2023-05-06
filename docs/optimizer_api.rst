@@ -448,3 +448,11 @@ AdaShift
 
 .. autoclass:: pytorch_optimizer.AdaShift
     :members:
+
+.. _AdaDelta:
+
+AdaDelta
+--------
+
+.. autoclass:: pytorch_optimizer.AdaDelta
+    :members:
