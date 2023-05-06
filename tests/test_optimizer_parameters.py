@@ -8,7 +8,11 @@ from tests.utils import Example, simple_parameter
 
 
 def test_shampoo_epsilon():
-    shampoo = load_optimizer('Shampoo')
+    with pytest.raises(ValueError):
+        load_optimizer('Shampoo')(None, matrix_eps=-1e-6)
+
+
+def test_scalable_shampoo_epsilon():
     scalable_shampoo = load_optimizer('ScalableShampoo')
 
     with pytest.raises(ValueError):
@@ -16,9 +20,6 @@ def test_shampoo_epsilon():
 
     with pytest.raises(ValueError):
         scalable_shampoo(None, matrix_eps=-1e-6)
-
-    with pytest.raises(ValueError):
-        shampoo(None, matrix_eps=-1e-6)
 
 
 def test_adafactor_epsilon():

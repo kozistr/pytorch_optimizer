@@ -37,9 +37,9 @@ class Apollo(Optimizer, BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')
-        self.validate_rebound(rebound)
+        self.validate_options(rebound, 'rebound', ['constant', 'belief'])
         self.validate_non_negative(weight_decay, 'weight_decay')
-        self.validate_weight_decay_type(weight_decay_type)
+        self.validate_options(weight_decay_type, 'weight_decay_type', ['l2', 'decoupled', 'stable'])
         self.validate_non_negative(eps, 'eps')
 
         self.lr = lr

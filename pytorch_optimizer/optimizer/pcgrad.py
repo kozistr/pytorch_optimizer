@@ -18,7 +18,7 @@ class PCGrad(BaseOptimizer):
     """
 
     def __init__(self, optimizer: OPTIMIZER, reduction: str = 'mean'):
-        self.validate_reduction(reduction)
+        self.validate_options(reduction, 'reduction', ['mean', 'sum'])
 
         self.optimizer = optimizer
         self.reduction = reduction
