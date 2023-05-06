@@ -12,7 +12,7 @@ from torch.optim.optimizer import Optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.optimizer.utils import to_real
+from pytorch_optimizer.optimizer.utils import get_global_gradient_norm, to_real
 
 
 class DAdaptAdaGrad(Optimizer, BaseOptimizer):
@@ -23,7 +23,6 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
     :param momentum: float. momentum.
     :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
     :param growth_rate: float. prevent the D estimate from growing faster than this multiplicative rate.
-        Default is inf, for unrestricted.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
@@ -253,11 +252,10 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
     :param betas: BETAS. betas.
     :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
     :param growth_rate: float. prevent the D estimate from growing faster than this multiplicative rate.
-        Default is inf, for unrestricted.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. use AdamW style weight decay.
     :param fixed_decay: bool. fix weight decay.
-    :param bias_correction: bool. Turn on Adam's bias correction.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -271,7 +269,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
-        bias_correction: bool = False,
+        adam_debias: bool = False,
         eps: float = 0.0,
     ):
         self.validate_learning_rate(lr)
@@ -287,8 +285,8 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
-            'bias_correction': bias_correction,
-            'k': 0,
+            'adam_debias': adam_debias,
+            'step': 0,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -299,13 +297,13 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 state = self.state[p]
 
-                state['step'] = 0
                 state['s'] = torch.zeros_like(p)
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
@@ -318,25 +316,24 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
                 loss = closure()
 
         group = self.param_groups[0]
+        device = group['params'][0].device
 
         beta1, beta2 = group['betas']
-        k: int = group['k']
 
         beta2_sq: float = math.sqrt(beta2)
 
         d: float = group['d']
-        lr: float = max(group['lr'] for group in self.param_groups)
-        bias_correction: float = (
-            ((1.0 - beta2 ** (k + 1)) ** 0.5) / (1.0 - beta1 ** (k + 1)) if group['bias_correction'] else 1.0
-        )
-        d_lr = float(d * lr * bias_correction)
+        lr: float = group['lr']
+
+        bias_correction: float = 1.0 - pow(beta1, group['step'] + 1)
+        d_lr: float = self.apply_adam_debias(group['adam_debias'], step_size=d * lr, bias_correction1=bias_correction)
+
+        sk_l1 = torch.tensor([0.0], device=device)
+        numerator_acc = torch.tensor([0.0], device=device)
 
         if 'numerator_weighted' not in group:
-            group['numerator_weighted'] = torch.tensor([0.0], device=group['params'][0].device)
+            group['numerator_weighted'] = torch.tensor([0.0], device=device)
         numerator_weighted = group['numerator_weighted']
-
-        sk_l1 = torch.tensor([0.0], device=group['params'][0].device)
-        numerator_acc = torch.tensor([0.0], device=group['params'][0].device)
 
         for group in self.param_groups:
             for p in group['params']:
@@ -349,19 +346,17 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
                 if 'step' not in state:
-                    state['step'] = 0
                     state['s'] = torch.zeros_like(p)
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                s = state['s']
+                exp_avg, exp_avg_sq, s = state['exp_avg'], state['exp_avg_sq'], state['s']
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
                 numerator_acc.add_(torch.dot(grad.flatten(), s.div(de_nom).flatten()), alpha=d_lr)
 
                 exp_avg.mul_(beta1).add_(grad, alpha=d_lr * (1.0 - beta1))
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, alpha=1.0 - beta2)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 s.mul_(beta2_sq).add_(grad, alpha=d_lr * (1.0 - beta2_sq))
 
@@ -374,18 +369,17 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
 
         if lr > 0.0:
             d_hat = numerator_weighted / (1.0 - beta2_sq) * sk_l1
-            d = max(d, min(d_hat, d * group['growth_rate']))
+            d = max(d, min(d_hat.item(), d * group['growth_rate']))
 
         for group in self.param_groups:
             group['numerator_weighted'] = numerator_weighted
             group['d'] = d
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 state = self.state[p]
-
-                state['step'] += 1
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
@@ -400,22 +394,19 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                p.addcdiv_(exp_avg, de_nom, value=-1)
-
-            group['k'] += 1
+                p.addcdiv_(exp_avg, de_nom, value=-1.0)
 
         return loss
 
 
 class DAdaptSGD(Optimizer, BaseOptimizer):
-    r"""SGD with D-Adaptation. Leave LR set to 1 unless you encounter instability.
+    r"""SGD with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param momentum: float. momentum.
     :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
     :param growth_rate: float. prevent the D estimate from growing faster than this multiplicative rate.
-        Default is inf, for unrestricted.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
@@ -425,7 +416,7 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
         self,
         params: PARAMETERS,
         lr: float = 1.0,
-        momentum: float = 0.0,
+        momentum: float = 0.9,
         d0: float = 1e-6,
         growth_rate: float = float('inf'),
         weight_decay: float = 0.0,
@@ -433,7 +424,7 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
         fixed_decay: bool = False,
     ):
         self.validate_learning_rate(lr)
-        self.validate_range(momentum, 'momentum', 0.0, 1.0)
+        self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='[)')
         self.validate_non_negative(weight_decay, 'weight_decay')
 
         defaults: DEFAULTS = {
@@ -444,7 +435,7 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
-            'k': 0,
+            'step': 0,
         }
         super().__init__(params, defaults)
 
@@ -454,16 +445,16 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 state = self.state[p]
 
-                state['step'] = 0
+                state['z'] = p.clone()
                 state['s'] = torch.zeros_like(p)
-                state['exp_avg'] = torch.zeros_like(p)
-                state['exp_avg_sq'] = torch.zeros_like(p)
+                state['x0'] = p.clone()
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -473,14 +464,22 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
                 loss = closure()
 
         group = self.param_groups[0]
+        device = group['params'][0].device
 
-        growth_rate = group['growth_rate']
+        sk_sq = torch.tensor([0.0], device=device)
+        if 'numerator_weighted' not in group:
+            group['numerator_weighted'] = torch.tensor([0.0], device=device)
+        numerator_weighted = group['numerator_weighted']
 
-        g_sq = torch.tensor([0.0], device=group['params'][0].device)
-        sk_sq = torch.tensor([0.0], device=group['params'][0].device)
-        if 'gsq_weighted' not in group:
-            group['gsq_weighted'] = torch.tensor([0.0], device=group['params'][0].device)
-        gsq_weighted = group['gsq_weighted']
+        if group['step'] == 0:
+            group['g0_norm'] = get_global_gradient_norm(self.param_groups, device).sqrt_().item()
+        g0_norm = group['g0_norm']
+
+        if g0_norm == 0:
+            return loss
+
+        d, lr = group['d'], group['lr']
+        d_lr: float = d * lr / g0_norm
 
         for group in self.param_groups:
             for p in group['params']:
@@ -491,57 +490,39 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
+                state = self.state[p]
+                if len(state) == 0:
+                    state['z'] = p.clone()
+                    state['s'] = torch.zeros_like(p)
+                    state['x0'] = p.clone()
+
                 self.apply_weight_decay(
                     p=p,
-                    grad=grad,
-                    lr=group['lr'],
+                    grad=None,
+                    lr=d_lr,
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],
                     fixed_decay=group['fixed_decay'],
                 )
 
-                state = self.state[p]
-                if 'z' not in state:
-                    state['z'] = torch.clone(p)
-                    state['s'] = torch.zeros_like(p)
-                    state['x0'] = torch.clone(p)
-
-                g_sq.add_(grad.pow(2).sum())
-
-        if g_sq == 0:
-            return loss
-
-        group = self.param_groups[0]
-
-        if group['k'] == 0:
-            group['g0_norm'] = g_sq.sqrt().item()
-        g0_norm = group['g0_norm']
-
-        d, lr = group['d'], group['lr']
-        d_lr = float(d * lr) / g0_norm
-
-        for group in self.param_groups:
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                state = self.state[p]
-
                 s = state['s']
-                s.add_(p.grad, alpha=d_lr)
+                numerator_weighted.add_(torch.dot(grad.flatten(), s.flatten()), alpha=d_lr)
 
+                s.add_(grad, alpha=d_lr)
                 sk_sq.add_(s.pow(2).sum())
 
-        gsq_weighted.add_(g_sq, alpha=d_lr ** 2)  # fmt: skip
-
         if lr > 0.0:
-            d_hat = (sk_sq - gsq_weighted) / sk_sq.sqrt()
-            d = max(d, min(d_hat, d * growth_rate))
+            d_hat = 2.0 * numerator_weighted / sk_sq.sqrt()
+            d = max(d, min(d_hat.item(), d * group['growth_rate']))
 
         for group in self.param_groups:
-            group['gsq_weighted'] = gsq_weighted
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
+            group['numerator_weighted'] = numerator_weighted
             group['d'] = d
-            group['g0_norm'] = g0_norm
 
             for p in group['params']:
                 if p.grad is None:
@@ -553,8 +534,6 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
                 z.copy_(state['x0'] - state['s'])
 
                 p.mul_(group['momentum']).add_(z, alpha=1.0 - group['momentum'])
-
-            group['k'] += 1
 
         return loss
 
