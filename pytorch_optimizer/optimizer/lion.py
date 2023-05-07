@@ -90,7 +90,7 @@ class Lion(Optimizer, BaseOptimizer):
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 if self.use_gc:
-                    grad = centralize_gradient(grad, gc_conv_only=False)
+                    centralize_gradient(grad, gc_conv_only=False)
 
                 self.apply_weight_decay(
                     p=p,

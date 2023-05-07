@@ -27,13 +27,12 @@ def to_real(x: torch.Tensor) -> torch.Tensor:
     return x.real if torch.is_complex(x) else x
 
 
-def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> torch.Tensor:
+def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8):
     r"""Normalize gradient with stddev.
 
     :param x: torch.Tensor. gradient.
     :param use_channels: bool. channel-wise normalization.
     :param epsilon: float. eps.
-    :return: torch.Tensor. normalized gradient.
     """
     size: int = x.dim()
     if size > 1 and use_channels:
@@ -42,7 +41,6 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
     elif torch.numel(x) > 2:
         s = x.std().add_(epsilon)
         x.div_(s)
-    return x
 
 
 def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:

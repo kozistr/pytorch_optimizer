@@ -103,7 +103,7 @@ class Adai(Optimizer, BaseOptimizer):
                 state['step'] += 1
 
                 if self.use_gc:
-                    grad = centralize_gradient(grad, gc_conv_only=False)
+                    centralize_gradient(grad, gc_conv_only=False)
 
                 bias_correction2: float = 1.0 - beta2 ** state['step']
 

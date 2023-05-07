@@ -229,8 +229,8 @@ class Ranger21(Optimizer, BaseOptimizer):
                 grad.copy_(agc(p, grad, self.agc_eps, self.agc_clipping_value))
 
                 # Apply gradient centralization & normalization
-                grad = centralize_gradient(grad, gc_conv_only=False)
-                grad = normalize_gradient(grad)
+                centralize_gradient(grad, gc_conv_only=False)
+                normalize_gradient(grad)
 
                 # second moment estimation
                 # using positive-negative momentum and bias correction
@@ -261,10 +261,12 @@ class Ranger21(Optimizer, BaseOptimizer):
                 if p.grad is None:
                     continue
 
+                grad = p.grad
+
                 # stable weight decay
                 self.apply_weight_decay(
                     p=p,
-                    grad=None,
+                    grad=p.grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],
@@ -287,9 +289,8 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 de_nom = (variance_ma.sqrt() / bias_correction2_sq).add_(group['eps'])
 
-                grad = p.grad
-                grad = centralize_gradient(grad, gc_conv_only=False)
-                grad = normalize_gradient(grad)
+                centralize_gradient(grad, gc_conv_only=False)
+                normalize_gradient(grad)
 
                 grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
 
