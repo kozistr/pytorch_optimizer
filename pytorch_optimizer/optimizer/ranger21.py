@@ -140,8 +140,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 state['grad_ma'] = torch.zeros_like(p)
                 state['variance_ma'] = torch.zeros_like(p)
-                state['lookahead_params'] = torch.empty_like(p)
-                state['lookahead_params'].copy_(p)
+                state['lookahead_params'] = p.clone()
                 state['neg_grad_ma'] = torch.zeros_like(p)
                 state['max_variance_ma'] = torch.zeros_like(p)
 
@@ -220,8 +219,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['grad_ma'] = torch.zeros_like(p)
                     state['variance_ma'] = torch.zeros_like(p)
-                    state['lookahead_params'] = torch.empty_like(p)
-                    state['lookahead_params'].copy_(p)
+                    state['lookahead_params'] = p.clone()
                     state['neg_grad_ma'] = torch.zeros_like(p)
                     state['max_variance_ma'] = torch.zeros_like(p)
 
@@ -236,16 +234,16 @@ class Ranger21(Optimizer, BaseOptimizer):
                 # using positive-negative momentum and bias correction
                 variance_ma = state['variance_ma']
                 variance_ma.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+
                 variance_ma_sum += (variance_ma / bias_correction2).sum()
 
         if param_size == 0:
             raise ZeroParameterSizeError()
 
-        variance_normalized = math.sqrt(variance_ma_sum / param_size)
+        variance_normalized: float = math.sqrt(variance_ma_sum / param_size)
 
         # Phase 2 - Apply weight decay and step
         for group in self.param_groups:
-            lr: float = group['lr']
             beta1, beta2 = group['betas']
 
             bias_correction1: float = 1.0 - beta1 ** group['step']  # fmt: skip
@@ -254,7 +252,7 @@ class Ranger21(Optimizer, BaseOptimizer):
             noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
 
             # warm up & down
-            lr = self.warm_up_dampening(lr, group['step'])
+            lr: float = self.warm_up_dampening(group['lr'], group['step'])
             lr = self.warm_down(lr, group['step'])
 
             for p in group['params']:
@@ -279,6 +277,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                 p.mul_(1.0 - lr * correction)
 
                 state = self.state[p]
+
                 if group['step'] % 2 == 1:
                     grad_ma, neg_grad_ma = state['grad_ma'], state['neg_grad_ma']
                 else:
@@ -289,15 +288,19 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 de_nom = (variance_ma.sqrt() / bias_correction2_sq).add_(group['eps'])
 
+                if self.use_softplus:
+                    de_nom = f.softplus(de_nom, beta=self.beta_softplus)
+
                 centralize_gradient(grad, gc_conv_only=False)
                 normalize_gradient(grad)
 
                 grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
 
-                step_size: float = lr if group['adam_debias'] else lr / bias_correction1
-
-                if self.use_softplus:
-                    de_nom = f.softplus(de_nom, beta=self.beta_softplus)
+                step_size: float = self.apply_adam_debias(
+                    adam_debias=group['adam_debias'],
+                    step_size=lr,
+                    bias_correction1=bias_correction1,
+                )
 
                 pn_momentum = grad_ma.mul(1.0 + 1.0).add(neg_grad_ma, alpha=-1.0).mul(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)
