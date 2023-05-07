@@ -24,8 +24,6 @@ def test_learning_rate(optimizer_name):
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
     if optimizer_name in (
-        'shampoo',
-        'scalableshampoo',
         'dadaptsgd',
         'adafactor',
         'lion',
@@ -46,7 +44,11 @@ def test_epsilon(optimizer_name):
 
     optimizer = load_optimizer(optimizer_name)
 
-    config = {'eps': -1e-6}
+    config = {'eps' if 'shampoo' not in optimizer_name else 'matrix_eps': -1e-6}
+
+    if optimizer_name == 'scalableshampoo':
+        config.update({'diagonal_eps': -1e-6})
+
     if optimizer_name == 'ranger21':
         config.update({'num_iterations': 100})
 
