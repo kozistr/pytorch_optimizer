@@ -251,7 +251,7 @@ def test_closure(optimizer):
     if optimizer_name in ('Ranger21', 'Adai', 'AdamS'):
         with pytest.raises(ZeroParameterSizeError):
             optimizer.step(closure=dummy_closure)
-    elif optimizer_name in ('AliG',):
+    elif optimizer_name == 'AliG':
         with pytest.raises(NoClosureError):
             optimizer.step()
     else:
@@ -259,63 +259,11 @@ def test_closure(optimizer):
 
 
 def test_no_closure():
-    param = simple_parameter()
-
-    optimizer = SAM([param], load_optimizer('adamp'))
+    optimizer = SAM([simple_parameter()], load_optimizer('adamp'))
     optimizer.zero_grad()
 
     with pytest.raises(NoClosureError):
         optimizer.step()
-
-
-def test_nero_zero_scale():
-    param = simple_parameter()
-
-    optimizer = load_optimizer('nero')([param], constraints=False)
-    optimizer.zero_grad()
-
-    param.grad = torch.zeros(1, 1)
-    optimizer.step()
-
-
-@pytest.mark.parametrize('optimizer_name', ['adabelief', 'radam', 'lamb', 'diffgrad', 'ranger'])
-def test_rectified_optimizer(optimizer_name):
-    param = simple_parameter()
-
-    parameters = {'n_sma_threshold': 1000, 'degenerated_to_sgd': False}
-    if optimizer_name not in ('adabelief', 'radam', 'ranger'):
-        parameters.update({'rectify': True})
-
-    optimizer = load_optimizer(optimizer_name)([param], **parameters)
-    optimizer.zero_grad()
-
-    param.grad = torch.zeros(1, 1)
-    optimizer.step()
-
-
-@pytest.mark.parametrize(
-    'optimizer_config', OPTIMIZERS + AMSBOUND_SUPPORTED_OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS, ids=ids
-)
-def test_reset(optimizer_config):
-    optimizer_class, config, _ = optimizer_config
-    if optimizer_class.__name__ == 'Ranger21':
-        config.update({'num_iterations': 1})
-
-    optimizer = optimizer_class([simple_parameter()], **config)
-    optimizer.reset()
-
-
-@pytest.mark.parametrize('require_gradient', [False, True])
-@pytest.mark.parametrize('sparse_gradient', [False, True])
-@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan'])
-def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
-    param = simple_sparse_parameter(require_gradient)[1] if sparse_gradient else simple_parameter(require_gradient)
-    if not require_gradient:
-        param.grad = None
-
-    optimizer = load_optimizer(optimizer_name)([param])
-    assert str(optimizer) == optimizer_name
-    optimizer.reset()
 
 
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2])
@@ -347,11 +295,12 @@ def test_sm3_make_sparse():
 
     optimizer = load_optimizer('sm3')([weight_sparse])
 
-    values = torch.tensor(1.0)
+    values: torch.Tensor = torch.tensor(1.0)
     optimizer.make_sparse(weight_sparse.grad, values)
 
 
 def test_sm3_rank0():
     optimizer = load_optimizer('sm3')([simple_zero_rank_parameter(True)])
-    assert str(optimizer) == 'SM3'
     optimizer.step()
+
+    assert str(optimizer) == 'SM3'

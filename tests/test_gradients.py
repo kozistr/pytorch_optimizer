@@ -49,7 +49,7 @@ def test_sparse_not_supported(no_sparse_optimizer):
 
 
 @pytest.mark.parametrize('sparse_optimizer', SPARSE_OPTIMIZERS)
-def test_sparse(sparse_optimizer):
+def test_sparse_gradient(sparse_optimizer):
     opt = load_optimizer(optimizer=sparse_optimizer)
 
     weight, weight_sparse = simple_sparse_parameter()
@@ -173,7 +173,7 @@ def test_fromage_zero_norm():
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adanorm_gradient(optimizer_config):
+def test_ada_norm_gradient(optimizer_config):
     param = simple_parameter(True)
     param.grad = torch.ones(1, 1)
 
@@ -181,6 +181,31 @@ def test_adanorm_gradient(optimizer_config):
 
     optimizer = optimizer_class([param], adanorm=True)
     optimizer.step()
+
+    param.grad = torch.zeros(1, 1)
+    optimizer.step()
+
+
+def test_nero_zero_scale():
+    param = simple_parameter()
+
+    optimizer = load_optimizer('nero')([param], constraints=False)
+    optimizer.zero_grad()
+
+    param.grad = torch.zeros(1, 1)
+    optimizer.step()
+
+
+@pytest.mark.parametrize('optimizer_name', ['adabelief', 'radam', 'lamb', 'diffgrad', 'ranger'])
+def test_rectified_optimizer_gradient(optimizer_name):
+    param = simple_parameter()
+
+    parameters = {'n_sma_threshold': 1000, 'degenerated_to_sgd': False}
+    if optimizer_name not in ('adabelief', 'radam', 'ranger'):
+        parameters.update({'rectify': True})
+
+    optimizer = load_optimizer(optimizer_name)([param], **parameters)
+    optimizer.zero_grad()
 
     param.grad = torch.zeros(1, 1)
     optimizer.step()

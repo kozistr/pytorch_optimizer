@@ -3,8 +3,8 @@ import torch
 from torch import nn
 
 from pytorch_optimizer import SAM, Lookahead, Ranger21, SafeFP16Optimizer, load_optimizer
-from tests.constants import PULLBACK_MOMENTUM
-from tests.utils import Example, simple_parameter
+from tests.constants import ADANORM_SUPPORTED_OPTIMIZERS, AMSBOUND_SUPPORTED_OPTIMIZERS, OPTIMIZERS, PULLBACK_MOMENTUM
+from tests.utils import Example, ids, simple_parameter, simple_sparse_parameter, simple_zero_rank_parameter
 
 
 @pytest.fixture(scope='module')
@@ -90,10 +90,7 @@ def test_ranger21_closure():
 
 
 def test_ada_factor_reset():
-    param = torch.zeros(1).requires_grad_(True)
-    param.grad = torch.zeros(1)
-
-    optimizer = load_optimizer('adafactor')([param])
+    optimizer = load_optimizer('adafactor')([simple_zero_rank_parameter()])
     optimizer.reset()
 
 
@@ -102,3 +99,29 @@ def test_ada_factor_get_lr(model_parameters):
 
     assert optimizer.get_lr(1.0, 1, 1.0, True, True, True) == 1e-6
     assert optimizer.get_lr(1.0, 1, 1.0, True, False, True) == 1e-2
+
+
+@pytest.mark.parametrize(
+    'optimizer_config', OPTIMIZERS + AMSBOUND_SUPPORTED_OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS, ids=ids
+)
+def test_reset(optimizer_config):
+    optimizer_class, config, _ = optimizer_config
+    if optimizer_class.__name__ == 'Ranger21':
+        config.update({'num_iterations': 1})
+
+    optimizer = optimizer_class([simple_parameter()], **config)
+    optimizer.reset()
+
+
+@pytest.mark.parametrize('require_gradient', [False, True])
+@pytest.mark.parametrize('sparse_gradient', [False, True])
+@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan'])
+def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
+    param = simple_sparse_parameter(require_gradient)[1] if sparse_gradient else simple_parameter(require_gradient)
+    if not require_gradient:
+        param.grad = None
+
+    optimizer = load_optimizer(optimizer_name)([param])
+    optimizer.reset()
+
+    assert str(optimizer) == optimizer_name
