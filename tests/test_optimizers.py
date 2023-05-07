@@ -186,10 +186,6 @@ def test_gsam_optimizers(adaptive, build_trainer):
 
     (x_data, y_data), model, loss_fn = build_trainer
 
-    x_data = x_data.cuda()
-    y_data = y_data.cuda()
-    model.cuda()
-
     lr: float = 5e-1
     num_iterations: int = 25
 
