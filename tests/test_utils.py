@@ -36,17 +36,21 @@ def test_has_overflow():
 
 def test_normalized_gradient():
     x = torch.arange(0, 10, dtype=torch.float32)
+    normalize_gradient(x)
 
     np.testing.assert_allclose(
-        normalize_gradient(x).numpy(),
+        x,
         np.asarray([0.0000, 0.3303, 0.6606, 0.9909, 1.3212, 1.6514, 1.9817, 2.3120, 2.6423, 2.9726]),
         rtol=1e-4,
         atol=1e-4,
     )
 
+    x = torch.arange(0, 10, dtype=torch.float32)
+    normalize_gradient(x.view(1, 10), use_channels=True)
+
     np.testing.assert_allclose(
-        normalize_gradient(x.view(1, 10), use_channels=True).numpy(),
-        np.asarray([[0.0000, 0.3303, 0.6606, 0.9909, 1.3212, 1.6514, 1.9817, 2.3120, 2.6423, 2.9726]]),
+        x,
+        np.asarray([0.0000, 0.3303, 0.6606, 0.9909, 1.3212, 1.6514, 1.9817, 2.3120, 2.6423, 2.9726]),
         rtol=1e-4,
         atol=1e-4,
     )
