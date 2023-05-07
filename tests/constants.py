@@ -369,6 +369,7 @@ AMSBOUND_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]
 RECTIFY_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True}, 5),
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True}, 5),
+    (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True}, 5),
     (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True, 'degenerated_to_sgd': True}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
