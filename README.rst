@@ -25,7 +25,7 @@ Getting Started
 
 For more, see the `documentation <https://pytorch-optimizers.readthedocs.io/en/latest/>`__.
 
-Most optimizers are under MIT or Apache 2.0 license, but a few optimizers like `Fromage` have BY-NC-SA 4.0 license, which is non-commercial.
+Most optimizers are under MIT or Apache 2.0 license, but a few optimizers like `Nero`, `Fromage` have BY-NC-SA 4.0 license, which is non-commercial.
 So, please double-check the license before using it at your work.
 
 Installation
