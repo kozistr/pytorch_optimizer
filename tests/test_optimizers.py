@@ -112,7 +112,7 @@ def test_optimizer_variants(optimizer_config, build_trainer):
 
 
 @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
-def test_lookahead(pullback_momentum, build_trainer):
+def test_lookahead_optimizer(pullback_momentum, build_trainer):
     (x_data, y_data), model, loss_fn = build_trainer
 
     optimizer = Lookahead(load_optimizer('adamp')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
@@ -208,20 +208,6 @@ def test_gsam_optimizers(adaptive, build_trainer):
         optimizer.update_rho_t()
 
     assert tensor_to_numpy(init_loss) > 1.2 * tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adanorm_condition(optimizer_config):
-    param = simple_parameter(True)
-    param.grad = torch.ones(1, 1)
-
-    optimizer_class, config = optimizer_config[:2]
-
-    optimizer = optimizer_class([param], adanorm=True)
-    optimizer.step()
-
-    param.grad = torch.zeros(1, 1)
-    optimizer.step()
 
 
 @pytest.mark.parametrize('reduction', ['mean', 'sum'])

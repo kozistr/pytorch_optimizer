@@ -3,8 +3,13 @@ import torch
 
 from pytorch_optimizer import SAM, AdamP, Lookahead, load_optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
-from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
-from tests.utils import build_environment, simple_parameter, simple_sparse_parameter
+from tests.constants import (
+    ADANORM_SUPPORTED_OPTIMIZERS,
+    NO_SPARSE_OPTIMIZERS,
+    SPARSE_OPTIMIZERS,
+    VALID_OPTIMIZER_NAMES,
+)
+from tests.utils import build_environment, ids, simple_parameter, simple_sparse_parameter
 
 
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead'])
@@ -164,4 +169,18 @@ def test_fromage_zero_norm():
     param = simple_parameter(require_grad=True)
 
     optimizer = load_optimizer('fromage')([param])
+    optimizer.step()
+
+
+@pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
+def test_adanorm_gradient(optimizer_config):
+    param = simple_parameter(True)
+    param.grad = torch.ones(1, 1)
+
+    optimizer_class, config = optimizer_config[:2]
+
+    optimizer = optimizer_class([param], adanorm=True)
+    optimizer.step()
+
+    param.grad = torch.zeros(1, 1)
     optimizer.step()
