@@ -25,7 +25,6 @@ from tests.utils import (
     simple_parameter,
     simple_sparse_parameter,
     simple_zero_rank_parameter,
-    tensor_to_numpy,
 )
 
 
@@ -158,7 +157,7 @@ def test_sam_optimizers(adaptive, build_trainer):
         if init_loss == np.inf:
             init_loss = loss
 
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+    assert init_loss > 2.0 * loss
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
@@ -183,7 +182,7 @@ def test_sam_optimizers_with_closure(adaptive, build_trainer):
         if init_loss == np.inf:
             init_loss = loss
 
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+    assert init_loss > 2.0 * loss
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
@@ -213,7 +212,7 @@ def test_gsam_optimizers(adaptive, build_trainer):
         lr_scheduler.step()
         optimizer.update_rho_t()
 
-    assert tensor_to_numpy(init_loss) > 1.2 * tensor_to_numpy(loss)
+    assert init_loss > 1.2 * loss
 
 
 @pytest.mark.parametrize('reduction', ['mean', 'sum'])
@@ -241,7 +240,7 @@ def test_pc_grad_optimizers(reduction):
         optimizer.pc_backward([loss1, loss2])
         optimizer.step()
 
-    assert tensor_to_numpy(init_loss) > 1.25 * tensor_to_numpy(loss)
+    assert init_loss > 1.25 * loss
 
 
 @pytest.mark.parametrize('optimizer', {config[0] for config in OPTIMIZERS}, ids=names)

@@ -119,7 +119,3 @@ def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.
         loss_fn = loss_fn.cuda()
 
     return (x_data, y_data), model, loss_fn
-
-
-def tensor_to_numpy(x: torch.Tensor) -> np.ndarray:
-    return x.detach().cpu().numpy()
