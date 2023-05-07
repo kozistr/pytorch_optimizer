@@ -96,12 +96,9 @@ class Ranger21(Optimizer, BaseOptimizer):
         self.lookahead_blending_alpha = lookahead_blending_alpha
         self.norm_loss_factor = norm_loss_factor
 
-        # lookahead
         self.lookahead_step: int = 0
-
-        # learning rate
-        self.starting_lr = lr
-        self.current_lr = lr
+        self.starting_lr: float = lr
+        self.current_lr: float = lr
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -114,7 +111,6 @@ class Ranger21(Optimizer, BaseOptimizer):
         }
         super().__init__(params, defaults)
 
-        # warmup iterations
         self.num_warm_up_iterations: int = (
             self.build_warm_up_iterations(num_iterations, betas[1])
             if num_warm_up_iterations is None
@@ -159,30 +155,23 @@ class Ranger21(Optimizer, BaseOptimizer):
         if step > self.num_warm_up_iterations:
             return lr
 
-        warm_up_current_pct: float = min(1.0, (step / self.num_warm_up_iterations))
+        warm_up_current_pct: float = min(1.0, step / self.num_warm_up_iterations)
 
-        new_lr: float = lr * warm_up_current_pct
-        self.current_lr = new_lr
+        self.current_lr = lr * warm_up_current_pct
 
-        return new_lr
+        return self.current_lr
 
     def warm_down(self, lr: float, iteration: int) -> float:
         if iteration < self.start_warm_down:
             return lr
 
         # start iteration from 1, not 0
-        warm_down_iteration: int = (iteration + 1) - self.start_warm_down
-        warm_down_iteration = max(warm_down_iteration, 1)
+        warm_down_iteration: int = max((iteration + 1) - self.start_warm_down, 1)
+        warm_down_pct: float = min(warm_down_iteration / (self.num_warm_down_iterations + 1), 1.0)
 
-        warm_down_pct: float = warm_down_iteration / (self.num_warm_down_iterations + 1)
-        warm_down_pct = min(warm_down_pct, 1.0)
+        self.current_lr = max(self.min_lr, self.starting_lr - self.warm_down_lr_delta * warm_down_pct)
 
-        new_lr: float = self.starting_lr - self.warm_down_lr_delta * warm_down_pct
-        new_lr = max(new_lr, self.min_lr)
-
-        self.current_lr = new_lr
-
-        return new_lr
+        return self.current_lr
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
