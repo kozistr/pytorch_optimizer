@@ -65,6 +65,8 @@ def test_f32_optimizers(optimizer_fp32_config, build_trainer):
         loss = loss_fn(y_pred, y_data)
         loss.backward()
 
+        loss = loss.item()
+
         if init_loss == np.inf:
             init_loss = loss
 
@@ -102,6 +104,8 @@ def test_optimizer_variants(optimizer_config, build_trainer):
         loss = loss_fn(y_pred, y_data)
         loss.backward()
 
+        loss = loss.item()
+
         if init_loss == np.inf:
             init_loss = loss
 
@@ -127,6 +131,8 @@ def test_lookahead_optimizer(pullback_momentum, build_trainer):
 
         loss = loss_fn(y_pred, y_data)
         loss.backward()
+
+        loss = loss.item()
 
         if init_loss == np.inf:
             init_loss = loss
@@ -154,6 +160,8 @@ def test_sam_optimizers(adaptive, build_trainer):
         loss_fn(y_data, model(x_data)).backward()
         optimizer.second_step(zero_grad=True)
 
+        loss = loss.item()
+
         if init_loss == np.inf:
             init_loss = loss
 
@@ -178,6 +186,8 @@ def test_sam_optimizers_with_closure(adaptive, build_trainer):
 
         optimizer.step(closure)
         optimizer.zero_grad()
+
+        loss = loss.item()
 
         if init_loss == np.inf:
             init_loss = loss
@@ -206,6 +216,8 @@ def test_gsam_optimizers(adaptive, build_trainer):
         optimizer.set_closure(loss_fn, x_data, y_data)
         _, loss = optimizer.step()
 
+        loss = loss.item()
+
         if init_loss == np.inf:
             init_loss = loss
 
@@ -233,12 +245,14 @@ def test_pc_grad_optimizers(reduction):
         y_pred_1, y_pred_2 = model(x_data)
         loss1, loss2 = loss_fn_1(y_pred_1, y_data), loss_fn_2(y_pred_2, y_data)
 
-        loss = (loss1 + loss2) / 2.0
-        if init_loss == np.inf:
-            init_loss = loss
-
         optimizer.pc_backward([loss1, loss2])
         optimizer.step()
+
+        loss = (loss1 + loss2) / 2.0
+        loss = loss.item()
+
+        if init_loss == np.inf:
+            init_loss = loss
 
     assert init_loss > 1.25 * loss
 
