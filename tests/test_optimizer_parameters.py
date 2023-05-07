@@ -1,27 +1,272 @@
 import pytest
-import torch
-from torch import nn
 
-from pytorch_optimizer import SAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
-from tests.constants import PULLBACK_MOMENTUM
+from pytorch_optimizer import SAM, Lookahead, PCGrad, load_optimizer
+from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError, ZeroParameterSizeError
+from tests.constants import BETA_OPTIMIZER_NAMES, VALID_OPTIMIZER_NAMES
 from tests.utils import Example, simple_parameter
 
 
-def test_adafactor_epsilon():
-    adafactor = load_optimizer('adafactor')
+@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
+def test_learning_rate(optimizer_name):
+    if optimizer_name in ('alig', 'a2grad'):
+        pytest.skip(f'skip {optimizer_name} optimizer')
+
+    optimizer = load_optimizer(optimizer_name)
+
+    config = {'lr': -1e-2}
+    if optimizer_name == 'ranger21':
+        config.update({'num_iterations': 100})
+
+    with pytest.raises(NegativeLRError):
+        optimizer(None, **config)
+
+
+@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
+def test_epsilon(optimizer_name):
+    if optimizer_name in (
+        'shampoo',
+        'scalableshampoo',
+        'dadaptsgd',
+        'adafactor',
+        'lion',
+        'a2grad',
+        'accsgd',
+        'sgdw',
+        'fromage',
+        'msvag',
+        'aggmo',
+        'qhm',
+        'pid',
+        'lars',
+        'alig',
+        'gravity',
+        'srmm',
+    ):
+        pytest.skip(f'skip {optimizer_name} optimizer')
+
+    optimizer = load_optimizer(optimizer_name)
+
+    config = {'eps': -1e-6}
+    if optimizer_name == 'ranger21':
+        config.update({'num_iterations': 100})
 
     with pytest.raises(ValueError):
-        adafactor(None, eps1=-1e-6)
+        optimizer(None, **config)
+
+
+@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
+def test_weight_decay(optimizer_name):
+    if optimizer_name in ('nero', 'alig', 'sm3', 'a2grad', 'fromage', 'msvag', 'gravity', 'srmm', 'adashift'):
+        pytest.skip(f'skip {optimizer_name} optimizer')
+
+    optimizer = load_optimizer(optimizer_name)
+
+    config = {'weight_decay': -1e-3}
+    if optimizer_name == 'ranger21':
+        config.update({'num_iterations': 100})
 
     with pytest.raises(ValueError):
-        adafactor(None, eps2=-1e-6)
+        optimizer(None, **config)
 
 
-def test_pcgrad_reduction():
-    optimizer = load_optimizer('adamp')([simple_parameter()])
+@pytest.mark.parametrize('optimizer_name', ['apollo'])
+def test_weight_decay_type(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+
+    with pytest.raises(ValueError):
+        optimizer(None, weight_decay_type='dummy')
+
+
+@pytest.mark.parametrize('optimizer_name', ['apollo'])
+def test_rebound(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+
+    with pytest.raises(ValueError):
+        optimizer(None, rebound='dummy')
+
+
+@pytest.mark.parametrize('optimizer_name', ['adamp', 'sgdp'])
+def test_wd_ratio(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer(None, wd_ratio=-1e-3)
+
+
+@pytest.mark.parametrize('optimizer_name', ['lars'])
+def test_trust_coefficient(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer(None, trust_coefficient=-1e-3)
+
+
+@pytest.mark.parametrize('optimizer_name', ['madgrad', 'lars', 'sm3', 'sgdw'])
+def test_momentum(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer(None, momentum=-1e-3)
+
+
+@pytest.mark.parametrize('optimizer_name', ['ranger'])
+def test_lookahead_k(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer(None, k=-1)
+
+
+@pytest.mark.parametrize('optimizer_name', ['ranger21'])
+def test_beta0(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer(None, num_iterations=200, beta0=-0.1)
+
+
+@pytest.mark.parametrize('optimizer_name', ['nero', 'apollo', 'sm3', 'msvag'])
+def test_beta(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer(None, beta=-0.1)
+
+
+@pytest.mark.parametrize('optimizer_name', BETA_OPTIMIZER_NAMES)
+def test_betas(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+
+    config1 = {'betas': (-0.1, 0.1)}
+    config2 = {'betas': (0.1, -0.1)}
+    if optimizer_name == 'ranger21':
+        config1.update({'num_iterations': 100})
+        config2.update({'num_iterations': 100})
+
+    if optimizer_name not in ('adapnm', 'adan', 'adamod', 'aggmo'):
+        with pytest.raises(ValueError):
+            optimizer(None, **config1)
+
+        with pytest.raises(ValueError):
+            optimizer(None, **config2)
+    else:
+        with pytest.raises(ValueError):
+            optimizer(None, betas=(0.1, 0.1, -0.1))
+
+
+def test_reduction():
+    parameters = Example().parameters()
+    optimizer = load_optimizer('adamp')(parameters)
 
     with pytest.raises(ValueError):
         PCGrad(optimizer, reduction='wrong')
+
+
+@pytest.mark.parametrize('optimizer_name', ['scalableshampoo', 'shampoo'])
+def test_update_frequency(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+
+    if optimizer_name == 'scalableshampoo':
+        with pytest.raises(NegativeStepError):
+            optimizer(None, start_preconditioning_step=-1)
+
+        with pytest.raises(NegativeStepError):
+            optimizer(None, statistics_compute_steps=-1)
+
+    with pytest.raises(NegativeStepError):
+        optimizer(None, preconditioning_compute_steps=-1)
+
+
+@pytest.mark.parametrize('optimizer_name', ['adan', 'lamb'])
+def test_norm(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer(None, max_grad_norm=-0.1)
+
+
+@pytest.mark.parametrize('optimizer_name', ['a2grad'])
+def test_rho(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer(None, rho=-0.1)
+
+
+@pytest.mark.parametrize('optimizer_name', ['accsgd'])
+def test_kappa(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer([simple_parameter(False)], kappa=-0.1)
+
+
+@pytest.mark.parametrize('optimizer_name', ['accsgd'])
+def test_xi(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer([simple_parameter(False)], xi=-0.1)
+
+
+@pytest.mark.parametrize('optimizer_name', ['accsgd'])
+def test_constant(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer([simple_parameter(False)], constant=42)
+
+
+@pytest.mark.parametrize('optimizer', ['ranger21', 'adai'])
+def test_size_of_parameter(optimizer):
+    param = simple_parameter(require_grad=False)
+    param.grad = None
+
+    with pytest.raises(ZeroParameterSizeError):
+        load_optimizer(optimizer)([param], 1).step()
+
+
+@pytest.mark.parametrize('optimizer_name', ['asgd'])
+def test_amplifier(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+    with pytest.raises(ValueError):
+        optimizer([simple_parameter(False)], amplifier=-1.0)
+
+
+@pytest.mark.parametrize('optimizer_name', ['qhadam', 'qhm'])
+def test_nus(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)
+
+    if optimizer_name == 'qhadam':
+        with pytest.raises(ValueError):
+            optimizer([simple_parameter(False)], nus=(-0.1, 0.1))
+
+        with pytest.raises(ValueError):
+            optimizer([simple_parameter(False)], nus=(0.1, -0.1))
+    else:
+        with pytest.raises(ValueError):
+            optimizer([simple_parameter(False)], nu=-0.1)
+
+
+def test_shampoo_epsilon():
+    with pytest.raises(ValueError):
+        load_optimizer('Shampoo')(None, matrix_eps=-1e-6)
+
+
+def test_scalable_shampoo_epsilon():
+    scalable_shampoo = load_optimizer('ScalableShampoo')
+
+    with pytest.raises(ValueError):
+        scalable_shampoo(None, diagonal_eps=-1e-6)
+
+    with pytest.raises(ValueError):
+        scalable_shampoo(None, matrix_eps=-1e-6)
+
+
+def test_ada_factor_epsilon():
+    optimizer = load_optimizer('adafactor')
+
+    with pytest.raises(ValueError):
+        optimizer(None, eps1=-1e-6)
+
+    with pytest.raises(ValueError):
+        optimizer(None, eps2=-1e-6)
+
+
+def test_pc_grad_reduction():
+    optimizer = load_optimizer('adamp')([simple_parameter()])
+
+    with pytest.raises(ValueError):
+        PCGrad(optimizer, reduction='invalid')
 
 
 def test_sam_parameters():
@@ -31,16 +276,6 @@ def test_sam_parameters():
 
 def test_lookahead_parameters():
     optimizer = load_optimizer('adamp')([simple_parameter()])
-
-    for pullback_momentum in PULLBACK_MOMENTUM:
-        opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
-        opt.load_state_dict(opt.state_dict())
-
-    opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
-    opt.backup_and_load_cache()
-    opt.clear_and_load_backup()
-
-    _ = opt.__getstate__()
 
     with pytest.raises(ValueError):
         Lookahead(optimizer, k=0)
@@ -52,89 +287,8 @@ def test_lookahead_parameters():
         Lookahead(optimizer, pullback_momentum='invalid')
 
 
-def test_sam_methods():
-    param = simple_parameter()
-
-    optimizer = SAM([param], load_optimizer('adamp'))
-    optimizer.reset()
-    optimizer.load_state_dict(optimizer.state_dict())
-
-
-def test_safe_fp16_methods():
-    param = simple_parameter()
-
-    optimizer = SafeFP16Optimizer(load_optimizer('adamp')([param], lr=5e-1))
-    optimizer.load_state_dict(optimizer.state_dict())
-    optimizer.scaler.decrease_loss_scale()
-    optimizer.zero_grad()
-    optimizer.update_main_grads()
-    optimizer.clip_main_grads(100.0)
-    optimizer.multiply_grads(100.0)
-
-    with pytest.raises(AttributeError):
-        optimizer.get_lr()
-
-    with pytest.raises(AttributeError):
-        optimizer.set_lr(lr=5e-1)
-
-    assert optimizer.loss_scale == 2.0 ** (15 - 1)
-
-
-def test_ranger21_warm_iterations():
-    assert Ranger21.build_warm_up_iterations(1000, 0.999) == 220
-    assert Ranger21.build_warm_up_iterations(4500, 0.999) == 2000
-    assert Ranger21.build_warm_down_iterations(1000) == 280
-
-
-def test_ranger21_warm_up_and_down():
-    param = simple_parameter(require_grad=False)
-
-    lr: float = 1e-1
-    opt = Ranger21([param], num_iterations=500, lr=lr, warm_down_min_lr=3e-5)
-
-    assert opt.warm_up_dampening(lr, 100) == 0.09090909090909091
-    assert opt.warm_up_dampening(lr, 200) == 0.1
-    assert opt.warm_up_dampening(lr, 300) == 0.1
-    assert opt.warm_down(lr, 300) == 0.1
-    assert opt.warm_down(lr, 400) == 0.07093070921985817
-
-
-def test_ranger21_closure():
-    model: nn.Module = Example()
-    optimizer = load_optimizer('ranger21')(model.parameters(), num_iterations=100, betas=(0.9, 1e-9))
-
-    loss_fn = nn.BCEWithLogitsLoss()
-
-    def closure():
-        loss = loss_fn(torch.ones((1, 1)), model(torch.ones((1, 1))))
-        loss.backward()
-        return loss
-
-    optimizer.step(closure)
-
-
-def test_adafactor_reset():
-    param = torch.zeros(1).requires_grad_(True)
-    param.grad = torch.zeros(1)
-
-    optimizer = load_optimizer('adafactor')([param])
-    optimizer.reset()
-
-
-def test_adafactor_get_lr():
-    model: nn.Module = Example()
-
-    optimizer = load_optimizer('adafactor')(model.parameters())
-    assert optimizer.get_lr(1.0, 1, 1.0, True, True, True) == 1e-6
-
-    optimizer = load_optimizer('adafactor')(model.parameters())
-    assert optimizer.get_lr(1.0, 1, 1.0, True, False, True) == 1e-2
-
-
 def test_a2grad_lipschitz_constant():
     param = simple_parameter(require_grad=False)
-
-    load_optimizer('a2grad')([param], lips=1.0)
 
     with pytest.raises(ValueError):
         load_optimizer('a2grad')([param], lips=-1.0)
@@ -142,10 +296,6 @@ def test_a2grad_lipschitz_constant():
 
 def test_a2grad_variant():
     param = simple_parameter(require_grad=False)
-
-    load_optimizer('a2grad')([param], variant='uni')
-    load_optimizer('a2grad')([param], variant='inc')
-    load_optimizer('a2grad')([param], variant='exp')
 
     with pytest.raises(ValueError):
         load_optimizer('a2grad')([param], variant='dummy')
