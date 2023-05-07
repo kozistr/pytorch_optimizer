@@ -149,7 +149,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SGDP, {'lr': 5e-1, 'weight_decay': 1e-4, 'nesterov': True}, 10),
     (Ranger, {'lr': 1e0, 'weight_decay': 1e-3}, 75),
     (Ranger, {'lr': 5e0, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 5),
-    (Ranger21, {'lr': 7.5e-1, 'weight_decay': 1e-3, 'num_iterations': 75}, 75),
+    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 100}, 100),
     (Shampoo, {'lr': 5e-1, 'weight_decay': 1e-3, 'momentum': 0.1}, 10),
     (
         ScalableShampoo,
@@ -369,7 +369,6 @@ AMSBOUND_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]
 RECTIFY_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True}, 5),
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True}, 5),
-    (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True}, 5),
     (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True, 'degenerated_to_sgd': True}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
@@ -392,7 +391,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (AdamP, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
     (AdamS, {'lr': 2e1, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'adam_debias': True}, 15),
-    (Lamb, {'lr': 5e-2, 'weight_decay': 1e-3, 'adam_debias': True}, 15),
+    (Lamb, {'lr': 1e0, 'weight_decay': 1e-3, 'rectify': True, 'adam_debias': True}, 25),
     (RAdam, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 20),
     (Ranger, {'lr': 5e0, 'weight_decay': 1e-3, 'adam_debias': True}, 35),
     (Ranger21, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True, 'num_iterations': 125}, 125),
