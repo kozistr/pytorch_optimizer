@@ -62,17 +62,14 @@ def test_f32_optimizers(optimizer_fp32_config, build_trainer):
         optimizer.zero_grad()
 
         y_pred = model(x_data)
+
         loss = loss_fn(y_pred, y_data)
+        loss.backward()
 
         if init_loss == np.inf:
             init_loss = loss
 
-        loss.backward()
-
-        if optimizer_name == 'AliG':
-            optimizer.step(closure(loss))
-        else:
-            optimizer.step()
+        optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
 
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 

@@ -149,7 +149,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SGDP, {'lr': 5e-1, 'weight_decay': 1e-4, 'nesterov': True}, 10),
     (Ranger, {'lr': 1e0, 'weight_decay': 1e-3}, 75),
     (Ranger, {'lr': 5e0, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 5),
-    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 100}, 100),
+    (Ranger21, {'lr': 1e0, 'weight_decay': 1e-3, 'num_iterations': 125}, 125),
     (Shampoo, {'lr': 5e-1, 'weight_decay': 1e-3, 'momentum': 0.1}, 10),
     (
         ScalableShampoo,
@@ -298,7 +298,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (PNM, {'lr': 5e-1, 'weight_decouple': False}, 25),
     (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 10),
     (AdaPNM, {'lr': 5e-1, 'weight_decay': 1e-3, 'ams_bound': False}, 10),
-    (Nero, {'lr': 5e-1}, 25),
+    (Nero, {'lr': 5e-1}, 5),
     (Nero, {'lr': 5e0, 'constraints': False}, 5),
     (Adan, {'lr': 5e-1}, 5),
     (Adan, {'lr': 5e-1, 'max_grad_norm': 1.0}, 5),
