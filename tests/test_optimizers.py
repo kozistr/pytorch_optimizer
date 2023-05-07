@@ -41,7 +41,7 @@ def test_f32_optimizers(optimizer_fp32_config, build_trainer):
 
         return _closure
 
-    (x_data, y_data), model, loss_fn = build_trainer
+    (x_data, y_data), model, loss_fn = build_environment()  #  build_trainer
 
     optimizer_class, config, iterations = optimizer_fp32_config
 
