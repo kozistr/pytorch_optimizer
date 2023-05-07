@@ -104,12 +104,12 @@ def test_ada_factor_get_lr(model_parameters):
 @pytest.mark.parametrize(
     'optimizer_config', OPTIMIZERS + AMSBOUND_SUPPORTED_OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS, ids=ids
 )
-def test_reset(optimizer_config):
+def test_reset(optimizer_config, model_parameters):
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
         config.update({'num_iterations': 1})
 
-    optimizer = optimizer_class([simple_parameter()], **config)
+    optimizer = optimizer_class(model_parameters, **config)
     optimizer.reset()
 
 
