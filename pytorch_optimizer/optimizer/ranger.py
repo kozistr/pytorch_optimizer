@@ -140,7 +140,7 @@ class Ranger(Optimizer, BaseOptimizer):
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 if self.use_gc and grad.dim() > self.gc_gradient_threshold:
-                    grad = centralize_gradient(grad, gc_conv_only=False)
+                    centralize_gradient(grad, gc_conv_only=False)
 
                 self.apply_weight_decay(
                     p=p,

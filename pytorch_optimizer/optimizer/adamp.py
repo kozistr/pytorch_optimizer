@@ -122,7 +122,7 @@ class AdamP(Optimizer, BaseOptimizer):
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 if self.use_gc:
-                    grad = centralize_gradient(grad, gc_conv_only=False)
+                    centralize_gradient(grad, gc_conv_only=False)
 
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,
