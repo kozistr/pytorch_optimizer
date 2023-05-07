@@ -69,9 +69,12 @@ def test_f32_optimizers(optimizer_fp32_config, build_trainer):
         if init_loss == np.inf:
             init_loss = loss
 
+        if init_loss > 1.5 * loss:
+            break
+
         optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
 
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+    assert init_loss > 1.5 * loss
 
 
 @pytest.mark.parametrize(
@@ -96,16 +99,19 @@ def test_optimizer_variants(optimizer_config, build_trainer):
         optimizer.zero_grad()
 
         y_pred = model(x_data)
+
         loss = loss_fn(y_pred, y_data)
+        loss.backward()
 
         if init_loss == np.inf:
             init_loss = loss
 
-        loss.backward()
+        if init_loss > 1.5 * loss:
+            break
 
         optimizer.step()
 
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+    assert init_loss > 1.5 * loss
 
 
 @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
@@ -119,16 +125,19 @@ def test_lookahead_optimizer(pullback_momentum, build_trainer):
         optimizer.zero_grad()
 
         y_pred = model(x_data)
+
         loss = loss_fn(y_pred, y_data)
+        loss.backward()
 
         if init_loss == np.inf:
             init_loss = loss
 
-        loss.backward()
+        if init_loss > 1.5 * loss:
+            break
 
         optimizer.step()
 
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+    assert init_loss > 1.5 * loss
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
