@@ -20,6 +20,7 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: pytorch-optimizer ${{ github.ref }}
+          body_path: docs/changelogs/${{ github.ref }}.md
           draft: false
           prerelease: false
   deploy:
