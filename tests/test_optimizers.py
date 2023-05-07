@@ -10,8 +10,10 @@ from tests.constants import (
     ADAMD_SUPPORTED_OPTIMIZERS,
     ADANORM_SUPPORTED_OPTIMIZERS,
     ADAPTIVE_FLAGS,
+    AMSBOUND_SUPPORTED_OPTIMIZERS,
     OPTIMIZERS,
     PULLBACK_MOMENTUM,
+    RECTIFY_SUPPORTED_OPTIMIZERS,
 )
 from tests.utils import (
     MultiHeadLogisticRegression,
@@ -27,15 +29,20 @@ from tests.utils import (
 )
 
 
+@pytest.fixture(scope='function')
+def build_trainer():
+    return build_environment()
+
+
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
-def test_f32_optimizers(optimizer_fp32_config):
+def test_f32_optimizers(optimizer_fp32_config, build_trainer):
     def closure(x):
         def _closure() -> float:
             return x
 
         return _closure
 
-    (x_data, y_data), model, loss_fn = build_environment()
+    (x_data, y_data), model, loss_fn = build_trainer
 
     optimizer_class, config, iterations = optimizer_fp32_config
 
@@ -70,9 +77,43 @@ def test_f32_optimizers(optimizer_fp32_config):
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
+@pytest.mark.parametrize(
+    'optimizer_config',
+    ADANORM_SUPPORTED_OPTIMIZERS
+    + ADAMD_SUPPORTED_OPTIMIZERS
+    + AMSBOUND_SUPPORTED_OPTIMIZERS
+    + RECTIFY_SUPPORTED_OPTIMIZERS,
+    ids=ids,
+)
+def test_optimizer_variants(optimizer_config, build_trainer):
+    (x_data, y_data), model, loss_fn = build_trainer
+
+    optimizer_class, config, num_iterations = optimizer_config
+    if optimizer_class.__name__ == 'Ranger21':
+        config.update({'num_iterations': num_iterations})
+
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(num_iterations):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward()
+
+        optimizer.step()
+
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+
+
 @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
-def test_lookahead(pullback_momentum):
-    (x_data, y_data), model, loss_fn = build_environment()
+def test_lookahead(pullback_momentum, build_trainer):
+    (x_data, y_data), model, loss_fn = build_trainer
 
     optimizer = Lookahead(load_optimizer('adamp')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
 
@@ -94,8 +135,8 @@ def test_lookahead(pullback_momentum):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_sam_optimizers(adaptive):
-    (x_data, y_data), model, loss_fn = build_environment()
+def test_sam_optimizers(adaptive, build_trainer):
+    (x_data, y_data), model, loss_fn = build_trainer
 
     optimizer = SAM(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive)
 
@@ -115,8 +156,8 @@ def test_sam_optimizers(adaptive):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_sam_optimizers_with_closure(adaptive):
-    (x_data, y_data), model, loss_fn = build_environment()
+def test_sam_optimizers_with_closure(adaptive, build_trainer):
+    (x_data, y_data), model, loss_fn = build_trainer
 
     optimizer = SAM(model.parameters(), load_optimizer('adamp'), lr=5e-1, adaptive=adaptive)
 
@@ -140,10 +181,10 @@ def test_sam_optimizers_with_closure(adaptive):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_gsam_optimizers(adaptive):
+def test_gsam_optimizers(adaptive, build_trainer):
     pytest.skip('skip GSAM optimizer')
 
-    (x_data, y_data), model, loss_fn = build_environment()
+    (x_data, y_data), model, loss_fn = build_trainer
 
     x_data = x_data.cuda()
     y_data = y_data.cuda()
@@ -174,33 +215,6 @@ def test_gsam_optimizers(adaptive):
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adanorm_optimizers(optimizer_config):
-    (x_data, y_data), model, loss_fn = build_environment()
-
-    optimizer_class, config, num_iterations = optimizer_config
-    if optimizer_class.__name__ == 'Ranger21':
-        config.update({'num_iterations': num_iterations})
-
-    optimizer = optimizer_class(model.parameters(), **config)
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(num_iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 1.75 * tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_adanorm_condition(optimizer_config):
     param = simple_parameter(True)
     param.grad = torch.ones(1, 1)
@@ -212,33 +226,6 @@ def test_adanorm_condition(optimizer_config):
 
     param.grad = torch.zeros(1, 1)
     optimizer.step()
-
-
-@pytest.mark.parametrize('optimizer_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adamd_optimizers(optimizer_config):
-    (x_data, y_data), model, loss_fn = build_environment()
-
-    optimizer_class, config, num_iterations = optimizer_config
-    if optimizer_class.__name__ == 'Ranger21':
-        config.update({'num_iterations': num_iterations})
-
-    optimizer = optimizer_class(model.parameters(), **config)
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(num_iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('reduction', ['mean', 'sum'])
@@ -324,7 +311,9 @@ def test_rectified_optimizer(optimizer_name):
     optimizer.step()
 
 
-@pytest.mark.parametrize('optimizer_config', OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
+@pytest.mark.parametrize(
+    'optimizer_config', OPTIMIZERS + AMSBOUND_SUPPORTED_OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS, ids=ids
+)
 def test_reset(optimizer_config):
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
