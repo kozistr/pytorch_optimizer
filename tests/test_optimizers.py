@@ -34,14 +34,14 @@ def build_trainer():
 
 
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
-def test_f32_optimizers(optimizer_fp32_config):
+def test_f32_optimizers(optimizer_fp32_config, build_trainer):
     def closure(x):
         def _closure() -> float:
             return x
 
         return _closure
 
-    (x_data, y_data), model, loss_fn = build_environment()
+    (x_data, y_data), model, loss_fn = build_trainer
 
     optimizer_class, config, iterations = optimizer_fp32_config
 
