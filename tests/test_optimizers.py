@@ -27,15 +27,20 @@ from tests.utils import (
 )
 
 
+@pytest.fixture(scope='function')
+def environment():
+    return build_environment()
+
+
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
-def test_f32_optimizers(optimizer_fp32_config):
+def test_f32_optimizers(optimizer_fp32_config, environment):
     def closure(x):
         def _closure() -> float:
             return x
 
         return _closure
 
-    (x_data, y_data), model, loss_fn = build_environment()
+    (x_data, y_data), model, loss_fn = environment
 
     optimizer_class, config, iterations = optimizer_fp32_config
 
@@ -62,17 +67,14 @@ def test_f32_optimizers(optimizer_fp32_config):
 
         loss.backward()
 
-        if optimizer_name == 'AliG':
-            optimizer.step(closure(loss))
-        else:
-            optimizer.step()
+        optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
 
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
-def test_lookahead(pullback_momentum):
-    (x_data, y_data), model, loss_fn = build_environment()
+def test_lookahead(pullback_momentum, environment):
+    (x_data, y_data), model, loss_fn = environment
 
     optimizer = Lookahead(load_optimizer('adamp')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
 
@@ -94,8 +96,8 @@ def test_lookahead(pullback_momentum):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_sam_optimizers(adaptive):
-    (x_data, y_data), model, loss_fn = build_environment()
+def test_sam_optimizers(adaptive, environment):
+    (x_data, y_data), model, loss_fn = environment
 
     optimizer = SAM(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive)
 
@@ -115,8 +117,8 @@ def test_sam_optimizers(adaptive):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_sam_optimizers_with_closure(adaptive):
-    (x_data, y_data), model, loss_fn = build_environment()
+def test_sam_optimizers_with_closure(adaptive, environment):
+    (x_data, y_data), model, loss_fn = environment
 
     optimizer = SAM(model.parameters(), load_optimizer('adamp'), lr=5e-1, adaptive=adaptive)
 
@@ -140,14 +142,10 @@ def test_sam_optimizers_with_closure(adaptive):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_gsam_optimizers(adaptive):
+def test_gsam_optimizers(adaptive, environment):
     pytest.skip('skip GSAM optimizer')
 
-    (x_data, y_data), model, loss_fn = build_environment()
-
-    x_data = x_data.cuda()
-    y_data = y_data.cuda()
-    model.cuda()
+    (x_data, y_data), model, loss_fn = environment
 
     lr: float = 5e-1
     num_iterations: int = 25
@@ -174,8 +172,8 @@ def test_gsam_optimizers(adaptive):
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adanorm_optimizers(optimizer_config):
-    (x_data, y_data), model, loss_fn = build_environment()
+def test_adanorm_optimizers(optimizer_config, environment):
+    (x_data, y_data), model, loss_fn = environment
 
     optimizer_class, config, num_iterations = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
@@ -215,8 +213,8 @@ def test_adanorm_condition(optimizer_config):
 
 
 @pytest.mark.parametrize('optimizer_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adamd_optimizers(optimizer_config):
-    (x_data, y_data), model, loss_fn = build_environment()
+def test_adamd_optimizers(optimizer_config, environment):
+    (x_data, y_data), model, loss_fn = environment
 
     optimizer_class, config, num_iterations = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
@@ -343,13 +341,14 @@ def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
         param.grad = None
 
     optimizer = load_optimizer(optimizer_name)([param])
-    assert str(optimizer) == optimizer_name
     optimizer.reset()
+
+    assert str(optimizer) == optimizer_name
 
 
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2])
-def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
-    (x_data, y_data), _, loss_fn = build_environment()
+def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type, environment):
+    (x_data, y_data), _, loss_fn = environment
 
     model = nn.Sequential(
         nn.Linear(2, 4096),
@@ -382,5 +381,6 @@ def test_sm3_make_sparse():
 
 def test_sm3_rank0():
     optimizer = load_optimizer('sm3')([simple_zero_rank_parameter(True)])
-    assert str(optimizer) == 'SM3'
     optimizer.step()
+
+    assert str(optimizer) == 'SM3'
