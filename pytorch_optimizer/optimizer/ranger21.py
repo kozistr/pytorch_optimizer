@@ -96,12 +96,9 @@ class Ranger21(Optimizer, BaseOptimizer):
         self.lookahead_blending_alpha = lookahead_blending_alpha
         self.norm_loss_factor = norm_loss_factor
 
-        # lookahead
         self.lookahead_step: int = 0
-
-        # learning rate
-        self.starting_lr = lr
-        self.current_lr = lr
+        self.starting_lr: float = lr
+        self.current_lr: float = lr
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -114,7 +111,6 @@ class Ranger21(Optimizer, BaseOptimizer):
         }
         super().__init__(params, defaults)
 
-        # warmup iterations
         self.num_warm_up_iterations: int = (
             self.build_warm_up_iterations(num_iterations, betas[1])
             if num_warm_up_iterations is None
@@ -140,8 +136,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 state['grad_ma'] = torch.zeros_like(p)
                 state['variance_ma'] = torch.zeros_like(p)
-                state['lookahead_params'] = torch.empty_like(p)
-                state['lookahead_params'].copy_(p)
+                state['lookahead_params'] = p.clone()
                 state['neg_grad_ma'] = torch.zeros_like(p)
                 state['max_variance_ma'] = torch.zeros_like(p)
 
@@ -162,28 +157,21 @@ class Ranger21(Optimizer, BaseOptimizer):
 
         warm_up_current_pct: float = min(1.0, (step / self.num_warm_up_iterations))
 
-        new_lr: float = lr * warm_up_current_pct
-        self.current_lr = new_lr
+        self.current_lr = lr * warm_up_current_pct
 
-        return new_lr
+        return self.current_lr
 
     def warm_down(self, lr: float, iteration: int) -> float:
         if iteration < self.start_warm_down:
             return lr
 
         # start iteration from 1, not 0
-        warm_down_iteration: int = (iteration + 1) - self.start_warm_down
-        warm_down_iteration = max(warm_down_iteration, 1)
+        warm_down_iteration: int = max((iteration + 1) - self.start_warm_down, 1)
+        warm_down_pct: float = min(warm_down_iteration / (self.num_warm_down_iterations + 1), 1.0)
 
-        warm_down_pct: float = warm_down_iteration / (self.num_warm_down_iterations + 1)
-        warm_down_pct = min(warm_down_pct, 1.0)
+        self.current_lr = max(self.starting_lr - self.warm_down_lr_delta * warm_down_pct, self.min_lr)
 
-        new_lr: float = self.starting_lr - self.warm_down_lr_delta * warm_down_pct
-        new_lr = max(new_lr, self.min_lr)
-
-        self.current_lr = new_lr
-
-        return new_lr
+        return self.current_lr
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -220,8 +208,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['grad_ma'] = torch.zeros_like(p)
                     state['variance_ma'] = torch.zeros_like(p)
-                    state['lookahead_params'] = torch.empty_like(p)
-                    state['lookahead_params'].copy_(p)
+                    state['lookahead_params'] = p.clone()
                     state['neg_grad_ma'] = torch.zeros_like(p)
                     state['max_variance_ma'] = torch.zeros_like(p)
 
@@ -229,8 +216,8 @@ class Ranger21(Optimizer, BaseOptimizer):
                 grad.copy_(agc(p, grad, self.agc_eps, self.agc_clipping_value))
 
                 # Apply gradient centralization & normalization
-                grad = centralize_gradient(grad, gc_conv_only=False)
-                grad = normalize_gradient(grad)
+                centralize_gradient(grad, gc_conv_only=False)
+                normalize_gradient(grad)
 
                 # second moment estimation
                 # using positive-negative momentum and bias correction
@@ -245,7 +232,6 @@ class Ranger21(Optimizer, BaseOptimizer):
 
         # Phase 2 - Apply weight decay and step
         for group in self.param_groups:
-            lr: float = group['lr']
             beta1, beta2 = group['betas']
 
             bias_correction1: float = 1.0 - beta1 ** group['step']  # fmt: skip
@@ -254,7 +240,7 @@ class Ranger21(Optimizer, BaseOptimizer):
             noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
 
             # warm up & down
-            lr = self.warm_up_dampening(lr, group['step'])
+            lr: float = self.warm_up_dampening(group['lr'], group['step'])
             lr = self.warm_down(lr, group['step'])
 
             for p in group['params']:
@@ -287,16 +273,16 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 de_nom = (variance_ma.sqrt() / bias_correction2_sq).add_(group['eps'])
 
+                if self.use_softplus:
+                    de_nom = f.softplus(de_nom, beta=self.beta_softplus)
+
                 grad = p.grad
-                grad = centralize_gradient(grad, gc_conv_only=False)
-                grad = normalize_gradient(grad)
+                centralize_gradient(grad, gc_conv_only=False)
+                normalize_gradient(grad)
 
                 grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
 
-                step_size: float = lr if group['adam_debias'] else lr / bias_correction1
-
-                if self.use_softplus:
-                    de_nom = f.softplus(de_nom, beta=self.beta_softplus)
+                step_size: float = self.apply_adam_debias(group['adam_debias'], lr, bias_correction1)
 
                 pn_momentum = grad_ma.mul(1.0 + 1.0).add(neg_grad_ma, alpha=-1.0).mul(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)

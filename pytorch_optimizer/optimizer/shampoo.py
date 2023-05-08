@@ -45,7 +45,6 @@ class Shampoo(Optimizer, BaseOptimizer):
         self.validate_non_negative(matrix_eps, 'matrix_eps')
 
         self.preconditioning_compute_steps = preconditioning_compute_steps
-        self.matrix_eps = matrix_eps
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -53,6 +52,7 @@ class Shampoo(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
+            'matrix_eps': matrix_eps,
         }
         super().__init__(params, defaults)
 
@@ -93,7 +93,7 @@ class Shampoo(Optimizer, BaseOptimizer):
                         state['momentum_buffer'] = grad.clone()
 
                     for dim_id, dim in enumerate(grad.size()):
-                        state[f'pre_cond_{dim_id}'] = self.matrix_eps * torch.eye(dim, out=grad.new(dim, dim))
+                        state[f'pre_cond_{dim_id}'] = group['matrix_eps'] * torch.eye(dim, out=grad.new(dim, dim))
                         state[f'inv_pre_cond_{dim_id}'] = grad.new(dim, dim).zero_()
 
                 if momentum > 0.0:

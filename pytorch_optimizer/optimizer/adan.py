@@ -130,7 +130,7 @@ class Adan(Optimizer, BaseOptimizer):
                 grad.mul_(clip_global_grad_norm)
 
                 if self.use_gc:
-                    grad = centralize_gradient(grad, gc_conv_only=False)
+                    centralize_gradient(grad, gc_conv_only=False)
 
                 grad_diff = state['previous_grad']
                 grad_diff.add_(grad)
