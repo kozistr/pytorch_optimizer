@@ -213,7 +213,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                     state['max_variance_ma'] = torch.zeros_like(p)
 
                 # Apply Adaptive Gradient Clipping (AGC)
-                grad.copy_(agc(p, grad, self.agc_eps, self.agc_clipping_value))
+                agc(p, grad, self.agc_eps, self.agc_clipping_value, out=grad)
 
                 # Apply gradient centralization & normalization
                 centralize_gradient(grad, gc_conv_only=False)
