@@ -456,3 +456,11 @@ AdaDelta
 
 .. autoclass:: pytorch_optimizer.AdaDelta
     :members:
+
+.. _Amos:
+
+Amos
+----
+
+.. autoclass:: pytorch_optimizer.Amos
+    :members:
