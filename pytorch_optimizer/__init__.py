@@ -34,6 +34,7 @@ from pytorch_optimizer.optimizer.adasmooth import AdaSmooth
 from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.aggmo import AggMo
 from pytorch_optimizer.optimizer.alig import AliG
+from pytorch_optimizer.optimizer.amos import Amos
 from pytorch_optimizer.optimizer.apollo import Apollo
 from pytorch_optimizer.optimizer.avagrad import AvaGrad
 from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptSGD
@@ -145,6 +146,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AvaGrad,
     AdaShift,
     AdaDelta,
+    Amos,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
