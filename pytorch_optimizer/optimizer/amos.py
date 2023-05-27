@@ -109,7 +109,7 @@ class Amos(Optimizer, BaseOptimizer):
                 exp_avg_sq = state['exp_avg_sq']
                 exp_avg_sq.mul_(beta).add_(g2, alpha=1.0 - beta)
 
-                r_v_hat = bias_correction / torch.max(exp_avg_sq, group['eps'])
+                r_v_hat = bias_correction / max(exp_avg_sq, group['eps'])
 
                 b = state['decay']
                 decay_factor_c = torch.rsqrt(1.0 + lr_sq * b / 4.0)
