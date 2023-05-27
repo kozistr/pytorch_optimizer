@@ -266,7 +266,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         bias_correction: bool = False,
-        eps: float = 0.0,
+        eps: float = 1e-8,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
