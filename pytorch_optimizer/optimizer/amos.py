@@ -129,13 +129,14 @@ class Amos(Optimizer, BaseOptimizer):
                 update.add_(r_v_hat.sqrt() * grad, alpha=init_lr)
                 update.mul_(decay_factor_d)
 
-                p.add_(-update)
                 b.mul_(1.0 + gamma).add_(gamma)
 
                 if momentum > 0.0:
                     exp_avg = state['exp_avg']
                     exp_avg.mul_(momentum).add_(update, alpha=1.0 - momentum)
 
-                    p.copy_(exp_avg)
+                    update.copy_(exp_avg)
+
+                p.add_(-update)
 
         return loss
