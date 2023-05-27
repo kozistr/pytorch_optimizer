@@ -123,9 +123,9 @@ class Amos(Optimizer, BaseOptimizer):
                 p.add_(-update)
                 b.mul_(1.0 + gamma).add_(gamma)
 
-                if group['momentum'] > 0.0:
+                if momentum > 0.0:
                     exp_avg = state['exp_avg']
-                    exp_avg.mul_(group['momentum']).add_(p, alpha=1.0 - group['momentum'])
+                    exp_avg.mul_(momentum).add_(p, alpha=1.0 - momentum)
 
                     p.copy_(exp_avg)
 
