@@ -17,6 +17,8 @@ class Amos(Optimizer, BaseOptimizer):
         as the learning rate. similarity with beta2 in Adam.
     :param momentum: float. Exponential decay rate for optional moving average of updates.
     :param extra_l2: float. Additional L2 regularization.
+    :param c_coef: float. Coefficient for decay_factor_c.
+    :param d_coef: float. Coefficient for decay_factor_d.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -27,6 +29,8 @@ class Amos(Optimizer, BaseOptimizer):
         beta: float = 0.999,
         momentum: float = 0.0,
         extra_l2: float = 0.0,
+        c_coef: float = 0.25,
+        d_coef: float = 0.25,
         eps: float = 1e-18,
     ):
         self.validate_learning_rate(lr)
@@ -34,6 +38,9 @@ class Amos(Optimizer, BaseOptimizer):
         self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[)')
         self.validate_non_negative(extra_l2, 'extra_l2')
         self.validate_non_negative(eps, 'eps')
+
+        self.c_coef = c_coef
+        self.d_coef = d_coef
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -112,20 +119,22 @@ class Amos(Optimizer, BaseOptimizer):
                 r_v_hat = bias_correction / max(exp_avg_sq, group['eps'])
 
                 b = state['decay']
-                decay_factor_c = torch.rsqrt(1.0 + lr_sq * b / 4.0)
-                decay_factor_d = torch.reciprocal(1.0 + math.sqrt(init_lr) * b / 4.0)
+                decay_factor_c = torch.rsqrt(1.0 + self.c_coef * lr_sq * b)
+                decay_factor_d = torch.reciprocal(1.0 + self.d_coef * math.sqrt(init_lr) * b)
 
                 gamma = decay_factor_c * (group['lr'] ** 2) * r_v_hat * g2
-                l2_reg = (gamma - group['extra_l2']) * p / 2.0
 
-                update = decay_factor_d * (init_lr * r_v_hat.sqrt() * grad + l2_reg)
+                update = p.clone()
+                update.mul_((gamma - group['extra_l2']) / 2.0)
+                update.add_(r_v_hat.sqrt() * grad, alpha=init_lr)
+                update.mul_(decay_factor_d)
 
                 p.add_(-update)
                 b.mul_(1.0 + gamma).add_(gamma)
 
                 if momentum > 0.0:
                     exp_avg = state['exp_avg']
-                    exp_avg.mul_(momentum).add_(p, alpha=1.0 - momentum)
+                    exp_avg.mul_(momentum).add_(update, alpha=1.0 - momentum)
 
                     p.copy_(exp_avg)
 
