@@ -169,6 +169,6 @@ def test_a2grad_variant():
 def test_amos_get_scale():
     opt = load_optimizer('amos')
 
-    assert 0.5 == opt.get_scale(torch.zeros((1,)))
-    assert 0.7071067811865476 == opt.get_scale(torch.zeros((1, 4)))
-    assert 0.25 == opt.get_scale(torch.zeros((1, 16, 2, 2)))
+    assert opt.get_scale(torch.zeros((1,))) == 0.5
+    assert opt.get_scale(torch.zeros((1, 4))) == 0.7071067811865476
+    assert opt.get_scale(torch.zeros((1, 16, 2, 2))) == 0.25
