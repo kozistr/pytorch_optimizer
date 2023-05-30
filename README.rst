@@ -16,7 +16,7 @@ pytorch-optimizer
 
 | **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch.
 | I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.
-| Currently, 51 optimizers, 6 lr schedulers are supported!
+| Currently, 52 optimizers, 6 lr schedulers are supported!
 |
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
@@ -213,7 +213,9 @@ You can check the supported optimizers & lr schedulers.
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 | AdaDelta     | *An Adaptive Learning Rate Method*                                                                |                                                                                   | `https://arxiv.org/abs/1212.5701v1 <https://arxiv.org/abs/1212.5701v1>`__                     | `cite <https://ui.adsabs.harvard.edu/abs/2012arXiv1212.5701Z/exportcitation>`__                                      |
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
-| Amos         | * An Adam-style Optimizer with Adaptive Weight Decay towards Model-Oriented Scale*                | `github <https://github.com/google-research/jestimator>`__                        | `https://arxiv.org/abs/2210.11693 <https://arxiv.org/abs/2210.11693>`__                       | `cite <https://ui.adsabs.harvard.edu/abs/2022arXiv221011693T/exportcitation>`__                                      |
+| Amos         | *An Adam-style Optimizer with Adaptive Weight Decay towards Model-Oriented Scale*                 | `github <https://github.com/google-research/jestimator>`__                        | `https://arxiv.org/abs/2210.11693 <https://arxiv.org/abs/2210.11693>`__                       | `cite <https://ui.adsabs.harvard.edu/abs/2022arXiv221011693T/exportcitation>`__                                      |
++--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
+| Sophia       | *A Scalable Stochastic Second-order Optimizer for Language Model Pre-training*                    | `github <https://github.com/Liuhong99/Sophia>`__                                  | `https://arxiv.org/abs/2305.14342 <https://arxiv.org/abs/2305.14342>`__                       | `cite <https://github.com/Liuhong99/Sophia#news-and-updates>`__                                                      |
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 
 Useful Resources
