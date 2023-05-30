@@ -464,3 +464,11 @@ Amos
 
 .. autoclass:: pytorch_optimizer.Amos
     :members:
+
+.. _Sophia:
+
+Sophia
+------
+
+.. autoclass:: pytorch_optimizer.Sophia
+    :members:
