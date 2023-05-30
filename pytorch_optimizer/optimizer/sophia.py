@@ -92,16 +92,9 @@ class Sophia(Optimizer, BaseOptimizer):
         for group in self.param_groups:
             _, beta2 = group['betas']
             for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
-
                 state = self.state[p]
-
-                state['hessian'].mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+                if 'hessian' in state:
+                    state['hessian'].mul_(beta2).addcmul_(p.grad, p.grad, value=1.0 - beta2)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None, bs: int = 4096) -> LOSS:
