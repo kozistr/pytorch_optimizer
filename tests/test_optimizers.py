@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 import torch
 from torch import nn
+from torch.nn.functional import cross_entropy
 
 from pytorch_optimizer import GSAM, SAM, CosineScheduler, Lookahead, PCGrad, ProportionScheduler, load_optimizer
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
@@ -237,6 +238,38 @@ def test_adamd_optimizers(optimizer_config, environment):
         optimizer.step()
 
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
+
+def test_sophia_optimizer(environment):
+    (x_data, y_data), model, loss_fn = environment
+    torch.autograd.set_detect_anomaly(True)
+    optimizer = load_optimizer('sophia')(list(model.parameters()))
+
+    k: int = 2
+    bs: int = len(x_data)
+    init_loss, loss = np.inf, np.inf
+    for i in range(5):
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward(retain_graph=True)
+
+        optimizer.step(bs=bs)
+        optimizer.zero_grad()
+
+        if i % k == 1:
+            sampled_pred = torch.distributions.Categorical(logits=y_pred).sample()
+
+            sampled_loss = cross_entropy(y_pred, sampled_pred.view(-1))
+            sampled_loss.backward()
+
+            optimizer.update_hessian()
+            optimizer.zero_grad()
+
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('reduction', ['mean', 'sum'])
