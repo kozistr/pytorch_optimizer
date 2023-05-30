@@ -39,7 +39,7 @@ class Sophia(Optimizer, BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param rho: float. rho. 0.03 for 125M Sophia-G, 0.05 for 0.05 for 355M Sophia-G.
+    :param rho: float. rho. consider choosing rho in [0.01, 0.1]. 0.03 for 125M Sophia-G, 0.05 for 355M Sophia-G.
         Assume, larger model, bigger rho needs.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
