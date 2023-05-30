@@ -66,6 +66,7 @@ class Sophia(Optimizer, BaseOptimizer):
 
         defaults: DEFAULTS = {
             'lr': lr,
+            'betas': betas,
             'rho': rho,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
