@@ -81,6 +81,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
     power_iteration,
 )
 from pytorch_optimizer.optimizer.sm3 import SM3
+from pytorch_optimizer.optimizer.sophia import Sophia
 from pytorch_optimizer.optimizer.srmm import SRMM
 from pytorch_optimizer.optimizer.swats import SWATS
 from pytorch_optimizer.optimizer.utils import (
@@ -113,6 +114,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Nero,
     PNM,
     MSVAG,
+    Sophia,
     RAdam,
     Ranger,
     Ranger21,
