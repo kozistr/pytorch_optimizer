@@ -64,7 +64,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        if self.step % self.update_period == 0:
+        if self._step % self.update_period == 0:
             self.compute_hutchinson_hessian(self.n_samples)
 
         for group in self.param_groups:
@@ -99,11 +99,11 @@ class AdaHessian(Optimizer, BaseOptimizer):
 
                 # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(p.grad, alpha=1 - beta1)
-                if self.step % self.update_period == 0:
+                if self._step % self.update_period == 0:
                     exp_hessian_diag_sq.mul_(beta2).addcmul_(state['hessian'], state['hessian'], value=1 - beta2)
 
-                bias_correction1 = 1 - beta1 ** self.step
-                bias_correction2 = 1 - beta2 ** self.step
+                bias_correction1 = 1 - beta1 ** self._step
+                bias_correction2 = 1 - beta2 ** self._step
 
                 k = group['hessian_power']
                 denom = (exp_hessian_diag_sq / bias_correction2).pow_(k / 2).add_(group['eps'])
@@ -112,5 +112,5 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 step_size = group['lr'] / bias_correction1
                 p.addcdiv_(exp_avg, denom, value=-step_size)
 
-        self.step += 1
+        self._step += 1
         return loss
