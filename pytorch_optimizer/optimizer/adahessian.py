@@ -43,8 +43,6 @@ class AdaHessian(Optimizer, BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
         self.validate_range(hessian_power, "Hessian Power", 0, 1, range_type='(]')
 
-        self.rng_state = None
-
         defaults: DEFAULTS = {
             'lr': lr,
             'betas': betas,
@@ -56,53 +54,8 @@ class AdaHessian(Optimizer, BaseOptimizer):
             'n_samples': n_samples,
             'eps': eps,
         }
+        self._step = 0
         super().__init__(params, defaults)
-        for group in self.param_groups:
-            group['hessian_step'] = 0
-            for p in group['params']:
-                p.hess = None
-
-    def zero_hessian(self):
-        for group in self.param_groups:
-            if group['hessian_step'] % self.update_each != 0:
-                continue
-
-            for p in group['params']:
-                if p.hess is not None:
-                    p.hess.zero_()
-
-    @torch.no_grad()
-    def set_hessian(self):
-        """
-        Computes the Hutchinson approximation of the hessian trace and accumulates it for each trainable parameter.
-        """
-
-        params = []
-        for group in self.param_groups:
-            if group['hessian_step'] % self.update_each == 0:
-                for p in group['params']:
-                    if p.grad is not None:
-                        params.append(p)
-
-            group['hessian_step'] += 1
-
-        if len(params) == 0:
-            return
-
-        generator = torch.Generator(params[0].device)
-        if self.rng_state is not None:
-            generator.set_state(self.rng_state)
-
-        grads = [p.grad for p in params]
-
-        for i in range(self.n_samples):
-            # Rademacher distribution {-1.0, 1.0}
-            zs = [torch.randint(0, 2, p.size(), generator=generator, device=p.device) * 2.0 - 1.0 for p in params]
-            h_zs = torch.autograd.grad(grads, params, grad_outputs=zs, only_inputs=True, retain_graph=i < self.n_samples - 1)
-            for h_z, z, p in zip(h_zs, zs, params):
-                p.hess += h_z * z / self.n_samples  # approximate the expected values of z*(H@z)
-
-        self.rng_state = generator.get_state()
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -111,13 +64,12 @@ class AdaHessian(Optimizer, BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        # TODO: check if per-group step is really useful, if not mod here
-        self.zero_hessian()
-        self.set_hessian()
+        if self.step % self.update_period == 0:
+            self.compute_hutchinson_hessian(self.n_samples)
 
         for group in self.param_groups:
             for p in group['params']:
-                if p.grad is None or p.hess is None:
+                if p.grad is None:
                     continue
 
                 if self.average_conv_kernel and p.dim() == 4:
@@ -129,8 +81,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
 
                 # State initialization
                 state = self.state[p]
-                if len(state) <= 1:
-                    state['step'] = 0
+                if 'exp_avg' not in state:
                     state['exp_avg'] = torch.zeros_like(p.data)  # Exponential moving average of gradient values
                     state['exp_hessian_diag_sq'] = torch.zeros_like(p.data)  # Exponential moving average of Hessian diagonal square values
 
@@ -145,14 +96,14 @@ class AdaHessian(Optimizer, BaseOptimizer):
 
                 exp_avg, exp_hessian_diag_sq = state['exp_avg'], state['exp_hessian_diag_sq']
                 beta1, beta2 = group['betas']
-                state['step'] += 1
 
                 # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(p.grad, alpha=1 - beta1)
-                exp_hessian_diag_sq.mul_(beta2).addcmul_(p.hess, p.hess, value=1 - beta2)
+                if self.step % self.update_period == 0:
+                    exp_hessian_diag_sq.mul_(beta2).addcmul_(state['hessian'], state['hessian'], value=1 - beta2)
 
-                bias_correction1 = 1 - beta1 ** state['step']
-                bias_correction2 = 1 - beta2 ** state['step']
+                bias_correction1 = 1 - beta1 ** self.step
+                bias_correction2 = 1 - beta2 ** self.step
 
                 k = group['hessian_power']
                 denom = (exp_hessian_diag_sq / bias_correction2).pow_(k / 2).add_(group['eps'])
@@ -161,4 +112,5 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 step_size = group['lr'] / bias_correction1
                 p.addcdiv_(exp_avg, denom, value=-step_size)
 
+        self.step += 1
         return loss

@@ -52,6 +52,7 @@ class SophiaH(Optimizer, BaseOptimizer):
             'n_samples': n_samples,
             'eps': eps,
         }
+        self._step = 0
         super().__init__(params, defaults)
 
     @torch.no_grad()
@@ -61,7 +62,7 @@ class SophiaH(Optimizer, BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        if self.step % self.update_period == 0:
+        if self._step % self.update_period == 0:
             self.compute_hutchinson_hessian(self.n_smaples)
 
         for group in self.param_groups:
@@ -92,7 +93,7 @@ class SophiaH(Optimizer, BaseOptimizer):
                 momentum, hessian_moment = state['momentum'], state['hessian_moment']
 
                 momentum.mul_(beta1).add_(p.grad, alpha=1.0-beta1)
-                if self.step % self.update_period == 0:
+                if self._step % self.update_period == 0:
                     hessian_moment.mul_(beta2).add_(state['hessian'], alpha=1.0-beta2)
 
                 # See https://shreyansh26.github.io/post/2023-05-28_sophia_scalable_second_order_optimizer_llms/#per-coordinate-clipping
@@ -101,5 +102,5 @@ class SophiaH(Optimizer, BaseOptimizer):
                 update = torch.clip(momentum/torch.clip(hessian_moment, group['eps']), -group['p'], group['p'])
                 p.add_(update, value=-group['lr'])
 
-        self.step += 1
+        self._step += 1
         return loss
