@@ -11,6 +11,36 @@ from pytorch_optimizer.base.types import BETAS
 class BaseOptimizer(ABC):
     r"""Base optimizer class."""
 
+    @torch.no_grad()
+    def compute_hutchinson_hessian(self, nsamples: int = 1, pre_zero=True, alpha=1.0):
+        """
+        Hutchinsons approximate hessian, added to the state under key 'hessian'
+        """
+        params = []
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is not None:
+                    # Initialize Hessian state
+                    if 'hessian' in self.state[p]:
+                        if pre_zero:
+                            self.state[p]['hessian'].zero_()
+                    else:
+                        self.state[p]['hessian'] = torch.zeros_like(p.data)
+                    params.append(p)
+
+        if len(params) == 0:
+            return
+
+        grads = [p.grad for p in params]
+
+        for i in range(nsamples):
+            # Rademacher distribution {-1.0, 1.0}
+            zs = [torch.randint(0, 2, p.size(), device=p.device) * 2.0 - 1.0 for p in params]
+            h_zs = torch.autograd.grad(grads, params, grad_outputs=zs, only_inputs=True, retain_graph=i < nsamples - 1)
+            for h_z, z, p in zip(h_zs, zs, params):
+                # approximate the expected values of z*(H@z)
+                self.state[p]['hessian'].add_(h_z * z, alpha=1/nsamples * alpha)
+
     @staticmethod
     def apply_weight_decay(
         p: torch.Tensor,
