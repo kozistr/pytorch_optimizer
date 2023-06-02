@@ -34,9 +34,11 @@ class BaseOptimizer(ABC):
         grads = [p.grad for p in params]
 
         for i in range(nsamples):
+            # Gaussian N(0,Id)
+            zs = [torch.randn(p.size(), device=p.device) for p in params]
             # Rademacher distribution {-1.0, 1.0}
-            zs = [torch.randint(0, 2, p.size(), device=p.device) * 2.0 - 1.0 for p in params]
-            h_zs = torch.autograd.grad(grads, params, grad_outputs=zs, only_inputs=True, retain_graph=i < nsamples - 1)
+            # zs = [torch.randint(0, 2, p.size(), device=p.device) * 2.0 - 1.0 for p in params]
+            h_zs = torch.autograd.grad(grads, params, grad_outputs=zs, retain_graph=i < nsamples - 1)
             for h_z, z, p in zip(h_zs, zs, params):
                 # approximate the expected values of z*(H@z)
                 self.state[p]['hessian'].add_(h_z * z, alpha=1/nsamples * alpha)

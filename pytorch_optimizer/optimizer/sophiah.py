@@ -48,12 +48,21 @@ class SophiaH(Optimizer, BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'p': p,
-            'update_period': update_period,
-            'n_samples': n_samples,
             'eps': eps,
         }
+        self.n_samples = n_samples
+        self.update_period = update_period
         self._step = 0
         super().__init__(params, defaults)
+
+    @torch.no_grad()
+    def reset(self):
+        self._step = 0
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+                state['momentum'] = torch.zeros_like(p)
+                state['hessian_moment'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -63,7 +72,7 @@ class SophiaH(Optimizer, BaseOptimizer):
                 loss = closure()
 
         if self._step % self.update_period == 0:
-            self.compute_hutchinson_hessian(self.n_smaples)
+            self.compute_hutchinson_hessian(self.n_samples)
 
         for group in self.param_groups:
             for p in group['params']:
@@ -77,8 +86,8 @@ class SophiaH(Optimizer, BaseOptimizer):
                 # State initialization
                 state = self.state[p]
                 if 'momentum' not in state:
-                    state['momentum'] = torch.zeros_like(p.data)
-                    state['hessian_moment'] = torch.zeros_like(p.data)
+                    state['momentum'] = torch.zeros_like(p)
+                    state['hessian_moment'] = torch.zeros_like(p)
 
                 self.apply_weight_decay(
                     p=p,
@@ -100,7 +109,7 @@ class SophiaH(Optimizer, BaseOptimizer):
                 # The official implementation uses a different method to achieve the same thing (might be faster?):
                 # https://github.com/Liuhong99/Sophia/blob/bff9df9b584e2084fe037af1ab38f4db31f0acca/sophia.py#L201
                 update = torch.clip(momentum/torch.clip(hessian_moment, group['eps']), -group['p'], group['p'])
-                p.add_(update, value=-group['lr'])
+                p.add_(update, alpha=-group['lr'])
 
         self._step += 1
         return loss

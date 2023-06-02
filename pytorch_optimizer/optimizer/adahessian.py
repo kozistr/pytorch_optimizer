@@ -43,6 +43,8 @@ class AdaHessian(Optimizer, BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
         self.validate_range(hessian_power, "Hessian Power", 0, 1, range_type='(]')
 
+        self.update_period = update_period
+        self.n_samples = n_samples
         defaults: DEFAULTS = {
             'lr': lr,
             'betas': betas,
@@ -50,12 +52,19 @@ class AdaHessian(Optimizer, BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'hessian_power': hessian_power,
-            'update_period': update_period,
-            'n_samples': n_samples,
             'eps': eps,
         }
         self._step = 0
         super().__init__(params, defaults)
+
+    @torch.no_grad()
+    def reset(self):
+        self._step = 0
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_hessian_diag_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -71,9 +80,6 @@ class AdaHessian(Optimizer, BaseOptimizer):
             for p in group['params']:
                 if p.grad is None:
                     continue
-
-                if self.average_conv_kernel and p.dim() == 4:
-                    p.hess = torch.abs(p.hess).mean(dim=[2, 3], keepdim=True).expand_as(p.hess).clone()
 
                 grad = p.grad
                 if grad.is_sparse:
@@ -100,10 +106,12 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(p.grad, alpha=1 - beta1)
                 if self._step % self.update_period == 0:
+                    # if self.average_conv_kernel and p.dim() == 4:
+                    #     state['hessian'] = torch.abs(state['hessian']).mean(dim=[2, 3], keepdim=True).expand_as(state['hessian']).clone()
                     exp_hessian_diag_sq.mul_(beta2).addcmul_(state['hessian'], state['hessian'], value=1 - beta2)
 
-                bias_correction1 = 1 - beta1 ** self._step
-                bias_correction2 = 1 - beta2 ** self._step
+                bias_correction1 = 1 - beta1 ** (self._step+1)
+                bias_correction2 = 1 - beta2 ** (self._step+1)
 
                 k = group['hessian_power']
                 denom = (exp_hessian_diag_sq / bias_correction2).pow_(k / 2).add_(group['eps'])
