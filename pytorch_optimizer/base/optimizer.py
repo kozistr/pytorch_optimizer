@@ -5,17 +5,20 @@ from typing import List, Optional, Tuple, Union
 import torch
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
-from pytorch_optimizer.base.types import BETAS
+from pytorch_optimizer.base.types import BETAS, HUTCHINSON_G
 
 
 class BaseOptimizer(ABC):
     r"""Base optimizer class."""
 
     @torch.no_grad()
-    def compute_hutchinson_hessian(self, nsamples: int = 1, pre_zero=True, alpha=1.0):
+    def compute_hutchinson_hessian(self, nsamples: int = 1, pre_zero=True, alpha=1.0, distribution: HUTCHINSON_G = 'gaussian'):
         """
         Hutchinsons approximate hessian, added to the state under key 'hessian'
         """
+        if distribution not in ['gaussian', 'rademacher']:
+            raise NotImplementedError(f"Hessian with distribution {distribution} is not implemented")
+
         params = []
         for group in self.param_groups:
             for p in group['params']:
@@ -34,14 +37,17 @@ class BaseOptimizer(ABC):
         grads = [p.grad for p in params]
 
         for i in range(nsamples):
-            # Gaussian N(0,Id)
-            zs = [torch.randn(p.size(), device=p.device) for p in params]
-            # Rademacher distribution {-1.0, 1.0}
-            # zs = [torch.randint(0, 2, p.size(), device=p.device) * 2.0 - 1.0 for p in params]
+            if distribution == 'gaussian':
+                # Gaussian N(0,Id)
+                zs = [torch.randn(p.size(), device=p.device) for p in params]
+            elif distribution == 'rademacher':
+                # Rademacher distribution {-1.0, 1.0}
+                zs = [torch.randint(0, 2, p.size(), dtype=p.dtype, device=p.device) * 2.0 - 1.0 for p in params]
+
             h_zs = torch.autograd.grad(grads, params, grad_outputs=zs, retain_graph=i < nsamples - 1)
             for h_z, z, p in zip(h_zs, zs, params):
                 # approximate the expected values of z*(H@z)
-                self.state[p]['hessian'].add_(h_z * z, alpha=1/nsamples * alpha)
+                self.state[p]['hessian'].add_(h_z * z, alpha=(1/nsamples) * alpha)
 
     @staticmethod
     def apply_weight_decay(

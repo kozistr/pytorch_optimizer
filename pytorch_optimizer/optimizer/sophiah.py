@@ -3,7 +3,7 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, HUTCHINSON_G
 
 
 class SophiaH(Optimizer, BaseOptimizer):
@@ -33,6 +33,7 @@ class SophiaH(Optimizer, BaseOptimizer):
                  p: float = 25.,
                  update_period: int = 10,
                  n_samples: int = 1,
+                 hessian_distribution: HUTCHINSON_G = 'gaussian',
                  eps: float = 1e-12):
 
         self.validate_learning_rate(lr)

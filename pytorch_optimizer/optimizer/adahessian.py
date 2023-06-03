@@ -3,7 +3,7 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, HUTCHINSON_G
 
 # Modified from https://github.com/davda54/ada-hessian/blob/master/ada_hessian.py (MIT David Samuel)
 
@@ -35,6 +35,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
                  hessian_power: float = 1.0,
                  update_period: int = 1,
                  n_samples: int = 1,
+                 hessian_distribution: HUTCHINSON_G = 'rademacher',
                  eps: float = 1e-16):
 
         self.validate_learning_rate(lr)
@@ -64,7 +65,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
             for p in group['params']:
                 state = self.state[p]
                 state['exp_avg'] = torch.zeros_like(p)
-                state['exp_hessian_diag_sq'] = torch.zeros_like(p)
+                state['exp_hessian_diag_sq'] = state['hessian'].clone()
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -88,8 +89,9 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 # State initialization
                 state = self.state[p]
                 if 'exp_avg' not in state:
-                    state['exp_avg'] = torch.zeros_like(p.data)  # Exponential moving average of gradient values
-                    state['exp_hessian_diag_sq'] = torch.zeros_like(p.data)  # Exponential moving average of Hessian diagonal square values
+                    state['exp_avg'] = torch.zeros_like(p.data)
+                    # NOTE: zeroing-out the hessian causes instability
+                    state['exp_hessian_diag_sq'] = state['hessian'].clone()
 
                 self.apply_weight_decay(
                     p=p,
