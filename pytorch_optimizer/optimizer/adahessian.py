@@ -44,6 +44,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
         self.validate_range(hessian_power, "Hessian Power", 0, 1, range_type='(]')
 
+        self.distribution = hessian_distribution
         self.update_period = update_period
         self.n_samples = n_samples
         defaults: DEFAULTS = {
@@ -65,7 +66,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
             for p in group['params']:
                 state = self.state[p]
                 state['exp_avg'] = torch.zeros_like(p)
-                state['exp_hessian_diag_sq'] = state['hessian'].clone()
+                state['exp_hessian_diag_sq'] = torch.zero_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -75,7 +76,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 loss = closure()
 
         if self._step % self.update_period == 0:
-            self.compute_hutchinson_hessian(self.n_samples)
+            self.compute_hutchinson_hessian(self.n_samples, distribution=self.distribution)
 
         for group in self.param_groups:
             for p in group['params']:
@@ -90,8 +91,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 state = self.state[p]
                 if 'exp_avg' not in state:
                     state['exp_avg'] = torch.zeros_like(p.data)
-                    # NOTE: zeroing-out the hessian causes instability
-                    state['exp_hessian_diag_sq'] = state['hessian'].clone()
+                    state['exp_hessian_diag_sq'] = torch.zeros_like(p.data)
 
                 self.apply_weight_decay(
                     p=p,

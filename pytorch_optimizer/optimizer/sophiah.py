@@ -25,12 +25,12 @@ class SophiaH(Optimizer, BaseOptimizer):
 
     def __init__(self,
                  params: PARAMETERS,
-                 lr: float = 1e-1,
-                 betas: BETAS = (0.965, 0.99),
+                 lr: float = 6e-2,
+                 betas: BETAS = (0.96, 0.99),
                  weight_decay: float = 0.0,
                  weight_decouple: bool = True,
                  fixed_decay: bool = False,
-                 p: float = 25.,
+                 p: float = 1e-2,
                  update_period: int = 10,
                  n_samples: int = 1,
                  hessian_distribution: HUTCHINSON_G = 'gaussian',
@@ -40,8 +40,9 @@ class SophiaH(Optimizer, BaseOptimizer):
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
-        self.validate_positive(p, "p (gradient clip)")
+        self.validate_non_negative(p, "p (gradient clip)")
 
+        self.distribution = hessian_distribution
         defaults: DEFAULTS = {
             'lr': lr,
             'betas': betas,
@@ -66,14 +67,16 @@ class SophiaH(Optimizer, BaseOptimizer):
                 state['hessian_moment'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: CLOSURE = None, hessian: tuple[torch.Tensor] = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
 
-        if self._step % self.update_period == 0:
-            self.compute_hutchinson_hessian(self.n_samples)
+        if hessian is not None:
+            self.set_hessian(hessian)
+        elif self._step % self.update_period == 0:
+            self.compute_hutchinson_hessian(self.n_samples, distribution=self.distribution)
 
         for group in self.param_groups:
             for p in group['params']:
@@ -103,7 +106,7 @@ class SophiaH(Optimizer, BaseOptimizer):
                 momentum, hessian_moment = state['momentum'], state['hessian_moment']
 
                 momentum.mul_(beta1).add_(p.grad, alpha=1.0-beta1)
-                if self._step % self.update_period == 0:
+                if self._step % self.update_period == 0 or hessian is not None:
                     hessian_moment.mul_(beta2).add_(state['hessian'], alpha=1.0-beta2)
 
                 # See https://shreyansh26.github.io/post/2023-05-28_sophia_scalable_second_order_optimizer_llms/#per-coordinate-clipping

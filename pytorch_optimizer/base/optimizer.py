@@ -12,6 +12,32 @@ class BaseOptimizer(ABC):
     r"""Base optimizer class."""
 
     @torch.no_grad()
+    def set_hessian(self, hessian):
+        """
+        Helper function to set hessian state from external source
+        Generally useful when using functorch as a base
+
+        Example usage:
+        ```
+        # Hutchinsons Estimator using HVP
+        noise = tree_map(lambda v: torch.randn_like(v), params)
+        loss_, hvp_est = jvp(grad(run_model_fn), (params,), (noise,))
+        hessian_diag_est  = tree_map(lambda a, b: a*b, hvp_est, noise)
+
+        optimizer.set_hessian(hessian_diag_est)
+        # OR
+        optimizer.step(hessian=hessian_diag_est)
+        ````
+
+        """
+        i = 0
+        for group in self.param_groups:
+            for p in group['params']:
+                assert p.shape == hessian[i].shape
+                self.state[p]['hessian'] = hessian[i]
+                i += 1
+
+    @torch.no_grad()
     def compute_hutchinson_hessian(self, nsamples: int = 1, pre_zero=True, alpha=1.0, distribution: HUTCHINSON_G = 'gaussian'):
         """
         Hutchinsons approximate hessian, added to the state under key 'hessian'
