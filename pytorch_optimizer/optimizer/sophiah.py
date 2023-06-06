@@ -83,12 +83,12 @@ class SophiaH(Optimizer, BaseOptimizer):
                 if p.grad is None:
                     continue
 
+                state = self.state[p]
                 grad = p.grad
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
                 # State initialization
-                state = self.state[p]
                 if 'momentum' not in state:
                     state['momentum'] = torch.zeros_like(p)
                     state['hessian_moment'] = torch.zeros_like(p)
@@ -106,7 +106,7 @@ class SophiaH(Optimizer, BaseOptimizer):
                 momentum, hessian_moment = state['momentum'], state['hessian_moment']
 
                 momentum.mul_(beta1).add_(p.grad, alpha=1.0-beta1)
-                if self._step % self.update_period == 0 or hessian is not None:
+                if (self._step % self.update_period == 0 or hessian is not None) and 'hessian' in state:
                     hessian_moment.mul_(beta2).add_(state['hessian'], alpha=1.0-beta2)
 
                 # See https://shreyansh26.github.io/post/2023-05-28_sophia_scalable_second_order_optimizer_llms/#per-coordinate-clipping

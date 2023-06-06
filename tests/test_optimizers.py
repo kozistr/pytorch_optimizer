@@ -322,6 +322,27 @@ def test_rectified_optimizer(optimizer_name):
     optimizer.step()
 
 
+@pytest.mark.parametrize('optimizer_name', ['sophiah', 'adahessian'])
+def test_hessian_optimizer(optimizer_name):
+    param = simple_parameter()
+
+    def sphere_loss(x) -> torch.Tensor:
+        return (x ** 2).sum()
+
+    parameters = {'hessian_distribution': 'gaussian', 'n_samples': 2}
+    optimizer = load_optimizer(optimizer_name)([param], **parameters)
+    optimizer.zero_grad(set_to_none=True)
+
+    # Hutchinson (internal) estimator
+    sphere_loss(param).backward(create_graph=True)
+    optimizer.step()
+    optimizer.zero_grad(set_to_none=True)
+
+    # External estimator
+    sphere_loss(param).backward()
+    optimizer.step(hessian=torch.zeros_like(param).unsqueeze(0))
+
+
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_reset(optimizer_config):
     optimizer_class, config, _ = optimizer_config

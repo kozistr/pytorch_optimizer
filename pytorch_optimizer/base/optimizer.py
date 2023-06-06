@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 
-from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
+from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError, NoSparseGradientError
 from pytorch_optimizer.base.types import BETAS, HUTCHINSON_G
 
 
@@ -48,7 +48,9 @@ class BaseOptimizer(ABC):
         params = []
         for group in self.param_groups:
             for p in group['params']:
-                if p.grad is not None:
+                if p.requires_grad and p.grad is not None:
+                    if p.grad.is_sparse:
+                        raise NoSparseGradientError(str(self))
                     # Initialize Hessian state
                     if 'hessian' in self.state[p]:
                         if pre_zero:

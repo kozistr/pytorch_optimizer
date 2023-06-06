@@ -69,13 +69,15 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 state['exp_hessian_diag_sq'] = torch.zero_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: CLOSURE = None, hessian: tuple[torch.Tensor] = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
 
-        if self._step % self.update_period == 0:
+        if hessian is not None:
+            self.set_hessian(hessian)
+        elif self._step % self.update_period == 0:
             self.compute_hutchinson_hessian(self.n_samples, distribution=self.distribution)
 
         for group in self.param_groups:
@@ -107,7 +109,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
 
                 # Decay the first and second moment running average coefficient
                 exp_avg.mul_(beta1).add_(p.grad, alpha=1 - beta1)
-                if self._step % self.update_period == 0:
+                if (self._step % self.update_period == 0 or hessian is not None) and 'hessian' in state:
                     # if self.average_conv_kernel and p.dim() == 4:
                     #     state['hessian'] = torch.abs(state['hessian']).mean(dim=[2, 3], keepdim=True).expand_as(state['hessian']).clone()
                     exp_hessian_diag_sq.mul_(beta2).addcmul_(state['hessian'], state['hessian'], value=1 - beta2)
