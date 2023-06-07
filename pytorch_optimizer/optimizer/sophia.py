@@ -83,9 +83,11 @@ class SophiaH(Optimizer, BaseOptimizer):
         step: int = self.param_groups[0]['step']
 
         if hessian is not None:
-            self.set_hessian(hessian)
+            self.set_hessian(self.param_groups, self.state, hessian)
         elif step % self.update_period == 0:
-            self.compute_hutchinson_hessian(self.num_samples, distribution=self.distribution)
+            self.compute_hutchinson_hessian(
+                self.param_groups, self.state, self.num_samples, distribution=self.distribution
+            )
 
         for group in self.param_groups:
             if 'step' in group:
