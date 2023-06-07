@@ -31,9 +31,9 @@ class BaseOptimizer(ABC):
         i: int = 0
         for group in param_groups:
             for p in group['params']:
-                if p.shape != hessian[i].shape:
+                if p.size() != hessian[i].size():
                     raise ValueError(
-                        f'[-] the shape of parameter and hessian does not match. {p.size()} vs {hessian.size()}'
+                        f'[-] the shape of parameter and hessian does not match. {p.size()} vs {hessian[i].size()}'
                     )
 
                 state[p]['hessian'] = hessian[i]
