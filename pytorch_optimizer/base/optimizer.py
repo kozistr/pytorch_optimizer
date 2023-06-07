@@ -42,7 +42,7 @@ class BaseOptimizer(ABC):
     @staticmethod
     @torch.no_grad()
     def compute_hutchinson_hessian(
-        param_groups,
+        param_groups: PARAMETERS,
         state: STATE,
         num_samples: int = 1,
         pre_zero: bool = True,
@@ -57,9 +57,6 @@ class BaseOptimizer(ABC):
         for group in param_groups:
             for p in group['params']:
                 if p.requires_grad and p.grad is not None:
-                    if p.grad.is_sparse:
-                        raise NoSparseGradientError(str(self))
-
                     if 'hessian' not in state[p]:
                         state[p]['hessian'] = torch.zeros_like(p)
                     elif pre_zero:
