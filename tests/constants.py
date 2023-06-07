@@ -105,6 +105,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'adamax',
     'adasmooth',
     'adashift',
+    'sophiah',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
