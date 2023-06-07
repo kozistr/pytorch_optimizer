@@ -25,7 +25,7 @@ def test_no_gradients(optimizer_name):
         optimizer = load_optimizer(optimizer_name)(params)
 
     def sphere_loss(x) -> torch.Tensor:
-        return (x**2).sum()
+        return (x ** 2).sum()  # fmt: skip
 
     optimizer.zero_grad()
     sphere_loss(p1 + p3).backward(create_graph=True)
