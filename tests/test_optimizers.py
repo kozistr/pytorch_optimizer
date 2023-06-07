@@ -23,6 +23,7 @@ from tests.utils import (
     simple_parameter,
     simple_sparse_parameter,
     simple_zero_rank_parameter,
+    sphere_loss,
     tensor_to_numpy,
 )
 
@@ -65,7 +66,7 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
         if init_loss == np.inf:
             init_loss = loss
 
-        loss.backward()
+        loss.backward(create_graph=optimizer_name in ('AdaHessian', 'SophiaH'))
 
         optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
 
@@ -232,7 +233,7 @@ def test_adamd_optimizers(optimizer_config, environment):
         if init_loss == np.inf:
             init_loss = loss
 
-        loss.backward()
+        loss.backward(create_graph=optimizer_class.__name__ in ('AdaHessian',))
 
         optimizer.step()
 
@@ -326,10 +327,8 @@ def test_rectified_optimizer(optimizer_name):
 def test_hessian_optimizer(optimizer_name):
     param = simple_parameter()
 
-    def sphere_loss(x) -> torch.Tensor:
-        return (x ** 2).sum()
+    parameters = {'hessian_distribution': 'gaussian', 'num_samples': 2}
 
-    parameters = {'hessian_distribution': 'gaussian', 'n_samples': 2}
     optimizer = load_optimizer(optimizer_name)([param], **parameters)
     optimizer.zero_grad(set_to_none=True)
 

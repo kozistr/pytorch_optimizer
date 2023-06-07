@@ -314,11 +314,11 @@ class ASGD(Optimizer, BaseOptimizer):
 
 
 class SignSGD(Optimizer, BaseOptimizer):
-    r"""SignSGD: Compressed Optimisation for Non-Convex Problems
+    r"""Compressed Optimisation for Non-Convex Problems.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
-    :param momentum: float. momentum factor (0.0=SignSGD, >0=Signum).
+    :param momentum: float. momentum factor (0.0 = SignSGD, >0 = Signum).
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     """
@@ -327,31 +327,31 @@ class SignSGD(Optimizer, BaseOptimizer):
         self,
         params: PARAMETERS,
         lr: float = 1e-3,
-        beta: float = 0.9,
+        momentum: float = 0.9,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
     ):
         self.validate_learning_rate(lr)
-        self.validate_range(beta, 'beta', 0.0, 1.0)
+        self.validate_range(momentum, 'beta', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
 
         defaults: DEFAULTS = {
             'lr': lr,
-            'beta': beta,
+            'momentum': momentum,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
         }
-
         super().__init__(params, defaults)
 
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
-                if group['beta'] > 0.0:
-                    state['momentum_buffer'] = p.grad.clone()
+                if group['momentum'] > 0.0:
+                    state['momentum_buffer'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -361,24 +361,24 @@ class SignSGD(Optimizer, BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            beta = group['beta']
+            momentum = group['momentum']
             for p in group['params']:
                 if p.grad is None:
                     continue
 
-                if p.grad.is_sparse:
+                grad = p.grad
+                if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
-
-                if beta > 0.0:
+                if momentum > 0.0:
                     if len(state) == 0:
-                        state['momentum_buffer'] = p.grad.clone()
+                        state['momentum_buffer'] = torch.zeros_like(p)
 
                     buf = state['momentum_buffer']
-                    buf.mul_(beta).add_(p.grad, alpha=1.0 - beta)
+                    buf.mul_(momentum).add_(grad, alpha=1.0 - momentum)
                 else:
-                    buf = p.grad
+                    buf = grad
 
                 p.add_(torch.sign(buf), alpha=-group['lr'])
 

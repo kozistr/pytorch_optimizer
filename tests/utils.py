@@ -123,3 +123,7 @@ def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.
 
 def tensor_to_numpy(x: torch.Tensor) -> np.ndarray:
     return x.detach().cpu().numpy()
+
+
+def sphere_loss(x: torch.Tensor) -> torch.Tensor:
+    return (x ** 2).sum()  # fmt: skip

@@ -19,6 +19,7 @@ from pytorch_optimizer import (
     AdaBound,
     AdaDelta,
     AdaFactor,
+    AdaHessian,
     Adai,
     AdaMax,
     AdaMod,
@@ -51,6 +52,8 @@ from pytorch_optimizer import (
     Ranger21,
     ScalableShampoo,
     Shampoo,
+    SignSGD,
+    SophiaH,
     Yogi,
 )
 from tests.utils import build_lookahead
@@ -102,6 +105,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'adamax',
     'adasmooth',
     'adashift',
+    'sophiah',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -367,6 +371,11 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaShift, {'lr': 1e0, 'keep_num': 1}, 5),
     (AdaDelta, {'lr': 5e1}, 5),
     (Amos, {'lr': 1e0, 'momentum': 0.9}, 5),
+    (SignSGD, {'lr': 1e0, 'momentum': 0.0}, 5),
+    (SignSGD, {'lr': 1e0, 'momentum': 0.9}, 5),
+    (SophiaH, {'lr': 1e1, 'weight_decay': 1e-3, 'update_period': 2, 'hessian_distribution': 'gaussian'}, 5),
+    (AdaHessian, {'lr': 1e0, 'weight_decay': 1e-3, 'hessian_distribution': 'rademacher'}, 5),
+    (AdaHessian, {'lr': 1e0, 'weight_decay': 1e-3, 'hessian_distribution': 'gaussian'}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
@@ -399,4 +408,5 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (AdaMod, {'lr': 1e2, 'weight_decay': 1e-3, 'adam_debias': True}, 20),
     (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
     (AvaGrad, {'lr': 1e1, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
+    (AdaHessian, {'lr': 5e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
 ]

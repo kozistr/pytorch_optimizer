@@ -4,59 +4,64 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 
-from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError, NoSparseGradientError
-from pytorch_optimizer.base.types import BETAS, HUTCHINSON_G
+from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
+from pytorch_optimizer.base.types import BETAS, HUTCHINSON_G, PARAMETERS, STATE
 
 
 class BaseOptimizer(ABC):
     r"""Base optimizer class."""
 
+    @staticmethod
     @torch.no_grad()
-    def set_hessian(self, hessian):
-        """
-        Helper function to set hessian state from external source
-        Generally useful when using functorch as a base
+    def set_hessian(param_groups: PARAMETERS, state: STATE, hessian: List[torch.Tensor]):
+        r"""Set hessian to state from external source. Generally useful when using functorch as a base.
 
         Example usage:
         ```
         # Hutchinsons Estimator using HVP
         noise = tree_map(lambda v: torch.randn_like(v), params)
         loss_, hvp_est = jvp(grad(run_model_fn), (params,), (noise,))
-        hessian_diag_est  = tree_map(lambda a, b: a*b, hvp_est, noise)
+        hessian_diag_est  = tree_map(lambda a, b: a * b, hvp_est, noise)
 
         optimizer.set_hessian(hessian_diag_est)
         # OR
         optimizer.step(hessian=hessian_diag_est)
         ````
-
         """
-        i = 0
-        for group in self.param_groups:
+        i: int = 0
+        for group in param_groups:
             for p in group['params']:
-                assert p.shape == hessian[i].shape
-                self.state[p]['hessian'] = hessian[i]
+                if p.size() != hessian[i].size():
+                    raise ValueError(
+                        f'[-] the shape of parameter and hessian does not match. {p.size()} vs {hessian[i].size()}'
+                    )
+
+                state[p]['hessian'] = hessian[i]
                 i += 1
 
+    @staticmethod
     @torch.no_grad()
-    def compute_hutchinson_hessian(self, nsamples: int = 1, pre_zero=True, alpha=1.0, distribution: HUTCHINSON_G = 'gaussian'):
-        """
-        Hutchinsons approximate hessian, added to the state under key 'hessian'
-        """
-        if distribution not in ['gaussian', 'rademacher']:
-            raise NotImplementedError(f"Hessian with distribution {distribution} is not implemented")
+    def compute_hutchinson_hessian(
+        param_groups: PARAMETERS,
+        state: STATE,
+        num_samples: int = 1,
+        pre_zero: bool = True,
+        alpha: float = 1.0,
+        distribution: HUTCHINSON_G = 'gaussian',
+    ):
+        r"""Hutchinson's approximate hessian, added to the state under key `hessian`."""
+        if distribution not in ('gaussian', 'rademacher'):
+            raise NotImplementedError(f'[-] Hessian with distribution {distribution} is not implemented.')
 
         params = []
-        for group in self.param_groups:
+        for group in param_groups:
             for p in group['params']:
-                if p.requires_grad and p.grad is not None:
-                    if p.grad.is_sparse:
-                        raise NoSparseGradientError(str(self))
-                    # Initialize Hessian state
-                    if 'hessian' in self.state[p]:
-                        if pre_zero:
-                            self.state[p]['hessian'].zero_()
-                    else:
-                        self.state[p]['hessian'] = torch.zeros_like(p.data)
+                if p.requires_grad and p.grad is not None and not p.grad.is_sparse:
+                    if 'hessian' not in state[p]:
+                        state[p]['hessian'] = torch.zeros_like(p)
+                    elif pre_zero:
+                        state[p]['hessian'].zero_()
+
                     params.append(p)
 
         if len(params) == 0:
@@ -64,18 +69,15 @@ class BaseOptimizer(ABC):
 
         grads = [p.grad for p in params]
 
-        for i in range(nsamples):
-            if distribution == 'gaussian':
-                # Gaussian N(0,Id)
-                zs = [torch.randn(p.size(), device=p.device) for p in params]
-            elif distribution == 'rademacher':
-                # Rademacher distribution {-1.0, 1.0}
-                zs = [torch.randint(0, 2, p.size(), dtype=p.dtype, device=p.device) * 2.0 - 1.0 for p in params]
+        for i in range(num_samples):
+            if distribution == 'rademacher':
+                zs = [torch.randint_like(p, 0, 1) * 2.0 - 1.0 for p in params]
+            else:
+                zs = [torch.randn_like(p) for p in params]
 
-            h_zs = torch.autograd.grad(grads, params, grad_outputs=zs, retain_graph=i < nsamples - 1)
+            h_zs = torch.autograd.grad(grads, params, grad_outputs=zs, retain_graph=i < num_samples - 1)
             for h_z, z, p in zip(h_zs, zs, params):
-                # approximate the expected values of z*(H@z)
-                self.state[p]['hessian'].add_(h_z * z, alpha=(1/nsamples) * alpha)
+                state[p]['hessian'].add_(h_z * z, alpha=(1 / num_samples) * alpha)
 
     @staticmethod
     def apply_weight_decay(
