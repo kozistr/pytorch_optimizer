@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 import torch
 from torch.optim.optimizer import Optimizer
 
@@ -63,7 +65,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
-        return 'AdHessian'
+        return 'AdaHessian'
 
     @torch.no_grad()
     def reset(self):
@@ -75,7 +77,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 state['exp_hessian_diag_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None, hessian: tuple[torch.Tensor] = None) -> LOSS:
+    def step(self, closure: CLOSURE = None, hessian: Optional[List[torch.Tensor]] = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
             with torch.enable_grad():
