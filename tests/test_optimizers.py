@@ -65,7 +65,10 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
         if init_loss == np.inf:
             init_loss = loss
 
-        loss.backward()
+        if optimizer_name in ('AdaHessian', 'SophiaH'):
+            loss.backward(create_graph=True)
+        else:
+            loss.backward()
 
         optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
 
