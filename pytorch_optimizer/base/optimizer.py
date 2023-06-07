@@ -59,11 +59,10 @@ class BaseOptimizer(ABC):
                     if p.grad.is_sparse:
                         raise NoSparseGradientError(str(self))
 
-                    if 'hessian' in state[p]:
-                        if pre_zero:
-                            state[p]['hessian'].zero_()
-                    else:
+                    if 'hessian' not in state[p]:
                         state[p]['hessian'] = torch.zeros_like(p)
+                    elif pre_zero:
+                        state[p]['hessian'].zero_()
 
                     params.append(p)
 
