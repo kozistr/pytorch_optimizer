@@ -5,11 +5,9 @@ from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, HUTCHINSON_G, LOSS, PARAMETERS
 
-# Modified from https://github.com/davda54/ada-hessian/blob/master/ada_hessian.py (MIT David Samuel)
-
 
 class AdaHessian(Optimizer, BaseOptimizer):
-    r"""An Adaptive Second Order Optimizer for Machine Learning
+    r"""An Adaptive Second Order Optimizer for Machine Learning.
 
     Requires `loss.backward(create_graph=True)` in order to calculate hessians
 
