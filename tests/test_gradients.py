@@ -25,14 +25,11 @@ def test_no_gradients(optimizer_name):
         optimizer = load_optimizer(optimizer_name)(params)
 
     def sphere_loss(x) -> torch.Tensor:
-        return (x ** 2).sum()
+        return (x**2).sum()
 
     optimizer.zero_grad()
     sphere_loss(p1 + p3).backward(create_graph=True)
-    # p1.grad = torch.zeros(1, 1)
-    # p2.grad = None
-    # p3.grad = torch.zeros(1, 1)
-    # p4.grad = None
+
     optimizer.step(lambda: 0.1)  # for AliG optimizer
     if optimizer_name != 'lookahead':
         optimizer.zero_grad(set_to_none=True)
@@ -116,7 +113,7 @@ def test_bf16_gradient(optimizer_name):
         pytest.skip(f'skip {optimizer_name}')
 
     def sphere_loss(x) -> torch.Tensor:
-        return (x ** 2).sum()
+        return (x ** 2).sum()  # fmt: skip
 
     param = torch.randn(1, 1).bfloat16().requires_grad_(True)
 
