@@ -66,10 +66,7 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
         if init_loss == np.inf:
             init_loss = loss
 
-        if optimizer_name in ('AdaHessian', 'SophiaH'):
-            loss.backward(create_graph=True)
-        else:
-            loss.backward()
+        loss.backward(create_graph=optimizer_name in ('AdaHessian', 'SophiaH'))
 
         optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
 
@@ -236,7 +233,7 @@ def test_adamd_optimizers(optimizer_config, environment):
         if init_loss == np.inf:
             init_loss = loss
 
-        loss.backward()
+        loss.backward(create_graph=optimizer_class.__name__ in ('AdaHessian',))
 
         optimizer.step()
 
