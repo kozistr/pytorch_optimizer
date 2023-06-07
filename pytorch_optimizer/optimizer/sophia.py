@@ -9,7 +9,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, HUTCHINSON_G,
 
 
 class SophiaH(Optimizer, BaseOptimizer):
-    r"""Second-order Clipped Stochastic Optimization
+    r"""Second-order Clipped Stochastic Optimization.
 
         Requires `loss.backward(create_graph=True)` in order to calculate hessians.
 
