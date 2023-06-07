@@ -72,12 +72,10 @@ class BaseOptimizer(ABC):
         grads = [p.grad for p in params]
 
         for i in range(num_samples):
-            if distribution == 'gaussian':
-                zs = [torch.randn_like(p) for p in params]
-            elif distribution == 'rademacher':
+            if distribution == 'rademacher':
                 zs = [torch.randint_like(p, 0, 1) * 2.0 - 1.0 for p in params]
             else:
-                raise
+                zs = [torch.randn_like(p) for p in params]
 
             h_zs = torch.autograd.grad(grads, params, grad_outputs=zs, retain_graph=i < num_samples - 1)
             for h_z, z, p in zip(h_zs, zs, params):
