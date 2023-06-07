@@ -44,7 +44,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
-        self.validate_range(hessian_power, "Hessian Power", 0, 1, range_type='(]')
+        self.validate_range(hessian_power, 'Hessian Power', 0, 1, range_type='(]')
 
         self.update_period = update_period
         self.num_samples = num_samples
@@ -107,7 +107,7 @@ class AdaHessian(Optimizer, BaseOptimizer):
                     raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
-                if len(state) == 0:
+                if 'exp_avg' not in state:
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_hessian_diag_sq'] = torch.zeros_like(p)
 
