@@ -46,7 +46,7 @@ class SophiaH(Optimizer, BaseOptimizer):
         self.validate_non_negative(p, 'p (gradient clip)')
         self.validate_step(update_period, 'update_period')
         self.validate_positive(num_samples, 'num_samples')
-        self.validate_options(hessian_distribution, 'hessian_distribution', ('gaussian', 'rademacher'))
+        self.validate_options(hessian_distribution, 'hessian_distribution', ['gaussian', 'rademacher'])
         self.validate_non_negative(eps, 'eps')
 
         self.update_period = update_period
