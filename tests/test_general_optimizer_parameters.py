@@ -41,6 +41,7 @@ def test_epsilon(optimizer_name):
         'alig',
         'gravity',
         'srmm',
+        'signsgd'
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 

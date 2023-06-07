@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Type, Union, Literal
 
 import torch
 from torch.optim import Optimizer
@@ -12,3 +12,5 @@ PARAMETERS = Optional[Union[Iterable[Dict[str, Any]], Iterable[torch.Tensor]]]
 STATE = Dict[str, Any]
 OPTIMIZER = Type[Optimizer]
 SCHEDULER = Type[_LRScheduler]
+
+HUTCHINSON_G = Literal['gaussian', 'rademacher']

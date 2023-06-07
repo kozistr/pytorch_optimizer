@@ -62,7 +62,7 @@ from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
 from pytorch_optimizer.optimizer.rotograd import RotoGrad
 from pytorch_optimizer.optimizer.sam import SAM
-from pytorch_optimizer.optimizer.sgd import ASGD, SGDW, AccSGD
+from pytorch_optimizer.optimizer.sgd import ASGD, SGDW, AccSGD, SignSGD
 from pytorch_optimizer.optimizer.sgdp import SGDP
 from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
 from pytorch_optimizer.optimizer.shampoo_utils import (
@@ -83,6 +83,8 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
 from pytorch_optimizer.optimizer.sm3 import SM3
 from pytorch_optimizer.optimizer.srmm import SRMM
 from pytorch_optimizer.optimizer.swats import SWATS
+from pytorch_optimizer.optimizer.adahessian import AdaHessian
+from pytorch_optimizer.optimizer.sophiah import SophiaH
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
     disable_running_stats,
@@ -147,6 +149,9 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaShift,
     AdaDelta,
     Amos,
+    AdaHessian,
+    SophiaH,
+    SignSGD
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
