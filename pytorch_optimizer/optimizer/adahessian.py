@@ -11,7 +11,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, HUTCHINSON_G,
 class AdaHessian(Optimizer, BaseOptimizer):
     r"""An Adaptive Second Order Optimizer for Machine Learning.
 
-    Requires `loss.backward(create_graph=True)` in order to calculate hessians
+        Requires `loss.backward(create_graph=True)` in order to calculate hessians.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
