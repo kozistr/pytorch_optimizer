@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 
-from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError, NoSparseGradientError
+from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 from pytorch_optimizer.base.types import BETAS, HUTCHINSON_G, PARAMETERS, STATE
 
 
@@ -56,7 +56,7 @@ class BaseOptimizer(ABC):
         params = []
         for group in param_groups:
             for p in group['params']:
-                if p.requires_grad and p.grad is not None:
+                if p.requires_grad and p.grad is not None and not p.grad.is_sparse:
                     if 'hessian' not in state[p]:
                         state[p]['hessian'] = torch.zeros_like(p)
                     elif pre_zero:
