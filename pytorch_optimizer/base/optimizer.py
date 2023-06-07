@@ -48,7 +48,7 @@ class BaseOptimizer(ABC):
         alpha: float = 1.0,
         distribution: HUTCHINSON_G = 'gaussian',
     ):
-        r"""Hutchinsons approximate hessian, added to the state under key `hessian`."""
+        r"""Hutchinson's approximate hessian, added to the state under key `hessian`."""
         if distribution not in ('gaussian', 'rademacher'):
             raise NotImplementedError(f'[-] Hessian with distribution {distribution} is not implemented.')
 
