@@ -327,9 +327,10 @@ def test_hessian_optimizer(optimizer_name):
     param = simple_parameter()
 
     def sphere_loss(x) -> torch.Tensor:
-        return (x**2).sum()
+        return (x ** 2).sum()  # fmt: skip
 
-    parameters = {'hessian_distribution': 'gaussian', 'n_samples': 2}
+    parameters = {'hessian_distribution': 'gaussian', 'num_samples': 2}
+
     optimizer = load_optimizer(optimizer_name)([param], **parameters)
     optimizer.zero_grad(set_to_none=True)
 
