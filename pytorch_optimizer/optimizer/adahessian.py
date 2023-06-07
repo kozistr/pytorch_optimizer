@@ -3,7 +3,7 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS, HUTCHINSON_G
+from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, HUTCHINSON_G, LOSS, PARAMETERS
 
 # Modified from https://github.com/davda54/ada-hessian/blob/master/ada_hessian.py (MIT David Samuel)
 
@@ -19,34 +19,39 @@ class AdaHessian(Optimizer, BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
-    :param hessian_power: float. exponent of the hessian trace
-    :param update_period: int. number of steps after which to apply hessian approximation
-    :param n_samples: int. times to sample `z` for the approximation of the hessian trace
+    :param hessian_power: float. exponent of the hessian trace.
+    :param update_period: int. number of steps after which to apply hessian approximation.
+    :param num_samples: int. times to sample `z` for the approximation of the hessian trace.
+    :param hessian_distribution: HUTCHINSON_G. type of distribution to initialize hessian.
+    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
-    def __init__(self,
-                 params: PARAMETERS,
-                 lr: float = 1e-1,
-                 betas: BETAS = (0.9, 0.999),
-                 weight_decay: float = 0.0,
-                 weight_decouple: bool = True,
-                 fixed_decay: bool = False,
-                 hessian_power: float = 1.0,
-                 update_period: int = 1,
-                 n_samples: int = 1,
-                 hessian_distribution: HUTCHINSON_G = 'rademacher',
-                 eps: float = 1e-16):
-
+    def __init__(
+        self,
+        params: PARAMETERS,
+        lr: float = 1e-1,
+        betas: BETAS = (0.9, 0.999),
+        weight_decay: float = 0.0,
+        weight_decouple: bool = True,
+        fixed_decay: bool = False,
+        hessian_power: float = 1.0,
+        update_period: int = 1,
+        num_samples: int = 1,
+        hessian_distribution: HUTCHINSON_G = 'rademacher',
+        adam_debias: bool = False,
+        eps: float = 1e-16,
+    ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
         self.validate_range(hessian_power, "Hessian Power", 0, 1, range_type='(]')
 
-        self.distribution = hessian_distribution
         self.update_period = update_period
-        self.n_samples = n_samples
+        self.num_samples = num_samples
+        self.distribution = hessian_distribution
+
         defaults: DEFAULTS = {
             'lr': lr,
             'betas': betas,
@@ -54,19 +59,19 @@ class AdaHessian(Optimizer, BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'hessian_power': hessian_power,
+            'adam_debias': adam_debias,
             'eps': eps,
         }
-        self._step = 0
         super().__init__(params, defaults)
 
     @torch.no_grad()
     def reset(self):
-        self._step = 0
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
                 state['exp_avg'] = torch.zeros_like(p)
-                state['exp_hessian_diag_sq'] = torch.zero_like(p)
+                state['exp_hessian_diag_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None, hessian: tuple[torch.Tensor] = None) -> LOSS:
@@ -75,12 +80,24 @@ class AdaHessian(Optimizer, BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
+        step: int = self.param_groups[0]['step']
+
         if hessian is not None:
             self.set_hessian(hessian)
-        elif self._step % self.update_period == 0:
-            self.compute_hutchinson_hessian(self.n_samples, distribution=self.distribution)
+        elif step % self.update_period == 0:
+            self.compute_hutchinson_hessian(self.num_samples, distribution=self.distribution)
 
         for group in self.param_groups:
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
+            beta1, beta2 = group['betas']
+
+            bias_correction1: float = 1.0 - beta1 ** group['step']
+            bias_correction2: float = 1.0 - beta2 ** group['step']
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -89,11 +106,10 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
-                # State initialization
                 state = self.state[p]
-                if 'exp_avg' not in state:
-                    state['exp_avg'] = torch.zeros_like(p.data)
-                    state['exp_hessian_diag_sq'] = torch.zeros_like(p.data)
+                if len(state) == 0:
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_hessian_diag_sq'] = torch.zeros_like(p)
 
                 self.apply_weight_decay(
                     p=p,
@@ -105,24 +121,14 @@ class AdaHessian(Optimizer, BaseOptimizer):
                 )
 
                 exp_avg, exp_hessian_diag_sq = state['exp_avg'], state['exp_hessian_diag_sq']
-                beta1, beta2 = group['betas']
+                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
 
-                # Decay the first and second moment running average coefficient
-                exp_avg.mul_(beta1).add_(p.grad, alpha=1 - beta1)
-                if (self._step % self.update_period == 0 or hessian is not None) and 'hessian' in state:
-                    # if self.average_conv_kernel and p.dim() == 4:
-                    #     state['hessian'] = torch.abs(state['hessian']).mean(dim=[2, 3], keepdim=True).expand_as(state['hessian']).clone()
-                    exp_hessian_diag_sq.mul_(beta2).addcmul_(state['hessian'], state['hessian'], value=1 - beta2)
+                if 'hessian' in state and (group['step'] % self.update_period == 0 or hessian is not None):
+                    exp_hessian_diag_sq.mul_(beta2).addcmul_(state['hessian'], state['hessian'], value=1.0 - beta2)
 
-                bias_correction1 = 1 - beta1 ** (self._step+1)
-                bias_correction2 = 1 - beta2 ** (self._step+1)
+                de_nom = (exp_hessian_diag_sq / bias_correction2).pow_(group['hessian_power'] / 2).add_(group['eps'])
 
-                k = group['hessian_power']
-                denom = (exp_hessian_diag_sq / bias_correction2).pow_(k / 2).add_(group['eps'])
+                step_size: float = self.apply_adam_debias(group['adam_debias'], group['lr'], bias_correction1)
+                p.addcdiv_(exp_avg, de_nom, value=-step_size)
 
-                # make update
-                step_size = group['lr'] / bias_correction1
-                p.addcdiv_(exp_avg, denom, value=-step_size)
-
-        self._step += 1
         return loss
