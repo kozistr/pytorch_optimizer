@@ -464,3 +464,27 @@ Amos
 
 .. autoclass:: pytorch_optimizer.Amos
     :members:
+
+.. _SignSGD:
+
+SignSGD
+-------
+
+.. autoclass:: pytorch_optimizer.SignSGD
+    :members:
+
+.. _AdaHessian:
+
+AdaHessian
+----------
+
+.. autoclass:: pytorch_optimizer.AdaHessian
+    :members:
+
+.. _SophiaH:
+
+SophiaH
+-------
+
+.. autoclass:: pytorch_optimizer.SophiaH
+    :members:
