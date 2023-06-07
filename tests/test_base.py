@@ -15,6 +15,11 @@ def test_set_hessian():
         BaseOptimizer.set_hessian(param_groups, {'dummy': param}, hessian)
 
 
+def test_compute_hutchinson_hessian():
+    with pytest.raises(NotImplementedError):
+        BaseOptimizer.compute_hutchinson_hessian({}, {}, distribution='dummy')
+
+
 def test_validate_boundary():
     x: float = -1.0
 
