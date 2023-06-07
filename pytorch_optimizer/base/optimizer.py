@@ -13,7 +13,7 @@ class BaseOptimizer(ABC):
 
     @torch.no_grad()
     def set_hessian(self, param_groups, state, hessian):
-        r"""Helper function to set hessian state from external source. Generally useful when using functorch as a base
+        r"""Set hessian to state from external source. Generally useful when using functorch as a base.
 
         Example usage:
         ```
@@ -48,7 +48,7 @@ class BaseOptimizer(ABC):
         alpha: float = 1.0,
         distribution: HUTCHINSON_G = 'gaussian',
     ):
-        r"""Hutchinsons approximate hessian, added to the state under key 'hessian'"""
+        r"""Hutchinsons approximate hessian, added to the state under key `hessian`."""
         if distribution not in ('gaussian', 'rademacher'):
             raise NotImplementedError(f'[-] Hessian with distribution {distribution} is not implemented.')
 
