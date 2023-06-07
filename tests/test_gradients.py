@@ -4,7 +4,7 @@ import torch
 from pytorch_optimizer import SAM, AdamP, Lookahead, load_optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
-from tests.utils import build_environment, simple_parameter, simple_sparse_parameter
+from tests.utils import build_environment, simple_parameter, simple_sparse_parameter, sphere_loss
 
 
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead'])
@@ -23,9 +23,6 @@ def test_no_gradients(optimizer_name):
         optimizer = Lookahead(load_optimizer('adamp')(params), k=1)
     else:
         optimizer = load_optimizer(optimizer_name)(params)
-
-    def sphere_loss(x) -> torch.Tensor:
-        return (x ** 2).sum()  # fmt: skip
 
     optimizer.zero_grad()
     sphere_loss(p1 + p3).backward(create_graph=True)
@@ -111,9 +108,6 @@ def test_bf16_gradient(optimizer_name):
     # torch.eye does not support bf16
     if optimizer_name == 'shampoo':
         pytest.skip(f'skip {optimizer_name}')
-
-    def sphere_loss(x) -> torch.Tensor:
-        return (x ** 2).sum()  # fmt: skip
 
     param = torch.randn(1, 1).bfloat16().requires_grad_(True)
 

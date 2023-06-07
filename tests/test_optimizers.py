@@ -23,6 +23,7 @@ from tests.utils import (
     simple_parameter,
     simple_sparse_parameter,
     simple_zero_rank_parameter,
+    sphere_loss,
     tensor_to_numpy,
 )
 
@@ -328,9 +329,6 @@ def test_rectified_optimizer(optimizer_name):
 @pytest.mark.parametrize('optimizer_name', ['sophiah', 'adahessian'])
 def test_hessian_optimizer(optimizer_name):
     param = simple_parameter()
-
-    def sphere_loss(x) -> torch.Tensor:
-        return (x ** 2).sum()  # fmt: skip
 
     parameters = {'hessian_distribution': 'gaussian', 'num_samples': 2}
 
