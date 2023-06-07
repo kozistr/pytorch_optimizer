@@ -5,14 +5,15 @@ from typing import List, Optional, Tuple, Union
 import torch
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError, NoSparseGradientError
-from pytorch_optimizer.base.types import BETAS, HUTCHINSON_G
+from pytorch_optimizer.base.types import BETAS, HUTCHINSON_G, PARAMETERS, STATE
 
 
 class BaseOptimizer(ABC):
     r"""Base optimizer class."""
 
+    @staticmethod
     @torch.no_grad()
-    def set_hessian(self, param_groups, state, hessian):
+    def set_hessian(param_groups: PARAMETERS, state: STATE, hessian: List[torch.Tensor]):
         r"""Set hessian to state from external source. Generally useful when using functorch as a base.
 
         Example usage:
@@ -38,11 +39,11 @@ class BaseOptimizer(ABC):
                 state[p]['hessian'] = hessian[i]
                 i += 1
 
+    @staticmethod
     @torch.no_grad()
     def compute_hutchinson_hessian(
-        self,
         param_groups,
-        state,
+        state: STATE,
         num_samples: int = 1,
         pre_zero: bool = True,
         alpha: float = 1.0,
