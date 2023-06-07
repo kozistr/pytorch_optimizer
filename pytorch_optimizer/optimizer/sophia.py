@@ -64,6 +64,9 @@ class SophiaH(Optimizer, BaseOptimizer):
         }
         super().__init__(params, defaults)
 
+    def __str__(self) -> str:
+        return 'SophiaH'
+
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
