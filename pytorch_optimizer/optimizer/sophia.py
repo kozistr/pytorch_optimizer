@@ -80,7 +80,7 @@ class SophiaH(Optimizer, BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        step: int = self.param_groups[0]['step']
+        step: int = self.param_groups[0].get('step', 1)
 
         if hessian is not None:
             self.set_hessian(self.param_groups, self.state, hessian)
