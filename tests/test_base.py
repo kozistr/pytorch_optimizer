@@ -1,6 +1,15 @@
 import pytest
+import torch
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
+
+
+def test_set_hessian():
+    param_groups = [{'params': torch.zeros(1, 1)}]
+    hessian = [torch.zeros(2, 1)]
+
+    with pytest.raises(ValueError):
+        BaseOptimizer.set_hessian(param_groups, hessian)
 
 
 def test_validate_boundary():
