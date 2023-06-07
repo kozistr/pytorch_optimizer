@@ -22,6 +22,7 @@ class SophiaH(Optimizer, BaseOptimizer):
     :param p: float. clip effective (applied) gradient (p).
     :param update_period: int. number of steps after which to apply hessian approximation.
     :param num_samples: int. times to sample `z` for the approximation of the hessian trace.
+    :param hessian_distribution: HUTCHINSON_G. type of distribution to initialize hessian.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
