@@ -342,6 +342,24 @@ def test_hessian_optimizer(optimizer_name):
     optimizer.step(hessian=torch.zeros_like(param).unsqueeze(0))
 
 
+def test_swats_sgd_phase(environment):
+    (x_data, y_data), model, loss_fn = environment
+
+    opt = load_optimizer('swats')(model.parameters(), lr=1e-1, nesterov=True, eps=1.0)
+
+    opt.param_groups[0]['step'] = 1  # to bypass to adam -> sgd phase
+
+    for _ in range(1):
+        loss_fn(model(x_data), y_data).backward()
+        opt.step()
+
+    opt.param_groups[0]['phase'] = 'sgd'
+
+    for _ in range(1):
+        loss_fn(model(x_data), y_data).backward()
+        opt.step()
+
+
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_reset(optimizer_config):
     optimizer_class, config, _ = optimizer_config

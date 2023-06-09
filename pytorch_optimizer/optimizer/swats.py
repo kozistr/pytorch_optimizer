@@ -11,8 +11,6 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 class SWATS(Optimizer, BaseOptimizer):
     r"""Improving Generalization Performance by Switching from Adam to SGD.
 
-        Currently, there's convergence issue. So, careful at using it.
-
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
@@ -40,7 +38,7 @@ class SWATS(Optimizer, BaseOptimizer):
         r: float = 0.95,
         adanorm: bool = False,
         adam_debias: bool = False,
-        eps: float = 1e-9,
+        eps: float = 1e-6,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
@@ -136,13 +134,13 @@ class SWATS(Optimizer, BaseOptimizer):
                     buf = state['momentum_buffer']
                     buf.mul_(beta1).add_(grad)
 
-                    grad = buf.clone()
+                    update = buf.clone()
+                    update.mul_(1.0 - beta1)
 
-                    grad.mul_(1.0 - beta1)
                     if group['nesterov']:
-                        grad.add_(buf, alpha=beta1)
+                        update.add_(buf, alpha=beta1)
 
-                    p.add_(grad, alpha=-group['lr'])
+                    p.add_(update, alpha=-group['lr'])
 
                     continue
 
@@ -171,7 +169,7 @@ class SWATS(Optimizer, BaseOptimizer):
                 )
 
                 perturb = exp_avg.clone()
-                perturb.div_(de_nom).mul(-step_size)
+                perturb.div_(de_nom).mul_(-step_size)
 
                 p.add_(perturb)
 
@@ -186,7 +184,11 @@ class SWATS(Optimizer, BaseOptimizer):
 
                     corrected_exp_avg = exp_avg2 / bias_correction2
 
-                    if group['step'] > 1 and corrected_exp_avg.allclose(scaling, rtol=group['eps']):
+                    if (
+                        group['step'] > 1
+                        and corrected_exp_avg > 0.0
+                        and corrected_exp_avg.allclose(scaling, rtol=group['eps'])
+                    ):
                         group['phase'] = 'sgd'
                         group['lr'] = corrected_exp_avg.item()
 

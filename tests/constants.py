@@ -13,6 +13,7 @@ from pytorch_optimizer import (
     SGDW,
     SM3,
     SRMM,
+    SWATS,
     A2Grad,
     AccSGD,
     AdaBelief,
@@ -376,6 +377,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SophiaH, {'lr': 1e1, 'weight_decay': 1e-3, 'update_period': 2, 'hessian_distribution': 'gaussian'}, 5),
     (AdaHessian, {'lr': 1e0, 'weight_decay': 1e-3, 'hessian_distribution': 'rademacher'}, 5),
     (AdaHessian, {'lr': 1e0, 'weight_decay': 1e-3, 'hessian_distribution': 'gaussian'}, 5),
+    (SWATS, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
+    (SWATS, {'lr': 5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
@@ -390,6 +393,7 @@ ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]]
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
     (Yogi, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
     (AdaMax, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
+    (SWATS, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 1e1, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
