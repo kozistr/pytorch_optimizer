@@ -189,7 +189,7 @@ class SWATS(Optimizer, BaseOptimizer):
                     if (
                         group['step'] > 1
                         and corrected_exp_avg > 0.0
-                        and corrected_exp_avg.allclose(scaling, rtol=group['eps'])
+                        and corrected_exp_avg.allclose(scaling, rtol=1e-5)
                     ):
                         group['phase'] = 'sgd'
                         group['lr'] = corrected_exp_avg.item()
