@@ -11,8 +11,6 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 class SWATS(Optimizer, BaseOptimizer):
     r"""Improving Generalization Performance by Switching from Adam to SGD.
 
-        Currently, there's convergence issue. So, careful at using it.
-
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
