@@ -63,20 +63,17 @@ ignore = ["D100", "D102", "D104", "D105", "D107", "D203", "D213", "PIE790", "PLR
 fixable = ["A", "B", "C", "D", "E", "F"]
 unfixable = ["F401"]
 exclude = [
-    ".eggs",
     ".git",
-    ".mypy_cache",
-    ".ruff_cache",
     ".github",
+    ".idea",
+    ".ipynb_checkpoints",
+    ".pytest_cache",
+    ".ruff_cache",
+    "assets",
+    "dist",
+    "docs",
     ".venv",
     "__pypackages__",
-    "_build",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-    "docs",
-    "assets",
 ]
 line-length = 119
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
