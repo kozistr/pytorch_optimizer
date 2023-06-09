@@ -13,7 +13,8 @@ def test_no_gradients(optimizer_name):
     p2 = simple_parameter(require_grad=False)
     p3 = simple_parameter(require_grad=True)
     p4 = simple_parameter(require_grad=False)
-    params = [{'params': [p1, p2]}] + [{'params': [p3]}] + [{'params': [p4]}]
+
+    params = [{'params': [p1, p2]}, {'params': [p3]}, {'params': [p4]}]
 
     if optimizer_name == 'ranger21':
         optimizer = load_optimizer(optimizer_name)(params, num_iterations=1, lookahead_merge_time=1)
@@ -150,7 +151,7 @@ def test_d_adapt_2nd_stage_gradient(optimizer_name):
     p1 = simple_parameter(require_grad=False)
     p2 = simple_parameter(require_grad=True)
     p3 = simple_parameter(require_grad=True)
-    params = [{'params': [p1]}] + [{'params': [p2]}] + [{'params': [p3]}]
+    params = [{'params': [p1]}, {'params': [p2]}, {'params': [p3]}]
 
     optimizer = load_optimizer(optimizer_name)(params)
     optimizer.zero_grad()
