@@ -136,13 +136,13 @@ class SWATS(Optimizer, BaseOptimizer):
                     buf = state['momentum_buffer']
                     buf.mul_(beta1).add_(grad)
 
-                    grad = buf.clone()
+                    update = buf.clone()
+                    update.mul_(1.0 - beta1)
 
-                    grad.mul_(1.0 - beta1)
                     if group['nesterov']:
-                        grad.add_(buf, alpha=beta1)
+                        update.add_(buf, alpha=beta1)
 
-                    p.add_(grad, alpha=-group['lr'])
+                    p.add_(update, alpha=-group['lr'])
 
                     continue
 
@@ -171,7 +171,7 @@ class SWATS(Optimizer, BaseOptimizer):
                 )
 
                 perturb = exp_avg.clone()
-                perturb.div_(de_nom).mul(-step_size)
+                perturb.div_(de_nom).mul_(-step_size)
 
                 p.add_(perturb)
 
@@ -186,7 +186,11 @@ class SWATS(Optimizer, BaseOptimizer):
 
                     corrected_exp_avg = exp_avg2 / bias_correction2
 
-                    if group['step'] > 1 and corrected_exp_avg.allclose(scaling, rtol=group['eps']):
+                    if (
+                        group['step'] > 1
+                        and corrected_exp_avg > 0.0
+                        and corrected_exp_avg.allclose(scaling, rtol=group['eps'])
+                    ):
                         group['phase'] = 'sgd'
                         group['lr'] = corrected_exp_avg.item()
 
