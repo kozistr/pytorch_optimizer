@@ -14,6 +14,7 @@ from tests.constants import (
     PULLBACK_MOMENTUM,
 )
 from tests.utils import (
+    Example,
     MultiHeadLogisticRegression,
     build_environment,
     dummy_closure,
@@ -342,15 +343,21 @@ def test_hessian_optimizer(optimizer_name):
     optimizer.step(hessian=torch.zeros_like(param).unsqueeze(0))
 
 
-def test_swats_sgd_phase():
-    param = simple_parameter()
+def test_swats_sgd_phase(environment):
+    (x_data, y_data), model, loss_fn = environment
 
-    opt = load_optimizer('swats')([param], nesterov=True)
+    opt = load_optimizer('swats')(model.parameters(), lr=1e-1, nesterov=True, eps=1.0)
+
+    opt.param_groups[0]['step'] = 1  # to bypass to adam -> sgd phase
+
+    for _ in range(1):
+        loss_fn(model(x_data), y_data).backward()
+        opt.step()
 
     opt.param_groups[0]['phase'] = 'sgd'
 
     for _ in range(1):
-        sphere_loss(param).backward()
+        loss_fn(model(x_data), y_data).backward()
         opt.step()
 
 
