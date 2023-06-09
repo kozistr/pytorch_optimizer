@@ -101,6 +101,9 @@ target-version = "py39"
 "./pytorch_optimizer/__init__.py" = ["F401"]
 "./pytorch_optimizer/lr_scheduler/__init__.py" = ["F401"]
 
+[tool.pytest.ini_options]
+testpaths = "tests"
+
 [tool.coverage.run]
 omit = [
     "./pytorch_optimizer/optimizer/gsam.py",
