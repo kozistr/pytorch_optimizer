@@ -14,7 +14,6 @@ from tests.constants import (
     PULLBACK_MOMENTUM,
 )
 from tests.utils import (
-    Example,
     MultiHeadLogisticRegression,
     build_environment,
     dummy_closure,
