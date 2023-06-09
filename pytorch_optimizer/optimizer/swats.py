@@ -38,7 +38,7 @@ class SWATS(Optimizer, BaseOptimizer):
         r: float = 0.95,
         adanorm: bool = False,
         adam_debias: bool = False,
-        eps: float = 1e-9,
+        eps: float = 1e-6,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
@@ -187,7 +187,7 @@ class SWATS(Optimizer, BaseOptimizer):
                     if (
                         group['step'] > 1
                         and corrected_exp_avg > 0.0
-                        and corrected_exp_avg.allclose(scaling, rtol=1e-5)
+                        and corrected_exp_avg.allclose(scaling, rtol=group['eps'])
                     ):
                         group['phase'] = 'sgd'
                         group['lr'] = corrected_exp_avg.item()
