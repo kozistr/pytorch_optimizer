@@ -16,17 +16,22 @@ class BaseOptimizer(ABC):
     def set_hessian(param_groups: PARAMETERS, state: STATE, hessian: List[torch.Tensor]):
         r"""Set hessian to state from external source. Generally useful when using functorch as a base.
 
-        Example usage:
-        ```
-        # Hutchinsons Estimator using HVP
-        noise = tree_map(lambda v: torch.randn_like(v), params)
-        loss_, hvp_est = jvp(grad(run_model_fn), (params,), (noise,))
-        hessian_diag_est  = tree_map(lambda a, b: a * b, hvp_est, noise)
+        Example:
+        -------
+            Here's an example::
 
-        optimizer.set_hessian(hessian_diag_est)
-        # OR
-        optimizer.step(hessian=hessian_diag_est)
-        ````
+                # Hutchinson's Estimator using HVP
+                noise = tree_map(lambda v: torch.randn_like(v), params)
+                loss_, hvp_est = jvp(grad(run_model_fn), (params,), (noise,))
+                hessian_diag_est  = tree_map(lambda a, b: a * b, hvp_est, noise)
+
+                optimizer.set_hessian(hessian_diag_est)
+                # OR
+                optimizer.step(hessian=hessian_diag_est)
+
+        :param param_groups: PARAMETERS. parameter groups.
+        :param state: STATE. optimizer state.
+        :param hessian: List[torch.Tensor]. sequence of hessian to set.
         """
         i: int = 0
         for group in param_groups:
@@ -40,20 +45,13 @@ class BaseOptimizer(ABC):
                 i += 1
 
     @staticmethod
-    @torch.no_grad()
-    def compute_hutchinson_hessian(
-        param_groups: PARAMETERS,
-        state: STATE,
-        num_samples: int = 1,
-        pre_zero: bool = True,
-        alpha: float = 1.0,
-        distribution: HUTCHINSON_G = 'gaussian',
-    ):
-        r"""Hutchinson's approximate hessian, added to the state under key `hessian`."""
-        if distribution not in ('gaussian', 'rademacher'):
-            raise NotImplementedError(f'[-] Hessian with distribution {distribution} is not implemented.')
+    def zero_hessian(param_groups: PARAMETERS, state: STATE, pre_zero: bool = True):
+        r"""Zero-out hessian.
 
-        params = []
+        :param param_groups: PARAMETERS. parameter groups.
+        :param state: STATE. optimizer state.
+        :param pre_zero: bool. zero-out hessian before computing the hessian.
+        """
         for group in param_groups:
             for p in group['params']:
                 if p.requires_grad and p.grad is not None and not p.grad.is_sparse:
@@ -62,8 +60,32 @@ class BaseOptimizer(ABC):
                     elif pre_zero:
                         state[p]['hessian'].zero_()
 
-                    params.append(p)
+    @staticmethod
+    @torch.no_grad()
+    def compute_hutchinson_hessian(
+        param_groups: PARAMETERS,
+        state: STATE,
+        num_samples: int = 1,
+        alpha: float = 1.0,
+        distribution: HUTCHINSON_G = 'gaussian',
+    ):
+        r"""Hutchinson's approximate hessian, added to the state under key `hessian`.
 
+        :param param_groups: PARAMETERS. parameter groups.
+        :param state: STATE. optimizer state.
+        :param num_samples: int. number of times to sample `z` for the approximation of the hessian trace.
+        :param alpha: float. alpha.
+        :param distribution: HUTCHINSON_G. type of distribution.
+        """
+        if distribution not in ('gaussian', 'rademacher'):
+            raise NotImplementedError(f'[-] Hessian with distribution {distribution} is not implemented.')
+
+        params: List[torch.Tensor] = [
+            p
+            for group in param_groups
+            for p in group['params']
+            if p.requires_grad and p.grad is not None and not p.grad.is_sparse
+        ]
         if len(params) == 0:
             return
 
@@ -77,7 +99,7 @@ class BaseOptimizer(ABC):
 
             h_zs = torch.autograd.grad(grads, params, grad_outputs=zs, retain_graph=i < num_samples - 1)
             for h_z, z, p in zip(h_zs, zs, params):
-                state[p]['hessian'].add_(h_z * z, alpha=(1 / num_samples) * alpha)
+                state[p]['hessian'].add_(h_z * z, alpha=alpha / num_samples)
 
     @staticmethod
     def apply_weight_decay(
@@ -89,7 +111,16 @@ class BaseOptimizer(ABC):
         fixed_decay: bool,
         ratio: Optional[float] = None,
     ):
-        r"""Apply weight decay."""
+        r"""Apply weight decay.
+
+        :param p: torch.Tensor. parameter.
+        :param grad: torch.Tensor. gradient.
+        :param lr: float. learning rate.
+        :param weight_decay: float. weight decay (L2 penalty).
+        :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+        :param fixed_decay: bool. fix weight decay.
+        :param ratio: Optional[float]. scale weight decay.
+        """
         if weight_decouple:
             p.mul_(1.0 - weight_decay * (1.0 if fixed_decay else lr) * (ratio if ratio is not None else 1.0))
         elif weight_decay > 0.0 and grad is not None:
@@ -99,7 +130,13 @@ class BaseOptimizer(ABC):
     def apply_ams_bound(
         ams_bound: bool, exp_avg_sq: torch.Tensor, max_exp_avg_sq: Optional[torch.Tensor], eps: float
     ) -> torch.Tensor:
-        r"""Apply AMSBound variant."""
+        r"""Apply AMSBound variant.
+
+        :param ams_bound: bool. whether to apply AMSBound.
+        :param exp_avg_sq: torch.Tensor. exp_avg_sq.
+        :param max_exp_avg_sq: Optional[torch.Tensor]. max_exp_avg_sq.
+        :param eps: float. epsilon.
+        """
         if ams_bound:
             torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
             de_nom = max_exp_avg_sq.add(eps)
@@ -110,7 +147,12 @@ class BaseOptimizer(ABC):
 
     @staticmethod
     def apply_adam_debias(adam_debias: bool, step_size: float, bias_correction1: float) -> float:
-        r"""Apply AdamD variant."""
+        r"""Apply AdamD variant.
+
+        :param adam_debias: bool. whether to apply AdamD.
+        :param step_size: float. step size.
+        :param bias_correction1: float. bias_correction.
+        """
         return step_size if adam_debias else step_size / bias_correction1
 
     @staticmethod
@@ -122,7 +164,15 @@ class BaseOptimizer(ABC):
         n_sma_threshold: int,
         degenerated_to_sgd: bool,
     ) -> Tuple[float, float]:
-        r"""Get step size for rectify optimizer."""
+        r"""Get step size for rectify optimizer.
+
+        :param is_rectify: bool. whether to apply rectify-variant.
+        :param step: int. number of steps.
+        :param lr: float. learning rate.
+        :param beta2: float. beta2.
+        :param n_sma_threshold: float. SMA threshold.
+        :param degenerated_to_sgd: bool. degenerated to SGD.
+        """
         step_size: float = lr
         n_sma: float = 0.0
 
@@ -148,7 +198,13 @@ class BaseOptimizer(ABC):
     def get_adanorm_gradient(
         grad: torch.Tensor, adanorm: bool, exp_grad_norm: Optional[torch.Tensor] = None, r: Optional[float] = 0.95
     ) -> torch.Tensor:
-        r"""Get AdaNorm gradient."""
+        r"""Get AdaNorm gradient.
+
+        :param grad. torch.Tensor. gradient.
+        :param adanorm: bool. whether to apply AdaNorm.
+        :param exp_grad_norm: Optional[torch.Tensor]. exp_grad_norm.
+        :param r: float. Optional[float]. momentum (ratio).
+        """
         if not adanorm:
             return grad
 

@@ -18,6 +18,7 @@ Contents
 .. toctree::
    :maxdepth: 2
 
+   base_api
    optimizer_api
    scheduler_api
    util_api

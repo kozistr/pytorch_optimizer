@@ -50,6 +50,7 @@ class AccSGD(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
+            group['step'] = 0
             for p in group['params']:
                 state = self.state[p]
 
@@ -86,8 +87,14 @@ class AccSGD(Optimizer, BaseOptimizer):
                 if len(state) == 0:
                     state['momentum_buffer'] = p.clone()
 
-                if group['weight_decay'] > 0.0:
-                    grad.add_(p, alpha=group['weight_decay'])
+                self.apply_weight_decay(
+                    p,
+                    grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=False,
+                    fixed_decay=False,
+                )
 
                 buf = state['momentum_buffer']
                 buf.mul_((1.0 / beta) - 1.0).add_(grad, alpha=-large_lr).add_(p).mul_(beta)
@@ -177,11 +184,14 @@ class SGDW(Optimizer, BaseOptimizer):
                     else:
                         grad = buf
 
-                if group['weight_decay'] > 0.0:
-                    if group['weight_decouple']:
-                        p.mul_(1.0 - group['lr'] * group['weight_decay'])
-                    else:
-                        grad.add_(p, alpha=group['weight_decay'])
+                self.apply_weight_decay(
+                    p,
+                    grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=False,
+                )
 
                 p.add_(grad, alpha=-group['lr'])
 
