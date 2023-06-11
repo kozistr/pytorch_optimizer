@@ -106,7 +106,16 @@ class BaseOptimizer(ABC):
         fixed_decay: bool,
         ratio: Optional[float] = None,
     ):
-        r"""Apply weight decay."""
+        r"""Apply weight decay.
+
+        :param p: torch.Tensor. parameter.
+        :param grad: torch.Tensor. gradient.
+        :param lr: float. learning rate.
+        :param weight_decay: float. weight decay (L2 penalty).
+        :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+        :param fixed_decay: bool. fix weight decay.
+        :param ratio: Optional[float]. scale weight decay.
+        """
         if weight_decouple:
             p.mul_(1.0 - weight_decay * (1.0 if fixed_decay else lr) * (ratio if ratio is not None else 1.0))
         elif weight_decay > 0.0 and grad is not None:
