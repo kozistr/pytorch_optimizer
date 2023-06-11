@@ -130,7 +130,13 @@ class BaseOptimizer(ABC):
     def apply_ams_bound(
         ams_bound: bool, exp_avg_sq: torch.Tensor, max_exp_avg_sq: Optional[torch.Tensor], eps: float
     ) -> torch.Tensor:
-        r"""Apply AMSBound variant."""
+        r"""Apply AMSBound variant.
+
+        :param ams_bound: bool. whether to apply AMSBound.
+        :param exp_avg_sq: torch.Tensor. exp_avg_sq.
+        :param max_exp_avg_sq: Optional[torch.Tensor]. max_exp_avg_sq.
+        :param eps: float. epsilon.
+        """
         if ams_bound:
             torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
             de_nom = max_exp_avg_sq.add(eps)
@@ -141,7 +147,12 @@ class BaseOptimizer(ABC):
 
     @staticmethod
     def apply_adam_debias(adam_debias: bool, step_size: float, bias_correction1: float) -> float:
-        r"""Apply AdamD variant."""
+        r"""Apply AdamD variant.
+
+        :param adam_debias: bool. whether to apply AdamD.
+        :param step_size: float. step size.
+        :param bias_correction1: float. bias_correction.
+        """
         return step_size if adam_debias else step_size / bias_correction1
 
     @staticmethod
@@ -153,7 +164,15 @@ class BaseOptimizer(ABC):
         n_sma_threshold: int,
         degenerated_to_sgd: bool,
     ) -> Tuple[float, float]:
-        r"""Get step size for rectify optimizer."""
+        r"""Get step size for rectify optimizer.
+
+        :param is_rectify: bool. whether to apply rectify-variant.
+        :param step: int. number of steps.
+        :param lr: float. learning rate.
+        :param beta2: float. beta2.
+        :param n_sma_threshold: float. SMA threshold.
+        :param degenerated_to_sgd: bool. degenerated to SGD.
+        """
         step_size: float = lr
         n_sma: float = 0.0
 
@@ -179,7 +198,13 @@ class BaseOptimizer(ABC):
     def get_adanorm_gradient(
         grad: torch.Tensor, adanorm: bool, exp_grad_norm: Optional[torch.Tensor] = None, r: Optional[float] = 0.95
     ) -> torch.Tensor:
-        r"""Get AdaNorm gradient."""
+        r"""Get AdaNorm gradient.
+
+        :param grad. torch.Tensor. gradient.
+        :param adanorm: bool. whether to apply AdaNorm.
+        :param exp_grad_norm: Optional[torch.Tensor]. exp_grad_norm.
+        :param r: float. Optional[float]. momentum (ratio).
+        """
         if not adanorm:
             return grad
 
