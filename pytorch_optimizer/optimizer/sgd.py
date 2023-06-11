@@ -177,11 +177,14 @@ class SGDW(Optimizer, BaseOptimizer):
                     else:
                         grad = buf
 
-                if group['weight_decay'] > 0.0:
-                    if group['weight_decouple']:
-                        p.mul_(1.0 - group['lr'] * group['weight_decay'])
-                    else:
-                        grad.add_(p, alpha=group['weight_decay'])
+                self.apply_weight_decay(
+                    p,
+                    grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=False,
+                )
 
                 p.add_(grad, alpha=-group['lr'])
 
