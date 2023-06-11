@@ -18,7 +18,7 @@ class BaseOptimizer(ABC):
 
         Example usage:
         ```
-        # Hutchinsons Estimator using HVP
+        # Hutchinson's Estimator using HVP
         noise = tree_map(lambda v: torch.randn_like(v), params)
         loss_, hvp_est = jvp(grad(run_model_fn), (params,), (noise,))
         hessian_diag_est  = tree_map(lambda a, b: a * b, hvp_est, noise)
@@ -40,20 +40,13 @@ class BaseOptimizer(ABC):
                 i += 1
 
     @staticmethod
-    @torch.no_grad()
-    def compute_hutchinson_hessian(
-        param_groups: PARAMETERS,
-        state: STATE,
-        num_samples: int = 1,
-        pre_zero: bool = True,
-        alpha: float = 1.0,
-        distribution: HUTCHINSON_G = 'gaussian',
-    ):
-        r"""Hutchinson's approximate hessian, added to the state under key `hessian`."""
-        if distribution not in ('gaussian', 'rademacher'):
-            raise NotImplementedError(f'[-] Hessian with distribution {distribution} is not implemented.')
+    def zero_hessian(param_groups: PARAMETERS, state: STATE, pre_zero: bool = True):
+        r"""Zero-out hessian.
 
-        params = []
+        :param param_groups: PARAMETERS. parameter groups.
+        :param state: STATE. optimizer state.
+        :param pre_zero: bool. zero-out hessian before computing the hessian.
+        """
         for group in param_groups:
             for p in group['params']:
                 if p.requires_grad and p.grad is not None and not p.grad.is_sparse:
@@ -62,8 +55,32 @@ class BaseOptimizer(ABC):
                     elif pre_zero:
                         state[p]['hessian'].zero_()
 
-                    params.append(p)
+    @staticmethod
+    @torch.no_grad()
+    def compute_hutchinson_hessian(
+        param_groups: PARAMETERS,
+        state: STATE,
+        num_samples: int = 1,
+        alpha: float = 1.0,
+        distribution: HUTCHINSON_G = 'gaussian',
+    ):
+        r"""Hutchinson's approximate hessian, added to the state under key `hessian`.
 
+        :param param_groups: PARAMETERS. parameter groups.
+        :param state: STATE. optimizer state.
+        :param num_samples: int. number of times to sample `z` for the approximation of the hessian trace.
+        :param alpha: float. alpha.
+        :param distribution: HUTCHINSON_G. type of distribution.
+        """
+        if distribution not in ('gaussian', 'rademacher'):
+            raise NotImplementedError(f'[-] Hessian with distribution {distribution} is not implemented.')
+
+        params: List[torch.Tensor] = [
+            p
+            for group in param_groups
+            for p in group['params']
+            if p.requires_grad and p.grad is not None and not p.grad.is_sparse
+        ]
         if len(params) == 0:
             return
 
@@ -77,7 +94,7 @@ class BaseOptimizer(ABC):
 
             h_zs = torch.autograd.grad(grads, params, grad_outputs=zs, retain_graph=i < num_samples - 1)
             for h_z, z, p in zip(h_zs, zs, params):
-                state[p]['hessian'].add_(h_z * z, alpha=(1 / num_samples) * alpha)
+                state[p]['hessian'].add_(h_z * z, alpha=alpha / num_samples)
 
     @staticmethod
     def apply_weight_decay(
