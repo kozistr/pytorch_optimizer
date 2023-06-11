@@ -16,17 +16,22 @@ class BaseOptimizer(ABC):
     def set_hessian(param_groups: PARAMETERS, state: STATE, hessian: List[torch.Tensor]):
         r"""Set hessian to state from external source. Generally useful when using functorch as a base.
 
-        Example usage:
-        ```
-        # Hutchinson's Estimator using HVP
-        noise = tree_map(lambda v: torch.randn_like(v), params)
-        loss_, hvp_est = jvp(grad(run_model_fn), (params,), (noise,))
-        hessian_diag_est  = tree_map(lambda a, b: a * b, hvp_est, noise)
+        Example:
+        -------
+            Here's an example::
 
-        optimizer.set_hessian(hessian_diag_est)
-        # OR
-        optimizer.step(hessian=hessian_diag_est)
-        ````
+                # Hutchinson's Estimator using HVP
+                noise = tree_map(lambda v: torch.randn_like(v), params)
+                loss_, hvp_est = jvp(grad(run_model_fn), (params,), (noise,))
+                hessian_diag_est  = tree_map(lambda a, b: a * b, hvp_est, noise)
+
+                optimizer.set_hessian(hessian_diag_est)
+                # OR
+                optimizer.step(hessian=hessian_diag_est)
+
+        :param param_groups: PARAMETERS. parameter groups.
+        :param state: STATE. optimizer state.
+        :param hessian: List[torch.Tensor]. sequence of hessian to set.
         """
         i: int = 0
         for group in param_groups:
