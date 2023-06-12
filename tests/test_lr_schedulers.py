@@ -164,13 +164,26 @@ def test_get_chebyshev_scheduler():
         np.testing.assert_array_equal(get_chebyshev_permutation(k), v)
 
     np.testing.assert_almost_equal(get_chebyshev_schedule(1), 1.904762, decimal=6)
-    np.testing.assert_almost_equal(get_chebyshev_schedule(3), 1.904762, decimal=6)
+    np.testing.assert_almost_equal(get_chebyshev_schedule(3), 8.799878, decimal=6)
 
 
 def test_get_chebyshev_lr():
+    recipes = [
+        0.0019047619047619048,
+        0.005287528421120061,
+        0.002913537542658826,
+        0.002913537542658826,
+        0.0016189929818460173,
+        0.007689235892472318,
+        0.001087017884083351,
+        0.003829889493980585,
+        0.0012101602977446309,
+    ]
+
     assert get_chebyshev_lr(1e-3, 0, is_warmup=True) == 1e-3
-    assert get_chebyshev_lr(1e-3, 1, is_warmup=False) == 0.0019047619047619048
-    assert get_chebyshev_lr(1e-3, 6, is_warmup=False) == 0.0014148781761898549
+
+    for i, expected_lr in enumerate(recipes, start=1):
+        assert get_chebyshev_lr(1e-3, i, is_warmup=False) == expected_lr
 
 
 def test_linear_warmup_linear_scheduler():
