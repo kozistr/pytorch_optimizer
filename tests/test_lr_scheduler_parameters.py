@@ -61,5 +61,5 @@ def test_linear_warmup_lr_scheduler_params():
 
 
 def test_chebyshev_params():
-    with pytest.raises(IndexError):
+    with pytest.raises(ValueError):
         get_chebyshev_schedule(2)

@@ -24,7 +24,13 @@ def chebyshev_perm(num_epochs: int) -> np.ndarray:
 
 
 def get_chebyshev_schedule(num_epochs: int) -> np.ndarray:
-    r"""Get Chebyshev schedules."""
+    r"""Get Chebyshev schedules.
+
+    :param num_epochs: int. number of epochs.
+    """
+    if num_epochs < 2:
+        raise ValueError(f'[-] num_epochs must be over 2. {num_epochs} > 2')
+
     steps: np.ndarray = chebyshev_steps(0.1, 1, num_epochs - 2)
     perm: np.ndarray = chebyshev_perm(num_epochs - 2)
     return steps[perm]
