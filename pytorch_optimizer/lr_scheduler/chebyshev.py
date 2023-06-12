@@ -34,9 +34,12 @@ def get_chebyshev_schedule(num_epochs: int) -> np.ndarray:
 
     :param num_epochs: int. number of epochs.
     """
-    if num_epochs < 2:
-        raise ValueError(f'[-] num_epochs must be over 2. {num_epochs} > 2')
+    if num_epochs < 1:
+        raise ValueError(f'[-] num_epochs must be over 1. {num_epochs} > 1')
+    elif num_epochs == 1:
+        return get_chebyshev_steps(0.1, 1, 1)
 
     steps: np.ndarray = get_chebyshev_steps(0.1, 1, num_epochs - 2)
     perm: np.ndarray = get_chebyshev_permutation(num_epochs - 2)
+
     return steps[perm]
