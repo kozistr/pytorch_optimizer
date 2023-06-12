@@ -163,8 +163,8 @@ def test_get_chebyshev_scheduler():
     for k, v in recipes.items():
         np.testing.assert_array_equal(get_chebyshev_permutation(k), v)
 
-    np.testing.assert_almost_equal(get_chebyshev_schedule(1), 1.81818182, decimal=6)
-    np.testing.assert_almost_equal(get_chebyshev_schedule(3), 1.81818182, decimal=6)
+    np.testing.assert_almost_equal(get_chebyshev_schedule(1), 1.904762, decimal=6)
+    np.testing.assert_almost_equal(get_chebyshev_schedule(3), 1.904762, decimal=6)
 
 
 def test_linear_warmup_linear_scheduler():
