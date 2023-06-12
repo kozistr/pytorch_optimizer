@@ -41,17 +41,18 @@ def get_chebyshev_schedule(num_epochs: int) -> np.ndarray:
     return steps[perm]
 
 
-def get_chebyshev_lr(lr: float, epoch: int, is_warmup: bool = False) -> float:
+def get_chebyshev_lr(lr: float, epoch: int, num_epochs: int, is_warmup: bool = False) -> float:
     r"""Get chebyshev learning rate.
 
     :param lr: float. learning rate.
     :param epoch: int. current epochs.
+    :param num_epochs: int. number of total epochs.
     :param is_warmup: bool. whether warm-up stage or not.
     """
     if is_warmup:
         return lr
 
-    epoch_power: int = np.power(2, int(np.log2(epoch - 1)) + 1) if epoch > 1 else 1
+    epoch_power: int = np.power(2, int(np.log2(num_epochs - 1)) + 1) if num_epochs > 1 else 1
     scheduler = get_chebyshev_schedule(epoch_power)
 
     idx: int = epoch - 2
