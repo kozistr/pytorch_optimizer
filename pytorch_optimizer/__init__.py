@@ -56,6 +56,7 @@ from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.pcgrad import PCGrad
 from pytorch_optimizer.optimizer.pid import PID
 from pytorch_optimizer.optimizer.pnm import PNM
+from pytorch_optimizer.optimizer.prodigy import Prodigy
 from pytorch_optimizer.optimizer.qhadam import QHAdam
 from pytorch_optimizer.optimizer.qhm import QHM
 from pytorch_optimizer.optimizer.radam import RAdam
