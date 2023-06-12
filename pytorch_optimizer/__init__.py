@@ -11,7 +11,7 @@ from pytorch_optimizer.lr_scheduler import (
     CyclicLR,
     OneCycleLR,
 )
-from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_schedule
+from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_lr, get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
 from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler

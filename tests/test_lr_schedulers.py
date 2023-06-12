@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 from torch import nn
 
-from pytorch_optimizer import AdamP, get_chebyshev_schedule
-from pytorch_optimizer.lr_scheduler.chebyshev import chebyshev_perm
+from pytorch_optimizer import AdamP, get_chebyshev_lr, get_chebyshev_schedule
+from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_permutation
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
 from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
@@ -152,8 +152,48 @@ def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param)
 
 
 def test_get_chebyshev_scheduler():
-    np.testing.assert_almost_equal(get_chebyshev_schedule(3), 1.81818182, decimal=6)
-    np.testing.assert_array_equal(chebyshev_perm(5), np.asarray([0, 7, 3, 4, 1, 6, 2, 5]))
+    # test the first nontrivial permutations sigma_{T}
+    recipes = {
+        2: np.asarray([0, 1]),
+        4: np.asarray([0, 3, 1, 2]),
+        8: np.asarray([0, 7, 3, 4, 1, 6, 2, 5]),
+        16: np.asarray([0, 15, 7, 8, 3, 12, 4, 11, 1, 14, 6, 9, 2, 13, 5, 10]),
+    }
+
+    for k, v in recipes.items():
+        np.testing.assert_array_equal(get_chebyshev_permutation(k), v)
+
+    np.testing.assert_almost_equal(get_chebyshev_schedule(1), 1.904762, decimal=6)
+    np.testing.assert_almost_equal(get_chebyshev_schedule(3), 8.799878, decimal=6)
+
+
+def test_get_chebyshev_lr():
+    recipes = [
+        0.019125119558059765,
+        0.019125119558059765,
+        0.0010022924983586518,
+        0.0020901181252459123,
+        0.0017496032811320122,
+        0.006336331139456458,
+        0.0011208500962143087,
+        0.004471008393917827,
+        0.0012101602977446309,
+        0.014193791132074378,
+        0.0010208804147606497,
+        0.0025832131864890117,
+        0.0015085567867114075,
+        0.009426190153875151,
+        0.0010594201194061095,
+        0.0033213041232648503,
+        0.001335267780289186,
+        0.001335267780289186,
+        0.001335267780289186,
+    ]
+
+    np.testing.assert_almost_equal(get_chebyshev_lr(1e-3, 0, 16, is_warmup=True), 1e-3)
+
+    for i, expected_lr in enumerate(recipes, start=1):
+        np.testing.assert_almost_equal(get_chebyshev_lr(1e-3, i, 16, is_warmup=False), expected_lr)
 
 
 def test_linear_warmup_linear_scheduler():
