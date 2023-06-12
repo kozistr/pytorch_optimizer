@@ -31,19 +31,13 @@ def get_chebyshev_permutation(num_epochs: int) -> np.ndarray:
     return perm
 
 
-def get_chebyshev_schedule(epoch: int, num_epochs: int) -> np.ndarray:
+def get_chebyshev_schedule(num_epochs: int) -> np.ndarray:
     r"""Get Chebyshev schedules.
 
-    :param epoch: int. current epoch.
     :param num_epochs: int. number of total epochs.
     """
-    if epoch < 2:
-        return get_chebyshev_steps(1, num_epochs)
-
-    steps: np.ndarray = get_chebyshev_steps(epoch, num_epochs - 2)
+    steps: np.ndarray = get_chebyshev_steps(num_epochs)
     perm: np.ndarray = get_chebyshev_permutation(num_epochs - 2)
-    print(len(steps), len(perm))
-
     return steps[perm]
 
 
@@ -57,7 +51,8 @@ def get_chebyshev_lr(lr: float, epoch: int, is_warmup: bool = False) -> float:
     if is_warmup:
         return lr
 
-    scheduler = get_chebyshev_schedule(epoch)
+    epoch_power: int = np.power(2, int(np.log2(epoch - 1)) + 1) if epoch > 1 else 1
+    scheduler = get_chebyshev_schedule(epoch_power)
 
     idx: int = epoch - 2
     if idx < 0:
