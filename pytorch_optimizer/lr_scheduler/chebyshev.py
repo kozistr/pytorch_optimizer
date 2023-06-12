@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def chebyshev_steps(small_m: float, big_m: float, num_epochs: int) -> np.ndarray:
+def get_chebyshev_steps(small_m: float, big_m: float, num_epochs: int) -> np.ndarray:
     r"""Chebyshev steps.
 
     :param small_m: float. stands for 'm' notation.
@@ -37,6 +37,6 @@ def get_chebyshev_schedule(num_epochs: int) -> np.ndarray:
     if num_epochs < 2:
         raise ValueError(f'[-] num_epochs must be over 2. {num_epochs} > 2')
 
-    steps: np.ndarray = chebyshev_steps(0.1, 1, num_epochs - 2)
+    steps: np.ndarray = get_chebyshev_steps(0.1, 1, num_epochs - 2)
     perm: np.ndarray = get_chebyshev_permutation(num_epochs - 2)
     return steps[perm]
