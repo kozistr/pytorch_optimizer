@@ -488,3 +488,11 @@ SophiaH
 
 .. autoclass:: pytorch_optimizer.SophiaH
     :members:
+
+.. _Prodigy:
+
+Prodigy
+-------
+
+.. autoclass:: pytorch_optimizer.Prodigy
+    :members:
