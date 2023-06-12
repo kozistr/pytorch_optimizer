@@ -15,8 +15,14 @@ def chebyshev_steps(small_m: float, big_m: float, num_epochs: int) -> np.ndarray
     return 1.0 / (c - r * np.cos(thetas))
 
 
-def chebyshev_perm(num_epochs: int) -> np.ndarray:
-    r"""Chebyshev permutation."""
+def get_chebyshev_permutation(num_epochs: int) -> np.ndarray:
+    r"""Fractal chebyshev permutation.
+
+        sigma_{2T} := interlace(sigma_{T}, 2T + 1 - sigma_{T}), where
+        interlace([a_{1}, ..., a_{n}], [b_{1}, ..., b_{n}]) := [a_{1}, b_{1}, ..., n_{1}, b_{n}]
+
+    :param num_epochs: int. number of epochs.
+    """
     perm = np.array([0])
     while len(perm) < num_epochs:
         perm = np.vstack([perm, 2 * len(perm) - 1 - perm]).T.flatten()
@@ -32,5 +38,5 @@ def get_chebyshev_schedule(num_epochs: int) -> np.ndarray:
         raise ValueError(f'[-] num_epochs must be over 2. {num_epochs} > 2')
 
     steps: np.ndarray = chebyshev_steps(0.1, 1, num_epochs - 2)
-    perm: np.ndarray = chebyshev_perm(num_epochs - 2)
+    perm: np.ndarray = get_chebyshev_permutation(num_epochs - 2)
     return steps[perm]
