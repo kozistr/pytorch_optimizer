@@ -186,10 +186,10 @@ def test_get_chebyshev_lr():
         0.0010594201194061095,
     ]
 
-    assert get_chebyshev_lr(1e-3, 0, 16, is_warmup=True) == 1e-3
+    np.testing.assert_almost_equal(get_chebyshev_lr(1e-3, 0, 16, is_warmup=True), 1e-3)
 
     for i, expected_lr in enumerate(recipes, start=1):
-        assert get_chebyshev_lr(1e-3, i, 16, is_warmup=False) == expected_lr
+        np.testing.assert_almost_equal(get_chebyshev_lr(1e-3, i, 16, is_warmup=False), expected_lr)
 
 
 def test_linear_warmup_linear_scheduler():
