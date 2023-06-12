@@ -169,21 +169,27 @@ def test_get_chebyshev_scheduler():
 
 def test_get_chebyshev_lr():
     recipes = [
-        0.0019047619047619048,
-        0.005287528421120061,
-        0.002913537542658826,
-        0.002913537542658826,
-        0.0016189929818460173,
-        0.007689235892472318,
-        0.001087017884083351,
-        0.003829889493980585,
+        0.019125119558059765,
+        0.019125119558059765,
+        0.0010022924983586518,
+        0.0020901181252459123,
+        0.0017496032811320122,
+        0.006336331139456458,
+        0.0011208500962143087,
+        0.004471008393917827,
         0.0012101602977446309,
+        0.014193791132074378,
+        0.0010208804147606497,
+        0.0025832131864890117,
+        0.0015085567867114075,
+        0.009426190153875151,
+        0.0010594201194061095,
     ]
 
-    assert get_chebyshev_lr(1e-3, 0, is_warmup=True) == 1e-3
+    assert get_chebyshev_lr(1e-3, 0, 16, is_warmup=True) == 1e-3
 
     for i, expected_lr in enumerate(recipes, start=1):
-        assert get_chebyshev_lr(1e-3, i, is_warmup=False) == expected_lr
+        assert get_chebyshev_lr(1e-3, i, 16, is_warmup=False) == expected_lr
 
 
 def test_linear_warmup_linear_scheduler():
