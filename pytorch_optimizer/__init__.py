@@ -153,6 +153,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaHessian,
     SophiaH,
     SignSGD,
+    Prodigy,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
