@@ -152,6 +152,7 @@ def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param)
 
 
 def test_get_chebyshev_scheduler():
+    # test the first nontrivial permutations sigma_{T}
     np.testing.assert_array_equal(chebyshev_perm(2), np.asarray([0, 1]))
     np.testing.assert_array_equal(chebyshev_perm(4), np.asarray([0, 3, 1, 2]))
     np.testing.assert_array_equal(chebyshev_perm(8), np.asarray([0, 7, 3, 4, 1, 6, 2, 5]))
