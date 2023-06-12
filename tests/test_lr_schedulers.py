@@ -152,8 +152,14 @@ def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param)
 
 
 def test_get_chebyshev_scheduler():
+    np.testing.assert_array_equal(chebyshev_perm(2), np.asarray([0, 1]))
+    np.testing.assert_array_equal(chebyshev_perm(4), np.asarray([0, 3, 1, 2]))
+    np.testing.assert_array_equal(chebyshev_perm(8), np.asarray([0, 7, 3, 4, 1, 6, 2, 5]))
+    np.testing.assert_array_equal(
+        chebyshev_perm(16), np.asarray([0, 15, 7, 8, 3, 12, 4, 11, 1, 14, 6, 9, 2, 13, 5, 10])
+    )
+
     np.testing.assert_almost_equal(get_chebyshev_schedule(3), 1.81818182, decimal=6)
-    np.testing.assert_array_equal(chebyshev_perm(5), np.asarray([0, 7, 3, 4, 1, 6, 2, 5]))
 
 
 def test_linear_warmup_linear_scheduler():
