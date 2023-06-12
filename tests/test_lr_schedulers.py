@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from torch import nn
 
-from pytorch_optimizer import AdamP, get_chebyshev_schedule
+from pytorch_optimizer import AdamP, get_chebyshev_lr, get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_permutation
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
@@ -165,6 +165,12 @@ def test_get_chebyshev_scheduler():
 
     np.testing.assert_almost_equal(get_chebyshev_schedule(1), 1.904762, decimal=6)
     np.testing.assert_almost_equal(get_chebyshev_schedule(3), 1.904762, decimal=6)
+
+
+def test_get_chebyshev_lr():
+    assert get_chebyshev_lr(1e-3, 0, is_warmup=True) == 1e-3
+    assert get_chebyshev_lr(1e-3, 1, is_warmup=False) == 0.0019047619047619048
+    assert get_chebyshev_lr(1e-3, 6, is_warmup=False) == 0.0014148781761898549
 
 
 def test_linear_warmup_linear_scheduler():
