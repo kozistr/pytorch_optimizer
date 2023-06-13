@@ -65,7 +65,6 @@ class Prodigy(Optimizer, BaseOptimizer):
             'fixed_decay': fixed_decay,
             'bias_correction': bias_correction,
             'safeguard_warmup': safeguard_warmup,
-            'step': 0,
             'eps': eps,
         }
         super().__init__(params, defaults)
