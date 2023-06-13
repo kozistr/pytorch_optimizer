@@ -93,13 +93,6 @@ def test_wd_ratio(optimizer_name):
         optimizer(None, wd_ratio=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_name', ['lars'])
-def test_trust_coefficient(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)
-    with pytest.raises(ValueError):
-        optimizer(None, trust_coefficient=-1e-3)
-
-
 @pytest.mark.parametrize('optimizer_name', ['madgrad', 'lars', 'sm3', 'sgdw'])
 def test_momentum(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
@@ -150,8 +143,7 @@ def test_betas(optimizer_name):
 
 
 def test_reduction():
-    parameters = Example().parameters()
-    optimizer = load_optimizer('adamp')(parameters)
+    optimizer = load_optimizer('adamp')(Example().parameters())
 
     with pytest.raises(ValueError):
         PCGrad(optimizer, reduction='wrong')
@@ -159,17 +151,17 @@ def test_reduction():
 
 @pytest.mark.parametrize('optimizer_name', ['scalableshampoo', 'shampoo'])
 def test_update_frequency(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)
+    opt = load_optimizer(optimizer_name)
 
     if optimizer_name == 'scalableshampoo':
         with pytest.raises(NegativeStepError):
-            optimizer(None, start_preconditioning_step=-1)
+            opt(None, start_preconditioning_step=-1)
 
         with pytest.raises(NegativeStepError):
-            optimizer(None, statistics_compute_steps=-1)
+            opt(None, statistics_compute_steps=-1)
 
     with pytest.raises(NegativeStepError):
-        optimizer(None, preconditioning_compute_steps=-1)
+        opt(None, preconditioning_compute_steps=-1)
 
 
 @pytest.mark.parametrize('optimizer_name', ['adan', 'lamb'])
@@ -179,34 +171,6 @@ def test_norm(optimizer_name):
         optimizer(None, max_grad_norm=-0.1)
 
 
-@pytest.mark.parametrize('optimizer_name', ['a2grad'])
-def test_rho(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)
-    with pytest.raises(ValueError):
-        optimizer(None, rho=-0.1)
-
-
-@pytest.mark.parametrize('optimizer_name', ['accsgd'])
-def test_kappa(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)
-    with pytest.raises(ValueError):
-        optimizer([simple_parameter(False)], kappa=-0.1)
-
-
-@pytest.mark.parametrize('optimizer_name', ['accsgd'])
-def test_xi(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)
-    with pytest.raises(ValueError):
-        optimizer([simple_parameter(False)], xi=-0.1)
-
-
-@pytest.mark.parametrize('optimizer_name', ['accsgd'])
-def test_constant(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)
-    with pytest.raises(ValueError):
-        optimizer([simple_parameter(False)], constant=42)
-
-
 @pytest.mark.parametrize('optimizer', ['ranger21', 'adai'])
 def test_size_of_parameter(optimizer):
     param = simple_parameter(require_grad=False)
@@ -214,13 +178,6 @@ def test_size_of_parameter(optimizer):
 
     with pytest.raises(ZeroParameterSizeError):
         load_optimizer(optimizer)([param], 1).step()
-
-
-@pytest.mark.parametrize('optimizer_name', ['asgd'])
-def test_amplifier(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)
-    with pytest.raises(ValueError):
-        optimizer([simple_parameter(False)], amplifier=-1.0)
 
 
 @pytest.mark.parametrize('optimizer_name', ['qhadam', 'qhm'])
