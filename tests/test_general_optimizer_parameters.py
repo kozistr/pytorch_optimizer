@@ -107,18 +107,18 @@ def test_lookahead_k(optimizer_name):
         optimizer(None, k=-1)
 
 
-@pytest.mark.parametrize('optimizer_name', ['ranger21'])
-def test_beta0(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)
-    with pytest.raises(ValueError):
-        optimizer(None, num_iterations=200, beta0=-0.1)
-
-
-@pytest.mark.parametrize('optimizer_name', ['nero', 'apollo', 'sm3', 'msvag'])
+@pytest.mark.parametrize('optimizer_name', ['nero', 'apollo', 'sm3', 'msvag', 'ranger21'])
 def test_beta(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
-    with pytest.raises(ValueError):
-        optimizer(None, beta=-0.1)
+
+    if optimizer_name == 'ranger21':
+        # test beta0
+        with pytest.raises(ValueError):
+            optimizer(None, num_iterations=200, beta0=-0.1)
+    else:
+        # test beta
+        with pytest.raises(ValueError):
+            optimizer(None, beta=-0.1)
 
 
 @pytest.mark.parametrize('optimizer_name', BETA_OPTIMIZER_NAMES)
@@ -137,6 +137,9 @@ def test_betas(optimizer_name):
 
         with pytest.raises(ValueError):
             optimizer(None, **config2)
+    elif optimizer_name == 'prodigy':
+        with pytest.raises(ValueError):
+            optimizer(None, beta3=-0.1)
     else:
         with pytest.raises(ValueError):
             optimizer(None, betas=(0.1, 0.1, -0.1))
