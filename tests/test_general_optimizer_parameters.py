@@ -70,22 +70,6 @@ def test_weight_decay(optimizer_name):
         optimizer(None, **config)
 
 
-@pytest.mark.parametrize('optimizer_name', ['apollo'])
-def test_weight_decay_type(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)
-
-    with pytest.raises(ValueError):
-        optimizer(None, weight_decay_type='dummy')
-
-
-@pytest.mark.parametrize('optimizer_name', ['apollo'])
-def test_rebound(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)
-
-    with pytest.raises(ValueError):
-        optimizer(None, rebound='dummy')
-
-
 @pytest.mark.parametrize('optimizer_name', ['adamp', 'sgdp'])
 def test_wd_ratio(optimizer_name):
     optimizer = load_optimizer(optimizer_name)

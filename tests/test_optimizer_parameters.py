@@ -210,3 +210,15 @@ def test_lars_parameters():
     # test trust_coefficient
     with pytest.raises(ValueError):
         opt(None, trust_coefficient=-1e-3)
+
+
+def test_apollo_parameters():
+    opt = load_optimizer('apollo')
+
+    # test rebound type
+    with pytest.raises(ValueError):
+        opt(None, rebound='dummy')
+
+    # test weight_decay_type
+    with pytest.raises(ValueError):
+        opt(None, weight_decay_type='dummy')
