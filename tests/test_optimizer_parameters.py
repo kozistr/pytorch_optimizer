@@ -222,3 +222,15 @@ def test_apollo_parameters():
     # test weight_decay_type
     with pytest.raises(ValueError):
         opt(None, weight_decay_type='dummy')
+
+
+def test_ranger_parameters():
+    opt = load_optimizer('ranger')
+
+    # test ema ratio `alpha`
+    with pytest.raises(ValueError):
+        opt(None, alpha=-0.1)
+
+    # test lookahead step `k`
+    with pytest.raises(ValueError):
+        opt(None, k=-1)

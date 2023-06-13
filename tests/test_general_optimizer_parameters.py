@@ -84,13 +84,6 @@ def test_momentum(optimizer_name):
         optimizer(None, momentum=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_name', ['ranger'])
-def test_lookahead_k(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)
-    with pytest.raises(ValueError):
-        optimizer(None, k=-1)
-
-
 @pytest.mark.parametrize('optimizer_name', ['nero', 'apollo', 'sm3', 'msvag', 'ranger21'])
 def test_beta(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
