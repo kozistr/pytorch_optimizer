@@ -31,6 +31,7 @@ class LARS(Optimizer, BaseOptimizer):
         self.validate_learning_rate(lr)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
+        self.validate_range(dampening, 'dampening', 0.0, 1.0)
         self.validate_non_negative(trust_coefficient, 'trust_coefficient')
 
         defaults: DEFAULTS = {
