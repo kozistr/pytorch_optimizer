@@ -56,6 +56,7 @@ from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.pcgrad import PCGrad
 from pytorch_optimizer.optimizer.pid import PID
 from pytorch_optimizer.optimizer.pnm import PNM
+from pytorch_optimizer.optimizer.prodigy import Prodigy
 from pytorch_optimizer.optimizer.qhadam import QHAdam
 from pytorch_optimizer.optimizer.qhm import QHM
 from pytorch_optimizer.optimizer.radam import RAdam
@@ -152,6 +153,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaHessian,
     SophiaH,
     SignSGD,
+    Prodigy,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

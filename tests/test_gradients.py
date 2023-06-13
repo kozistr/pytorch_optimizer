@@ -13,7 +13,6 @@ def test_no_gradients(optimizer_name):
     p2 = simple_parameter(require_grad=False)
     p3 = simple_parameter(require_grad=True)
     p4 = simple_parameter(require_grad=False)
-
     params = [{'params': [p1, p2]}, {'params': [p3]}, {'params': [p4]}]
 
     if optimizer_name == 'ranger21':
@@ -136,8 +135,8 @@ def test_sam_no_gradient():
     optimizer.second_step(zero_grad=True)
 
 
-@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan'])
-def test_d_adapt_no_progress(optimizer_name):
+@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan', 'Prodigy'])
+def test_no_progression(optimizer_name):
     param = simple_parameter(True)
     param.grad = None
 
@@ -146,8 +145,8 @@ def test_d_adapt_no_progress(optimizer_name):
     optimizer.step()
 
 
-@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan'])
-def test_d_adapt_2nd_stage_gradient(optimizer_name):
+@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan', 'Prodigy'])
+def test_2nd_stage_gradient(optimizer_name):
     p1 = simple_parameter(require_grad=False)
     p2 = simple_parameter(require_grad=True)
     p3 = simple_parameter(require_grad=True)
@@ -164,7 +163,5 @@ def test_d_adapt_2nd_stage_gradient(optimizer_name):
 
 
 def test_fromage_zero_norm():
-    param = simple_parameter(require_grad=True)
-
-    optimizer = load_optimizer('fromage')([param])
+    optimizer = load_optimizer('fromage')([simple_parameter(require_grad=True)])
     optimizer.step()

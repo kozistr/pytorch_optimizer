@@ -232,7 +232,7 @@ class BaseOptimizer(ABC):
 
     @staticmethod
     def validate_positive(x: Union[float, int], name: str):
-        if x < 1:
+        if x <= 0:
             raise ValueError(f'[-] {name} must be positive')
 
     @staticmethod
@@ -265,7 +265,8 @@ class BaseOptimizer(ABC):
         if len(betas) < 3:
             return
 
-        self.validate_range(betas[2], 'beta3', 0.0, 1.0, range_type='[]')
+        if betas[2] is not None:
+            self.validate_range(betas[2], 'beta3', 0.0, 1.0, range_type='[]')
 
     def validate_nus(self, nus: Union[float, Tuple[float, float]]):
         if isinstance(nus, float):
