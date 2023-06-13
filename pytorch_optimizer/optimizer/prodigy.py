@@ -126,7 +126,7 @@ class Prodigy(Optimizer, BaseOptimizer):
                     raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
-                if 'step' not in state:
+                if len(state) == 0:
                     state['s'] = torch.zeros_like(p)
                     state['p0'] = p.clone()
                     state['exp_avg'] = torch.zeros_like(p)
@@ -147,6 +147,44 @@ class Prodigy(Optimizer, BaseOptimizer):
         if d_de_nom == 0:
             return loss
 
-        d_hat = group['d_coef'] * d_numerator / d_de_nom
+        d_hat = (group['d_coef'] * d_numerator / d_de_nom).item()
+        if d == group['d0']:
+            d = max(d, d_hat)
+
+        d_max = max(group['d_max'], d_hat)
+        d = min(d_max, d * group['growth_rate'])
+
+        for group in self.param_groups:
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
+            group['d_numerator'] = d_numerator
+            group['d_de_nom'] = d_de_nom
+            group['d'] = d
+            group['d_max'] = d_max
+            group['d_hat'] = d_hat
+
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                state = self.state[p]
+
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
+                de_nom = exp_avg_sq.sqrt().add_(d * group['eps'])
+
+                self.apply_weight_decay(
+                    p,
+                    p.grad,
+                    lr=d_lr,
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
+
+                p.addcdiv_(exp_avg, de_nom, value=-d_lr)
 
         return loss
