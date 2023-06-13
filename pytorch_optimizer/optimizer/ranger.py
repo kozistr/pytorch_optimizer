@@ -30,12 +30,11 @@ class Ranger(Optimizer, BaseOptimizer):
         self,
         params: PARAMETERS,
         lr: float = 1e-3,
+        betas: BETAS = (0.95, 0.999),
         alpha: float = 0.5,
         k: int = 6,
         n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = False,
-        betas: BETAS = (0.95, 0.999),
-        eps: float = 1e-5,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
@@ -44,11 +43,13 @@ class Ranger(Optimizer, BaseOptimizer):
         r: float = 0.95,
         adanorm: bool = False,
         adam_debias: bool = False,
+        eps: float = 1e-5,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
-        self.validate_non_negative(weight_decay, 'weight_decay')
+        self.validate_range(alpha, 'alpha', 0.0, 1.0, range_type='[]')
         self.validate_positive(k, 'k')
+        self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
         self.n_sma_threshold = n_sma_threshold
