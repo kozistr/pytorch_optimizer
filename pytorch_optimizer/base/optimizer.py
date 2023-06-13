@@ -232,7 +232,7 @@ class BaseOptimizer(ABC):
 
     @staticmethod
     def validate_positive(x: Union[float, int], name: str):
-        if x < 1:
+        if x <= 0:
             raise ValueError(f'[-] {name} must be positive')
 
     @staticmethod
