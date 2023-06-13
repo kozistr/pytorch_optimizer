@@ -92,7 +92,7 @@ class AdaSmooth(Optimizer, BaseOptimizer):
 
                 self.apply_weight_decay(
                     p=p,
-                    grad=p.grad,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],
