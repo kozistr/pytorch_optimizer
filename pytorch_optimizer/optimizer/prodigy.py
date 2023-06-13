@@ -65,6 +65,7 @@ class Prodigy(Optimizer, BaseOptimizer):
             'fixed_decay': fixed_decay,
             'bias_correction': bias_correction,
             'safeguard_warmup': safeguard_warmup,
+            'step': 1,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -75,7 +76,7 @@ class Prodigy(Optimizer, BaseOptimizer):
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
-            group['step'] = 0
+            group['step'] = 1
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -101,13 +102,12 @@ class Prodigy(Optimizer, BaseOptimizer):
         beta1, beta2 = group['betas']
         beta3 = group['beta3'] if group['beta3'] is not None else math.sqrt(beta2)
 
-        bias_correction1: float = 1.0 - beta1 ** (group['step'] + 1)
-        bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** (group['step'] + 1))
-        bias_correction: float = bias_correction1 / bias_correction2_sq if group['bias_correction'] else 1.0
+        bias_correction1: float = 1.0 - beta1 ** group['step']
+        bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
+        bias_correction: float = (bias_correction1 / bias_correction2_sq) if group['bias_correction'] else 1.0
 
         d, d0 = group['d'], group['d0']
-        lr: float = group['lr']
-        d_lr: float = d * lr / bias_correction
+        d_lr: float = d * group['lr'] / bias_correction
 
         if 'd_numerator' not in group:
             group['d_numerator'] = torch.tensor([0.0], device=device)
@@ -154,10 +154,7 @@ class Prodigy(Optimizer, BaseOptimizer):
         d = min(d_max, d * group['growth_rate'])
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
-                group['step'] = 1
+            group['step'] += 1
 
             group['d_numerator'] = d_numerator
             group['d_de_nom'] = d_de_nom
