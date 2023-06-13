@@ -47,7 +47,7 @@ class Prodigy(Optimizer, BaseOptimizer):
         eps: float = 1e-8,
     ):
         self.validate_learning_rate(lr)
-        self.validate_betas(betas)
+        self.validate_betas((*betas, beta3))
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
