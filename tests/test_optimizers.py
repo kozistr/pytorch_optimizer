@@ -384,6 +384,16 @@ def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
     assert str(optimizer) == optimizer_name
 
 
+def test_prodigy_reset():
+    param = simple_parameter(True)
+    param.grad = None
+
+    optimizer = load_optimizer('prodigy')([param])
+    optimizer.reset()
+
+    assert str(optimizer) == 'Prodigy'
+
+
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2])
 def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type, environment):
     (x_data, y_data), _, loss_fn = environment
