@@ -212,8 +212,6 @@ You can check the supported optimizers with below code.
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 | SignSGD      | *Compressed Optimisation for Non-Convex Problems*                                                 | `github <https://github.com/jxbz/signSGD>`__                                      | `https://arxiv.org/abs/1802.04434 <https://arxiv.org/abs/1802.04434>`__                       | `cite <https://ui.adsabs.harvard.edu/abs/2018arXiv180204434B/exportcitation>`__                                      |
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
-| AdaHessian   | *An Adaptive Second Order Optimizer for Machine Learning*                                         | `github <https://github.com/amirgholami/adahessian>`__                            | `https://arxiv.org/abs/2006.00719 <https://arxiv.org/abs/2006.00719>`__                       | `cite <https://github.com/amirgholami/adahessian#citation>`__                                                        |
-+--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 | Sophia       | *A Scalable Stochastic Second-order Optimizer for Language Model Pre-training*                    | `github <https://github.com/Liuhong99/Sophia>`__                                  | `https://arxiv.org/abs/2305.14342 <https://arxiv.org/abs/2305.14342>`__                       | `cite <https://github.com/Liuhong99/Sophia>`__                                                                       |
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 | Prodigy      | *An Expeditiously Adaptive Parameter-Free Learner*                                                | `github <https://github.com/konstmish/prodigy>`__                                 | `https://arxiv.org/abs/2306.06101 <https://arxiv.org/abs/2306.06101>`__                       | `cite <https://github.com/konstmish/prodigy#how-to-cite>`__                                                          |
@@ -372,8 +370,8 @@ Adaptive Gradient Norm Correction
 Citation
 --------
 
-Please cite original authors of optimization algorithms. If you use this software, please cite it as below.
-Or you can get from "cite this repository" button.
+Please cite original authors of optimization algorithms. You can easily find it from the above table!
+If you use this software, please cite it as below. Or you can get from "cite this repository" button.
 
 ::
 
@@ -385,8 +383,8 @@ Or you can get from "cite this repository" button.
         year = {2022}
     }
 
-Author
-------
+Maintainer
+----------
 
 Hyeongchan Kim / `@kozistr <http://kozistr.tech/about>`__
 
