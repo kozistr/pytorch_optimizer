@@ -200,7 +200,7 @@ class BaseOptimizer(ABC):
     ) -> torch.Tensor:
         r"""Get AdaNorm gradient.
 
-        :param grad. torch.Tensor. gradient.
+        :param grad: torch.Tensor. gradient.
         :param adanorm: bool. whether to apply AdaNorm.
         :param exp_grad_norm: Optional[torch.Tensor]. exp_grad_norm.
         :param r: float. Optional[float]. momentum (ratio).
