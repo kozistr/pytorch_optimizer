@@ -370,8 +370,8 @@ Adaptive Gradient Norm Correction
 Citation
 --------
 
-Please cite original authors of optimization algorithms. If you use this software, please cite it as below.
-Or you can get from "cite this repository" button.
+Please cite original authors of optimization algorithms. You can easily find it from the above table!
+If you use this software, please cite it as below. Or you can get from "cite this repository" button.
 
 ::
 
@@ -383,8 +383,8 @@ Or you can get from "cite this repository" button.
         year = {2022}
     }
 
-Author
-------
+Maintainer
+----------
 
 Hyeongchan Kim / `@kozistr <http://kozistr.tech/about>`__
 
