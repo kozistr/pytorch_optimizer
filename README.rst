@@ -16,7 +16,7 @@ pytorch-optimizer
 
 | **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch.
 | I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.
-| Currently, 55 optimizers, 6 lr schedulers are supported!
+| Currently, 56 optimizers, 6 lr schedulers are supported!
 |
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
@@ -215,6 +215,8 @@ You can check the supported optimizers with below code.
 | Sophia       | *A Scalable Stochastic Second-order Optimizer for Language Model Pre-training*                    | `github <https://github.com/Liuhong99/Sophia>`__                                  | `https://arxiv.org/abs/2305.14342 <https://arxiv.org/abs/2305.14342>`__                       | `cite <https://github.com/Liuhong99/Sophia>`__                                                                       |
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 | Prodigy      | *An Expeditiously Adaptive Parameter-Free Learner*                                                | `github <https://github.com/konstmish/prodigy>`__                                 | `https://arxiv.org/abs/2306.06101 <https://arxiv.org/abs/2306.06101>`__                       | `cite <https://github.com/konstmish/prodigy#how-to-cite>`__                                                          |
++--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
+| PAdam        | *Closing the Generalization Gap of Adaptive Gradient Methods in Training Deep Neural Networks*    | `github <https://github.com/nicolalandro/Padam>`__                                | `https://arxiv.org/abs/1806.06763 <https://arxiv.org/abs/1806.06763>`__                       | `cite <https://github.com/nicolalandro/Padam#citation>`__                                                            |
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 
 Supported LR Scheduler
