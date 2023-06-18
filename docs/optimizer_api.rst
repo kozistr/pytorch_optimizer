@@ -496,3 +496,11 @@ Prodigy
 
 .. autoclass:: pytorch_optimizer.Prodigy
     :members:
+
+.. _PAdam:
+
+PAdam
+-----
+
+.. autoclass:: pytorch_optimizer.PAdam
+    :members:
