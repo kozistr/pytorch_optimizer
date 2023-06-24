@@ -464,13 +464,13 @@ def test_lomo_fused_backward(environment):
 
 
 @pytest.mark.parametrize('precision', [16, 32])
-def test_lomo_grad_norm(precision, environment):
+def test_lomo_optimizer(precision, environment):
     _, model, _ = environment
 
     if precision == 16:
         model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
 
-    optimizer = load_optimizer('lomo')(model, clip_grad_norm=1.0)
+    optimizer = load_optimizer('lomo')(model, clip_grad_norm=1.0, clip_grad_value=1.0)
 
     if precision == 16:
         optimizer.clip_coef = 0.9
