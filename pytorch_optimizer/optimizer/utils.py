@@ -19,7 +19,7 @@ def is_valid_parameters(parameters: PARAMETERS) -> bool:
 
 def has_overflow(grad_norm: torch.Tensor) -> bool:
     r"""Detect inf and NaN in grad_norm."""
-    return bool(torch.logical_or(torch.isnan(grad_norm), torch.isinf(grad_norm)))
+    return bool(torch.logical_or(torch.isnan(grad_norm), torch.isinf(grad_norm)).any())
 
 
 def to_real(x: torch.Tensor) -> torch.Tensor:
