@@ -48,6 +48,7 @@ class DynamicLossScaler:
         self.last_overflow_iter: int = -1
         self.last_rescale_iter: int = -1
         self.overflows_since_rescale: int = 0
+        self.has_overflow_serial: bool = False
 
     def update_scale(self, overflow: bool):
         r"""Update the loss scale.

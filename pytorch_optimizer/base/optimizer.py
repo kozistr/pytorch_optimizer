@@ -226,8 +226,8 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] {name} must be in the range ({low}, {high})')
 
     @staticmethod
-    def validate_non_negative(x: float, name: str):
-        if x < 0.0:
+    def validate_non_negative(x: Optional[float], name: str):
+        if x is not None and x < 0.0:
             raise ValueError(f'[-] {name} must be non-negative')
 
     @staticmethod
@@ -276,5 +276,5 @@ class BaseOptimizer(ABC):
             self.validate_range(nus[1], 'nu2', 0.0, 1.0, range_type='[]')
 
     @abstractmethod
-    def reset(self):
+    def reset(self):  # pragma: no cover
         raise NotImplementedError

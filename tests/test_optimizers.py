@@ -432,3 +432,50 @@ def test_sm3_rank0():
     optimizer.step()
 
     assert str(optimizer) == 'SM3'
+
+
+def test_lomo_deepspeed_zero3(environment):
+    _, model, _ = environment
+
+    model.fc1.weight.__setattr__('ds_tensor', 0)
+
+    optimizer = load_optimizer('lomo')(model)
+    optimizer.reset()
+
+    assert str(optimizer) == 'LOMO'
+
+
+def test_lomo_clip_grad_norm_with_fp16(environment):
+    _, model, _ = environment
+
+    # clip grad norm with fp16
+    model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
+
+    with pytest.raises(ValueError):
+        load_optimizer('lomo')(model, clip_grad_norm=None)
+
+
+def test_lomo_fused_backward(environment):
+    _, model, _ = environment
+
+    optimizer = load_optimizer('lomo')(model, clip_grad_norm=1.0)
+    with pytest.raises(ValueError):
+        optimizer.fused_backward(loss=0.1, lr=0.1)
+
+
+@pytest.mark.parametrize('precision', [16, 32])
+def test_lomo_optimizer(precision, environment):
+    _, model, _ = environment
+
+    if precision == 16:
+        model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
+        model.fc1.weight.grad = torch.zeros(2, 2, dtype=torch.float16)
+
+    optimizer = load_optimizer('lomo')(model, clip_grad_norm=1.0, clip_grad_value=1.0)
+
+    if precision == 16:
+        optimizer.clip_coef = 0.9
+
+    loss = sphere_loss(list(model.parameters())[0])
+    optimizer.grad_norm(loss)
+    optimizer.fused_backward(loss, lr=0.1)

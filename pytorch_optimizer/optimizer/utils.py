@@ -19,7 +19,7 @@ def is_valid_parameters(parameters: PARAMETERS) -> bool:
 
 def has_overflow(grad_norm: torch.Tensor) -> bool:
     r"""Detect inf and NaN in grad_norm."""
-    return grad_norm != grad_norm or grad_norm == float('inf')
+    return bool(torch.logical_or(torch.isnan(grad_norm), torch.isinf(grad_norm)).any())
 
 
 def to_real(x: torch.Tensor) -> torch.Tensor:
@@ -87,7 +87,11 @@ def cosine_similarity_by_view(
     return f.cosine_similarity(x, y, dim=1, eps=eps).abs_()
 
 
-def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> Union[torch.Tensor, float]:
+def clip_grad_norm(
+    parameters: PARAMETERS,
+    max_norm: float = 0.0,
+    sync: bool = False,
+) -> Union[torch.Tensor, float]:  # pragma: no cover
     r"""Clip gradient norms.
 
         During combination with FSDP, will also ensure that grad norms are aggregated across all workers,

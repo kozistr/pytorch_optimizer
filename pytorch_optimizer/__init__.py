@@ -48,6 +48,7 @@ from pytorch_optimizer.optimizer.gsam import GSAM
 from pytorch_optimizer.optimizer.lamb import Lamb
 from pytorch_optimizer.optimizer.lars import LARS
 from pytorch_optimizer.optimizer.lion import Lion
+from pytorch_optimizer.optimizer.lomo import LOMO
 from pytorch_optimizer.optimizer.lookahead import Lookahead
 from pytorch_optimizer.optimizer.madgrad import MADGRAD
 from pytorch_optimizer.optimizer.msvag import MSVAG
@@ -156,6 +157,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     SignSGD,
     Prodigy,
     PAdam,
+    LOMO,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

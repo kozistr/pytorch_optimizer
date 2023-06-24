@@ -29,8 +29,9 @@ from tests.utils import Example
 
 
 def test_has_overflow():
-    assert has_overflow(np.inf)
-    assert has_overflow(np.nan)
+    assert has_overflow(torch.tensor(torch.inf))
+    assert has_overflow(torch.tensor(-torch.inf))
+    assert has_overflow(torch.tensor(torch.nan))
     assert not has_overflow(torch.Tensor([1]))
 
 
