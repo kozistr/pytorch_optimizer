@@ -504,3 +504,11 @@ PAdam
 
 .. autoclass:: pytorch_optimizer.PAdam
     :members:
+
+.. _LOMO:
+
+LOMO
+----
+
+.. autoclass:: pytorch_optimizer.LOMO
+    :members:
