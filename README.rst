@@ -16,7 +16,7 @@ pytorch-optimizer
 
 | **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch.
 | I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.
-| Currently, 56 optimizers, 6 lr schedulers are supported!
+| Currently, 57 optimizers, 6 lr schedulers are supported!
 |
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
@@ -217,6 +217,8 @@ You can check the supported optimizers with below code.
 | Prodigy      | *An Expeditiously Adaptive Parameter-Free Learner*                                                | `github <https://github.com/konstmish/prodigy>`__                                 | `https://arxiv.org/abs/2306.06101 <https://arxiv.org/abs/2306.06101>`__                       | `cite <https://github.com/konstmish/prodigy#how-to-cite>`__                                                          |
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 | PAdam        | *Closing the Generalization Gap of Adaptive Gradient Methods in Training Deep Neural Networks*    | `github <https://github.com/uclaml/Padam>`__                                      | `https://arxiv.org/abs/1806.06763 <https://arxiv.org/abs/1806.06763>`__                       | `cite <https://github.com/uclaml/Padam#citation>`__                                                                  |
++--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
+| LOMO         | *Full Parameter Fine-tuning for Large Language Models with Limited Resources*                     | `github <https://github.com/OpenLMLab/LOMO>`__                                    | `https://arxiv.org/abs/2306.09782 <https://arxiv.org/abs/2306.09782>`__                       | `cite <https://github.com/OpenLMLab/LOMO#citation>`__                                                                |
 +--------------+---------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 
 Supported LR Scheduler
