@@ -86,7 +86,7 @@ class BaseLinearWarmupScheduler(ABC):
         return value
 
     @abstractmethod
-    def _step(self) -> float:
+    def _step(self) -> float:  # pragma: no cover
         raise NotImplementedError
 
     def get_lr(self) -> float:
