@@ -437,7 +437,7 @@ def test_sm3_rank0():
 def test_lomo_deepspeed_zero3(environment):
     _, model, _ = environment
 
-    setattr(model.fc1.weight, 'ds_tensor', 0)
+    model.fc1.weight.__setattr__('ds_tensor', 0)
 
     optimizer = load_optimizer('lomo')(model)
     optimizer.reset()
