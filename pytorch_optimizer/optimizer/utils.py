@@ -87,7 +87,11 @@ def cosine_similarity_by_view(
     return f.cosine_similarity(x, y, dim=1, eps=eps).abs_()
 
 
-def clip_grad_norm(parameters: PARAMETERS, max_norm: float = 0, sync: bool = False) -> Union[torch.Tensor, float]:
+def clip_grad_norm(
+    parameters: PARAMETERS,
+    max_norm: float = 0.0,
+    sync: bool = False,
+) -> Union[torch.Tensor, float]:  # pragma: no cover
     r"""Clip gradient norms.
 
         During combination with FSDP, will also ensure that grad norms are aggregated across all workers,
