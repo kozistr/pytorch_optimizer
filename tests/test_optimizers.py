@@ -469,6 +469,7 @@ def test_lomo_optimizer(precision, environment):
 
     if precision == 16:
         model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
+        model.fc1.weight.grad = torch.zeros(2, 2, dtype=torch.float16)
 
     optimizer = load_optimizer('lomo')(model, clip_grad_norm=1.0, clip_grad_value=1.0)
 
