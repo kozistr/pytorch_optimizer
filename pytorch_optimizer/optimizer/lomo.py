@@ -15,6 +15,7 @@ class LOMO(BaseOptimizer, Optimizer):
     r"""Full Parameter Fine-tuning for Large Language Models with Limited Resources.
 
     Reference : https://github.com/OpenLMLab/LOMO/blob/main/src/lomo.py
+    Check the usage from here : https://github.com/OpenLMLab/LOMO/blob/main/src/lomo_trainer.py
 
     :param model: nn.Module. pytorch model.
     :param lr: float. learning rate.
