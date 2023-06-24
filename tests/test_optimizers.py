@@ -463,9 +463,18 @@ def test_lomo_fused_backward(environment):
         optimizer.fused_backward(loss=0.1, lr=0.1)
 
 
-def test_lomo_fused_backward(environment):
+@pytest.mark.parametrize('precision', [16, 32])
+def test_lomo_grad_norm(precision, environment):
     _, model, _ = environment
 
+    if precision == 16:
+        model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
+
     optimizer = load_optimizer('lomo')(model, clip_grad_norm=1.0)
-    with pytest.raises(ValueError):
-        optimizer.fused_backward(loss=0.1, lr=0.1)
+
+    if precision == 16:
+        optimizer.clip_coef = 0.9
+
+    loss = sphere_loss(list(model.parameters())[0])
+    optimizer.grad_norm(loss)
+    optimizer.fused_backward(loss, lr=0.1)
