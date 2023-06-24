@@ -71,7 +71,6 @@ INVALID_OPTIMIZER_NAMES: List[str] = [
     'gsam',
     'pcgrad',
     'lookahead',
-    'lomo',  # need to
 ]
 
 SPARSE_OPTIMIZERS: List[str] = ['madgrad', 'dadaptadagrad', 'sm3']
