@@ -107,7 +107,7 @@ class LOMO(BaseOptimizer, Optimizer):
     def fuse_update_zero3(self) -> Callable[[Any], Any]:  # pragma: no cover
         @torch.no_grad()
         def func(x: torch.Tensor) -> torch.Tensor:
-            for n, p in self.model.named_parameters():
+            for _, p in self.model.named_parameters():
                 if p.grad is None:
                     continue
 
