@@ -276,5 +276,5 @@ class BaseOptimizer(ABC):
             self.validate_range(nus[1], 'nu2', 0.0, 1.0, range_type='[]')
 
     @abstractmethod
-    def reset(self):
+    def reset(self):  # pragma: no cover
         raise NotImplementedError
