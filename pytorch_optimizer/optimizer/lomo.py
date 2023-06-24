@@ -7,6 +7,7 @@ from torch.distributed import ReduceOp, all_reduce
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
+from pytorch_optimizer.base.types import DEFAULTS
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler
 from pytorch_optimizer.optimizer.utils import has_overflow
 
@@ -64,7 +65,8 @@ class LOMO(BaseOptimizer, Optimizer):
             if p.requires_grad:
                 p.register_hook(self.grad_func)
 
-        super().__init__(self.model.parameters())
+        defaults: DEFAULTS = {'lr': lr}
+        super().__init__(self.model.parameters(), defaults)
 
     def __str__(self) -> str:
         return 'LOMO'
