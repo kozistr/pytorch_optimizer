@@ -3,7 +3,7 @@ from typing import Any, Callable, List, Optional
 
 import torch
 from torch import nn
-from torch.distributed import ReduceOp, all_reduce, get_world_size
+from torch.distributed import ReduceOp, all_reduce, get_world_size, is_initialized
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -33,6 +33,12 @@ class LOMO(BaseOptimizer, Optimizer):
         self.validate_learning_rate(lr)
         self.validate_non_negative(clip_grad_norm, 'clip_grad_norm')
         self.validate_non_negative(clip_grad_value, 'clip_grad_value')
+
+        if not is_initialized():
+            raise RuntimeError(
+                '[-] need to initialize process group. '
+                'please make sure to call torch.distributed.init_process_group()'
+            )
 
         self.model = model
         self.lr = lr
