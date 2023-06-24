@@ -432,3 +432,21 @@ def test_sm3_rank0():
     optimizer.step()
 
     assert str(optimizer) == 'SM3'
+
+
+def test_lomo_deepspeed_zero3(environment):
+    _, model, _ = environment
+
+    setattr(model.fc1.weight, 'ds_tensor', 0)
+
+    load_optimizer('lomo')(model)
+
+
+def test_lomo_clip_grad_norm_with_fp16(environment):
+    _, model, _ = environment
+
+    # clip grad norm with fp16
+    model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
+
+    with pytest.raises(ValueError):
+        load_optimizer('lomo')(model, clip_grad_norm=None)
