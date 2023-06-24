@@ -70,6 +70,10 @@ class LOMO(BaseOptimizer, Optimizer):
     def __str__(self) -> str:
         return 'LOMO'
 
+    @torch.no_grad()
+    def reset(self):
+        pass
+
     def fuse_update(self) -> Callable[[Any], Any]:
         @torch.no_grad()
         def func(x: Any) -> Any:
