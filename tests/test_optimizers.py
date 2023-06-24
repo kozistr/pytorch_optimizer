@@ -453,3 +453,19 @@ def test_lomo_clip_grad_norm_with_fp16(environment):
 
     with pytest.raises(ValueError):
         load_optimizer('lomo')(model, clip_grad_norm=None)
+
+
+def test_lomo_fused_backward(environment):
+    _, model, _ = environment
+
+    optimizer = load_optimizer('lomo')(model, clip_grad_norm=1.0)
+    with pytest.raises(ValueError):
+        optimizer.fused_backward(loss=0.1, lr=0.1)
+
+
+def test_lomo_fused_backward(environment):
+    _, model, _ = environment
+
+    optimizer = load_optimizer('lomo')(model, clip_grad_norm=1.0)
+    with pytest.raises(ValueError):
+        optimizer.fused_backward(loss=0.1, lr=0.1)
