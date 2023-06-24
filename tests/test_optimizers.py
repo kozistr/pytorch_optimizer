@@ -439,7 +439,10 @@ def test_lomo_deepspeed_zero3(environment):
 
     setattr(model.fc1.weight, 'ds_tensor', 0)
 
-    load_optimizer('lomo')(model)
+    optimizer = load_optimizer('lomo')(model)
+    optimizer.reset()
+
+    assert str(optimizer) == 'LOMO'
 
 
 def test_lomo_clip_grad_norm_with_fp16(environment):
