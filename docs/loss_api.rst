@@ -16,3 +16,35 @@ BCEFocal
 
 .. autoclass:: pytorch_optimizer.BCEFocal
     :members:
+
+.. _FocalLoss:
+
+FocalLoss
+---------
+
+.. autoclass:: pytorch_optimizer.FocalLoss
+    :members:
+
+.. _SoftF1Loss:
+
+SoftF1Loss
+----------
+
+.. autoclass:: pytorch_optimizer.SoftF1Loss
+    :members:
+
+.. _DiceLoss:
+
+DiceLoss
+--------
+
+.. autoclass:: pytorch_optimizer.DiceLoss
+    :members:
+
+.. _LDAMLoss:
+
+LDAMLoss
+--------
+
+.. autoclass:: pytorch_optimizer.LDAMLoss
+    :members:
