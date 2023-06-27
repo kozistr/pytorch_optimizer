@@ -66,7 +66,7 @@ def test_soft_f1_loss():
 
 
 @torch.no_grad()
-def test_dice_loss():
+def test_binary_dice_loss():
     # brought from https://github.com/BloodAxe/pytorch-toolbelt/blob/develop/tests/test_losses.py#L84
 
     eps: float = 1e-6
@@ -103,6 +103,27 @@ def test_dice_loss():
     y_true = torch.tensor([1, 1, 1]).view(1, 1, 1, -1)
     loss = criterion(y_pred, y_true)
     assert float(loss) == pytest.approx(0.996677, abs=eps)
+
+    criterion = DiceLoss(mode='binary', ignore_index=1)
+
+    y_pred = torch.tensor([0.0, 0.0, 0.0]).view(1, 1, -1)
+    y_true = torch.tensor([1, 1, 1]).view(1, 1, 1, -1)
+    loss = criterion(y_pred, y_true)
+    assert float(loss) == pytest.approx(0.0, abs=eps)
+
+    with pytest.raises(ValueError):
+        DiceLoss(mode='binary', classes=[0])
+
+
+@torch.no_grad()
+def test_multiclass_dice_loss():
+    eps: float = 1e-6
+
+    criterion = DiceLoss(mode='multiclass', classes=[1, 2, 3, 4])
+
+    y_pred = torch.tensor([0.0, 0.0, 0.0]).view(1, 1, -1)
+    y_true = torch.tensor([1, 1, 1]).view(1, 1, 1, -1)
+    loss = criterion(y_pred, y_true)
 
 
 @torch.no_grad()
