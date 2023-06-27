@@ -2,7 +2,16 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_optimizer import BCEFocalLoss, BCELoss, DiceLoss, FocalLoss, LDAMLoss, SoftF1Loss, soft_dice_score
+from pytorch_optimizer import (
+    BCEFocalLoss,
+    BCELoss,
+    CosineFocalLoss,
+    DiceLoss,
+    FocalLoss,
+    LDAMLoss,
+    SoftF1Loss,
+    soft_dice_score,
+)
 
 
 @torch.no_grad()
@@ -52,6 +61,17 @@ def test_focal_loss():
     loss = criterion(y_pred, y_true)
 
     assert float(loss) == pytest.approx(0.07848126, abs=1e-6)
+
+
+@torch.no_grad()
+def test_cosine_focal_loss():
+    criterion = CosineFocalLoss(alpha=1.0, gamma=2.0, focal_weight=0.1)
+
+    y_pred = torch.FloatTensor([[0.9, 0.1, 0.1], [0.2, 0.9, 0.1], [0.2, 0.1, 0.1]])
+    y_true = torch.LongTensor([0, 1, 2])
+    loss = criterion(y_pred, y_true)
+
+    assert float(loss) == pytest.approx(0.241352, abs=1e-6)
 
 
 @torch.no_grad()
