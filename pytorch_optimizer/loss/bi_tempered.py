@@ -176,9 +176,22 @@ class BiTemperedLogisticLoss(nn.Module):
     """Bi-Tempered Log Loss.
 
     Reference : https://github.com/BloodAxe/pytorch-toolbelt/blob/develop/pytorch_toolbelt/losses/bitempered_loss.py
+
+    :param t1: float. Temperature 1 (< 1.0 for boundedness).
+    :param t2: float. Temperature 2 (> 1.0 for tail heaviness, < 1.0 for finite support).
+    :param label_smooth: float. Label smoothing parameter between [0, 1).
+    :param ignore_index: Optional[int]. Index to ignore.
+    :param reduction: str. type of reduction.
     """
 
-    def __init__(self, t1: float, t2: float, label_smooth: float = 0.0, ignore_index: Optional[int] = None, reduction: str = 'mean'):
+    def __init__(
+        self,
+        t1: float,
+        t2: float,
+        label_smooth: float = 0.0,
+        ignore_index: Optional[int] = None,
+        reduction: str = 'mean',
+    ):
         super().__init__()
         self.t1 = t1
         self.t2 = t2
