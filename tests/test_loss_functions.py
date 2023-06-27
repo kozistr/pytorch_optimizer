@@ -49,3 +49,13 @@ def test_focal_loss():
     loss = criterion(y_pred, y_true)
 
     np.testing.assert_almost_equal(loss.item(), 0.07848126)
+
+
+def test_soft_f1_loss():
+    criterion = SoftF1Loss()
+
+    y_pred = torch.sigmoid(torch.arange(-1.0, 1.0, 0.2))
+    y_true = torch.FloatTensor([0.0] * 5 + [1.0] * 5)
+    loss = criterion(y_pred, y_true)
+
+    np.testing.assert_almost_equal(loss.item(), 0.38905364)
