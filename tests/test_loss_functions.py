@@ -7,7 +7,7 @@ from pytorch_optimizer import (
     BCELoss,
     BinaryBiTemperedLogisticLoss,
     BiTemperedLogisticLoss,
-    CosineFocalLoss,
+    FocalCosineLoss,
     DiceLoss,
     FocalLoss,
     JaccardLoss,
@@ -71,7 +71,7 @@ def test_focal_loss():
 
 @torch.no_grad()
 def test_cosine_focal_loss():
-    criterion = CosineFocalLoss(alpha=1.0, gamma=2.0, focal_weight=0.1)
+    criterion = FocalCosineLoss(alpha=1.0, gamma=2.0, focal_weight=0.1)
 
     y_pred = torch.FloatTensor([[0.9, 0.1, 0.1], [0.2, 0.9, 0.1], [0.2, 0.1, 0.1]])
     y_true = torch.LongTensor([0, 1, 2])

@@ -8,7 +8,7 @@ from pytorch_optimizer.loss.bi_tempered import BinaryBiTemperedLogisticLoss, BiT
 from pytorch_optimizer.loss.cross_entropy import BCELoss
 from pytorch_optimizer.loss.dice import DiceLoss, soft_dice_score
 from pytorch_optimizer.loss.f1 import SoftF1Loss
-from pytorch_optimizer.loss.focal import BCEFocalLoss, CosineFocalLoss, FocalLoss
+from pytorch_optimizer.loss.focal import BCEFocalLoss, FocalCosineLoss, FocalLoss
 from pytorch_optimizer.loss.jaccard import JaccardLoss, soft_jaccard_score
 from pytorch_optimizer.loss.ldam import LDAMLoss
 from pytorch_optimizer.lr_scheduler import (
@@ -191,7 +191,7 @@ LOSS_FUNCTION_LIST: List = [
     SoftF1Loss,
     DiceLoss,
     LDAMLoss,
-    CosineFocalLoss,
+    FocalCosineLoss,
     JaccardLoss,
     BiTemperedLogisticLoss,
     BinaryBiTemperedLogisticLoss,

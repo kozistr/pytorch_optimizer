@@ -30,8 +30,8 @@ class FocalLoss(nn.Module):
         return focal_loss.mean()
 
 
-class CosineFocalLoss(nn.Module):
-    r"""Cosine Focal loss function w/ logit input.
+class FocalCosineLoss(nn.Module):
+    r"""Focal Cosine loss function w/ logit input.
 
     :param alpha: float. alpha.
     :param gamma: float. gamma.
