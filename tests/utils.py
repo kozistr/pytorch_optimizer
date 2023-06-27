@@ -44,6 +44,15 @@ class Example(nn.Module):
         return self.norm1(self.fc1(x))
 
 
+class MultiClassExample(nn.Module):
+    def __init__(self, num_classes: int):
+        super().__init__()
+        self.fc = nn.Linear(1, num_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.fc(x)
+
+
 def simple_zero_rank_parameter(require_grad: bool = True) -> torch.Tensor:
     param = torch.tensor(0.0).requires_grad_(require_grad)
     param.grad = torch.tensor(0.0)
