@@ -106,13 +106,11 @@ target-version = "py311"
 "./tests/test_optimizers.py" = ["D", "S101"]
 "./tests/test_optimizer_parameters.py" = ["D", "S101"]
 "./tests/test_general_optimizer_parameters.py" = ["D", "S101"]
-"./tests/test_load_optimizers.py" = ["D", "S101"]
-"./tests/test_load_lr_schedulers.py" = ["D", "S101"]
 "./tests/test_lr_schedulers.py" = ["D", "S101"]
 "./tests/test_lr_scheduler_parameters.py" = ["D", "S101"]
 "./tests/test_create_optimizer.py" = ["D"]
-"./tests/test_load_loss_functions.py" = ["D", "S101"]
 "./tests/test_loss_functions.py" = ["D", "S101"]
+"./tests/test_load_modules.py" = ["D", "S101"]
 
 [tool.pytest.ini_options]
 testpaths = "tests"
