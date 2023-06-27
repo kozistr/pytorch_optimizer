@@ -118,12 +118,18 @@ def test_binary_dice_loss():
 @torch.no_grad()
 def test_multiclass_dice_loss():
     eps: float = 1e-6
+    criterion = DiceLoss(mode='multiclass', classes=[0])
 
-    criterion = DiceLoss(mode='multiclass', classes=[1, 2, 3, 4])
-
-    y_pred = torch.tensor([0.0, 0.0, 0.0]).view(1, 1, -1)
-    y_true = torch.tensor([1, 1, 1]).view(1, 1, 1, -1)
+    y_pred = torch.tensor([[0.0, 0.1, 0.4], [0.8, 0.3, 0.5], [0.7, 0.9, 0.8]]).view(3, 3, -1)
+    y_true = torch.tensor([[1], [0], [2]]).view(3, -1)
     loss = criterion(y_pred, y_true)
+    assert float(loss) == pytest.approx(0.5749718, abs=eps)
+
+    criterion = DiceLoss(mode='multiclass', classes=[0], ignore_index=1)
+    y_pred = torch.tensor([[0.0, 0.1, 0.4], [0.8, 0.3, 0.5], [0.7, 0.9, 0.8]]).view(3, 3, -1)
+    y_true = torch.tensor([[1], [0], [2]]).view(3, -1)
+    loss = criterion(y_pred, y_true)
+    assert float(loss) == pytest.approx(0.506536, abs=eps)
 
 
 @torch.no_grad()
