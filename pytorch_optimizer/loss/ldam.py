@@ -29,7 +29,7 @@ class LDAMLoss(nn.Module):
         self.s = s
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
-        index = torch.zeros_like(y_pred, dtype=torch.uint8)
+        index = torch.zeros_like(y_pred, dtype=torch.bool)
         index.scatter_(1, y_true.view(-1, 1), 1)
 
         batch_m = torch.matmul(self.m_list.to(index.device), index.float().transpose(0, 1))
