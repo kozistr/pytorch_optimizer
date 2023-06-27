@@ -14,6 +14,7 @@ class LDAMLoss(nn.Module):
     :param weight: Optional[torch.Tensor]. class weight.
     :param s: float. scaler.
     """
+
     def __init__(
         self, num_class_list: List[int], max_m: float = 0.5, weight: Optional[torch.Tensor] = None, s: float = 30.0
     ):
