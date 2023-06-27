@@ -16,7 +16,7 @@ keywords = [
     "DAdaptSGD", "DiffGrad", "Fromage", "Gravity", "GSAM", "LARS", "Lamb", "Lion", "LOMO", "Lookahead", "MADGRAD",
     "MSVAG", "Nero", "NovoGrad", "PAdam", "PCGrad", "PID", "PNM", "Prodigy", "QHAdam", "QHM", "RAdam", "Ranger",
     "Ranger21", "RotoGrad", "SAM", "SGDP", "SGDW", "SignSGD", "SM3", "SopihaH", "SRMM", "SWATS", "ScalableShampoo",
-    "Shampoo", "Yogi",
+    "Shampoo", "Yogi", "BCE", "BCEFocal",
 ]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
