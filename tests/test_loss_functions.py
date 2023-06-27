@@ -296,8 +296,14 @@ def test_bi_tempered_log_loss_bwd():
     y_pred = model(torch.randn(4, 1))
     y_true = torch.LongTensor([0, 1, 2, 3])
 
-    loss = bi_tempered_logistic_loss(y_pred, y_true, t1=0.5, t2=1.0, reduction='mean')
+    loss = bi_tempered_logistic_loss(y_pred, y_true, t1=0.5, t2=0.5, reduction='mean')
     loss.backward()
+
+
+def test_binary_bi_tempered_log_loss_exception():
+    criterion = BinaryBiTemperedLogisticLoss(0.8, 2.0, label_smooth=0.1, ignore_index=-100, reduction='mean')
+    with pytest.raises(ValueError):
+        criterion(torch.zeros(1, 1), torch.zeros(1, 2))
 
 
 @torch.no_grad()
