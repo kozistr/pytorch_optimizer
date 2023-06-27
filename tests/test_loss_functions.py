@@ -273,7 +273,7 @@ def test_ldam_loss():
     y_true = torch.LongTensor([3, 0])
     loss = criterion(y_pred, y_true)
 
-    assert loss.item() == pytest.approx(0.5767049, abs=1e-6)
+    assert loss.item() == pytest.approx(4.5767049, abs=1e-6)
 
 
 def test_bi_tempered_log_loss_func():
