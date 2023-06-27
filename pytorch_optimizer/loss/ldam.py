@@ -7,7 +7,7 @@ from torch.nn.functional import cross_entropy
 
 
 class LDAMLoss(nn.Module):
-    r"""LDAM Loss
+    r"""LDAM Loss.
 
     :param num_class_list: List[int]. list of number of class.
     :param max_m: float. max margin (`C` term in the paper).
