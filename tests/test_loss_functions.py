@@ -16,6 +16,7 @@ from pytorch_optimizer import (
     soft_dice_score,
     soft_jaccard_score,
 )
+from pytorch_optimizer.loss.bi_tempered import bi_tempered_logistic_loss
 
 
 @torch.no_grad()
@@ -273,6 +274,20 @@ def test_ldam_loss():
     loss = criterion(y_pred, y_true)
 
     np.testing.assert_almost_equal(loss.item(), 4.5767049)
+
+
+def test_bi_tempered_log_loss_func():
+    y_pred = torch.FloatTensor(
+        [[0.1, 0.2, 0.3, 0.4], [0.1, 0.5, 0.3, 0.4], [0.1, 0.2, 0.3, 0.4], [0.1, 0.2, 0.3, 0.4]]
+    )
+    y_true = torch.LongTensor([0, 1, 2, 3])
+
+    assert bi_tempered_logistic_loss(y_pred, y_true, t1=0.5, t2=1.0, reduction='mean') == pytest.approx(
+        0.6417, abs=1e-4
+    )
+    assert bi_tempered_logistic_loss(y_pred, y_true, t1=0.5, t2=1.0, reduction='sum') == pytest.approx(
+        2.5668, abs=1e-4
+    )
 
 
 @torch.no_grad()
