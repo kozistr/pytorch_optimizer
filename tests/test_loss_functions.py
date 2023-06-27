@@ -105,10 +105,10 @@ def test_dice_loss():
 
 @torch.no_grad()
 def test_ldam_loss():
-    criterion = LDAMLoss()
+    criterion = LDAMLoss(num_class_list=[1, 2, 3, 4])
 
-    y_pred = torch.sigmoid(torch.arange(-1.0, 1.0, 0.2))
-    y_true = torch.FloatTensor([0.0] * 5 + [1.0] * 5)
+    y_pred = torch.FloatTensor([[-0.5, -0.25, 0.25, 0.5], [0.8, -0.25, 0.25, 0.5]])
+    y_true = torch.LongTensor([3, 0])
     loss = criterion(y_pred, y_true)
 
-    np.testing.assert_almost_equal(loss.item(), 0.38905364)
+    np.testing.assert_almost_equal(loss.item(), 4.5767049)
