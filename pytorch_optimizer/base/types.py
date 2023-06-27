@@ -14,3 +14,4 @@ OPTIMIZER = Type[Optimizer]
 SCHEDULER = Type[_LRScheduler]
 
 HUTCHINSON_G = Literal['gaussian', 'rademacher']
+CLASS_MODE = Literal['binary', 'multiclass', 'multilabel']
