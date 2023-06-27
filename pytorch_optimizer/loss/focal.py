@@ -1,7 +1,27 @@
 import torch
 from torch import nn
+from torch.nn.functional import binary_cross_entropy_with_logits
 
 from pytorch_optimizer.loss.cross_entropy import BCELoss
+
+
+class FocalLoss(nn.Module):
+    r"""BCEFocal loss function w/ logit input.
+
+    :param alpha: float. alpha.
+    :param gamma: float. gamma.
+    """
+
+    def __init__(self, alpha: float = 0.25, gamma: float = 2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        bce_loss = binary_cross_entropy_with_logits(y_pred, y_true, reduction='none')
+        pt = torch.exp(-bce_loss)
+        focal_loss = self.alpha * (1 - pt) ** self.gamma * bce_loss
+        return focal_loss.mean()
 
 
 class BCEFocalLoss(nn.Module):
