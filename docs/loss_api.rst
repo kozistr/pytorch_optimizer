@@ -72,3 +72,11 @@ BiTemperedLogisticLoss
 
 .. autoclass:: pytorch_optimizer.BiTemperedLogisticLoss
     :members:
+
+.. _BinaryBiTemperedLogisticLoss:
+
+BinaryBiTemperedLogisticLoss
+----------------------------
+
+.. autoclass:: pytorch_optimizer.BinaryBiTemperedLogisticLoss
+    :members:
