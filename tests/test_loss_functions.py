@@ -282,12 +282,11 @@ def test_bi_tempered_log_loss_func():
     )
     y_true = torch.LongTensor([0, 1, 2, 3])
 
-    assert bi_tempered_logistic_loss(y_pred, y_true, t1=0.5, t2=1.0, reduction='mean') == pytest.approx(
-        0.6417, abs=1e-4
-    )
-    assert bi_tempered_logistic_loss(y_pred, y_true, t1=0.5, t2=1.0, reduction='sum') == pytest.approx(
-        2.5668, abs=1e-4
-    )
+    loss = bi_tempered_logistic_loss(y_pred, y_true, t1=0.5, t2=1.0, reduction='mean')
+    assert loss == pytest.approx(0.6417, abs=1e-4)
+
+    loss = bi_tempered_logistic_loss(y_pred, y_true, t1=0.5, t2=1.0, reduction='sum')
+    assert loss == pytest.approx(2.5668, abs=1e-4)
 
 
 @torch.no_grad()
