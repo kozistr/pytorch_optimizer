@@ -5,7 +5,9 @@ from torch import nn
 
 from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS, SCHEDULER
 from pytorch_optimizer.loss.cross_entropy import BCELoss
-from pytorch_optimizer.loss.focal import BCEFocalLoss
+from pytorch_optimizer.loss.dice import DiceLoss
+from pytorch_optimizer.loss.f1 import SoftF1Loss
+from pytorch_optimizer.loss.focal import BCEFocalLoss, FocalLoss
 from pytorch_optimizer.lr_scheduler import (
     ConstantLR,
     CosineAnnealingLR,
@@ -182,6 +184,9 @@ LR_SCHEDULERS: Dict[str, SCHEDULER] = {
 LOSS_FUNCTION_LIST: List[nn.Module] = [
     BCELoss,
     BCEFocalLoss,
+    FocalLoss,
+    SoftF1Loss,
+    DiceLoss,
 ]
 LOSS_FUNCTIONS: Dict[str, nn.Module] = {
     str(loss_function.__name__).lower(): loss_function for loss_function in LOSS_FUNCTION_LIST
