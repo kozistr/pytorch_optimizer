@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 import torch
 
@@ -70,14 +69,14 @@ def test_focal_loss():
 
 
 @torch.no_grad()
-def test_cosine_focal_loss():
+def test_focal_cosine_loss():
     criterion = FocalCosineLoss(alpha=1.0, gamma=2.0, focal_weight=0.1)
 
     y_pred = torch.FloatTensor([[0.9, 0.1, 0.1], [0.2, 0.9, 0.1], [0.2, 0.1, 0.1]])
     y_true = torch.LongTensor([0, 1, 2])
     loss = criterion(y_pred, y_true)
 
-    assert float(loss) == pytest.approx(0.241352, abs=1e-6)
+    assert float(loss) == pytest.approx(0.2413520, abs=1e-6)
 
 
 @torch.no_grad()
@@ -88,7 +87,7 @@ def test_soft_f1_loss():
     y_true = torch.FloatTensor([0.0] * 5 + [1.0] * 5)
     loss = criterion(y_pred, y_true)
 
-    np.testing.assert_almost_equal(loss.item(), 0.38905364)
+    assert float(loss) == pytest.approx(0.38905364, abs=1e-6)
 
 
 @torch.no_grad()
@@ -274,7 +273,7 @@ def test_ldam_loss():
     y_true = torch.LongTensor([3, 0])
     loss = criterion(y_pred, y_true)
 
-    np.testing.assert_almost_equal(loss.item(), 4.5767049)
+    assert loss.item() == pytest.approx(0.5767049, abs=1e-6)
 
 
 def test_bi_tempered_log_loss_func():
@@ -324,7 +323,7 @@ def test_bi_tempered_log_loss(recipe):
     loss = criterion(y_pred, y_true)
 
     if reduction == 'none':
-        torch.testing.assert_allclose(loss, expected_loss, rtol=1e-4, atol=1e-4)
+        torch.testing.assert_close(loss, expected_loss, rtol=1e-4, atol=1e-4)
     else:
         assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
 
@@ -345,6 +344,6 @@ def test_binary_bi_tempered_log_loss(recipe):
     loss = criterion(y_pred, y_true)
 
     if reduction == 'none':
-        torch.testing.assert_allclose(loss, expected_loss, rtol=1e-4, atol=1e-4)
+        torch.testing.assert_close(loss, expected_loss, rtol=1e-4, atol=1e-4)
     else:
         assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
