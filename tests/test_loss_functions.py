@@ -17,6 +17,7 @@ from pytorch_optimizer import (
     soft_jaccard_score,
 )
 from pytorch_optimizer.loss.bi_tempered import bi_tempered_logistic_loss
+from tests.utils import MultiClassExample
 
 
 @torch.no_grad()
@@ -287,6 +288,16 @@ def test_bi_tempered_log_loss_func():
 
     loss = bi_tempered_logistic_loss(y_pred, y_true, t1=0.5, t2=1.0, reduction='sum')
     assert loss == pytest.approx(2.5668, abs=1e-4)
+
+
+def test_bi_tempered_log_loss_bwd():
+    model = MultiClassExample(num_classes=4)
+
+    y_pred = model(torch.randn(4, 1))
+    y_true = torch.LongTensor([0, 1, 2, 3])
+
+    loss = bi_tempered_logistic_loss(y_pred, y_true, t1=0.5, t2=1.0, reduction='mean')
+    loss.backward()
 
 
 @torch.no_grad()
