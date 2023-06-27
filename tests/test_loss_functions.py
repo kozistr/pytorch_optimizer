@@ -67,6 +67,8 @@ def test_soft_f1_loss():
 
 @torch.no_grad()
 def test_dice_loss():
+    # brought from https://github.com/BloodAxe/pytorch-toolbelt/blob/develop/tests/test_losses.py#L84
+
     eps: float = 1e-6
     criterion = DiceLoss(mode='binary', from_logits=False, label_smooth=0.01)
 
