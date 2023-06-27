@@ -64,3 +64,11 @@ JaccardLoss
 
 .. autoclass:: pytorch_optimizer.JaccardLoss
     :members:
+
+.. _BiTemperedLogisticLoss:
+
+BiTemperedLogisticLoss
+----------------------
+
+.. autoclass:: pytorch_optimizer.BiTemperedLogisticLoss
+    :members:
