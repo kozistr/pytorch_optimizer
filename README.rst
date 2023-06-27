@@ -16,7 +16,7 @@ pytorch-optimizer
 
 | **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch.
 | I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.
-| Currently, 57 optimizers, 6 lr schedulers, and 8 loss functions are supported!
+| Currently, 57 optimizers, 6 lr schedulers, and 9 loss functions are supported!
 |
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
@@ -263,6 +263,8 @@ You can check the supported loss functions with below code.
 | LDAM                | *Learning Imbalanced Datasets with Label-Distribution-Aware Margin Loss*                                                | `github <https://github.com/kaidic/LDAM-DRW>`__                                   | `https://arxiv.org/abs/1906.07413 <https://arxiv.org/abs/1906.07413>`__                       | `cite <https://github.com/kaidic/LDAM-DRW#reference>`__                                                              |
 +---------------------+-------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 | Jaccard (IOU)       | *IoU Loss for 2D/3D Object Detection*                                                                                   |                                                                                   | `https://arxiv.org/abs/1908.03851 <https://arxiv.org/abs/1908.03851>`__                       | `cite <https://ui.adsabs.harvard.edu/abs/2019arXiv190803851Z/exportcitation>`__                                      |
++---------------------+-------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
+| Bi-Tempered         | *The Principle of Unchanged Optimality in Reinforcement Learning Generalization*                                        |                                                                                   | `https://arxiv.org/abs/1906.03361 <https://arxiv.org/abs/1906.03361>`__                       | `cite <https://ui.adsabs.harvard.edu/abs/2019arXiv190600336I/exportcitation>`__                                      |
 +---------------------+-------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------+
 
 Useful Resources
