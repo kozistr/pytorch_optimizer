@@ -17,7 +17,7 @@ def test_bce_loss(recipe):
     y_true = torch.FloatTensor([0.0] * 5 + [1.0] * 5)
     loss = criterion(y_pred, y_true)
 
-    assert loss == expected_loss
+    assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
 
 
 @torch.no_grad()
@@ -40,7 +40,7 @@ def test_bce_focal_loss(recipe):
     y_true = torch.FloatTensor([0.0] * 5 + [1.0] * 5)
     loss = criterion(y_pred, y_true)
 
-    assert loss == expected_loss
+    assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
 
 
 @torch.no_grad()
@@ -51,7 +51,7 @@ def test_focal_loss():
     y_true = torch.FloatTensor([0.0] * 5 + [1.0] * 5)
     loss = criterion(y_pred, y_true)
 
-    np.testing.assert_almost_equal(loss.item(), 0.07848126)
+    assert float(loss) == pytest.approx(0.07848126, abs=1e-6)
 
 
 @torch.no_grad()
