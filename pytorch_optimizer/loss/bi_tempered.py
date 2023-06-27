@@ -216,64 +216,49 @@ class BiTemperedLogisticLoss(nn.Module):
 
 
 class BinaryBiTemperedLogisticLoss(nn.Module):
-    """
-    Modification of BiTemperedLogisticLoss for binary classification case.
-    It's signature matches nn.BCEWithLogitsLoss: Predictions and target tensors must have shape [B,1,...]
+    """Modification of BiTemperedLogisticLoss for binary classification case.
 
-    References:
-        https://ai.googleblog.com/2019/08/bi-tempered-logistic-loss-for-training.html
-        https://arxiv.org/abs/1906.03361
+    :param t1: float. Temperature 1 (< 1.0 for boundedness).
+    :param t2: float. Temperature 2 (> 1.0 for tail heaviness, < 1.0 for finite support).
+    :param label_smooth: float. Label smoothing parameter between [0, 1).
+    :param ignore_index: Optional[int]. Index to ignore.
+    :param reduction: str. type of reduction.
     """
 
     def __init__(
-        self, t1: float, t2: float, smoothing: float = 0.0, ignore_index: Optional[int] = None, reduction: str = "mean"
+        self,
+        t1: float,
+        t2: float,
+        label_smooth: float = 0.0,
+        ignore_index: Optional[int] = None,
+        reduction: str = 'mean',
     ):
-        """
-
-        Args:
-            t1:
-            t2:
-            smoothing:
-            ignore_index:
-            reduction:
-        """
         super().__init__()
         self.t1 = t1
         self.t2 = t2
-        self.smoothing = smoothing
-        self.reduction = reduction
+        self.label_smooth = label_smooth
         self.ignore_index = ignore_index
+        self.reduction = reduction
 
-    def forward(self, predictions: Tensor, targets: Tensor) -> Tensor:
-        """
-        Forward method of the loss function
-
-        Args:
-            predictions: [B,1,...]
-            targets: [B,1,...]
-
-        Returns:
-            Zero-sized tensor with reduced loss if self.reduction is `sum` or `mean`; Otherwise returns loss of the
-            shape of `predictions` tensor.
-        """
+    def forward(self, predictions: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         if predictions.size(1) != 1 or targets.size(1) != 1:
-            raise ValueError("Channel dimension for predictions and targets must be equal to 1")
+            raise ValueError('Channel dimension for predictions and targets must be equal to 1')
 
         loss = bi_tempered_logistic_loss(
-            torch.cat([-predictions, predictions], dim=1).moveaxis(1, -1),
-            torch.cat([1 - targets, targets], dim=1).moveaxis(1, -1),
+            torch.cat((-predictions, predictions), dim=1).moveaxis(1, -1),
+            torch.cat((1.0 - targets, targets), dim=1).moveaxis(1, -1),
             t1=self.t1,
             t2=self.t2,
-            label_smoothing=self.smoothing,
-            reduction="none",
+            label_smooth=self.label_smooth,
+            reduction='none',
         ).unsqueeze(dim=1)
 
         if self.ignore_index is not None:
             mask = targets.eq(self.ignore_index)
-            loss = torch.masked_fill(loss, mask, 0)
+            loss = torch.masked_fill(loss, mask, value=0)
 
-        if self.reduction == "mean":
+        if self.reduction == 'mean':
             loss = loss.mean()
-        elif self.reduction == "sum":
+        elif self.reduction == 'sum':
             loss = loss.sum()
         return loss
