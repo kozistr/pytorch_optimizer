@@ -56,3 +56,11 @@ LDAMLoss
 
 .. autoclass:: pytorch_optimizer.LDAMLoss
     :members:
+
+.. _JaccardLoss:
+
+JaccardLoss
+-----------
+
+.. autoclass:: pytorch_optimizer.JaccardLoss
+    :members:
