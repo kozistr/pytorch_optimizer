@@ -1,18 +1,24 @@
 import torch
 from torch import nn
-from torch.nn.functional import binary_cross_entropy_with_logits
+from torch.nn.functional import (
+    binary_cross_entropy_with_logits,
+    cosine_embedding_loss,
+    cross_entropy,
+    normalize,
+    one_hot,
+)
 
 from pytorch_optimizer.loss.cross_entropy import BCELoss
 
 
 class FocalLoss(nn.Module):
-    r"""BCEFocal loss function w/ logit input.
+    r"""Focal loss function w/ logit input.
 
     :param alpha: float. alpha.
     :param gamma: float. gamma.
     """
 
-    def __init__(self, alpha: float = 0.25, gamma: float = 2.0):
+    def __init__(self, alpha: float = 1.0, gamma: float = 2.0):
         super().__init__()
         self.alpha = alpha
         self.gamma = gamma
@@ -22,6 +28,35 @@ class FocalLoss(nn.Module):
         pt = torch.exp(-bce_loss)
         focal_loss = self.alpha * (1 - pt) ** self.gamma * bce_loss
         return focal_loss.mean()
+
+
+class CosineFocalLoss(nn.Module):
+    r"""Cosine Focal loss function w/ logit input.
+
+    :param alpha: float. alpha.
+    :param gamma: float. gamma.
+    :param focal_weight: float. weight of focal loss.
+    """
+
+    def __init__(self, alpha: float = 1.0, gamma: float = 2.0, focal_weight: float = 0.1):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.focal_weight = focal_weight
+
+    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        cosine_loss = cosine_embedding_loss(
+            y_pred,
+            one_hot(y_true, num_classes=y_pred.size(-1)),
+            torch.tensor([1], device=y_true.device),
+            reduction=self.reduction,
+        )
+
+        cent_loss = cross_entropy(normalize(y_pred), y_true, reduction='none')
+        pt = torch.exp(-cent_loss)
+        focal_loss = (self.alpha * (1 - pt) ** self.gamma * cent_loss).mean()
+
+        return cosine_loss + self.focal_weight * focal_loss
 
 
 class BCEFocalLoss(nn.Module):
