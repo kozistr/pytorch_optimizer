@@ -8,6 +8,7 @@ from pytorch_optimizer.loss.cross_entropy import BCELoss
 from pytorch_optimizer.loss.dice import DiceLoss
 from pytorch_optimizer.loss.f1 import SoftF1Loss
 from pytorch_optimizer.loss.focal import BCEFocalLoss, FocalLoss
+from pytorch_optimizer.loss.ldam import LDAMLoss
 from pytorch_optimizer.lr_scheduler import (
     ConstantLR,
     CosineAnnealingLR,
@@ -187,6 +188,7 @@ LOSS_FUNCTION_LIST: List[nn.Module] = [
     FocalLoss,
     SoftF1Loss,
     DiceLoss,
+    LDAMLoss,
 ]
 LOSS_FUNCTIONS: Dict[str, nn.Module] = {
     str(loss_function.__name__).lower(): loss_function for loss_function in LOSS_FUNCTION_LIST
