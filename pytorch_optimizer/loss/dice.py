@@ -78,10 +78,7 @@ class DiceLoss(_Loss):
             # Apply activations to get [0..1] class probabilities
             # Using Log-Exp as this gives more numerically stable result and does not cause vanishing gradient on
             # extreme values 0 and 1
-            if self.mode == 'multiclass':
-                y_pred = y_pred.log_softmax(dim=1).exp()
-            else:
-                y_pred = logsigmoid(y_pred).exp()
+            y_pred = y_pred.log_softmax(dim=1).exp() if self.mode == 'multiclass' else logsigmoid(y_pred).exp()
 
         bs: int = y_true.size(0)
         num_classes: int = y_pred.size(1)
@@ -124,10 +121,7 @@ class DiceLoss(_Loss):
             y_pred, y_true.type_as(y_pred), label_smooth=self.label_smooth, eps=self.eps, dims=dims
         )
 
-        if self.log_loss:
-            loss = -torch.log(scores.clamp_min(self.eps))
-        else:
-            loss = 1.0 - scores
+        loss = -torch.log(scores.clamp_min(self.eps)) if self.log_loss else 1.0 - scores
 
         # Dice loss is undefined for non-empty classes
         # So we zero contribution of channel that does not have true pixels
