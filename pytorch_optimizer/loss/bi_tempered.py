@@ -32,9 +32,8 @@ def compute_normalization_fixed_point(activations: torch.Tensor, t: float, num_i
         normalized_activations = normalized_activations_step_0 * logt_partition.pow(1.0 - t)
 
     logt_partition = torch.sum(exp_t(normalized_activations, t), dim=-1, keepdim=True)
-    normalization_constants = -log_t(1.0 / logt_partition, t) + mu
 
-    return normalization_constants
+    return -log_t(1.0 / logt_partition, t) + mu
 
 
 def compute_normalization_binary_search(activations: torch.Tensor, t: float, num_iters: int) -> torch.Tensor:
