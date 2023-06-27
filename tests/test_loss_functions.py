@@ -234,15 +234,8 @@ def test_binary_jaccard_loss():
     loss = criterion(y_pred, y_true)
     assert float(loss) == pytest.approx(0.996677, abs=eps)
 
-    criterion = DiceLoss(mode='binary', ignore_index=1)
-
-    y_pred = torch.tensor([0.0, 0.0, 0.0]).view(1, 1, -1)
-    y_true = torch.tensor([1, 1, 1]).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.0, abs=eps)
-
     with pytest.raises(ValueError):
-        DiceLoss(mode='binary', classes=[0])
+        JaccardLoss(mode='binary', classes=[0])
 
 
 @torch.no_grad()
