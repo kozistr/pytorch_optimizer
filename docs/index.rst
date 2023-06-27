@@ -21,6 +21,7 @@ Contents
    base_api
    optimizer_api
    scheduler_api
+   loss_api
    util_api
 
 Indices and tables
