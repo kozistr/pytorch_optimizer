@@ -4,6 +4,7 @@ from typing import Dict, List
 from torch import nn
 
 from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS, SCHEDULER
+from pytorch_optimizer.loss.bi_tempered import BiTemperedLogisticLoss
 from pytorch_optimizer.loss.cross_entropy import BCELoss
 from pytorch_optimizer.loss.dice import DiceLoss, soft_dice_score
 from pytorch_optimizer.loss.f1 import SoftF1Loss
@@ -192,6 +193,7 @@ LOSS_FUNCTION_LIST: List = [
     LDAMLoss,
     CosineFocalLoss,
     JaccardLoss,
+    BiTemperedLogisticLoss,
 ]
 LOSS_FUNCTIONS: Dict[str, nn.Module] = {
     str(loss_function.__name__).lower(): loss_function for loss_function in LOSS_FUNCTION_LIST
