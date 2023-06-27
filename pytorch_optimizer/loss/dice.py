@@ -60,7 +60,7 @@ class DiceLoss(_Loss):
         super().__init__()
 
         if classes is not None:
-            if mode != 'binary':
+            if mode == 'binary':
                 raise ValueError('[-] Masking classes is not supported with mode=binary')
 
             classes = torch.LongTensor(classes)
