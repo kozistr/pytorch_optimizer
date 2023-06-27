@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "pytorch_optimizer"
-version = "2.10.1"
-description = "optimizer & lr scheduler collections in PyTorch"
+version = "2.11.0"
+description = "optimizer & lr scheduler & objective function collections in PyTorch"
 license = "Apache-2.0"
 authors = ["kozistr <kozistr@gmail.com>"]
 maintainers = ["kozistr <kozistr@gmail.com>"]
@@ -16,7 +16,7 @@ keywords = [
     "DAdaptSGD", "DiffGrad", "Fromage", "Gravity", "GSAM", "LARS", "Lamb", "Lion", "LOMO", "Lookahead", "MADGRAD",
     "MSVAG", "Nero", "NovoGrad", "PAdam", "PCGrad", "PID", "PNM", "Prodigy", "QHAdam", "QHM", "RAdam", "Ranger",
     "Ranger21", "RotoGrad", "SAM", "SGDP", "SGDW", "SignSGD", "SM3", "SopihaH", "SRMM", "SWATS", "ScalableShampoo",
-    "Shampoo", "Yogi",
+    "Shampoo", "Yogi", "BCE", "BCEFocal", "Focal", "FocalCosine", "SoftF1", "Dice", "LDAM", "Jaccard", "Bi-Tempered",
 ]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -94,6 +94,8 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 target-version = "py311"
 
 [tool.ruff.per-file-ignores]
+"./pytorch_optimizer/__init__.py" = ["F401"]
+"./pytorch_optimizer/lr_scheduler/__init__.py" = ["F401"]
 "./hubconf.py" = ["D", "INP001"]
 "./tests/__init__.py" = ["D"]
 "./tests/constants.py" = ["D"]
@@ -104,13 +106,11 @@ target-version = "py311"
 "./tests/test_optimizers.py" = ["D", "S101"]
 "./tests/test_optimizer_parameters.py" = ["D", "S101"]
 "./tests/test_general_optimizer_parameters.py" = ["D", "S101"]
-"./tests/test_load_optimizers.py" = ["D", "S101"]
-"./tests/test_load_lr_schedulers.py" = ["D", "S101"]
 "./tests/test_lr_schedulers.py" = ["D", "S101"]
 "./tests/test_lr_scheduler_parameters.py" = ["D", "S101"]
 "./tests/test_create_optimizer.py" = ["D"]
-"./pytorch_optimizer/__init__.py" = ["F401"]
-"./pytorch_optimizer/lr_scheduler/__init__.py" = ["F401"]
+"./tests/test_loss_functions.py" = ["D", "S101"]
+"./tests/test_load_modules.py" = ["D", "S101"]
 
 [tool.pytest.ini_options]
 testpaths = "tests"
