@@ -5,6 +5,8 @@ import torch
 from pytorch_optimizer import (
     BCEFocalLoss,
     BCELoss,
+    BinaryBiTemperedLogisticLoss,
+    BiTemperedLogisticLoss,
     CosineFocalLoss,
     DiceLoss,
     FocalLoss,
@@ -271,3 +273,47 @@ def test_ldam_loss():
     loss = criterion(y_pred, y_true)
 
     np.testing.assert_almost_equal(loss.item(), 4.5767049)
+
+
+@torch.no_grad()
+@pytest.mark.parametrize(
+    'recipe',
+    [('mean', 0.939503), ('sum', 3.758012), ('none', torch.FloatTensor([0.9840, 0.9139, 0.9412, 0.9190]))],
+)
+def test_bi_tempered_log_loss(recipe):
+    reduction, expected_loss = recipe
+
+    criterion = BiTemperedLogisticLoss(1.0, 2.0, label_smooth=0.1, ignore_index=-100, reduction=reduction)
+
+    y_pred = torch.FloatTensor(
+        [[0.1, 0.2, 0.3, 0.4], [0.1, 0.5, 0.3, 0.4], [0.1, 0.2, 0.3, 0.4], [0.1, 0.2, 0.3, 0.4]]
+    )
+    y_true = torch.LongTensor([0, 1, 2, 3])
+
+    loss = criterion(y_pred, y_true)
+
+    if reduction == 'none':
+        torch.testing.assert_allclose(loss, expected_loss, rtol=1e-4, atol=1e-4)
+    else:
+        assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
+
+
+@torch.no_grad()
+@pytest.mark.parametrize(
+    'recipe', [('mean', 0.0399554), ('sum', 0.0799109), ('none', torch.FloatTensor([[[0.0000, 0.0799]]]))]
+)
+def test_binary_bi_tempered_log_loss(recipe):
+    reduction, expected_loss = recipe
+
+    criterion = BinaryBiTemperedLogisticLoss(1.0, 2.0, label_smooth=0.1, ignore_index=-100, reduction=reduction)
+
+    y_pred = torch.FloatTensor([[[-0.9108, -1.2545]]])
+    y_true = (y_pred > 0).type_as(y_pred)
+    y_true[:, :, ::2] = -100
+
+    loss = criterion(y_pred, y_true)
+
+    if reduction == 'none':
+        torch.testing.assert_allclose(loss, expected_loss, rtol=1e-4, atol=1e-4)
+    else:
+        assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
