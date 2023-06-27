@@ -2,15 +2,8 @@ import torch
 from torch import nn
 
 
-def get_cosine_similarity(x1: torch.Tensor, x2: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
-    p12 = (x1 * x2).sum(-1)
-    p1 = torch.sqrt((x1 * x1).sum(-1))
-    p2 = torch.sqrt((x2 * x2).sum(-1))
-    return p12 / (p1 * p2 + eps)
-
-
 class SoftF1Loss(nn.Module):
-    r"""soft-F1 loss.
+    r"""Soft-F1 loss.
 
     :param beta: float. f-beta.
     :param eps: float. epsilon.
