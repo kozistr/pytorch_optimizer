@@ -25,12 +25,12 @@ FocalLoss
 .. autoclass:: pytorch_optimizer.FocalLoss
     :members:
 
-.. _CosineFocalLoss:
+.. _FocalCosineLoss:
 
-CosineFocalLoss
+FocalCosineLoss
 ---------------
 
-.. autoclass:: pytorch_optimizer.CosineFocalLoss
+.. autoclass:: pytorch_optimizer.FocalCosineLoss
     :members:
 
 .. _SoftF1Loss:
