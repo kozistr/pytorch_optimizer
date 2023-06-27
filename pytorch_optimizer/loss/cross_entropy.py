@@ -11,7 +11,7 @@ class BCELoss(nn.Module):
     :param reduction: str. type of reduction.
     """
 
-    def __init__(self, labelf_smoothing: float = 0.0, eps: float = 1e-6, reduction: str = 'mean'):
+    def __init__(self, label_smoothing: float = 0.0, eps: float = 1e-6, reduction: str = 'mean'):
         super().__init__()
         self.label_smoothing = label_smoothing
         self.eps = eps
