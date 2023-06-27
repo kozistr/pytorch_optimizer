@@ -1,7 +1,6 @@
 from typing import List, Optional, Tuple
 
 import torch
-from torch import nn
 from torch.nn.functional import logsigmoid, one_hot
 from torch.nn.modules.loss import _Loss
 
@@ -34,6 +33,20 @@ def soft_dice_score(
 
 
 class DiceLoss(_Loss):
+    r"""Dice loss for image segmentation task. It supports binary, multiclass and multilabel cases.
+
+    Reference : https://github.com/BloodAxe/pytorch-toolbelt
+
+    :param mode: CLASS_MODE. loss mode 'binary', 'multiclass', or 'multilabel.
+    :param classes: Optional[List[int]]. List of classes that contribute in loss computation. By default,
+        all channels are included.
+    :param log_loss: bool. If True, loss computed as `-log(dice_coeff)`, otherwise `1 - dice_coeff`.
+    :param from_logits: bool. If True, assumes input is raw logits.
+    :param label_smooth: float. Smoothness constant for dice coefficient (a).
+    :param ignore_index: Optional[int]. Label that indicates ignored pixels (does not contribute to loss).
+    :param eps: float. epsilon.
+    """
+
     def __init__(
         self,
         mode: CLASS_MODE = 'binary',
@@ -44,19 +57,6 @@ class DiceLoss(_Loss):
         ignore_index: Optional[int] = None,
         eps: float = 1e-6,
     ):
-        """Dice loss for image segmentation task. It supports binary, multiclass and multilabel cases.
-
-        Reference : https://github.com/BloodAxe/pytorch-toolbelt
-
-        :param mode: CLASS_MODE. loss mode 'binary', 'multiclass', or 'multilabel.
-        :param classes: Optional[List[int]]. List of classes that contribute in loss computation. By default,
-            all channels are included.
-        :param log_loss: bool. If True, loss computed as `- log(dice_coeff)`, otherwise `1 - dice_coeff`.
-        :param from_logits: bool. If True, assumes input is raw logits.
-        :param label_smooth: float. Smoothness constant for dice coefficient (a).
-        :param ignore_index: Optional[int]. Label that indicates ignored pixels (does not contribute to loss).
-        :param eps: float. epsilon.
-        """
         super().__init__()
 
         if classes is not None:
