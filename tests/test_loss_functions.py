@@ -300,12 +300,12 @@ def test_bi_tempered_log_loss(recipe):
 
 @torch.no_grad()
 @pytest.mark.parametrize(
-    'recipe', [('mean', 0.0399554), ('sum', 0.0799109), ('none', torch.FloatTensor([[[0.0000, 0.0799]]]))]
+    'recipe', [('mean', 0.0306684), ('sum', 0.0613368), ('none', torch.FloatTensor([[[0.0000, 0.0613]]]))]
 )
 def test_binary_bi_tempered_log_loss(recipe):
     reduction, expected_loss = recipe
 
-    criterion = BinaryBiTemperedLogisticLoss(1.0, 2.0, label_smooth=0.1, ignore_index=-100, reduction=reduction)
+    criterion = BinaryBiTemperedLogisticLoss(0.8, 2.0, label_smooth=0.1, ignore_index=-100, reduction=reduction)
 
     y_pred = torch.FloatTensor([[[-0.9108, -1.2545]]])
     y_true = (y_pred > 0).type_as(y_pred)
