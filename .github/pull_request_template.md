@@ -3,11 +3,12 @@ Remove this part when you open the PR
 
 Here's a checklist before opening the Pull Request!
 
-1. PR Title convention : [Type of PR] [Summary] (e.g. [Feature] Implement AdamP optimizer)
+1. PR title convention : [Type of PR] [Summary] (e.g. [Feature] Implement AdamP optimizer)
 2. Attach `as much information as possible you can`. It helps the reviewers a lot :)
 3. Make sure the code is perfectly `runnable & compatible`.
 4. If your PR is not ready yet, make your `PR` to `Draft PR`.
-5. Make sure `make check` before opening the `PR`.
+5. Make sure `make format & check` before opening the `PR`.
+6. Or you just call the maintainer to help to fix code-style & test cases.
 ---
 
 ## Problem (Why?)
