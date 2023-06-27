@@ -36,13 +36,15 @@ class CosineFocalLoss(nn.Module):
     :param alpha: float. alpha.
     :param gamma: float. gamma.
     :param focal_weight: float. weight of focal loss.
+    :param reduction: str. type of reduction.
     """
 
-    def __init__(self, alpha: float = 1.0, gamma: float = 2.0, focal_weight: float = 0.1):
+    def __init__(self, alpha: float = 1.0, gamma: float = 2.0, focal_weight: float = 0.1, reduction: str = 'mean'):
         super().__init__()
         self.alpha = alpha
         self.gamma = gamma
         self.focal_weight = focal_weight
+        self.reduction = reduction
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         cosine_loss = cosine_embedding_loss(
