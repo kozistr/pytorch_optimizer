@@ -9,7 +9,8 @@ class BCEFocalLoss(nn.Module):
 
     :param alpha: float. alpha.
     :param gamma: float. gamma.
-    :param
+    :param label_smoothing: float. label smoothing factor.
+    :param eps: float. epsilon.
     """
 
     def __init__(self, alpha: float = 0.25, gamma: float = 2.0, label_smoothing: float = 0.0, eps: float = 1e-6):

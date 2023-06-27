@@ -6,7 +6,7 @@ from torch.nn.functional import binary_cross_entropy
 class BCELoss(nn.Module):
     r"""binary cross entropy with label smoothing + probability input.
 
-    :param label_smoothing: float. label smoothing.
+    :param label_smoothing: float. label smoothing factor.
     :param eps: float. epsilon.
     :param reduction: str. type of reduction.
     """
