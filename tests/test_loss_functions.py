@@ -8,7 +8,7 @@ from pytorch_optimizer import BCEFocalLoss, BCELoss
 def test_bce_loss(recipe):
     mode, expected_loss = recipe
 
-    criterion = BCELoss(label_smoothing=0.1, eps=1e-6)
+    criterion = BCELoss(label_smooth=0.1, eps=1e-6)
     criterion.train(mode == 'train')
 
     y_pred = torch.arange(0.0, 1.0, 0.1)
@@ -30,7 +30,7 @@ def test_bce_loss(recipe):
 def test_bce_focal_loss(recipe):
     mode, reduction, expected_loss = recipe
 
-    criterion = BCEFocalLoss(alpha=1.0, gamma=2.0, label_smoothing=0.1, eps=1e-6, reduction=reduction)
+    criterion = BCEFocalLoss(alpha=1.0, gamma=2.0, label_smooth=0.1, eps=1e-6, reduction=reduction)
     criterion.train(mode == 'train')
 
     y_pred = torch.arange(0.0, 1.0, 0.1)

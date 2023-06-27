@@ -29,7 +29,7 @@ class BCEFocalLoss(nn.Module):
 
     :param alpha: float. alpha.
     :param gamma: float. gamma.
-    :param label_smoothing: float. label smoothing factor.
+    :param label_smooth: float. Smoothness constant for dice coefficient (a).
     :param eps: float. epsilon.
     :param reduction: str. type of reduction.
     """
@@ -38,7 +38,7 @@ class BCEFocalLoss(nn.Module):
         self,
         alpha: float = 0.25,
         gamma: float = 2.0,
-        label_smoothing: float = 0.0,
+        label_smooth: float = 0.0,
         eps: float = 1e-6,
         reduction: str = 'mean',
     ):
@@ -47,7 +47,7 @@ class BCEFocalLoss(nn.Module):
         self.gamma = gamma
         self.reduction = reduction
 
-        self.bce = BCELoss(label_smoothing=label_smoothing, eps=eps, reduction='none')
+        self.bce = BCELoss(label_smooth=label_smooth, eps=eps, reduction='none')
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         bce_loss = self.bce(y_pred, y_true)
