@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_optimizer import BCEFocalLoss, BCELoss, DiceLoss, FocalLoss, LDAMLoss, SoftF1Loss
+from pytorch_optimizer import BCEFocalLoss, BCELoss, DiceLoss, FocalLoss, LDAMLoss, SoftF1Loss, soft_dice_score
 
 
 @torch.no_grad()
@@ -63,6 +63,20 @@ def test_soft_f1_loss():
     loss = criterion(y_pred, y_true)
 
     np.testing.assert_almost_equal(loss.item(), 0.38905364)
+
+
+@torch.no_grad()
+def test_soft_dice_score():
+    eps: float = 1e-6
+
+    y_pred = torch.tensor([1.0, 1.0, 1.0]).view(1, 1, 1, -1)
+    y_true = torch.tensor(([1, 0, 1])).view(1, 1, 1, -1)
+
+    dice_score = soft_dice_score(y_pred, y_true, dims=None)
+    assert float(dice_score) == pytest.approx(0.8, abs=eps)
+
+    dice_score = soft_dice_score(y_pred, y_true, dims=(1, 2)).mean()
+    assert float(dice_score) == pytest.approx(0.666666, abs=eps)
 
 
 @torch.no_grad()
