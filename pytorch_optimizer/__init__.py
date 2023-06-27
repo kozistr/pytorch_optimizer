@@ -5,7 +5,7 @@ from torch import nn
 
 from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS, SCHEDULER
 from pytorch_optimizer.loss.cross_entropy import BCELoss
-from pytorch_optimizer.loss.dice import DiceLoss
+from pytorch_optimizer.loss.dice import DiceLoss, soft_dice_score
 from pytorch_optimizer.loss.f1 import SoftF1Loss
 from pytorch_optimizer.loss.focal import BCEFocalLoss, FocalLoss
 from pytorch_optimizer.loss.ldam import LDAMLoss
