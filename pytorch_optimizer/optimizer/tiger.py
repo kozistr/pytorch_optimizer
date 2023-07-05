@@ -27,7 +27,7 @@ class Tiger(Optimizer, BaseOptimizer):
         fixed_decay: bool = False,
     ):
         self.validate_learning_rate(lr)
-        self.validate_range(beta, 'beta')
+        self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[)')
         self.validate_non_negative(weight_decay, 'weight_decay')
 
         defaults: DEFAULTS = {
