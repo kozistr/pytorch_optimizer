@@ -512,3 +512,11 @@ LOMO
 
 .. autoclass:: pytorch_optimizer.LOMO
     :members:
+
+.. _Tiger:
+
+Tiger
+-----
+
+.. autoclass:: pytorch_optimizer.Tiger
+    :members:
