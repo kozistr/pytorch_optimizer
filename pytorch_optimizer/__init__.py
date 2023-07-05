@@ -95,6 +95,7 @@ from pytorch_optimizer.optimizer.sm3 import SM3
 from pytorch_optimizer.optimizer.sophia import SophiaH
 from pytorch_optimizer.optimizer.srmm import SRMM
 from pytorch_optimizer.optimizer.swats import SWATS
+from pytorch_optimizer.optimizer.tiger import Tiger
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
     disable_running_stats,
@@ -165,6 +166,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Prodigy,
     PAdam,
     LOMO,
+    Tiger,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
