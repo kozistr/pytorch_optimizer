@@ -43,6 +43,7 @@ def test_epsilon(optimizer_name):
         'srmm',
         'signsgd',
         'lomo',
+        'tiger',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
