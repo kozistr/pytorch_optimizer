@@ -57,6 +57,7 @@ from pytorch_optimizer import (
     Shampoo,
     SignSGD,
     SophiaH,
+    Tiger,
     Yogi,
 )
 from tests.utils import build_lookahead
@@ -387,6 +388,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Prodigy, {'lr': 1e1, 'beta3': 0.999, 'weight_decay': 1e-3, 'bias_correction': True}, 15),
     (Prodigy, {'lr': 1e0, 'beta3': 0.999, 'weight_decay': 1e-3, 'safeguard_warmup': True}, 15),
     (PAdam, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
+    (Tiger, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
