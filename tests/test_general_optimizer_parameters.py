@@ -44,6 +44,7 @@ def test_epsilon(optimizer_name):
         'signsgd',
         'lomo',
         'tiger',
+        'came',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
@@ -122,7 +123,7 @@ def test_betas(optimizer_name):
         config1.update({'num_iterations': 100})
         config2.update({'num_iterations': 100})
 
-    if optimizer_name not in ('adapnm', 'adan', 'adamod', 'aggmo'):
+    if optimizer_name not in ('adapnm', 'adan', 'adamod', 'aggmo', 'came'):
         with pytest.raises(ValueError):
             optimizer(None, **config1)
 

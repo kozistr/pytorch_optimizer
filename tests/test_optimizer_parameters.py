@@ -8,7 +8,6 @@ from tests.utils import Example, simple_parameter, simple_zero_rank_parameter
 
 
 def test_shampoo_parameters():
-    # test matrix epsilon
     with pytest.raises(ValueError):
         load_optimizer('Shampoo')(None, matrix_eps=-1e-6)
 
@@ -16,11 +15,9 @@ def test_shampoo_parameters():
 def test_scalable_shampoo_parameters():
     opt = load_optimizer('ScalableShampoo')
 
-    # test diagonal epsilon
     with pytest.raises(ValueError):
         opt(None, diagonal_eps=-1e-6)
 
-    # test matrix epsilon
     with pytest.raises(ValueError):
         opt(None, matrix_eps=-1e-6)
 
@@ -28,11 +25,19 @@ def test_scalable_shampoo_parameters():
 def test_adafactor_parameters():
     opt = load_optimizer('adafactor')
 
-    # test eps1
     with pytest.raises(ValueError):
         opt(None, eps1=-1e-6)
 
-    # test eps2
+    with pytest.raises(ValueError):
+        opt(None, eps2=-1e-6)
+
+
+def test_came_parameters():
+    opt = load_optimizer('came')
+
+    with pytest.raises(ValueError):
+        opt(None, eps1=-1e-6)
+
     with pytest.raises(ValueError):
         opt(None, eps2=-1e-6)
 
@@ -148,6 +153,11 @@ def test_adafactor_get_lr():
 
     for warmup_init, expected_lr in recipes:
         assert opt.get_lr(1.0, 1, 1.0, True, warmup_init, True) == expected_lr
+
+
+def test_came_reset():
+    opt = load_optimizer('came')([simple_zero_rank_parameter(True)])
+    opt.reset()
 
 
 def test_a2grad_parameters():

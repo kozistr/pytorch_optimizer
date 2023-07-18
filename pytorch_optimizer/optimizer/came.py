@@ -1,5 +1,5 @@
 import math
-from typing import Optional, Tuple
+from typing import Tuple
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -9,22 +9,17 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class AdaFactor(Optimizer, BaseOptimizer):
-    r"""Adaptive Learning Rates with Sublinear Memory Cost.
+class CAME(Optimizer, BaseOptimizer):
+    r"""Confidence-guided Adaptive Memory Efficient Optimization.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param decay_rate: float. coefficient used to compute running averages of square gradient.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param clip_threshold: float. threshold of root-mean-square of final gradient update.
     :param ams_bound: bool. whether to use the AMSBound variant.
-    :param scale_parameter: bool. if true, learning rate is scaled by root-mean-square of parameter.
-    :param relative_step: bool. if true, time-dependent learning rate is computed instead of external learning rate.
-    :param warmup_init: bool. time-dependent learning rate computation depends on whether warm-up initialization
-        is being used.
     :param eps1: float. term added to the denominator to improve numerical stability.
     :param eps2: float. term added to the denominator to improve numerical stability.
     """
@@ -32,19 +27,15 @@ class AdaFactor(Optimizer, BaseOptimizer):
     def __init__(
         self,
         params: PARAMETERS,
-        lr: Optional[float] = 1e-3,
-        betas: BETAS = (0.9, 0.999),
-        decay_rate: float = -0.8,
+        lr: float = 2e-4,
+        betas: BETAS = (0.9, 0.999, 0.9999),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         clip_threshold: float = 1.0,
         ams_bound: bool = False,
-        scale_parameter: bool = True,
-        relative_step: bool = True,
-        warmup_init: bool = False,
         eps1: float = 1e-30,
-        eps2: float = 1e-3,
+        eps2: float = 1e-16,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
@@ -52,7 +43,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
         self.validate_non_negative(eps1, 'eps1')
         self.validate_non_negative(eps2, 'eps2')
 
-        self.decay_rate = decay_rate
         self.clip_threshold = clip_threshold
         self.eps1 = eps1
         self.eps2 = eps2
@@ -64,16 +54,13 @@ class AdaFactor(Optimizer, BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'ams_bound': ams_bound,
-            'scale_parameter': scale_parameter,
-            'relative_step': relative_step,
-            'warmup_init': warmup_init,
             'eps1': eps1,
             'eps2': eps2,
         }
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
-        return 'AdaFactor'
+        return 'CAME'
 
     @torch.no_grad()
     def reset(self):
@@ -94,6 +81,10 @@ class AdaFactor(Optimizer, BaseOptimizer):
                     state['exp_avg_sq_col'] = torch.zeros(
                         grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype, device=grad.device
                     )
+                    state['exp_avg_res_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype, device=grad.device)
+                    state['exp_avg_res_col'] = torch.zeros(
+                        grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype, device=grad.device
+                    )
                 else:
                     state['exp_avg_sq'] = torch.zeros_like(grad)
 
@@ -101,19 +92,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
                     state['exp_avg_sq_hat'] = torch.zeros_like(grad)
 
                 state['RMS'] = 0.0
-
-    def get_lr(
-        self, lr: float, step: int, rms: float, relative_step: bool, warmup_init: bool, scale_parameter: bool
-    ) -> float:
-        r"""Get AdaFactor learning rate."""
-        relative_step_size: float = lr
-        if relative_step:
-            min_step: float = 1e-6 * step if warmup_init else 1e-2
-            relative_step_size = min(min_step, 1.0 / math.sqrt(step))
-
-        param_scale: float = 1.0 if scale_parameter else max(self.eps2, rms)
-
-        return param_scale * relative_step_size
 
     @staticmethod
     def get_options(shape: Tuple[int, ...]) -> bool:
@@ -149,9 +127,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
             else:
                 group['step'] = 1
 
-            beta1, _ = group['betas']
-
-            beta2_t: float = 1.0 - math.pow(group['step'], self.decay_rate)
+            beta1, beta2, beta3 = group['betas']
 
             for p in group['params']:
                 if p.grad is None:
@@ -174,6 +150,10 @@ class AdaFactor(Optimizer, BaseOptimizer):
                         state['exp_avg_sq_col'] = torch.zeros(
                             grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype, device=grad.device
                         )
+                        state['exp_avg_res_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype, device=grad.device)
+                        state['exp_avg_res_col'] = torch.zeros(
+                            grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype, device=grad.device
+                        )
                     else:
                         state['exp_avg_sq'] = torch.zeros_like(grad)
 
@@ -184,50 +164,57 @@ class AdaFactor(Optimizer, BaseOptimizer):
 
                 state['RMS'] = self.get_rms(p)
 
-                lr: float = self.get_lr(
-                    lr=group['lr'],
-                    step=group['step'],
-                    rms=state['RMS'],
-                    relative_step=group['relative_step'],
-                    warmup_init=group['warmup_init'],
-                    scale_parameter=group['scale_parameter'],
-                )
-
                 update = torch.mul(grad, grad).add_(self.eps1)
 
                 if factored:
                     exp_avg_sq_row, exp_avg_sq_col = state['exp_avg_sq_row'], state['exp_avg_sq_col']
 
-                    exp_avg_sq_row.mul_(beta2_t).add_(update.mean(dim=-1), alpha=1.0 - beta2_t)
-                    exp_avg_sq_col.mul_(beta2_t).add_(update.mean(dim=-2), alpha=1.0 - beta2_t)
+                    exp_avg_sq_row.mul_(beta2).add_(update.mean(dim=-1), alpha=1.0 - beta2)
+                    exp_avg_sq_col.mul_(beta2).add_(update.mean(dim=-2), alpha=1.0 - beta2)
 
                     self.approximate_sq_grad(exp_avg_sq_row, exp_avg_sq_col, update)
                 else:
                     exp_avg_sq = state['exp_avg_sq']
-                    exp_avg_sq.mul_(beta2_t).add_(update, alpha=1.0 - beta2_t)
+                    exp_avg_sq.mul_(beta2).add_(update, alpha=1.0 - beta2)
                     torch.rsqrt(exp_avg_sq, out=update)
 
                 if group['ams_bound']:
                     exp_avg_sq_hat = state['exp_avg_sq_hat']
                     torch.max(exp_avg_sq_hat, 1 / update, out=exp_avg_sq_hat)
-                    torch.rsqrt(exp_avg_sq_hat / beta2_t, out=update)
+                    torch.rsqrt(exp_avg_sq_hat / beta2, out=update)
 
                 update.mul_(grad)
 
-                update.div_((self.get_rms(update) / self.clip_threshold).clamp_(min=1.0)).mul_(lr)
+                update.div_((self.get_rms(update) / self.clip_threshold).clamp_(min=1.0))
 
                 exp_avg = state['exp_avg']
                 exp_avg.mul_(beta1).add_(update, alpha=1.0 - beta1)
 
+                res = update - exp_avg
+                res.pow_(2).add_(self.eps2)
+
+                if factored:
+                    exp_avg_res_row, exp_avg_res_col = state['exp_avg_res_row'], state['exp_avg_res_col']
+
+                    exp_avg_res_row.mul_(beta3).add_(res.mean(dim=-1), alpha=1.0 - beta3)
+                    exp_avg_res_col.mul_(beta3).add_(res.mean(dim=-2), alpha=1.0 - beta3)
+
+                    self.approximate_sq_grad(exp_avg_res_row, exp_avg_res_col, update)
+                    update.mul_(exp_avg)
+                else:
+                    update = exp_avg
+
                 self.apply_weight_decay(
                     p=p,
-                    grad=None,
-                    lr=lr,
+                    grad=grad,
+                    lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],
                     fixed_decay=group['fixed_decay'],
                 )
 
-                p.add_(-exp_avg)
+                update.mul_(group['lr'])
+
+                p.add_(-update)
 
         return loss
