@@ -520,3 +520,11 @@ Tiger
 
 .. autoclass:: pytorch_optimizer.Tiger
     :members:
+
+.. _CAME:
+
+CAME
+----
+
+.. autoclass:: pytorch_optimizer.CAME
+    :members:
