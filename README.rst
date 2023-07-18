@@ -400,21 +400,22 @@ Improved bias-correction in Adam
 Adaptive Gradient Norm Correction
 ---------------------------------
 
-| Correcting the norm of gradient in each iteration based on the adaptive training history of gradient norm.
+| Correcting the norm of a gradient in each iteration based on the adaptive training history of gradient norm.
 
 Citation
 --------
 
-Please cite original authors of optimization algorithms. You can easily find it from the above table!
-If you use this software, please cite it as below. Or you can get from "cite this repository" button.
+Please cite the original authors of optimization algorithms. You can easily find it in the above table!
+If you use this software, please cite it below. Or you can get it from "cite this repository" button.
 
 ::
 
-    @software{Kim_pytorch_optimizer_Optimizer_and_2022,
+    @software{Kim_pytorch_optimizer_optimizer_2022,
         author = {Kim, Hyeongchan},
-        month = {1},
-        title = {{pytorch_optimizer: optimizer and lr scheduler collections in PyTorch}},
-        version = {1.0.0},
+        month = jan,
+        title = {{pytorch_optimizer: optimizer & lr scheduler & loss function collections in PyTorch}},
+        url = {https://github.com/kozistr/pytorch_optimizer},
+        version = {2.11.0},
         year = {2022}
     }
 
