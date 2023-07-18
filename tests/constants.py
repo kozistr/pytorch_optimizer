@@ -392,6 +392,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (PAdam, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (Tiger, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (CAME, {'lr': 7.5e-1, 'weight_decay': 1e-3}, 75),
+    (CAME, {'lr': 7.5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 50),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
