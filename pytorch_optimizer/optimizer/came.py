@@ -81,6 +81,10 @@ class CAME(Optimizer, BaseOptimizer):
                     state['exp_avg_sq_col'] = torch.zeros(
                         grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype, device=grad.device
                     )
+                    state['exp_avg_res_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype, device=grad.device)
+                    state['exp_avg_res_col'] = torch.zeros(
+                        grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype, device=grad.device
+                    )
                 else:
                     state['exp_avg_sq'] = torch.zeros_like(grad)
 
@@ -196,7 +200,7 @@ class CAME(Optimizer, BaseOptimizer):
                     exp_avg_res_col.mul_(beta3).add_(res.mean(dim=-2), alpha=1.0 - beta3)
 
                     self.approximate_sq_grad(exp_avg_res_row, exp_avg_res_col, update)
-                    update.mul_(grad)
+                    update.mul_(exp_avg)
                 else:
                     update = exp_avg
 
@@ -210,6 +214,7 @@ class CAME(Optimizer, BaseOptimizer):
                 )
 
                 update.mul_(group['lr'])
+
                 p.add_(-update)
 
         return loss
