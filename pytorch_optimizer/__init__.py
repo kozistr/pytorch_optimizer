@@ -45,6 +45,7 @@ from pytorch_optimizer.optimizer.alig import AliG
 from pytorch_optimizer.optimizer.amos import Amos
 from pytorch_optimizer.optimizer.apollo import Apollo
 from pytorch_optimizer.optimizer.avagrad import AvaGrad
+from pytorch_optimizer.optimizer.came import CAME
 from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptSGD
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
@@ -62,7 +63,6 @@ from pytorch_optimizer.optimizer.msvag import MSVAG
 from pytorch_optimizer.optimizer.nero import Nero
 from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.padam import PAdam
-from pytorch_optimizer.optimizer.came import CAME
 from pytorch_optimizer.optimizer.pcgrad import PCGrad
 from pytorch_optimizer.optimizer.pid import PID
 from pytorch_optimizer.optimizer.pnm import PNM
