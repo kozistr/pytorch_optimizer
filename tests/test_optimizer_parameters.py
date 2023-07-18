@@ -155,6 +155,11 @@ def test_adafactor_get_lr():
         assert opt.get_lr(1.0, 1, 1.0, True, warmup_init, True) == expected_lr
 
 
+def test_came_reset():
+    opt = load_optimizer('came')([simple_zero_rank_parameter(True)])
+    opt.reset()
+
+
 def test_a2grad_parameters():
     param = [simple_parameter(require_grad=False)]
     opt = load_optimizer('a2grad')
