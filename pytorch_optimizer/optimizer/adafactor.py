@@ -123,7 +123,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
     @staticmethod
     def get_rms(x: torch.Tensor) -> float:
         r"""Get RMS."""
-        return x.norm(2) / (x.numel() ** 0.5)
+        return x.norm(2) / math.sqrt(x.numel())
 
     @staticmethod
     def approximate_sq_grad(
