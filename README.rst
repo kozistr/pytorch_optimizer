@@ -58,7 +58,7 @@ Simple Usage
     model = YourModel()
     opt = load_optimizer(optimizer='adamp')
     optimizer = opt(model.parameters())
-d
+
 Also, you can load the optimizer via `torch.hub`
 
 ::
