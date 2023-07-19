@@ -4,7 +4,7 @@ from torch.nn.functional import relu
 
 
 def lovasz_grad(gt_sorted: torch.Tensor) -> torch.Tensor:
-    r"""Computes gradient of the Lovasz extension w.r.t sorted errors"""
+    r"""Compute gradient of the Lovasz extension w.r.t sorted errors."""
     p = len(gt_sorted)
     gts = gt_sorted.sum()
     intersection = gts - gt_sorted.float().cumsum(0)
@@ -31,9 +31,7 @@ def lovasz_hinge_flat(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tenso
 
     grad = lovasz_grad(y_true[perm])
 
-    loss = torch.dot(relu(errors_sorted), grad)
-
-    return loss
+    return torch.dot(relu(errors_sorted), grad)
 
 
 class LovaszHingeLoss(nn.Module):
