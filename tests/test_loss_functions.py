@@ -12,6 +12,7 @@ from pytorch_optimizer import (
     FocalTverskyLoss,
     JaccardLoss,
     LDAMLoss,
+    LovaszHingeLoss,
     SoftF1Loss,
     TverskyLoss,
     soft_dice_score,
@@ -373,3 +374,38 @@ def test_focal_tverysky_loss():
     loss = criterion(y_pred, y_true)
 
     assert float(loss) == pytest.approx(0.6307878, abs=1e-6)
+
+
+@torch.no_grad()
+@pytest.mark.parametrize('recipe', [(True, 1.74925303), (False, 1.08580458)])
+def test_lovasz_hinge_loss(recipe):
+    per_image, expected_loss = recipe
+
+    criterion = LovaszHingeLoss(per_image)
+
+    y_pred = torch.FloatTensor(
+        [
+            [
+                [
+                    [1.9269, 1.4873, 0.9007, -2.1055],
+                    [0.6784, -1.2345, -0.0431, -1.6047],
+                    [-0.7521, 1.6487, -0.3925, -1.4036],
+                    [-0.7279, -0.5594, -0.7688, 0.7624],
+                ]
+            ],
+            [
+                [
+                    [1.6423, -0.1596, -0.4974, 0.4396],
+                    [-0.7581, 1.0783, 0.8008, 1.6806],
+                    [1.2791, 1.2964, 0.6105, 1.3347],
+                    [-0.2316, 0.0418, -0.2516, 0.8599],
+                ]
+            ],
+        ]
+    )
+    y_true = torch.zeros_like(y_pred)
+    y_true[1] = 1.0
+
+    loss = criterion(y_pred, y_true)
+
+    assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
