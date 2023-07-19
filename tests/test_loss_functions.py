@@ -9,9 +9,11 @@ from pytorch_optimizer import (
     DiceLoss,
     FocalCosineLoss,
     FocalLoss,
+    FocalTverskyLoss,
     JaccardLoss,
     LDAMLoss,
     SoftF1Loss,
+    TverskyLoss,
     soft_dice_score,
     soft_jaccard_score,
 )
@@ -347,3 +349,27 @@ def test_binary_bi_tempered_log_loss(recipe):
         torch.testing.assert_close(loss, expected_loss, rtol=1e-4, atol=1e-4)
     else:
         assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
+
+
+@torch.no_grad()
+def test_tverysky_loss():
+    criterion = TverskyLoss(alpha=0.5, beta=0.5)
+
+    y_pred = torch.arange(0.0, 1.0, 0.1)
+    y_true = torch.FloatTensor([0.0] * 5 + [1.0] * 5)
+
+    loss = criterion(y_pred, y_true)
+
+    assert float(loss) == pytest.approx(0.3978933, abs=1e-6)
+
+
+@torch.no_grad()
+def test_focal_tverysky_loss():
+    criterion = FocalTverskyLoss(alpha=0.5, beta=0.5, gamma=0.5)
+
+    y_pred = torch.arange(0.0, 1.0, 0.1)
+    y_true = torch.FloatTensor([0.0] * 5 + [1.0] * 5)
+
+    loss = criterion(y_pred, y_true)
+
+    assert float(loss) == pytest.approx(0.6307878, abs=1e-6)
