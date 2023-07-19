@@ -96,3 +96,11 @@ FocalTverskyLoss
 
 .. autoclass:: pytorch_optimizer.FocalTverskyLoss
     :members:
+
+.. _LovaszHingeLoss:
+
+LovaszHingeLoss
+---------------
+
+.. autoclass:: pytorch_optimizer.LovaszHingeLoss
+    :members:
