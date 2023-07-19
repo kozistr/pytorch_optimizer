@@ -8,9 +8,10 @@ from pytorch_optimizer.loss.bi_tempered import BinaryBiTemperedLogisticLoss, BiT
 from pytorch_optimizer.loss.cross_entropy import BCELoss
 from pytorch_optimizer.loss.dice import DiceLoss, soft_dice_score
 from pytorch_optimizer.loss.f1 import SoftF1Loss
-from pytorch_optimizer.loss.focal import BCEFocalLoss, FocalCosineLoss, FocalLoss
+from pytorch_optimizer.loss.focal import BCEFocalLoss, FocalCosineLoss, FocalLoss, FocalTverskyLoss
 from pytorch_optimizer.loss.jaccard import JaccardLoss, soft_jaccard_score
 from pytorch_optimizer.loss.ldam import LDAMLoss
+from pytorch_optimizer.loss.tversky import TverskyLoss
 from pytorch_optimizer.lr_scheduler import (
     ConstantLR,
     CosineAnnealingLR,
@@ -199,6 +200,8 @@ LOSS_FUNCTION_LIST: List = [
     JaccardLoss,
     BiTemperedLogisticLoss,
     BinaryBiTemperedLogisticLoss,
+    TverskyLoss,
+    FocalTverskyLoss,
 ]
 LOSS_FUNCTIONS: Dict[str, nn.Module] = {
     str(loss_function.__name__).lower(): loss_function for loss_function in LOSS_FUNCTION_LIST
