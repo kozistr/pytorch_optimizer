@@ -46,4 +46,4 @@ def test_get_supported_lr_schedulers():
 
 
 def test_get_supported_loss_functions():
-    assert len(get_supported_loss_functions()) == 12
+    assert len(get_supported_loss_functions()) == 13
