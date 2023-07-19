@@ -9,6 +9,7 @@ from torch.nn.functional import (
 )
 
 from pytorch_optimizer.loss.cross_entropy import BCELoss
+from pytorch_optimizer.loss.tversky import TverskyLoss
 
 
 class FocalLoss(nn.Module):
@@ -94,3 +95,22 @@ class BCEFocalLoss(nn.Module):
         )  # fmt: skip
 
         return focal_loss.mean() if self.reduction == 'mean' else focal_loss.sum()
+
+
+class FocalTverskyLoss(nn.Module):
+    r"""Focal Tversky Loss w/ logits input.
+
+    :param alpha: float. alpha.
+    :param beta: float. beta.
+    :param gamma: float. gamma.
+    :param smooth: float. smooth factor.
+    """
+
+    def __init__(self, alpha: float = 0.5, beta: float = 0.5, gamma: float = 1.0, smooth: float = 1e-6):
+        super().__init__()
+        self.gamma = gamma
+
+        self.tversky = TverskyLoss(alpha, beta, smooth)
+
+    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        return self.tversky(y_pred, y_true) ** self.gamma

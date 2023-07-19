@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytorch_optimizer"
-version = "2.11.0"
+version = "2.11.1"
 description = "optimizer & lr scheduler & objective function collections in PyTorch"
 license = "Apache-2.0"
 authors = ["kozistr <kozistr@gmail.com>"]
@@ -17,7 +17,7 @@ keywords = [
     "MSVAG", "Nero", "NovoGrad", "PAdam", "PCGrad", "PID", "PNM", "Prodigy", "QHAdam", "QHM", "RAdam", "Ranger",
     "Ranger21", "RotoGrad", "SAM", "SGDP", "Shampoo", "ScalableShampoo", "SGDW", "SignSGD", "SM3", "SopihaH", "SRMM",
     "SWATS", "Tiger", "Yogi", "BCE", "BCEFocal", "Focal", "FocalCosine", "SoftF1", "Dice", "LDAM", "Jaccard",
-    "Bi-Tempered",
+    "Bi-Tempered", "Tversky", "FocalTversky", "LovaszHinge",
 ]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -53,11 +53,14 @@ torch = [
 
 [tool.poetry.dev-dependencies]
 isort = [
-    { version = "==5.11.5", python = ">=3.7,<3.8"},
-    { version = "^5.12.0", python = ">=3.8"}
+    { version = "==5.11.5", python = ">=3.7,<3.8" },
+    { version = "^5.12.0", python = ">=3.8" }
 ]
-black = "^23.3.0"
-ruff = "^0.0.275"
+black = [
+    { version = "==23.3.0", python = ">=3.7,<3.8" },
+    { version = "^23.7.0", python = ">=3.8"}
+]
+ruff = "^0.0.278"
 pytest = "^7.4.0"
 pytest-cov = "^4.1.0"
 
