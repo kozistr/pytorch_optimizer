@@ -17,7 +17,7 @@ keywords = [
     "MSVAG", "Nero", "NovoGrad", "PAdam", "PCGrad", "PID", "PNM", "Prodigy", "QHAdam", "QHM", "RAdam", "Ranger",
     "Ranger21", "RotoGrad", "SAM", "SGDP", "Shampoo", "ScalableShampoo", "SGDW", "SignSGD", "SM3", "SopihaH", "SRMM",
     "SWATS", "Tiger", "Yogi", "BCE", "BCEFocal", "Focal", "FocalCosine", "SoftF1", "Dice", "LDAM", "Jaccard",
-    "Bi-Tempered",
+    "Bi-Tempered", "TverskyLoss", "FocalTverskyLoss",
 ]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
