@@ -80,3 +80,19 @@ BinaryBiTemperedLogisticLoss
 
 .. autoclass:: pytorch_optimizer.BinaryBiTemperedLogisticLoss
     :members:
+
+.. _TverskyLoss:
+
+TverskyLoss
+-----------
+
+.. autoclass:: pytorch_optimizer.TverskyLoss
+    :members:
+
+.. _FocalTverskyLoss:
+
+FocalTverskyLoss
+----------------
+
+.. autoclass:: pytorch_optimizer.FocalTverskyLoss
+    :members:
