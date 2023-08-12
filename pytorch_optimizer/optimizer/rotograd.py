@@ -219,7 +219,7 @@ class RotateOnly(nn.Module):
         self.backbone.to(*args, **kwargs)
         for head in self.heads:
             head.to(*args, **kwargs)
-        return super(RotateOnly, self).to(*args, **kwargs)
+        return super().to(*args, **kwargs)
 
     def train(self, mode: bool = True) -> nn.Module:
         super().train(mode)
@@ -284,7 +284,7 @@ class RotateOnly(nn.Module):
         if not self.training:
             raise AssertionError('Backward should only be called when training')
 
-        if self.iteration_counter == 0 or self.iteration_counter == self.burn_in_period:
+        if self.iteration_counter in (0, self.burn_in_period):
             for i, loss in enumerate(losses):
                 self.initial_losses[i] = loss.item()
 

@@ -46,7 +46,7 @@ class LOMO(BaseOptimizer, Optimizer):
         self.grad_norms: List[torch.Tensor] = []
         self.clip_coef: Optional[float] = None
 
-        p0: torch.Tensor = list(self.model.parameters())[0]
+        p0: torch.Tensor = next(iter(self.model.parameters()))
 
         self.grad_func: Callable[[Any], Any] = (
             self.fuse_update_zero3() if hasattr(p0, 'ds_tensor') else self.fuse_update()
