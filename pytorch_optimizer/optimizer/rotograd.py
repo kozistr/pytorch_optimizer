@@ -284,7 +284,7 @@ class RotateOnly(nn.Module):
         if not self.training:
             raise AssertionError('Backward should only be called when training')
 
-        if self.iteration_counter == 0 or self.iteration_counter == self.burn_in_period:
+        if self.iteration_counter in (0, self.burn_in_period):
             for i, loss in enumerate(losses):
                 self.initial_losses[i] = loss.item()
 
