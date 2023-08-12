@@ -476,6 +476,6 @@ def test_lomo_optimizer(precision, environment):
     if precision == 16:
         optimizer.clip_coef = 0.9
 
-    loss = sphere_loss(list(model.parameters())[0])
+    loss = sphere_loss(next(iter(model.parameters())))
     optimizer.grad_norm(loss)
     optimizer.fused_backward(loss, lr=0.1)
