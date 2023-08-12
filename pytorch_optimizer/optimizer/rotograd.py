@@ -219,7 +219,7 @@ class RotateOnly(nn.Module):
         self.backbone.to(*args, **kwargs)
         for head in self.heads:
             head.to(*args, **kwargs)
-        return super(RotateOnly, self).to(*args, **kwargs)
+        return super().to(*args, **kwargs)
 
     def train(self, mode: bool = True) -> nn.Module:
         super().train(mode)
