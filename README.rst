@@ -433,9 +433,9 @@ Hyeongchan Kim / `@kozistr <http://kozistr.tech/about>`__
    :target: https://pytorch-optimizers.readthedocs.io/en/latest/?badge=latest
 .. |PyPI version| image:: https://badge.fury.io/py/pytorch-optimizer.svg
    :target: https://badge.fury.io/py/pytorch-optimizer
-.. |PyPi download| image:: https://pepy.tech/badge/pytorch-optimizer
+.. |PyPi download| image:: https://static.pepy.tech/badge/pytorch-optimizer
    :target: https://pepy.tech/project/pytorch-optimizer
-.. |PyPi month download| image:: https://pepy.tech/badge/pytorch-optimizer/month
+.. |PyPi month download| image:: https://static.pepy.tech/badge/pytorch-optimizer/month
    :target: https://pepy.tech/project/pytorch-optimizer
 .. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/pytorch-optimizer.svg
    :target: https://pypi.python.org/pypi/pytorch-optimizer/
