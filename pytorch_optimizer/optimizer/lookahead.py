@@ -1,5 +1,5 @@
-from collections import defaultdict
-from typing import Dict
+from collections import defaultdict, OrderedDict
+from typing import Dict, Callable
 
 import torch
 from torch.optim import Optimizer
@@ -33,9 +33,7 @@ class Lookahead(BaseOptimizer, Optimizer):
         self.pullback_momentum = pullback_momentum
 
         self.optimizer = optimizer
-
-        defaults: DEFAULTS = dict()
-        super().__init__(optimizer.param_groups, defaults)
+        self.param_groups = self.optimizer.param_groups
 
         self.state: STATE = defaultdict(dict)
 
@@ -49,6 +47,14 @@ class Lookahead(BaseOptimizer, Optimizer):
                 state['slow_params'].copy_(p)
                 if self.pullback_momentum == 'pullback':
                     state['slow_momentum'] = torch.zeros_like(p)
+        
+        # Instead of calling super().__init__, we set the attributes ourselves
+        self._optimizer_step_pre_hooks: Dict[int, Callable] = OrderedDict()
+        self._optimizer_step_post_hooks: Dict[int, Callable] = OrderedDict()
+        self.defaults: DEFAULTS = {
+            **optimizer.defaults,
+            **dict(lookahead_alpha=alpha, lookahead_k=k, lookahead_pullback_momentum=pullback_momentum),
+        }
         
 
     def __getstate__(self):
