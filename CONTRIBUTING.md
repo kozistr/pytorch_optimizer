@@ -7,6 +7,8 @@ Contributions to `pytorch-optimizer` for code, documentation, and tests are alwa
 Currently, `black` and `ruff` are used to format & lint the code. Here are the [lint options](https://github.com/kozistr/pytorch_optimizer/blob/main/pyproject.toml#L69)
 Or you just simply run `make format` and `make check` on the project root.
 
+You can create the environment with `make init` or just install the pip packages to your computer.
+
 A few differences from the default `black` (or another style guide) are
 
 1. line-length is **119** characters.
