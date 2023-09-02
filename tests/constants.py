@@ -129,11 +129,11 @@ INVALID_LR_SCHEDULER_NAMES: List[str] = ['dummy']
 
 OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 10),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 10),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'fixed_decay': True}, 10),
-    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': False}, 10),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 5),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'fixed_decay': True}, 5),
+    (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True}, 5),
     (AdaBound, {'lr': 1e0, 'gamma': 0.1, 'weight_decay': 1e-3}, 20),
     (AdaBound, {'lr': 1e0, 'gamma': 0.1, 'weight_decay': 1e-3, 'fixed_decay': True}, 20),
     (AdaBound, {'lr': 1e0, 'gamma': 0.1, 'weight_decay': 1e-3, 'weight_decouple': False}, 20),
