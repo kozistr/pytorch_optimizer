@@ -44,7 +44,7 @@ If there's a version issue when installing the package, try with `--no-deps` opt
 Simple Usage
 ~~~~~~~~~~~~
 
-::
+:: code-block:: python
 
     from pytorch_optimizer import AdamP
 
@@ -61,7 +61,7 @@ Simple Usage
 
 Also, you can load the optimizer via `torch.hub`
 
-::
+:: code-block:: python
 
     import torch
 
@@ -71,7 +71,7 @@ Also, you can load the optimizer via `torch.hub`
 
 If you want to build the optimizer with parameters & configs, there's `create_optimizer()` API.
 
-::
+:: code-block:: python
 
     from pytorch_optimizer import create_optimizer
 
@@ -89,7 +89,7 @@ Supported Optimizers
 
 You can check the supported optimizers with below code.
 
-::
+:: code-block:: python
 
     from pytorch_optimizer import get_supported_optimizers
 
@@ -230,7 +230,7 @@ Supported LR Scheduler
 
 You can check the supported learning rate schedulers with below code.
 
-::
+:: code-block:: python
 
     from pytorch_optimizer import get_supported_lr_schedulers
 
@@ -249,7 +249,7 @@ Supported Loss Function
 
 You can check the supported loss functions with below code.
 
-::
+:: code-block:: python
 
     from pytorch_optimizer import get_supported_loss_functions
 
