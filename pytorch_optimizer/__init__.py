@@ -48,7 +48,7 @@ from pytorch_optimizer.optimizer.amos import Amos
 from pytorch_optimizer.optimizer.apollo import Apollo
 from pytorch_optimizer.optimizer.avagrad import AvaGrad
 from pytorch_optimizer.optimizer.came import CAME
-from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptSGD
+from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptLion, DAdaptSGD
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
 from pytorch_optimizer.optimizer.fromage import Fromage
@@ -171,6 +171,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     LOMO,
     Tiger,
     CAME,
+    DAdaptLion,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

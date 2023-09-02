@@ -699,3 +699,132 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
             group['k'] += 1
 
         return loss
+
+
+class DAdaptLion(Optimizer, BaseOptimizer):
+    r"""Lion with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param fixed_decay: bool. fix weight decay.
+    """
+
+    def __init__(
+        self,
+        params: PARAMETERS,
+        lr: float = 1.0,
+        betas: BETAS = (0.9, 0.999),
+        d0: float = 1e-6,
+        weight_decay: float = 0.0,
+        weight_decouple: bool = False,
+        fixed_decay: bool = False,
+    ):
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_non_negative(weight_decay, 'weight_decay')
+
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'd': d0,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'fixed_decay': fixed_decay,
+            'step': 0,
+        }
+        super().__init__(params, defaults)
+
+    def __str__(self) -> str:
+        return 'DAdaptLion'
+
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            group['step'] = 0
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                state = self.state[p]
+
+                state['exp_avg'] = torch.zeros_like(p)
+                state['s'] = torch.zeros_like(p)
+
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+
+        group = self.param_groups[0]
+        device = group['params'][0].device
+
+        if 'numerator_weighted' not in group:
+            group['numerator_weighted'] = torch.tensor([0.0], device=device)
+        numerator_weighted = group['numerator_weighted']
+
+        sk_l1 = torch.tensor([0.0], device=device)
+        numerator_accumulator = torch.tensor([0.0], device=device)
+
+        beta1, beta2 = group['betas']
+        beta2_sq = math.sqrt(beta2)
+
+        d, lr = group['d'], group['lr']
+        d_lr: float = d * lr
+
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                grad = p.grad
+                if grad.is_sparse:
+                    raise NoSparseGradientError(str(self))
+
+                state = self.state[p]
+                if len(state) == 0:
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['s'] = torch.zeros_like(p)
+
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=d_lr,
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
+
+                exp_avg, s = state['exp_avg'], state['s']
+
+                update = exp_avg.clone().mul_(beta1).add_(grad, alpha=1.0 - beta1).sign_()
+                p.add_(update, alpha=-d_lr)
+
+                exp_avg.mul_(beta2).add_(grad, alpha=(1.0 - beta2) * d_lr)
+
+                numerator_accumulator.add_(torch.dot(update.flatten(), s.flatten()), alpha=d_lr)
+                s.mul_(beta2_sq).add_(update, alpha=(1.0 - beta2_sq) * d_lr)
+
+                sk_l1.add_(s.abs().sum())
+
+        numerator_weighted.mul_(beta2_sq).add_(numerator_accumulator, alpha=1.0 - beta2_sq)
+
+        if sk_l1 == 0:
+            return loss
+
+        if lr > 0.0:
+            d_hat: float = (numerator_weighted / ((1.0 - beta2_sq) * sk_l1)).item()
+            d = max(d, d_hat)
+
+        for group in self.param_groups:
+            group['step'] += 1
+
+            group['numerator_weighted'] = numerator_weighted
+            group['d'] = d
+
+        return loss

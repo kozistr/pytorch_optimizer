@@ -16,7 +16,7 @@ pytorch-optimizer
 
 | **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch.
 | I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.
-| Currently, 59 optimizers, 10 lr schedulers, and 13 loss functions are supported!
+| Currently, **60 optimizers**, **10 lr schedulers**, and **13 loss functions** are supported!
 |
 | Highly inspired by `pytorch-optimizer <https://github.com/jettify/pytorch-optimizer>`__.
 
@@ -31,20 +31,20 @@ So, please double-check the license before using it at your work.
 Installation
 ~~~~~~~~~~~~
 
-::
+.. code-block:: bash
 
     $ pip3 install -U pytorch-optimizer
 
 If there's a version issue when installing the package, try with `--no-deps` option.
 
-::
+.. code-block:: bash
 
     $ pip3 install -U --no-deps pytorch-optimizer
 
 Simple Usage
 ~~~~~~~~~~~~
 
-::
+.. code-block:: python
 
     from pytorch_optimizer import AdamP
 
@@ -61,7 +61,7 @@ Simple Usage
 
 Also, you can load the optimizer via `torch.hub`
 
-::
+.. code-block:: python
 
     import torch
 
@@ -71,7 +71,7 @@ Also, you can load the optimizer via `torch.hub`
 
 If you want to build the optimizer with parameters & configs, there's `create_optimizer()` API.
 
-::
+.. code-block:: python
 
     from pytorch_optimizer import create_optimizer
 
@@ -89,7 +89,7 @@ Supported Optimizers
 
 You can check the supported optimizers with below code.
 
-::
+.. code-block:: python
 
     from pytorch_optimizer import get_supported_optimizers
 
@@ -230,7 +230,7 @@ Supported LR Scheduler
 
 You can check the supported learning rate schedulers with below code.
 
-::
+.. code-block:: python
 
     from pytorch_optimizer import get_supported_lr_schedulers
 
@@ -249,7 +249,7 @@ Supported Loss Function
 
 You can check the supported loss functions with below code.
 
-::
+.. code-block:: python
 
     from pytorch_optimizer import get_supported_loss_functions
 

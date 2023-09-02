@@ -150,7 +150,9 @@ def test_no_progression(optimizer_name):
     optimizer.step()
 
 
-@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan', 'Prodigy'])
+@pytest.mark.parametrize(
+    'optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan', 'DAdaptLion', 'Prodigy']
+)
 def test_2nd_stage_gradient(optimizer_name):
     p1 = simple_parameter(require_grad=False)
     p2 = simple_parameter(require_grad=True)

@@ -90,7 +90,7 @@ class DynamicLossScaler:
             self.loss_scale = max(self.loss_scale, self.threshold)
 
 
-class SafeFP16Optimizer(Optimizer):
+class SafeFP16Optimizer(Optimizer):  # pragma: no cover
     r"""Safe FP16 Optimizer.
 
     :param optimizer: OPTIMIZER.

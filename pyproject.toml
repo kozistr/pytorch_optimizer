@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytorch_optimizer"
-version = "2.11.1"
+version = "2.11.2"
 description = "optimizer & lr scheduler & objective function collections in PyTorch"
 license = "Apache-2.0"
 authors = ["kozistr <kozistr@gmail.com>"]
@@ -13,10 +13,10 @@ keywords = [
     "pytorch", "deep-learning", "optimizer", "lr scheduler", "A2Grad", "ASGD", "AccSGD", "AdaBelief", "AdaBound",
     "AdaDelta", "AdaFactor", "AdaMax", "AdaMod", "AdaNorm", "AdaPNM", "AdaSmooth", "AdaHessian", "Adai", "AdamP",
     "AdamS", "Adan", "AggMo", "AliG", "Amos", "Apollo", "AvaGrad", "CAME", "DAdaptAdaGrad", "DAdaptAdam", "DAdaptAdan",
-    "DAdaptSGD", "DiffGrad", "Fromage", "Gravity", "GSAM", "LARS", "Lamb", "Lion", "LOMO", "Lookahead", "MADGRAD",
-    "MSVAG", "Nero", "NovoGrad", "PAdam", "PCGrad", "PID", "PNM", "Prodigy", "QHAdam", "QHM", "RAdam", "Ranger",
-    "Ranger21", "RotoGrad", "SAM", "SGDP", "Shampoo", "ScalableShampoo", "SGDW", "SignSGD", "SM3", "SopihaH", "SRMM",
-    "SWATS", "Tiger", "Yogi", "BCE", "BCEFocal", "Focal", "FocalCosine", "SoftF1", "Dice", "LDAM", "Jaccard",
+    "DAdaptSGD", "DAdaptLion", "DiffGrad", "Fromage", "Gravity", "GSAM", "LARS", "Lamb", "Lion", "LOMO", "Lookahead",
+    "MADGRAD", "MSVAG", "Nero", "NovoGrad", "PAdam", "PCGrad", "PID", "PNM", "Prodigy", "QHAdam", "QHM", "RAdam",
+    "Ranger", "Ranger21", "RotoGrad", "SAM", "SGDP", "Shampoo", "ScalableShampoo", "SGDW", "SignSGD", "SM3", "SopihaH",
+    "SRMM", "SWATS", "Tiger", "Yogi", "BCE", "BCEFocal", "Focal", "FocalCosine", "SoftF1", "Dice", "LDAM", "Jaccard",
     "Bi-Tempered", "Tversky", "FocalTversky", "LovaszHinge",
 ]
 classifiers = [
@@ -122,7 +122,6 @@ testpaths = "tests"
 [tool.coverage.run]
 omit = [
     "./pytorch_optimizer/optimizer/gsam.py",
-    "./pytorch_optimizer/optimizer/fp16.py",
     "./pytorch_optimizer/optimizer/rotograd.py",
 ]
 
