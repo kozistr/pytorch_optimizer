@@ -3,7 +3,16 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer import GSAM, SAM, CosineScheduler, Lookahead, PCGrad, ProportionScheduler, load_optimizer
+from pytorch_optimizer import (
+    GSAM,
+    SAM,
+    CosineScheduler,
+    DynamicLossScaler,
+    Lookahead,
+    PCGrad,
+    ProportionScheduler,
+    load_optimizer,
+)
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from pytorch_optimizer.optimizer.utils import l2_projection
 from tests.constants import (
@@ -479,3 +488,9 @@ def test_lomo_optimizer(precision, environment):
     loss = sphere_loss(next(iter(model.parameters())))
     optimizer.grad_norm(loss)
     optimizer.fused_backward(loss, lr=0.1)
+
+
+def test_dynamic_scaler():
+    scaler = DynamicLossScaler(init_scale=2.0**15, scale_window=1, threshold=1e-2)
+    scaler.decrease_loss_scale()
+    scaler.update_scale(overflow=False)
