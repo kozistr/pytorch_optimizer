@@ -35,7 +35,7 @@ class AdaBelief(Optimizer, BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
-        rectify: bool = True,
+        rectify: bool = False,
         n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = True,
         ams_bound: bool = False,
