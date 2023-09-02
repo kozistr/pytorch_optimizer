@@ -706,9 +706,8 @@ class DAdaptLion(Optimizer, BaseOptimizer):
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
-    :param momentum: float. momentum.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-    :param growth_rate: float. prevent the D estimate from growing faster than this multiplicative rate.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
