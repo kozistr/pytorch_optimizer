@@ -27,6 +27,7 @@ def test_epsilon(optimizer_name):
         'shampoo',
         'scalableshampoo',
         'dadaptsgd',
+        'dadaptlion',
         'adafactor',
         'lion',
         'a2grad',
