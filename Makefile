@@ -20,4 +20,4 @@ requirements:
 	python -m poetry export -f requirements.txt --output requirements-dev.txt --without-hashes --with dev
 
 docs:
-	make -C docs html
+	mkdocs serve
