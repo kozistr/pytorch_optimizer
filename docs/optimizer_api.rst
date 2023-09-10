@@ -332,7 +332,7 @@ SGDW
 .. _AdaptiveSGD:
 
 AdaptiveSGD
-----
+-----------
 
 .. autoclass:: pytorch_optimizer.ASGD
     :members:
