@@ -1,5 +1,9 @@
 # Welcome to pytorch-optimizer
 
+{README.rst!}
+
+## Shortcut
+
 [base docs](base.md)
 
 [optimizer docs](optimizer.md)
