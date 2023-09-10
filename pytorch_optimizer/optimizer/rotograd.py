@@ -346,7 +346,7 @@ class RotoGrad(RotateOnly):
         after which the denominator will be replaced by the value of the loss at that iteration, that is,
         :math:`t_0 = burn\_in\_period`. This is done to overcome problems with losses quickly changing
         in the first iterations.
-    :param normalized_losses: bool. Whether to use this normalized losses to back-propagate through the task-specific
+    :param normalize_losses: bool. Whether to use this normalized losses to back-propagate through the task-specific
         parameters as well.
     """
 

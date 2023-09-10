@@ -1,0 +1,34 @@
+site_name: pytorch-optimizer
+theme:
+  name: material
+  highlightjs: true
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            # https://mkdocstrings.github.io/python/usage/configuration/general/
+            show_root_heading: true
+            show_root_full_path: false
+            show_root_members_full_path: false
+            # show_symbol_type_toc: true
+            allow_inspection: true
+            show_bases: true
+            show_source: true
+            docstring_style: sphinx
+markdown_extensions:
+  - admonition
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.arithmatex:
+      generic: true
+  - markdown_include.include:
+      base_path: .
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

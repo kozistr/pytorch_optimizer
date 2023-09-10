@@ -17,7 +17,7 @@ def soft_jaccard_score(
     r"""Get soft jaccard score.
 
     :param output: torch.Tensor. predicted segments.
-    :param target. torch.Tensor. ground truth segments.
+    :param target: torch.Tensor. ground truth segments.
     :param label_smooth: float. label smoothing factor.
     :param eps: float. epsilon.
     :param dims: Optional[Tuple[int, ...]]. target dimensions to reduce.

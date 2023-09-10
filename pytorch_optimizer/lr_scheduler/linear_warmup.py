@@ -25,7 +25,7 @@ class CosineScheduler(BaseLinearWarmupScheduler):
 class PolyScheduler(BaseLinearWarmupScheduler):
     r"""Poly LR Scheduler.
 
-    :param: poly_order: float. lr scheduler decreases with steps.
+    :param poly_order: float. lr scheduler decreases with steps.
     """
 
     def __init__(self, poly_order: float = 0.5, **kwargs):
