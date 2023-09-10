@@ -2,5 +2,5 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 numpy
 torch==2.0.1
-sphinx<7
-sphinx_rtd_theme
+mkdocs==1.5.2
+mkdocs-material==9.2.8
