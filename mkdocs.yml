@@ -8,10 +8,11 @@ plugins:
       handlers:
         python:
           options:
+            # https://mkdocstrings.github.io/python/usage/configuration/general/
             show_root_heading: true
             show_root_full_path: false
             show_root_members_full_path: false
-            show_symbol_type_toc: true
+            # show_symbol_type_toc: true
             allow_inspection: true
             show_bases: true
             show_source: true
