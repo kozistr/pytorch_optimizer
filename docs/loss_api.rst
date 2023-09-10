@@ -9,12 +9,12 @@ BCELoss
 .. autoclass:: pytorch_optimizer.BCELoss
     :members:
 
-.. _BCEFocal:
+.. _BCEFocalLoss:
 
-BCEFocal
---------
+BCEFocalLoss
+------------
 
-.. autoclass:: pytorch_optimizer.BCEFocal
+.. autoclass:: pytorch_optimizer.BCEFocalLoss
     :members:
 
 .. _FocalLoss:

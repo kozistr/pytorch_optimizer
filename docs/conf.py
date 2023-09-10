@@ -18,13 +18,12 @@ import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project = 'pytorch-optimizers'
+project = 'pytorch-optimizer'
 copyright = '2021, kozistr'
 author = 'kozistr'
 
 # The full version, including alpha/beta/rc tags
-release = '2.8.0'
-
+release = '2.11.2'
 
 # -- General configuration ---------------------------------------------------
 
