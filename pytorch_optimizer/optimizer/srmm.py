@@ -14,7 +14,7 @@ class SRMM(Optimizer, BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param beta: float. adaptivity weight.
-    :param l: Optional[int]. internal memory length for moving average. None for no refreshing.
+    :param memory_length: Optional[int]. internal memory length for moving average. None for no refreshing.
     """
 
     def __init__(self, params: PARAMETERS, lr: float = 0.01, beta: float = 0.5, memory_length: Optional[int] = 100):
