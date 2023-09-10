@@ -225,14 +225,6 @@ DAdaptAdan
 .. autoclass:: pytorch_optimizer.DAdaptAdan
     :members:
 
-.. _DAdaptLion:
-
-DAdaptLion
-----------
-
-.. autoclass:: pytorch_optimizer.DAdaptLion
-    :members:
-
 .. _AdamS:
 
 AdamS
