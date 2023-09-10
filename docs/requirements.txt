@@ -1,5 +1,5 @@
-urllib3<2.0
-sphinx<7.0
+sphinx<7
+sphinx_rtd_theme
 numpy
 --index-url https://download.pytorch.org/whl/cpu
 torch==2.0.1
