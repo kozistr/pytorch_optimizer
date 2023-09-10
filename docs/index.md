@@ -1,11 +1,11 @@
 # Welcome to pytorch-optimizer
 
-[base docs](./base)
+[base docs](base.md)
 
-[optimizer docs](./optimizer)
+[optimizer docs](optimizer.md)
 
-[lr_scheduler docs](./lr_scheduler)
+[lr_scheduler docs](lr_scheduler.md)
 
-[loss docs](./loss)
+[loss docs](loss.md)
 
-[util docs](./util)
+[util docs](util.md)
