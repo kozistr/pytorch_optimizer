@@ -1,9 +1,25 @@
 site_name: pytorch-optimizer
+site_description: 'optimizer & lr scheduler & loss function collections in PyTorch'
+repo_name: 'kozistr/pytorch-optimizer'
+repo_url: 'https://github.com/kozistr/pytorch_optimizer'
+nav:
+  - index.md
+  - base.md
+  - optimizer.md
+  - lr_scheduler.md
+  - loss.md
+  - util.md
+  - ... | changelogs/*.md
 theme:
   name: material
   highlightjs: true
+extra_javascript:
+  - 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'
+  - https://cdnjs.cloudflare.com/ajax/libs/tablesort/5.2.1/tablesort.min.js
+  - javascripts/tables.js
 plugins:
   - search
+  - awesome-pages
   - mkdocstrings:
       handlers:
         python:
@@ -19,12 +35,22 @@ plugins:
             docstring_style: sphinx
 markdown_extensions:
   - admonition
-  - pymdownx.critic
+  - pymdownx.arithmatex
+  - pymdownx.betterem:
+      smart_enable: all
   - pymdownx.caret
-  - pymdownx.keys
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:pymdownx.emoji.to_svg
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
   - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
   - pymdownx.tilde
-  - pymdownx.arithmatex:
-      generic: true
+  - mdx_truly_sane_lists
   - markdown_include.include:
       base_path: .
