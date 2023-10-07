@@ -12,5 +12,5 @@ def test_create_optimizer():
 
 
 def test_bnb_optimizer():
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ImportError):
         load_optimizer('bnb_adamw8bit')
