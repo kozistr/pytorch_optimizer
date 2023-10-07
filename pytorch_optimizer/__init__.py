@@ -115,7 +115,7 @@ from pytorch_optimizer.optimizer.yogi import Yogi
 try:
     import bitsandbytes as bnb
 
-    HAS_BNB: bool = True
+    HAS_BNB: bool = True  # pragma: no cover
 except ImportError:
     HAS_BNB: bool = False
 
@@ -219,7 +219,7 @@ LOSS_FUNCTIONS: Dict[str, nn.Module] = {
 }
 
 
-def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:
+def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
     r"""load bnb optimizer instance."""
     if 'sgd8bit' in optimizer:
         return bnb.optim.SGD8bit
