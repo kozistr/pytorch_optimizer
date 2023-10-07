@@ -1,6 +1,7 @@
 # ruff: noqa
 from typing import Dict, List
 
+import torch.cuda
 from torch import nn
 
 from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS, SCHEDULER
@@ -112,7 +113,7 @@ from pytorch_optimizer.optimizer.utils import (
 from pytorch_optimizer.optimizer.yogi import Yogi
 
 try:
-    import bitsandbytes
+    import bitsandbytes as bnb
 
     HAS_BNB: bool = True
 except ImportError:
@@ -218,9 +219,34 @@ LOSS_FUNCTIONS: Dict[str, nn.Module] = {
 }
 
 
+def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:
+    r"""load bnb optimizer instance."""
+    if 'sgd8bit' in optimizer:
+        return bnb.optim.SGD8bit
+    if 'adam8bit' in optimizer:
+        return bnb.optim.Adam8bit
+    if 'adamw8bit' in optimizer:
+        return bnb.optim.AdamW8bit
+    if 'lamb8bit' in optimizer:
+        return bnb.optim.LAMB8bit
+    if 'lars8bit' in optimizer:
+        return bnb.optim.LARS8bit
+    if 'lion8bit' in optimizer:
+        return bnb.optim.Lion8bit
+    if 'adagrad8bit' in optimizer:
+        return bnb.optim.Adagrad8bit
+    if 'rmsprop8bit' in optimizer:
+        return bnb.optim.RMSprop8bit
+    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+
+
 def load_optimizer(optimizer: str) -> OPTIMIZER:
     optimizer: str = optimizer.lower()
 
+    if optimizer.startswith('bnb'):
+        if HAS_BNB and torch.cuda.is_available():
+            return load_bnb_optimizer(optimizer)
+        raise ImportError(f'[-] bitsandbytes and CUDA required for bnb optimizers : {optimizer}')
     if optimizer not in OPTIMIZERS:
         raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
 
