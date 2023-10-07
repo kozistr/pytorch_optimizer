@@ -1,6 +1,7 @@
 # ruff: noqa
 from typing import Dict, List
 
+import torch.cuda
 from torch import nn
 
 from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS, SCHEDULER
@@ -111,6 +112,13 @@ from pytorch_optimizer.optimizer.utils import (
 )
 from pytorch_optimizer.optimizer.yogi import Yogi
 
+try:
+    import bitsandbytes as bnb
+
+    HAS_BNB: bool = True  # pragma: no cover
+except ImportError:
+    HAS_BNB: bool = False
+
 OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaBelief,
     AdaBound,
@@ -211,9 +219,34 @@ LOSS_FUNCTIONS: Dict[str, nn.Module] = {
 }
 
 
+def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
+    r"""load bnb optimizer instance."""
+    if 'sgd8bit' in optimizer:
+        return bnb.optim.SGD8bit
+    if 'adam8bit' in optimizer:
+        return bnb.optim.Adam8bit
+    if 'adamw8bit' in optimizer:
+        return bnb.optim.AdamW8bit
+    if 'lamb8bit' in optimizer:
+        return bnb.optim.LAMB8bit
+    if 'lars8bit' in optimizer:
+        return bnb.optim.LARS8bit
+    if 'lion8bit' in optimizer:
+        return bnb.optim.Lion8bit
+    if 'adagrad8bit' in optimizer:
+        return bnb.optim.Adagrad8bit
+    if 'rmsprop8bit' in optimizer:
+        return bnb.optim.RMSprop8bit
+    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+
+
 def load_optimizer(optimizer: str) -> OPTIMIZER:
     optimizer: str = optimizer.lower()
 
+    if optimizer.startswith('bnb'):
+        if HAS_BNB and torch.cuda.is_available():
+            return load_bnb_optimizer(optimizer)  # pragma: no cover
+        raise ImportError(f'[-] bitsandbytes and CUDA required for bnb optimizers : {optimizer}')
     if optimizer not in OPTIMIZERS:
         raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
 
@@ -240,10 +273,9 @@ def create_optimizer(
     """
     optimizer_name = optimizer_name.lower()
 
-    if weight_decay > 0.0:
-        parameters = get_optimizer_parameters(model, weight_decay, wd_ban_list)
-    else:
-        parameters = model.parameters()
+    parameters = (
+        get_optimizer_parameters(model, weight_decay, wd_ban_list) if weight_decay > 0.0 else model.parameters()
+    )
 
     optimizer = load_optimizer(optimizer_name)
 
