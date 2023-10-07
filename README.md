@@ -46,8 +46,13 @@ optimizer = AdamP(model.parameters())
 
 from pytorch_optimizer import load_optimizer
 
-model = YourModel()
-opt = load_optimizer(optimizer='adamp')
+optimizer = load_optimizer(optimizer='adamp')(model.parameters())
+
+# if you install `bitsandbytes` optimizer, you can use `8-bit` optimizers from `pytorch-optimizer`.
+
+from pytorch_optimizer import load_optimizer
+
+opt = load_optimizer(optimizer='bnb_adamw8bit')
 optimizer = opt(model.parameters())
 ```
 
