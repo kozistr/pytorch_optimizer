@@ -1,4 +1,4 @@
-# Welcome to pytorch-optimizer
+# pytorch-optimizer
 
 |         |                                                                                                                                                                                                                                                                                                                                                                                                       |
 |---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -8,44 +8,35 @@
 | Status  | [![PyPi download](https://static.pepy.tech/badge/pytorch-optimizer)](https://pepy.tech/project/pytorch-optimizer) [![PyPi month download](https://static.pepy.tech/badge/pytorch-optimizer/month)](https://pepy.tech/project/pytorch-optimizer)                                                                                                                                                       |
 | License | [![apache](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)                                                                                                                                                                                                                                                                                     |
 
-**pytorch-optimizer** is optimizer & lr scheduler collections in
-PyTorch.  
-I just re-implemented (speed & memory tweaks, plug-ins) the algorithm
-while based on the original paper. Also, It includes useful and
-practical optimization ideas.  
-Currently, **60 optimizers**, **10 lr schedulers**, and **13 loss
-functions** are supported!  
-  
-Highly inspired by
-[pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
+**pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
+I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
+Currently, **60 optimizers (+ `bitsandbytes`)**, **10 lr schedulers**, and **13 loss functions** are supported!  
+
+Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
 ## Getting Started
 
-For more, see the
-[documentation](https://pytorch-optimizers.readthedocs.io/en/latest/).
+For more, see the [documentation](https://pytorch-optimizers.readthedocs.io/en/latest/).
 
-Most optimizers are under MIT or Apache 2.0 license, but a few
-optimizers like <span class="title-ref">Fromage</span>, <span
-class="title-ref">Nero</span> have BY-NC-SA 4.0 license, which is
-non-commercial. So, please double-check the license before using it at
-your work.
+Most optimizers are under MIT or Apache 2.0 license, but a few optimizers like `Fromage`, `Nero` have `CC BY-NC-SA 4.0 license`, which is non-commercial. 
+So, please double-check the license before using it at your work.
 
 ### Installation
 
-``` bash
-$ pip3 install -U pytorch-optimizer
+```bash
+$ pip3 install pytorch-optimizer
 ```
 
-If there's a version issue when installing the package, try with <span
-class="title-ref">--no-deps</span> option.
+From `pytorch-optimizer v2.12.0`, you can install and import `bitsandbytes` optimizers. 
+please check [the requirements](https://github.com/TimDettmers/bitsandbytes?tab=readme-ov-file#tldr) before installing it.
 
-``` bash
-$ pip3 install -U --no-deps pytorch-optimizer
+```bash
+$ pip install "pytorch-optimizer[bitsandbytes]"
 ```
 
 ### Simple Usage
 
-``` python
+```python
 from pytorch_optimizer import AdamP
 
 model = YourModel()
@@ -55,15 +46,19 @@ optimizer = AdamP(model.parameters())
 
 from pytorch_optimizer import load_optimizer
 
-model = YourModel()
-opt = load_optimizer(optimizer='adamp')
+optimizer = load_optimizer(optimizer='adamp')(model.parameters())
+
+# if you install `bitsandbytes` optimizer, you can use `8-bit` optimizers from `pytorch-optimizer`.
+
+from pytorch_optimizer import load_optimizer
+
+opt = load_optimizer(optimizer='bnb_adamw8bit')
 optimizer = opt(model.parameters())
 ```
 
-Also, you can load the optimizer via <span
-class="title-ref">torch.hub</span>
+Also, you can load the optimizer via `torch.hub`.
 
-``` python
+```python
 import torch
 
 model = YourModel()
@@ -71,10 +66,9 @@ opt = torch.hub.load('kozistr/pytorch_optimizer', 'adamp')
 optimizer = opt(model.parameters())
 ```
 
-If you want to build the optimizer with parameters & configs, there's
-<span class="title-ref">create_optimizer()</span> API.
+If you want to build the optimizer with parameters & configs, there's `create_optimizer()` API.
 
-``` python
+```python
 from pytorch_optimizer import create_optimizer
 
 optimizer = create_optimizer(
@@ -91,7 +85,7 @@ optimizer = create_optimizer(
 
 You can check the supported optimizers with below code.
 
-``` python
+```python
 from pytorch_optimizer import get_supported_optimizers
 
 supported_optimizers = get_supported_optimizers()
@@ -167,7 +161,7 @@ supported_optimizers = get_supported_optimizers()
 
 You can check the supported learning rate schedulers with below code.
 
-``` python
+```python
 from pytorch_optimizer import get_supported_lr_schedulers
 
 supported_lr_schedulers = get_supported_lr_schedulers()
@@ -182,7 +176,7 @@ supported_lr_schedulers = get_supported_lr_schedulers()
 
 You can check the supported loss functions with below code.
 
-``` python
+```python
 from pytorch_optimizer import get_supported_loss_functions
 
 supported_loss_functions = get_supported_loss_functions()
@@ -201,8 +195,7 @@ supported_loss_functions = get_supported_loss_functions()
 
 ## Useful Resources
 
-Several optimization ideas to regularize & stabilize the training. Most
-of the ideas are applied in `Ranger21` optimizer.
+Several optimization ideas to regularize & stabilize the training. Most of the ideas are applied in `Ranger21` optimizer.
 
 Also, most of the captures are taken from `Ranger21` paper.
 
@@ -214,131 +207,116 @@ Also, most of the captures are taken from `Ranger21` paper.
 | [Lookahead](#lookahead)                                                         | [Chebyshev learning rate schedule](#chebyshev-learning-rate-schedule) | [(Adaptive) Sharpness-Aware Minimization](#adaptive-sharpness-aware-minimization) |
 | [On the Convergence of Adam and Beyond](#on-the-convergence-of-adam-and-beyond) | [Improved bias-correction in Adam](#improved-bias-correction-in-adam) | [Adaptive Gradient Norm Correction](#adaptive-gradient-norm-correction)           |
 
-## Adaptive Gradient Clipping
+### Adaptive Gradient Clipping
 
-This idea originally proposed in `NFNet (Normalized-Free Network)`
-paper.  
-`AGC (Adaptive Gradient Clipping)` clips gradients based on the
-`unit-wise ratio of gradient norms to parameter norms`.
+This idea originally proposed in `NFNet (Normalized-Free Network)` paper. `AGC (Adaptive Gradient Clipping)` clips gradients based on the `unit-wise ratio of gradient norms to parameter norms`.
 
--   code :
-    [github](https://github.com/deepmind/deepmind-research/tree/master/nfnets)
--   paper : [arXiv](https://arxiv.org/abs/2102.06171)
+* code : [github](https://github.com/deepmind/deepmind-research/tree/master/nfnets)
+* paper : [arXiv](https://arxiv.org/abs/2102.06171)
 
-## Gradient Centralization
+### Gradient Centralization
 
 |                                                                                                               |
 |---------------------------------------------------------------------------------------------------------------|
 | ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/gradient_centralization.png) |
 
-`Gradient Centralization (GC)` operates directly on gradients by
-centralizing the gradient to have zero mean.
+`Gradient Centralization (GC)` operates directly on gradients by centralizing the gradient to have zero mean.
 
--   code :
-    [github](https://github.com/Yonghongwei/Gradient-Centralization)
--   paper : [arXiv](https://arxiv.org/abs/2004.01461)
+* code : [github](https://github.com/Yonghongwei/Gradient-Centralization)
+* paper : [arXiv](https://arxiv.org/abs/2004.01461)
 
-## Softplus Transformation
+### Softplus Transformation
 
-By running the final variance denom through the softplus function, it
-lifts extremely tiny values to keep them viable.
+By running the final variance denom through the softplus function, it lifts extremely tiny values to keep them viable.
 
--   paper : [arXiv](https://arxiv.org/abs/1908.00700)
+* paper : [arXiv](https://arxiv.org/abs/1908.00700)
 
-## Gradient Normalization
+### Gradient Normalization
 
-## Norm Loss
+### Norm Loss
 
 |                                                                                                 |
 |-------------------------------------------------------------------------------------------------|
 | ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/norm_loss.png) |
 
--   paper : [arXiv](https://arxiv.org/abs/2103.06583)
+* paper : [arXiv](https://arxiv.org/abs/2103.06583)
 
-## Positive-Negative Momentum
+### Positive-Negative Momentum
 
 |                                                                                                                  |
 |------------------------------------------------------------------------------------------------------------------|
 | ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/positive_negative_momentum.png) |
 
--   code :
-    [github](https://github.com/zeke-xie/Positive-Negative-Momentum)
--   paper : [arXiv](https://arxiv.org/abs/2103.17182)
+* code : [github](https://github.com/zeke-xie/Positive-Negative-Momentum)
+* paper : [arXiv](https://arxiv.org/abs/2103.17182)
 
-## Linear learning rate warmup
+### Linear learning rate warmup
 
 |                                                                                                        |
 |--------------------------------------------------------------------------------------------------------|
 | ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/linear_lr_warmup.png) |
 
--   paper : [arXiv](https://arxiv.org/abs/1910.04209)
+* paper : [arXiv](https://arxiv.org/abs/1910.04209)
 
-## Stable weight decay
+### Stable weight decay
 
 |                                                                                                           |
 |-----------------------------------------------------------------------------------------------------------|
 | ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/stable_weight_decay.png) |
 
--   code :
-    [github](https://github.com/zeke-xie/stable-weight-decay-regularization)
--   paper : [arXiv](https://arxiv.org/abs/2011.11152)
+* code : [github](https://github.com/zeke-xie/stable-weight-decay-regularization)
+* paper : [arXiv](https://arxiv.org/abs/2011.11152)
 
-## Explore-exploit learning rate schedule
+### Explore-exploit learning rate schedule
 
 |                                                                                                                   |
 |-------------------------------------------------------------------------------------------------------------------|
 | ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/explore_exploit_lr_schedule.png) |
 
--   code :
-    [github](https://github.com/nikhil-iyer-97/wide-minima-density-hypothesis)
--   paper : [arXiv](https://arxiv.org/abs/2003.03977)
+* code : [github](https://github.com/nikhil-iyer-97/wide-minima-density-hypothesis)
+* paper : [arXiv](https://arxiv.org/abs/2003.03977)
 
-## Lookahead
+### Lookahead
 
-`k` steps forward, 1 step back. `Lookahead` consisting of keeping an
-exponential moving average of the weights that is  
-updated and substituted to the current weights every `k_{lookahead}`
-steps (5 by default).
+`k` steps forward, 1 step back. `Lookahead` consisting of keeping an exponential moving average of the weights that is updated and substituted to the current weights every `k` lookahead steps (5 by default).
 
-## Chebyshev learning rate schedule
+### Chebyshev learning rate schedule
 
 Acceleration via Fractal Learning Rate Schedules.
 
-## (Adaptive) Sharpness-Aware Minimization
+### (Adaptive) Sharpness-Aware Minimization
 
-Sharpness-Aware Minimization (SAM) simultaneously minimizes loss value
-and loss sharpness.  
-In particular, it seeks parameters that lie in neighborhoods having
-uniformly low loss.
+Sharpness-Aware Minimization (SAM) simultaneously minimizes loss value and loss sharpness.  
+In particular, it seeks parameters that lie in neighborhoods having uniformly low loss.
 
-## On the Convergence of Adam and Beyond
+### On the Convergence of Adam and Beyond
 
-Convergence issues can be fixed by endowing such algorithms with
-'long-term memory' of past gradients.
+Convergence issues can be fixed by endowing such algorithms with 'long-term memory' of past gradients.
 
-## Improved bias-correction in Adam
+### Improved bias-correction in Adam
 
-With the default bias-correction, Adam may actually make larger than
-requested gradient updates early in training.
+With the default bias-correction, Adam may actually make larger than requested gradient updates early in training.
 
-## Adaptive Gradient Norm Correction
+### Adaptive Gradient Norm Correction
 
-Correcting the norm of a gradient in each iteration based on the
-adaptive training history of gradient norm.
+Correcting the norm of a gradient in each iteration based on the adaptive training history of gradient norm.
+
+## Frequently asked questions
+
+[here](./qa.md)
 
 ## Citation
 
-Please cite the original authors of optimization algorithms. You can
-easily find it in the above table! If you use this software, please cite
-it below. Or you can get it from "cite this repository" button.
+Please cite the original authors of optimization algorithms. You can easily find it in the above table! 
+If you use this software, please cite it below. Or you can get it from "cite this repository" button.
 
-    @software{Kim_pytorch_optimizer_optimizer_2022,
+    @software{Kim_pytorch_optimizer_optimizer_2021,
         author = {Kim, Hyeongchan},
         month = jan,
         title = {{pytorch_optimizer: optimizer & lr scheduler & loss function collections in PyTorch}},
         url = {https://github.com/kozistr/pytorch_optimizer},
-        version = {2.11.0},
-        year = {2022}
+        version = {2.12.0},
+        year = {2021}
     }
 
 ## Maintainer
