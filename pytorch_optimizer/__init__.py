@@ -111,6 +111,13 @@ from pytorch_optimizer.optimizer.utils import (
 )
 from pytorch_optimizer.optimizer.yogi import Yogi
 
+try:
+    import bitsandbytes
+
+    HAS_BNB: bool = True
+except ImportError:
+    HAS_BNB: bool = False
+
 OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaBelief,
     AdaBound,
@@ -240,10 +247,9 @@ def create_optimizer(
     """
     optimizer_name = optimizer_name.lower()
 
-    if weight_decay > 0.0:
-        parameters = get_optimizer_parameters(model, weight_decay, wd_ban_list)
-    else:
-        parameters = model.parameters()
+    parameters = (
+        get_optimizer_parameters(model, weight_decay, wd_ban_list) if weight_decay > 0.0 else model.parameters()
+    )
 
     optimizer = load_optimizer(optimizer_name)
 
