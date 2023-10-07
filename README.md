@@ -296,6 +296,10 @@ With the default bias-correction, Adam may actually make larger than requested g
 
 Correcting the norm of a gradient in each iteration based on the adaptive training history of gradient norm.
 
+## Frequently asked questions
+
+[here](./qa.md)
+
 ## Citation
 
 Please cite the original authors of optimization algorithms. You can easily find it in the above table! 
