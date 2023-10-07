@@ -5,7 +5,7 @@ description = "optimizer & lr scheduler & objective function collections in PyTo
 license = "Apache-2.0"
 authors = ["kozistr <kozistr@gmail.com>"]
 maintainers = ["kozistr <kozistr@gmail.com>"]
-readme = "README.rst"
+readme = "README.md"
 homepage = "https://github.com/kozistr/pytorch_optimizer"
 repository = "https://github.com/kozistr/pytorch_optimizer"
 documentation = "https://pytorch-optimizers.readthedocs.io/en/latest"
@@ -17,7 +17,7 @@ keywords = [
     "MADGRAD", "MSVAG", "Nero", "NovoGrad", "PAdam", "PCGrad", "PID", "PNM", "Prodigy", "QHAdam", "QHM", "RAdam",
     "Ranger", "Ranger21", "RotoGrad", "SAM", "SGDP", "Shampoo", "ScalableShampoo", "SGDW", "SignSGD", "SM3", "SopihaH",
     "SRMM", "SWATS", "Tiger", "Yogi", "BCE", "BCEFocal", "Focal", "FocalCosine", "SoftF1", "Dice", "LDAM", "Jaccard",
-    "Bi-Tempered", "Tversky", "FocalTversky", "LovaszHinge",
+    "Bi-Tempered", "Tversky", "FocalTversky", "LovaszHinge", "bitsandbytes",
 ]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -64,6 +64,11 @@ black = [
 ruff = "^0.0.292"
 pytest = "^7.4.2"
 pytest-cov = "^4.1.0"
+
+[project.optional-dependencies]
+bitsandbytes = [
+    "bitsandbytes",
+]
 
 [[tool.poetry.source]]
 name = "torch"
