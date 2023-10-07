@@ -201,14 +201,14 @@ Also, most of the captures are taken from `Ranger21` paper.
 | [Lookahead](#lookahead)                                                         | [Chebyshev learning rate schedule](#chebyshev-learning-rate-schedule) | [(Adaptive) Sharpness-Aware Minimization](#adaptive-sharpness-aware-minimization) |
 | [On the Convergence of Adam and Beyond](#on-the-convergence-of-adam-and-beyond) | [Improved bias-correction in Adam](#improved-bias-correction-in-adam) | [Adaptive Gradient Norm Correction](#adaptive-gradient-norm-correction)           |
 
-## Adaptive Gradient Clipping
+### Adaptive Gradient Clipping
 
 This idea originally proposed in `NFNet (Normalized-Free Network)` paper. `AGC (Adaptive Gradient Clipping)` clips gradients based on the `unit-wise ratio of gradient norms to parameter norms`.
 
 * code : [github](https://github.com/deepmind/deepmind-research/tree/master/nfnets)
 * paper : [arXiv](https://arxiv.org/abs/2102.06171)
 
-## Gradient Centralization
+### Gradient Centralization
 
 |                                                                                                               |
 |---------------------------------------------------------------------------------------------------------------|
@@ -219,15 +219,15 @@ This idea originally proposed in `NFNet (Normalized-Free Network)` paper. `AGC (
 * code : [github](https://github.com/Yonghongwei/Gradient-Centralization)
 * paper : [arXiv](https://arxiv.org/abs/2004.01461)
 
-## Softplus Transformation
+### Softplus Transformation
 
 By running the final variance denom through the softplus function, it lifts extremely tiny values to keep them viable.
 
 * paper : [arXiv](https://arxiv.org/abs/1908.00700)
 
-## Gradient Normalization
+### Gradient Normalization
 
-## Norm Loss
+### Norm Loss
 
 |                                                                                                 |
 |-------------------------------------------------------------------------------------------------|
@@ -235,7 +235,7 @@ By running the final variance denom through the softplus function, it lifts extr
 
 * paper : [arXiv](https://arxiv.org/abs/2103.06583)
 
-## Positive-Negative Momentum
+### Positive-Negative Momentum
 
 |                                                                                                                  |
 |------------------------------------------------------------------------------------------------------------------|
@@ -244,7 +244,7 @@ By running the final variance denom through the softplus function, it lifts extr
 * code : [github](https://github.com/zeke-xie/Positive-Negative-Momentum)
 * paper : [arXiv](https://arxiv.org/abs/2103.17182)
 
-## Linear learning rate warmup
+### Linear learning rate warmup
 
 |                                                                                                        |
 |--------------------------------------------------------------------------------------------------------|
@@ -252,7 +252,7 @@ By running the final variance denom through the softplus function, it lifts extr
 
 * paper : [arXiv](https://arxiv.org/abs/1910.04209)
 
-## Stable weight decay
+### Stable weight decay
 
 |                                                                                                           |
 |-----------------------------------------------------------------------------------------------------------|
@@ -261,7 +261,7 @@ By running the final variance denom through the softplus function, it lifts extr
 * code : [github](https://github.com/zeke-xie/stable-weight-decay-regularization)
 * paper : [arXiv](https://arxiv.org/abs/2011.11152)
 
-## Explore-exploit learning rate schedule
+### Explore-exploit learning rate schedule
 
 |                                                                                                                   |
 |-------------------------------------------------------------------------------------------------------------------|
@@ -270,28 +270,28 @@ By running the final variance denom through the softplus function, it lifts extr
 * code : [github](https://github.com/nikhil-iyer-97/wide-minima-density-hypothesis)
 * paper : [arXiv](https://arxiv.org/abs/2003.03977)
 
-## Lookahead
+### Lookahead
 
 `k` steps forward, 1 step back. `Lookahead` consisting of keeping an exponential moving average of the weights that is updated and substituted to the current weights every `k` lookahead steps (5 by default).
 
-## Chebyshev learning rate schedule
+### Chebyshev learning rate schedule
 
 Acceleration via Fractal Learning Rate Schedules.
 
-## (Adaptive) Sharpness-Aware Minimization
+### (Adaptive) Sharpness-Aware Minimization
 
 Sharpness-Aware Minimization (SAM) simultaneously minimizes loss value and loss sharpness.  
 In particular, it seeks parameters that lie in neighborhoods having uniformly low loss.
 
-## On the Convergence of Adam and Beyond
+### On the Convergence of Adam and Beyond
 
 Convergence issues can be fixed by endowing such algorithms with 'long-term memory' of past gradients.
 
-## Improved bias-correction in Adam
+### Improved bias-correction in Adam
 
 With the default bias-correction, Adam may actually make larger than requested gradient updates early in training.
 
-## Adaptive Gradient Norm Correction
+### Adaptive Gradient Norm Correction
 
 Correcting the norm of a gradient in each iteration based on the adaptive training history of gradient norm.
 
