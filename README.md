@@ -24,13 +24,14 @@ So, please double-check the license before using it at your work.
 ### Installation
 
 ```bash
-$ pip3 install -U pytorch-optimizer
+$ pip3 install pytorch-optimizer
 ```
 
-If there's a version issue when installing the package, try with `--no-deps` option.
+From `pytorch-optimizer v2.12.0`, you can install and import `bitsandbytes` optimizers. 
+please check [the requirements](https://github.com/TimDettmers/bitsandbytes?tab=readme-ov-file#tldr) before installing it.
 
 ```bash
-$ pip3 install -U --no-deps pytorch-optimizer
+$ pip install "pytorch-optimizer[bitsandbytes]"
 ```
 
 ### Simple Usage
