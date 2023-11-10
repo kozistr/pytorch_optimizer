@@ -264,12 +264,5 @@ def test_proportion_no_last_lr_scheduler():
 
 
 def test_deberta_v3_large_lr_scheduler():
-    try:
-        from transformers import AutoConfig, AutoModel
-
-        config = AutoConfig.from_pretrained('microsoft/deberta-v3-large', pretrained=False)
-        model = AutoModel.from_config(config)
-    except ImportError:
-        model = nn.Sequential(*[nn.Linear(1, 1, bias=False) for _ in range(400)])
-
+    model = nn.Sequential(*[nn.Linear(1, 1, bias=False) for _ in range(400)])
     deberta_v3_large_lr_scheduler(model)
