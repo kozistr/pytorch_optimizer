@@ -61,17 +61,17 @@ def test_clip_grad_norm():
     x = torch.arange(0, 10, dtype=torch.float32, requires_grad=True)
     x.grad = torch.arange(0, 10, dtype=torch.float32)
 
-    np.testing.assert_approx_equal(clip_grad_norm(x), 16.881943016134134, significant=4)
-    np.testing.assert_approx_equal(clip_grad_norm(x, max_norm=2), 16.881943016134134, significant=4)
+    np.testing.assert_approx_equal(clip_grad_norm(x), 16.88194, significant=6)
+    np.testing.assert_approx_equal(clip_grad_norm(x, max_norm=2), 16.88194, significant=6)
 
 
 def test_unit_norm():
     x = torch.arange(0, 10, dtype=torch.float32)
 
-    np.testing.assert_approx_equal(unit_norm(x).numpy(), 16.8819, significant=4)
-    np.testing.assert_approx_equal(unit_norm(x.view(1, 10)).numpy(), 16.8819, significant=4)
-    np.testing.assert_approx_equal(unit_norm(x.view(1, 10, 1, 1)).numpy(), 16.8819, significant=4)
-    np.testing.assert_approx_equal(unit_norm(x.view(1, 10, 1, 1, 1, 1)).numpy(), 16.8819, significant=4)
+    np.testing.assert_approx_equal(unit_norm(x).numpy(), 16.8819, significant=5)
+    np.testing.assert_approx_equal(unit_norm(x.view(1, 10)).numpy().reshape(-1)[0], 16.8819, significant=5)
+    np.testing.assert_approx_equal(unit_norm(x.view(1, 10, 1, 1)).numpy().reshape(-1)[0], 16.8819, significant=5)
+    np.testing.assert_approx_equal(unit_norm(x.view(1, 10, 1, 1, 1, 1)).numpy().reshape(-1)[0], 16.8819, significant=5)
 
 
 def test_neuron_mean_norm():
