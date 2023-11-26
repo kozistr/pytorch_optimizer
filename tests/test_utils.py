@@ -145,12 +145,13 @@ def test_compute_power():
 
     # case 3 : len(x.shape) != 1 and x.shape[0] != 1, n&n-1 != 0
     # it doesn't work on torch 2.1.1+cpu
-    # x = compute_power_schur_newton(torch.ones((2, 2)), p=3)
-    # np.testing.assert_array_almost_equal(
-    #     np.asarray([[39.7070, -38.9133], [-38.9133, 39.7070]]),
-    #     x.numpy(),
-    #     decimal=4,
-    # )
+    if False:
+        x = compute_power_schur_newton(torch.ones((2, 2)), p=3)
+        np.testing.assert_array_almost_equal(
+            np.asarray([[39.7070, -38.9133], [-38.9133, 39.7070]]),
+            x.numpy(),
+            decimal=4,
+        )
 
     # case 4 : p=1
     x = compute_power_schur_newton(torch.ones((2, 2)), p=1)
