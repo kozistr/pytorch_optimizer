@@ -95,6 +95,12 @@ def test_sam_methods():
     optimizer.load_state_dict(optimizer.state_dict())
 
 
+def test_wsam_methods():
+    optimizer = WSAM(None, [simple_parameter()], load_optimizer('adamp'))
+    optimizer.reset()
+    optimizer.load_state_dict(optimizer.state_dict())
+
+
 def test_safe_fp16_methods():
     optimizer = SafeFP16Optimizer(load_optimizer('adamp')([simple_parameter()], lr=5e-1))
     optimizer.load_state_dict(optimizer.state_dict())
