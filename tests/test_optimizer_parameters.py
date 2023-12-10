@@ -60,7 +60,7 @@ def test_sam_parameters():
 
 def test_wsam_parameters():
     with pytest.raises(ValueError):
-        WSAM(None, load_optimizer('adamp'), rho=-0.1)
+        WSAM(None, None, load_optimizer('adamp'), rho=-0.1)
 
 
 def test_lookahead_parameters():
