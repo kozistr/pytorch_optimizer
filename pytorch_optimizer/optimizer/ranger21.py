@@ -31,12 +31,18 @@ class Ranger21(Optimizer, BaseOptimizer):
             * Corrects the denominator (AdamD).
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param num_iterations: int. number of the total training steps. Ranger21 optimizer schedules the learning rate
+        with its own recipes.
     :param lr: float. learning rate.
     :param beta0: float. Manages the amplitude of the noise introduced by positive negative momentum
         While 0.9 is a recommended default value, you can use -0.5 to minimize the noise.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param use_softplus: bool. use softplus to smooth.
     :param beta_softplus: float. beta.
+    :param num_warm_up_iterations: Optional[int]. number of warm-up iterations. Ranger21 performs linear learning rate
+        warmup.
+    :param num_warm_down_iterations: Optional[int]. number of warm-down iterations. Ranger21 performs Explore-exploit
+        learning rate scheduling.
     :param agc_clipping_value: float.
     :param agc_eps: float. eps for AGC
     :param centralize_gradients: bool. use GC both convolution & fc layers.
