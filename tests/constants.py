@@ -64,6 +64,7 @@ from pytorch_optimizer import (
 )
 from tests.utils import build_lookahead
 
+DECOUPLE_FLAGS: List[bool] = [True, False]
 ADAPTIVE_FLAGS: List[bool] = [True, False]
 PULLBACK_MOMENTUM: List[str] = ['none', 'reset', 'pullback']
 
@@ -72,6 +73,7 @@ INVALID_OPTIMIZER_NAMES: List[str] = [
     'asam',
     'sam',
     'gsam',
+    'wsam',
     'pcgrad',
     'lookahead',
 ]

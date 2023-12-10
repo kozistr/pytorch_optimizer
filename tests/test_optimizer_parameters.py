@@ -2,7 +2,7 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer import SAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
+from pytorch_optimizer import SAM, WSAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
 from tests.constants import PULLBACK_MOMENTUM
 from tests.utils import Example, simple_parameter, simple_zero_rank_parameter
 
@@ -54,9 +54,13 @@ def test_pcgrad_parameters():
 
 
 def test_sam_parameters():
-    # test rho
     with pytest.raises(ValueError):
         SAM(None, load_optimizer('adamp'), rho=-0.1)
+
+
+def test_wsam_parameters():
+    with pytest.raises(ValueError):
+        WSAM(None, None, load_optimizer('adamp'), rho=-0.1)
 
 
 def test_lookahead_parameters():
@@ -87,6 +91,12 @@ def test_lookahead_parameters():
 
 def test_sam_methods():
     optimizer = SAM([simple_parameter()], load_optimizer('adamp'))
+    optimizer.reset()
+    optimizer.load_state_dict(optimizer.state_dict())
+
+
+def test_wsam_methods():
+    optimizer = WSAM(None, [simple_parameter()], load_optimizer('adamp'))
     optimizer.reset()
     optimizer.load_state_dict(optimizer.state_dict())
 
