@@ -1,16 +1,17 @@
 from contextlib import ExitStack
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple, Union
 
 import torch
 from torch import nn
-from torch._C._distributed_c10d import ReduceOp
-from torch.distributed import all_reduce, get_world_size, is_initialized
+from torch.distributed import ReduceOp, all_reduce, get_world_size, is_initialized
+from torch.nn.parallel import DistributedDataParallel
+from torch.nn.utils import clip_grad_norm_
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer import disable_running_stats, enable_running_stats
 from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, OPTIMIZER, PARAMETERS
+from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_running_stats
 
 
 class SAM(Optimizer, BaseOptimizer):
@@ -362,6 +363,164 @@ class GSAM(Optimizer, BaseOptimizer):
         enable_running_stats(self.model)
 
         return outputs, loss
+
+    def load_state_dict(self, state_dict: Dict):
+        super().load_state_dict(state_dict)
+        self.base_optimizer.param_groups = self.param_groups
+
+
+class WSAM(Optimizer, BaseOptimizer):
+    r"""Sharpness-Aware Minimization Revisited: Weighted Sharpness as a Regularization Term.
+
+    :param model: Union[torch.nn.Module, torch.nn.DataParallel]. the model instance. DDP model is recommended to make
+        `model.no_sync` to work.
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param base_optimizer: Optimizer. base optimizer.
+    :param rho: float. size of the neighborhood for computing the max loss.
+    :param gamma: float. weighted factor gamma / (1 - gamma) of the sharpness term. 0.8 ~ 0.95 is the optimal.
+    :param adaptive: bool. element-wise adaptive SAM.
+    :param decouple: bool. whether to perform a decoupled sharpness regularization.
+    :param max_norm: Optional[float]. max norm of the gradients.
+    :param eps: float. term added to the denominator of WSAM to improve numerical stability.
+    :param kwargs: Dict. parameters for optimizer.
+    """
+
+    def __init__(
+        self,
+        model: Union[nn.Module, DistributedDataParallel],
+        params: PARAMETERS,
+        base_optimizer: OPTIMIZER,
+        rho: float = 0.05,
+        gamma: float = 0.9,
+        adaptive: bool = False,
+        decouple: bool = True,
+        max_norm: Optional[float] = None,
+        eps: float = 1e-12,
+        **kwargs,
+    ):
+        self.validate_non_negative(rho, 'rho')
+
+        self.model = model
+        self.decouple = decouple
+        self.max_norm = max_norm
+
+        alpha: float = gamma / (1.0 - gamma)
+
+        defaults: DEFAULTS = {'rho': rho, 'alpha': alpha, 'adaptive': adaptive, 'sam_eps': eps}
+        defaults.update(kwargs)
+        super().__init__(params, defaults)
+
+        self.base_optimizer = base_optimizer(self.param_groups, **kwargs)
+        self.param_groups = self.base_optimizer.param_groups
+
+    def __str__(self) -> str:
+        return 'WSAM'
+
+    @torch.no_grad()
+    def reset(self):
+        pass
+
+    @torch.no_grad()
+    def first_step(self, zero_grad: bool = False):
+        grad_norm = self.grad_norm()
+        for group in self.param_groups:
+            scale = group['rho'] / (grad_norm + group['sam_eps'])
+
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * p.grad * scale.to(p)
+
+                # climb to the local maximum "w + e(w)"
+                p.add_(e_w)
+
+                self.state[p]['e_w'] = e_w
+
+                if is_initialized():  # pragma: no cover
+                    all_reduce(p.grad, op=ReduceOp.AVG)
+
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                self.state[p]['grad'] = p.grad.clone()
+
+        if zero_grad:
+            self.zero_grad()
+
+    @torch.no_grad()
+    def second_step(self, zero_grad: bool = False):
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                if is_initialized():  # pragma: no cover
+                    all_reduce(p.grad, ReduceOp.AVG)
+
+                # get back to "w" from "w + e(w)"
+                p.add_(self.state[p]['e_w'], alpha=-1.0)
+
+        if self.max_norm is not None:
+            clip_grad_norm_(self.model.parameters(), self.max_norm)
+
+        for group in self.param_groups:
+            for p in group["params"]:
+                if p.grad is None:
+                    continue
+
+                if not self.decouple:
+                    p.grad.mul_(group['alpha']).add_(self.state[p]['grad'], alpha=1.0 - group['alpha'])
+                else:
+                    self.state[p]['sharpness'] = p.grad.clone() - self.state[p]['grad']
+                    p.grad.mul_(0.0).add_(self.state[p]['grad'], alpha=1.0)
+
+        # do the actual "sharpness-aware" update
+        self.base_optimizer.step()
+
+        if self.decouple:
+            for group in self.param_groups:
+                for p in group['params']:
+                    if p.grad is None:
+                        continue
+
+                    p.add_(self.state[p]['sharpness'], alpha=-group['lr'] * group['alpha'])
+
+        if zero_grad:
+            self.zero_grad()
+
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None):
+        if closure is None:
+            raise NoClosureError(str(self))
+
+        closure = torch.enable_grad()(closure)
+
+        enable_running_stats(self.model)
+        loss = closure()
+        self.first_step(zero_grad=True)
+
+        disable_running_stats(self.model)
+        closure()
+        self.second_step()
+
+        return loss
+
+    def grad_norm(self) -> torch.Tensor:
+        shared_device = self.param_groups[0]['params'][0].device
+        return torch.norm(
+            torch.stack(
+                [
+                    ((torch.abs(p) if group['adaptive'] else 1.0) * p.grad).norm(p=2).to(shared_device)
+                    for group in self.param_groups
+                    for p in group['params']
+                    if p.grad is not None
+                ]
+            ),
+            p=2,
+        )
 
     def load_state_dict(self, state_dict: Dict):
         super().load_state_dict(state_dict)
