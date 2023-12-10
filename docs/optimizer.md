@@ -272,6 +272,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.WSAM
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Yogi
     :docstring:
     :members:
