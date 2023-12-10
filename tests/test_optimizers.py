@@ -6,6 +6,7 @@ from torch import nn
 from pytorch_optimizer import (
     GSAM,
     SAM,
+    WSAM,
     CosineScheduler,
     DynamicLossScaler,
     Lookahead,
@@ -106,7 +107,7 @@ def test_lookahead(pullback_momentum, environment):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_sam_optimizers(adaptive, environment):
+def test_sam_optimizer(adaptive, environment):
     (x_data, y_data), model, loss_fn = environment
 
     optimizer = SAM(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive)
@@ -127,7 +128,7 @@ def test_sam_optimizers(adaptive, environment):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_sam_optimizers_with_closure(adaptive, environment):
+def test_sam_optimizer_with_closure(adaptive, environment):
     (x_data, y_data), model, loss_fn = environment
 
     optimizer = SAM(model.parameters(), load_optimizer('adamp'), lr=5e-1, adaptive=adaptive)
@@ -152,7 +153,51 @@ def test_sam_optimizers_with_closure(adaptive, environment):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_gsam_optimizers(adaptive, environment):
+def test_wsam_optimizer(adaptive, environment):
+    (x_data, y_data), model, loss_fn = environment
+
+    optimizer = WSAM(model, model.parameters(), load_optimizer('adamp'), lr=5e-2, adaptive=adaptive, max_norm=100.0)
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(10):
+        loss = loss_fn(y_data, model(x_data))
+        loss.backward()
+        optimizer.first_step(zero_grad=True)
+
+        loss_fn(y_data, model(x_data)).backward()
+        optimizer.second_step(zero_grad=True)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
+def test_wsam_optimizer_with_closure(adaptive, environment):
+    (x_data, y_data), model, loss_fn = environment
+
+    optimizer = WSAM(model, model.parameters(), load_optimizer('adamp'), lr=5e-2, adaptive=adaptive, max_norm=100.0)
+
+    def closure():
+        output = model(x_data)
+        loss = loss_fn(output, y_data)
+        loss.backward()
+        return loss
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(10):
+        loss = optimizer.step(closure)
+        optimizer.zero_grad()
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
+def test_gsam_optimizer(adaptive, environment):
     pytest.skip('skip GSAM optimizer')
 
     (x_data, y_data), model, loss_fn = environment
@@ -182,7 +227,7 @@ def test_gsam_optimizers(adaptive, environment):
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adanorm_optimizers(optimizer_config, environment):
+def test_adanorm_optimizer(optimizer_config, environment):
     (x_data, y_data), model, loss_fn = environment
 
     optimizer_class, config, num_iterations = optimizer_config
