@@ -361,6 +361,12 @@ def test_no_closure():
     with pytest.raises(NoClosureError):
         optimizer.step()
 
+    optimizer = WSAM(None, [param], load_optimizer('adamp'))
+    optimizer.zero_grad()
+
+    with pytest.raises(NoClosureError):
+        optimizer.step()
+
 
 def test_nero_zero_scale():
     param = simple_parameter()
