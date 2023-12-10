@@ -55,7 +55,6 @@ from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimize
 from pytorch_optimizer.optimizer.fromage import Fromage
 from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.gravity import Gravity
-from pytorch_optimizer.optimizer.gsam import GSAM
 from pytorch_optimizer.optimizer.lamb import Lamb
 from pytorch_optimizer.optimizer.lars import LARS
 from pytorch_optimizer.optimizer.lion import Lion
@@ -76,7 +75,7 @@ from pytorch_optimizer.optimizer.radam import RAdam
 from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
 from pytorch_optimizer.optimizer.rotograd import RotoGrad
-from pytorch_optimizer.optimizer.sam import SAM
+from pytorch_optimizer.optimizer.sam import GSAM, SAM
 from pytorch_optimizer.optimizer.sgd import ASGD, SGDW, AccSGD, SignSGD
 from pytorch_optimizer.optimizer.sgdp import SGDP
 from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
