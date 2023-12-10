@@ -20,6 +20,7 @@ from tests.constants import (
     ADAMD_SUPPORTED_OPTIMIZERS,
     ADANORM_SUPPORTED_OPTIMIZERS,
     ADAPTIVE_FLAGS,
+    DECOUPLE_FLAGS,
     OPTIMIZERS,
     PULLBACK_MOMENTUM,
 )
@@ -153,10 +154,19 @@ def test_sam_optimizer_with_closure(adaptive, environment):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_wsam_optimizer(adaptive, environment):
+@pytest.mark.parametrize('decouple', DECOUPLE_FLAGS)
+def test_wsam_optimizer(adaptive, decouple, environment):
     (x_data, y_data), model, loss_fn = environment
 
-    optimizer = WSAM(model, model.parameters(), load_optimizer('adamp'), lr=5e-2, adaptive=adaptive, max_norm=100.0)
+    optimizer = WSAM(
+        model,
+        model.parameters(),
+        load_optimizer('adamp'),
+        lr=5e-2,
+        adaptive=adaptive,
+        decouple=decouple,
+        max_norm=100.0,
+    )
 
     init_loss, loss = np.inf, np.inf
     for _ in range(10):
