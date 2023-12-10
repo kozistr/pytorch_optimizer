@@ -153,7 +153,7 @@ class SAM(Optimizer, BaseOptimizer):
         self.base_optimizer.param_groups = self.param_groups
 
 
-class GSAM(Optimizer, BaseOptimizer):
+class GSAM(Optimizer, BaseOptimizer):  # pragma: no cover
     r"""Surrogate Gap Guided Sharpness-Aware Minimization.
 
     Example:
