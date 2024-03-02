@@ -10,6 +10,7 @@ from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmup
 from pytorch_optimizer.lr_scheduler.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
 from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
 from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
+from pytorch_optimizer.lr_scheduler.rex import REXScheduler
 from tests.utils import Example
 
 CAWR_RECIPES = [
@@ -261,6 +262,29 @@ def test_proportion_no_last_lr_scheduler():
     for _ in range(10):
         _ = rho_scheduler.step()
         np.testing.assert_almost_equal(2.0, rho_scheduler.get_lr(), 6)
+
+
+def test_rex_lr_scheduler():
+    lrs = [
+        0.888888,
+        0.749999,
+        0.571428,
+        0.333333,
+        0.0,
+    ]
+
+    base_optimizer = AdamP(Example().parameters())
+
+    lr_scheduler = REXScheduler(
+        base_optimizer,
+        total_steps=5,
+        max_lr=1.0,
+        min_lr=0.0,
+    )
+
+    for expected_lr in lrs:
+        lr: float = lr_scheduler.step()
+        np.testing.assert_almost_equal(expected_lr, lr, 6)
 
 
 def test_deberta_v3_large_lr_scheduler():
