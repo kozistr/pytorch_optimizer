@@ -33,6 +33,7 @@ from pytorch_optimizer import (
     AdaShift,
     AdaSmooth,
     AggMo,
+    Aida,
     AliG,
     Amos,
     Apollo,
@@ -117,6 +118,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'prodigy',
     'padam',
     'came',
+    'aida',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -398,6 +400,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Tiger, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (CAME, {'lr': 7.5e-1, 'weight_decay': 1e-3}, 75),
     (CAME, {'lr': 7.5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 75),
+    (Aida, {'lr': 1e0, 'weight_decay': 1e-3, 'ams_bound': True}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
@@ -413,6 +416,7 @@ ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]]
     (Yogi, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
     (AdaMax, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
     (SWATS, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 5),
+    (Aida, {'lr': 1e0, 'weight_decay': 1e-3, 'adanorm': True}, 5),
 ]
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 1e1, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
@@ -432,4 +436,5 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (AdaMax, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
     (AvaGrad, {'lr': 1e1, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
     (AdaHessian, {'lr': 5e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
+    (Aida, {'lr': 1e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
 ]
