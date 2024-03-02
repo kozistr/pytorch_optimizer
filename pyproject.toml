@@ -68,7 +68,7 @@ lint.select = [
     "TID", "ARG", "ERA", "RUF", "YTT", "PL", "Q"
 ]
 lint.ignore = [
-    "B905", "D100", "D102", "D104", "D105", "D107", "D203", "D213", "PIE790", "PLR0912", "PLR0913", "PLR0915",
+    "B905", "D100", "D102", "D104", "D105", "D107", "D203", "D213", "D413", "PIE790", "PLR0912", "PLR0913", "PLR0915",
     "PLR2004", "RUF013", "Q003",
 ]
 lint.fixable = ["ALL"]
@@ -104,7 +104,7 @@ quote-style = "single"
 "./tests/constants.py" = ["D"]
 "./tests/utils.py" = ["D"]
 "./tests/test_base.py" = ["D", "S101"]
-"./tests/test_utils.py" = ["D", "S101"]
+"./tests/test_utils.py" = ["D", "S101", "ERA001"]
 "./tests/test_gradients.py" = ["D", "S101"]
 "./tests/test_optimizers.py" = ["D", "S101"]
 "./tests/test_optimizer_parameters.py" = ["D", "S101"]
