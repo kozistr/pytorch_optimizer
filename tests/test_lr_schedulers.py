@@ -283,8 +283,8 @@ def test_rex_lr_scheduler():
     )
 
     for expected_lr in lrs:
-        lr: float = lr_scheduler.step()
-        np.testing.assert_almost_equal(expected_lr, lr, 6)
+        _ = lr_scheduler.step()
+        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr(), 6)
 
 
 def test_deberta_v3_large_lr_scheduler():
