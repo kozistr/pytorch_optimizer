@@ -10,7 +10,7 @@
 
 **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
 I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
-Currently, **62 optimizers (+ `bitsandbytes`)**, **10 lr schedulers**, and **13 loss functions** are supported!  
+Currently, **62 optimizers (+ `bitsandbytes`)**, **11 lr schedulers**, and **13 loss functions** are supported!  
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
@@ -171,10 +171,11 @@ from pytorch_optimizer import get_supported_lr_schedulers
 supported_lr_schedulers = get_supported_lr_schedulers()
 ```
 
-| LR Scheduler    | Description                                                                     | Official Code | Paper                              | Citation                                                                     |
-|-----------------|---------------------------------------------------------------------------------|---------------|------------------------------------|------------------------------------------------------------------------------|
-| Explore-Exploit | *Wide-minima Density Hypothesis and the Explore-Exploit Learning Rate Schedule* |               | <https://arxiv.org/abs/2003.03977> | [cite](https://ui.adsabs.harvard.edu/abs/2020arXiv200303977I/exportcitation) |
-| Chebyshev       | *Acceleration via Fractal Learning Rate Schedules*                              |               | <https://arxiv.org/abs/2103.01338> | [cite](https://ui.adsabs.harvard.edu/abs/2021arXiv210301338A/exportcitation) |
+| LR Scheduler    | Description                                                                     | Official Code                                                                                                                       | Paper                              | Citation                                                                     |
+|-----------------|---------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|------------------------------------------------------------------------------|
+| Explore-Exploit | *Wide-minima Density Hypothesis and the Explore-Exploit Learning Rate Schedule* |                                                                                                                                     | <https://arxiv.org/abs/2003.03977> | [cite](https://ui.adsabs.harvard.edu/abs/2020arXiv200303977I/exportcitation) |
+| Chebyshev       | *Acceleration via Fractal Learning Rate Schedules*                              |                                                                                                                                     | <https://arxiv.org/abs/2103.01338> | [cite](https://ui.adsabs.harvard.edu/abs/2021arXiv210301338A/exportcitation) |
+| REX             | *Revisiting Budgeted Training with an Improved Schedule*                        | [github](https://github.com/Nerogar/OneTrainer/blob/2c6f34ea0838e5a86774a1cf75093d7e97c70f03/modules/util/lr_scheduler_util.py#L66) | <https://arxiv.org/abs/2107.04197> | [cite](https://ui.adsabs.harvard.edu/abs/2021arXiv210704197C/exportcitation) |
 
 ## Supported Loss Function
 
