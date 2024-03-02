@@ -12,12 +12,12 @@ documentation = "https://pytorch-optimizers.readthedocs.io/en/latest"
 keywords = [
     "pytorch", "deep-learning", "optimizer", "lr scheduler", "A2Grad", "ASGD", "AccSGD", "AdaBelief", "AdaBound",
     "AdaDelta", "AdaFactor", "AdaMax", "AdaMod", "AdaNorm", "AdaPNM", "AdaSmooth", "AdaHessian", "Adai", "AdamP",
-    "AdamS", "Adan", "AggMo", "AliG", "Amos", "Apollo", "AvaGrad", "CAME", "DAdaptAdaGrad", "DAdaptAdam", "DAdaptAdan",
-    "DAdaptSGD", "DAdaptLion", "DiffGrad", "Fromage", "Gravity", "GSAM", "LARS", "Lamb", "Lion", "LOMO", "Lookahead",
-    "MADGRAD", "MSVAG", "Nero", "NovoGrad", "PAdam", "PCGrad", "PID", "PNM", "Prodigy", "QHAdam", "QHM", "RAdam",
-    "Ranger", "Ranger21", "RotoGrad", "SAM", "SGDP", "Shampoo", "ScalableShampoo", "SGDW", "SignSGD", "SM3", "SopihaH",
-    "SRMM", "SWATS", "Tiger", "WSAM", "Yogi", "BCE", "BCEFocal", "Focal", "FocalCosine", "SoftF1", "Dice", "LDAM",
-    "Jaccard", "Bi-Tempered", "Tversky", "FocalTversky", "LovaszHinge", "bitsandbytes",
+    "AdamS", "Adan", "AggMo", "Aida", "AliG", "Amos", "Apollo", "AvaGrad", "CAME", "DAdaptAdaGrad", "DAdaptAdam",
+    "DAdaptAdan", "DAdaptSGD", "DAdaptLion", "DiffGrad", "Fromage", "Gravity", "GSAM", "LARS", "Lamb", "Lion", "LOMO",
+    "Lookahead", "MADGRAD", "MSVAG", "Nero", "NovoGrad", "PAdam", "PCGrad", "PID", "PNM", "Prodigy", "QHAdam", "QHM",
+    "RAdam", "Ranger", "Ranger21", "RotoGrad", "SAM", "SGDP", "Shampoo", "ScalableShampoo", "SGDW", "SignSGD", "SM3",
+    "SopihaH", "SRMM", "SWATS", "Tiger", "WSAM", "Yogi", "BCE", "BCEFocal", "Focal", "FocalCosine", "SoftF1", "Dice",
+    "LDAM", "Jaccard", "Bi-Tempered", "Tversky", "FocalTversky", "LovaszHinge", "bitsandbytes",
 ]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -51,7 +51,7 @@ torch = [
     { version = ">=1.10", python = ">=3.8", source = "torch" },
     { version = "^1.10", python = ">=3.7,<3.8", source = "torch" },
 ]
-bitsandbytes = { version = "^0.41", optional = true }
+bitsandbytes = { version = "^0.42", optional = true }
 
 [tool.poetry.dev-dependencies]
 isort = [
@@ -60,10 +60,10 @@ isort = [
 ]
 black = [
     { version = "==23.3.0", python = ">=3.7,<3.8" },
-    { version = "^23", python = ">=3.8"}
+    { version = "^24", python = ">=3.8"}
 ]
-ruff = "^0.1"
-pytest = "^7"
+ruff = "^0.3"
+pytest = "^8"
 pytest-cov = "^4"
 
 [tool.poetry.extras]
@@ -75,16 +75,16 @@ url = "https://download.pytorch.org/whl/cpu"
 priority = "explicit"
 
 [tool.ruff]
-select = [
+lint.select = [
     "A", "B", "C4", "D", "E", "F", "G", "I", "N", "S", "T", "ISC", "ICN", "W", "INP", "PIE", "T20", "RET", "SIM",
-    "TID", "ARG", "ERA", "RUF", "YTT", "PL",
+    "TID", "ARG", "ERA", "RUF", "YTT", "PL", "Q"
 ]
-ignore = [
+lint.ignore = [
     "B905", "D100", "D102", "D104", "D105", "D107", "D203", "D213", "PIE790", "PLR0912", "PLR0913", "PLR0915",
     "PLR2004", "RUF013",
 ]
-fixable = ["A", "B", "C", "D", "E", "F"]
-unfixable = ["F401"]
+lint.fixable = ["ALL"]
+lint.unfixable = ["F401"]
 exclude = [
     ".git",
     ".github",
@@ -99,10 +99,16 @@ exclude = [
     "__pypackages__",
 ]
 line-length = 119
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 target-version = "py311"
+lint.flake8-quotes.docstring-quotes = "double"
+lint.flake8-quotes.inline-quotes = "single"
+lint.pylint.max-args = 7
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint.per-file-ignores]
 "./pytorch_optimizer/__init__.py" = ["F401"]
 "./pytorch_optimizer/lr_scheduler/__init__.py" = ["F401"]
 "./hubconf.py" = ["D", "INP001"]
