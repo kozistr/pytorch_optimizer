@@ -76,7 +76,6 @@ class BaseLinearWarmupScheduler(ABC):
 
         self.step_t += 1
 
-        # apply the lr to optimizer if it's provided
         if self.optimizer is not None:
             for param_group in self.optimizer.param_groups:
                 param_group['lr'] = value
