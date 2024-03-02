@@ -26,6 +26,7 @@ from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmup
 from pytorch_optimizer.lr_scheduler.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
 from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
 from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
+from pytorch_optimizer.lr_scheduler.rex import REXScheduler
 from pytorch_optimizer.optimizer.a2grad import A2Grad
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
@@ -195,6 +196,7 @@ LR_SCHEDULER_LIST: List[SCHEDULER] = [
     PolyScheduler,
     LinearScheduler,
     ProportionScheduler,
+    REXScheduler,
 ]
 LR_SCHEDULERS: Dict[str, SCHEDULER] = {
     str(lr_scheduler.__name__).lower(): lr_scheduler for lr_scheduler in LR_SCHEDULER_LIST

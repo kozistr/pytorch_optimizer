@@ -25,3 +25,7 @@
 ::: pytorch_optimizer.ProportionScheduler
     :docstring:
     :members:
+
+::: pytorch_optimizer.REXScheduler
+    :docstring:
+    :members:

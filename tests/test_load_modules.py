@@ -42,7 +42,7 @@ def test_get_supported_optimizers():
 
 
 def test_get_supported_lr_schedulers():
-    assert len(get_supported_lr_schedulers()) == 10
+    assert len(get_supported_lr_schedulers()) == 11
 
 
 def test_get_supported_loss_functions():
