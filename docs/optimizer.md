@@ -72,6 +72,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Aida
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AliG
     :docstring:
     :members:

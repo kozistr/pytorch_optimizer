@@ -10,7 +10,7 @@
 
 **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
 I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
-Currently, **61 optimizers (+ `bitsandbytes`)**, **10 lr schedulers**, and **13 loss functions** are supported!  
+Currently, **62 optimizers (+ `bitsandbytes`)**, **10 lr schedulers**, and **13 loss functions** are supported!  
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
@@ -27,8 +27,10 @@ So, please double-check the license before using it at your work.
 $ pip3 install pytorch-optimizer
 ```
 
-From `pytorch-optimizer v2.12.0`, you can install and import `bitsandbytes` optimizers. 
+From `v2.12.0`, you can install and import `bitsandbytes` optimizers. 
 please check [the requirements](https://github.com/TimDettmers/bitsandbytes?tab=readme-ov-file#tldr) before installing it.
+
+From `v3.0.0`, drop `Python 3.7` support. However, you can still use this package with `Python 3.7` by installing with `--ignore-requires-python` option.
 
 ```bash
 $ pip install "pytorch-optimizer[bitsandbytes]"
@@ -156,7 +158,8 @@ supported_optimizers = get_supported_optimizers()
 | LOMO         | *Full Parameter Fine-tuning for Large Language Models with Limited Resources*                     | [github](https://github.com/OpenLMLab/LOMO)                                                                    | <https://arxiv.org/abs/2306.09782>                                                         | [cite](https://github.com/OpenLMLab/LOMO#citation)                                                                |
 | Tiger        | *A Tight-fisted Optimizer, an optimizer that is extremely budget-conscious*                       | [github](https://github.com/bojone/tiger)                                                                      |                                                                                            | [cite](https://github.com/bojone/tiger/blob/main/README_en.md#citation)                                           |
 | CAME         | *Confidence-guided Adaptive Memory Efficient Optimization*                                        | [github](https://github.com/huawei-noah/Pretrained-Language-Model/tree/master/CAME)                            | <https://aclanthology.org/2023.acl-long.243/>                                              | [cite](https://github.com/huawei-noah/Pretrained-Language-Model/tree/master/CAME#citation)                        |
-| WSAM         | *Sharpness-Aware Minimization Revisited: Weighted Sharpness as a Regularization Term*             | [github](https://github.com/intelligent-machine-learning/dlrover/blob/master/atorch/atorch/optimizers/wsam.py) | <https://arxiv.org/abs/2305.15817>                                                          | [cite](https://github.com/intelligent-machine-learning/dlrover)                                                   |
+| WSAM         | *Sharpness-Aware Minimization Revisited: Weighted Sharpness as a Regularization Term*             | [github](https://github.com/intelligent-machine-learning/dlrover/blob/master/atorch/atorch/optimizers/wsam.py) | <https://arxiv.org/abs/2305.15817>                                                         | [cite](https://github.com/intelligent-machine-learning/dlrover)                                                   |
+| Aida         | *A DNN Optimizer that Improves over AdaBelief by Suppression of the Adaptive Stepsize Range*      | [github](https://github.com/guoqiang-zhang-x/Aida-Optimizer)                                                   | <https://arxiv.org/abs/2203.13273>                                                         | [cite](https://github.com/guoqiang-zhang-x/Aida-Optimizer?tab=readme-ov-file#1-brief-description-of-aida)         |
 
 ## Supported LR Scheduler
 

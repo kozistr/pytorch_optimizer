@@ -467,7 +467,7 @@ class WSAM(Optimizer, BaseOptimizer):
             clip_grad_norm_(self.model.parameters(), self.max_norm)
 
         for group in self.param_groups:
-            for p in group["params"]:
+            for p in group['params']:
                 if p.grad is None:
                     continue
 
