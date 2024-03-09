@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: 1
+
 jobs:
   release:
     name: Create Release
@@ -12,9 +15,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Get the version
         id: get_version
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
       - name: Create release
         id: create_release
         uses: actions/create-release@v1
@@ -32,15 +37,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: 3.11
           cache: 'pip'
+
       - name: Install dependencies
         run: |
-          pip --disable-pip-version-check install --no-compile poetry
-          pip --disable-pip-version-check install --no-compile -r requirements.txt
+          url -LsSf https://astral.sh/uv/install.sh | sh
+          export VIRTUAL_ENV=$(python -c "import sys; print(sys.prefix)")
+          uv pip install --no-compile poetry
+          uv pip install --no-compile -r requirements.txt
+
       - name: Publish package to PyPI
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
