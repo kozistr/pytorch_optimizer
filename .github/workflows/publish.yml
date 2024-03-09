@@ -46,10 +46,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          url -LsSf https://astral.sh/uv/install.sh | sh
+          curl -LsSf https://astral.sh/uv/install.sh | sh
           export VIRTUAL_ENV=$(python -c "import sys; print(sys.prefix)")
-          uv pip install --no-compile poetry
-          uv pip install --no-compile -r requirements.txt
+          uv pip install poetry
+          uv pip install -r requirements.txt
 
       - name: Publish package to PyPI
         env:
