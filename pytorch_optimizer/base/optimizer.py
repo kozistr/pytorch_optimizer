@@ -23,7 +23,7 @@ class BaseOptimizer(ABC):
                 # Hutchinson's Estimator using HVP
                 noise = tree_map(lambda v: torch.randn_like(v), params)
                 loss_, hvp_est = jvp(grad(run_model_fn), (params,), (noise,))
-                hessian_diag_est  = tree_map(lambda a, b: a * b, hvp_est, noise)
+                hessian_diag_est = tree_map(lambda a, b: a * b, hvp_est, noise)
 
                 optimizer.set_hessian(hessian_diag_est)
                 # OR
@@ -250,7 +250,7 @@ class BaseOptimizer(ABC):
     @staticmethod
     def validate_options(x: str, name: str, options: List[str]):
         if x not in options:
-            opts: str = ' or '.join([f'\'{option}\'' for option in options]).strip()
+            opts: str = ' or '.join([f"'{option}'" for option in options]).strip()
             raise ValueError(f'[-] {name} {x} must be one of ({opts})')
 
     @staticmethod
