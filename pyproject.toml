@@ -49,8 +49,7 @@ bitsandbytes = { version = "^0.42", optional = true }
 
 [tool.poetry.dev-dependencies]
 isort = { version = "^5", python = ">=3.8" }
-black = { version = "^24", python = ">=3.8"}
-ruff = "^0.3"
+ruff = "^0"
 pytest = "^8"
 pytest-cov = "^4"
 
@@ -65,11 +64,11 @@ priority = "explicit"
 [tool.ruff]
 lint.select = [
     "A", "B", "C4", "D", "E", "F", "G", "I", "N", "S", "T", "ISC", "ICN", "W", "INP", "PIE", "T20", "RET", "SIM",
-    "TID", "ARG", "ERA", "RUF", "YTT", "PL", "Q"
+    "TID", "ARG", "ERA", "RUF", "YTT", "PL", "Q",
 ]
 lint.ignore = [
     "B905", "D100", "D102", "D104", "D105", "D107", "D203", "D213", "D413", "PIE790", "PLR0912", "PLR0913", "PLR0915",
-    "PLR2004", "RUF013", "Q003",
+    "PLR2004", "RUF013", "Q003", "ISC001"
 ]
 lint.fixable = ["ALL"]
 lint.unfixable = ["F401"]
@@ -94,6 +93,8 @@ lint.flake8-quotes.inline-quotes = "single"
 lint.pylint.max-args = 7
 
 [tool.ruff.format]
+docstring-code-format = true
+line-ending = "lf"
 quote-style = "single"
 
 [tool.ruff.lint.per-file-ignores]
