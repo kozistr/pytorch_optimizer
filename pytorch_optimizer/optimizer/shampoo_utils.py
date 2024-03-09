@@ -187,9 +187,9 @@ class BlockPartitioner:
             n: int = len(indices) + 1
 
             partitions: List[torch.Tensor] = [
-                torch.cat(partitions[idx : idx + n], dim=i)
-                for idx in range(0, len(partitions), n)  # fmt: skip
-            ]
+                torch.cat(partitions[idx:idx + n], dim=i)
+                for idx in range(0, len(partitions), n)
+            ]  # fmt: skip
 
         return partitions[0]
 
