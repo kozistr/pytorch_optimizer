@@ -43,10 +43,12 @@ class SAM(Optimizer, BaseOptimizer):
             base_optimizer = Ranger21
             optimizer = SAM(model.parameters(), base_optimizer)
 
+
             def closure():
                 loss = loss_function(output, model(input))
                 loss.backward()
                 return loss
+
 
             for input, output in data:
                 loss = loss_function(output, model(input))
@@ -166,8 +168,10 @@ class GSAM(Optimizer, BaseOptimizer):  # pragma: no cover
             rho_scheduler = ProportionScheduler(lr_scheduler, max_lr=max_lr)
             optimizer = GSAM(model.parameters(), base_optimizer, model, rho_scheduler)
 
+
             def loss_fn(predictions, targets):
                 return F.cross_entropy(predictions, targets)
+
 
             for inputs, targets in data:
                 optimizer.set_closure(loss_fn, inputs, targets)
