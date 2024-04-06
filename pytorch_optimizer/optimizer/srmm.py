@@ -53,7 +53,7 @@ class SRMM(Optimizer, BaseOptimizer):
                 group['step'] = 1
 
             w_t: float = (
-                (group['step'] + 1) % (group['memory_length'] if group['memory_length'] is not None else 1)
+                (group['step'] % (group['memory_length'] if group['memory_length'] is not None else 1)) + 1
             ) ** -group['beta']
 
             for p in group['params']:
