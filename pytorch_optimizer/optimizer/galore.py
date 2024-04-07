@@ -105,7 +105,7 @@ class GaLoreProjector:
         if self.projection_type == 'right':
             return self.get_low_rank_grad_right(full_rank_grad, steps)
         if self.projection_type == 'left':
-            return self.get_low_rank_grad_right(full_rank_grad, steps)
+            return self.get_low_rank_grad_left(full_rank_grad, steps)
         if self.projection_type == 'full':
             return self.get_low_rank_grad_full(full_rank_grad, steps)
         raise NotImplementedError
@@ -126,7 +126,7 @@ class GaLoreProjector:
         if self.projection_type == 'right':
             return torch.matmul(low_rank_grad, self.ortho_matrix.t()) * self.scale
         if self.projection_type == 'left':
-            return torch.matmul(self.ortho_matrix, low_rank_grad.t()) * self.scale
+            return torch.matmul(self.ortho_matrix, low_rank_grad) * self.scale
         if self.projection_type == 'full':
             return torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1].t() * self.scale
 
