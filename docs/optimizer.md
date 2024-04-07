@@ -28,6 +28,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Adalite
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AdaMax
     :docstring:
     :members:
