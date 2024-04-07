@@ -71,7 +71,7 @@ class Adalite(Optimizer, BaseOptimizer):
                     state['m_avg'] = torch.zeros_like(p)
                     state['v_avg'] = torch.zeros_like(p)
                 else:
-                    state['v_avg_0'] = torch.zeros_like(p.shape(dim=1))
+                    state['v_avg_0'] = torch.zeros_like(p.mean(dim=1))
                     state['v_avg_1'] = torch.zeros_like(p.mean(dim=0))
 
                     state['m_avg_c'] = torch.zeros_like(p.mean(dim=1)[:, None])
@@ -108,7 +108,7 @@ class Adalite(Optimizer, BaseOptimizer):
                         state['m_avg'] = torch.zeros_like(p)
                         state['v_avg'] = torch.zeros_like(p)
                     else:
-                        state['v_avg_0'] = torch.zeros_like(p.shape(dim=1))
+                        state['v_avg_0'] = torch.zeros_like(p.mean(dim=1))
                         state['v_avg_1'] = torch.zeros_like(p.mean(dim=0))
 
                         state['m_avg_c'] = torch.zeros_like(p.mean(dim=1)[:, None])
