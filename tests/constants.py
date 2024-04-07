@@ -23,6 +23,7 @@ from pytorch_optimizer import (
     AdaFactor,
     AdaHessian,
     Adai,
+    Adalite,
     AdaMax,
     AdaMod,
     AdamP,
@@ -120,6 +121,8 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'padam',
     'came',
     'aida',
+    'galore',
+    'adalite',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -434,6 +437,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
         {'lr': 5e-1, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 2, 'projection_type': 'full'},
         5,
     ),
+    (Adalite, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
