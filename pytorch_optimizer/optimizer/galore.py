@@ -119,21 +119,21 @@ class GaLoreProjector:
             ) * self.scale
         if self.projection_type == 'reverse_std':
             return (
-                torch.matmul(self.ortho_matrix, low_rank_grad)
+                torch.matmul(self.ortho_matrix, low_rank_grad.t())
                 if low_rank_grad.shape[0] <= low_rank_grad.shape[1]
-                else torch.matmul(low_rank_grad, self.ortho_matrix)
+                else torch.matmul(low_rank_grad, self.ortho_matrix.t())
             ) * self.scale
         if self.projection_type == 'right':
-            return torch.matmul(low_rank_grad, self.ortho_matrix) * self.scale
+            return torch.matmul(low_rank_grad, self.ortho_matrix.t()) * self.scale
         if self.projection_type == 'left':
-            return torch.matmul(self.ortho_matrix, low_rank_grad) * self.scale
+            return torch.matmul(self.ortho_matrix, low_rank_grad.t()) * self.scale
         if self.projection_type == 'full':
-            return torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1] * self.scale
+            return torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1].t() * self.scale
 
         raise NotImplementedError
 
 
-class GaLoreOptimizer(Optimizer, BaseOptimizer):
+class GaLore(Optimizer, BaseOptimizer):
     r"""AdamW optimizer with GaLore projector.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -209,7 +209,11 @@ class GaLoreOptimizer(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
 
-                if 'rank' in group:
+                if len(state) == 0:
+                    state['exp_avg'] = torch.zeros_like(p)
+                    state['exp_avg_sq'] = torch.zeros_like(p)
+
+                if 'rank' in group and p.dim() > 1:
                     if 'projector' not in state:
                         state['projector'] = GaLoreProjector(
                             rank=group['rank'],
@@ -219,10 +223,6 @@ class GaLoreOptimizer(Optimizer, BaseOptimizer):
                         )
 
                     grad = state['projector'].project(grad, group['step'])
-
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
 
                 self.apply_weight_decay(
                     p=p,
@@ -241,7 +241,7 @@ class GaLoreOptimizer(Optimizer, BaseOptimizer):
 
                 norm_grad = exp_avg / de_nom
 
-                if 'rank' in group:
+                if 'rank' in group and p.dim() > 1:
                     norm_grad = state['projector'].project_back(norm_grad)
 
                 p.add_(norm_grad, alpha=-step_size)
