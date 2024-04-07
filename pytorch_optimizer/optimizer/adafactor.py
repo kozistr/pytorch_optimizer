@@ -7,7 +7,6 @@ from torch.optim.optimizer import Optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.optimizer.galore import GaLoreProjector
 
 
 class AdaFactor(Optimizer, BaseOptimizer):
@@ -28,7 +27,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
         is being used.
     :param eps1: float. term added to the denominator to improve numerical stability.
     :param eps2: float. term added to the denominator to improve numerical stability.
-    :param use_galore: bool. use GaLore variant.
     """
 
     def __init__(
@@ -47,7 +45,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
         warmup_init: bool = False,
         eps1: float = 1e-30,
         eps2: float = 1e-3,
-        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
@@ -72,7 +69,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
             'warmup_init': warmup_init,
             'eps1': eps1,
             'eps2': eps2,
-            **kwargs,
         }
         super().__init__(params, defaults)
 
@@ -170,17 +166,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
                 grad_shape: Tuple[int, ...] = grad.shape
                 factored: bool = self.get_options(grad_shape)
 
-                if 'rank' in group:
-                    if 'projector' not in state:
-                        state['projector'] = GaLoreProjector(
-                            rank=group['rank'],
-                            update_proj_gap=group['update_proj_gap'],
-                            scale=group['scale'],
-                            projection_type=group['projection_type'],
-                        )
-
-                    grad = state['projector'].project(grad, group['step'])
-
                 if len(state) == 0:
                     state['exp_avg'] = torch.zeros_like(p)
 
@@ -233,9 +218,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
 
                 exp_avg = state['exp_avg']
                 exp_avg.mul_(beta1).add_(update, alpha=1.0 - beta1)
-
-                if 'rank' in group:
-                    exp_avg = state['projector'].project_back(exp_avg)
 
                 self.apply_weight_decay(
                     p=p,
