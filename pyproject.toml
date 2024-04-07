@@ -45,14 +45,14 @@ classifiers = [
 python = ">=3.8,<4.0.0"
 numpy = { version = "*", python = ">=3.8" }
 torch = { version = ">=1.10", python = ">=3.8", source = "torch" }
-bitsandbytes = { version = "^0.42", optional = true }
+bitsandbytes = { version = "^0.43", optional = true }
 
 [tool.poetry.dev-dependencies]
 isort = { version = "^5", python = ">=3.8" }
 black = { version = "^24", python = ">=3.8"}
-ruff = "^0.3"
-pytest = "^8"
-pytest-cov = "^4"
+ruff = "*"
+pytest = "*"
+pytest-cov = "*"
 
 [tool.poetry.extras]
 bitsandbytes = ["bitsandbytes"]
