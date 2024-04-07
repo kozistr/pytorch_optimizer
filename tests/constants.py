@@ -45,6 +45,7 @@ from pytorch_optimizer import (
     DAdaptSGD,
     DiffGrad,
     Fromage,
+    GaLore,
     Gravity,
     Lamb,
     Lion,
@@ -401,6 +402,38 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (CAME, {'lr': 7.5e-1, 'weight_decay': 1e-3}, 75),
     (CAME, {'lr': 7.5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 75),
     (Aida, {'lr': 1e0, 'weight_decay': 1e-3, 'ams_bound': True}, 5),
+    (
+        GaLore,
+        {'lr': 1e0, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 1, 'projection_type': 'std'},
+        5,
+    ),
+    (
+        GaLore,
+        {
+            'lr': 1e0,
+            'weight_decay': 1e-3,
+            'rank': 2,
+            'scale': 1.0,
+            'update_proj_gap': 1,
+            'projection_type': 'reverse_std',
+        },
+        5,
+    ),
+    (
+        GaLore,
+        {'lr': 5e-1, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 2, 'projection_type': 'left'},
+        5,
+    ),
+    (
+        GaLore,
+        {'lr': 1e0, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 1, 'projection_type': 'right'},
+        5,
+    ),
+    (
+        GaLore,
+        {'lr': 5e-1, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 2, 'projection_type': 'full'},
+        5,
+    ),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),

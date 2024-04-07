@@ -10,7 +10,7 @@
 
 **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
 I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
-Currently, **62 optimizers (+ `bitsandbytes`)**, **11 lr schedulers**, and **13 loss functions** are supported!  
+Currently, **63 optimizers (+ `bitsandbytes`)**, **11 lr schedulers**, and **13 loss functions** are supported!  
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
@@ -160,6 +160,7 @@ supported_optimizers = get_supported_optimizers()
 | CAME         | *Confidence-guided Adaptive Memory Efficient Optimization*                                        | [github](https://github.com/huawei-noah/Pretrained-Language-Model/tree/master/CAME)                            | <https://aclanthology.org/2023.acl-long.243/>                                              | [cite](https://github.com/huawei-noah/Pretrained-Language-Model/tree/master/CAME#citation)                        |
 | WSAM         | *Sharpness-Aware Minimization Revisited: Weighted Sharpness as a Regularization Term*             | [github](https://github.com/intelligent-machine-learning/dlrover/blob/master/atorch/atorch/optimizers/wsam.py) | <https://arxiv.org/abs/2305.15817>                                                         | [cite](https://github.com/intelligent-machine-learning/dlrover)                                                   |
 | Aida         | *A DNN Optimizer that Improves over AdaBelief by Suppression of the Adaptive Stepsize Range*      | [github](https://github.com/guoqiang-zhang-x/Aida-Optimizer)                                                   | <https://arxiv.org/abs/2203.13273>                                                         | [cite](https://github.com/guoqiang-zhang-x/Aida-Optimizer?tab=readme-ov-file#1-brief-description-of-aida)         |
+| GaLore       | *Memory-Efficient LLM Training by Gradient Low-Rank Projection*                                   | [github](https://github.com/jiaweizzhao/GaLore)                                                                | <https://arxiv.org/abs/2403.03507>                                                         | [cite](https://github.com/jiaweizzhao/GaLore/tree/master?tab=readme-ov-file#citation)                             |
 
 ## Supported LR Scheduler
 

@@ -2,7 +2,16 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer import SAM, WSAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
+from pytorch_optimizer import (
+    SAM,
+    WSAM,
+    GaLoreProjector,
+    Lookahead,
+    PCGrad,
+    Ranger21,
+    SafeFP16Optimizer,
+    load_optimizer,
+)
 from tests.constants import PULLBACK_MOMENTUM
 from tests.utils import Example, simple_parameter, simple_zero_rank_parameter
 
@@ -254,3 +263,16 @@ def test_ranger_parameters():
     # test lookahead step `k`
     with pytest.raises(ValueError):
         opt(None, k=-1)
+
+
+def test_galore_projection_type():
+    p = torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)
+
+    with pytest.raises(NotImplementedError):
+        GaLoreProjector(projection_type='invalid').project(p, 1)
+
+    with pytest.raises(NotImplementedError):
+        GaLoreProjector(projection_type='invalid').project_back(p)
+
+    with pytest.raises(ValueError):
+        GaLoreProjector.get_orthogonal_matrix(p, 1, projection_type='std')

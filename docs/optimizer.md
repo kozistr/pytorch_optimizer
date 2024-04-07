@@ -132,6 +132,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.GaLoreProjector
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.centralize_gradient
     :docstring:
     :members:
