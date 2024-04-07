@@ -8,7 +8,7 @@ PROJECTION_TYPE = Literal['std', 'reverse_std', 'right', 'left', 'full']
 class GaLoreProjector:
     r"""Memory-Efficient LLM Training by Gradient Low-Rank Projection.
 
-    :param rank: int. matrix rank.
+    :param rank: int. low rank to project.
     :param update_proj_gap: int. num steps to update the projection.
     :param scale: float. scale factor.
     :param projection_type: PROJECTION_TYPE. type of projection. 'std', 'reverse_std', 'right', 'left', 'full' are
@@ -16,7 +16,7 @@ class GaLoreProjector:
     """
 
     def __init__(
-        self, rank: int, update_proj_gap: int = 200, scale: float = 1.0, projection_type: PROJECTION_TYPE = 'std'
+        self, rank: int = 128, update_proj_gap: int = 50, scale: float = 1.0, projection_type: PROJECTION_TYPE = 'std'
     ):
         self.rank = rank
         self.update_proj_gap = update_proj_gap
