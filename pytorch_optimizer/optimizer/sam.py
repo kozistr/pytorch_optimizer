@@ -538,28 +538,6 @@ class BSAM(Optimizer, BaseOptimizer):
             model = YourModel()
             optimizer = BSAM(model.parameters(), ...)
 
-            for input, output in data:
-                # first forward-backward pass
-
-                loss = loss_function(output, model(input))
-                loss.backward()
-                optimizer.step(zero_grad=True)
-
-                # second forward-backward pass
-                # make sure to do a full forward pass
-                loss_function(output, model(input)).backward()
-                optimizer.second_step(zero_grad=True)
-
-                # third forward-backward pass
-                # make sure to do a full forward pass
-                loss_function(output, model(input)).backward()
-                optimizer.second_step(zero_grad=True)
-
-        Alternative example with a single closure-based step function::
-
-            model = YourModel()
-            optimizer = BSAM(model.parameters(), ...)
-
             def closure():
                 loss = loss_function(output, model(input))
                 loss.backward()
@@ -568,6 +546,7 @@ class BSAM(Optimizer, BaseOptimizer):
             for input, output in data:
                 loss = loss_function(output, model(input))
                 loss.backward()
+
                 optimizer.step(closure)
                 optimizer.zero_grad()
 

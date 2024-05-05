@@ -4,9 +4,9 @@ import torch
 from torch import nn
 
 from pytorch_optimizer import (
+    BSAM,
     GSAM,
     SAM,
-    BSAM,
     WSAM,
     CosineScheduler,
     DynamicLossScaler,

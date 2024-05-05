@@ -64,7 +64,6 @@ from pytorch_optimizer import (
     SophiaH,
     Tiger,
     Yogi,
-    BSAM,
 )
 from tests.utils import build_lookahead
 
