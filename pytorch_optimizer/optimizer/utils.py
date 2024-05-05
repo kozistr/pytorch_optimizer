@@ -283,6 +283,17 @@ def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
 def reg_noise(
     network1: nn.Module, network2: nn.Module, num_data: int, lr: float, eta: float = 8e-3, temperature: float = 1e-4
 ) -> torch.Tensor | float:
+    r"""Entropy-MCMC: Sampling from flat basins with ease.
+
+    usage: https://github.com/lblaoke/EMCMC/blob/master/exp/cifar10_emcmc.py
+
+    :param network1: nn.Module. network.
+    :param network2: nn.Module. network.
+    :param num_data: int. number of training data.
+    :param lr: float. learning rate.
+    :param eta: float. eta.
+    :param temperature: float. temperature.
+    """
     reg_coef: float = 0.5 / (eta * num_data)
     noise_coef: float = math.sqrt(2.0 / lr / num_data * temperature)
 

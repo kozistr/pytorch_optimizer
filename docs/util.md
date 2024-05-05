@@ -84,6 +84,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.optimizer.utils.reg_noise
+    :docstring:
+    :members:
+
 ## Newton methods
 
 ::: pytorch_optimizer.optimizer.shampoo_utils.power_iteration
