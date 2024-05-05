@@ -6,6 +6,7 @@ from torch import nn
 from pytorch_optimizer import (
     GSAM,
     SAM,
+    BSAM,
     WSAM,
     CosineScheduler,
     DynamicLossScaler,
@@ -234,6 +235,32 @@ def test_gsam_optimizer(adaptive, environment):
         optimizer.update_rho_t()
 
     assert tensor_to_numpy(init_loss) > 1.2 * tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
+def test_bsam_optimizer(adaptive, environment):
+    (x_data, y_data), model, loss_fn = environment
+
+    optimizer = BSAM(model.parameters(), lr=2e-3, num_data=len(x_data), rho=1e-5, adaptive=adaptive)
+    optimizer.reset()
+
+    def closure():
+        first_loss = loss_fn(y_data, model(x_data))
+        first_loss.backward()
+        return first_loss
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(20):
+        loss = loss_fn(y_data, model(x_data))
+        loss.backward()
+
+        optimizer.step(closure)
+        optimizer.zero_grad()
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+    assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)

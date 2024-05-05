@@ -633,6 +633,11 @@ class BSAM(Optimizer, BaseOptimizer):
 
                 state = self.state[p]
 
+                if 's' not in state:
+                    state['s'] = torch.ones_like(p)
+                    state['noisy_gradient'] = torch.zeros_like(p.grad)
+                    state['momentum'] = torch.zeros_like(p)
+
                 noise = torch.normal(0.0, 1 / (self.num_data * state['s']))
 
                 p.add_(noise)
@@ -684,6 +689,8 @@ class BSAM(Optimizer, BaseOptimizer):
         self.second_step()
 
         with torch.enable_grad():
-            closure()
+            loss = closure()
 
         self.third_step()
+
+        return loss

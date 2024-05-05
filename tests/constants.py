@@ -64,6 +64,7 @@ from pytorch_optimizer import (
     SophiaH,
     Tiger,
     Yogi,
+    BSAM,
 )
 from tests.utils import build_lookahead
 
@@ -123,6 +124,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'aida',
     'galore',
     'adalite',
+    'bsam',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [

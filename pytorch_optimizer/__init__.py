@@ -79,7 +79,7 @@ from pytorch_optimizer.optimizer.radam import RAdam
 from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
 from pytorch_optimizer.optimizer.rotograd import RotoGrad
-from pytorch_optimizer.optimizer.sam import GSAM, SAM, WSAM
+from pytorch_optimizer.optimizer.sam import GSAM, SAM, WSAM, BSAM
 from pytorch_optimizer.optimizer.sgd import ASGD, SGDW, AccSGD, SignSGD
 from pytorch_optimizer.optimizer.sgdp import SGDP
 from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
@@ -186,6 +186,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Aida,
     GaLore,
     Adalite,
+    BSAM,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
