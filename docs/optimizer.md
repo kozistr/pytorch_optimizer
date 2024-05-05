@@ -240,6 +240,14 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.ScheduleFreeSGD
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.ScheduleFreeAdamW
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AccSGD
     :docstring:
     :members:
