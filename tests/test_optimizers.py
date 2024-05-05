@@ -4,6 +4,7 @@ import torch
 from torch import nn
 
 from pytorch_optimizer import (
+    BSAM,
     GSAM,
     SAM,
     WSAM,
@@ -236,6 +237,31 @@ def test_gsam_optimizer(adaptive, environment):
     assert tensor_to_numpy(init_loss) > 1.2 * tensor_to_numpy(loss)
 
 
+@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
+def test_bsam_optimizer(adaptive, environment):
+    (x_data, y_data), model, loss_fn = environment
+
+    optimizer = BSAM(model.parameters(), lr=2e-3, num_data=len(x_data), rho=1e-5, adaptive=adaptive)
+
+    def closure():
+        first_loss = loss_fn(y_data, model(x_data))
+        first_loss.backward()
+        return first_loss
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(20):
+        loss = loss_fn(y_data, model(x_data))
+        loss.backward()
+
+        optimizer.step(closure)
+        optimizer.zero_grad()
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+    assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
+
+
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_adanorm_optimizer(optimizer_config, environment):
     (x_data, y_data), model, loss_fn = environment
@@ -338,8 +364,8 @@ def test_closure(optimizer):
     param.grad = None
 
     optimizer_name: str = optimizer.__name__
-
     optimizer = optimizer([param], num_iterations=1) if optimizer_name == 'Ranger21' else optimizer([param])
+
     optimizer.zero_grad()
 
     if optimizer_name in ('Ranger21', 'Adai', 'AdamS'):
@@ -362,6 +388,12 @@ def test_no_closure():
         optimizer.step()
 
     optimizer = WSAM(None, [param], load_optimizer('adamp'))
+    optimizer.zero_grad()
+
+    with pytest.raises(NoClosureError):
+        optimizer.step()
+
+    optimizer = BSAM([param], 1)
     optimizer.zero_grad()
 
     with pytest.raises(NoClosureError):
@@ -430,7 +462,9 @@ def test_swats_sgd_phase(environment):
         opt.step()
 
 
-@pytest.mark.parametrize('optimizer_config', OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
+@pytest.mark.parametrize(
+    'optimizer_config', OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS + [(BSAM, {'num_data': 1}, 1)], ids=ids
+)
 def test_reset(optimizer_config):
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
@@ -560,3 +594,17 @@ def test_dynamic_scaler():
     scaler = DynamicLossScaler(init_scale=2.0**15, scale_window=1, threshold=1e-2)
     scaler.decrease_loss_scale()
     scaler.update_scale(overflow=False)
+
+
+def test_schedule_free_train_mode():
+    param = simple_parameter(True)
+
+    opt = load_optimizer('ScheduleFreeAdamW')([param])
+    opt.reset()
+    opt.eval()
+    opt.train()
+
+    opt = load_optimizer('ScheduleFreeSGD')([param])
+    opt.reset()
+    opt.eval()
+    opt.train()

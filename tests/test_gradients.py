@@ -20,6 +20,8 @@ def test_no_gradients(optimizer_name):
 
     if optimizer_name == 'ranger21':
         optimizer = load_optimizer(optimizer_name)(params, num_iterations=1, lookahead_merge_time=1)
+    elif optimizer_name == 'bsam':
+        optimizer = load_optimizer(optimizer_name)(params, num_data=1)
     elif optimizer_name in ('lamb', 'ralamb'):
         optimizer = load_optimizer(optimizer_name)(params, pre_norm=True)
     elif optimizer_name == 'lookahead':
@@ -37,7 +39,7 @@ def test_no_gradients(optimizer_name):
 
 @pytest.mark.parametrize('no_sparse_optimizer', NO_SPARSE_OPTIMIZERS)
 def test_sparse_not_supported(no_sparse_optimizer):
-    if no_sparse_optimizer == 'lomo':
+    if no_sparse_optimizer in ('lomo', 'bsam'):
         pytest.skip(f'skip {no_sparse_optimizer} optimizer.')
 
     param = simple_sparse_parameter()[1]
@@ -111,7 +113,7 @@ def test_sparse_supported(sparse_optimizer):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_bf16_gradient(optimizer_name):
-    if optimizer_name in ('shampoo', 'lomo'):
+    if optimizer_name in ('shampoo', 'lomo', 'bsam'):
         pytest.skip(f'skip {optimizer_name}')
 
     param = torch.randn(1, 1).bfloat16().requires_grad_(True)

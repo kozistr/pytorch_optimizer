@@ -22,6 +22,7 @@ from pytorch_optimizer.optimizer.utils import (
     neuron_norm,
     normalize_gradient,
     reduce_max_except_dim,
+    reg_noise,
     to_real,
     unit_norm,
 )
@@ -228,3 +229,13 @@ def test_max_reduce_except_dim():
     x = torch.zeros((1, 1))
     with pytest.raises(ValueError):
         reduce_max_except_dim(x, 3)
+
+
+def test_emcmc():
+    torch.random.manual_seed(42)
+
+    network1 = Example()
+    network2 = Example()
+
+    loss = reg_noise(network1, network2, int(5e4), 1e-1).detach().numpy()
+    np.testing.assert_almost_equal(loss, 0.0011383)

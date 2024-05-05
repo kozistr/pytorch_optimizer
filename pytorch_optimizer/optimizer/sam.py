@@ -10,7 +10,7 @@ from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, OPTIMIZER, PARAMETERS
+from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, OPTIMIZER, PARAMETERS
 from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_running_stats
 
 
@@ -58,6 +58,7 @@ class SAM(Optimizer, BaseOptimizer):
     :param base_optimizer: Optimizer. base optimizer.
     :param rho: float. size of the neighborhood for computing the max loss.
     :param adaptive: bool. element-wise Adaptive SAM.
+    :param perturb_eps: float. eps for perturbation.
     :param kwargs: Dict. parameters for optimizer.
     """
 
@@ -67,9 +68,13 @@ class SAM(Optimizer, BaseOptimizer):
         base_optimizer: OPTIMIZER,
         rho: float = 0.05,
         adaptive: bool = False,
+        perturb_eps: float = 1e-12,
         **kwargs,
     ):
         self.validate_non_negative(rho, 'rho')
+        self.validate_non_negative(perturb_eps, 'perturb_eps')
+
+        self.perturb_eps = perturb_eps
 
         defaults: DEFAULTS = {'rho': rho, 'adaptive': adaptive}
         defaults.update(kwargs)
@@ -89,7 +94,7 @@ class SAM(Optimizer, BaseOptimizer):
     def first_step(self, zero_grad: bool = False):
         grad_norm = self.grad_norm()
         for group in self.param_groups:
-            scale = group['rho'] / (grad_norm + 1e-12)
+            scale = group['rho'] / (grad_norm + self.perturb_eps)
 
             for p in group['params']:
                 if p.grad is None:
@@ -98,7 +103,6 @@ class SAM(Optimizer, BaseOptimizer):
                 self.state[p]['old_p'] = p.clone()
                 e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * p.grad * scale.to(p)
 
-                # climb to the local maximum "w + e(w)"
                 p.add_(e_w)
 
         if zero_grad:
@@ -111,10 +115,8 @@ class SAM(Optimizer, BaseOptimizer):
                 if p.grad is None:
                     continue
 
-                # get back to "w" from "w + e(w)"
                 p.data = self.state[p]['old_p']
 
-        # do the actual "sharpness-aware" update
         self.base_optimizer.step()
 
         if zero_grad:
@@ -127,14 +129,12 @@ class SAM(Optimizer, BaseOptimizer):
 
         self.first_step(zero_grad=True)
 
-        # the closure should do a full forward-backward pass
         with torch.enable_grad():
             closure()
 
         self.second_step()
 
     def grad_norm(self) -> torch.Tensor:
-        # put everything on the same device, in case of model parallelism
         shared_device = self.param_groups[0]['params'][0].device
         return torch.norm(
             torch.stack(
@@ -248,7 +248,8 @@ class GSAM(Optimizer, BaseOptimizer):  # pragma: no cover
                 self.state[p]['old_g'] = p.grad.clone()
 
                 e_w = (torch.pow(p, 2) if self.adaptive else 1.0) * p.grad * scale.to(p)
-                p.add_(e_w)  # climb to the local maximum "w + e(w)"
+
+                p.add_(e_w)
 
                 self.state[p]['e_w'] = e_w
 
@@ -274,7 +275,6 @@ class GSAM(Optimizer, BaseOptimizer):  # pragma: no cover
 
         cosine = inner_prod / (new_grad_norm * old_grad_norm + self.perturb_eps)
 
-        # gradient decomposition
         for group in self.param_groups:
             for p in group['params']:
                 if p.grad is None:
@@ -408,6 +408,7 @@ class WSAM(Optimizer, BaseOptimizer):
 
         defaults: DEFAULTS = {'rho': rho, 'alpha': alpha, 'adaptive': adaptive, 'sam_eps': eps}
         defaults.update(kwargs)
+
         super().__init__(params, defaults)
 
         self.base_optimizer = base_optimizer(self.param_groups, **kwargs)
@@ -432,7 +433,6 @@ class WSAM(Optimizer, BaseOptimizer):
 
                 e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * p.grad * scale.to(p)
 
-                # climb to the local maximum "w + e(w)"
                 p.add_(e_w)
 
                 self.state[p]['e_w'] = e_w
@@ -460,7 +460,6 @@ class WSAM(Optimizer, BaseOptimizer):
                 if is_initialized():  # pragma: no cover
                     all_reduce(p.grad, ReduceOp.AVG)
 
-                # get back to "w" from "w + e(w)"
                 p.add_(self.state[p]['e_w'], alpha=-1.0)
 
         if self.max_norm is not None:
@@ -477,7 +476,6 @@ class WSAM(Optimizer, BaseOptimizer):
                     self.state[p]['sharpness'] = p.grad.clone() - self.state[p]['grad']
                     p.grad.mul_(0.0).add_(self.state[p]['grad'], alpha=1.0)
 
-        # do the actual "sharpness-aware" update
         self.base_optimizer.step()
 
         if self.decouple:
@@ -500,16 +498,19 @@ class WSAM(Optimizer, BaseOptimizer):
 
         enable_running_stats(self.model)
         loss = closure()
+
         self.first_step(zero_grad=True)
 
         disable_running_stats(self.model)
         closure()
+
         self.second_step()
 
         return loss
 
     def grad_norm(self) -> torch.Tensor:
         shared_device = self.param_groups[0]['params'][0].device
+
         return torch.norm(
             torch.stack(
                 [
@@ -525,3 +526,147 @@ class WSAM(Optimizer, BaseOptimizer):
     def load_state_dict(self, state_dict: Dict):
         super().load_state_dict(state_dict)
         self.base_optimizer.param_groups = self.param_groups
+
+
+class BSAM(Optimizer, BaseOptimizer):
+    r"""SAM as an Optimal Relaxation of Bayes.
+
+    Example:
+    -------
+        Here's an example::
+
+            model = YourModel()
+            optimizer = BSAM(model.parameters(), ...)
+
+            def closure():
+                loss = loss_function(output, model(input))
+                loss.backward()
+                return loss
+
+            for input, output in data:
+                loss = loss_function(output, model(input))
+                loss.backward()
+
+                optimizer.step(closure)
+                optimizer.zero_grad()
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param num_data: int. number of training data.
+    :param lr: float. learning rate.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param rho: float. size of the neighborhood for computing the max loss.
+    :param adaptive: bool. element-wise Adaptive SAM.
+    :param damping: float. damping to stabilize the method.
+    :param kwargs: Dict. parameters for optimizer.
+    """
+
+    def __init__(
+        self,
+        params: PARAMETERS,
+        num_data: int,
+        lr: float = 5e-1,
+        betas: BETAS = (0.9, 0.999),
+        weight_decay: float = 1e-4,
+        rho: float = 0.05,
+        adaptive: bool = False,
+        damping: float = 0.1,
+        **kwargs,
+    ):
+        self.validate_learning_rate(lr)
+        self.validate_betas(betas)
+        self.validate_non_negative(weight_decay, 'weight_decay')
+        self.validate_non_negative(rho, 'rho')
+        self.validate_non_negative(num_data, 'num_data')
+        self.validate_non_negative(damping, 'damping')
+
+        self.num_data = num_data
+        self.damping = damping
+
+        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'rho': rho, 'adaptive': adaptive}
+        defaults.update(kwargs)
+        super().__init__(params, defaults)
+
+    def __str__(self) -> str:
+        return 'bSAM'
+
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+
+                state['s'] = torch.ones_like(p)
+                state['noisy_gradient'] = torch.zeros_like(p.grad)
+                state['momentum'] = torch.zeros_like(p)
+
+    @torch.no_grad()
+    def first_step(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                state = self.state[p]
+
+                if 's' not in state:
+                    state['s'] = torch.ones_like(p)
+                    state['noisy_gradient'] = torch.zeros_like(p.grad)
+                    state['momentum'] = torch.zeros_like(p)
+
+                noise = torch.normal(0.0, 1 / (self.num_data * state['s']))
+
+                p.add_(noise)
+
+    @torch.no_grad()
+    def second_step(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                state = self.state[p]
+
+                state['noisy_gradient'] = p.grad.clone()
+
+                e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * group['rho'] * p.grad / state['s']
+
+                p.add_(e_w)
+
+    @torch.no_grad()
+    def third_step(self):
+        for group in self.param_groups:
+            beta1, beta2 = group['betas']
+            weight_decay = group['weight_decay']
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                state = self.state[p]
+
+                momentum, s = state['momentum'], state['s']
+                momentum.mul_(beta1).add_(p.grad * weight_decay, alpha=1.0 - beta1)
+
+                var = (torch.sqrt(s).mul_(p.grad.abs()).add_(weight_decay + self.damping)).pow_(2)
+                s.mul_(beta2).add_(var, alpha=1.0 - beta2)
+
+                p.add_(momentum / s, alpha=-group['lr'])
+
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None):
+        if closure is None:
+            raise NoClosureError(str(self))
+
+        self.first_step()
+
+        with torch.enable_grad():
+            closure()
+
+        self.second_step()
+
+        with torch.enable_grad():
+            loss = closure()
+
+        self.third_step()
+
+        return loss
