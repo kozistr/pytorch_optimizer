@@ -242,7 +242,6 @@ def test_bsam_optimizer(adaptive, environment):
     (x_data, y_data), model, loss_fn = environment
 
     optimizer = BSAM(model.parameters(), lr=2e-3, num_data=len(x_data), rho=1e-5, adaptive=adaptive)
-    optimizer.reset()
 
     def closure():
         first_loss = loss_fn(y_data, model(x_data))
@@ -365,8 +364,11 @@ def test_closure(optimizer):
     param.grad = None
 
     optimizer_name: str = optimizer.__name__
+    if optimizer_name == 'Ranger21':
+        optimizer = optimizer([param], num_iterations=1)
+    else:
+        optimizer = optimizer([param])
 
-    optimizer = optimizer([param], num_iterations=1) if optimizer_name == 'Ranger21' else optimizer([param])
     optimizer.zero_grad()
 
     if optimizer_name in ('Ranger21', 'Adai', 'AdamS'):
@@ -389,6 +391,12 @@ def test_no_closure():
         optimizer.step()
 
     optimizer = WSAM(None, [param], load_optimizer('adamp'))
+    optimizer.zero_grad()
+
+    with pytest.raises(NoClosureError):
+        optimizer.step()
+
+    optimizer = BSAM([param], 1)
     optimizer.zero_grad()
 
     with pytest.raises(NoClosureError):
@@ -462,6 +470,8 @@ def test_reset(optimizer_config):
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
         config.update({'num_iterations': 1})
+    elif optimizer_class.__name__ == 'bSAM':
+        config.update({'num_data': 1})
 
     optimizer = optimizer_class([simple_parameter()], **config)
     optimizer.reset()
