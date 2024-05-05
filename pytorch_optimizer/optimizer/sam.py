@@ -594,9 +594,6 @@ class BSAM(Optimizer, BaseOptimizer):
     def reset(self):
         for group in self.param_groups:
             for p in group['params']:
-                if p.grad is None:
-                    continue
-
                 state = self.state[p]
 
                 state['s'] = torch.ones_like(p)
