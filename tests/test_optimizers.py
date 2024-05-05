@@ -594,3 +594,17 @@ def test_dynamic_scaler():
     scaler = DynamicLossScaler(init_scale=2.0**15, scale_window=1, threshold=1e-2)
     scaler.decrease_loss_scale()
     scaler.update_scale(overflow=False)
+
+
+def test_schedule_free_train_mode():
+    param = simple_parameter(True)
+
+    opt = load_optimizer('ScheduleFreeAdamW')([param])
+    opt.reset()
+    opt.train()
+    opt.eval()
+
+    opt = load_optimizer('ScheduleFreeSGD')([param])
+    opt.reset()
+    opt.train()
+    opt.eval()
