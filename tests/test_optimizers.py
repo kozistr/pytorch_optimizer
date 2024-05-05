@@ -601,10 +601,10 @@ def test_schedule_free_train_mode():
 
     opt = load_optimizer('ScheduleFreeAdamW')([param])
     opt.reset()
-    opt.train()
     opt.eval()
+    opt.train()
 
     opt = load_optimizer('ScheduleFreeSGD')([param])
     opt.reset()
-    opt.train()
     opt.eval()
+    opt.train()
