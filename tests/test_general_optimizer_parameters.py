@@ -16,6 +16,8 @@ def test_learning_rate(optimizer_name):
     config = {'lr': -1e-2}
     if optimizer_name == 'ranger21':
         config.update({'num_iterations': 100})
+    elif optimizer_name == 'bsam':
+        config.update({'num_data': 100})
 
     with pytest.raises(NegativeLRError):
         optimizer(None, **config)
@@ -47,6 +49,7 @@ def test_epsilon(optimizer_name):
         'tiger',
         'came',
         'adalite',
+        'bsam',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
@@ -82,6 +85,8 @@ def test_weight_decay(optimizer_name):
     config = {'weight_decay': -1e-3}
     if optimizer_name == 'ranger21':
         config.update({'num_iterations': 100})
+    elif optimizer_name == 'bsam':
+        config.update({'num_data': 100})
 
     with pytest.raises(ValueError):
         optimizer(None, **config)
@@ -124,6 +129,9 @@ def test_betas(optimizer_name):
     if optimizer_name == 'ranger21':
         config1.update({'num_iterations': 100})
         config2.update({'num_iterations': 100})
+    elif optimizer_name == 'bsam':
+        config1.update({'num_data': 100})
+        config2.update({'num_data': 100})
 
     if optimizer_name not in ('adapnm', 'adan', 'adamod', 'aggmo', 'came'):
         with pytest.raises(ValueError):
