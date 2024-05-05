@@ -96,6 +96,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.BSAM
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.CAME
     :docstring:
     :members:
