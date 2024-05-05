@@ -364,10 +364,7 @@ def test_closure(optimizer):
     param.grad = None
 
     optimizer_name: str = optimizer.__name__
-    if optimizer_name == 'Ranger21':
-        optimizer = optimizer([param], num_iterations=1)
-    else:
-        optimizer = optimizer([param])
+    optimizer = optimizer([param], num_iterations=1) if optimizer_name == 'Ranger21' else optimizer([param])
 
     optimizer.zero_grad()
 
