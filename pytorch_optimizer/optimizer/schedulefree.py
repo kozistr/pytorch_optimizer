@@ -71,7 +71,7 @@ class ScheduleFreeSGD(Optimizer, BaseOptimizer):
                 for p in group['params']:
                     state = self.state[p]
                     if 'z' in state:
-                        p.lerp_(end=state['z'], weight=1.0 - 1.0 / momentum)
+                        p.data.lerp_(end=state['z'], weight=1.0 - 1.0 / momentum)
                 group['train_mode'] = False
 
     def train(self):
@@ -81,7 +81,7 @@ class ScheduleFreeSGD(Optimizer, BaseOptimizer):
                 for p in group['params']:
                     state = self.state[p]
                     if 'z' in state:
-                        p.lerp_(end=state['z'], weight=1.0 - momentum)
+                        p.data.lerp_(end=state['z'], weight=1.0 - momentum)
                 group['train_mode'] = True
 
     @torch.no_grad()
@@ -216,7 +216,7 @@ class ScheduleFreeAdamW(Optimizer, BaseOptimizer):
                 for p in group['params']:
                     state = self.state[p]
                     if 'z' in state:
-                        p.lerp_(end=state['z'], weight=1.0 - 1.0 / beta1)
+                        p.data.lerp_(end=state['z'], weight=1.0 - 1.0 / beta1)
                 group['train_mode'] = False
 
     def train(self):
@@ -226,7 +226,7 @@ class ScheduleFreeAdamW(Optimizer, BaseOptimizer):
                 for p in group['params']:
                     state = self.state[p]
                     if 'z' in state:
-                        p.lerp_(end=state['z'], weight=1.0 - beta1)
+                        p.data.lerp_(end=state['z'], weight=1.0 - beta1)
                 group['train_mode'] = True
 
     @torch.no_grad()
