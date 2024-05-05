@@ -467,7 +467,7 @@ def test_reset(optimizer_config):
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
         config.update({'num_iterations': 1})
-    elif optimizer_class.__name__ == 'bSAM':
+    elif optimizer_class.__name__ == 'BSAM':
         config.update({'num_data': 1})
 
     optimizer = optimizer_class([simple_parameter()], **config)
