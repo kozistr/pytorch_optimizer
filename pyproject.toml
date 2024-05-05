@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytorch_optimizer"
-version = "2.12.0"
+version = "3.0.0"
 description = "optimizer & lr scheduler & objective function collections in PyTorch"
 license = "Apache-2.0"
 authors = ["kozistr <kozistr@gmail.com>"]
@@ -12,7 +12,7 @@ documentation = "https://pytorch-optimizers.readthedocs.io/en/latest"
 keywords = [
     "pytorch", "deep-learning", "optimizer", "lr scheduler", "A2Grad", "ASGD", "AccSGD", "AdaBelief", "AdaBound",
     "AdaDelta", "AdaFactor", "AdaMax", "AdaMod", "AdaNorm", "AdaPNM", "AdaSmooth", "AdaHessian", "Adai", "Adalite",
-    "AdamP", "AdamS", "Adan", "AggMo", "Aida", "AliG", "Amos", "Apollo", "AvaGrad", "CAME", "DAdaptAdaGrad",
+    "AdamP", "AdamS", "Adan", "AggMo", "Aida", "AliG", "Amos", "Apollo", "AvaGrad", "bSAM", "CAME", "DAdaptAdaGrad",
     "DAdaptAdam", "DAdaptAdan", "DAdaptSGD", "DAdaptLion", "DiffGrad", "Fromage", "GaLore", "Gravity", "GSAM", "LARS",
     "Lamb", "Lion", "LOMO", "Lookahead", "MADGRAD", "MSVAG", "Nero", "NovoGrad", "PAdam", "PCGrad", "PID", "PNM",
     "Prodigy", "QHAdam", "QHM", "RAdam", "Ranger", "Ranger21", "RotoGrad", "SAM", "SGDP", "Shampoo", "ScalableShampoo",
@@ -50,7 +50,7 @@ bitsandbytes = { version = "^0.43", optional = true }
 
 [tool.poetry.dev-dependencies]
 isort = { version = "^5", python = ">=3.8" }
-black = { version = "^24", python = ">=3.8"}
+black = { version = "^24", python = ">=3.8" }
 ruff = "*"
 pytest = "*"
 pytest-cov = "*"
