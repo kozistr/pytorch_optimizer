@@ -462,13 +462,13 @@ def test_swats_sgd_phase(environment):
         opt.step()
 
 
-@pytest.mark.parametrize('optimizer_config', OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
+@pytest.mark.parametrize(
+    'optimizer_config', OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS + [(BSAM, {'num_data': 1}, 1)], ids=ids
+)
 def test_reset(optimizer_config):
     optimizer_class, config, _ = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
         config.update({'num_iterations': 1})
-    elif optimizer_class.__name__ == 'BSAM':
-        config.update({'num_data': 1})
 
     optimizer = optimizer_class([simple_parameter()], **config)
     optimizer.reset()
