@@ -60,7 +60,7 @@ class Lookahead(Optimizer, BaseOptimizer):
     @property
     def param_groups(self):
         return self.optimizer.param_groups
-        
+
     def __getstate__(self):
         return {
             'state': self.state,
