@@ -36,7 +36,6 @@ class Lookahead(Optimizer, BaseOptimizer):
         self.pullback_momentum = pullback_momentum
 
         self.optimizer = optimizer
-        self.param_groups = self.optimizer.param_groups
 
         self.state: STATE = defaultdict(dict)
 
@@ -58,6 +57,10 @@ class Lookahead(Optimizer, BaseOptimizer):
             **optimizer.defaults,
         }
 
+    @property
+    def param_groups(self):
+        return self.optimizer.param_groups
+        
     def __getstate__(self):
         return {
             'state': self.state,
