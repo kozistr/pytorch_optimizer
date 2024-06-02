@@ -10,7 +10,7 @@
 
 **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
 I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
-Currently, **67 optimizers (+ `bitsandbytes`)**, **11 lr schedulers**, and **13 loss functions** are supported!  
+Currently, **68 optimizers (+ `bitsandbytes`)**, **11 lr schedulers**, and **13 loss functions** are supported!  
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
@@ -164,6 +164,7 @@ supported_optimizers = get_supported_optimizers()
 | Adalite       | *Adalite optimizer*                                                                               | [github](https://github.com/VatsaDev/adalite)                                                                  | <https://github.com/VatsaDev/adalite>                                                      | [cite](https://github.com/VatsaDev/adalite)                                                                       |
 | bSAM          | *SAM as an Optimal Relaxation of Bayes*                                                           | [github](https://github.com/team-approx-bayes/bayesian-sam)                                                    | <https://arxiv.org/abs/2210.01620>                                                         | [cite](https://ui.adsabs.harvard.edu/abs/2022arXiv221001620M/exportcitation)                                      |
 | Schedule-Free | *Schedule-Free Optimizers*                                                                        | [github](https://github.com/facebookresearch/schedule_free)                                                    | <https://github.com/facebookresearch/schedule_free>                                        | [cite](https://github.com/facebookresearch/schedule_free)                                                         |
+| FAdam         | *Adam is a natural gradient optimizer using diagonal empirical Fisher information*                | [github](https://github.com/lessw2020/fadam_pytorch)                                                           | <https://arxiv.org/abs/2405.12807>                                                         | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv240512807H/exportcitation)                                      |
 
 ## Supported LR Scheduler
 
