@@ -136,6 +136,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.FAdam
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Fromage
     :docstring:
     :members:
