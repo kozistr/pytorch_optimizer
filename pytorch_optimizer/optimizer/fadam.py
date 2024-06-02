@@ -97,10 +97,10 @@ class FAdam(Optimizer, BaseOptimizer):
                     state['fim'] = torch.zeros_like(p, dtype=self.fim_dtype)
 
                 momentum, fim = state['momentum'], state['fim']
-                fim.mul_(curr_beta2).addcmul_(grad, grad, alpha=1.0 - curr_beta2)
+                fim.mul_(curr_beta2).addcmul_(grad, grad, value=1.0 - curr_beta2)
 
                 rms_grad = torch.pow(grad, 2).mean().sqrt_()
-                curr_eps = torch.min(rms_grad, 1) * group['eps']
+                curr_eps = min(rms_grad, 1) * group['eps']
 
                 fim_base = torch.pow(fim, group['p']).add_(curr_eps)
                 grad_nat = torch.div(grad, fim_base)
