@@ -215,7 +215,7 @@ class BaseOptimizer(ABC):
         return grad * exp_grad_norm / grad_norm if exp_grad_norm > grad_norm else grad
 
     @staticmethod
-    def validate_range(x: float, name: str, low: float, high: float, range_type: str = '[)'):
+    def validate_range(x: float, name: str, low: float, high: float, range_type: str = '[)') -> None:
         if range_type == '[)' and not low <= x < high:
             raise ValueError(f'[-] {name} must be in the range [{low}, {high})')
         if range_type == '[]' and not low <= x <= high:
@@ -226,40 +226,42 @@ class BaseOptimizer(ABC):
             raise ValueError(f'[-] {name} must be in the range ({low}, {high})')
 
     @staticmethod
-    def validate_non_negative(x: Optional[float], name: str):
+    def validate_non_negative(x: Optional[float], name: str) -> None:
         if x is not None and x < 0.0:
             raise ValueError(f'[-] {name} must be non-negative')
 
     @staticmethod
-    def validate_positive(x: Union[float, int], name: str):
+    def validate_positive(x: Union[float, int], name: str) -> None:
         if x <= 0:
             raise ValueError(f'[-] {name} must be positive')
 
     @staticmethod
-    def validate_boundary(constant: float, boundary: float, bound_type: str = 'upper'):
+    def validate_boundary(constant: float, boundary: float, bound_type: str = 'upper') -> None:
         if bound_type == 'upper' and constant > boundary:
             raise ValueError(f'[-] constant {constant} must be in a range of (-inf, {boundary}]')
         if bound_type == 'lower' and constant < boundary:
             raise ValueError(f'[-] constant {constant} must be in a range of [{boundary}, inf)')
 
     @staticmethod
-    def validate_step(step: int, step_type: str):
+    def validate_step(step: int, step_type: str) -> None:
         if step < 1:
             raise NegativeStepError(step, step_type=step_type)
 
     @staticmethod
-    def validate_options(x: str, name: str, options: List[str]):
+    def validate_options(x: str, name: str, options: List[str]) -> None:
         if x not in options:
             opts: str = ' or '.join([f'\'{option}\'' for option in options]).strip()
             raise ValueError(f'[-] {name} {x} must be one of ({opts})')
 
     @staticmethod
-    def validate_learning_rate(learning_rate: Optional[float]):
+    def validate_learning_rate(learning_rate: Optional[float]) -> None:
         if learning_rate is not None and learning_rate < 0.0:
             raise NegativeLRError(learning_rate)
 
-    def validate_betas(self, betas: BETAS):
-        self.validate_range(betas[0], 'beta1', 0.0, 1.0, range_type='[]')
+    def validate_betas(self, betas: BETAS) -> None:
+        if betas[0] is not None:
+            self.validate_range(betas[0], 'beta1', 0.0, 1.0, range_type='[]')
+
         self.validate_range(betas[1], 'beta2', 0.0, 1.0, range_type='[]')
 
         if len(betas) < 3:
@@ -268,7 +270,7 @@ class BaseOptimizer(ABC):
         if betas[2] is not None:
             self.validate_range(betas[2], 'beta3', 0.0, 1.0, range_type='[]')
 
-    def validate_nus(self, nus: Union[float, Tuple[float, float]]):
+    def validate_nus(self, nus: Union[float, Tuple[float, float]]) -> None:
         if isinstance(nus, float):
             self.validate_range(nus, 'nu', 0.0, 1.0, range_type='[]')
         else:
