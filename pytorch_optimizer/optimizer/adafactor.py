@@ -10,11 +10,12 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 
 
 class AdaFactor(Optimizer, BaseOptimizer):
-    r"""Adaptive Learning Rates with Sublinear Memory Cost.
+    r"""Adaptive Learning Rates with Sublinear Memory Cost with some tweaks.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param betas: Union[BETAS, None]. coefficients used for computing running averages of gradient and the squared
+        hessian trace. if betas is None, first momentum will be skipped.
     :param decay_rate: float. coefficient used to compute running averages of square gradient.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
@@ -27,6 +28,9 @@ class AdaFactor(Optimizer, BaseOptimizer):
         is being used.
     :param eps1: float. term added to the denominator to improve numerical stability.
     :param eps2: float. term added to the denominator to improve numerical stability.
+    :param momentum_dtype: torch.dtype. type of momentum variable. In VIT paper observed that storing momentum in
+        half-precision (bfloat16 type) does not affect training dynamics and has no effect on the outcome while
+        reducing optimize overhead from 2-fold to 1.5-fold.
     """
 
     def __init__(
@@ -45,6 +49,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
         warmup_init: bool = False,
         eps1: float = 1e-30,
         eps2: float = 1e-3,
+        momentum_dtype: torch.dtype = torch.bfloat16,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
@@ -56,6 +61,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
         self.clip_threshold = clip_threshold
         self.eps1 = eps1
         self.eps2 = eps2
+        self.momentum_dtype = momentum_dtype
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -87,7 +93,8 @@ class AdaFactor(Optimizer, BaseOptimizer):
                 grad_shape: Tuple[int, ...] = grad.shape
                 factored: bool = self.get_options(grad_shape)
 
-                state['exp_avg'] = torch.zeros_like(p)
+                if group['betas'][0] is not None:
+                    state['exp_avg'] = torch.zeros_like(p, dtype=self.momentum_dtype)
 
                 if factored:
                     state['exp_avg_sq_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype, device=grad.device)
@@ -149,7 +156,7 @@ class AdaFactor(Optimizer, BaseOptimizer):
             else:
                 group['step'] = 1
 
-            beta1, _ = group['betas']
+            beta1, beta2 = group['betas']
 
             beta2_t: float = 1.0 - math.pow(group['step'], self.decay_rate)
 
@@ -167,7 +174,8 @@ class AdaFactor(Optimizer, BaseOptimizer):
                 factored: bool = self.get_options(grad_shape)
 
                 if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
+                    if beta1 is not None:
+                        state['exp_avg'] = torch.zeros_like(p, dtype=self.momentum_dtype)
 
                     if factored:
                         state['exp_avg_sq_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype, device=grad.device)
@@ -205,6 +213,8 @@ class AdaFactor(Optimizer, BaseOptimizer):
                 else:
                     exp_avg_sq = state['exp_avg_sq']
                     exp_avg_sq.mul_(beta2_t).add_(update, alpha=1.0 - beta2_t)
+                    exp_avg_sq.clamp_(max=beta2)
+
                     torch.rsqrt(exp_avg_sq, out=update)
 
                 if group['ams_bound']:
@@ -216,8 +226,11 @@ class AdaFactor(Optimizer, BaseOptimizer):
 
                 update.div_((self.get_rms(update) / self.clip_threshold).clamp_(min=1.0)).mul_(lr)
 
-                exp_avg = state['exp_avg']
-                exp_avg.mul_(beta1).add_(update, alpha=1.0 - beta1)
+                if beta1 is not None:
+                    exp_avg = state['exp_avg']
+                    exp_avg.mul_(beta1).add_(update, alpha=1.0 - beta1)
+
+                    update = exp_avg
 
                 self.apply_weight_decay(
                     p=p,
@@ -228,6 +241,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                p.add_(-exp_avg)
+                p.add_(-update)
 
         return loss
