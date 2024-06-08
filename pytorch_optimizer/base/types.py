@@ -6,7 +6,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 CLOSURE = Optional[Callable[[], float]]
 LOSS = Optional[float]
-BETAS = Union[Tuple[float, float], Tuple[float, float, float]]
+BETAS = Union[Tuple[float, float], Tuple[float, float, float], Tuple[None, float]]
 DEFAULTS = Dict
 PARAMETERS = Optional[Union[Iterable[Dict], Iterable[torch.Tensor]]]
 STATE = Dict
