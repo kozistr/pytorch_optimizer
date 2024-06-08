@@ -14,8 +14,8 @@ class AdaFactor(Optimizer, BaseOptimizer):
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
-    :param betas: Union[BETAS, None]. coefficients used for computing running averages of gradient and the squared
-        hessian trace. if betas is None, first momentum will be skipped.
+    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared
+        hessian trace. if beta1 is None, first momentum will be skipped.
     :param decay_rate: float. coefficient used to compute running averages of square gradient.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
