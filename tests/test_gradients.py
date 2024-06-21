@@ -9,7 +9,7 @@ from tests.utils import build_environment, simple_parameter, simple_sparse_param
 
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead'])
 def test_no_gradients(optimizer_name):
-    if optimizer_name == 'lomo':
+    if optimizer_name in {'lomo', 'adammini'}:
         pytest.skip(f'skip {optimizer_name} optimizer.')
 
     p1 = simple_parameter(require_grad=True)
