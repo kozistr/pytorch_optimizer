@@ -46,7 +46,7 @@ def gradfilter_ma(
                 elif filter_type == 'sum':
                     avg = sum(grads[n])
                 else:
-                    raise ValueError(f'Unrecognized filter_type {filter_type}')
+                    raise ValueError(f'not supported filter_type {filter_type}')
 
                 p.grad.add_(avg, alpha=lamb)
 
