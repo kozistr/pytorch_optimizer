@@ -49,6 +49,7 @@ from pytorch_optimizer import (
     Fromage,
     GaLore,
     Gravity,
+    GrokFastAdamW,
     Lamb,
     Lion,
     Nero,
@@ -129,6 +130,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'bsam',
     'schedulefreeadamw',
     'fadam',
+    'grokfastadamw',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -448,6 +450,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (ScheduleFreeSGD, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (ScheduleFreeAdamW, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (FAdam, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
+    (GrokFastAdamW, {'lr': 1e0, 'weight_decay': 1e-3}, 10),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
