@@ -13,6 +13,8 @@ from pytorch_optimizer import (
     Lookahead,
     PCGrad,
     ProportionScheduler,
+    gradfilter_ema,
+    gradfilter_ma,
     load_optimizer,
 )
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
@@ -608,3 +610,33 @@ def test_schedule_free_train_mode():
     opt.reset()
     opt.eval()
     opt.train()
+
+
+@pytest.mark.parametrize('filter_type', ['mean', 'sum'])
+def test_grokfast_ma(filter_type, environment):
+    _, model, _ = environment
+
+    model.fc1.weight.grad = torch.randn(2, 2)
+    model.fc1.bias.grad = torch.randn(2)
+    model.fc2.weight.grad = torch.randn(1, 2)
+    model.fc2.bias.grad = torch.randn(1)
+
+    _ = gradfilter_ma(model, None, window_size=1, filter_type=filter_type, warmup=False)
+
+
+def test_grokfast_ma_invalid(environment):
+    _, model, _ = environment
+
+    with pytest.raises(ValueError):
+        _ = gradfilter_ma(model, None, window_size=1, filter_type='asdf', warmup=False)
+
+
+def test_grokfast_ema(environment):
+    _, model, _ = environment
+
+    model.fc1.weight.grad = torch.randn(2, 2)
+    model.fc1.bias.grad = torch.randn(2)
+    model.fc2.weight.grad = torch.randn(1, 2)
+    model.fc2.bias.grad = torch.randn(1)
+
+    _ = gradfilter_ema(model, None)
