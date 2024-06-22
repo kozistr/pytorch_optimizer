@@ -156,6 +156,18 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.gradfilter_ema
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.gradfilter_ma
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.GrokFastAdamW
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.GSAM
     :docstring:
     :members:
