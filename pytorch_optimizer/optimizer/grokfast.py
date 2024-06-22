@@ -24,6 +24,16 @@ def gradfilter_ma(
 ) -> Dict[str, deque]:
     r"""Grokfast-MA.
 
+    Example:
+    -------
+        Here's an example::
+
+            loss.backwards()  # Calculate the gradients.
+
+            grads = gradfilter_ma(model, grads=grads, window_size=window_size, lamb=lamb)
+
+            optimizer.step()  # Call the optimizer.
+
     :param model: nn.Module. model that contains every trainable parameters.
     :param grads: Optional[Dict[str, deque]]. running memory (Queue for windowed moving average). initialize by setting
         it to None. feed the output of the method recursively after on.
@@ -61,6 +71,16 @@ def gradfilter_ema(
     lamb: float = 2.0,
 ) -> Dict[str, torch.Tensor]:
     r"""Grokfast.
+
+    Example:
+    -------
+        Here's an example::
+
+            loss.backwards()  # Calculate the gradients.
+
+            grads = gradfilter_ema(model, grads=grads, alpha=alpha, lamb=lamb)
+
+            optimizer.step()  # Call the optimizer.
 
     :param model: nn.Module. model that contains every trainable parameters.
     :param grads: Optional[Dict[str, deque]]. running memory (EMA). Initialize by setting it to None. Feed the output
