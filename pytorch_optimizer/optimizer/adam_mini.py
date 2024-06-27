@@ -11,7 +11,7 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS
 
 
-class AdamMini(Optimizer, BaseOptimizer):
+class AdamMini(Optimizer, BaseOptimizer):  # pragma: no cover
     r"""Use Fewer Learning Rates To Gain More.
 
     :param model: nn.Module. model instance.
@@ -218,7 +218,7 @@ class AdamMini(Optimizer, BaseOptimizer):
         bias_correction1: float,
         bias_correction2_sq: float,
         eps: float,
-    ) -> None:  # pragma: no cover
+    ) -> None:
         if len(state) == 0:
             dim = torch.tensor(p.numel(), device=p.device, dtype=torch.float32)
 
