@@ -52,7 +52,7 @@ class REXScheduler(LRScheduler):
 
         return self.min_lr + (self.max_lr - self.min_lr) * ((1.0 - progress) / (1.0 - progress / 2.0))
 
-    def step(self, epoch: Optional[int] = None) -> float:
+    def step(self, epoch: Optional[int] = None) -> float:  # noqa: ARG002
         value: float = self.get_linear_lr()
 
         self.step_t += 1
