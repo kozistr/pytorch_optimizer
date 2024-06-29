@@ -1,12 +1,12 @@
 import math
 from typing import List, Optional
 
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import LRScheduler
 
 from pytorch_optimizer.base.types import OPTIMIZER
 
 
-class CosineAnnealingWarmupRestarts(_LRScheduler):
+class CosineAnnealingWarmupRestarts(LRScheduler):
     r"""CosineAnnealingWarmupRestarts.
 
     :param optimizer: Optimizer. wrapped optimizer instance.

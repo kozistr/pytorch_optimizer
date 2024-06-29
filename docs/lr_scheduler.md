@@ -2,9 +2,15 @@
 
 ::: pytorch_optimizer.deberta_v3_large_lr_scheduler
     :docstring:
+    :members:
 
-::: pytorch_optimizer.get_chebyshev_lr
+::: pytorch_optimizer.get_chebyshev_schedule
     :docstring:
+    :members:
+
+::: pytorch_optimizer.get_wsd_schedule
+    :docstring:
+    :members:
 
 ::: pytorch_optimizer.CosineAnnealingWarmupRestarts
     :docstring:

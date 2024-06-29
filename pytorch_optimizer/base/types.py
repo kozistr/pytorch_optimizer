@@ -2,7 +2,7 @@ from typing import Callable, Dict, Iterable, Literal, Optional, Tuple, Type, Uni
 
 import torch
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import LRScheduler
 
 CLOSURE = Optional[Callable[[], float]]
 LOSS = Optional[float]
@@ -11,7 +11,7 @@ DEFAULTS = Dict
 PARAMETERS = Optional[Union[Iterable[Dict], Iterable[torch.Tensor]]]
 STATE = Dict
 OPTIMIZER = Type[Optimizer]
-SCHEDULER = Type[_LRScheduler]
+SCHEDULER = Type[LRScheduler]
 
 HUTCHINSON_G = Literal['gaussian', 'rademacher']
 CLASS_MODE = Literal['binary', 'multiclass', 'multilabel']

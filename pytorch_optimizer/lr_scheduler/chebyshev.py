@@ -1,4 +1,8 @@
+from functools import partial
+
 import numpy as np
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LambdaLR, LRScheduler
 
 
 def get_chebyshev_steps(num_epochs: int, small_m: float = 0.05, big_m: float = 1.0) -> np.ndarray:
@@ -31,7 +35,7 @@ def get_chebyshev_permutation(num_epochs: int) -> np.ndarray:
     return perm
 
 
-def get_chebyshev_schedule(num_epochs: int) -> np.ndarray:
+def get_chebyshev_perm_steps(num_epochs: int) -> np.ndarray:
     r"""Get Chebyshev schedules.
 
     :param num_epochs: int. number of total epochs.
@@ -41,19 +45,18 @@ def get_chebyshev_schedule(num_epochs: int) -> np.ndarray:
     return steps[perm]
 
 
-def get_chebyshev_lr(lr: float, epoch: int, num_epochs: int, is_warmup: bool = False) -> float:
-    r"""Get chebyshev learning rate.
+def get_chebyshev_lr_lambda(epoch: int, num_epochs: int, is_warmup: bool = False) -> float:
+    r"""Get chebyshev learning rate ratio.
 
-    :param lr: float. learning rate.
     :param epoch: int. current epochs.
     :param num_epochs: int. number of total epochs.
     :param is_warmup: bool. whether warm-up stage or not.
     """
     if is_warmup:
-        return lr
+        return 1.0
 
     epoch_power: int = np.power(2, int(np.log2(num_epochs - 1)) + 1) if num_epochs > 1 else 1
-    scheduler = get_chebyshev_schedule(epoch_power)
+    scheduler = get_chebyshev_perm_steps(epoch_power)
 
     idx: int = epoch - 2
     if idx < 0:
@@ -63,4 +66,19 @@ def get_chebyshev_lr(lr: float, epoch: int, num_epochs: int, is_warmup: bool = F
 
     chebyshev_value: float = scheduler[idx]
 
-    return lr * chebyshev_value
+    return chebyshev_value
+
+
+def get_chebyshev_schedule(
+    optimizer: Optimizer, num_epochs: int, is_warmup: bool = False, last_epoch: int = -1
+) -> LRScheduler:
+    r"""Get chebyshev learning rate scheduler.
+
+    :param optimizer: Optimizer. the optimizer for which to schedule the learning rate.
+    :param num_epochs: int. number of total epochs.
+    :param is_warmup: bool. whether warm-up stage or not.
+    :param last_epoch: int. the index of the last epoch when resuming training.
+    """
+    lr_scheduler = partial(get_chebyshev_lr_lambda, num_epochs=num_epochs, is_warmup=is_warmup)
+
+    return LambdaLR(optimizer, lr_scheduler, last_epoch)

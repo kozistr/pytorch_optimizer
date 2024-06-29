@@ -4,13 +4,14 @@ import numpy as np
 import pytest
 from torch import nn
 
-from pytorch_optimizer import AdamP, get_chebyshev_lr, get_chebyshev_schedule
+from pytorch_optimizer import AdamP, get_chebyshev_perm_steps, get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_permutation
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
 from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
 from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from pytorch_optimizer.lr_scheduler.rex import REXScheduler
+from pytorch_optimizer.lr_scheduler.wsd import get_wsd_schedule
 from tests.utils import Example
 
 CAWR_RECIPES = [
@@ -164,8 +165,8 @@ def test_get_chebyshev_scheduler():
     for k, v in recipes.items():
         np.testing.assert_array_equal(get_chebyshev_permutation(k), v)
 
-    np.testing.assert_almost_equal(get_chebyshev_schedule(1), 1.904762, decimal=6)
-    np.testing.assert_almost_equal(get_chebyshev_schedule(3), 8.799878, decimal=6)
+    np.testing.assert_almost_equal(get_chebyshev_perm_steps(1), 1.904762, decimal=6)
+    np.testing.assert_almost_equal(get_chebyshev_perm_steps(3), 8.799878, decimal=6)
 
 
 def test_get_chebyshev_lr():
@@ -191,14 +192,27 @@ def test_get_chebyshev_lr():
         0.001335267780289186,
     ]
 
-    np.testing.assert_almost_equal(get_chebyshev_lr(1e-3, 0, 16, is_warmup=True), 1e-3)
+    optimizer = AdamP(Example().parameters())
+    optimizer.step()
+
+    lr_scheduler = get_chebyshev_schedule(optimizer, num_epochs=16, is_warmup=True)
+    lr_scheduler.step(0)
+
+    np.testing.assert_almost_equal(lr_scheduler.get_last_lr(), 1e-3)
+
+    optimizer = AdamP(Example().parameters())
+    optimizer.step()
+
+    lr_scheduler = get_chebyshev_schedule(optimizer, num_epochs=16, is_warmup=False)
 
     for i, expected_lr in enumerate(recipes, start=1):
-        np.testing.assert_almost_equal(get_chebyshev_lr(1e-3, i, 16, is_warmup=False), expected_lr)
+        lr_scheduler.step(i)
+        np.testing.assert_almost_equal(lr_scheduler.get_last_lr(), expected_lr)
 
 
 def test_linear_warmup_linear_scheduler():
     optimizer = AdamP(Example().parameters())
+
     lr_scheduler = LinearScheduler(optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
 
     for expected_lr in LWL_RECIPE:
@@ -285,6 +299,19 @@ def test_rex_lr_scheduler():
     for expected_lr in lrs:
         _ = lr_scheduler.step()
         np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr(), 6)
+
+
+def test_wsd_lr_scheduler():
+    optimizer = AdamP(Example().parameters())
+    optimizer.step()
+
+    lr_scheduler = get_wsd_schedule(optimizer, 2, 2, 3, min_lr_ratio=0.1)
+
+    expected_lrs = [0.0, 0.0005, 0.001, 0.001, 0.001, 0.000775, 0.000325, 0.0001, 0.0001, 0.0001]
+
+    for step, expected_lr in enumerate(expected_lrs):
+        lr_scheduler.step(step)
+        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_last_lr(), 6)
 
 
 def test_deberta_v3_large_lr_scheduler():
