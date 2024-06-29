@@ -1,11 +1,11 @@
-from typing import List
+from typing import List, Optional
 
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import LRScheduler
 
 from pytorch_optimizer.base.types import OPTIMIZER
 
 
-class REXScheduler(_LRScheduler):
+class REXScheduler(LRScheduler):
     r"""Revisiting Budgeted Training with an Improved Schedule.
 
     :param optimizer: Optimizer. wrapped optimizer instance.
@@ -52,7 +52,7 @@ class REXScheduler(_LRScheduler):
 
         return self.min_lr + (self.max_lr - self.min_lr) * ((1.0 - progress) / (1.0 - progress / 2.0))
 
-    def step(self):
+    def step(self, epoch: Optional[int] = None) -> float:
         value: float = self.get_linear_lr()
 
         self.step_t += 1

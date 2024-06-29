@@ -19,14 +19,19 @@ from pytorch_optimizer.lr_scheduler import (
     CosineAnnealingLR,
     CosineAnnealingWarmRestarts,
     CyclicLR,
+    MultiplicativeLR,
+    MultiStepLR,
     OneCycleLR,
+    SchedulerType,
+    StepLR,
 )
-from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_lr, get_chebyshev_schedule
+from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_perm_steps, get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
 from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
 from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from pytorch_optimizer.lr_scheduler.rex import REXScheduler
+from pytorch_optimizer.lr_scheduler.wsd import get_wsd_schedule
 from pytorch_optimizer.optimizer.a2grad import A2Grad
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
@@ -197,21 +202,26 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
-LR_SCHEDULER_LIST: List[SCHEDULER] = [
-    CosineAnnealingWarmupRestarts,
-    ConstantLR,
-    CosineAnnealingLR,
-    CosineAnnealingWarmRestarts,
-    CyclicLR,
-    OneCycleLR,
-    CosineScheduler,
-    PolyScheduler,
-    LinearScheduler,
-    ProportionScheduler,
-    REXScheduler,
-]
+LR_SCHEDULER_LIST: Dict = {
+    SchedulerType.CONSTANT: ConstantLR,
+    SchedulerType.STEP: StepLR,
+    SchedulerType.MULTI_STEP: MultiStepLR,
+    SchedulerType.CYCLIC: CyclicLR,
+    SchedulerType.MULTIPLICATIVE: MultiplicativeLR,
+    SchedulerType.ONE_CYCLE: OneCycleLR,
+    SchedulerType.COSINE: CosineScheduler,
+    SchedulerType.POLY: PolyScheduler,
+    SchedulerType.LINEAR: LinearScheduler,
+    SchedulerType.PROPORTION: ProportionScheduler,
+    SchedulerType.COSINE_ANNEALING: CosineAnnealingLR,
+    SchedulerType.COSINE_ANNEALING_WITH_WARMUP: CosineAnnealingWarmupRestarts,
+    SchedulerType.COSINE_ANNEALING_WITH_WARM_RESTART: CosineAnnealingWarmRestarts,
+    SchedulerType.CHEBYSHEV: get_chebyshev_schedule,
+    SchedulerType.REX: REXScheduler,
+    SchedulerType.WARMUP_STABLE_DECAY: get_wsd_schedule,
+}
 LR_SCHEDULERS: Dict[str, SCHEDULER] = {
-    str(lr_scheduler.__name__).lower(): lr_scheduler for lr_scheduler in LR_SCHEDULER_LIST
+    str(lr_scheduler_name).lower(): lr_scheduler for lr_scheduler_name, lr_scheduler in LR_SCHEDULER_LIST.items()
 }
 
 LOSS_FUNCTION_LIST: List = [
@@ -324,7 +334,7 @@ def get_supported_optimizers() -> List[OPTIMIZER]:
 
 
 def get_supported_lr_schedulers() -> List[SCHEDULER]:
-    return LR_SCHEDULER_LIST
+    return list(LR_SCHEDULER_LIST.values())
 
 
 def get_supported_loss_functions() -> List[nn.Module]:
