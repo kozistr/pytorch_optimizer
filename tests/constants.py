@@ -134,12 +134,22 @@ BETA_OPTIMIZER_NAMES: List[str] = [
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
-    'CosineAnnealingWarmupRestarts',
-    'ConstantLR',
-    'CosineAnnealingLR',
-    'CosineAnnealingWarmRestarts',
-    'CyclicLR',
-    'OneCycleLR',
+    'constant',
+    'linear',
+    'proportion',
+    'step',
+    'multi_step',
+    'multiplicative',
+    'cyclic',
+    'one_cycle',
+    'cosine',
+    'poly',
+    'cosine_annealing',
+    'cosine_annealing_with_warm_restart',
+    'cosine_annealing_with_warmup',
+    'chebyshev',
+    'rex',
+    'warmup_stable_decay',
 ]
 INVALID_LR_SCHEDULER_NAMES: List[str] = ['dummy']
 

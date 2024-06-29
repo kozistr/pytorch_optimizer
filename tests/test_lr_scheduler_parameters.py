@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pytorch_optimizer import AdamP, get_chebyshev_schedule
+from pytorch_optimizer import AdamP, get_chebyshev_perm_steps
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.linear_warmup import PolyScheduler
@@ -62,4 +62,4 @@ def test_linear_warmup_lr_scheduler_params():
 
 def test_chebyshev_params():
     with pytest.raises(IndexError):
-        get_chebyshev_schedule(0)
+        get_chebyshev_perm_steps(0)

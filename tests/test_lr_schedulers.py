@@ -193,22 +193,26 @@ def test_get_chebyshev_lr():
     ]
 
     optimizer = AdamP(Example().parameters())
+    optimizer.step()
 
     lr_scheduler = get_chebyshev_schedule(optimizer, num_epochs=16, is_warmup=True)
     lr_scheduler.step(0)
 
-    np.testing.assert_almost_equal(lr_scheduler.get_lr(), 1e-3)
+    np.testing.assert_almost_equal(lr_scheduler.get_last_lr(), 1e-3)
 
     optimizer = AdamP(Example().parameters())
+    optimizer.step()
+
     lr_scheduler = get_chebyshev_schedule(optimizer, num_epochs=16, is_warmup=False)
 
     for i, expected_lr in enumerate(recipes, start=1):
         lr_scheduler.step(i)
-        np.testing.assert_almost_equal(lr_scheduler.get_lr(), expected_lr)
+        np.testing.assert_almost_equal(lr_scheduler.get_last_lr(), expected_lr)
 
 
 def test_linear_warmup_linear_scheduler():
     optimizer = AdamP(Example().parameters())
+
     lr_scheduler = LinearScheduler(optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
 
     for expected_lr in LWL_RECIPE:
@@ -298,15 +302,16 @@ def test_rex_lr_scheduler():
 
 
 def test_wsd_lr_scheduler():
-    base_optimizer = AdamP(Example().parameters())
+    optimizer = AdamP(Example().parameters())
+    optimizer.step()
 
-    lr_scheduler = get_wsd_schedule(base_optimizer, 2, 2, 3, min_lr_ratio=0.1)
+    lr_scheduler = get_wsd_schedule(optimizer, 2, 2, 3, min_lr_ratio=0.1)
 
     expected_lrs = [0.0, 0.0005, 0.001, 0.001, 0.001, 0.000775, 0.000325, 0.0001, 0.0001, 0.0001]
 
     for step, expected_lr in enumerate(expected_lrs):
         lr_scheduler.step(step)
-        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr(), 6)
+        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_last_lr(), 6)
 
 
 def test_deberta_v3_large_lr_scheduler():
