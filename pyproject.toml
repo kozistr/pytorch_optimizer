@@ -122,6 +122,7 @@ testpaths = "tests"
 [tool.coverage.run]
 omit = [
     "./pytorch_optimizer/optimizer/rotograd.py",
+    "./pytorch_optimizer/optimizer/adam_mini.py",
 ]
 
 [build-system]
