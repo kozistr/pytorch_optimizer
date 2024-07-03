@@ -9,7 +9,9 @@ nav:
   - lr_scheduler.md
   - loss.md
   - util.md
+  - visualization.md
   - ... | changelogs/*.md
+  - qa.md
 theme:
   name: material
   highlightjs: true
