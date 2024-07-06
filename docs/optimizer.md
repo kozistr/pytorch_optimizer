@@ -172,6 +172,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Kate
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Lamb
     :docstring:
     :members:
