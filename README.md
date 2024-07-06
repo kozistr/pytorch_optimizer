@@ -10,7 +10,7 @@
 
 **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
 I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
-Currently, **70 optimizers (+ `bitsandbytes`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
+Currently, **71 optimizers (+ `bitsandbytes`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
@@ -167,6 +167,7 @@ supported_optimizers = get_supported_optimizers()
 | FAdam         | *Adam is a natural gradient optimizer using diagonal empirical Fisher information*                | [github](https://github.com/lessw2020/fadam_pytorch)                                                           | <https://arxiv.org/abs/2405.12807>                                                         | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv240512807H/exportcitation)                                                        |
 | Grokfast      | *Accelerated Grokking by Amplifying Slow Gradients*                                               | [github](https://github.com/ironjr/grokfast)                                                                   | <https://arxiv.org/abs/2405.20233>                                                         | [cite](https://github.com/ironjr/grokfast?tab=readme-ov-file#citation)                                                              |
 | Kate          | *Remove that Square Root: A New Efficient Scale-Invariant Version of AdaGrad*                     | [github](https://github.com/nazya/KATE)                                                                        | <https://arxiv.org/abs/2403.02648>                                                         | [cite](https://github.com/nazya/KATE?tab=readme-ov-file#remove-that-square-root-a-new-efficient-scale-invariant-version-of-adagrad) |
+| StableAdamW   | *Stable and low-precision training for large-scale vision-language models*                        |                                                                                                                | <https://arxiv.org/abs/2304.13013>                                                         | [cite](https://ui.adsabs.harvard.edu/abs/2023arXiv230413013W/exportcitation)                                                        |
 
 ## Supported LR Scheduler
 

@@ -268,6 +268,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.StableAdamW
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AccSGD
     :docstring:
     :members:
