@@ -13,11 +13,14 @@ from pytorch_optimizer.base.types import PARAMETERS
 
 
 def debias_beta(beta: float, step: int) -> float:
-    r"""Applies the Adam-style debias correction into beta.
+    r"""Apply the Adam-style debias correction into beta.
 
     Simplified version of `\^{beta} = beta * (1.0 - beta ** (step - 1)) / (1.0 - beta ** step)`
+
+    :param beta: float. beta.
+    :param step: int. number of step.
     """
-    return (beta**step - beta) / (beta**step - 1.0)
+    return (beta ** step - beta) / (beta ** step - 1.0)  # fmt: skip
 
 
 def is_valid_parameters(parameters: PARAMETERS) -> bool:
