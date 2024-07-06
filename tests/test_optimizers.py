@@ -640,3 +640,13 @@ def test_grokfast_ema(environment):
     model.fc2.bias.grad = torch.randn(1)
 
     _ = gradfilter_ema(model, None)
+
+
+def test_stableadamw_optimizer(environment):
+    _, model, _ = environment
+
+    model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
+
+    optimizer = load_optimizer('StableAdamW')(model.parameters())
+    optimizer.reset()
+    optimizer.step()

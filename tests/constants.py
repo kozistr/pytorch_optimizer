@@ -67,6 +67,7 @@ from pytorch_optimizer import (
     Shampoo,
     SignSGD,
     SophiaH,
+    StableAdamW,
     Tiger,
     Yogi,
 )
@@ -132,6 +133,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'schedulefreeadamw',
     'fadam',
     'grokfastadamw',
+    'stableadamw',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -463,6 +465,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (FAdam, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (GrokFastAdamW, {'lr': 1e0, 'weight_decay': 1e-3}, 10),
     (Kate, {'lr': 5e-2}, 10),
+    (StableAdamW, {'lr': 1e0}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
