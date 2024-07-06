@@ -40,6 +40,7 @@ from pytorch_optimizer.optimizer.adafactor import AdaFactor
 from pytorch_optimizer.optimizer.adahessian import AdaHessian
 from pytorch_optimizer.optimizer.adai import Adai
 from pytorch_optimizer.optimizer.adalite import Adalite
+from pytorch_optimizer.optimizer.adam_mini import AdamMini
 from pytorch_optimizer.optimizer.adamax import AdaMax
 from pytorch_optimizer.optimizer.adamod import AdaMod
 from pytorch_optimizer.optimizer.adamp import AdamP
@@ -203,6 +204,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     GrokFastAdamW,
     Kate,
     StableAdamW,
+    AdamMini,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
