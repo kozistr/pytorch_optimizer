@@ -650,3 +650,11 @@ def test_stableadamw_optimizer(environment):
     optimizer = load_optimizer('StableAdamW')(model.parameters())
     optimizer.reset()
     optimizer.step()
+
+
+def test_adam_mini_optimizer(environment):
+    _, model, _ = environment
+
+    optimizer = load_optimizer('AdamMini')(model)
+    optimizer.reset()
+    optimizer.step()

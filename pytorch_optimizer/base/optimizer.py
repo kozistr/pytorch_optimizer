@@ -258,6 +258,11 @@ class BaseOptimizer(ABC):
         if learning_rate is not None and learning_rate < 0.0:
             raise NegativeLRError(learning_rate)
 
+    @staticmethod
+    def validate_mod(x: int, y: int) -> None:
+        if x % y != 0:
+            raise ValueError(f'[-] {x} must be divisible by {y}')
+
     def validate_betas(self, betas: BETAS) -> None:
         if betas[0] is not None:
             self.validate_range(betas[0], 'beta1', 0.0, 1.0, range_type='[]')

@@ -32,6 +32,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.AdamMini
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AdaMax
     :docstring:
     :members:

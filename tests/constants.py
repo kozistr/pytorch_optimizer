@@ -134,6 +134,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'fadam',
     'grokfastadamw',
     'stableadamw',
+    'adammini',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [

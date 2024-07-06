@@ -9,7 +9,7 @@ from tests.utils import build_environment, simple_parameter, simple_sparse_param
 
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead'])
 def test_no_gradients(optimizer_name):
-    if optimizer_name == 'lomo':
+    if optimizer_name in {'lomo', 'adammini'}:
         pytest.skip(f'skip {optimizer_name} optimizer.')
 
     p1 = simple_parameter(require_grad=True)
@@ -39,7 +39,7 @@ def test_no_gradients(optimizer_name):
 
 @pytest.mark.parametrize('no_sparse_optimizer', NO_SPARSE_OPTIMIZERS)
 def test_sparse_not_supported(no_sparse_optimizer):
-    if no_sparse_optimizer in ('lomo', 'bsam'):
+    if no_sparse_optimizer in ('lomo', 'bsam', 'adammini'):
         pytest.skip(f'skip {no_sparse_optimizer} optimizer.')
 
     param = simple_sparse_parameter()[1]
@@ -113,7 +113,7 @@ def test_sparse_supported(sparse_optimizer):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_bf16_gradient(optimizer_name):
-    if optimizer_name in ('shampoo', 'lomo', 'bsam'):
+    if optimizer_name in ('shampoo', 'lomo', 'bsam', 'adammini'):
         pytest.skip(f'skip {optimizer_name}')
 
     param = torch.randn(1, 1).bfloat16().requires_grad_(True)
