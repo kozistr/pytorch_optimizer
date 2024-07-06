@@ -100,15 +100,16 @@ class Kate(Optimizer, BaseOptimizer):
                 grad_p2 = grad * grad
 
                 m, b = state['m'], state['b']
-                b.add_(grad_p2)
+                b.mul_(b).add_(grad_p2)
 
                 de_nom = b.add(group['eps'])
 
-                m.add_(grad, alpha=group['eta']).add_(grad / de_nom)
+                m.mul_(m).add_(grad_p2, alpha=group['eta']).add_(grad / de_nom).sqrt_()
 
-                update = m.sqrt()
-                update.mul_(grad).div_(de_nom)
+                update = m.mul(grad).div_(b)
 
                 p.add_(update, alpha=-group['lr'])
+
+                b.sqrt_()
 
         return loss
