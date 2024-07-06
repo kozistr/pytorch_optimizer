@@ -11,8 +11,7 @@ class Kate(Optimizer, BaseOptimizer):
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
-    :param eta: float. eta.
-    :param delta: float. delta. 0.0 or 1e-8.
+    :param delta: float. delta.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
@@ -23,7 +22,6 @@ class Kate(Optimizer, BaseOptimizer):
         self,
         params: PARAMETERS,
         lr: float = 1e-3,
-        eta: float = 0.9,
         delta: float = 0.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -31,14 +29,12 @@ class Kate(Optimizer, BaseOptimizer):
         eps: float = 1e-8,
     ):
         self.validate_learning_rate(lr)
-        self.validate_range(eta, 'eta', 0.0, 1.0, '[)')
         self.validate_range(delta, 'delta', 0.0, 1.0, '[)')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
         defaults: DEFAULTS = {
             'lr': lr,
-            'eta': eta,
             'delta': delta,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
@@ -97,14 +93,12 @@ class Kate(Optimizer, BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                grad_p2 = grad * grad
+                grad_p2 = torch.mul(grad, grad)
 
                 m, b = state['m'], state['b']
-                b.mul_(b).add_(grad_p2)
+                b.mul_(b).add_(grad_p2).add_(group['eps'])
 
-                de_nom = b.add(group['eps'])
-
-                m.mul_(m).add_(grad_p2, alpha=group['eta']).add_(grad / de_nom).sqrt_()
+                m.mul_(m).add_(grad_p2, alpha=group['delta']).add_(grad_p2 / b).sqrt_()
 
                 update = m.mul(grad).div_(b)
 
