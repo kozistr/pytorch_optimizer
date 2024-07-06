@@ -43,6 +43,7 @@ class Kate(Optimizer, BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
+            'eps': eps,
         }
 
         super().__init__(params, defaults)
