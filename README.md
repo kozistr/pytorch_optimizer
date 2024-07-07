@@ -318,7 +318,11 @@ Correcting the norm of a gradient in each iteration based on the adaptive traini
 
 ## Frequently asked questions
 
-[here](./qa.md)
+[here](docs/qa.md)
+
+## Visualization
+
+[here](docs/visualization.md)
 
 ## Citation
 
