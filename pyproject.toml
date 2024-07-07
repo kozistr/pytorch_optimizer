@@ -74,6 +74,10 @@ lint.ignore = [
 ]
 lint.fixable = ["ALL"]
 lint.unfixable = ["F401"]
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+lint.flake8-quotes.docstring-quotes = "double"
+lint.flake8-quotes.inline-quotes = "single"
+lint.pylint.max-args = 7
 exclude = [
     ".git",
     ".github",
@@ -88,11 +92,7 @@ exclude = [
     "__pypackages__",
 ]
 line-length = 119
-lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 target-version = "py311"
-lint.flake8-quotes.docstring-quotes = "double"
-lint.flake8-quotes.inline-quotes = "single"
-lint.pylint.max-args = 7
 
 [tool.ruff.format]
 quote-style = "single"
@@ -101,6 +101,7 @@ quote-style = "single"
 "./pytorch_optimizer/__init__.py" = ["F401"]
 "./pytorch_optimizer/lr_scheduler/__init__.py" = ["F401"]
 "./hubconf.py" = ["D", "INP001"]
+"./examples/visualize_optimizers.py" = ["D103", "D400", "D415"]
 "./tests/__init__.py" = ["D"]
 "./tests/constants.py" = ["D"]
 "./tests/utils.py" = ["D"]
