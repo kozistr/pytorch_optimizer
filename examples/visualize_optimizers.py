@@ -144,6 +144,8 @@ def execute_experiments(
 
 
 def main():
+    # referred https://github.com/jettify/pytorch-optimizer/blob/master/examples/viz_optimizers.py
+
     np.random.seed(42)
     torch.manual_seed(42)
 
@@ -180,3 +182,7 @@ def main():
         root_path,
         'rosenbrok',
     )
+
+
+if __name__ == '__main__':
+    main()
