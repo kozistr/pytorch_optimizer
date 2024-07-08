@@ -407,7 +407,8 @@ def power_iteration(mat_g: torch.Tensor, num_iters: int = 100) -> torch.Tensor:
 
     for _ in range(num_iters):
         torch.mv(mat_g, v, out=mat_v)
-        v = mat_v.div(torch.linalg.norm(mat_v))
+        v.copy_(mat_v)
+        v.div_(torch.linalg.norm(v))
 
     return (v.t() @ mat_g @ v).clamp_min_(1e-16)
 
