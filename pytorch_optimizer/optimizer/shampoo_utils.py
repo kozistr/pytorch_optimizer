@@ -491,7 +491,7 @@ def compute_power_schur_newton(
 
 @torch.no_grad()
 def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
-    r"""Compute G^{-1/p} using a SVD.
+    r"""Compute G^{-1/p} using SVD.
 
         Calculate SVD on the GPU. Sometimes, SVD on the CPU is faster than GPU, but based on the several experiments,
         CUDA seems much faster than on CPU.
