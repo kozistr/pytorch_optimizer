@@ -105,7 +105,7 @@ class RMSPropGraft(SGDGraft):
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         r"""Get preconditioned gradient."""
-        return grad / (torch.sqrt(self.statistics) + self.diagonal_eps)
+        return grad / self.statistics.sqrt().add_(self.diagonal_eps)
 
 
 class BlockPartitioner:
