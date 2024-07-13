@@ -246,7 +246,7 @@ class AdamMini(Optimizer, BaseOptimizer):  # pragma: no cover
         if state['reduced']:
             dist.all_reduce(tmp_lr, op=dist.ReduceOp.SUM)
 
-        tmp_lr.div_(state['dim'])
+        tmp_lr.div_(state['dimension'])
 
         m, v = state['m'], state['v_mean']
 
