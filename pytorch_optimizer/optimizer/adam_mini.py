@@ -251,7 +251,7 @@ class AdamMini(Optimizer, BaseOptimizer):  # pragma: no cover
         m, v = state['m'], state['v_mean']
 
         m.lerp_(grad, weight=1.0 - beta1)
-        v.mul_(beta2).add_(tmp_lr * 1.0 - beta2)
+        v.mul_(beta2).add_(tmp_lr, alpha=1.0 - beta2)
 
         h = (v.sqrt() / bias_correction2_sq).add_(eps)
 
