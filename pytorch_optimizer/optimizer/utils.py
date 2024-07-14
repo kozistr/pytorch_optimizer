@@ -19,13 +19,13 @@ if HAS_TRANSFORMERS:
     try:
         from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
     except ImportError:
-        from transformers.deepspeed import is_deepspeed_zero3_enabled
+        from transformers.deepspeed import is_deepspeed_zero3_enabled  # pragma: no cover
 else:
 
     def is_deepspeed_zero3_enabled() -> bool:
         r"""Check if DeepSpeed zero3 is enabled."""
         if HAS_TRANSFORMERS:
-            return is_deepspeed_zero3_enabled()
+            return is_deepspeed_zero3_enabled()  # pragma: no cover
 
         warnings.warn(
             'you need to install `transformers` to use `is_deepspeed_zero3_enabled` function. it\'ll return False.',
