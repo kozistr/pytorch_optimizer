@@ -50,6 +50,7 @@ def test_epsilon(optimizer_name):
         'came',
         'adalite',
         'bsam',
+        'adalomo',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
