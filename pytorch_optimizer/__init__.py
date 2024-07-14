@@ -1,4 +1,5 @@
 # ruff: noqa
+from importlib.util import find_spec
 from typing import Dict, List
 
 import torch.cuda
@@ -72,7 +73,7 @@ from pytorch_optimizer.optimizer.kate import Kate
 from pytorch_optimizer.optimizer.lamb import Lamb
 from pytorch_optimizer.optimizer.lars import LARS
 from pytorch_optimizer.optimizer.lion import Lion
-from pytorch_optimizer.optimizer.lomo import LOMO
+from pytorch_optimizer.optimizer.lomo import LOMO, AdaLOMO
 from pytorch_optimizer.optimizer.lookahead import Lookahead
 from pytorch_optimizer.optimizer.madgrad import MADGRAD
 from pytorch_optimizer.optimizer.msvag import MSVAG
@@ -126,12 +127,8 @@ from pytorch_optimizer.optimizer.utils import (
 )
 from pytorch_optimizer.optimizer.yogi import Yogi
 
-try:
-    import bitsandbytes as bnb
-
-    HAS_BNB: bool = True  # pragma: no cover
-except ImportError:
-    HAS_BNB: bool = False
+HAS_BNB: bool = find_spec('bitsandbytes') is not None
+HAS_Q_GALORE: bool = find_spec('q-galore-torch') is not None
 
 OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaBelief,
@@ -205,6 +202,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Kate,
     StableAdamW,
     AdamMini,
+    AdaLOMO,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
@@ -252,22 +250,38 @@ LOSS_FUNCTIONS: Dict[str, nn.Module] = {
 
 def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
     r"""load bnb optimizer instance."""
+    from bitsandbytes import optim
+
     if 'sgd8bit' in optimizer:
-        return bnb.optim.SGD8bit
+        return optim.SGD8bit
     if 'adam8bit' in optimizer:
-        return bnb.optim.Adam8bit
+        return optim.Adam8bit
+    if 'paged_adam8bit' in optimizer:
+        return optim.PagedAdam8bit
     if 'adamw8bit' in optimizer:
-        return bnb.optim.AdamW8bit
+        return optim.AdamW8bit
+    if 'paged_adamw8bit' in optimizer:
+        return optim.PagedAdamW8bit
     if 'lamb8bit' in optimizer:
-        return bnb.optim.LAMB8bit
+        return optim.LAMB8bit
     if 'lars8bit' in optimizer:
-        return bnb.optim.LARS8bit
+        return optim.LARS8bit
     if 'lion8bit' in optimizer:
-        return bnb.optim.Lion8bit
+        return optim.Lion8bit
     if 'adagrad8bit' in optimizer:
-        return bnb.optim.Adagrad8bit
+        return optim.Adagrad8bit
     if 'rmsprop8bit' in optimizer:
-        return bnb.optim.RMSprop8bit
+        return optim.RMSprop8bit
+    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+
+
+def load_q_galore_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
+    r"""load Q-GaLore optimizer instance."""
+    import q_galore_torch
+
+    if 'adamw8bit' in optimizer:
+        return q_galore_torch.QGaLoreAdamW8bit
+
     raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
 
 
@@ -277,7 +291,11 @@ def load_optimizer(optimizer: str) -> OPTIMIZER:
     if optimizer.startswith('bnb'):
         if HAS_BNB and torch.cuda.is_available():
             return load_bnb_optimizer(optimizer)  # pragma: no cover
-        raise ImportError(f'[-] bitsandbytes and CUDA required for bnb optimizers : {optimizer}')
+        raise ImportError(f'[-] bitsandbytes and CUDA required for the optimizer {optimizer}')
+    if optimizer.startswith('q_galore'):
+        if HAS_Q_GALORE and torch.cuda.is_available():
+            return load_q_galore_optimizer(optimizer)  # pragma: no cover
+        raise ImportError(f'[-] bitsandbytes, q-galore-torch, and CUDA required for the optimizer {optimizer}')
     if optimizer not in OPTIMIZERS:
         raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
 
