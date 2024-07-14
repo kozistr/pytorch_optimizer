@@ -28,6 +28,7 @@ from tests.constants import (
     PULLBACK_MOMENTUM,
 )
 from tests.utils import (
+    Example,
     MultiHeadLogisticRegression,
     build_environment,
     dummy_closure,
@@ -578,22 +579,28 @@ def test_lomo_fused_backward(optimizer_name, environment):
 
 @pytest.mark.parametrize('optimizer_name', ['lomo', 'adalomo'])
 @pytest.mark.parametrize('precision', [16, 32])
-def test_lomo_optimizer(optimizer_name, precision, environment):
-    _, model, _ = environment
+def test_lomo_optimizer(optimizer_name, precision):
+    model = Example()
 
-    model.fc1.bias.data = torch.randn(2, dtype=torch.float32)
-    model.fc1.bias.grad = torch.zeros(2, dtype=torch.float32)
+    model.fc1.bias.data = torch.randn(1, dtype=torch.float32)
+    model.fc1.bias.grad = torch.randn(1, dtype=torch.float32)
 
     if precision == 16:
-        model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
-        model.fc1.weight.grad = torch.zeros(2, 2, dtype=torch.float16)
+        model.fc1.weight.data = torch.randn(1, 1, dtype=torch.float16)
+        model.fc1.weight.grad = torch.zeros(1, 1, dtype=torch.float16)
 
     optimizer = load_optimizer(optimizer_name)(model, clip_grad_norm=1.0, clip_grad_value=1.0)
 
     if precision == 16:
         optimizer.clip_coef = 0.9
 
-    loss = sphere_loss(next(iter(model.parameters())))
+    parameters = iter(model.parameters())
+
+    loss = sphere_loss(next(parameters))
+    optimizer.grad_norm(loss)
+    optimizer.fused_backward(loss, lr=0.1)
+
+    loss = sphere_loss(next(parameters))
     optimizer.grad_norm(loss)
     optimizer.fused_backward(loss, lr=0.1)
 
