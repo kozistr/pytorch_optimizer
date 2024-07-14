@@ -15,11 +15,11 @@ from pytorch_optimizer.base.types import PARAMETERS
 
 HAS_TRANSFORMERS: bool = find_spec('transformers') is not None
 
-if HAS_TRANSFORMERS:
+if HAS_TRANSFORMERS:  # pragma: no cover
     try:
         from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
     except ImportError:
-        from transformers.deepspeed import is_deepspeed_zero3_enabled  # pragma: no cover
+        from transformers.deepspeed import is_deepspeed_zero3_enabled
 else:
 
     def is_deepspeed_zero3_enabled() -> bool:
