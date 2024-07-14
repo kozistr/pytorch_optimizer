@@ -158,7 +158,7 @@ def main():
     ]
 
     for optimizer_name, optimizer in OPTIMIZERS.items():
-        if optimizer_name.lower() in {'alig', 'lomo', 'bsam', 'adammini'}:
+        if optimizer_name.lower() in {'alig', 'lomo', 'adalomo', 'bsam', 'adammini'}:
             continue
 
         optimizers.append((optimizer, -6, 0.2))
