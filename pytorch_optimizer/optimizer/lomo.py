@@ -222,14 +222,14 @@ class AdaLOMO(BaseOptimizer, Optimizer):
         model: nn.Module,
         lr: float = 1e-3,
         weight_decay: float = 0.0,
-        loss_scale: float = 2**10,
+        loss_scale: float = 2.0 ** 10,
         clip_threshold: float = 1.0,
         decay_rate: float = -0.8,
         clip_grad_norm: Optional[float] = None,
         clip_grad_value: Optional[float] = None,
         eps1: float = 1e-30,
         eps2: float = 1e-3,
-    ) -> None:  # skip: fmt
+    ) -> None:  # fmt: skip
         self.validate_learning_rate(lr)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(loss_scale, 'loss_scale')
