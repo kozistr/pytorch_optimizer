@@ -24,6 +24,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.AdaLOMO
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Adai
     :docstring:
     :members:
