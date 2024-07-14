@@ -240,6 +240,7 @@ class AdaLOMO(BaseOptimizer, Optimizer):
         self.validate_non_negative(eps2, 'eps2')
 
         self.model = model
+        self.lr = lr
         self.weight_decay = weight_decay
         self.loss_scale = loss_scale
         self.clip_threshold = clip_threshold
