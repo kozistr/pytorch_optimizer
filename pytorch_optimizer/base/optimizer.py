@@ -215,6 +215,22 @@ class BaseOptimizer(ABC):
         return grad * exp_grad_norm / grad_norm if exp_grad_norm > grad_norm else grad
 
     @staticmethod
+    def get_rms(x: torch.Tensor) -> float:
+        r"""Get RMS."""
+        return x.norm(2) / math.sqrt(x.numel())
+
+    @staticmethod
+    def approximate_sq_grad(
+        exp_avg_sq_row: torch.Tensor,
+        exp_avg_sq_col: torch.Tensor,
+        output: torch.Tensor,
+    ) -> None:
+        r"""Get approximation of EMA of squared gradient."""
+        r_factor: torch.Tensor = (exp_avg_sq_row / exp_avg_sq_row.mean(dim=-1, keepdim=True)).rsqrt_().unsqueeze(-1)
+        c_factor: torch.Tensor = exp_avg_sq_col.unsqueeze(-2).rsqrt()
+        torch.mul(r_factor, c_factor, out=output)
+
+    @staticmethod
     def validate_range(x: float, name: str, low: float, high: float, range_type: str = '[)') -> None:
         if range_type == '[)' and not low <= x < high:
             raise ValueError(f'[-] {name} must be in the range [{low}, {high})')
