@@ -272,6 +272,26 @@ def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
         return optim.Adagrad8bit
     if 'rmsprop8bit' in optimizer:
         return optim.RMSprop8bit
+    if 'adagrad32bit' in optimizer:
+        return optim.Adagrad32bit
+    if 'adam32bit' in optimizer:
+        return optim.Adam32bit
+    if 'paged_adam32bit' in optimizer:
+        return optim.PagedAdam32bit
+    if 'adamw32bit' in optimizer:
+        return optim.AdamW32bit
+    if 'lamb32bit' in optimizer:
+        return optim.LAMB32bit
+    if 'lars32bit' in optimizer:
+        return optim.LARS32bit
+    if 'lion32bit' in optimizer:
+        return optim.Lion32bit
+    if 'paged_lion32bit' in optimizer:
+        return optim.PagedLion32bit
+    if 'rmsprop32bit' in optimizer:
+        return optim.RMSprop32bit
+    if 'sgd32bit' in optimizer:
+        return optim.SGD32bit
     raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
 
 
