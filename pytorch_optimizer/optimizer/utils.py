@@ -1,4 +1,6 @@
 import math
+import warnings
+from importlib.util import find_spec
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -10,6 +12,28 @@ from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.utils import clip_grad_norm_
 
 from pytorch_optimizer.base.types import PARAMETERS
+
+HAS_TRANSFORMERS: bool = find_spec('transformers') is not None
+
+if HAS_TRANSFORMERS:  # pragma: no cover
+    try:
+        from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
+    except ImportError:
+        from transformers.deepspeed import is_deepspeed_zero3_enabled
+else:
+
+    def is_deepspeed_zero3_enabled() -> bool:
+        r"""Check if DeepSpeed zero3 is enabled."""
+        if HAS_TRANSFORMERS:
+            return is_deepspeed_zero3_enabled()  # pragma: no cover
+
+        warnings.warn(
+            'you need to install `transformers` to use `is_deepspeed_zero3_enabled` function. it\'ll return False.',
+            category=ImportWarning,
+            stacklevel=2,
+        )
+
+        return False
 
 
 def debias_beta(beta: float, step: int) -> float:

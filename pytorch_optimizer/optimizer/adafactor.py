@@ -127,22 +127,6 @@ class AdaFactor(Optimizer, BaseOptimizer):
         r"""Get `factored`."""
         return len(shape) >= 2
 
-    @staticmethod
-    def get_rms(x: torch.Tensor) -> float:
-        r"""Get RMS."""
-        return x.norm(2) / math.sqrt(x.numel())
-
-    @staticmethod
-    def approximate_sq_grad(
-        exp_avg_sq_row: torch.Tensor,
-        exp_avg_sq_col: torch.Tensor,
-        output: torch.Tensor,
-    ):
-        r"""Get approximation of EMA of squared gradient."""
-        r_factor: torch.Tensor = (exp_avg_sq_row / exp_avg_sq_row.mean(dim=-1, keepdim=True)).rsqrt_().unsqueeze(-1)
-        c_factor: torch.Tensor = exp_avg_sq_col.unsqueeze(-2).rsqrt()
-        torch.mul(r_factor, c_factor, out=output)
-
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None

@@ -1,5 +1,5 @@
 import math
-from typing import Optional
+from typing import Optional, Set
 
 import torch
 from torch import distributed as dist
@@ -57,6 +57,9 @@ class AdamMini(Optimizer, BaseOptimizer):  # pragma: no cover
         self.num_embeds = num_embeds
         self.num_heads = num_heads
 
+        self.embed_blocks: Set[str] = {'embed', 'embd', 'wte', 'lm_head.weight', 'output.weight'}
+        self.qk_blocks: Set[str] = {'k_proj.weight', 'q_proj.weight', 'wq.weight', 'wk.weight'}
+
         groups = self.get_optimizer_groups(weight_decay)
 
         defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'eps': eps}
@@ -77,12 +80,7 @@ class AdamMini(Optimizer, BaseOptimizer):  # pragma: no cover
                 'weight_decay': 0.0 if ('norm' in name or 'ln_f' in name) else weight_decay,
             }
 
-            if (
-                'self_attn.k_proj.weight' in name
-                or 'self_attn.q_proj.weight' in name
-                or 'attn.wq.weight' in name
-                or 'attn.wk.weight' in name
-            ):
+            if any(block in name for block in self.qk_blocks):
                 group['parameter_per_head'] = self.num_embeds * self.num_embeds // self.num_heads
 
             if 'attn.attn.weight' in name or 'attn.qkv.weight' in name:
@@ -303,16 +301,11 @@ class AdamMini(Optimizer, BaseOptimizer):  # pragma: no cover
                     fixed_decay=False,
                 )
 
-                if 'embed_tokens' in name or 'wte' in name or 'lm_head' in name:
+                if any(block in name for block in self.embed_blocks):
                     self.step_embed(
                         p, grad, state, group['lr'], beta1, beta2, bias_correction1, bias_correction2_sq, group['eps']
                     )
-                elif (
-                    'self_attn.k_proj.weight' in name
-                    or 'self_attn.q_proj.weight' in name
-                    or 'attn.wq.weight' in name
-                    or 'attn.wk.weight' in name
-                ):
+                elif any(block in name for block in self.qk_blocks):
                     self.step_attn_proj(
                         p,
                         grad,

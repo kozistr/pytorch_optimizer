@@ -28,6 +28,7 @@ from tests.constants import (
     PULLBACK_MOMENTUM,
 )
 from tests.utils import (
+    Example,
     MultiHeadLogisticRegression,
     build_environment,
     dummy_closure,
@@ -545,15 +546,16 @@ def test_sm3_rank0():
     assert str(optimizer) == 'SM3'
 
 
-def test_lomo_deepspeed_zero3(environment):
+@pytest.mark.parametrize('optimizer_name', ['lomo', 'adalomo'])
+def test_lomo_deepspeed_zero3(optimizer_name, environment):
     _, model, _ = environment
 
     model.fc1.weight.__setattr__('ds_tensor', 0)
 
-    optimizer = load_optimizer('lomo')(model)
+    optimizer = load_optimizer(optimizer_name)(model)
     optimizer.reset()
 
-    assert str(optimizer) == 'LOMO'
+    assert str(optimizer).lower() == optimizer_name
 
 
 def test_lomo_clip_grad_norm_with_fp16(environment):
@@ -566,34 +568,45 @@ def test_lomo_clip_grad_norm_with_fp16(environment):
         load_optimizer('lomo')(model, clip_grad_norm=None)
 
 
-def test_lomo_fused_backward(environment):
+@pytest.mark.parametrize('optimizer_name', ['lomo'])
+def test_lomo_fused_backward(optimizer_name, environment):
     _, model, _ = environment
 
-    optimizer = load_optimizer('lomo')(model, clip_grad_norm=1.0)
+    optimizer = load_optimizer(optimizer_name)(model, clip_grad_norm=1.0)
     with pytest.raises(ValueError):
         optimizer.fused_backward(loss=0.1, lr=0.1)
 
 
+@pytest.mark.parametrize('optimizer_name', ['lomo', 'adalomo'])
 @pytest.mark.parametrize('precision', [16, 32])
-def test_lomo_optimizer(precision, environment):
-    _, model, _ = environment
+def test_lomo_optimizer(optimizer_name, precision):
+    model = Example()
+
+    model.fc1.bias.data = torch.randn(1, dtype=torch.float32)
+    model.fc1.bias.grad = torch.randn(1, dtype=torch.float32)
 
     if precision == 16:
-        model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
-        model.fc1.weight.grad = torch.zeros(2, 2, dtype=torch.float16)
+        model.fc1.weight.data = torch.randn(1, 1, dtype=torch.float16)
+        model.fc1.weight.grad = torch.zeros(1, 1, dtype=torch.float16)
 
-    optimizer = load_optimizer('lomo')(model, clip_grad_norm=1.0, clip_grad_value=1.0)
+    optimizer = load_optimizer(optimizer_name)(model, clip_grad_norm=1.0, clip_grad_value=1.0)
 
     if precision == 16:
         optimizer.clip_coef = 0.9
 
-    loss = sphere_loss(next(iter(model.parameters())))
+    parameters = iter(model.parameters())
+
+    loss = sphere_loss(next(parameters))
+    optimizer.grad_norm(loss)
+    optimizer.fused_backward(loss, lr=0.1)
+
+    loss = sphere_loss(next(parameters))
     optimizer.grad_norm(loss)
     optimizer.fused_backward(loss, lr=0.1)
 
 
 def test_dynamic_scaler():
-    scaler = DynamicLossScaler(init_scale=2.0**15, scale_window=1, threshold=1e-2)
+    scaler = DynamicLossScaler(init_scale=2.0 ** 15, scale_window=1, threshold=1e-2)  # fmt: skip
     scaler.decrease_loss_scale()
     scaler.update_scale(overflow=False)
 
