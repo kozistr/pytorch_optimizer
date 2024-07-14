@@ -320,7 +320,9 @@ class AdaLOMO(BaseOptimizer, Optimizer):
                     if self.clip_grad_norm is not None and self.clip_grad_norm > 0.0 and self.clip_coef is not None:
                         grad_fp32.mul_(self.clip_coef)
 
-                    beta2_t: float = 1.0 - math.pow(self.num_steps, self.decay_rate)
+                    beta2_t: float = 1.0 - math.pow(
+                        self.num_steps, self.decay_rate if self.num_steps > 0 else -self.decay_rate
+                    )
 
                     update = grad_fp32.pow(2).add_(self.eps1)
 
@@ -384,7 +386,9 @@ class AdaLOMO(BaseOptimizer, Optimizer):
                 if self.clip_grad_norm is not None and self.clip_grad_norm > 0 and self.clip_coef is not None:
                     grad_fp32.mul_(self.clip_coef)
 
-                beta2_t: float = 1.0 - math.pow(self.num_steps, self.decay_rate)
+                beta2_t: float = 1.0 - math.pow(
+                    self.num_steps, self.decay_rate if self.num_steps > 0 else -self.decay_rate
+                )
 
                 update = grad_fp32.pow(2).add_(self.eps1)
 
