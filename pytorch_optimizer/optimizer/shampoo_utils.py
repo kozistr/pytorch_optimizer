@@ -333,7 +333,7 @@ class PreConditioner:
     def precondition_block(
         partitioned_grad: torch.Tensor,
         should_preconditioned_dims: List[bool],
-        pre_conditioners_for_grad: List[torch.Tensor],
+        pre_conditioners_for_grad: Union[List[torch.Tensor], torch.Tensor],
     ) -> torch.Tensor:
         r"""Perform a preconditioning operation on a single gradient block.
 
