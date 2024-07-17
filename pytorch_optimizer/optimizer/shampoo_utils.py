@@ -47,7 +47,7 @@ class SGDGraft(Graft):
 
     def __init__(self, var: torch.Tensor):
         super().__init__(var)
-        self.momentum: torch.Tensor = torch.zeros_like(var, device=var.device)
+        self.momentum: torch.Tensor = torch.zeros_like(var)
 
     def update_momentum(self, update: torch.Tensor, beta1: float) -> torch.Tensor:
         r"""Update momentum."""
@@ -105,7 +105,7 @@ class RMSPropGraft(SGDGraft):
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         r"""Get preconditioned gradient."""
-        return grad / self.statistics.sqrt().add_(self.diagonal_eps)
+        return grad.div(self.statistics.sqrt().add_(self.diagonal_eps))
 
 
 class BlockPartitioner:
