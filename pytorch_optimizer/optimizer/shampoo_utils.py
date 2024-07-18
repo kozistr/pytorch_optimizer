@@ -121,24 +121,24 @@ class BlockPartitioner:
     """
 
     def __init__(self, var: torch.Tensor, rank: int, block_size: int, pre_conditioner_type: int):
-        self.shape: List[int] = var.shape
+        self.shape: torch.Size = var.shape
 
-        self.splits: List[Tuple[int, np.ndarray]] = []
-        self.split_sizes: List[Tuple[int, np.ndarray]] = []
+        self.splits: List[Tuple[int, torch.Tensor]] = []
+        self.split_sizes: List[Tuple[int, torch.Tensor]] = []
 
-        split_sizes: List[np.ndarray] = []
+        split_sizes: List[torch.Tensor] = []
 
         # We split var into smaller blocks. Here we store the metadata to make that split.
         for i, d in enumerate(self.shape):
             if block_size <= 0 or block_size >= d:
-                split_sizes.append(np.array([d], dtype=np.int32))
+                split_sizes.append(torch.tensor([d], dtype=torch.int32))
                 continue
 
             # d - 1, otherwise split appends a 0-size array.
             num_split: int = (d - 1) // block_size
-            indices = (np.arange(num_split, dtype=np.int32) + 1) * block_size
+            indices = (torch.arange(num_split, dtype=torch.int32) + 1) * block_size
 
-            sizes: np.ndarray = np.ones(num_split + 1, dtype=np.int32) * block_size
+            sizes: torch.Tensor = torch.full((num_split + 1,), block_size, dtype=torch.int32)
             sizes[-1] = d - indices[-1]
 
             self.splits.append((i, indices))
@@ -146,26 +146,26 @@ class BlockPartitioner:
             split_sizes.append(sizes)
 
         self.num_splits: int = len(split_sizes)
-        self.pre_conditioner_shapes: List[List[int]] = self.build_pre_conditioner_shapes(
+        self.pre_conditioner_shapes: List[List[torch.Tensor]] = self.build_pre_conditioner_shapes(
             split_sizes, pre_conditioner_type, rank
         )
 
     @staticmethod
     def build_pre_conditioner_shapes(
-        split_sizes: List[np.ndarray], pre_conditioner_type: int, rank: int
-    ) -> List[List[int]]:
+        split_sizes: List[torch.Tensor], pre_conditioner_type: int, rank: int
+    ) -> List[List[torch.Tensor]]:
         r"""Build pre-conditioner shapes."""
-        pre_conditioner_shapes: List[List[int]] = []
+        pre_conditioner_shapes: List[List[torch.Tensor]] = []
         for t in itertools.product(*split_sizes):
-            t_shape: List[Optional[List[int]]] = [[d, d] for d in t]
+            t_shape: List[Optional[List[torch.Tensor]]] = [[d, d] for d in t]
             if pre_conditioner_type == PreConditionerType.INPUT:
-                t_shape = t_shape[:-1] + [None]
-            if pre_conditioner_type == PreConditionerType.OUTPUT:
+                t_shape[-1] = None
+            elif pre_conditioner_type == PreConditionerType.OUTPUT:
                 t_shape = [None] * (rank - 1) + t_shape[-1:]
             pre_conditioner_shapes.extend(t_shape)
         return pre_conditioner_shapes
 
-    def shapes_for_pre_conditioners(self) -> List[List[int]]:
+    def shapes_for_pre_conditioners(self) -> List[List[torch.Tensor]]:
         r"""Get shapes of pre-conditioner."""
         return self.pre_conditioner_shapes
 
@@ -244,7 +244,7 @@ class PreConditioner:
 
         self.w2: float = 1.0 if self.beta2 == 1.0 else (1.0 - self.beta2)
 
-        self.original_shape: List[int] = var.shape
+        self.original_shape: torch.Size = var.shape
         self.transformed_shape: List[int] = (
             merge_small_dims(self.original_shape, block_size) if shape_interpretation else var.shape
         )
@@ -267,7 +267,7 @@ class PreConditioner:
                 pre_conditioner_type=self.pre_conditioner_type,
             )
 
-            shapes: List[Optional[List[int]]] = self.partitioner.shapes_for_pre_conditioners()
+            shapes: List[Optional[List[torch.Tensor]]] = self.partitioner.shapes_for_pre_conditioners()
             self.statistics = [self.matrix_eps * torch.eye(shape[0], device=var.device) for shape in shapes if shape]
             self.pre_conditioners = [torch.eye(shape[0], device=var.device) for shape in shapes if shape]
             self.is_same_shapes = None not in shapes and len(np.unique(shapes)) == 1
@@ -504,14 +504,14 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
     return u @ (s.diag() if len(matrix.shape) == 2 else s.diag_embed()) @ vh
 
 
-def merge_small_dims(shape_to_merge: List[int], max_dim: int) -> List[int]:
+def merge_small_dims(shape_to_merge: Union[List[int], torch.Size], max_dim: int) -> List[int]:
     r"""Merge small dimensions.
 
         If there are some small dimensions, we collapse them
             e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if max_dim = 1024
             [1, 2, 768, 1, 2048] --> [2, 768, 2048].
 
-    :param shape_to_merge: List[int]. Shape to merge small dimensions.
+    :param shape_to_merge: Union[List[int], torch.Size]. Shape to merge small dimensions.
     :param max_dim: int. Maximal dimension of output shape used in merging.
     """
     merged_shape: List[int] = []
