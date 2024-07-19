@@ -270,7 +270,7 @@ class PreConditioner:
             shapes: List[Optional[List[torch.Tensor]]] = self.partitioner.shapes_for_pre_conditioners()
             self.statistics = [self.matrix_eps * torch.eye(shape[0], device=var.device) for shape in shapes if shape]
             self.pre_conditioners = [torch.eye(shape[0], device=var.device) for shape in shapes if shape]
-            self.is_same_shapes = None not in shapes and len(np.unique(shapes)) == 1
+            self.is_same_shapes = None not in shapes and len(torch.unique(shapes)) == 1
 
         if self.is_same_shapes:
             self.statistics = torch.stack(self.statistics, dim=0)
@@ -302,8 +302,7 @@ class PreConditioner:
         reshaped_grad: torch.Tensor = torch.reshape(grad, self.transformed_shape)
         partitioned_grads: List[torch.Tensor] = self.partitioner.partition(reshaped_grad)
 
-        for j in range(len(partitioned_grads)):
-            partitioned_grad: torch.Tensor = partitioned_grads[j]
+        for j, partitioned_grad in enumerate(partitioned_grads):
             for i in range(self.rank):
                 axes: List[int] = [ax for ax in range(partitioned_grad.ndim) if ax != i]
                 stat: torch.Tensor = torch.tensordot(partitioned_grad, partitioned_grad, dims=[axes, axes])
@@ -341,7 +340,7 @@ class PreConditioner:
         We keep all axes in the same cyclic order they were originally.
         """
         rank: int = len(partitioned_grad.shape)
-        roll: Tuple[int, ...] = (*tuple(range(1, rank)), 0)
+        roll: Tuple[int, ...] = (*range(1, rank), 0)
 
         i: int = 0
         for should_precondition_dim in should_preconditioned_dims:
@@ -376,7 +375,7 @@ class PreConditioner:
 
         merged_grad = self.partitioner.merge_partitions(pre_cond_partitioned_grads)
 
-        return torch.reshape(merged_grad, self.original_shape)
+        return merged_grad.reshape(self.original_shape)
 
 
 def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
