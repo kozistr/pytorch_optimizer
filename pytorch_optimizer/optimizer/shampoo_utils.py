@@ -29,7 +29,7 @@ class Graft:
     def __init__(self, *args):
         pass
 
-    def add_statistics(self, grad: torch.Tensor, unused_beta2: float):
+    def add_statistics(self, grad: torch.Tensor, unused_beta2: float) -> None:
         r"""Add the statistics."""
         pass
 
@@ -78,13 +78,13 @@ class AdaGradGraft(SGDGraft):
         self.diagonal_eps = diagonal_eps
         self.statistics: torch.Tensor = torch.zeros_like(var)
 
-    def add_statistics(self, grad: torch.Tensor, _):
+    def add_statistics(self, grad: torch.Tensor, _) -> None:
         r"""Add the statistics."""
         self.statistics.add_(grad.pow(2))
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         r"""Get preconditioned gradient."""
-        return grad / (torch.sqrt(self.statistics) + self.diagonal_eps)
+        return grad.div(self.statistics.sqrt().add_(self.diagonal_eps))
 
 
 class RMSPropGraft(SGDGraft):
@@ -99,7 +99,7 @@ class RMSPropGraft(SGDGraft):
         self.diagonal_eps = diagonal_eps
         self.statistics: torch.Tensor = torch.zeros_like(var)
 
-    def add_statistics(self, grad: torch.Tensor, beta2: float):
+    def add_statistics(self, grad: torch.Tensor, beta2: float) -> None:
         r"""Add the statistics."""
         self.statistics.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
@@ -291,7 +291,7 @@ class PreConditioner:
             dim > self.no_preconditioning_for_layers_with_dim_gt for dim in x.shape
         )
 
-    def add_statistics(self, grad: torch.Tensor):
+    def add_statistics(self, grad: torch.Tensor) -> None:
         r"""Compute statistics from gradients and add to the correct state entries.
 
         :param grad: torch.Tensor. gradient to compute statistics from.
@@ -309,7 +309,7 @@ class PreConditioner:
                 stat: torch.Tensor = torch.tensordot(partitioned_grad, partitioned_grad, dims=[axes, axes])
                 self.statistics[j * self.rank + i].mul_(self.beta2).add_(stat, alpha=self.w2)
 
-    def compute_pre_conditioners(self):
+    def compute_pre_conditioners(self) -> None:
         r"""Compute L^{-1/exp} for each stats matrix L.
 
         If `self.use_svd` is enabled and where all shapes of statistics & pre-conditioners are same, perform batch SVD.
