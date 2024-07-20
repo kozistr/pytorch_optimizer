@@ -1,20 +1,21 @@
+from importlib.util import find_spec
 from typing import Any, List, Optional, Sequence
 
 import torch
 from torch import nn
 
-try:
+HAS_GEOTORCH: bool = find_spec('geotorch') is not None
+
+if HAS_GEOTORCH:
     from geotorch import orthogonal
 
-    HAS_GEOTORCH = True
-except ImportError:
-    HAS_GEOTORCH = False
 
-
-def divide(numer, denom, eps: float = 1e-15):
+def divide(numer: torch.Tensor, de_nom: torch.Tensor, eps: float = 1e-15) -> torch.Tensor:
     r"""Numerically stable division."""
     return (
-        torch.sign(numer) * torch.sign(denom) * torch.exp(torch.log(numer.abs() + eps) - torch.log(denom.abs() + eps))
+        torch.sign(numer)
+        * torch.sign(de_nom)
+        * torch.exp(torch.log(numer.abs() + eps) - torch.log(de_nom.abs() + eps))
     )
 
 
@@ -181,7 +182,7 @@ class RotateOnly(nn.Module):
     ):
         super().__init__()
         if not HAS_GEOTORCH:
-            raise ImportError('[-] you need to install geotorch to use RotoGrad. pip install geotorch')
+            raise ImportError('[-] you need to install `geotorch` to use RotoGrad. `pip install geotorch`')
 
         self._backbone = [backbone]
         self.heads = heads

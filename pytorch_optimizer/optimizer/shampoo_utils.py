@@ -29,7 +29,7 @@ class Graft:
     def __init__(self, *args):
         pass
 
-    def add_statistics(self, grad: torch.Tensor, unused_beta2: float):
+    def add_statistics(self, grad: torch.Tensor, unused_beta2: float) -> None:
         r"""Add the statistics."""
         pass
 
@@ -47,7 +47,7 @@ class SGDGraft(Graft):
 
     def __init__(self, var: torch.Tensor):
         super().__init__(var)
-        self.momentum: torch.Tensor = torch.zeros_like(var, device=var.device)
+        self.momentum: torch.Tensor = torch.zeros_like(var)
 
     def update_momentum(self, update: torch.Tensor, beta1: float) -> torch.Tensor:
         r"""Update momentum."""
@@ -78,13 +78,13 @@ class AdaGradGraft(SGDGraft):
         self.diagonal_eps = diagonal_eps
         self.statistics: torch.Tensor = torch.zeros_like(var)
 
-    def add_statistics(self, grad: torch.Tensor, _):
+    def add_statistics(self, grad: torch.Tensor, _) -> None:
         r"""Add the statistics."""
         self.statistics.add_(grad.pow(2))
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         r"""Get preconditioned gradient."""
-        return grad / (torch.sqrt(self.statistics) + self.diagonal_eps)
+        return grad.div(self.statistics.sqrt().add_(self.diagonal_eps))
 
 
 class RMSPropGraft(SGDGraft):
@@ -99,13 +99,13 @@ class RMSPropGraft(SGDGraft):
         self.diagonal_eps = diagonal_eps
         self.statistics: torch.Tensor = torch.zeros_like(var)
 
-    def add_statistics(self, grad: torch.Tensor, beta2: float):
+    def add_statistics(self, grad: torch.Tensor, beta2: float) -> None:
         r"""Add the statistics."""
         self.statistics.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         r"""Get preconditioned gradient."""
-        return grad / (torch.sqrt(self.statistics) + self.diagonal_eps)
+        return grad.div(self.statistics.sqrt().add_(self.diagonal_eps))
 
 
 class BlockPartitioner:
@@ -121,24 +121,24 @@ class BlockPartitioner:
     """
 
     def __init__(self, var: torch.Tensor, rank: int, block_size: int, pre_conditioner_type: int):
-        self.shape: List[int] = var.shape
+        self.shape: torch.Size = var.shape
 
-        self.splits: List[Tuple[int, np.ndarray]] = []
-        self.split_sizes: List[Tuple[int, np.ndarray]] = []
+        self.splits: List[Tuple[int, torch.Tensor]] = []
+        self.split_sizes: List[Tuple[int, torch.Tensor]] = []
 
-        split_sizes: List[np.ndarray] = []
+        split_sizes: List[torch.Tensor] = []
 
         # We split var into smaller blocks. Here we store the metadata to make that split.
         for i, d in enumerate(self.shape):
             if block_size <= 0 or block_size >= d:
-                split_sizes.append(np.array([d], dtype=np.int32))
+                split_sizes.append(torch.tensor([d], dtype=torch.int32))
                 continue
 
             # d - 1, otherwise split appends a 0-size array.
             num_split: int = (d - 1) // block_size
-            indices = (np.arange(num_split, dtype=np.int32) + 1) * block_size
+            indices = (torch.arange(num_split, dtype=torch.int32) + 1) * block_size
 
-            sizes: np.ndarray = np.ones(num_split + 1, dtype=np.int32) * block_size
+            sizes: torch.Tensor = torch.full((num_split + 1,), block_size, dtype=torch.int32)
             sizes[-1] = d - indices[-1]
 
             self.splits.append((i, indices))
@@ -146,26 +146,26 @@ class BlockPartitioner:
             split_sizes.append(sizes)
 
         self.num_splits: int = len(split_sizes)
-        self.pre_conditioner_shapes: List[List[int]] = self.build_pre_conditioner_shapes(
+        self.pre_conditioner_shapes: List[List[torch.Tensor]] = self.build_pre_conditioner_shapes(
             split_sizes, pre_conditioner_type, rank
         )
 
     @staticmethod
     def build_pre_conditioner_shapes(
-        split_sizes: List[np.ndarray], pre_conditioner_type: int, rank: int
-    ) -> List[List[int]]:
+        split_sizes: List[torch.Tensor], pre_conditioner_type: int, rank: int
+    ) -> List[List[torch.Tensor]]:
         r"""Build pre-conditioner shapes."""
-        pre_conditioner_shapes: List[List[int]] = []
+        pre_conditioner_shapes: List[List[torch.Tensor]] = []
         for t in itertools.product(*split_sizes):
-            t_shape: List[Optional[List[int]]] = [[d, d] for d in t]
+            t_shape: List[Optional[List[torch.Tensor]]] = [[d, d] for d in t]
             if pre_conditioner_type == PreConditionerType.INPUT:
-                t_shape = t_shape[:-1] + [None]
-            if pre_conditioner_type == PreConditionerType.OUTPUT:
+                t_shape[-1] = None
+            elif pre_conditioner_type == PreConditionerType.OUTPUT:
                 t_shape = [None] * (rank - 1) + t_shape[-1:]
             pre_conditioner_shapes.extend(t_shape)
         return pre_conditioner_shapes
 
-    def shapes_for_pre_conditioners(self) -> List[List[int]]:
+    def shapes_for_pre_conditioners(self) -> List[List[torch.Tensor]]:
         r"""Get shapes of pre-conditioner."""
         return self.pre_conditioner_shapes
 
@@ -244,7 +244,7 @@ class PreConditioner:
 
         self.w2: float = 1.0 if self.beta2 == 1.0 else (1.0 - self.beta2)
 
-        self.original_shape: List[int] = var.shape
+        self.original_shape: torch.Size = var.shape
         self.transformed_shape: List[int] = (
             merge_small_dims(self.original_shape, block_size) if shape_interpretation else var.shape
         )
@@ -267,7 +267,7 @@ class PreConditioner:
                 pre_conditioner_type=self.pre_conditioner_type,
             )
 
-            shapes: List[Optional[List[int]]] = self.partitioner.shapes_for_pre_conditioners()
+            shapes: List[Optional[List[torch.Tensor]]] = self.partitioner.shapes_for_pre_conditioners()
             self.statistics = [self.matrix_eps * torch.eye(shape[0], device=var.device) for shape in shapes if shape]
             self.pre_conditioners = [torch.eye(shape[0], device=var.device) for shape in shapes if shape]
             self.is_same_shapes = None not in shapes and len(np.unique(shapes)) == 1
@@ -291,7 +291,7 @@ class PreConditioner:
             dim > self.no_preconditioning_for_layers_with_dim_gt for dim in x.shape
         )
 
-    def add_statistics(self, grad: torch.Tensor):
+    def add_statistics(self, grad: torch.Tensor) -> None:
         r"""Compute statistics from gradients and add to the correct state entries.
 
         :param grad: torch.Tensor. gradient to compute statistics from.
@@ -302,14 +302,13 @@ class PreConditioner:
         reshaped_grad: torch.Tensor = torch.reshape(grad, self.transformed_shape)
         partitioned_grads: List[torch.Tensor] = self.partitioner.partition(reshaped_grad)
 
-        for j in range(len(partitioned_grads)):
-            partitioned_grad: torch.Tensor = partitioned_grads[j]
+        for j, partitioned_grad in enumerate(partitioned_grads):
             for i in range(self.rank):
                 axes: List[int] = [ax for ax in range(partitioned_grad.ndim) if ax != i]
                 stat: torch.Tensor = torch.tensordot(partitioned_grad, partitioned_grad, dims=[axes, axes])
                 self.statistics[j * self.rank + i].mul_(self.beta2).add_(stat, alpha=self.w2)
 
-    def compute_pre_conditioners(self):
+    def compute_pre_conditioners(self) -> None:
         r"""Compute L^{-1/exp} for each stats matrix L.
 
         If `self.use_svd` is enabled and where all shapes of statistics & pre-conditioners are same, perform batch SVD.
@@ -333,7 +332,7 @@ class PreConditioner:
     def precondition_block(
         partitioned_grad: torch.Tensor,
         should_preconditioned_dims: List[bool],
-        pre_conditioners_for_grad: List[torch.Tensor],
+        pre_conditioners_for_grad: Union[List[torch.Tensor], torch.Tensor],
     ) -> torch.Tensor:
         r"""Perform a preconditioning operation on a single gradient block.
 
@@ -341,7 +340,7 @@ class PreConditioner:
         We keep all axes in the same cyclic order they were originally.
         """
         rank: int = len(partitioned_grad.shape)
-        roll: Tuple[int, ...] = (*tuple(range(1, rank)), 0)
+        roll: Tuple[int, ...] = (*range(1, rank), 0)
 
         i: int = 0
         for should_precondition_dim in should_preconditioned_dims:
@@ -376,7 +375,7 @@ class PreConditioner:
 
         merged_grad = self.partitioner.merge_partitions(pre_cond_partitioned_grads)
 
-        return torch.reshape(merged_grad, self.original_shape)
+        return merged_grad.reshape(self.original_shape)
 
 
 def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
@@ -407,7 +406,8 @@ def power_iteration(mat_g: torch.Tensor, num_iters: int = 100) -> torch.Tensor:
 
     for _ in range(num_iters):
         torch.mv(mat_g, v, out=mat_v)
-        v = mat_v.div(torch.linalg.norm(mat_v))
+        v.copy_(mat_v)
+        v.div_(torch.linalg.norm(v))
 
     return (v.t() @ mat_g @ v).clamp_min_(1e-16)
 
@@ -490,7 +490,7 @@ def compute_power_schur_newton(
 
 @torch.no_grad()
 def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
-    r"""Compute G^{-1/p} using a SVD.
+    r"""Compute G^{-1/p} using SVD.
 
         Calculate SVD on the GPU. Sometimes, SVD on the CPU is faster than GPU, but based on the several experiments,
         CUDA seems much faster than on CPU.
@@ -503,14 +503,14 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
     return u @ (s.diag() if len(matrix.shape) == 2 else s.diag_embed()) @ vh
 
 
-def merge_small_dims(shape_to_merge: List[int], max_dim: int) -> List[int]:
+def merge_small_dims(shape_to_merge: Union[List[int], torch.Size], max_dim: int) -> List[int]:
     r"""Merge small dimensions.
 
         If there are some small dimensions, we collapse them
             e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if max_dim = 1024
             [1, 2, 768, 1, 2048] --> [2, 768, 2048].
 
-    :param shape_to_merge: List[int]. Shape to merge small dimensions.
+    :param shape_to_merge: Union[List[int], torch.Size]. Shape to merge small dimensions.
     :param max_dim: int. Maximal dimension of output shape used in merging.
     """
     merged_shape: List[int] = []

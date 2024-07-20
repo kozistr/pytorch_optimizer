@@ -336,13 +336,15 @@ class ScalableShampoo(Optimizer, BaseOptimizer):
 
                     shampoo_grad.mul_(graft_norm / (shampoo_norm + 1e-16))
 
-                if group['weight_decay'] > 0.0:
-                    if not group['decoupled_weight_decay']:
-                        graft_grad.add_(p, alpha=group['weight_decay'])
-                        shampoo_grad.add_(p, alpha=group['weight_decay'])
-                    else:
-                        graft_grad.mul_(1.0 - group['lr'] * group['weight_decay'])
-                        shampoo_grad.mul_(1.0 - group['lr'] * group['weight_decay'])
+                for g in (graft_grad, shampoo_grad):
+                    self.apply_weight_decay(
+                        p,
+                        g,
+                        group['lr'],
+                        group['weight_decay'],
+                        group['decoupled_weight_decay'],
+                        fixed_decay=False,
+                    )
 
                 state['momentum'].mul_(beta1).add_(shampoo_grad)
                 graft_momentum = graft.update_momentum(grad, beta1)
