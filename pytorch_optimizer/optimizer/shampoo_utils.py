@@ -270,7 +270,7 @@ class PreConditioner:
             shapes: List[Optional[List[torch.Tensor]]] = self.partitioner.shapes_for_pre_conditioners()
             self.statistics = [self.matrix_eps * torch.eye(shape[0], device=var.device) for shape in shapes if shape]
             self.pre_conditioners = [torch.eye(shape[0], device=var.device) for shape in shapes if shape]
-            self.is_same_shapes = None not in shapes and len(torch.unique(shapes)) == 1
+            self.is_same_shapes = None not in shapes and len(np.unique(shapes)) == 1
 
         if self.is_same_shapes:
             self.statistics = torch.stack(self.statistics, dim=0)
