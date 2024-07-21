@@ -62,7 +62,7 @@ def to_real(x: torch.Tensor) -> torch.Tensor:
     return x.real if torch.is_complex(x) else x
 
 
-def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8):
+def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> None:
     r"""Normalize gradient with stddev.
 
     :param x: torch.Tensor. gradient.
@@ -315,6 +315,7 @@ def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
     return x
 
 
+@torch.no_grad()
 def reg_noise(
     network1: nn.Module, network2: nn.Module, num_data: int, lr: float, eta: float = 8e-3, temperature: float = 1e-4
 ) -> Union[torch.Tensor, float]:
@@ -332,11 +333,15 @@ def reg_noise(
     reg_coef: float = 0.5 / (eta * num_data)
     noise_coef: float = math.sqrt(2.0 / lr / num_data * temperature)
 
-    loss = 0
-    for param1, param2 in zip(network1.parameters(), network2.parameters(), strict=True):
-        reg = torch.sub(param1, param2).pow_(2) * reg_coef
-        noise1 = param1 * torch.randn_like(param1) * noise_coef
-        noise2 = param2 * torch.randn_like(param2) * noise_coef
-        loss += torch.sum(reg - noise1 - noise2)
+    loss = torch.tensor(0.0, device=next(network1.parameters()).device)
+
+    for param1, param2 in zip(network1.parameters(), network2.parameters()):
+        reg = (param1 - param2).pow_(2).mul_(reg_coef).sum()
+
+        noise = param1 * torch.randn_like(param1)
+        noise.add_(param2 * torch.randn_like(param2))
+
+        loss.add_(reg - noise.mul_(noise_coef).sum())
 
     return loss
+
