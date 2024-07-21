@@ -344,4 +344,3 @@ def reg_noise(
         loss.add_(reg - noise.mul_(noise_coef).sum())
 
     return loss
-
