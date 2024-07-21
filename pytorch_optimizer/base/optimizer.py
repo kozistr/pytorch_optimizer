@@ -327,5 +327,5 @@ class BaseOptimizer(ABC, Optimizer):
     def reset(self) -> None:  # pragma: no cover
         raise NotImplementedError
 
-    def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:
+    def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:  # pragma: no cover
         raise NotImplementedError
