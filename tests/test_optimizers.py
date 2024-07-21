@@ -271,7 +271,7 @@ def test_adanorm_optimizer(optimizer_config, environment):
 
     optimizer_class, config, num_iterations = optimizer_config
     if optimizer_class.__name__ == 'Ranger21':
-        config.update({'num_iterations': num_iterations})
+        config.update({'num_iterations': num_iterations, 'disable_lr_scheduler': True})
 
     optimizer = optimizer_class(model.parameters(), **config)
 
