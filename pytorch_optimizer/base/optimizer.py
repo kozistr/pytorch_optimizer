@@ -1,12 +1,12 @@
 import math
 from abc import ABC, abstractmethod
-from typing import Callable, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
-from pytorch_optimizer.base.types import BETAS, DEFAULTS, HUTCHINSON_G, PARAMETERS, STATE
+from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, HUTCHINSON_G, LOSS, PARAMETERS, STATE
 
 
 class BaseOptimizer(ABC, Optimizer):
@@ -327,5 +327,5 @@ class BaseOptimizer(ABC, Optimizer):
     def reset(self) -> None:  # pragma: no cover
         raise NotImplementedError
 
-    def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:  # pragma: no cover
+    def step(self, closure: CLOSURE = None) -> LOSS:  # pragma: no cover
         raise NotImplementedError
