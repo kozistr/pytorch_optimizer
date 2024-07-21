@@ -9,7 +9,7 @@ mkl==2021.4.0 ; python_version >= "3.8" and python_full_version < "4.0.0" and pl
 mpmath==1.3.0 ; python_version >= "3.8" and python_full_version < "4.0.0"
 networkx==3.1 ; python_version >= "3.8" and python_full_version < "4.0.0"
 numpy==1.24.4 ; python_version >= "3.8" and python_full_version < "4.0.0"
-sympy==1.13.0 ; python_version >= "3.8" and python_full_version < "4.0.0"
+sympy==1.13.1 ; python_version >= "3.8" and python_full_version < "4.0.0"
 tbb==2021.13.0 ; python_version >= "3.8" and python_full_version < "4.0.0" and platform_system == "Windows"
 torch==2.3.1+cpu ; python_version >= "3.8" and python_full_version < "4.0.0"
 typing-extensions==4.12.2 ; python_version >= "3.8" and python_full_version < "4.0.0"
