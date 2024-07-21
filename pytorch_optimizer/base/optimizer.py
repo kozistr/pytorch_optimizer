@@ -154,7 +154,7 @@ class BaseOptimizer(ABC, Optimizer):
         r"""Adam-style debias correction. Returns `1.0 - beta ** step`.
 
         :param beta: float. beta.
-        :param step. int. number of step.
+        :param step: int. number of step.
         """
         return 1.0 - math.pow(beta, step)  # fmt: skip
 
