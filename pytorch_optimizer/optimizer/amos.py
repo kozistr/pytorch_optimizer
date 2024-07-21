@@ -1,14 +1,13 @@
 import math
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class Amos(Optimizer, BaseOptimizer):
+class Amos(BaseOptimizer):
     r"""An Adam-style Optimizer with Adaptive Weight Decay towards Model-Oriented Scale.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -92,7 +91,7 @@ class Amos(Optimizer, BaseOptimizer):
             momentum, beta = group['momentum'], group['beta']
 
             lr_sq: float = math.sqrt(group['lr'])
-            bias_correction: float = 1.0 - beta ** group['step']
+            bias_correction: float = self.debias(beta, group['step'])
 
             for p in group['params']:
                 if p.grad is None:

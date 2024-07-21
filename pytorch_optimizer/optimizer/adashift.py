@@ -2,14 +2,13 @@ from collections import deque
 from typing import Callable, Optional
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class AdaShift(Optimizer, BaseOptimizer):
+class AdaShift(BaseOptimizer):
     r"""Decorrelation and Convergence of Adaptive Learning Rate Methods.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -73,7 +72,7 @@ class AdaShift(Optimizer, BaseOptimizer):
             first_grad_weight: float = beta1 ** (group['keep_num'] - 1) / exp_weight_sum
             last_grad_weight: float = 1.0 / exp_weight_sum
 
-            bias_correction: float = 1.0 - beta2 ** (group['step'] - group['keep_num'])
+            bias_correction: float = self.debias(beta2, group['step'] - group['keep_num'])
 
             for p in group['params']:
                 if p.grad is None:

@@ -1,14 +1,13 @@
 import math
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class AdamS(Optimizer, BaseOptimizer):
+class AdamS(BaseOptimizer):
     r"""Adam with stable weight decay.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -111,7 +110,7 @@ class AdamS(Optimizer, BaseOptimizer):
 
                 state['step'] += 1
 
-                bias_correction2: float = 1.0 - beta2 ** state['step']
+                bias_correction2: float = self.debias(beta2, state['step'])
 
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,
@@ -156,8 +155,8 @@ class AdamS(Optimizer, BaseOptimizer):
                     ratio=1.0 / exp_avg_sq_hat_mean,
                 )
 
-                bias_correction1: float = 1.0 - beta1 ** state['step']
-                bias_correction2: float = 1.0 - beta2 ** state['step']
+                bias_correction1: float = self.debias(beta1, state['step'])
+                bias_correction2: float = self.debias(beta2, state['step'])
 
                 exp_avg_sq_hat = state['max_exp_avg_sq'] if group['ams_bound'] else state['exp_avg_sq']
                 exp_avg_sq_hat.div_(bias_correction2)

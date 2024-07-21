@@ -1,7 +1,6 @@
 import math
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -10,7 +9,7 @@ from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.utils import projection
 
 
-class AdamP(Optimizer, BaseOptimizer):
+class AdamP(BaseOptimizer):
     r"""Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -103,8 +102,8 @@ class AdamP(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction1: float = 1.0 - beta1 ** group['step']
-            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
+            bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
             for p in group['params']:
                 if p.grad is None:

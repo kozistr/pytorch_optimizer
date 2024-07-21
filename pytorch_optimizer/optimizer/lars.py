@@ -1,12 +1,11 @@
 import torch
-from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class LARS(Optimizer, BaseOptimizer):
+class LARS(BaseOptimizer):
     r"""Layer-wise Adaptive Rate Scaling (no rate scaling or weight decay for parameters <= 1D).
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

@@ -5,7 +5,6 @@ from typing import Any, Callable, List, Optional
 import torch
 from torch import nn
 from torch.distributed import ReduceOp, all_reduce
-from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import DEFAULTS
@@ -13,7 +12,7 @@ from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler
 from pytorch_optimizer.optimizer.utils import has_overflow, is_deepspeed_zero3_enabled
 
 
-class LOMO(BaseOptimizer, Optimizer):
+class LOMO(BaseOptimizer):
     r"""Full Parameter Fine-tuning for Large Language Models with Limited Resources.
 
     Reference : https://github.com/OpenLMLab/LOMO/blob/main/src/lomo.py
@@ -202,7 +201,7 @@ class LOMO(BaseOptimizer, Optimizer):
         self.gather_norm = False
 
 
-class AdaLOMO(BaseOptimizer, Optimizer):
+class AdaLOMO(BaseOptimizer):
     r"""Low-memory Optimization with Adaptive Learning Rate.
 
     :param model: nn.Module. pytorch model.

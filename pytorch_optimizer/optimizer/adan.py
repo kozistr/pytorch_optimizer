@@ -2,7 +2,6 @@ import math
 from typing import Union
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -11,7 +10,7 @@ from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
-class Adan(Optimizer, BaseOptimizer):
+class Adan(BaseOptimizer):
     r"""Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -106,9 +105,9 @@ class Adan(Optimizer, BaseOptimizer):
 
             beta1, beta2, beta3 = group['betas']
 
-            bias_correction1: float = 1.0 - beta1 ** group['step']
-            bias_correction2: float = 1.0 - beta2 ** group['step']
-            bias_correction3_sq: float = math.sqrt(1.0 - beta3 ** group['step'])
+            bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2: float = self.debias(beta2, group['step'])
+            bias_correction3_sq: float = math.sqrt(self.debias(beta3, group['step']))
 
             for p in group['params']:
                 if p.grad is None:

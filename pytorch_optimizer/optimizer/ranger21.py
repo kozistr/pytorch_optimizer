@@ -2,8 +2,7 @@ import math
 from typing import Optional
 
 import torch
-from torch.nn import functional as f
-from torch.optim import Optimizer
+from torch.nn.functional import softplus
 
 from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -13,7 +12,7 @@ from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
 
 
-class Ranger21(Optimizer, BaseOptimizer):
+class Ranger21(BaseOptimizer):
     r"""Integrating the latest deep learning components into a single optimizer.
 
         Here's the components
@@ -39,6 +38,7 @@ class Ranger21(Optimizer, BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param use_softplus: bool. use softplus to smooth.
     :param beta_softplus: float. beta.
+    :param disable_lr_scheduler: bool. whether to disable learning rate schedule.
     :param num_warm_up_iterations: Optional[int]. number of warm-up iterations. Ranger21 performs linear learning rate
         warmup.
     :param num_warm_down_iterations: Optional[int]. number of warm-down iterations. Ranger21 performs Explore-exploit
@@ -66,6 +66,7 @@ class Ranger21(Optimizer, BaseOptimizer):
         betas: BETAS = (0.9, 0.999),
         use_softplus: bool = True,
         beta_softplus: float = 50.0,
+        disable_lr_scheduler: bool = False,
         num_warm_up_iterations: Optional[int] = None,
         num_warm_down_iterations: Optional[int] = None,
         warm_down_min_lr: float = 3e-5,
@@ -94,6 +95,7 @@ class Ranger21(Optimizer, BaseOptimizer):
         self.min_lr = warm_down_min_lr
         self.use_softplus = use_softplus
         self.beta_softplus = beta_softplus
+        self.disable_lr_scheduler = disable_lr_scheduler
         self.agc_clipping_value = agc_clipping_value
         self.agc_eps = agc_eps
         self.centralize_gradients = centralize_gradients
@@ -198,7 +200,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction2: float = 1.0 - beta2 ** group['step']
+            bias_correction2: float = self.debias(beta2, group['step'])
 
             for p in group['params']:
                 if p.grad is None:
@@ -240,14 +242,17 @@ class Ranger21(Optimizer, BaseOptimizer):
         for group in self.param_groups:
             beta1, beta2 = group['betas']
 
-            bias_correction1: float = 1.0 - beta1 ** group['step']  # fmt: skip
-            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])  # fmt: skip
+            bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
             noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
 
             # warm up & down
-            lr: float = self.warm_up_dampening(group['lr'], group['step'])
-            lr = self.warm_down(lr, group['step'])
+            if self.disable_lr_scheduler:
+                lr: float = group['lr']
+            else:
+                lr: float = self.warm_up_dampening(group['lr'], group['step'])
+                lr = self.warm_down(lr, group['step'])
 
             for p in group['params']:
                 if p.grad is None:
@@ -280,7 +285,7 @@ class Ranger21(Optimizer, BaseOptimizer):
                 de_nom = (variance_ma.sqrt() / bias_correction2_sq).add_(group['eps'])
 
                 if self.use_softplus:
-                    de_nom = f.softplus(de_nom, beta=self.beta_softplus)
+                    de_nom = softplus(de_nom, beta=self.beta_softplus)
 
                 grad = p.grad
                 centralize_gradient(grad, gc_conv_only=False)
@@ -290,7 +295,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
                 step_size: float = self.apply_adam_debias(group['adam_debias'], lr, bias_correction1)
 
-                pn_momentum = grad_ma.mul(1.0 + 1.0).add(neg_grad_ma, alpha=-1.0).mul(1.0 / noise_norm)
+                pn_momentum = grad_ma.mul(1.0 + 1.0).add_(neg_grad_ma, alpha=-1.0).mul_(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)
 
         self.lookahead_process_step()

@@ -2,14 +2,13 @@ import math
 from typing import List
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class AdaBound(Optimizer, BaseOptimizer):
+class AdaBound(BaseOptimizer):
     r"""Adaptive Gradient Methods with Dynamic Bound of Learning Rate.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -90,8 +89,8 @@ class AdaBound(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction1: float = 1.0 - beta1 ** group['step']
-            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
+            bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
             final_lr: float = group['final_lr'] * group['lr'] / base_lr
             lower_bound: float = final_lr * (1 - 1 / (group['gamma'] * group['step'] + 1))

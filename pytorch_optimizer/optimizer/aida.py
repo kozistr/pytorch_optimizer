@@ -1,14 +1,13 @@
 import math
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class Aida(Optimizer, BaseOptimizer):
+class Aida(BaseOptimizer):
     r"""A DNN Optimizer that Improves over AdaBelief by Suppression of the Adaptive Stepsize Range.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -109,8 +108,8 @@ class Aida(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction1: float = 1.0 - beta1 ** group['step']
-            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
+            bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
             step_size, n_sma = self.get_rectify_step_size(
                 is_rectify=group['rectify'],

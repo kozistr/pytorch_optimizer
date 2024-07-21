@@ -2,7 +2,6 @@ import math
 from typing import Literal, Optional, Tuple, Union
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -133,7 +132,7 @@ class GaLoreProjector:
         raise NotImplementedError
 
 
-class GaLore(Optimizer, BaseOptimizer):
+class GaLore(BaseOptimizer):
     r"""AdamW optimizer with GaLore projector.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -194,8 +193,8 @@ class GaLore(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction1: float = 1.0 - beta1 ** group['step']
-            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
+            bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
             step_size: float = group['lr'] * bias_correction2_sq / bias_correction1
 

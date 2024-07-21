@@ -2,14 +2,13 @@ import math
 from typing import Optional
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class Prodigy(Optimizer, BaseOptimizer):
+class Prodigy(BaseOptimizer):
     r"""An Expeditiously Adaptive Parameter-Free Learner.
 
         Leave LR set to 1 unless you encounter instability.
@@ -102,8 +101,8 @@ class Prodigy(Optimizer, BaseOptimizer):
         beta1, beta2 = group['betas']
         beta3 = group['beta3'] if group['beta3'] is not None else math.sqrt(beta2)
 
-        bias_correction1: float = 1.0 - beta1 ** group['step']
-        bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
+        bias_correction1: float = self.debias(beta1, group['step'])
+        bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
         bias_correction: float = (bias_correction1 / bias_correction2_sq) if group['bias_correction'] else 1.0
 
         d, d0 = group['d'], group['d0']

@@ -1,5 +1,4 @@
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -7,7 +6,7 @@ from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.utils import neuron_mean, neuron_norm
 
 
-class Nero(Optimizer, BaseOptimizer):
+class Nero(BaseOptimizer):
     """Learning by Turning: Neural Architecture Aware Optimisation.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

@@ -1,14 +1,13 @@
 import math
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class SWATS(Optimizer, BaseOptimizer):
+class SWATS(BaseOptimizer):
     r"""Improving Generalization Performance by Switching from Adam to SGD.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -96,8 +95,8 @@ class SWATS(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction1: float = 1.0 - beta1 ** group['step']
-            bias_correction2: float = 1.0 - beta2 ** group['step']
+            bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2: float = self.debias(beta2, group['step'])
 
             for p in group['params']:
                 if p.grad is None:

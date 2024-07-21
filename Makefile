@@ -16,8 +16,8 @@ check:
 	ruff check pytorch_optimizer examples tests hubconf.py
 
 requirements:
-	python -m poetry export -f requirements.txt --output requirements.txt --without-hashes
-	python -m poetry export -f requirements.txt --output requirements-dev.txt --without-hashes --with dev
+	poetry export -f requirements.txt --output requirements.txt --without-hashes
+	poetry export -f requirements.txt --output requirements-dev.txt --without-hashes --with dev
 
 docs:
 	mkdocs serve

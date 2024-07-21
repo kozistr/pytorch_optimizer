@@ -1,7 +1,6 @@
 from typing import Union
 
 import torch
-from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -9,7 +8,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
-class Lamb(Optimizer, BaseOptimizer):
+class Lamb(BaseOptimizer):
     r"""Large Batch Optimization for Deep Learning.
 
         This Lamb implementation is based on the paper v3, which does not use de-biasing.
@@ -129,7 +128,7 @@ class Lamb(Optimizer, BaseOptimizer):
             beta1, beta2 = group['betas']
 
             beta3: float = 1.0 - beta1 if group['grad_averaging'] else 1.0
-            bias_correction1: float = 1.0 - beta1 ** group['step']
+            bias_correction1: float = self.debias(beta1, group['step'])
 
             step_size, n_sma = self.get_rectify_step_size(
                 is_rectify=group['rectify'],

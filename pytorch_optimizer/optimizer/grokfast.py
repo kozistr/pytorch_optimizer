@@ -4,7 +4,6 @@ from typing import Dict, Literal, Optional
 
 import torch
 from torch import nn
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -99,7 +98,7 @@ def gradfilter_ema(
     return grads
 
 
-class GrokFastAdamW(Optimizer, BaseOptimizer):
+class GrokFastAdamW(BaseOptimizer):
     r"""Accelerated Grokking by Amplifying Slow Gradients with AdamW.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -181,8 +180,8 @@ class GrokFastAdamW(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction1: float = 1.0 - beta1 ** group['step']
-            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
+            bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
             should_grokfast: bool = (
                 group['grokfast'] and group['step'] > group['grokfast_after_step'] and group['grokfast_lamb'] > 0

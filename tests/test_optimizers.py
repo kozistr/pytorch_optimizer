@@ -270,8 +270,6 @@ def test_adanorm_optimizer(optimizer_config, environment):
     (x_data, y_data), model, loss_fn = environment
 
     optimizer_class, config, num_iterations = optimizer_config
-    if optimizer_class.__name__ == 'Ranger21':
-        config.update({'num_iterations': num_iterations})
 
     optimizer = optimizer_class(model.parameters(), **config)
 
@@ -311,8 +309,6 @@ def test_adamd_optimizers(optimizer_config, environment):
     (x_data, y_data), model, loss_fn = environment
 
     optimizer_class, config, num_iterations = optimizer_config
-    if optimizer_class.__name__ == 'Ranger21':
-        config.update({'num_iterations': num_iterations})
 
     optimizer = optimizer_class(model.parameters(), **config)
 

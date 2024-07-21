@@ -3,17 +3,21 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple, Union
 
 import torch
+from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
-from pytorch_optimizer.base.types import BETAS, HUTCHINSON_G, PARAMETERS, STATE
+from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, HUTCHINSON_G, LOSS, PARAMETERS, STATE
 
 
-class BaseOptimizer(ABC):
-    r"""Base optimizer class."""
+class BaseOptimizer(ABC, Optimizer):
+    r"""Base optimizer class. Provides common functionalities for the optimizers."""
+
+    def __init__(self, params: PARAMETERS, defaults: DEFAULTS) -> None:
+        super().__init__(params, defaults)
 
     @staticmethod
     @torch.no_grad()
-    def set_hessian(param_groups: PARAMETERS, state: STATE, hessian: List[torch.Tensor]):
+    def set_hessian(param_groups: PARAMETERS, state: STATE, hessian: List[torch.Tensor]) -> None:
         r"""Set hessian to state from external source. Generally useful when using functorch as a base.
 
         Example:
@@ -45,7 +49,7 @@ class BaseOptimizer(ABC):
                 i += 1
 
     @staticmethod
-    def zero_hessian(param_groups: PARAMETERS, state: STATE, pre_zero: bool = True):
+    def zero_hessian(param_groups: PARAMETERS, state: STATE, pre_zero: bool = True) -> None:
         r"""Zero-out hessian.
 
         :param param_groups: PARAMETERS. parameter groups.
@@ -68,7 +72,7 @@ class BaseOptimizer(ABC):
         num_samples: int = 1,
         alpha: float = 1.0,
         distribution: HUTCHINSON_G = 'gaussian',
-    ):
+    ) -> None:
         r"""Hutchinson's approximate hessian, added to the state under key `hessian`.
 
         :param param_groups: PARAMETERS. parameter groups.
@@ -110,7 +114,7 @@ class BaseOptimizer(ABC):
         weight_decouple: bool,
         fixed_decay: bool,
         ratio: Optional[float] = None,
-    ):
+    ) -> None:
         r"""Apply weight decay.
 
         :param p: torch.Tensor. parameter.
@@ -144,6 +148,27 @@ class BaseOptimizer(ABC):
             de_nom = exp_avg_sq.add(eps)
 
         return de_nom.sqrt_().add_(eps)
+
+    @staticmethod
+    def debias(beta: float, step: int) -> float:
+        r"""Adam-style debias correction. Returns `1.0 - beta ** step`.
+
+        :param beta: float. beta.
+        :param step: int. number of step.
+        """
+        return 1.0 - math.pow(beta, step)  # fmt: skip
+
+    @staticmethod
+    def debias_beta(beta: float, step: int) -> float:
+        r"""Apply the Adam-style debias correction into beta.
+
+        Simplified version of `\^{beta} = beta * (1.0 - beta ** (step - 1)) / (1.0 - beta ** step)`
+
+        :param beta: float. beta.
+        :param step: int. number of step.
+        """
+        beta_n: float = math.pow(beta, step)
+        return (beta_n - beta) / (beta_n - 1.0)  # fmt: skip
 
     @staticmethod
     def apply_adam_debias(adam_debias: bool, step_size: float, bias_correction1: float) -> float:
@@ -205,14 +230,14 @@ class BaseOptimizer(ABC):
         :param exp_grad_norm: Optional[torch.Tensor]. exp_grad_norm.
         :param r: float. Optional[float]. momentum (ratio).
         """
-        if not adanorm:
+        if not adanorm or exp_grad_norm is None:
             return grad
 
         grad_norm = torch.linalg.norm(grad)
 
         exp_grad_norm.mul_(r).add_(grad_norm, alpha=1.0 - r)
 
-        return grad * exp_grad_norm / grad_norm if exp_grad_norm > grad_norm else grad
+        return grad.mul(exp_grad_norm).div_(grad_norm) if exp_grad_norm > grad_norm else grad
 
     @staticmethod
     def get_rms(x: torch.Tensor) -> float:
@@ -299,5 +324,8 @@ class BaseOptimizer(ABC):
             self.validate_range(nus[1], 'nu2', 0.0, 1.0, range_type='[]')
 
     @abstractmethod
-    def reset(self):  # pragma: no cover
+    def reset(self) -> None:  # pragma: no cover
+        raise NotImplementedError
+
+    def step(self, closure: CLOSURE = None) -> LOSS:  # pragma: no cover
         raise NotImplementedError

@@ -4,14 +4,13 @@ from typing import Optional, Set
 import torch
 from torch import distributed as dist
 from torch import nn
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS
 
 
-class AdamMini(Optimizer, BaseOptimizer):  # pragma: no cover
+class AdamMini(BaseOptimizer):  # pragma: no cover
     r"""Use Fewer Learning Rates To Gain More.
 
     :param model: nn.Module. model instance.
@@ -276,8 +275,8 @@ class AdamMini(Optimizer, BaseOptimizer):  # pragma: no cover
 
             beta1, beta2 = group['betas']
 
-            bias_correction1: float = 1.0 - beta1 ** group['step']
-            bias_correction2: float = 1.0 - beta2 ** group['step']
+            bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2: float = self.debias(beta2, group['step'])
             bias_correction2_sq: float = math.sqrt(bias_correction2)
 
             for p in group['params']:

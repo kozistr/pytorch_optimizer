@@ -2,13 +2,12 @@ from collections import defaultdict
 from typing import Callable, Dict
 
 import torch
-from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER, STATE
 
 
-class Lookahead(Optimizer, BaseOptimizer):
+class Lookahead(BaseOptimizer):
     r"""k steps forward, 1 step back.
 
     :param optimizer: OPTIMIZER. base optimizer.

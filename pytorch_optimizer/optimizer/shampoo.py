@@ -1,5 +1,4 @@
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -13,7 +12,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
 )
 
 
-class Shampoo(Optimizer, BaseOptimizer):
+class Shampoo(BaseOptimizer):
     r"""Preconditioned Stochastic Tensor Optimization.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -137,7 +136,7 @@ class Shampoo(Optimizer, BaseOptimizer):
         return loss
 
 
-class ScalableShampoo(Optimizer, BaseOptimizer):
+class ScalableShampoo(BaseOptimizer):
     r"""Scalable Preconditioned Stochastic Tensor Optimization.
 
         This version of Scalable Shampoo Optimizer aims for a single GPU environment, not for a distributed environment
