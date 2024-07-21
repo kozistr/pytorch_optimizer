@@ -226,14 +226,14 @@ class BaseOptimizer(ABC):
         :param exp_grad_norm: Optional[torch.Tensor]. exp_grad_norm.
         :param r: float. Optional[float]. momentum (ratio).
         """
-        if not adanorm:
+        if not adanorm or exp_grad_norm is None:
             return grad
 
         grad_norm = torch.linalg.norm(grad)
 
         exp_grad_norm.mul_(r).add_(grad_norm, alpha=1.0 - r)
 
-        return grad * exp_grad_norm / grad_norm if exp_grad_norm > grad_norm else grad
+        return grad.mul(exp_grad_norm).div_(grad_norm) if exp_grad_norm > grad_norm else grad
 
     @staticmethod
     def get_rms(x: torch.Tensor) -> float:
