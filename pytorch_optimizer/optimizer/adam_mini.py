@@ -4,14 +4,13 @@ from typing import Optional, Set
 import torch
 from torch import distributed as dist
 from torch import nn
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS
 
 
-class AdamMini(Optimizer, BaseOptimizer):  # pragma: no cover
+class AdamMini(BaseOptimizer):  # pragma: no cover
     r"""Use Fewer Learning Rates To Gain More.
 
     :param model: nn.Module. model instance.

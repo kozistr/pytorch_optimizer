@@ -1,5 +1,4 @@
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -7,7 +6,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
-class Lion(Optimizer, BaseOptimizer):
+class Lion(BaseOptimizer):
     r"""Symbolic Discovery of Optimization Algorithms.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

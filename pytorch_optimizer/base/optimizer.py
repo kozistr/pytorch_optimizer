@@ -1,19 +1,23 @@
 import math
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import torch
+from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
-from pytorch_optimizer.base.types import BETAS, HUTCHINSON_G, PARAMETERS, STATE
+from pytorch_optimizer.base.types import BETAS, DEFAULTS, HUTCHINSON_G, PARAMETERS, STATE
 
 
-class BaseOptimizer(ABC):
-    r"""Base optimizer class."""
+class BaseOptimizer(ABC, Optimizer):
+    r"""Base optimizer class. Provides common functionalities for the optimizers."""
+
+    def __init__(self, params: PARAMETERS, defaults: DEFAULTS) -> None:
+        super().__init__(params, defaults)
 
     @staticmethod
     @torch.no_grad()
-    def set_hessian(param_groups: PARAMETERS, state: STATE, hessian: List[torch.Tensor]):
+    def set_hessian(param_groups: PARAMETERS, state: STATE, hessian: List[torch.Tensor]) -> None:
         r"""Set hessian to state from external source. Generally useful when using functorch as a base.
 
         Example:
@@ -45,7 +49,7 @@ class BaseOptimizer(ABC):
                 i += 1
 
     @staticmethod
-    def zero_hessian(param_groups: PARAMETERS, state: STATE, pre_zero: bool = True):
+    def zero_hessian(param_groups: PARAMETERS, state: STATE, pre_zero: bool = True) -> None:
         r"""Zero-out hessian.
 
         :param param_groups: PARAMETERS. parameter groups.
@@ -68,7 +72,7 @@ class BaseOptimizer(ABC):
         num_samples: int = 1,
         alpha: float = 1.0,
         distribution: HUTCHINSON_G = 'gaussian',
-    ):
+    ) -> None:
         r"""Hutchinson's approximate hessian, added to the state under key `hessian`.
 
         :param param_groups: PARAMETERS. parameter groups.
@@ -110,7 +114,7 @@ class BaseOptimizer(ABC):
         weight_decouple: bool,
         fixed_decay: bool,
         ratio: Optional[float] = None,
-    ):
+    ) -> None:
         r"""Apply weight decay.
 
         :param p: torch.Tensor. parameter.
@@ -320,5 +324,8 @@ class BaseOptimizer(ABC):
             self.validate_range(nus[1], 'nu2', 0.0, 1.0, range_type='[]')
 
     @abstractmethod
-    def reset(self):  # pragma: no cover
+    def reset(self) -> None:  # pragma: no cover
+        raise NotImplementedError
+
+    def step(self, closure: Optional[Callable[[], float]] = None) -> Optional[float]:
         raise NotImplementedError

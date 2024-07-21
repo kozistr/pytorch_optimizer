@@ -4,7 +4,6 @@ from typing import Dict, Literal, Optional
 
 import torch
 from torch import nn
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -99,7 +98,7 @@ def gradfilter_ema(
     return grads
 
 
-class GrokFastAdamW(Optimizer, BaseOptimizer):
+class GrokFastAdamW(BaseOptimizer):
     r"""Accelerated Grokking by Amplifying Slow Gradients with AdamW.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

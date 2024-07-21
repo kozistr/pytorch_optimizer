@@ -1,14 +1,13 @@
 import math
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class AdaBelief(Optimizer, BaseOptimizer):
+class AdaBelief(BaseOptimizer):
     r"""Adapting Step-sizes by the Belief in Observed Gradients.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

@@ -1,7 +1,6 @@
 import math
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -9,7 +8,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
-class Adai(Optimizer, BaseOptimizer):
+class Adai(BaseOptimizer):
     r"""Disentangling the Effects of Adaptive Learning Rate and Momentum.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

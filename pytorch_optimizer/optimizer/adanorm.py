@@ -1,14 +1,13 @@
 import math
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class AdaNorm(Optimizer, BaseOptimizer):
+class AdaNorm(BaseOptimizer):
     r"""Symbolic Discovery of Optimization Algorithms.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

@@ -2,14 +2,13 @@ from typing import Optional
 
 import numpy as np
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class Apollo(Optimizer, BaseOptimizer):
+class Apollo(BaseOptimizer):
     r"""An Adaptive Parameter-wise Diagonal Quasi-Newton Method for Nonconvex Stochastic Optimization.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

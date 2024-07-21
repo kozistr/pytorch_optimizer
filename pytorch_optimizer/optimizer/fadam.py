@@ -1,12 +1,11 @@
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class FAdam(Optimizer, BaseOptimizer):
+class FAdam(BaseOptimizer):
     r"""Adam is a natural gradient optimizer using diagonal empirical Fisher information.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

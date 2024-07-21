@@ -1,12 +1,11 @@
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.utils import reduce_max_except_dim
 
 
-class SM3(Optimizer, BaseOptimizer):
+class SM3(BaseOptimizer):
     r"""Memory-Efficient Adaptive Optimization.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

@@ -7,7 +7,6 @@
 import math
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -15,7 +14,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm, to_real
 
 
-class DAdaptAdaGrad(Optimizer, BaseOptimizer):
+class DAdaptAdaGrad(BaseOptimizer):
     r"""AdaGrad with D-Adaptation. Leave LR set to 1 unless you encounter instability.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -240,7 +239,7 @@ class DAdaptAdaGrad(Optimizer, BaseOptimizer):
         return loss
 
 
-class DAdaptAdam(Optimizer, BaseOptimizer):
+class DAdaptAdam(BaseOptimizer):
     r"""Adam with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -401,7 +400,7 @@ class DAdaptAdam(Optimizer, BaseOptimizer):
         return loss
 
 
-class DAdaptSGD(Optimizer, BaseOptimizer):
+class DAdaptSGD(BaseOptimizer):
     r"""SGD with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -537,7 +536,7 @@ class DAdaptSGD(Optimizer, BaseOptimizer):
         return loss
 
 
-class DAdaptAdan(Optimizer, BaseOptimizer):
+class DAdaptAdan(BaseOptimizer):
     r"""Adan with D-Adaptation. Leave LR set to 1 unless you encounter instability.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -701,7 +700,7 @@ class DAdaptAdan(Optimizer, BaseOptimizer):
         return loss
 
 
-class DAdaptLion(Optimizer, BaseOptimizer):
+class DAdaptLion(BaseOptimizer):
     r"""Lion with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

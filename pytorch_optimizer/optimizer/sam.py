@@ -6,7 +6,6 @@ from torch import nn
 from torch.distributed import ReduceOp, all_reduce, get_world_size, is_initialized
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.utils import clip_grad_norm_
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -14,7 +13,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, OPTIMIZER, PA
 from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_running_stats
 
 
-class SAM(Optimizer, BaseOptimizer):
+class SAM(BaseOptimizer):
     r"""Sharpness-Aware Minimization for Efficiently Improving Generalization.
 
     Example:
@@ -153,7 +152,7 @@ class SAM(Optimizer, BaseOptimizer):
         self.base_optimizer.param_groups = self.param_groups
 
 
-class GSAM(Optimizer, BaseOptimizer):  # pragma: no cover
+class GSAM(BaseOptimizer):  # pragma: no cover
     r"""Surrogate Gap Guided Sharpness-Aware Minimization.
 
     Example:
@@ -369,7 +368,7 @@ class GSAM(Optimizer, BaseOptimizer):  # pragma: no cover
         self.base_optimizer.param_groups = self.param_groups
 
 
-class WSAM(Optimizer, BaseOptimizer):
+class WSAM(BaseOptimizer):
     r"""Sharpness-Aware Minimization Revisited: Weighted Sharpness as a Regularization Term.
 
     :param model: Union[torch.nn.Module, torch.nn.DataParallel]. the model instance. DDP model is recommended to make
@@ -528,7 +527,7 @@ class WSAM(Optimizer, BaseOptimizer):
         self.base_optimizer.param_groups = self.param_groups
 
 
-class BSAM(Optimizer, BaseOptimizer):
+class BSAM(BaseOptimizer):
     r"""SAM as an Optimal Relaxation of Bayes.
 
     Example:

@@ -2,7 +2,6 @@ import math
 from typing import Literal, Optional, Tuple, Union
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -133,7 +132,7 @@ class GaLoreProjector:
         raise NotImplementedError
 
 
-class GaLore(Optimizer, BaseOptimizer):
+class GaLore(BaseOptimizer):
     r"""AdamW optimizer with GaLore projector.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

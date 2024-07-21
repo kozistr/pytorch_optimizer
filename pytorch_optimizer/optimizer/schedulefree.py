@@ -2,14 +2,13 @@ import math
 from typing import List
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class ScheduleFreeSGD(Optimizer, BaseOptimizer):
+class ScheduleFreeSGD(BaseOptimizer):
     r"""Schedule-Free SGD.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -151,7 +150,7 @@ class ScheduleFreeSGD(Optimizer, BaseOptimizer):
         return loss
 
 
-class ScheduleFreeAdamW(Optimizer, BaseOptimizer):
+class ScheduleFreeAdamW(BaseOptimizer):
     r"""Schedule-Free AdamW.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

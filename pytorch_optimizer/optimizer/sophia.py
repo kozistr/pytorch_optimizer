@@ -1,14 +1,13 @@
 from typing import List, Optional
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, HUTCHINSON_G, LOSS, PARAMETERS
 
 
-class SophiaH(Optimizer, BaseOptimizer):
+class SophiaH(BaseOptimizer):
     r"""Second-order Clipped Stochastic Optimization.
 
         Requires `loss.backward(create_graph=True)` in order to calculate hessians.

@@ -3,7 +3,6 @@ from typing import Optional
 
 import torch
 from torch.nn import functional as f
-from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -13,7 +12,7 @@ from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
 
 
-class Ranger21(Optimizer, BaseOptimizer):
+class Ranger21(BaseOptimizer):
     r"""Integrating the latest deep learning components into a single optimizer.
 
         Here's the components
@@ -240,8 +239,8 @@ class Ranger21(Optimizer, BaseOptimizer):
         for group in self.param_groups:
             beta1, beta2 = group['betas']
 
-            bias_correction1: float = 1.0 - beta1 ** group['step']  # fmt: skip
-            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])  # fmt: skip
+            bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
             noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
 

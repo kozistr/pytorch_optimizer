@@ -2,14 +2,13 @@ import math
 from typing import Dict, Tuple
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class AccSGD(Optimizer, BaseOptimizer):
+class AccSGD(BaseOptimizer):
     r"""Accelerating Stochastic Gradient Descent For Least Squares Regression.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -104,7 +103,7 @@ class AccSGD(Optimizer, BaseOptimizer):
         return loss
 
 
-class SGDW(Optimizer, BaseOptimizer):
+class SGDW(BaseOptimizer):
     r"""Decoupled Weight Decay Regularization.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -198,7 +197,7 @@ class SGDW(Optimizer, BaseOptimizer):
         return loss
 
 
-class ASGD(Optimizer, BaseOptimizer):
+class ASGD(BaseOptimizer):
     r"""Adaptive SGD with estimation of the local smoothness (curvature).
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -323,7 +322,7 @@ class ASGD(Optimizer, BaseOptimizer):
         return loss
 
 
-class SignSGD(Optimizer, BaseOptimizer):
+class SignSGD(BaseOptimizer):
     r"""Compressed Optimisation for Non-Convex Problems.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

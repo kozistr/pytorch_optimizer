@@ -2,7 +2,6 @@ import math
 from typing import Union
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -11,7 +10,7 @@ from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
-class Adan(Optimizer, BaseOptimizer):
+class Adan(BaseOptimizer):
     r"""Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

@@ -2,14 +2,13 @@ import math
 from typing import Optional
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class Prodigy(Optimizer, BaseOptimizer):
+class Prodigy(BaseOptimizer):
     r"""An Expeditiously Adaptive Parameter-Free Learner.
 
         Leave LR set to 1 unless you encounter instability.

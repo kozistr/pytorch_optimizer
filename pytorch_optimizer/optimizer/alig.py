@@ -1,7 +1,6 @@
 from typing import Callable, Optional
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoClosureError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -9,7 +8,7 @@ from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
-class AliG(Optimizer, BaseOptimizer):
+class AliG(BaseOptimizer):
     r"""Adaptive Learning Rates for Interpolation with Gradients.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.

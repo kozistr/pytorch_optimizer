@@ -1,14 +1,13 @@
 import math
 
 import torch
-from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
-class Aida(Optimizer, BaseOptimizer):
+class Aida(BaseOptimizer):
     r"""A DNN Optimizer that Improves over AdaBelief by Suppression of the Adaptive Stepsize Range.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
