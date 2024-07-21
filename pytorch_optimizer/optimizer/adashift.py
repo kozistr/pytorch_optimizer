@@ -73,7 +73,7 @@ class AdaShift(Optimizer, BaseOptimizer):
             first_grad_weight: float = beta1 ** (group['keep_num'] - 1) / exp_weight_sum
             last_grad_weight: float = 1.0 / exp_weight_sum
 
-            bias_correction: float = 1.0 - beta2 ** (group['step'] - group['keep_num'])
+            bias_correction: float = self.debias(beta2, group['step'] - group['keep_num'])
 
             for p in group['params']:
                 if p.grad is None:

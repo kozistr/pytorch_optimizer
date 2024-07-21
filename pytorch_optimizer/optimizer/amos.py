@@ -92,7 +92,7 @@ class Amos(Optimizer, BaseOptimizer):
             momentum, beta = group['momentum'], group['beta']
 
             lr_sq: float = math.sqrt(group['lr'])
-            bias_correction: float = 1.0 - beta ** group['step']
+            bias_correction: float = self.debias(beta, group['step'])
 
             for p in group['params']:
                 if p.grad is None:

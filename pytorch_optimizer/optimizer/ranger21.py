@@ -198,7 +198,7 @@ class Ranger21(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction2: float = 1.0 - beta2 ** group['step']
+            bias_correction2: float = self.debias(beta2, group['step'])
 
             for p in group['params']:
                 if p.grad is None:

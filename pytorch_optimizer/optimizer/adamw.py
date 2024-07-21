@@ -6,7 +6,6 @@ from torch.optim.optimizer import Optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.optimizer.utils import debias_beta
 
 
 class StableAdamW(Optimizer, BaseOptimizer):
@@ -80,8 +79,8 @@ class StableAdamW(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            beta1_comp: float = 1.0 - debias_beta(beta1, group['step'])
-            beta2_hat: float = debias_beta(beta2, group['step'])
+            beta1_comp: float = 1.0 - self.debias_beta(beta1, group['step'])
+            beta2_hat: float = self.debias_beta(beta2, group['step'])
 
             eps_p2: float = math.pow(group['eps'], 2)
 

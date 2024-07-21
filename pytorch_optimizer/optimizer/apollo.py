@@ -92,7 +92,7 @@ class Apollo(Optimizer, BaseOptimizer):
 
             weight_decay, eps = group['weight_decay'], group['eps']
 
-            bias_correction: float = 1.0 - group['beta'] ** group['step']
+            bias_correction: float = self.debias(group['beta'], group['step'])
             alpha: float = (1.0 - group['beta']) / bias_correction
 
             for p in group['params']:

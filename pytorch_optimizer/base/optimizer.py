@@ -146,6 +146,27 @@ class BaseOptimizer(ABC):
         return de_nom.sqrt_().add_(eps)
 
     @staticmethod
+    def debias(beta: float, step: int) -> float:
+        r"""Adam-style debias correction. Returns `1.0 - beta ** step`.
+
+        :param beta: float. beta.
+        :param step. int. number of step.
+        """
+        return 1.0 - math.pow(beta, step)  # fmt: skip
+
+    @staticmethod
+    def debias_beta(beta: float, step: int) -> float:
+        r"""Apply the Adam-style debias correction into beta.
+
+        Simplified version of `\^{beta} = beta * (1.0 - beta ** (step - 1)) / (1.0 - beta ** step)`
+
+        :param beta: float. beta.
+        :param step: int. number of step.
+        """
+        beta_n: float = math.pow(beta, step)
+        return (beta_n - beta) / (beta_n - 1.0)  # fmt: skip
+
+    @staticmethod
     def apply_adam_debias(adam_debias: bool, step_size: float, bias_correction1: float) -> float:
         r"""Apply AdamD variant.
 

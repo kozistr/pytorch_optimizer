@@ -81,7 +81,7 @@ class FAdam(Optimizer, BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            curr_beta2: float = beta2 * (1 - beta2 ** (group['step'] - 1)) / (1 - beta2 ** group['step'])
+            curr_beta2: float = self.debias_beta(beta2, group['step'])
 
             for p in group['params']:
                 if p.grad is None:

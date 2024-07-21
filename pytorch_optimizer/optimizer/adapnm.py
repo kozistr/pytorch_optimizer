@@ -93,8 +93,9 @@ class AdaPNM(Optimizer, BaseOptimizer):
             beta1, beta2, beta3 = group['betas']
 
             noise_norm: float = math.sqrt((1 + beta3) ** 2 + beta3 ** 2)  # fmt: skip
-            bias_correction1: float = 1.0 - beta1 ** group['step']
-            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
+
+            bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
             for p in group['params']:
                 if p.grad is None:

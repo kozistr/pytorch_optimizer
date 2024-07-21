@@ -105,7 +105,7 @@ class Adai(Optimizer, BaseOptimizer):
                 if self.use_gc:
                     centralize_gradient(grad, gc_conv_only=False)
 
-                bias_correction2: float = 1.0 - beta2 ** state['step']
+                bias_correction2: float = self.debias(beta2, state['step'])
 
                 if not group['stable_weight_decay'] and group['weight_decay'] > 0.0:
                     self.apply_weight_decay(
@@ -148,7 +148,7 @@ class Adai(Optimizer, BaseOptimizer):
                         fixed_decay=group['fixed_decay'],
                     )
 
-                bias_correction2: float = 1.0 - beta2 ** state['step']
+                bias_correction2: float = self.debias(beta2, state['step'])
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 

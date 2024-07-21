@@ -102,8 +102,8 @@ class Prodigy(Optimizer, BaseOptimizer):
         beta1, beta2 = group['betas']
         beta3 = group['beta3'] if group['beta3'] is not None else math.sqrt(beta2)
 
-        bias_correction1: float = 1.0 - beta1 ** group['step']
-        bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
+        bias_correction1: float = self.debias(beta1, group['step'])
+        bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
         bias_correction: float = (bias_correction1 / bias_correction2_sq) if group['bias_correction'] else 1.0
 
         d, d0 = group['d'], group['d0']
