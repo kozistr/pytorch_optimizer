@@ -676,7 +676,7 @@ def test_trac_optimizer(environment):
     optimizer = TRAC(load_optimizer('adamw')(model.parameters(), lr=1e0))
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(10):
+    for _ in range(5):
         optimizer.zero_grad()
 
         y_pred = model(x_data)
@@ -689,4 +689,18 @@ def test_trac_optimizer(environment):
 
         optimizer.step()
 
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
+
+def test_trac_optimizer_erf_imag():
+    model = Example()
+
+    optimizer = TRAC(load_optimizer('adamw')(model.parameters()))
+
+    optimizer.reset()
+    optimizer.zero_grad()
+
+    complex_tensor = torch.complex(torch.tensor(0.0), torch.tensor(1.0))
+    optimizer.erf_imag(complex_tensor)
+
+    assert str(optimizer).lower() == 'trac'

@@ -92,22 +92,21 @@ class TRAC(BaseOptimizer):
         Here's an example::
 
             model = YourModel()
-            base_optimizer = AdamW
-            optimizer = TRAC(model.parameters(), base_optimizer)
+            optimizer = TRAC(AdamW(model.parameters()))
 
             for input, output in data:
-                loss = loss_function(output, model(input))
-                loss.backward()
-                optimizer.step()
                 optimizer.zero_grad()
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param base_optimizer: Optimizer. base optimizer.
+                loss = loss_fn(model(input), output)
+                loss.backward()
+
+                optimizer.step()
+
+    :param optimizer: Optimizer. base optimizer.
     :param betas: List[float]. list of beta values.
     :param num_coefs: int. the number of polynomial coefficients to use in the approximation.
     :param s_prev: float. initial scale value.
     :param eps: float. term added to the denominator to improve numerical stability.
-    :param kwargs: Dict. parameters for optimizer.
     """
 
     def __init__(
@@ -117,9 +116,8 @@ class TRAC(BaseOptimizer):
         num_coefs: int = 128,
         s_prev: float = 1e-8,
         eps: float = 1e-8,
-        **kwargs,
     ):
-        self.validate_non_negative(num_coefs, 'num_coefs')
+        self.validate_positive(num_coefs, 'num_coefs')
         self.validate_non_negative(s_prev, 's_prev')
         self.validate_non_negative(eps, 'eps')
 
@@ -133,15 +131,7 @@ class TRAC(BaseOptimizer):
 
         self.optimizer = optimizer
         self.state: STATE = defaultdict(dict)
-
-        self.defaults: DEFAULTS = {
-            'trac_betas': betas,
-            'trac_num_coefs': num_coefs,
-            'trac_s_prev': s_prev,
-            'trac_eps': eps,
-            **optimizer.defaults,
-            **kwargs,
-        }
+        self.defaults: DEFAULTS = optimizer.defaults
 
     def __str__(self) -> str:
         return 'TRAC'
@@ -152,14 +142,11 @@ class TRAC(BaseOptimizer):
 
     @torch.no_grad()
     def reset(self):
-        device = next(iter(self.param_groups['params'][0])).device
+        device = self.param_groups[0]['params'][0].device
 
         self.state = {
             'betas': torch.tensor(self.betas, device=device),
-            's_prev': torch.tensor(self.s_prev, device=device),
-            'eps': self.eps,
             's': torch.zeros(len(self.betas), device=device),
-            'theta_ref': {},
             'variance': torch.zeros(len(self.betas), device=device),
             'sigma': torch.full((len(self.betas),), 1e-8, device=device),
             'step': 0,
@@ -167,13 +154,14 @@ class TRAC(BaseOptimizer):
 
         for group in self.param_groups:
             for p in group['params']:
-                self.state[p] = {'ref': p.clone()}
+                self.state[p] = p.clone()
 
     @torch.no_grad()
     def zero_grad(self) -> None:
         self.optimizer.zero_grad(set_to_none=True)
 
-    def erfi(self, x: torch.Tensor) -> torch.Tensor:
+    @torch.no_grad()
+    def erf_imag(self, x: torch.Tensor) -> torch.Tensor:
         if not torch.is_floating_point(x):
             x = x.to(torch.float32)
 
@@ -198,7 +186,7 @@ class TRAC(BaseOptimizer):
 
         deltas = {}
 
-        device = updates[next(iter(updates.keys()))].device
+        device = self.param_groups[0]['params'][0].device
 
         h = torch.zeros((1,), device=device)
         for group in self.param_groups:
@@ -206,10 +194,10 @@ class TRAC(BaseOptimizer):
                 if p.grad is None:
                     continue
 
-                theta_ref = self.state[p]['ref']
+                theta_ref = self.state[p]
                 update = updates[p]
 
-                deltas[p] = (update - theta_ref) / (torch.sum(self.state['s']) + self.state['eps'])
+                deltas[p] = (update - theta_ref) / (torch.sum(self.state['s']) + self.eps)
                 update.neg_().add_(p)
 
                 grad, delta = grads[p], deltas[p]
@@ -220,17 +208,15 @@ class TRAC(BaseOptimizer):
                 delta.add_(update)
 
         s = self.state['s']
-        s_prev = self.state['s_prev']
         betas = self.state['betas']
-        eps = self.state['eps']
         variance = self.state['variance']
         sigma = self.state['sigma']
 
         variance.mul_(betas.pow(2)).add_(h.pow(2))
         sigma.mul_(betas).sub_(h)
 
-        f_term = s_prev / self.erfi(1.0 / torch.sqrt(torch.tensor(2.0)))
-        s_term = self.erfi(sigma / (torch.sqrt(torch.tensor(2.0)) * variance.sqrt() + eps))
+        f_term = self.s_prev / self.erf_imag(1.0 / torch.sqrt(torch.tensor(2.0)))
+        s_term = self.erf_imag(sigma / (torch.sqrt(torch.tensor(2.0)) * variance.sqrt() + self.eps))
         s.copy_(f_term * s_term)
 
         for group in self.param_groups:
@@ -238,22 +224,21 @@ class TRAC(BaseOptimizer):
                 if grads[p] is None:
                     continue
 
-                p.copy_(self.state[p]['ref'] + deltas[p] * max(torch.sum(s), 0.0))
+                p.copy_(self.state[p] + deltas[p] * max(torch.sum(s), 0.0))
 
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
-        updates, grads = self.backup_params_and_grads()
+        with torch.enable_grad():
+            loss = self.optimizer.step(closure)
 
-        loss = self.optimizer.step(closure)
+        updates, grads = self.backup_params_and_grads()
 
         if len(self.state) == 0:
             device = updates[next(iter(updates.keys()))].device
 
             self.state = {
                 'betas': torch.tensor(self.betas, device=device),
-                's_prev': torch.tensor(self.s_prev, device=device),
-                'eps': self.eps,
                 's': torch.zeros(len(self.betas), device=device),
-                'theta_ref': {},
                 'variance': torch.zeros(len(self.betas), device=device),
                 'sigma': torch.full((len(self.betas),), 1e-8, device=device),
                 'step': 0,
@@ -261,7 +246,7 @@ class TRAC(BaseOptimizer):
 
             for group in self.param_groups:
                 for p in group['params']:
-                    self.state[p] = {'ref': updates[p].clone()}
+                    self.state[p] = updates[p].clone()
 
         self.trac_step(updates, grads)
 
