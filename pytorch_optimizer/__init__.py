@@ -353,6 +353,8 @@ def create_optimizer(
 
     if optimizer_name == 'alig':
         optimizer = optimizer(parameters, max_lr=lr, **kwargs)
+    elif optimizer_name in {'lomo', 'adalomo', 'adammini'}:
+        optimizer = optimizer(model, lr=lr, **kwargs)
     else:
         optimizer = optimizer(parameters, lr=lr, **kwargs)
 
