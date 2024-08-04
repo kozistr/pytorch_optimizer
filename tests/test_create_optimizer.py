@@ -9,6 +9,7 @@ def test_create_optimizer():
 
     create_optimizer(model, 'adamp', lr=1e-2, weight_decay=1e-3, use_gc=True, use_lookahead=True)
     create_optimizer(model, 'alig', lr=1e-2, use_lookahead=True)
+    create_optimizer(model, 'adalomo', lr=1e-2, use_lookahead=False)
 
 
 def test_bnb_optimizer():
