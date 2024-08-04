@@ -7,6 +7,7 @@ from pytorch_optimizer import (
     BSAM,
     GSAM,
     SAM,
+    TRAC,
     WSAM,
     CosineScheduler,
     DynamicLossScaler,
@@ -667,3 +668,25 @@ def test_adam_mini_optimizer(environment):
     optimizer = load_optimizer('AdamMini')(model)
     optimizer.reset()
     optimizer.step()
+
+
+def test_trac_optimizer(environment):
+    (x_data, y_data), model, loss_fn = environment
+
+    optimizer = TRAC(load_optimizer('adamw')(model.parameters(), lr=1e0))
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(10):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward()
+
+        optimizer.step()
+
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
