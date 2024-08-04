@@ -73,16 +73,6 @@ class ERF1994(nn.Module):
         out = -torch.exp(torch.log(self.w_algorithm(z * self.i)) - z ** 2) + 1  # fmt: skip
         return torch.complex(out.real * sign_r, out.imag * sign_i)
 
-    @staticmethod
-    def backward(z: torch.Tensor) -> torch.Tensor:
-        r"""Compute the gradient of the error function of a complex number.
-
-        As we know the analytical derivative of the error function, we can use it directly.
-
-        :param z: torch.Tensor. A tensor of complex numbers.
-        """
-        return 2.0 / torch.sqrt(torch.tensor(torch.pi)) * torch.exp(-(z ** 2))  # fmt: skip
-
 
 class TRAC(BaseOptimizer):
     r"""A Parameter-Free Optimizer for Lifelong Reinforcement Learning.
