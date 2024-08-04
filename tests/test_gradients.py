@@ -1,13 +1,13 @@
 import pytest
 import torch
 
-from pytorch_optimizer import SAM, WSAM, AdamP, Lookahead, load_optimizer
+from pytorch_optimizer import SAM, WSAM, AdamP, Lookahead, TRAC, load_optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
 from tests.utils import build_environment, simple_parameter, simple_sparse_parameter, sphere_loss
 
 
-@pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead'])
+@pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead', 'trac'])
 def test_no_gradients(optimizer_name):
     if optimizer_name in {'lomo', 'adalomo', 'adammini'}:
         pytest.skip(f'skip {optimizer_name} optimizer.')
@@ -25,7 +25,9 @@ def test_no_gradients(optimizer_name):
     elif optimizer_name in ('lamb', 'ralamb'):
         optimizer = load_optimizer(optimizer_name)(params, pre_norm=True)
     elif optimizer_name == 'lookahead':
-        optimizer = Lookahead(load_optimizer('adamp')(params), k=1)
+        optimizer = Lookahead(load_optimizer('adamw')(params), k=1)
+    elif optimizer_name == 'trac':
+        optimizer = TRAC(load_optimizer('adamw')(params))
     else:
         optimizer = load_optimizer(optimizer_name)(params)
 
@@ -33,7 +35,7 @@ def test_no_gradients(optimizer_name):
     sphere_loss(p1 + p3).backward(create_graph=True)
 
     optimizer.step(lambda: 0.1)  # for AliG optimizer
-    if optimizer_name != 'lookahead':
+    if optimizer_name not in {'lookahead', 'trac'}:
         optimizer.zero_grad(set_to_none=True)
 
 
