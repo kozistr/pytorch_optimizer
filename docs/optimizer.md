@@ -328,6 +328,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.TRAC
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.WSAM
     :docstring:
     :members:
