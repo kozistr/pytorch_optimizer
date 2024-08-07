@@ -8,7 +8,7 @@ from tests.utils import Example, simple_parameter
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_learning_rate(optimizer_name):
-    if optimizer_name in ('alig', 'a2grad'):
+    if optimizer_name in {'alig', 'a2grad', 'adamw'}:
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)

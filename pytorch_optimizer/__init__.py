@@ -4,6 +4,7 @@ from typing import Dict, List
 
 import torch.cuda
 from torch import nn
+from torch.optim import AdamW
 
 from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS, SCHEDULER
 from pytorch_optimizer.loss.bi_tempered import BinaryBiTemperedLogisticLoss, BiTemperedLogisticLoss
@@ -115,6 +116,7 @@ from pytorch_optimizer.optimizer.sophia import SophiaH
 from pytorch_optimizer.optimizer.srmm import SRMM
 from pytorch_optimizer.optimizer.swats import SWATS
 from pytorch_optimizer.optimizer.tiger import Tiger
+from pytorch_optimizer.optimizer.trac import TRAC
 from pytorch_optimizer.optimizer.utils import (
     clip_grad_norm,
     disable_running_stats,
@@ -131,6 +133,7 @@ HAS_BNB: bool = find_spec('bitsandbytes') is not None
 HAS_Q_GALORE: bool = find_spec('q-galore-torch') is not None
 
 OPTIMIZER_LIST: List[OPTIMIZER] = [
+    AdamW,
     AdaBelief,
     AdaBound,
     PID,
@@ -350,6 +353,8 @@ def create_optimizer(
 
     if optimizer_name == 'alig':
         optimizer = optimizer(parameters, max_lr=lr, **kwargs)
+    elif optimizer_name in {'lomo', 'adalomo', 'adammini'}:
+        optimizer = optimizer(model, lr=lr, **kwargs)
     else:
         optimizer = optimizer(parameters, lr=lr, **kwargs)
 

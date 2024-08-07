@@ -52,7 +52,7 @@ def test_came_parameters():
 
 
 def test_pcgrad_parameters():
-    opt = load_optimizer('adamp')([simple_parameter()])
+    opt = load_optimizer('adamw')([simple_parameter()])
 
     # test reduction
     for reduction in ['mean', 'sum']:
@@ -64,16 +64,16 @@ def test_pcgrad_parameters():
 
 def test_sam_parameters():
     with pytest.raises(ValueError):
-        SAM(None, load_optimizer('adamp'), rho=-0.1)
+        SAM(None, load_optimizer('adamw'), rho=-0.1)
 
 
 def test_wsam_parameters():
     with pytest.raises(ValueError):
-        WSAM(None, None, load_optimizer('adamp'), rho=-0.1)
+        WSAM(None, None, load_optimizer('adamw'), rho=-0.1)
 
 
 def test_lookahead_parameters():
-    optimizer = load_optimizer('adamp')([simple_parameter()])
+    optimizer = load_optimizer('adamw')([simple_parameter()])
 
     for pullback_momentum in PULLBACK_MOMENTUM:
         opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
