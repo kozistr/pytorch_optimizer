@@ -138,7 +138,7 @@ class TRAC(BaseOptimizer):
     def reset(self):
         device = self.param_groups[0]['params'][0].device
 
-        self.state = {
+        self.state['trac'] = {
             'betas': torch.tensor(self.betas, device=device),
             's': torch.zeros(len(self.betas), device=device),
             'variance': torch.zeros(len(self.betas), device=device),
@@ -148,7 +148,7 @@ class TRAC(BaseOptimizer):
 
         for group in self.param_groups:
             for p in group['params']:
-                self.state[p] = p.clone()
+                self.state['trac'][p] = p.clone()
 
     @torch.no_grad()
     def zero_grad(self) -> None:
