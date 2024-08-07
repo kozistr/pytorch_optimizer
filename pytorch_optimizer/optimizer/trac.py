@@ -1,11 +1,10 @@
-from collections import defaultdict
 from typing import Callable, Dict, List, Tuple
 
 import torch
 from torch import nn
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER, STATE
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER
 
 
 def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
@@ -119,8 +118,9 @@ class TRAC(BaseOptimizer):
         self.s_prev = s_prev
         self.eps = eps
 
+        self.f_term = self.s_prev / self.erf_imag(1.0 / torch.sqrt(torch.tensor(2.0)))
+
         self.optimizer = optimizer
-        self.state: STATE = defaultdict(dict)
         self.defaults: DEFAULTS = optimizer.defaults
 
     def __str__(self) -> str:
@@ -129,6 +129,10 @@ class TRAC(BaseOptimizer):
     @property
     def param_groups(self):
         return self.optimizer.param_groups
+
+    @property
+    def state(self):
+        return self.optimizer.state
 
     @torch.no_grad()
     def reset(self):
@@ -172,7 +176,7 @@ class TRAC(BaseOptimizer):
 
     @torch.no_grad()
     def trac_step(self, updates: Dict, grads: Dict) -> None:
-        self.state['step'] += 1
+        self.state['trac']['step'] += 1
 
         deltas = {}
 
@@ -181,13 +185,13 @@ class TRAC(BaseOptimizer):
         h = torch.zeros((1,), device=device)
         for group in self.param_groups:
             for p in group['params']:
-                if p.grad is None:
+                if grads[p] is None:
                     continue
 
-                theta_ref = self.state[p]
+                theta_ref = self.state['trac'][p]
                 update = updates[p]
 
-                deltas[p] = (update - theta_ref) / (torch.sum(self.state['s']) + self.eps)
+                deltas[p] = (update - theta_ref) / torch.sum(self.state['trac']['s']).add_(self.eps)
                 update.neg_().add_(p)
 
                 grad, delta = grads[p], deltas[p]
@@ -197,36 +201,42 @@ class TRAC(BaseOptimizer):
 
                 delta.add_(update)
 
-        s = self.state['s']
-        betas = self.state['betas']
-        variance = self.state['variance']
-        sigma = self.state['sigma']
+        s = self.state['trac']['s']
+        betas = self.state['trac']['betas']
+        variance = self.state['trac']['variance']
+        sigma = self.state['trac']['sigma']
 
         variance.mul_(betas.pow(2)).add_(h.pow(2))
         sigma.mul_(betas).sub_(h)
 
-        f_term = self.s_prev / self.erf_imag(1.0 / torch.sqrt(torch.tensor(2.0)))
-        s_term = self.erf_imag(sigma / (torch.sqrt(torch.tensor(2.0)) * variance.sqrt() + self.eps))
-        s.copy_(f_term * s_term)
+        s_term = self.erf_imag(sigma / (2.0 * variance).sqrt_().add_(self.eps))
+        s_term.mul_(self.f_term)
+        s.copy_(s_term)
+
+        scale = max(torch.sum(s), 0.0)
 
         for group in self.param_groups:
             for p in group['params']:
                 if grads[p] is None:
                     continue
 
-                p.copy_(self.state[p] + deltas[p] * max(torch.sum(s), 0.0))
+                delta = deltas[p]
+                delta.mul_(scale).add_(self.state['trac'][p])
+
+                p.copy_(delta)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
+        # TODO: backup is first to get the delta of param and grad, but it does not work.
         with torch.enable_grad():
             loss = self.optimizer.step(closure)
 
         updates, grads = self.backup_params_and_grads()
 
-        if len(self.state) == 0:
-            device = updates[next(iter(updates.keys()))].device
+        if 'trac' not in self.state:
+            device = self.param_groups[0]['params'][0].device
 
-            self.state = {
+            self.state['trac'] = {
                 'betas': torch.tensor(self.betas, device=device),
                 's': torch.zeros(len(self.betas), device=device),
                 'variance': torch.zeros(len(self.betas), device=device),
@@ -236,7 +246,7 @@ class TRAC(BaseOptimizer):
 
             for group in self.param_groups:
                 for p in group['params']:
-                    self.state[p] = updates[p].clone()
+                    self.state['trac'][p] = updates[p].clone()
 
         self.trac_step(updates, grads)
 

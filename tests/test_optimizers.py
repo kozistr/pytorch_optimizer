@@ -676,11 +676,8 @@ def test_trac_optimizer(environment):
     optimizer = TRAC(load_optimizer('adamw')(model.parameters(), lr=1e0))
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(5):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
+    for _ in range(3):
+        loss = loss_fn(model(x_data), y_data)
 
         if init_loss == np.inf:
             init_loss = loss
@@ -688,6 +685,7 @@ def test_trac_optimizer(environment):
         loss.backward()
 
         optimizer.step()
+        optimizer.zero_grad()
 
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
