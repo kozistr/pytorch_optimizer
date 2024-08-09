@@ -140,7 +140,7 @@ class TRAC(BaseOptimizer):
 
         self.state['trac'] = {
             'betas': torch.tensor(self.betas, device=device),
-            's': torch.zeros(len(self.betas), device=device),
+            's': torch.zeros(1, device=device),
             'variance': torch.zeros(len(self.betas), device=device),
             'sigma': torch.full((len(self.betas),), 1e-8, device=device),
             'step': 0,
@@ -182,6 +182,7 @@ class TRAC(BaseOptimizer):
 
         device = self.param_groups[0]['params'][0].device
 
+        s = self.state['trac']['s']
         h = torch.zeros((1,), device=device)
         for group in self.param_groups:
             for p in group['params']:
@@ -191,7 +192,7 @@ class TRAC(BaseOptimizer):
                 theta_ref = self.state['trac'][p]
                 update = updates[p]
 
-                deltas[p] = (update - theta_ref) / torch.sum(self.state['trac']['s']).add_(self.eps)
+                deltas[p] = (update - theta_ref) / s.add(self.eps)
                 update.neg_().add_(p)
 
                 grad, delta = grads[p], deltas[p]
@@ -201,7 +202,8 @@ class TRAC(BaseOptimizer):
 
                 delta.add_(update)
 
-        s = self.state['trac']['s']
+                p.copy_(theta_ref)
+
         betas = self.state['trac']['betas']
         variance = self.state['trac']['variance']
         sigma = self.state['trac']['sigma']
@@ -209,21 +211,17 @@ class TRAC(BaseOptimizer):
         variance.mul_(betas.pow(2)).add_(h.pow(2))
         sigma.mul_(betas).sub_(h)
 
-        s_term = self.erf_imag(sigma / (2.0 * variance).sqrt_().add_(self.eps))
-        s_term.mul_(self.f_term)
-        s.copy_(s_term)
+        term = self.erf_imag(sigma / (2.0 * variance).sqrt_().add_(self.eps)).mul_(self.f_term)
+        s.copy_(torch.sum(term))
 
-        scale = max(torch.sum(s), 0.0)
+        scale = max(s, 0.0)
 
         for group in self.param_groups:
             for p in group['params']:
                 if grads[p] is None:
                     continue
 
-                delta = deltas[p]
-                delta.mul_(scale).add_(self.state['trac'][p])
-
-                p.copy_(delta)
+                p.add_(deltas[p] * scale)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -238,7 +236,7 @@ class TRAC(BaseOptimizer):
 
             self.state['trac'] = {
                 'betas': torch.tensor(self.betas, device=device),
-                's': torch.zeros(len(self.betas), device=device),
+                's': torch.zeros(1, device=device),
                 'variance': torch.zeros(len(self.betas), device=device),
                 'sigma': torch.full((len(self.betas),), 1e-8, device=device),
                 'step': 0,
