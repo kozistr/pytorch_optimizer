@@ -272,9 +272,9 @@ def l2_projection(parameters: PARAMETERS, max_norm: float = 1e2):
 
 
 @torch.no_grad()
-def get_global_gradient_norm(param_groups: List[Dict], device: torch.device) -> torch.Tensor:
+def get_global_gradient_norm(param_groups: List[Dict]) -> torch.Tensor:
     r"""Get global gradient norm."""
-    global_grad_norm = torch.zeros(1, dtype=torch.float32, device=device)
+    global_grad_norm = torch.zeros(1, dtype=torch.float32, device=param_groups[0]['params'][0].device)
 
     for group in param_groups:
         for p in group['params']:

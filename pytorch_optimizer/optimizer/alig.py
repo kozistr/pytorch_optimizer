@@ -52,7 +52,7 @@ class AliG(BaseOptimizer):
     @torch.no_grad()
     def compute_step_size(self, loss: float) -> float:
         r"""Compute step_size."""
-        global_grad_norm = get_global_gradient_norm(self.param_groups, torch.device('cpu'))
+        global_grad_norm = get_global_gradient_norm(self.param_groups)
         global_grad_norm.add_(1e-6)
 
         return loss / global_grad_norm.item()

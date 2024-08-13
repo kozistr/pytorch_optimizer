@@ -473,7 +473,7 @@ class DAdaptSGD(BaseOptimizer):
         numerator_weighted = group['numerator_weighted']
 
         if group['step'] == 0:
-            group['g0_norm'] = get_global_gradient_norm(self.param_groups, device).sqrt_().item()
+            group['g0_norm'] = get_global_gradient_norm(self.param_groups).sqrt_().item()
         g0_norm = group['g0_norm']
 
         if g0_norm == 0:
