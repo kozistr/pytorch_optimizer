@@ -110,6 +110,8 @@ class Prodigy(BaseOptimizer):
 
         if 'd_numerator' not in group:
             group['d_numerator'] = torch.tensor([0.0], device=device)
+        elif group['d_numerator'].device != device:
+            group['d_numerator'] = group['d_numerator'].to(device)
 
         d_numerator = group['d_numerator']
         d_numerator.mul_(beta3)

@@ -428,8 +428,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Prodigy, {'lr': 1e0, 'beta3': 0.999, 'weight_decay': 1e-3, 'safeguard_warmup': True}, 15),
     (PAdam, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (Tiger, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
-    (CAME, {'lr': 7.5e-1, 'weight_decay': 1e-3}, 75),
-    (CAME, {'lr': 7.5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 75),
+    (CAME, {'lr': 7.5e-1, 'weight_decay': 1e-3}, 70),
+    (CAME, {'lr': 7.5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 70),
     (Aida, {'lr': 1e0, 'weight_decay': 1e-3, 'ams_bound': True}, 5),
     (
         GaLore,

@@ -27,7 +27,7 @@ class AdamG(BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.95, 0.999, 0.95),
         p: float = 0.5,
-        q: float = 0.25,
+        q: float = 0.24,
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
