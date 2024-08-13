@@ -76,8 +76,7 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
     for _ in range(iterations):
         optimizer.zero_grad()
 
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
+        loss = loss_fn(model(x_data), y_data)
 
         if init_loss == np.inf:
             init_loss = loss
