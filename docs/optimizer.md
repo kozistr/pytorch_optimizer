@@ -44,6 +44,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.AdamG
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AdaMod
     :docstring:
     :members:
