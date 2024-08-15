@@ -36,6 +36,7 @@ class ScheduleFreeSGD(BaseOptimizer):
         weight_lr_power: float = 2.0,
         warmup_steps: int = 0,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='[]')
@@ -180,6 +181,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
         warmup_steps: int = 0,
         ams_bound: bool = False,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

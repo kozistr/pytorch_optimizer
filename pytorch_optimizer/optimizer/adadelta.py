@@ -26,6 +26,7 @@ class AdaDelta(BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         eps: float = 1e-6,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(rho, 'rho', 0.0, 1.0)

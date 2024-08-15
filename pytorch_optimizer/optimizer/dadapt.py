@@ -39,6 +39,7 @@ class DAdaptAdaGrad(BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         eps: float = 0.0,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='[)')
@@ -266,6 +267,7 @@ class DAdaptAdam(BaseOptimizer):
         fixed_decay: bool = False,
         bias_correction: bool = False,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
@@ -423,6 +425,7 @@ class DAdaptSGD(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='[)')
@@ -560,6 +563,7 @@ class DAdaptAdan(BaseOptimizer):
         d0: float = 1e-6,
         growth_rate: float = float('inf'),
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
@@ -721,6 +725,7 @@ class DAdaptLion(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

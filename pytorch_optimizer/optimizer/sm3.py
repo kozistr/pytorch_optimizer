@@ -23,6 +23,7 @@ class SM3(BaseOptimizer):
         momentum: float = 0.0,
         beta: float = 0.0,
         eps: float = 1e-30,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0)

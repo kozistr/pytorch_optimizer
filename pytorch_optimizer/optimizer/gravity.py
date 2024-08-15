@@ -20,6 +20,7 @@ class Gravity(BaseOptimizer):
         lr: float = 1e-2,
         alpha: float = 0.01,
         beta: float = 0.9,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(alpha, 'alpha', 0.0, 1.0)

@@ -35,6 +35,7 @@ class CAME(BaseOptimizer):
         ams_bound: bool = False,
         eps1: float = 1e-30,
         eps2: float = 1e-16,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

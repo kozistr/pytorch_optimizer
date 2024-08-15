@@ -31,6 +31,7 @@ class Amos(BaseOptimizer):
         c_coef: float = 0.25,
         d_coef: float = 0.25,
         eps: float = 1e-18,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='[)')

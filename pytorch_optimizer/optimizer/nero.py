@@ -17,7 +17,13 @@ class Nero(BaseOptimizer):
     """
 
     def __init__(
-        self, params: PARAMETERS, lr: float = 0.01, beta: float = 0.999, constraints: bool = True, eps: float = 1e-8
+        self,
+        params: PARAMETERS,
+        lr: float = 0.01,
+        beta: float = 0.999,
+        constraints: bool = True,
+        eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')

@@ -30,6 +30,7 @@ class FAdam(BaseOptimizer):
         eps: float = 1e-8,
         momentum_dtype: torch.dtype = torch.float32,
         fim_dtype: torch.dtype = torch.float32,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

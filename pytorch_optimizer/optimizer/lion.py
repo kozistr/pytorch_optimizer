@@ -31,6 +31,7 @@ class Lion(BaseOptimizer):
         use_gc: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

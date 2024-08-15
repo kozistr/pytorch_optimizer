@@ -38,6 +38,7 @@ class SophiaH(BaseOptimizer):
         num_samples: int = 1,
         hessian_distribution: HUTCHINSON_G = 'gaussian',
         eps: float = 1e-12,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

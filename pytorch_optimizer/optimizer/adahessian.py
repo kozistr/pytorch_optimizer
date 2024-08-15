@@ -40,6 +40,7 @@ class AdaHessian(BaseOptimizer):
         hessian_distribution: HUTCHINSON_G = 'rademacher',
         adam_debias: bool = False,
         eps: float = 1e-16,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

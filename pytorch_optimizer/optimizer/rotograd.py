@@ -176,7 +176,7 @@ class RotateOnly(nn.Module):
         backbone: nn.Module,
         heads: Sequence[nn.Module],
         latent_size: int,
-        *args,  # noqa: ARG002
+        *args,
         burn_in_period: int = 20,
         normalize_losses: bool = False,
     ):

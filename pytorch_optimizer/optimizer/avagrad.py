@@ -30,6 +30,7 @@ class AvaGrad(BaseOptimizer):
         fixed_decay: bool = False,
         adam_debias: bool = False,
         eps: float = 1e-1,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

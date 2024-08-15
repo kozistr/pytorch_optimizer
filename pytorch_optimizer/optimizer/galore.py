@@ -21,7 +21,12 @@ class GaLoreProjector:
     """
 
     def __init__(
-        self, rank: int = 128, update_proj_gap: int = 50, scale: float = 1.0, projection_type: PROJECTION_TYPE = 'std'
+        self,
+        rank: int = 128,
+        update_proj_gap: int = 50,
+        scale: float = 1.0,
+        projection_type: PROJECTION_TYPE = 'std',
+        **kwargs,
     ):
         self.rank = rank
         self.update_proj_gap = update_proj_gap

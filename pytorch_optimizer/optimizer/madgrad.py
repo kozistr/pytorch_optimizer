@@ -32,6 +32,7 @@ class MADGRAD(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         eps: float = 1e-6,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(weight_decay, 'weight_decay')
