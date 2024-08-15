@@ -35,6 +35,7 @@ class Adalite(BaseOptimizer):
         tau: float = 1.0,
         eps1: float = 1e-6,
         eps2: float = 1e-10,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

@@ -44,6 +44,7 @@ class Prodigy(BaseOptimizer):
         bias_correction: bool = False,
         safeguard_warmup: bool = False,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas((*betas, beta3))

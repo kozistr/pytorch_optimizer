@@ -30,6 +30,7 @@ class PID(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0)

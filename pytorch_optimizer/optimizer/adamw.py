@@ -29,6 +29,7 @@ class StableAdamW(BaseOptimizer):
         weight_decay: float = 1e-2,
         weight_decouple: bool = True,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

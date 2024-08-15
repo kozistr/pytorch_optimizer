@@ -105,6 +105,7 @@ class TRAC(BaseOptimizer):
         num_coefs: int = 128,
         s_prev: float = 1e-8,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_positive(num_coefs, 'num_coefs')
         self.validate_non_negative(s_prev, 's_prev')

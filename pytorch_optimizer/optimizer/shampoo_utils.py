@@ -37,7 +37,7 @@ class Graft:
         r"""Get preconditioned gradient."""
         return grad
 
-    def update_momentum(self, update: torch.Tensor, unused_beta1: float) -> torch.Tensor:  # noqa: ARG002
+    def update_momentum(self, update: torch.Tensor, unused_beta1: float) -> torch.Tensor:
         r"""Update momentum."""
         return update
 

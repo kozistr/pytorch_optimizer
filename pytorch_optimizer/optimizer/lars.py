@@ -26,6 +26,7 @@ class LARS(BaseOptimizer):
         dampening: float = 0.0,
         trust_coefficient: float = 1e-3,
         nesterov: bool = False,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(weight_decay, 'weight_decay')

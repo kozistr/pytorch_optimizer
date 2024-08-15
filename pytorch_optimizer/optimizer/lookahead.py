@@ -22,6 +22,7 @@ class Lookahead(BaseOptimizer):
         k: int = 5,
         alpha: float = 0.5,
         pullback_momentum: str = 'none',
+        **kwargs,
     ) -> None:
         self.validate_positive(k, 'k')
         self.validate_range(alpha, 'alpha', 0.0, 1.0)

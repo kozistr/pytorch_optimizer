@@ -33,6 +33,7 @@ class Apollo(BaseOptimizer):
         weight_decay_type: str = 'l2',
         warmup_steps: int = 500,
         eps: float = 1e-4,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')

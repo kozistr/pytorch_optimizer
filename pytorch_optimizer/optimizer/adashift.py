@@ -28,6 +28,7 @@ class AdaShift(BaseOptimizer):
         keep_num: int = 10,
         reduce_func: Optional[Callable] = torch.max,
         eps: float = 1e-10,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

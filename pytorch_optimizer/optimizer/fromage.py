@@ -22,7 +22,7 @@ class Fromage(BaseOptimizer):
         norms to lie within 2x their initial norms. This regularises the model class.
     """
 
-    def __init__(self, params: PARAMETERS, lr: float = 1e-2, p_bound: Optional[float] = None):
+    def __init__(self, params: PARAMETERS, lr: float = 1e-2, p_bound: Optional[float] = None, **kwargs):
         self.validate_learning_rate(lr)
 
         self.p_bound = p_bound

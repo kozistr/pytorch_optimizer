@@ -128,6 +128,7 @@ class GrokFastAdamW(BaseOptimizer):
         fixed_decay: bool = False,
         normalize_lr: bool = True,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

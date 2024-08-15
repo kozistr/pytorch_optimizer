@@ -27,6 +27,7 @@ class AccSGD(BaseOptimizer):
         xi: float = 10.0,
         constant: float = 0.7,
         weight_decay: float = 0.0,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(kappa, 'kappa')
@@ -124,6 +125,7 @@ class SGDW(BaseOptimizer):
         weight_decouple: bool = True,
         dampening: float = 0.0,
         nesterov: bool = False,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
@@ -222,6 +224,7 @@ class ASGD(BaseOptimizer):
         theta: float = 1.0,
         dampening: float = 1.0,
         eps: float = 1e-5,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(amplifier, 'amplifier')
@@ -339,6 +342,7 @@ class SignSGD(BaseOptimizer):
         momentum: float = 0.9,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'beta', 0.0, 1.0)

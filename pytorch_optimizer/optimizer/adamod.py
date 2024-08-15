@@ -31,6 +31,7 @@ class AdaMod(BaseOptimizer):
         fixed_decay: bool = False,
         adam_debias: bool = False,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

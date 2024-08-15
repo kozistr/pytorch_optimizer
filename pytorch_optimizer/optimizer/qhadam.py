@@ -30,6 +30,7 @@ class QHAdam(BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

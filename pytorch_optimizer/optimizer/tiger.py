@@ -24,6 +24,7 @@ class Tiger(BaseOptimizer):
         weight_decay: float = 0.01,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[)')

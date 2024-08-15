@@ -36,6 +36,7 @@ class Shampoo(BaseOptimizer):
         fixed_decay: bool = False,
         preconditioning_compute_steps: int = 1,
         matrix_eps: float = 1e-6,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
@@ -211,6 +212,7 @@ class ScalableShampoo(BaseOptimizer):
         diagonal_eps: float = 1e-10,
         matrix_eps: float = 1e-6,
         use_svd: bool = False,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

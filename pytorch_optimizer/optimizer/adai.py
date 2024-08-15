@@ -35,6 +35,7 @@ class Adai(BaseOptimizer):
         dampening: float = 1.0,
         use_gc: bool = False,
         eps: float = 1e-3,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

@@ -53,6 +53,7 @@ class Lamb(BaseOptimizer):
         adanorm: bool = False,
         adam_debias: bool = False,
         eps: float = 1e-6,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

@@ -27,6 +27,7 @@ class A2Grad(BaseOptimizer):
         lips: float = 10.0,
         rho: float = 0.5,
         variant: str = 'uni',
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(lips, 'lips')

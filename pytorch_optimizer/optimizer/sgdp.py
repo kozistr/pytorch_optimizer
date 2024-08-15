@@ -36,6 +36,7 @@ class SGDP(BaseOptimizer):
         wd_ratio: float = 0.1,
         nesterov: bool = False,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(weight_decay, 'weight_decay')

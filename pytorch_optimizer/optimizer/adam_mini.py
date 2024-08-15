@@ -38,6 +38,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         num_heads: int = 32,
         num_query_groups: Optional[int] = None,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

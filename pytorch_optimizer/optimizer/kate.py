@@ -26,6 +26,7 @@ class Kate(BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(delta, 'delta', 0.0, 1.0, '[)')

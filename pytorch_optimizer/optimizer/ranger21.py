@@ -82,6 +82,7 @@ class Ranger21(BaseOptimizer):
         norm_loss_factor: float = 1e-4,
         adam_debias: bool = False,
         eps: float = 1e-8,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_learning_rate(warm_down_min_lr)

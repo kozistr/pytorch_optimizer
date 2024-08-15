@@ -16,7 +16,14 @@ class SRMM(BaseOptimizer):
     :param memory_length: Optional[int]. internal memory length for moving average. None for no refreshing.
     """
 
-    def __init__(self, params: PARAMETERS, lr: float = 0.01, beta: float = 0.5, memory_length: Optional[int] = 100):
+    def __init__(
+        self,
+        params: PARAMETERS,
+        lr: float = 0.01,
+        beta: float = 0.5,
+        memory_length: Optional[int] = 100,
+        **kwargs,
+    ):
         self.validate_learning_rate(lr)
         self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')
 

@@ -49,6 +49,7 @@ class AdaFactor(BaseOptimizer):
         eps1: float = 1e-30,
         eps2: float = 1e-3,
         momentum_dtype: torch.dtype = torch.bfloat16,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)

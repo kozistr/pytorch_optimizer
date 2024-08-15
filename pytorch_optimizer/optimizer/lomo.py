@@ -30,6 +30,7 @@ class LOMO(BaseOptimizer):
         lr: float = 1e-3,
         clip_grad_norm: Optional[float] = None,
         clip_grad_value: Optional[float] = None,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(clip_grad_norm, 'clip_grad_norm')
@@ -228,6 +229,7 @@ class AdaLOMO(BaseOptimizer):
         clip_grad_value: Optional[float] = None,
         eps1: float = 1e-30,
         eps2: float = 1e-3,
+        **kwargs,
     ) -> None:  # fmt: skip
         self.validate_learning_rate(lr)
         self.validate_non_negative(weight_decay, 'weight_decay')
