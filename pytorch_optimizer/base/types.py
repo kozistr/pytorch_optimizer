@@ -15,3 +15,5 @@ SCHEDULER = Type[LRScheduler]
 
 HUTCHINSON_G = Literal['gaussian', 'rademacher']
 CLASS_MODE = Literal['binary', 'multiclass', 'multilabel']
+
+DATA_FORMAT = Literal['channels_first', 'channels_last']
