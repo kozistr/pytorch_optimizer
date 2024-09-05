@@ -13,6 +13,7 @@ from pytorch_optimizer import (
     SGDP,
     SGDW,
     SM3,
+    SOAP,
     SRMM,
     SWATS,
     A2Grad,
@@ -140,6 +141,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'adammini',
     'adamg',
     'ademamix',
+    'soap',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -475,6 +477,11 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdamG, {'lr': 1e0}, 20),
     (AdEMAMix, {'lr': 1e0}, 5),
     (AdEMAMix, {'lr': 1e0, 't_alpha_beta3': 5}, 5),
+    (
+        SOAP,
+        {'lr': 1e0, 'shampoo_beta': 0.95, 'precondition_frequency': 1, 'merge_dims': False, 'precondition_1d': True},
+        10,
+    ),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
