@@ -114,6 +114,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
     power_iteration,
 )
 from pytorch_optimizer.optimizer.sm3 import SM3
+from pytorch_optimizer.optimizer.soap import SOAP
 from pytorch_optimizer.optimizer.sophia import SophiaH
 from pytorch_optimizer.optimizer.srmm import SRMM
 from pytorch_optimizer.optimizer.swats import SWATS
@@ -210,6 +211,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaLOMO,
     AdamG,
     AdEMAMix,
+    SOAP,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
