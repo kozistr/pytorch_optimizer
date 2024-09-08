@@ -701,3 +701,59 @@ def test_trac_optimizer_erf_imag():
     optimizer.erf_imag(complex_tensor)
 
     assert str(optimizer).lower() == 'trac'
+
+
+def test_soap_merge_dims(environment):
+    (x_data, y_data), _, loss_fn = environment
+
+    model = nn.Sequential(
+        nn.Linear(2, 8),
+        nn.Linear(8, 1),
+    )
+
+    optimizer = load_optimizer('soap')(
+        model.parameters(),
+        merge_dims=True,
+        precondition_1d=True,
+        max_precondition_dim=4,
+    )
+    optimizer.zero_grad()
+
+    loss_fn(model(x_data), y_data).backward()
+
+    optimizer.step()
+
+    optimizer = load_optimizer('soap')(
+        model.parameters(),
+        merge_dims=True,
+        precondition_1d=False,
+        max_precondition_dim=1,
+    )
+    optimizer.zero_grad()
+
+    loss_fn(model(x_data), y_data).backward()
+
+    optimizer.step()
+
+
+def test_soap_merge_dims_channel_last(environment):
+    (x_data, y_data), _, loss_fn = environment
+
+    x_data = x_data.reshape(-1, 1, 2, 1).repeat_interleave(2, dim=-1).to(memory_format=torch.channels_last)
+    y_data = y_data.reshape(-1, 1, 1, 1)
+
+    model = nn.Sequential(
+        nn.Conv2d(1, 1, 2, 1),
+    )
+
+    optimizer = load_optimizer('soap')(
+        model.parameters(),
+        merge_dims=True,
+        precondition_1d=True,
+        # data_format='channels_last',
+    )
+    optimizer.zero_grad()
+
+    loss_fn(model(x_data), y_data).backward()
+
+    optimizer.step()
