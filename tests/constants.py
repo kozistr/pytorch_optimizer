@@ -34,6 +34,7 @@ from pytorch_optimizer import (
     AdaPNM,
     AdaShift,
     AdaSmooth,
+    AdEMAMix,
     AggMo,
     Aida,
     AliG,
@@ -138,6 +139,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'stableadamw',
     'adammini',
     'adamg',
+    'ademamix',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -471,6 +473,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Kate, {'lr': 5e-2}, 10),
     (StableAdamW, {'lr': 1e0}, 5),
     (AdamG, {'lr': 1e0}, 20),
+    (AdEMAMix, {'lr': 1e0}, 5),
+    (AdEMAMix, {'lr': 1e0, 't_alpha_beta3': 0.9}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
