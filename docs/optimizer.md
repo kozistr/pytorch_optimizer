@@ -80,6 +80,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.AdEMAMix
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.agc
     :docstring:
     :members:
