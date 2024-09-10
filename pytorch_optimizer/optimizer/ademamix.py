@@ -18,7 +18,7 @@ class AdEMAMix(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param alpha: float. usually between 4 and 10 would work well.
-    :param t_alpha_beta3: Optional[float].
+    :param t_alpha_beta3: Optional[float]. total number of iterations is preferred when needed.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 

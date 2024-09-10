@@ -474,7 +474,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (StableAdamW, {'lr': 1e0}, 5),
     (AdamG, {'lr': 1e0}, 20),
     (AdEMAMix, {'lr': 1e0}, 5),
-    (AdEMAMix, {'lr': 1e0, 't_alpha_beta3': 0.9}, 5),
+    (AdEMAMix, {'lr': 1e0, 't_alpha_beta3': 5}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
