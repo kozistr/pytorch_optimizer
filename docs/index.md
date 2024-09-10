@@ -10,7 +10,7 @@
 
 **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
 I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
-Currently, **75 optimizers (+ `bitsandbytes`, `qgalore`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
+Currently, **76 optimizers (+ `bitsandbytes`, `qgalore`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
@@ -173,6 +173,7 @@ supported_optimizers = get_supported_optimizers()
 | AdamMini      | *Use Fewer Learning Rates To Gain More*                                                           | [github](https://github.com/zyushun/Adam-mini)                                                                 | <https://arxiv.org/abs/2406.16793>                                                         | [cite](https://github.com/zyushun/Adam-mini?tab=readme-ov-file#citation)                                                            |
 | TRAC          | *Adaptive Parameter-free Optimization*                                                            | [github](https://github.com/ComputationalRobotics/TRAC)                                                        | <https://arxiv.org/abs/2405.16642>                                                         | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv240516642M/exportcitation)                                                        |
 | AdamG         | *Towards Stability of Parameter-free Optimization*                                                |                                                                                                                | <https://arxiv.org/abs/2405.04376>                                                         | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv240504376P/exportcitation)                                                        |
+| AdEMAMix      | *Better, Faster, Older*                                                                           | [github](https://github.com/nanowell/AdEMAMix-Optimizer-Pytorch)                                               | <https://arxiv.org/abs/2409.03137>                                                         | [cite](https://github.com/nanowell/AdEMAMix-Optimizer-Pytorch?tab=readme-ov-file#reference)                                         |
 
 ## Supported LR Scheduler
 
