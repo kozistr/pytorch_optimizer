@@ -80,32 +80,13 @@ class SOAP(BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
     def project(
-        self, grad: torch.Tensor, state, merge_dims: bool = False, max_precondition_dim: int = 10000
+        self,
+        grad: torch.Tensor,
+        state,
+        merge_dims: bool = False,
+        max_precondition_dim: int = 10000,
+        project_type: str = 'forward',
     ) -> torch.Tensor:
-        original_shape = grad.shape
-
-        if merge_dims:
-            if grad.dim() == 4 and self.data_format == 'channels_last':
-                permuted_shape = grad.permute(0, 3, 1, 2).shape
-
-            grad = grad.reshape(merge_small_dims(grad.size(), max_precondition_dim))
-
-        for mat in state['Q']:
-            if len(mat) > 0:
-                grad = torch.tensordot(grad, mat, dims=[[0], [0]])
-            else:
-                grad = grad.permute([*list(range(1, len(grad.shape))), 0])
-
-        if merge_dims:
-            if self.data_format == 'channels_last' and len(original_shape) == 4:
-                grad = grad.reshape(permuted_shape).permute(0, 2, 3, 1)
-            else:
-                grad = grad.reshape(original_shape)
-
-        return grad
-
-    def project_back(self, grad, state, merge_dims: bool = False, max_precondition_dim: int = 10000):
-        r"""Projects the gradient back to the original space."""
         original_shape = grad.shape
 
         if merge_dims:
@@ -116,7 +97,7 @@ class SOAP(BaseOptimizer):
 
         for mat in state['Q']:
             if len(mat) > 0:
-                grad = torch.tensordot(grad, mat, dims=[[0], [1]])
+                grad = torch.tensordot(grad, mat, dims=[[0], [0 if project_type == 'forward' else 1]])
             else:
                 grad = grad.permute([*list(range(1, len(grad.shape))), 0])
 
@@ -349,16 +330,17 @@ class SOAP(BaseOptimizer):
 
                 step_size = group['lr']
                 if group['correct_bias']:
-                    bias_correction1 = self.debias(beta1, group['step'])
-                    bias_correction2_sq = math.sqrt(self.debias(beta2, group['step']))
+                    bias_correction1: float = self.debias(beta1, group['step'])
+                    bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
                     step_size *= bias_correction2_sq / bias_correction1
 
-                norm_grad = self.project_back(
+                norm_grad = self.project(
                     exp_avg_projected / de_nom,
                     state,
                     merge_dims=group['merge_dims'],
                     max_precondition_dim=group['max_precondition_dim'],
+                    project_type='backward',
                 )
 
                 p.add_(norm_grad, alpha=-step_size)
