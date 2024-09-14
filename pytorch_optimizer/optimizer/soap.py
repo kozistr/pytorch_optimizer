@@ -4,6 +4,7 @@ from typing import List, Optional
 
 import torch
 
+from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DATA_FORMAT, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.shampoo_utils import merge_small_dims
@@ -286,6 +287,8 @@ class SOAP(BaseOptimizer):
                     continue
 
                 grad = p.grad
+                if grad.is_sparse:
+                    raise NoSparseGradientError(str(self))
 
                 state = self.state[p]
                 if len(state) == 0:
