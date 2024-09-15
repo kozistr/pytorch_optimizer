@@ -750,7 +750,6 @@ def test_soap_merge_dims_channel_last(environment):
         model.parameters(),
         merge_dims=True,
         precondition_1d=True,
-        # data_format='channels_last',
     )
     optimizer.zero_grad()
 
