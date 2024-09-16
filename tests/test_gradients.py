@@ -115,7 +115,7 @@ def test_sparse_supported(sparse_optimizer):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_bf16_gradient(optimizer_name):
-    if optimizer_name in {'shampoo', 'lomo', 'adalomo', 'bsam', 'adammini'}:
+    if optimizer_name in {'shampoo', 'lomo', 'adalomo', 'bsam', 'adammini', 'soap'}:
         pytest.skip(f'skip {optimizer_name}')
 
     param = torch.randn(1, 1).bfloat16().requires_grad_(True)
