@@ -249,7 +249,10 @@ class SOAP(BaseOptimizer):
     ) -> None:
         if grad.dim() == 1:
             if precondition_1d and grad.shape[0] <= max_precondition_dim:
-                state['GG'][0].lerp_(grad.unsqueeze(1) @ grad.unsqueeze(0), weight=1.0 - state['shampoo_beta'])
+                state['GG'][0].lerp_(
+                    (grad.unsqueeze(1) @ grad.unsqueeze(0)).to(state['GG'][0].dtype),
+                    weight=1.0 - state['shampoo_beta'],
+                )
         else:
             if merge_dims:
                 grad = grad.reshape(merge_small_dims(grad.size(), max_precondition_dim))
@@ -261,10 +264,14 @@ class SOAP(BaseOptimizer):
                         grad,
                         dims=[[*chain(range(idx), range(idx + 1, len(grad.shape)))]] * 2,
                     )
-                    state['GG'][idx].lerp_(outer_product, weight=1.0 - state['shampoo_beta'])
+
+                    state['GG'][idx].lerp_(
+                        outer_product.to(state['GG'][idx].dtype), weight=1.0 - state['shampoo_beta']
+                    )
 
         if state['Q'] is None:
             state['Q'] = self.get_orthogonal_matrix(state['GG'])
+
         if step > 0 and step % state['precondition_frequency'] == 0:
             state['Q'] = self.get_orthogonal_matrix_qr(state, max_precondition_dim, merge_dims)
 
