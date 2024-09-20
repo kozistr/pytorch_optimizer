@@ -132,27 +132,6 @@ class SOAP(BaseOptimizer):
 
     def get_orthogonal_matrix_qr(self, state, max_precondition_dim: int = 10000, merge_dims: bool = False):
         r"""Compute the eigen-bases of the pre-conditioner using one round of power iteration."""
-        matrix, orthogonal_matrix = [], []
-
-        for m, o in zip(state['GG'], state['Q']):
-            if len(m) == 0:
-                matrix.append([])
-                orthogonal_matrix.append([])
-                continue
-
-            if m.dtype != torch.float:
-                float_data = False
-                original_type = m.dtype
-                original_device = m.device
-
-                matrix.append(m.float())
-                orthogonal_matrix.append(o.float())
-            else:
-                float_data = True
-
-                matrix.append(m.float())
-                orthogonal_matrix.append(o.float())
-
         orig_shape = state['exp_avg_sq'].shape
         if self.data_format == 'channels_last' and len(orig_shape) == 4:
             permuted_shape = state['exp_avg_sq'].permute(0, 3, 1, 2).shape
@@ -161,10 +140,10 @@ class SOAP(BaseOptimizer):
         if merge_dims:
             exp_avg_sq = exp_avg_sq.reshape(merge_small_dims(exp_avg_sq.size(), max_precondition_dim))
 
-        final = []
-        for ind, (m, o) in enumerate(zip(matrix, orthogonal_matrix)):
+        matrices = []
+        for ind, (m, o) in enumerate(zip(state['GG'], state['Q'])):
             if len(m) == 0:
-                final.append([])
+                matrices.append([])
                 continue
 
             est_eig = torch.diag(o.T @ m @ o)
@@ -175,10 +154,7 @@ class SOAP(BaseOptimizer):
 
             q, _ = torch.linalg.qr(power_iter)
 
-            if not float_data:
-                q = q.to(original_device).type(original_type)
-
-            final.append(q)
+            matrices.append(q)
 
         if merge_dims:
             if self.data_format == 'channels_last' and len(orig_shape) == 4:
@@ -188,7 +164,7 @@ class SOAP(BaseOptimizer):
 
         state['exp_avg_sq'] = exp_avg_sq
 
-        return final
+        return matrices
 
     @staticmethod
     def init_pre_conditioner(

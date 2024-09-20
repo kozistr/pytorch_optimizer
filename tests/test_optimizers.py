@@ -730,14 +730,10 @@ def test_soap_merge_dims_channel_last(environment):
     (x_data, y_data), _, loss_fn = environment
 
     x_data = x_data.reshape(-1, 1, 2, 1).repeat_interleave(2, dim=-1).to(memory_format=torch.channels_last)
-    y_data = y_data.reshape(-1, 1, 1, 1)
-
-    x_data = x_data.bfloat16()
-    y_data = y_data.bfloat16()
 
     model = nn.Sequential(
         nn.Conv2d(1, 1, 2, 1),
-    ).bfloat16()
+    )
 
     optimizer = load_optimizer('soap')(
         model.parameters(),
@@ -748,6 +744,7 @@ def test_soap_merge_dims_channel_last(environment):
         data_format='channels_last',
     )
 
-    optimizer.zero_grad()
-    loss_fn(model(x_data), y_data).backward()
-    optimizer.step()
+    for _ in range(2):
+        optimizer.zero_grad()
+        loss_fn(model(x_data).squeeze(), y_data.squeeze()).backward()
+        optimizer.step()
