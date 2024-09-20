@@ -92,7 +92,7 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
 def test_lookahead(pullback_momentum, environment):
     (x_data, y_data), model, loss_fn = environment
 
-    optimizer = Lookahead(load_optimizer('adamp')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
+    optimizer = Lookahead(load_optimizer('adamw')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
 
     init_loss, loss = np.inf, np.inf
     for _ in range(5):
