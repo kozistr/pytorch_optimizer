@@ -1,6 +1,6 @@
 import math
 from itertools import chain
-from typing import List, Optional
+from typing import List
 
 import torch
 
