@@ -320,6 +320,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.SOAP
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.SophiaH
     :docstring:
     :members:

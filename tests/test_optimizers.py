@@ -92,7 +92,7 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
 def test_lookahead(pullback_momentum, environment):
     (x_data, y_data), model, loss_fn = environment
 
-    optimizer = Lookahead(load_optimizer('adamp')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
+    optimizer = Lookahead(load_optimizer('adamw')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
 
     init_loss, loss = np.inf, np.inf
     for _ in range(5):
@@ -701,3 +701,50 @@ def test_trac_optimizer_erf_imag():
     optimizer.erf_imag(complex_tensor)
 
     assert str(optimizer).lower() == 'trac'
+
+
+@pytest.mark.parametrize(
+    'params',
+    [
+        {'merge_dims': True, 'precondition_1d': True, 'max_precondition_dim': 4, 'precondition_frequency': 1},
+        {'merge_dims': True, 'precondition_1d': False, 'max_precondition_dim': 1, 'precondition_frequency': 1},
+    ],
+)
+def test_soap_parameters(params, environment):
+    (x_data, y_data), _, loss_fn = environment
+
+    model = nn.Sequential(
+        nn.Linear(2, 8),
+        nn.Linear(8, 1),
+    )
+
+    optimizer = load_optimizer('soap')(model.parameters(), **params)
+
+    for _ in range(2):
+        optimizer.zero_grad()
+        loss_fn(model(x_data), y_data).backward()
+        optimizer.step()
+
+
+def test_soap_merge_dims_channel_last(environment):
+    (x_data, y_data), _, loss_fn = environment
+
+    x_data = x_data.reshape(-1, 1, 2, 1).repeat_interleave(2, dim=-1).to(memory_format=torch.channels_last)
+
+    model = nn.Sequential(
+        nn.Conv2d(1, 1, 2, 1),
+    )
+
+    optimizer = load_optimizer('soap')(
+        model.parameters(),
+        merge_dims=True,
+        precondition_1d=True,
+        max_precondition_dim=2,
+        precondition_frequency=1,
+        data_format='channels_last',
+    )
+
+    for _ in range(2):
+        optimizer.zero_grad()
+        loss_fn(model(x_data).squeeze(), y_data.squeeze()).backward()
+        optimizer.step()
