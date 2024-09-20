@@ -16,7 +16,7 @@ class SOAP(BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-    :param shampoo_beta: Optional[float]. If >= 0, use this beta for the pre-conditioner (L and R in paper, state['GG']
+    :param shampoo_beta: Optional[float]. if >= 0, use this beta for the pre-conditioner (L and R in paper, state['GG']
         below) moving average instead of betas[1].
     :param weight_decay: float. weight decay (L2 penalty).
     :param precondition_frequency: int. How often to update the pre-conditioner.
@@ -33,7 +33,7 @@ class SOAP(BaseOptimizer):
         params: PARAMETERS,
         lr: float = 3e-3,
         betas: BETAS = (0.95, 0.95),
-        shampoo_beta: Optional[float] = -1.0,
+        shampoo_beta: float = 0.95,
         weight_decay: float = 1e-2,
         precondition_frequency: int = 10,
         max_precondition_dim: int = 10000,
@@ -46,6 +46,7 @@ class SOAP(BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
+        self.validate_non_negative(shampoo_beta, 'shampoo_beta')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_positive(precondition_frequency, 'precondition_frequency')
         self.validate_positive(max_precondition_dim, 'max_precondition_dim')
