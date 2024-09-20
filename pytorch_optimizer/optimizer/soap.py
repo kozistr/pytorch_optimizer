@@ -1,6 +1,6 @@
 import math
 from itertools import chain
-from typing import List
+from typing import List, Optional
 
 import torch
 
@@ -16,12 +16,12 @@ class SOAP(BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-    :param shampoo_beta: Optional[float]. if >= 0, use this beta for the pre-conditioner (L and R in paper, state['GG']
-        below) moving average instead of betas[1].
+    :param shampoo_beta: Optional[float]. if not None, use this beta for the pre-conditioner (L and R in paper,
+        state['GG'] below) moving average instead of betas[1].
     :param weight_decay: float. weight decay (L2 penalty).
-    :param precondition_frequency: int. How often to update the pre-conditioner.
-    :param max_precondition_dim: int. Maximum dimension of the pre-conditioner. Set to 10000, so that we
-        exclude most common vocab sizes while including layers.
+    :param precondition_frequency: int. how often to update the pre-conditioner.
+    :param max_precondition_dim: int. maximum dimension of the pre-conditioner. Set to 10000, so that we exclude most
+        common vocab sizes while including layers.
     :param merge_dims: bool. whether to merge dimensions of the pre-conditioner
     :param precondition_1d: bool. whether to precondition 1D gradients.
     :param correct_bias: bool. whether to correct bias in Adam.
@@ -33,7 +33,7 @@ class SOAP(BaseOptimizer):
         params: PARAMETERS,
         lr: float = 3e-3,
         betas: BETAS = (0.95, 0.95),
-        shampoo_beta: float = 0.95,
+        shampoo_beta: Optional[float] = None,
         weight_decay: float = 1e-2,
         precondition_frequency: int = 10,
         max_precondition_dim: int = 10000,
@@ -265,7 +265,7 @@ class SOAP(BaseOptimizer):
                         grad,
                         state,
                         precondition_frequency=group['precondition_frequency'],
-                        shampoo_beta=group['shampoo_beta'],
+                        shampoo_beta=group['shampoo_beta'] if group['shampoo_beta'] is not None else beta2,
                         max_precondition_dim=group['max_precondition_dim'],
                         precondition_1d=group['precondition_1d'],
                         merge_dims=group['merge_dims'],
