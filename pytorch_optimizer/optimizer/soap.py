@@ -283,10 +283,10 @@ class SOAP(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                group['step'] = 0
-            else:
+            if 'step' in group:
                 group['step'] += 1
+            else:
+                group['step'] = 1
 
             beta1, beta2 = group['betas']
             for p in group['params']:
