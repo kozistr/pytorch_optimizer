@@ -747,8 +747,7 @@ def test_soap_merge_dims_channel_last(environment):
         precondition_frequency=1,
         data_format='channels_last',
     )
+
     optimizer.zero_grad()
-
     loss_fn(model(x_data), y_data).backward()
-
     optimizer.step()

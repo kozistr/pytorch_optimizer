@@ -112,41 +112,23 @@ class SOAP(BaseOptimizer):
 
     @staticmethod
     def get_orthogonal_matrix(mat: torch.Tensor) -> List[torch.Tensor]:
-        matrix = []
+        matrices: List = []
         for m in mat:
             if len(m) == 0:
-                matrix.append([])
-                continue
-
-            if m.dtype != torch.float:
-                float_data = False
-                original_type = m.dtype
-                original_device = m.device
-                matrix.append(m.float())
-            else:
-                float_data = True
-                matrix.append(m)
-
-        final = []
-        for m in matrix:
-            if len(m) == 0:
-                final.append([])
+                matrices.append([])
                 continue
 
             try:
                 _, q = torch.linalg.eigh(m + 1e-30 * torch.eye(m.shape[0], device=m.device))
-            except Exception:
+            except Exception:  # pragma: no cover
                 _, q = torch.linalg.eigh(m.to(torch.float64) + 1e-30 * torch.eye(m.shape[0], device=m.device))
                 q = q.to(m.dtype)
 
             q = torch.flip(q, dims=[1])
 
-            if not float_data:
-                q = q.to(original_device).type(original_type)
+            matrices.append(q)
 
-            final.append(q)
-
-        return final
+        return matrices
 
     def get_orthogonal_matrix_qr(self, state, max_precondition_dim: int = 10000, merge_dims: bool = False):
         r"""Compute the eigen-bases of the pre-conditioner using one round of power iteration."""
