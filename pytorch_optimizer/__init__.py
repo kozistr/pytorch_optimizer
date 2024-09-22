@@ -301,6 +301,15 @@ def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
         return optim.RMSprop32bit
     if 'sgd32bit' in optimizer:
         return optim.SGD32bit
+    if 'ademamix8bit' in optimizer:
+        return optim.AdEMAMix8bit
+    if 'ademamix32bit' in optimizer:
+        return optim.AdEMAMix32bit
+    if 'paged_ademamix8bit' in optimizer:
+        return optim.PagedAdEMAMix8bit
+    if 'paged_ademamix32bit' in optimizer:
+        return optim.PagedAdEMAMix32bit
+
     raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
 
 
