@@ -24,10 +24,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
-    - name: Install uv
-      run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install dependencies
-      run: uv pip install --system -r requirements-dev.txt
+      run: pip --disable-pip-version-check install --no-compile -r requirements-dev.txt
     - name: Check lint
       run: make check
     - name: Check test
