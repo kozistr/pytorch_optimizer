@@ -136,29 +136,21 @@ def test_running_stats():
 
 
 def test_compute_power():
-    # case 1 : len(x.shape) == 1
     x = compute_power_schur_newton(torch.zeros((1,)), p=1)
     assert torch.tensor([1000000.0]) == x
 
-    # case 2 : len(x.shape) != 1 and x.shape[0] == 1
     x = compute_power_schur_newton(torch.zeros((1, 2)), p=1)
     assert torch.tensor([1.0]) == x
 
-    # case 3 : len(x.shape) != 1 and x.shape[0] != 1, n&n-1 != 0
-    # it doesn't work on torch 2.1.1+cpu
     _ = compute_power_schur_newton(torch.ones((2, 2)), p=3)
 
-    # case 4 : p=1
     x = compute_power_schur_newton(torch.ones((2, 2)), p=1)
     assert np.sum(x.numpy() - np.asarray([[252206.4062, -252205.8750], [-252205.8750, 252206.4062]])) < 200
 
-    # case 5 : p=8
     _ = compute_power_schur_newton(torch.ones((2, 2)), p=8)
 
-    # case 6 : p=16
     _ = compute_power_schur_newton(torch.ones((2, 2)), p=16)
 
-    # case 7 : max_error_ratio=0
     x = compute_power_schur_newton(torch.ones((2, 2)), p=16, max_error_ratio=0.0)
     np.testing.assert_array_almost_equal(
         np.asarray([[1.0946, 0.0000], [0.0000, 1.0946]]),
@@ -166,7 +158,6 @@ def test_compute_power():
         decimal=2,
     )
 
-    # case 8 : p=2
     x = compute_power_schur_newton(torch.ones((2, 2)), p=2)
     assert np.sum(x.numpy() - np.asarray([[359.1108, -358.4036], [-358.4036, 359.1108]])) < 50
 
@@ -217,7 +208,6 @@ def test_pre_conditioner_type(pre_conditioner_type):
     if pre_conditioner_type in (0, 1, 2):
         PreConditioner(var, 0.9, 0, 128, 1, 8192, True, pre_conditioner_type=pre_conditioner_type)
     else:
-        # invalid pre-conditioner type
         with pytest.raises(ValueError):
             PreConditioner(var, 0.9, 0, 128, 1, 8192, True, pre_conditioner_type=pre_conditioner_type)
 
