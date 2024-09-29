@@ -25,6 +25,7 @@ class SOAP(BaseOptimizer):
     :param merge_dims: bool. whether to merge dimensions of the pre-conditioner
     :param precondition_1d: bool. whether to precondition 1D gradients.
     :param correct_bias: bool. whether to correct bias in Adam.
+    :param normalize_gradient: bool. whether to normalize the gradients.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -40,6 +41,7 @@ class SOAP(BaseOptimizer):
         merge_dims: bool = False,
         precondition_1d: bool = False,
         correct_bias: bool = True,
+        normalize_gradient: bool = False,
         data_format: DATA_FORMAT = 'channels_first',
         eps: float = 1e-8,
         **kwargs,
@@ -64,6 +66,7 @@ class SOAP(BaseOptimizer):
             'merge_dims': merge_dims,
             'precondition_1d': precondition_1d,
             'correct_bias': correct_bias,
+            'normalize_gradient': normalize_gradient,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -311,6 +314,9 @@ class SOAP(BaseOptimizer):
                     max_precondition_dim=group['max_precondition_dim'],
                     project_type='backward',
                 )
+
+                if group['normalize_gradient']:
+                    norm_grad.div_(torch.mean(norm_grad.square()).sqrt_().add_(group['eps']))
 
                 p.add_(norm_grad, alpha=-step_size)
 
