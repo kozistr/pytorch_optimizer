@@ -707,7 +707,13 @@ def test_trac_optimizer_erf_imag():
     'params',
     [
         {'merge_dims': True, 'precondition_1d': True, 'max_precondition_dim': 4, 'precondition_frequency': 1},
-        {'merge_dims': True, 'precondition_1d': False, 'max_precondition_dim': 1, 'precondition_frequency': 1},
+        {
+            'merge_dims': True,
+            'precondition_1d': False,
+            'max_precondition_dim': 1,
+            'precondition_frequency': 1,
+            'normalize_gradient': True,
+        },
     ],
 )
 def test_soap_parameters(params, environment):
