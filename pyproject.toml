@@ -44,7 +44,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4.0.0"
+python = ">=3.8"
 numpy = [
     { version = ">1.24.4", python = ">=3.9" },
     { version = "<=1.24.4", python = "<3.9" },
@@ -68,20 +68,13 @@ url = "https://download.pytorch.org/whl/cpu"
 priority = "explicit"
 
 [tool.ruff]
-lint.select = [
-    "A", "B", "C4", "D", "E", "F", "G", "I", "N", "S", "T", "ISC", "ICN", "W", "INP", "PIE", "T20", "RET", "SIM",
-    "TID", "ARG", "ERA", "RUF", "YTT", "PL", "Q"
+src = [
+    "pytorch_optimizer",
+    "tests",
+    "examples",
 ]
-lint.ignore = [
-    "B905", "D100", "D102", "D104", "D105", "D107", "D203", "D213", "D413", "PIE790", "PLR0912", "PLR0913", "PLR0915",
-    "PLR2004", "RUF013", "Q003", "ARG002",
-]
-lint.fixable = ["ALL"]
-lint.unfixable = ["F401"]
-lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-lint.flake8-quotes.docstring-quotes = "double"
-lint.flake8-quotes.inline-quotes = "single"
-lint.pylint.max-args = 7
+target-version = "py312"
+line-length = 119
 exclude = [
     ".git",
     ".github",
@@ -95,31 +88,39 @@ exclude = [
     ".venv",
     "__pypackages__",
 ]
-line-length = 119
-target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "A", "B", "C4", "D", "E", "F", "G", "I", "N", "S", "T", "ISC", "ICN", "W", "INP", "PIE", "T20", "RET", "SIM",
+    "TID", "ARG", "ERA", "RUF", "YTT", "PL", "Q"
+]
+ignore = [
+    "B905", "D100", "D102", "D104", "D105", "D107", "D203", "D213", "D413", "PIE790", "PLR0912", "PLR0913", "PLR0915",
+    "PLR2004", "RUF013", "Q003", "ARG002",
+]
+fixable = ["ALL"]
+unfixable = ["F401"]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+flake8-quotes.docstring-quotes = "double"
+flake8-quotes.inline-quotes = "single"
+
+[tool.ruff.lint.extend-per-file-ignores]
+"hubconf.py" = ["D", "INP001"]
+"examples/visualize_optimizers.py" = ["D103", "D400", "D415"]
+"**/__init__.py" = ["F401"]
+"{tests,examples}/*.py" = ["D", "S101"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = false
+detect-same-package = true
+force-sort-within-sections = false
+known-first-party = ["pytorch_optimizer"]
+
+[tool.ruff.lint.pylint]
+max-args = 7
 
 [tool.ruff.format]
 quote-style = "single"
-
-[tool.ruff.lint.per-file-ignores]
-"./pytorch_optimizer/__init__.py" = ["F401"]
-"./pytorch_optimizer/lr_scheduler/__init__.py" = ["F401"]
-"./hubconf.py" = ["D", "INP001"]
-"./examples/visualize_optimizers.py" = ["D103", "D400", "D415"]
-"./tests/__init__.py" = ["D"]
-"./tests/constants.py" = ["D"]
-"./tests/utils.py" = ["D"]
-"./tests/test_base.py" = ["D", "S101"]
-"./tests/test_utils.py" = ["D", "S101", "ERA001"]
-"./tests/test_gradients.py" = ["D", "S101"]
-"./tests/test_optimizers.py" = ["D", "S101"]
-"./tests/test_optimizer_parameters.py" = ["D", "S101"]
-"./tests/test_general_optimizer_parameters.py" = ["D", "S101"]
-"./tests/test_lr_schedulers.py" = ["D", "S101"]
-"./tests/test_lr_scheduler_parameters.py" = ["D", "S101"]
-"./tests/test_create_optimizer.py" = ["D"]
-"./tests/test_loss_functions.py" = ["D", "S101"]
-"./tests/test_load_modules.py" = ["D", "S101"]
 
 [tool.pytest.ini_options]
 testpaths = "tests"
@@ -131,5 +132,5 @@ omit = [
 ]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.4.0"]
 build-backend = "poetry.core.masonry.api"
