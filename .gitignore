@@ -30,12 +30,3 @@ _build/
 .netrwhist
 .vscode/*
 .history
-*.pt
-*.pth
-*.ckpt
-*.pkl
-*.onnx
-*.pb
-*.csv
-*.tsv
-*.ftr
