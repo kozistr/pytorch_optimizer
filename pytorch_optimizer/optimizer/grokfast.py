@@ -185,7 +185,7 @@ class GrokFastAdamW(BaseOptimizer):
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
             should_grokfast: bool = (
-                group['grokfast'] and group['step'] > group['grokfast_after_step'] and group['grokfast_lamb'] > 0
+                group['grokfast'] and group['step'] > group['grokfast_after_step'] and group['grokfast_lamb'] > 0.0
             )
 
             for p in group['params']:
@@ -201,7 +201,7 @@ class GrokFastAdamW(BaseOptimizer):
                 if len(state) == 0:
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
-                    if should_grokfast:
+                    if group['grokfast'] and group['grokfast_lamb'] > 0.0:
                         state['grok_exp_avg'] = grad.clone()
 
                 self.apply_weight_decay(
