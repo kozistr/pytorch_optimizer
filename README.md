@@ -10,7 +10,7 @@
 
 **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
 I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
-Currently, **77 optimizers (+ `bitsandbytes`, `qgalore`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
+Currently, **77 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
@@ -27,8 +27,8 @@ So, please double-check the license before using it at your work.
 $ pip3 install pytorch-optimizer
 ```
 
-From `v2.12.0`, `v3.1.0`, you can use `bitsandbytes`, `q-galore-torch` optimizers respectively!
-please check [the bnb requirements](https://github.com/TimDettmers/bitsandbytes?tab=readme-ov-file#tldr), [q-galore-torch installation](https://github.com/VITA-Group/Q-GaLore?tab=readme-ov-file#install-q-galore-optimizer)
+From `v2.12.0`, `v3.1.0`, you can use `bitsandbytes`, `q-galore-torch`, `torchao` optimizers respectively!
+please check [the bnb requirements](https://github.com/TimDettmers/bitsandbytes?tab=readme-ov-file#tldr), [q-galore-torch installation](https://github.com/VITA-Group/Q-GaLore?tab=readme-ov-file#install-q-galore-optimizer), [torchao installation](https://github.com/pytorch/ao?tab=readme-ov-file#installation)
  before installing it.
 
 From `v3.0.0`, drop `Python 3.7` support. However, you can still use this package with `Python 3.7` by installing with `--ignore-requires-python` option.

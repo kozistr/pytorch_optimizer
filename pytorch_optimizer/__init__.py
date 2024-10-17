@@ -134,6 +134,7 @@ from pytorch_optimizer.optimizer.yogi import Yogi
 
 HAS_BNB: bool = find_spec('bitsandbytes') is not None
 HAS_Q_GALORE: bool = find_spec('q-galore-torch') is not None
+HAS_TORCHAO: bool = find_spec('torchao') is not None
 
 OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdamW,
@@ -323,19 +324,40 @@ def load_q_galore_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
     raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
 
 
+def load_ao_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
+    r"""load TorchAO optimizer instance."""
+    from torchao.prototype import low_bit_optim
+
+    if 'adamw8bit' in optimizer:
+        return low_bit_optim.AdamW8bit
+    if 'adamw4bit' in optimizer:
+        return low_bit_optim.AdamW4bit
+    if 'adamwfp8' in optimizer:
+        return low_bit_optim.AdamWFp8
+
+    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+
+
 def load_optimizer(optimizer: str) -> OPTIMIZER:
     optimizer: str = optimizer.lower()
 
     if optimizer.startswith('bnb'):
         if HAS_BNB and torch.cuda.is_available():
             return load_bnb_optimizer(optimizer)  # pragma: no cover
-        raise ImportError(f'[-] bitsandbytes and CUDA required for the optimizer {optimizer}')
+        raise ImportError(f'bitsandbytes and CUDA required for the optimizer {optimizer}')
     if optimizer.startswith('q_galore'):
         if HAS_Q_GALORE and torch.cuda.is_available():
             return load_q_galore_optimizer(optimizer)  # pragma: no cover
-        raise ImportError(f'[-] bitsandbytes, q-galore-torch, and CUDA required for the optimizer {optimizer}')
+        raise ImportError(f'bitsandbytes, q-galore-torch, and CUDA required for the optimizer {optimizer}')
+    if optimizer.startswith('torchao'):
+        if HAS_TORCHAO and torch.cuda.is_available():
+            return load_ao_optimizer(optimizer)  # pragma: no cover
+        raise ImportError(
+            f'torchao required for the optimizer {optimizer}. '
+            'usage: https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim#usage'
+        )
     if optimizer not in OPTIMIZERS:
-        raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+        raise NotImplementedError(f'not implemented optimizer : {optimizer}')
 
     return OPTIMIZERS[optimizer]
 

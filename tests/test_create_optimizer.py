@@ -33,3 +33,8 @@ def test_bnb_optimizer():
 def test_q_galore_optimizer():
     with pytest.raises(ImportError):
         load_optimizer('q_galore_adamw8bit')
+
+
+def test_torchao_optimizer():
+    with pytest.raises(ImportError):
+        load_optimizer('torchao_adamw4bit')
