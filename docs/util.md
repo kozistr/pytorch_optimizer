@@ -1,5 +1,9 @@
 # Utilization
 
+::: pytorch_optimizer.optimizer.utils.CPUOffloadOptimizer
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.optimizer.utils.get_optimizer_parameters
     :docstring:
     :members:
