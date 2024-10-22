@@ -33,10 +33,6 @@ please check [the bnb requirements](https://github.com/TimDettmers/bitsandbytes?
 
 From `v3.0.0`, drop `Python 3.7` support. However, you can still use this package with `Python 3.7` by installing with `--ignore-requires-python` option.
 
-```bash
-$ pip install "pytorch-optimizer[bitsandbytes]"
-```
-
 ### Simple Usage
 
 ```python
