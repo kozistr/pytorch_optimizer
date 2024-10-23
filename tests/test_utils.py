@@ -98,7 +98,7 @@ def test_neuron_mean_norm():
 
 def test_get_optimizer_parameters():
     model: nn.Module = Example()
-    wd_ban_list: List[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+    wd_ban_list: List[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight', 'LayerNorm']
 
     before_parameters = list(model.named_parameters())
     after_parameters = get_optimizer_parameters(model, weight_decay=1e-3, wd_ban_list=wd_ban_list)
