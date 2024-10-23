@@ -206,40 +206,31 @@ def get_optimizer_parameters(
     :returns: PARAMETERS. new parameter list.
     """
     
-    def find_fully_qualified_names(
-        model: nn.Module,
-        wd_ban_list: List[str] = ("bias", "LayerNorm.weight", "LayerNorm.bias"),
-    ):
-        names_without_wd = []
-
-        for module_name, module in model.named_modules():
-            for param_name, param in module.named_parameters(recurse=False):
-                # Full parameter name includes module and parameter names
-                full_param_name = (
-                    f"{module_name}.{param_name}" if module_name else param_name
-                )
-                # Check if any ban list substring is in the parameter name or module name
-                if (
-                    any(banned in param_name for banned in wd_ban_list)
-                    or any(banned in module_name for banned in wd_ban_list)
-                    or any(banned in module._get_name() for banned in wd_ban_list)
-                ):
-                    names_without_wd.append(full_param_name)
-
-        return names_without_wd
-
-    full_names = find_fully_qualified_names(model_or_parameter, wd_ban_list)
+    fully_qualified_names = []
+    for module_name, module in model_or_parameter.named_modules():
+        for param_name, param in module.named_parameters(recurse=False):
+            # Full parameter name includes module and parameter names
+            full_param_name = (
+                f"{module_name}.{param_name}" if module_name else param_name
+            )
+            # Check if any ban list substring is in the parameter name or module name
+            if (
+                any(banned in param_name for banned in wd_ban_list)
+                or any(banned in module_name for banned in wd_ban_list)
+                or any(banned in module._get_name() for banned in wd_ban_list)
+            ):
+                fully_qualified_names.append(full_param_name)
 
     if isinstance(model_or_parameter, nn.Module):
         model_or_parameter = list(model_or_parameter.named_parameters())
     
     return [
         {
-            'params': [p for n, p in model_or_parameter if p.requires_grad and not any(nd in n for nd in full_names)],
+            'params': [p for n, p in model_or_parameter if p.requires_grad and not any(nd in n for nd in fully_qualified_names)],
             'weight_decay': weight_decay,
         },
         {
-            'params': [p for n, p in model_or_parameter if p.requires_grad and any(nd in n for nd in full_names)],
+            'params': [p for n, p in model_or_parameter if p.requires_grad and any(nd in n for nd in fully_qualified_names)],
             'weight_decay': 0.0,
         },
     ]
