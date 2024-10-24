@@ -101,11 +101,13 @@ def test_get_optimizer_parameters():
     wd_ban_list: List[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight', 'LayerNorm']
 
     before_parameters = list(model.named_parameters())
+
+    _ = get_optimizer_parameters(before_parameters, weight_decay=1e-3, wd_ban_list=wd_ban_list)
     after_parameters = get_optimizer_parameters(model, weight_decay=1e-3, wd_ban_list=wd_ban_list)
 
     for before, after in zip(before_parameters, after_parameters):
         layer_name: str = before[0]
-        if layer_name.find('bias') != -1 or layer_name in wd_ban_list:
+        if layer_name.find('bias') != -1 or layer_name.find('LayerNorm') != -1:
             assert after['weight_decay'] == 0.0
 
 
