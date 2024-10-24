@@ -205,7 +205,7 @@ def get_optimizer_parameters(
     :param wd_ban_list: List[str]. ban list not to set weight decay.
     :returns: PARAMETERS. new parameter list.
     """
-    banned_parameter_names: Set[str] = []
+    banned_parameter_names: Set[str] = set()
     for module_name, module in model_or_parameter.named_modules():
         for param_name, _ in module.named_parameters(recurse=False):
             full_param_name = f'{module_name}.{param_name}' if module_name else param_name
