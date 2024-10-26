@@ -12,7 +12,9 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
     merge_small_dims,
 )
 from pytorch_optimizer.optimizer.utils import (
+    CPUOffloadOptimizer,
     clip_grad_norm,
+    compare_versions,
     disable_running_stats,
     enable_running_stats,
     get_optimizer_parameters,
@@ -21,6 +23,7 @@ from pytorch_optimizer.optimizer.utils import (
     neuron_mean,
     neuron_norm,
     normalize_gradient,
+    parse_pytorch_version,
     reduce_max_except_dim,
     reg_noise,
     to_real,
@@ -231,3 +234,28 @@ def test_emcmc():
 
     loss = reg_noise(network1, network2, int(5e4), 1e-1).detach().numpy()
     np.testing.assert_almost_equal(loss, 0.0011383)
+
+
+def test_version_utils():
+    with pytest.raises(ValueError):
+        parse_pytorch_version('a.s.d.f')
+
+    assert parse_pytorch_version(torch.__version__) == [2, 5, 0]
+
+    assert compare_versions('2.5.0', '2.4.0') >= 0
+
+
+def test_cpu_offload_optimizer():
+    params = Example().parameters()
+
+    opt = CPUOffloadOptimizer(params, torch.optim.AdamW, fused=False, offload_gradients=True)
+
+    with pytest.raises(ValueError):
+        CPUOffloadOptimizer([], torch.optim.AdamW)
+
+    opt.zero_grad()
+
+    _ = opt.param_groups
+
+    state_dict = opt.state_dict()
+    opt.load_state_dict(state_dict)
