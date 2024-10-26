@@ -121,6 +121,7 @@ from pytorch_optimizer.optimizer.swats import SWATS
 from pytorch_optimizer.optimizer.tiger import Tiger
 from pytorch_optimizer.optimizer.trac import TRAC
 from pytorch_optimizer.optimizer.utils import (
+    CPUOffloadOptimizer,
     clip_grad_norm,
     disable_running_stats,
     enable_running_stats,
