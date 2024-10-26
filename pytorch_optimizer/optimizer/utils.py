@@ -58,7 +58,7 @@ def compare_versions(v1: str, v2: str) -> bool:
 TORCH_VERSION_AT_LEAST_2_4: bool = compare_versions(torch.__version__, '2.4.0')
 
 
-class CPUOffloadOptimizer:
+class CPUOffloadOptimizer:  # pragma: no cover
     """Offload optimizer to CPU for single-GPU training. This will reduce GPU memory by the size of optimizer state.
 
     Reference: https://github.com/pytorch/ao/blob/main/torchao/prototype/low_bit_optim/cpu_offload.py
@@ -94,7 +94,7 @@ class CPUOffloadOptimizer:
 
         self.queue = {}
 
-        def backward_hook(p_cuda: torch.Tensor) -> None:  # pragma: no cover
+        def backward_hook(p_cuda: torch.Tensor) -> None:
             if p_cuda.grad is None:
                 return
 
@@ -127,7 +127,7 @@ class CPUOffloadOptimizer:
                 self.optim_dict[p_cuda] = optimizer_class([{'params': p_cpu, **param_group}], **kwargs)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:  # pragma: no cover
+    def step(self, closure: CLOSURE = None) -> LOSS:
         loss = None
         if closure is not None:
             loss = closure()
