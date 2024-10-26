@@ -246,6 +246,9 @@ def test_version_utils():
 
 
 def test_cpu_offload_optimizer():
+    if not torch.cuda.is_available():
+        pytest.skip('need GPU to run a test')
+
     params = Example().parameters()
 
     opt = CPUOffloadOptimizer(params, torch.optim.AdamW, fused=False, offload_gradients=True)
