@@ -1,7 +1,10 @@
+import functools
 import math
+import operator
+import re
 import warnings
 from importlib.util import find_spec
-from typing import Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import numpy as np
 import torch
@@ -11,7 +14,7 @@ from torch.nn.functional import cosine_similarity
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.utils import clip_grad_norm_
 
-from pytorch_optimizer.base.types import PARAMETERS
+from pytorch_optimizer.base.types import CLOSURE, LOSS, PARAMETERS
 
 HAS_TRANSFORMERS: bool = find_spec('transformers') is not None
 
@@ -34,6 +37,127 @@ else:
         )
 
         return False
+
+
+def parse_pytorch_version(version_string: str) -> List[int]:
+    r"""Parse Pytorch version."""
+    match = re.match(r'(\d+\.\d+\.\d+)', version_string)
+    if not match:
+        raise ValueError(f'invalid version string format: {version_string}')
+
+    return [int(x) for x in match.group(1).split('.')]
+
+
+def compare_versions(v1: str, v2: str) -> bool:
+    r"""Compare two Pytorch versions."""
+    v1_parts: List[int] = parse_pytorch_version(v1)
+    v2_parts: List[int] = parse_pytorch_version(v2)
+    return (v1_parts > v2_parts) - (v1_parts < v2_parts)
+
+
+TORCH_VERSION_AT_LEAST_2_4: bool = compare_versions(torch.__version__, '2.4.0')
+
+
+class CPUOffloadOptimizer:
+    """Offload optimizer to CPU for single-GPU training. This will reduce GPU memory by the size of optimizer state.
+
+    Reference: https://github.com/pytorch/ao/blob/main/torchao/prototype/low_bit_optim/cpu_offload.py
+
+    :param params: PARAMETERS. a list of parameters or parameter groups.
+    :param optimizer_class: Type[torch.optim.Optimizer]. constructor of the base optimizer. Defaults to
+        :class:`torch.optim.AdamW`.
+    :param offload_gradients: bool. free GPU gradients once they are moved to CPU. Not compatible with gradient
+        accumulation.
+    :param kwargs: other keyword arguments to be passed to the base optimizer e.g. `lr`, `weight_decay`.
+    """
+
+    def __init__(
+        self,
+        params: PARAMETERS,
+        optimizer_class: Type[torch.optim.Optimizer] = torch.optim.AdamW,
+        *,
+        offload_gradients: bool = False,
+        **kwargs,
+    ) -> None:
+        if optimizer_class is torch.optim.AdamW and TORCH_VERSION_AT_LEAST_2_4 and 'fused' not in kwargs:
+            kwargs.update(fused=True)
+
+        param_groups = list(params)
+        if len(param_groups) == 0:
+            raise ValueError('optimizer got an empty parameter list')
+        if not isinstance(param_groups[0], dict):
+            param_groups = [{'params': param_groups}]
+
+        self.param_cuda2cpu_map = {}
+        self.optim_dict = {}
+        self.stream = torch.cuda.Stream()
+
+        self.queue = {}
+
+        def backward_hook(p_cuda: torch.Tensor) -> None:  # pragma: no cover
+            if p_cuda.grad is None:
+                return
+
+            p_cpu = self.param_cuda2cpu_map[p_cuda]
+
+            self.stream.wait_stream(torch.cuda.current_stream())
+            with torch.cuda.stream(self.stream):
+                p_cpu.grad.copy_(p_cuda.grad, non_blocking=True)
+
+            if p_cuda in self.queue:
+                del self.queue[p_cuda]
+
+            self.queue[p_cuda] = self.stream.record_event()
+
+            if offload_gradients:
+                p_cuda.grad.record_stream(self.stream)
+                p_cuda.grad = None
+
+        for param_group in param_groups:
+            params = param_group.pop('params')
+
+            for p_cuda in params:
+                p_cpu = torch.empty_like(p_cuda, device='cpu', pin_memory=True)
+                p_cpu.grad = torch.empty_like(p_cpu, pin_memory=True)
+
+                p_cpu.copy_(p_cuda.detach(), non_blocking=True)
+                self.param_cuda2cpu_map[p_cuda] = p_cpu
+
+                p_cuda.register_post_accumulate_grad_hook(backward_hook)
+                self.optim_dict[p_cuda] = optimizer_class([{'params': p_cpu, **param_group}], **kwargs)
+
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss = None
+        if closure is not None:
+            loss = closure()
+
+        for p_cuda, grad_d2h_event in self.queue.items():
+            grad_d2h_event.synchronize()
+            self.optim_dict[p_cuda].step()
+
+            p_cpu = self.param_cuda2cpu_map[p_cuda]
+            with torch.cuda.stream(self.stream):
+                p_cuda.copy_(p_cpu, non_blocking=True)
+
+        self.queue.clear()
+
+        return loss
+
+    def zero_grad(self, _: bool = True) -> None:
+        for p_cuda in self.param_cuda2cpu_map:
+            p_cuda.grad = None
+
+    @property
+    def param_groups(self):
+        return functools.reduce(operator.add, (optim.param_groups for optim in self.optim_dict.values()), [])
+
+    def state_dict(self):
+        return [optim.state_dict() for optim in self.optim_dict.values()]
+
+    def load_state_dict(self, state_dict):
+        for optim, optim_state_dict in zip(self.optim_dict.values(), state_dict):
+            optim.load_state_dict(optim_state_dict)
 
 
 def is_valid_parameters(parameters: PARAMETERS) -> bool:
