@@ -127,7 +127,7 @@ class CPUOffloadOptimizer:
                 self.optim_dict[p_cuda] = optimizer_class([{'params': p_cpu, **param_group}], **kwargs)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: CLOSURE = None) -> LOSS:  # pragma: no cover
         loss = None
         if closure is not None:
             loss = closure()
