@@ -39,11 +39,17 @@ def test_load_lr_scheduler_invalid(invalid_lr_scheduler_names):
 
 def test_get_supported_optimizers():
     assert len(get_supported_optimizers()) == 76
+    assert len(get_supported_optimizers('adam*')) == 7
+    assert len(get_supported_optimizers(['adam*', 'ranger*'])) == 9
 
 
 def test_get_supported_lr_schedulers():
     assert len(get_supported_lr_schedulers()) == 16
+    assert len(get_supported_lr_schedulers('cosine*')) == 4
+    assert len(get_supported_lr_schedulers(['cosine*', '*warm*'])) == 5
 
 
 def test_get_supported_loss_functions():
     assert len(get_supported_loss_functions()) == 13
+    assert len(get_supported_loss_functions('*focal*')) == 4
+    assert len(get_supported_loss_functions(['*focal*', 'bce*'])) == 5
