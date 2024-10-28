@@ -1,6 +1,7 @@
 # ruff: noqa
+import fnmatch
 from importlib.util import find_spec
-from typing import Dict, List
+from typing import Dict, List, Optional, Sequence, Set, Union
 
 import torch.cuda
 from torch import nn
@@ -416,13 +417,55 @@ def load_lr_scheduler(lr_scheduler: str) -> SCHEDULER:
     return LR_SCHEDULERS[lr_scheduler]
 
 
-def get_supported_optimizers() -> List[OPTIMIZER]:
-    return OPTIMIZER_LIST
+def get_supported_optimizers(filters: Optional[Union[str, List[str]]] = None) -> List[str]:
+    r"""Return list of available optimizer names, sorted alphabetically.
+
+    :param filters: Optional[Union[str, List[str]]]. wildcard filter string that works with fmatch. if None, it will
+        return the whole list.
+    """
+    if filters is None:
+        return sorted(OPTIMIZERS.keys())
+
+    include_filters: Sequence[str] = filters if isinstance(filters, (tuple, list)) else [filters]
+
+    filtered_list: Set[str] = set()
+    for include_filter in include_filters:
+        filtered_list.update(fnmatch.filter(OPTIMIZERS.keys(), include_filter))
+
+    return sorted(filtered_list)
 
 
-def get_supported_lr_schedulers() -> List[SCHEDULER]:
-    return list(LR_SCHEDULER_LIST.values())
+def get_supported_lr_schedulers(filters: Optional[Union[str, List[str]]] = None) -> List[str]:
+    r"""Return list of available lr scheduler names, sorted alphabetically.
+
+    :param filters: Optional[Union[str, List[str]]]. wildcard filter string that works with fmatch. if None, it will
+        return the whole list.
+    """
+    if filters is None:
+        return sorted(LR_SCHEDULERS.keys())
+
+    include_filters: Sequence[str] = filters if isinstance(filters, (tuple, list)) else [filters]
+
+    filtered_list: Set[str] = set()
+    for include_filter in include_filters:
+        filtered_list.update(fnmatch.filter(LR_SCHEDULERS.keys(), include_filter))
+
+    return sorted(filtered_list)
 
 
-def get_supported_loss_functions() -> List[nn.Module]:
-    return LOSS_FUNCTION_LIST
+def get_supported_loss_functions(filters: Optional[Union[str, List[str]]] = None) -> List[str]:
+    r"""Return list of available loss function names, sorted alphabetically.
+
+    :param filters: Optional[Union[str, List[str]]]. wildcard filter string that works with fmatch. if None, it will
+        return the whole list.
+    """
+    if filters is None:
+        return sorted(LOSS_FUNCTIONS.keys())
+
+    include_filters: Sequence[str] = filters if isinstance(filters, (tuple, list)) else [filters]
+
+    filtered_list: Set[str] = set()
+    for include_filter in include_filters:
+        filtered_list.update(fnmatch.filter(LOSS_FUNCTIONS.keys(), include_filter))
+
+    return sorted(filtered_list)
