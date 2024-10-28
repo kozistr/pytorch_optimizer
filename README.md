@@ -90,6 +90,16 @@ from pytorch_optimizer import get_supported_optimizers
 supported_optimizers = get_supported_optimizers()
 ```
 
+or you can also search them with the filter(s).
+
+```python
+>>> get_supported_optimizers('adam*')
+['adamax', 'adamg', 'adammini', 'adamod', 'adamp', 'adams', 'adamw']
+
+>>> get_supported_optimizers(['adam*', 'ranger*'])
+['adamax', 'adamg', 'adammini', 'adamod', 'adamp', 'adams', 'adamw', 'ranger', 'ranger21']
+```
+
 | Optimizer     | Description                                                                                       | Official Code                                                                                                  | Paper                                                                                      | Citation                                                                                                                            |
 |---------------|---------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
 | AdaBelief     | *Adapting Step-sizes by the Belief in Observed Gradients*                                         | [github](https://github.com/juntang-zhuang/Adabelief-Optimizer)                                                | <https://arxiv.org/abs/2010.07468>                                                         | [cite](https://ui.adsabs.harvard.edu/abs/2020arXiv201007468Z/exportcitation)                                                        |
@@ -182,6 +192,16 @@ from pytorch_optimizer import get_supported_lr_schedulers
 supported_lr_schedulers = get_supported_lr_schedulers()
 ```
 
+or you can also search them with the filter(s).
+
+```python
+>>> get_supported_lr_schedulers('cosine*')
+['cosine', 'cosine_annealing', 'cosine_annealing_with_warm_restart', 'cosine_annealing_with_warmup']
+
+>>> get_supported_lr_schedulers(['cosine*', '*warm*'])
+['cosine', 'cosine_annealing', 'cosine_annealing_with_warm_restart', 'cosine_annealing_with_warmup', 'warmup_stable_decay']
+```
+
 | LR Scheduler    | Description                                                                     | Official Code                                                                                                                       | Paper                              | Citation                                                                                           |
 |-----------------|---------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|----------------------------------------------------------------------------------------------------|
 | Explore-Exploit | *Wide-minima Density Hypothesis and the Explore-Exploit Learning Rate Schedule* |                                                                                                                                     | <https://arxiv.org/abs/2003.03977> | [cite](https://ui.adsabs.harvard.edu/abs/2020arXiv200303977I/exportcitation)                       |
@@ -197,6 +217,16 @@ You can check the supported loss functions with below code.
 from pytorch_optimizer import get_supported_loss_functions
 
 supported_loss_functions = get_supported_loss_functions()
+```
+
+or you can also search them with the filter(s).
+
+```python
+>>> get_supported_loss_functions('*focal*')
+['bcefocalloss', 'focalcosineloss', 'focalloss', 'focaltverskyloss']
+
+>>> get_supported_loss_functions(['*focal*', 'bce*'])
+['bcefocalloss', 'bceloss', 'focalcosineloss', 'focalloss', 'focaltverskyloss']
 ```
 
 | Loss Functions  | Description                                                                                                             | Official Code                                          | Paper                              | Citation                                                                     |
