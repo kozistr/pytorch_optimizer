@@ -1,5 +1,17 @@
 # Utilization
 
+::: pytorch_optimizer.get_supported_optimizers
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.get_supported_lr_schedulers
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.get_supported_loss_functions
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.optimizer.utils.CPUOffloadOptimizer
     :docstring:
     :members:
