@@ -10,7 +10,7 @@
 
 **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
 I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
-Currently, **77 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
+Currently, **78 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
@@ -181,6 +181,7 @@ or you can also search them with the filter(s).
 | AdamG         | *Towards Stability of Parameter-free Optimization*                                                |                                                                                                                | <https://arxiv.org/abs/2405.04376>                                                         | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv240504376P/exportcitation)                                                        |
 | AdEMAMix      | *Better, Faster, Older*                                                                           | [github](https://github.com/nanowell/AdEMAMix-Optimizer-Pytorch)                                               | <https://arxiv.org/abs/2409.03137>                                                         | [cite](https://github.com/nanowell/AdEMAMix-Optimizer-Pytorch?tab=readme-ov-file#reference)                                         |
 | SOAP          | *Improving and Stabilizing Shampoo using Adam*                                                    | [github](https://github.com/nikhilvyas/SOAP)                                                                   | <https://arxiv.org/abs/2409.11321>                                                         | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv240911321V/exportcitation)                                                        |
+| ADOPT         | *Modified Adam Can Converge with Any β2 with the Optimal Rate*                                    | [github](https://github.com/iShohei220/adopt)                                                                  | <https://arxiv.org/abs/2411.02853>                                                         | [cite](https://github.com/iShohei220/adopt?tab=readme-ov-file#citation)                                                             |
 
 ## Supported LR Scheduler
 
