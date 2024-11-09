@@ -104,6 +104,8 @@ class ADOPT(BaseOptimizer):
                     exp_avg_sq.addcmul_(grad, grad.conj())
                     continue
 
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad.conj(), value=1.0 - beta2)
+
                 de_nom = exp_avg_sq.sqrt().clamp_(min=group['eps'])
                 if group['step'] == 2:
                     exp_avg.addcdiv_(grad, de_nom)
@@ -111,6 +113,5 @@ class ADOPT(BaseOptimizer):
                     exp_avg.mul_(beta1).addcdiv_(grad, de_nom, value=1.0 - beta1)
 
                 p.add_(exp_avg, alpha=-group['lr'])
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad.conj(), value=1.0 - beta2)
 
         return loss
