@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Tuple, Union
 
 from pytorch_optimizer import (
+    ADOPT,
     ASGD,
     CAME,
     LARS,
@@ -483,6 +484,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
         {'lr': 1e0, 'shampoo_beta': 0.95, 'precondition_frequency': 1, 'merge_dims': False, 'precondition_1d': True},
         3,
     ),
+    (ADOPT, {'lr': 1e0}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
