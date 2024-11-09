@@ -84,6 +84,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.ADOPT
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.agc
     :docstring:
     :members:
