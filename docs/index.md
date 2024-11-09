@@ -10,7 +10,7 @@
 
 **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
 I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
-Currently, **77 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
+Currently, **78 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
@@ -32,10 +32,6 @@ please check [the bnb requirements](https://github.com/TimDettmers/bitsandbytes?
  before installing it.
 
 From `v3.0.0`, drop `Python 3.7` support. However, you can still use this package with `Python 3.7` by installing with `--ignore-requires-python` option.
-
-```bash
-$ pip install "pytorch-optimizer[bitsandbytes]"
-```
 
 ### Simple Usage
 
@@ -92,6 +88,16 @@ You can check the supported optimizers with below code.
 from pytorch_optimizer import get_supported_optimizers
 
 supported_optimizers = get_supported_optimizers()
+```
+
+or you can also search them with the filter(s).
+
+```python
+>>> get_supported_optimizers('adam*')
+['adamax', 'adamg', 'adammini', 'adamod', 'adamp', 'adams', 'adamw']
+
+>>> get_supported_optimizers(['adam*', 'ranger*'])
+['adamax', 'adamg', 'adammini', 'adamod', 'adamp', 'adams', 'adamw', 'ranger', 'ranger21']
 ```
 
 | Optimizer     | Description                                                                                       | Official Code                                                                                                  | Paper                                                                                      | Citation                                                                                                                            |
@@ -175,6 +181,7 @@ supported_optimizers = get_supported_optimizers()
 | AdamG         | *Towards Stability of Parameter-free Optimization*                                                |                                                                                                                | <https://arxiv.org/abs/2405.04376>                                                         | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv240504376P/exportcitation)                                                        |
 | AdEMAMix      | *Better, Faster, Older*                                                                           | [github](https://github.com/nanowell/AdEMAMix-Optimizer-Pytorch)                                               | <https://arxiv.org/abs/2409.03137>                                                         | [cite](https://github.com/nanowell/AdEMAMix-Optimizer-Pytorch?tab=readme-ov-file#reference)                                         |
 | SOAP          | *Improving and Stabilizing Shampoo using Adam*                                                    | [github](https://github.com/nikhilvyas/SOAP)                                                                   | <https://arxiv.org/abs/2409.11321>                                                         | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv240911321V/exportcitation)                                                        |
+| ADOPT         | *Modified Adam Can Converge with Any β2 with the Optimal Rate*                                    | [github](https://github.com/iShohei220/adopt)                                                                  | <https://arxiv.org/abs/2411.02853>                                                         | [cite](https://github.com/iShohei220/adopt?tab=readme-ov-file#citation)                                                             |
 
 ## Supported LR Scheduler
 
@@ -184,6 +191,16 @@ You can check the supported learning rate schedulers with below code.
 from pytorch_optimizer import get_supported_lr_schedulers
 
 supported_lr_schedulers = get_supported_lr_schedulers()
+```
+
+or you can also search them with the filter(s).
+
+```python
+>>> get_supported_lr_schedulers('cosine*')
+['cosine', 'cosine_annealing', 'cosine_annealing_with_warm_restart', 'cosine_annealing_with_warmup']
+
+>>> get_supported_lr_schedulers(['cosine*', '*warm*'])
+['cosine', 'cosine_annealing', 'cosine_annealing_with_warm_restart', 'cosine_annealing_with_warmup', 'warmup_stable_decay']
 ```
 
 | LR Scheduler    | Description                                                                     | Official Code                                                                                                                       | Paper                              | Citation                                                                                           |
@@ -201,6 +218,16 @@ You can check the supported loss functions with below code.
 from pytorch_optimizer import get_supported_loss_functions
 
 supported_loss_functions = get_supported_loss_functions()
+```
+
+or you can also search them with the filter(s).
+
+```python
+>>> get_supported_loss_functions('*focal*')
+['bcefocalloss', 'focalcosineloss', 'focalloss', 'focaltverskyloss']
+
+>>> get_supported_loss_functions(['*focal*', 'bce*'])
+['bcefocalloss', 'bceloss', 'focalcosineloss', 'focalloss', 'focaltverskyloss']
 ```
 
 | Loss Functions  | Description                                                                                                             | Official Code                                          | Paper                              | Citation                                                                     |
