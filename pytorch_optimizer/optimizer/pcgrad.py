@@ -2,12 +2,28 @@ import random
 from copy import deepcopy
 from typing import Iterable, List, Tuple
 
+import numpy as np
 import torch
 from torch import nn
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import OPTIMIZER
-from pytorch_optimizer.optimizer.utils import flatten_grad, un_flatten_grad
+
+
+def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:
+    r"""Flatten the gradient."""
+    return torch.cat([grad.flatten() for grad in grads])
+
+
+def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor]:
+    r"""Unflatten the gradient."""
+    idx: int = 0
+    un_flatten_grads: List[torch.Tensor] = []
+    for shape in shapes:
+        length = np.prod(shape)
+        un_flatten_grads.append(grads[idx:idx + length].view(shape).clone())  # fmt: skip
+        idx += length
+    return un_flatten_grads
 
 
 class PCGrad(BaseOptimizer):

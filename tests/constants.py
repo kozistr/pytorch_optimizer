@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Tuple, Union
 
-from pytorch_optimizer import (
+from pytorch_optimizer.optimizer import (
     ADOPT,
     ASGD,
     CAME,

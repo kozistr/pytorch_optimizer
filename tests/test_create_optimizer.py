@@ -1,6 +1,6 @@
 import pytest
 
-from pytorch_optimizer import create_optimizer, load_optimizer
+from pytorch_optimizer.optimizer import create_optimizer, load_optimizer
 from tests.constants import VALID_OPTIMIZER_NAMES
 from tests.utils import LogisticRegression
 

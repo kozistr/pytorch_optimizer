@@ -5,26 +5,25 @@ import pytest
 import torch
 from torch import nn
 
+from pytorch_optimizer.optimizer import get_optimizer_parameters
+from pytorch_optimizer.optimizer.nero import neuron_mean, neuron_norm
 from pytorch_optimizer.optimizer.shampoo_utils import (
     BlockPartitioner,
     PreConditioner,
     compute_power_schur_newton,
     merge_small_dims,
 )
+from pytorch_optimizer.optimizer.sm3 import reduce_max_except_dim
 from pytorch_optimizer.optimizer.utils import (
     CPUOffloadOptimizer,
     clip_grad_norm,
     compare_versions,
     disable_running_stats,
     enable_running_stats,
-    get_optimizer_parameters,
     has_overflow,
     is_valid_parameters,
-    neuron_mean,
-    neuron_norm,
     normalize_gradient,
     parse_pytorch_version,
-    reduce_max_except_dim,
     reg_noise,
     to_real,
     unit_norm,

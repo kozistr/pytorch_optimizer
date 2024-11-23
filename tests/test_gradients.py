@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from pytorch_optimizer import SAM, TRAC, WSAM, AdamP, Lookahead, load_optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.optimizer import SAM, TRAC, WSAM, AdamP, Lookahead, load_optimizer
 from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
 from tests.utils import build_environment, simple_parameter, simple_sparse_parameter, sphere_loss
 

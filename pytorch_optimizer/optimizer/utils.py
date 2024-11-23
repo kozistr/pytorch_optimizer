@@ -4,9 +4,8 @@ import operator
 import re
 import warnings
 from importlib.util import find_spec
-from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 
-import numpy as np
 import torch
 from torch import nn
 from torch.distributed import all_reduce
@@ -16,7 +15,25 @@ from torch.nn.utils import clip_grad_norm_
 
 from pytorch_optimizer.base.types import CLOSURE, LOSS, PARAMETERS
 
+
+def parse_pytorch_version(version_string: str) -> List[int]:
+    r"""Parse Pytorch version."""
+    match = re.match(r'(\d+\.\d+\.\d+)', version_string)
+    if not match:
+        raise ValueError(f'invalid version string format: {version_string}')
+
+    return [int(x) for x in match.group(1).split('.')]
+
+
+def compare_versions(v1: str, v2: str) -> bool:
+    r"""Compare two Pytorch versions."""
+    v1_parts: List[int] = parse_pytorch_version(v1)
+    v2_parts: List[int] = parse_pytorch_version(v2)
+    return (v1_parts > v2_parts) - (v1_parts < v2_parts)
+
+
 HAS_TRANSFORMERS: bool = find_spec('transformers') is not None
+TORCH_VERSION_AT_LEAST_2_4: bool = compare_versions(torch.__version__, '2.4.0')
 
 if HAS_TRANSFORMERS:  # pragma: no cover
     try:
@@ -37,25 +54,6 @@ else:
         )
 
         return False
-
-
-def parse_pytorch_version(version_string: str) -> List[int]:
-    r"""Parse Pytorch version."""
-    match = re.match(r'(\d+\.\d+\.\d+)', version_string)
-    if not match:
-        raise ValueError(f'invalid version string format: {version_string}')
-
-    return [int(x) for x in match.group(1).split('.')]
-
-
-def compare_versions(v1: str, v2: str) -> bool:
-    r"""Compare two Pytorch versions."""
-    v1_parts: List[int] = parse_pytorch_version(v1)
-    v2_parts: List[int] = parse_pytorch_version(v2)
-    return (v1_parts > v2_parts) - (v1_parts < v2_parts)
-
-
-TORCH_VERSION_AT_LEAST_2_4: bool = compare_versions(torch.__version__, '2.4.0')
 
 
 class CPUOffloadOptimizer:  # pragma: no cover
@@ -191,22 +189,6 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
         x.div_(s)
 
 
-def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:
-    r"""Flatten the gradient."""
-    return torch.cat([grad.flatten() for grad in grads])
-
-
-def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor]:
-    r"""Unflatten the gradient."""
-    idx: int = 0
-    un_flatten_grads: List[torch.Tensor] = []
-    for shape in shapes:
-        length = np.prod(shape)
-        un_flatten_grads.append(grads[idx:idx + length].view(shape).clone())  # fmt: skip
-        idx += length
-    return un_flatten_grads
-
-
 def channel_view(x: torch.Tensor) -> torch.Tensor:
     r"""Do channel view."""
     return x.view(x.size()[0], -1)
@@ -307,84 +289,14 @@ def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
     x_len: int = len(x.shape)
     if x_len <= 1:
         keep_dim = False
-    elif x_len in (2, 3):  # linear layers
+    elif x_len in (2, 3):
         dim = 1
-    elif x_len == 4:  # conv kernels
+    elif x_len == 4:
         dim = (1, 2, 3)
     else:
         dim = tuple(range(1, x_len))
 
     return x.norm(p=norm, dim=dim, keepdim=keep_dim)
-
-
-def get_optimizer_parameters(
-    model_or_parameter: Union[nn.Module, List],
-    weight_decay: float,
-    wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
-) -> PARAMETERS:
-    r"""Get optimizer parameters while filtering specified modules.
-
-    Notice that, You can also ban by a module name level (e.g. LayerNorm) if you pass nn.Module instance. You just only
-    need to input `LayerNorm` to exclude weight decay from the layer norm layer(s).
-
-    :param model_or_parameter: Union[nn.Module, List]. model or parameters.
-    :param weight_decay: float. weight_decay.
-    :param wd_ban_list: List[str]. ban list not to set weight decay.
-    :returns: PARAMETERS. new parameter list.
-    """
-    banned_parameter_patterns: Set[str] = set()
-
-    if isinstance(model_or_parameter, nn.Module):
-        for module_name, module in model_or_parameter.named_modules():
-            for param_name, _ in module.named_parameters(recurse=False):
-                full_param_name: str = f'{module_name}.{param_name}' if module_name else param_name
-                if any(
-                    banned in pattern for banned in wd_ban_list for pattern in (full_param_name, module._get_name())
-                ):
-                    banned_parameter_patterns.add(full_param_name)
-
-        model_or_parameter = list(model_or_parameter.named_parameters())
-    else:
-        banned_parameter_patterns.update(wd_ban_list)
-
-    return [
-        {
-            'params': [
-                p
-                for n, p in model_or_parameter
-                if p.requires_grad and not any(nd in n for nd in banned_parameter_patterns)
-            ],
-            'weight_decay': weight_decay,
-        },
-        {
-            'params': [
-                p
-                for n, p in model_or_parameter
-                if p.requires_grad and any(nd in n for nd in banned_parameter_patterns)
-            ],
-            'weight_decay': 0.0,
-        },
-    ]
-
-
-def neuron_norm(x: torch.Tensor) -> torch.Tensor:
-    r"""Get norm of the tensor."""
-    if x.dim() <= 1:
-        return x.abs()
-
-    view_shape: List[int] = [x.shape[0]] + [1] * (x.dim() - 1)
-
-    return channel_view(x).norm(dim=1).view(*view_shape)
-
-
-def neuron_mean(x: torch.Tensor) -> torch.Tensor:
-    r"""Get mean of the tensor."""
-    if x.dim() <= 1:
-        raise ValueError('[-] neuron_mean not defined on 1D tensors.')
-
-    view_shape: List[int] = [x.shape[0]] + [1] * (x.dim() - 1)
-
-    return channel_view(x).mean(dim=1).view(*view_shape)
 
 
 def disable_running_stats(model):
@@ -429,26 +341,6 @@ def get_global_gradient_norm(param_groups: List[Dict]) -> torch.Tensor:
                 global_grad_norm.add_(p.grad.norm().pow(2))
 
     return global_grad_norm
-
-
-@torch.no_grad()
-def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
-    r"""Perform reduce-max along all dimensions except the given dim.
-
-    :param x: torch.Tensor. tensor to reduce-max.
-    :param dim: int. dimension to exclude.
-    """
-    rank: int = len(x.shape)
-    if rank == 0:
-        return x
-
-    if dim >= rank:
-        raise ValueError(f'[-] given dim is bigger than rank. {dim} >= {rank}')
-
-    for d in range(rank):
-        if d != dim:
-            x = x.max(dim=d, keepdim=True).values
-    return x
 
 
 @torch.no_grad()

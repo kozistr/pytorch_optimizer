@@ -1,9 +1,31 @@
+from typing import List
+
 import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.optimizer.utils import neuron_mean, neuron_norm
+from pytorch_optimizer.optimizer.utils import channel_view
+
+
+def neuron_norm(x: torch.Tensor) -> torch.Tensor:
+    r"""Get norm of the tensor."""
+    if x.dim() <= 1:
+        return x.abs()
+
+    view_shape: List[int] = [x.shape[0]] + [1] * (x.dim() - 1)
+
+    return channel_view(x).norm(dim=1).view(*view_shape)
+
+
+def neuron_mean(x: torch.Tensor) -> torch.Tensor:
+    r"""Get mean of the tensor."""
+    if x.dim() <= 1:
+        raise ValueError('[-] neuron_mean not defined on 1D tensors.')
+
+    view_shape: List[int] = [x.shape[0]] + [1] * (x.dim() - 1)
+
+    return channel_view(x).mean(dim=1).view(*view_shape)
 
 
 class Nero(BaseOptimizer):

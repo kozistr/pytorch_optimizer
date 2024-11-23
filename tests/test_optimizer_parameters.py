@@ -2,7 +2,7 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer import (
+from pytorch_optimizer.optimizer import (
     SAM,
     WSAM,
     GaLoreProjector,

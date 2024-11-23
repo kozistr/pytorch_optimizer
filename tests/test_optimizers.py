@@ -3,22 +3,21 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer import (
+from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
+from pytorch_optimizer.lr_scheduler import CosineScheduler, ProportionScheduler
+from pytorch_optimizer.optimizer import (
     BSAM,
     GSAM,
     SAM,
     TRAC,
     WSAM,
-    CosineScheduler,
     DynamicLossScaler,
     Lookahead,
     PCGrad,
-    ProportionScheduler,
     gradfilter_ema,
     gradfilter_ma,
     load_optimizer,
 )
-from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from pytorch_optimizer.optimizer.utils import l2_projection
 from tests.constants import (
     ADAMD_SUPPORTED_OPTIMIZERS,
