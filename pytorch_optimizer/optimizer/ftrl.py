@@ -76,7 +76,7 @@ class FTRL(BaseOptimizer):
 
                 sigma = (n + grad_p2).pow_(-group['lr_power']).sub_(n.pow(-group['lr_power'])).div_(group['lr'])
 
-                z.add_(grad - sigma * p)
+                z.add_(grad).sub_(sigma.mul(p))
                 n.add_(grad_p2)
 
                 update = z.sign().mul_(group['lambda_1']).sub_(z)
