@@ -10,6 +10,8 @@ class FTRL(BaseOptimizer):
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
+    :param lr_power: float. controls how the learning rate decreases during training. use zero for a fixed learning
+        rate.
     :param beta: float. beta value in the paper.
     :param lambda_1: float. L1 regularization parameter.
     :param lambda_2: float. L2 regularization parameter.
@@ -19,6 +21,7 @@ class FTRL(BaseOptimizer):
         self,
         params: PARAMETERS,
         lr: float = 1e-3,
+        lr_power: float = -0.5,
         beta: float = 0.0,
         lambda_1: float = 0.0,
         lambda_2: float = 0.0,
@@ -26,10 +29,11 @@ class FTRL(BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(beta, 'beta')
+        self.validate_non_positive(lr_power, 'lr_power')
         self.validate_non_negative(lambda_1, 'lambda_1')
         self.validate_non_negative(lambda_2, 'lambda_2')
 
-        defaults: DEFAULTS = {'lr': lr, 'beta': beta, 'lambda_1': lambda_1, 'lambda_2': lambda_2}
+        defaults: DEFAULTS = {'lr': lr, 'lr_power': lr_power, 'beta': beta, 'lambda_1': lambda_1, 'lambda_2': lambda_2}
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
@@ -70,14 +74,13 @@ class FTRL(BaseOptimizer):
 
                 grad_p2 = grad.pow(2)
 
-                theta = (n + grad_p2).sqrt_().div_(group['lr'])
-                theta.sub_(n.sqrt())
+                sigma = (n + grad_p2).pow_(-group['lr_power']).sub_(n.pow(-group['lr_power'])).div_(group['lr'])
 
-                z.add_(grad - theta * p)
+                z.add_(grad - sigma * p)
                 n.add_(grad_p2)
 
-                update = (group['lambda_1'] * z.sign()).div_(z)
-                update.div_((group['lambda_2'] + (group['beta'] + n.sqrt())) / group['lr'])
+                update = (group['lambda_1'] * z.sign()).sub_(z)
+                update.div_((group['beta'] + n.sqrt()).div_(group['lr']).add_(group['lambda_2']))
 
                 p.copy_(update)
                 p[z.abs() < group['lambda_1']] = 0.0
