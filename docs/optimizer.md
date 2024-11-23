@@ -168,23 +168,11 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.GaLoreProjector
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.centralize_gradient
     :docstring:
     :members:
 
 ::: pytorch_optimizer.Gravity
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.gradfilter_ema
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.gradfilter_ma
     :docstring:
     :members:
 
