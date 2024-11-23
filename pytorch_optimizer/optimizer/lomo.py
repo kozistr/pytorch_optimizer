@@ -83,7 +83,7 @@ class LOMO(BaseOptimizer):
                 if not p.requires_grad or p.grad is None:
                     continue
 
-                if self.loss_scaler and self.loss_scaler.has_overflow_serial or has_overflow(p.grad):
+                if (self.loss_scaler and self.loss_scaler.has_overflow_serial) or has_overflow(p.grad):
                     p.grad = None
                     self.loss_scaler.has_overflow_serial = True
                     break
@@ -119,7 +119,7 @@ class LOMO(BaseOptimizer):
 
                 all_reduce(p.grad, op=ReduceOp.AVG, async_op=False)
 
-                if self.loss_scaler and self.loss_scaler.has_overflow_serial or has_overflow(p.grad):
+                if (self.loss_scaler and self.loss_scaler.has_overflow_serial) or has_overflow(p.grad):
                     p.grad = None
                     self.loss_scaler.has_overflow_serial = True
                     break
