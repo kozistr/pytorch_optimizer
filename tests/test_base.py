@@ -36,6 +36,11 @@ def test_validate_range(range_type):
         BaseOptimizer.validate_range(-1.0, 'x', 0.0, 1.0, range_type=range_type)
 
 
+def test_non_positive():
+    with pytest.raises(ValueError):
+        BaseOptimizer.validate_non_positive(1.0, 'asdf')
+
+
 def test_mod():
     with pytest.raises(ValueError):
         BaseOptimizer.validate_mod(10, 3)
