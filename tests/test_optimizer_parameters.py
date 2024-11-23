@@ -2,16 +2,8 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer.optimizer import (
-    SAM,
-    WSAM,
-    GaLoreProjector,
-    Lookahead,
-    PCGrad,
-    Ranger21,
-    SafeFP16Optimizer,
-    load_optimizer,
-)
+from pytorch_optimizer.optimizer import SAM, WSAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
+from pytorch_optimizer.optimizer.galore import GaLoreProjector
 from tests.constants import PULLBACK_MOMENTUM
 from tests.utils import Example, simple_parameter, simple_zero_rank_parameter
 
