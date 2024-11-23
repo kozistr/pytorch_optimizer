@@ -79,10 +79,10 @@ class FTRL(BaseOptimizer):
                 z.add_(grad - sigma * p)
                 n.add_(grad_p2)
 
-                update = (group['lambda_1'] * z.sign()).sub_(z)
+                update = z.sign().mul_(group['lambda_1']).sub_(z)
                 update.div_((group['beta'] + n.sqrt()).div_(group['lr']).add_(group['lambda_2']))
 
                 p.copy_(update)
-                p[z.abs() < group['lambda_1']] = 0.0
+                p.masked_fill_(z.abs() < group['lambda_1'], 0.0)
 
         return loss
