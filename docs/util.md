@@ -16,10 +16,6 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.optimizer.utils.get_optimizer_parameters
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.optimizer.utils.is_valid_parameters
     :docstring:
     :members:
