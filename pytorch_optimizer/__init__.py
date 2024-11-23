@@ -118,6 +118,7 @@ from pytorch_optimizer.optimizer import (
     StableAdamW,
     Tiger,
     Yogi,
+    agc,
     create_optimizer,
     get_optimizer_parameters,
     get_supported_optimizers,

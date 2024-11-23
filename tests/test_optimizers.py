@@ -14,11 +14,10 @@ from pytorch_optimizer.optimizer import (
     DynamicLossScaler,
     Lookahead,
     PCGrad,
-    gradfilter_ema,
-    gradfilter_ma,
     load_optimizer,
 )
-from pytorch_optimizer.optimizer.utils import l2_projection
+from pytorch_optimizer.optimizer.alig import l2_projection
+from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from tests.constants import (
     ADAMD_SUPPORTED_OPTIMIZERS,
     ADANORM_SUPPORTED_OPTIMIZERS,

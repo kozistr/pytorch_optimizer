@@ -106,7 +106,7 @@ class GrokFastAdamW(BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param grokfast: bool. whether to use grokfast.
     :param grokfast_alpha: float. momentum hyperparameter of the EMA.
-    :param grokfast_lamb: float. amplifying factor hyperparameter of the filter..
+    :param grokfast_lamb: float. amplifying factor hyperparameter of the filter.
     :param grokfast_after_step: int. warmup step for grokfast.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.

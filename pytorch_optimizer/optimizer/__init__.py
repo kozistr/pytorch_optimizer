@@ -46,7 +46,7 @@ from pytorch_optimizer.optimizer.ftrl import FTRL
 from pytorch_optimizer.optimizer.galore import GaLore, GaLoreProjector
 from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.gravity import Gravity
-from pytorch_optimizer.optimizer.grokfast import GrokFastAdamW, gradfilter_ema, gradfilter_ma
+from pytorch_optimizer.optimizer.grokfast import GrokFastAdamW
 from pytorch_optimizer.optimizer.kate import Kate
 from pytorch_optimizer.optimizer.lamb import Lamb
 from pytorch_optimizer.optimizer.lars import LARS
