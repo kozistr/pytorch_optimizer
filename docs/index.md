@@ -36,14 +36,12 @@ From `v3.0.0`, drop `Python 3.7` support. However, you can still use this packag
 ### Simple Usage
 
 ```python
-from pytorch_optimizer import AdamP
+from pytorch_optimizer import AdamP, load_optimizer
 
 model = YourModel()
 optimizer = AdamP(model.parameters())
 
 # or you can use optimizer loader, simply passing a name of the optimizer.
-
-from pytorch_optimizer import load_optimizer
 
 optimizer = load_optimizer(optimizer='adamp')(model.parameters())
 
@@ -68,15 +66,16 @@ optimizer = opt(model.parameters())
 If you want to build the optimizer with parameters & configs, there's `create_optimizer()` API.
 
 ```python
-from pytorch_optimizer import create_optimizer
+
+from pytorch_optimizer.optimizer import create_optimizer
 
 optimizer = create_optimizer(
-    model,
-    'adamp',
-    lr=1e-3,
-    weight_decay=1e-3,
-    use_gc=True,
-    use_lookahead=True,
+ model,
+ 'adamp',
+ lr=1e-3,
+ weight_decay=1e-3,
+ use_gc=True,
+ use_lookahead=True,
 )
 ```
 
@@ -85,7 +84,8 @@ optimizer = create_optimizer(
 You can check the supported optimizers with below code.
 
 ```python
-from pytorch_optimizer import get_supported_optimizers
+
+from pytorch_optimizer.optimizer import get_supported_optimizers
 
 supported_optimizers = get_supported_optimizers()
 ```
@@ -189,7 +189,8 @@ or you can also search them with the filter(s).
 You can check the supported learning rate schedulers with below code.
 
 ```python
-from pytorch_optimizer import get_supported_lr_schedulers
+
+from pytorch_optimizer.lr_scheduler import get_supported_lr_schedulers
 
 supported_lr_schedulers = get_supported_lr_schedulers()
 ```
@@ -216,7 +217,8 @@ or you can also search them with the filter(s).
 You can check the supported loss functions with below code.
 
 ```python
-from pytorch_optimizer import get_supported_loss_functions
+
+from pytorch_optimizer.loss import get_supported_loss_functions
 
 supported_loss_functions = get_supported_loss_functions()
 ```

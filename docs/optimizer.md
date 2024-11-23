@@ -1,5 +1,13 @@
 # Optimizers
 
+::: pytorch_optimizer.optimizer.create_optimizer
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.optimizer.get_optimizer_parameters
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.A2Grad
     :docstring:
     :members:
