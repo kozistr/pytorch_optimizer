@@ -120,6 +120,7 @@ from pytorch_optimizer.optimizer import (
     ScalableShampoo,
     ScheduleFreeAdamW,
     ScheduleFreeSGD,
+    TRAC,
     Shampoo,
     SignSGD,
     SophiaH,
