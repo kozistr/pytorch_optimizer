@@ -109,6 +109,7 @@ from pytorch_optimizer.optimizer import (
     Nero,
     NovoGrad,
     PAdam,
+    PCGrad,
     Prodigy,
     QHAdam,
     RAdam,
