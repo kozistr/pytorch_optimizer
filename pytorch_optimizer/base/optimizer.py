@@ -272,6 +272,11 @@ class BaseOptimizer(ABC, Optimizer):
             raise ValueError(f'[-] {name} must be non-negative')
 
     @staticmethod
+    def validate_non_positive(x: Optional[float], name: str) -> None:
+        if x is not None and x > 0.0:
+            raise ValueError(f'[-] {name} must be non-positive')
+
+    @staticmethod
     def validate_positive(x: Union[float, int], name: str) -> None:
         if x <= 0:
             raise ValueError(f'[-] {name} must be positive')
