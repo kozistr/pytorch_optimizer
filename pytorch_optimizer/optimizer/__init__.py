@@ -43,7 +43,7 @@ from pytorch_optimizer.optimizer.fadam import FAdam
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
 from pytorch_optimizer.optimizer.fromage import Fromage
 from pytorch_optimizer.optimizer.ftrl import FTRL
-from pytorch_optimizer.optimizer.galore import GaLore, GaLoreProjector
+from pytorch_optimizer.optimizer.galore import GaLore
 from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.gravity import Gravity
 from pytorch_optimizer.optimizer.grokfast import GrokFastAdamW
