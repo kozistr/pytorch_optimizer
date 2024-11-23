@@ -68,10 +68,6 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.optimizer.utils.l2_projection
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.optimizer.utils.get_global_gradient_norm
     :docstring:
     :members:
