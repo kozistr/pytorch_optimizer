@@ -70,6 +70,7 @@ from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.fadam import FAdam
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
 from pytorch_optimizer.optimizer.fromage import Fromage
+from pytorch_optimizer.optimizer.ftrl import FTRL
 from pytorch_optimizer.optimizer.galore import GaLore, GaLoreProjector
 from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.gravity import Gravity
@@ -217,6 +218,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdEMAMix,
     SOAP,
     ADOPT,
+    FTRL,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

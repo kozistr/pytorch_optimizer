@@ -164,6 +164,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.FTRL
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.GaLoreProjector
     :docstring:
     :members:
