@@ -7,7 +7,7 @@ import torch
 from hyperopt import fmin, hp, tpe
 from matplotlib import pyplot as plt
 
-from pytorch_optimizer import OPTIMIZERS
+from pytorch_optimizer.optimizer import OPTIMIZERS
 
 
 def rosenbrock(tensors) -> torch.Tensor:
@@ -152,16 +152,11 @@ def main():
     root_path = Path('..') / 'docs' / 'visualizations'
 
     optimizers = [
-        (torch.optim.AdamW, -6, 0.5),
-        (torch.optim.Adam, -6, 0.5),
-        (torch.optim.SGD, -6, -1.0),
+        (optimizer, -6, 0.5)
+        for optimizer_name, optimizer in OPTIMIZERS.items()
+        if optimizer_name.lower() not in {'alig', 'lomo', 'adalomo', 'bsam', 'adammini'}
     ]
-
-    for optimizer_name, optimizer in OPTIMIZERS.items():
-        if optimizer_name.lower() in {'alig', 'lomo', 'adalomo', 'bsam', 'adammini'}:
-            continue
-
-        optimizers.append((optimizer, -6, 0.2))
+    optimizers.extend([(torch.optim.AdamW, -6, 0.5), (torch.optim.Adam, -6, 0.5), (torch.optim.SGD, -6, -1.0)])
 
     execute_experiments(
         optimizers,
