@@ -57,7 +57,7 @@ def objective_rastrigin(params, minimum=(0, 0)):
     return (steps[0][-1] - minimum[0]) ** 2 + (steps[1][-1] - minimum[1]) ** 2
 
 
-def objective_rosenbrok(params, minimum=(1.0, 1.0)):
+def objective_rosenbrock(params, minimum=(1.0, 1.0)):
     steps = execute_steps(rastrigin, (-2.0, 2.0), params['optimizer_class'], {'lr': params['lr']}, 100)
 
     return (steps[0][-1] - minimum[0]) ** 2 + (steps[1][-1] - minimum[1]) ** 2
@@ -171,12 +171,12 @@ def main():
 
     execute_experiments(
         optimizers,
-        objective_rosenbrok,
+        objective_rosenbrock,
         rosenbrock,
         plot_rosenbrok,
         (-2.0, 2.0),
         root_path,
-        'rosenbrok',
+        'rosenbrock',
     )
 
 
