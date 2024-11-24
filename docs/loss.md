@@ -1,6 +1,6 @@
 # Loss Function
 
-::: pytorch_optimizer.loss.bi_tempered.bi_tempered_logistic_loss
+::: pytorch_optimizer.bi_tempered_logistic_loss
     :docstring:
 
 ::: pytorch_optimizer.BiTemperedLogisticLoss
@@ -35,7 +35,7 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.loss.jaccard.soft_jaccard_score
+::: pytorch_optimizer.soft_jaccard_score
     :docstring:
 
 ::: pytorch_optimizer.JaccardLoss

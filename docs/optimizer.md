@@ -1,5 +1,13 @@
 # Optimizers
 
+::: pytorch_optimizer.optimizer.create_optimizer
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.optimizer.get_optimizer_parameters
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.A2Grad
     :docstring:
     :members:
@@ -168,23 +176,11 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.GaLoreProjector
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.centralize_gradient
     :docstring:
     :members:
 
 ::: pytorch_optimizer.Gravity
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.gradfilter_ema
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.gradfilter_ma
     :docstring:
     :members:
 

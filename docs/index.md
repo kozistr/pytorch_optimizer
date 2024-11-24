@@ -49,10 +49,7 @@ optimizer = load_optimizer(optimizer='adamp')(model.parameters())
 
 # if you install `bitsandbytes` optimizer, you can use `8-bit` optimizers from `pytorch-optimizer`.
 
-from pytorch_optimizer import load_optimizer
-
-opt = load_optimizer(optimizer='bnb_adamw8bit')
-optimizer = opt(model.parameters())
+optimizer = load_optimizer(optimizer='bnb_adamw8bit')(model.parameters())
 ```
 
 Also, you can load the optimizer via `torch.hub`.
@@ -61,6 +58,7 @@ Also, you can load the optimizer via `torch.hub`.
 import torch
 
 model = YourModel()
+
 opt = torch.hub.load('kozistr/pytorch_optimizer', 'adamp')
 optimizer = opt(model.parameters())
 ```
@@ -93,11 +91,13 @@ supported_optimizers = get_supported_optimizers()
 or you can also search them with the filter(s).
 
 ```python
->>> get_supported_optimizers('adam*')
-['adamax', 'adamg', 'adammini', 'adamod', 'adamp', 'adams', 'adamw']
+from pytorch_optimizer import get_supported_optimizers
 
->>> get_supported_optimizers(['adam*', 'ranger*'])
-['adamax', 'adamg', 'adammini', 'adamod', 'adamp', 'adams', 'adamw', 'ranger', 'ranger21']
+get_supported_optimizers('adam*')
+# ['adamax', 'adamg', 'adammini', 'adamod', 'adamp', 'adams', 'adamw']
+
+get_supported_optimizers(['adam*', 'ranger*'])
+# ['adamax', 'adamg', 'adammini', 'adamod', 'adamp', 'adams', 'adamw', 'ranger', 'ranger21']
 ```
 
 | Optimizer     | Description                                                                                       | Official Code                                                                                                  | Paper                                                                                       | Citation                                                                                                                            |
@@ -197,11 +197,13 @@ supported_lr_schedulers = get_supported_lr_schedulers()
 or you can also search them with the filter(s).
 
 ```python
->>> get_supported_lr_schedulers('cosine*')
-['cosine', 'cosine_annealing', 'cosine_annealing_with_warm_restart', 'cosine_annealing_with_warmup']
+from pytorch_optimizer import get_supported_lr_schedulers
 
->>> get_supported_lr_schedulers(['cosine*', '*warm*'])
-['cosine', 'cosine_annealing', 'cosine_annealing_with_warm_restart', 'cosine_annealing_with_warmup', 'warmup_stable_decay']
+get_supported_lr_schedulers('cosine*')
+# ['cosine', 'cosine_annealing', 'cosine_annealing_with_warm_restart', 'cosine_annealing_with_warmup']
+
+get_supported_lr_schedulers(['cosine*', '*warm*'])
+# ['cosine', 'cosine_annealing', 'cosine_annealing_with_warm_restart', 'cosine_annealing_with_warmup', 'warmup_stable_decay']
 ```
 
 | LR Scheduler    | Description                                                                     | Official Code                                                                                                                       | Paper                              | Citation                                                                                           |
@@ -224,11 +226,13 @@ supported_loss_functions = get_supported_loss_functions()
 or you can also search them with the filter(s).
 
 ```python
->>> get_supported_loss_functions('*focal*')
-['bcefocalloss', 'focalcosineloss', 'focalloss', 'focaltverskyloss']
+from pytorch_optimizer import get_supported_loss_functions
 
->>> get_supported_loss_functions(['*focal*', 'bce*'])
-['bcefocalloss', 'bceloss', 'focalcosineloss', 'focalloss', 'focaltverskyloss']
+get_supported_loss_functions('*focal*')
+# ['bcefocalloss', 'focalcosineloss', 'focalloss', 'focaltverskyloss']
+
+get_supported_loss_functions(['*focal*', 'bce*'])
+# ['bcefocalloss', 'bceloss', 'focalcosineloss', 'focalloss', 'focaltverskyloss']
 ```
 
 | Loss Functions  | Description                                                                                                             | Official Code                                          | Paper                              | Citation                                                                     |

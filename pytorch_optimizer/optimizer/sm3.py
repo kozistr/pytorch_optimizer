@@ -2,7 +2,26 @@ import torch
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
-from pytorch_optimizer.optimizer.utils import reduce_max_except_dim
+
+
+@torch.no_grad()
+def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
+    r"""Perform reduce-max along all dimensions except the given dim.
+
+    :param x: torch.Tensor. tensor to reduce-max.
+    :param dim: int. dimension to exclude.
+    """
+    rank: int = len(x.shape)
+    if rank == 0:
+        return x
+
+    if dim >= rank:
+        raise ValueError(f'[-] given dim is bigger than rank. {dim} >= {rank}')
+
+    for d in range(rank):
+        if d != dim:
+            x = x.max(dim=d, keepdim=True).values
+    return x
 
 
 class SM3(BaseOptimizer):

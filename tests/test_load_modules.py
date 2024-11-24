@@ -1,12 +1,8 @@
 import pytest
 
-from pytorch_optimizer import (
-    get_supported_loss_functions,
-    get_supported_lr_schedulers,
-    get_supported_optimizers,
-    load_lr_scheduler,
-    load_optimizer,
-)
+from pytorch_optimizer.loss import get_supported_loss_functions
+from pytorch_optimizer.lr_scheduler import get_supported_lr_schedulers, load_lr_scheduler
+from pytorch_optimizer.optimizer import get_supported_optimizers, load_optimizer
 from tests.constants import (
     INVALID_LR_SCHEDULER_NAMES,
     INVALID_OPTIMIZER_NAMES,

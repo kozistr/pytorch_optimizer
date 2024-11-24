@@ -5,8 +5,8 @@ import torch
 from torch import nn
 from torch.nn import functional as f
 
-from pytorch_optimizer import AdamP, Lookahead
 from pytorch_optimizer.base.types import LOSS
+from pytorch_optimizer.optimizer import AdamW, Lookahead
 
 
 class LogisticRegression(nn.Module):
@@ -104,7 +104,7 @@ def dummy_closure() -> LOSS:
 
 
 def build_lookahead(*parameters, **kwargs):
-    return Lookahead(AdamP(*parameters, **kwargs))
+    return Lookahead(AdamW(*parameters, **kwargs))
 
 
 def ids(v) -> str:

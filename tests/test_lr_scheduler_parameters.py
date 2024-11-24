@@ -1,15 +1,16 @@
 import numpy as np
 import pytest
 
-from pytorch_optimizer import AdamP, get_chebyshev_perm_steps
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
+from pytorch_optimizer.lr_scheduler import get_chebyshev_perm_steps
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.linear_warmup import PolyScheduler
+from pytorch_optimizer.optimizer import AdamW
 from tests.utils import Example
 
 
 def test_cosine_annealing_warmup_restarts_params():
-    optimizer = AdamP(Example().parameters())
+    optimizer = AdamW(Example().parameters())
 
     with pytest.raises(ValueError) as error_info:
         CosineAnnealingWarmupRestarts(
@@ -37,7 +38,7 @@ def test_cosine_annealing_warmup_restarts_params():
 
 
 def test_linear_warmup_lr_scheduler_params():
-    optimizer = AdamP(Example().parameters())
+    optimizer = AdamW(Example().parameters())
 
     with pytest.raises(ValueError) as error_info:
         PolyScheduler(poly_order=-1, optimizer=optimizer, t_max=1, max_lr=1)

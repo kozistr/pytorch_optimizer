@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from pytorch_optimizer import (
+from pytorch_optimizer.loss import (
     BCEFocalLoss,
     BCELoss,
     BinaryBiTemperedLogisticLoss,

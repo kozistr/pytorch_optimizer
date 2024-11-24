@@ -4,14 +4,18 @@ import numpy as np
 import pytest
 from torch import nn
 
-from pytorch_optimizer import AdamP, get_chebyshev_perm_steps, get_chebyshev_schedule
-from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_permutation
+from pytorch_optimizer.lr_scheduler.chebyshev import (
+    get_chebyshev_perm_steps,
+    get_chebyshev_permutation,
+    get_chebyshev_schedule,
+)
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
 from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
 from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from pytorch_optimizer.lr_scheduler.rex import REXScheduler
 from pytorch_optimizer.lr_scheduler.wsd import get_wsd_schedule
+from pytorch_optimizer.optimizer import AdamW
 from tests.utils import Example
 
 CAWR_RECIPES = [
@@ -120,7 +124,7 @@ PROPORTION_LEARNING_RATES = [(1e-1, 1e-1, 2.0), (1e-1, 1e-3, 1.090909)]
 @pytest.mark.parametrize('cosine_annealing_warmup_restart_param', CAWR_RECIPES)
 def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param):
     model = Example()
-    optimizer = AdamP(model.parameters())
+    optimizer = AdamW(model.parameters())
 
     (
         first_cycle_steps,
@@ -192,7 +196,7 @@ def test_get_chebyshev_lr():
         0.001335267780289186,
     ]
 
-    optimizer = AdamP(Example().parameters())
+    optimizer = AdamW(Example().parameters())
     optimizer.step()
 
     lr_scheduler = get_chebyshev_schedule(optimizer, num_epochs=16, is_warmup=True)
@@ -200,7 +204,7 @@ def test_get_chebyshev_lr():
 
     np.testing.assert_almost_equal(lr_scheduler.get_last_lr(), 1e-3)
 
-    optimizer = AdamP(Example().parameters())
+    optimizer = AdamW(Example().parameters())
     optimizer.step()
 
     lr_scheduler = get_chebyshev_schedule(optimizer, num_epochs=16, is_warmup=False)
@@ -211,7 +215,7 @@ def test_get_chebyshev_lr():
 
 
 def test_linear_warmup_linear_scheduler():
-    optimizer = AdamP(Example().parameters())
+    optimizer = AdamW(Example().parameters())
 
     lr_scheduler = LinearScheduler(optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
 
@@ -221,7 +225,7 @@ def test_linear_warmup_linear_scheduler():
 
 
 def test_linear_warmup_cosine_scheduler():
-    optimizer = AdamP(Example().parameters())
+    optimizer = AdamW(Example().parameters())
     lr_scheduler = CosineScheduler(optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
 
     for expected_lr in LWC_RECIPE:
@@ -230,7 +234,7 @@ def test_linear_warmup_cosine_scheduler():
 
 
 def test_linear_warmup_poly_scheduler():
-    optimizer = AdamP(Example().parameters())
+    optimizer = AdamW(Example().parameters())
     lr_scheduler = PolyScheduler(optimizer=optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
 
     for expected_lr in LWP_RECIPE:
@@ -240,7 +244,7 @@ def test_linear_warmup_poly_scheduler():
 
 @pytest.mark.parametrize('proportion_learning_rate', PROPORTION_LEARNING_RATES)
 def test_proportion_scheduler(proportion_learning_rate: Tuple[float, float, float]):
-    base_optimizer = AdamP(Example().parameters())
+    base_optimizer = AdamW(Example().parameters())
     lr_scheduler = CosineScheduler(
         base_optimizer, t_max=10, max_lr=proportion_learning_rate[0], min_lr=proportion_learning_rate[1], init_lr=1e-2
     )
@@ -258,7 +262,7 @@ def test_proportion_scheduler(proportion_learning_rate: Tuple[float, float, floa
 
 
 def test_proportion_no_last_lr_scheduler():
-    base_optimizer = AdamP(Example().parameters())
+    base_optimizer = AdamW(Example().parameters())
     lr_scheduler = CosineAnnealingWarmupRestarts(
         base_optimizer,
         first_cycle_steps=10,
@@ -287,7 +291,7 @@ def test_rex_lr_scheduler():
         0.0,
     ]
 
-    base_optimizer = AdamP(Example().parameters())
+    base_optimizer = AdamW(Example().parameters())
 
     lr_scheduler = REXScheduler(
         base_optimizer,
@@ -302,7 +306,7 @@ def test_rex_lr_scheduler():
 
 
 def test_wsd_lr_scheduler():
-    optimizer = AdamP(Example().parameters())
+    optimizer = AdamW(Example().parameters())
     optimizer.step()
 
     lr_scheduler = get_wsd_schedule(optimizer, 2, 2, 3, min_lr_ratio=0.1)

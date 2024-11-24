@@ -1,7 +1,7 @@
 import pytest
 
-from pytorch_optimizer import PCGrad, load_optimizer
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError, ZeroParameterSizeError
+from pytorch_optimizer.optimizer import PCGrad, load_optimizer
 from tests.constants import BETA_OPTIMIZER_NAMES, VALID_OPTIMIZER_NAMES
 from tests.utils import Example, simple_parameter
 

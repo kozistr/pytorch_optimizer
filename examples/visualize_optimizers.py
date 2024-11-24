@@ -1,13 +1,13 @@
 import math
 from pathlib import Path
 
-import hyperopt.exceptions
 import numpy as np
 import torch
 from hyperopt import fmin, hp, tpe
+from hyperopt.exceptions import AllTrialsFailed
 from matplotlib import pyplot as plt
 
-from pytorch_optimizer import OPTIMIZERS
+from pytorch_optimizer.optimizer import OPTIMIZERS
 
 
 def rosenbrock(tensors) -> torch.Tensor:
@@ -57,17 +57,17 @@ def objective_rastrigin(params, minimum=(0, 0)):
     return (steps[0][-1] - minimum[0]) ** 2 + (steps[1][-1] - minimum[1]) ** 2
 
 
-def objective_rosenbrok(params, minimum=(1.0, 1.0)):
+def objective_rosenbrock(params, minimum=(1.0, 1.0)):
     steps = execute_steps(rastrigin, (-2.0, 2.0), params['optimizer_class'], {'lr': params['lr']}, 100)
 
     return (steps[0][-1] - minimum[0]) ** 2 + (steps[1][-1] - minimum[1]) ** 2
 
 
-def plot_rastrigin(grad_iter, optimizer_name, lr) -> None:
+def plot_rastrigin(grad_iter, optimizer_plot_path, optimizer_name, lr) -> None:
     x = torch.linspace(-4.5, 4.5, 250)
     y = torch.linspace(-4.5, 4.5, 250)
 
-    x, y = torch.meshgrid(x, y)
+    x, y = torch.meshgrid(x, y, indexing='ij')
     z = rastrigin([x, y])
 
     iter_x, iter_y = grad_iter[0, :], grad_iter[1, :]
@@ -81,15 +81,15 @@ def plot_rastrigin(grad_iter, optimizer_name, lr) -> None:
 
     plt.plot(0, 0, 'gD')
     plt.plot(iter_x[-1], iter_y[-1], 'rD')
-    plt.savefig(f'../docs/visualizations/rastrigin_{optimizer_name}.png')
+    plt.savefig(str(optimizer_plot_path))
     plt.close()
 
 
-def plot_rosenbrok(grad_iter, optimizer_name, lr):
+def plot_rosenbrok(grad_iter, optimizer_plot_path, optimizer_name, lr):
     x = torch.linspace(-2, 2, 250)
     y = torch.linspace(-1, 3, 250)
 
-    x, y = torch.meshgrid(x, y)
+    x, y = torch.meshgrid(x, y, indexing='ij')
     z = rosenbrock([x, y])
 
     iter_x, iter_y = grad_iter[0, :], grad_iter[1, :]
@@ -103,7 +103,7 @@ def plot_rosenbrok(grad_iter, optimizer_name, lr):
     ax.set_title(f'Rosenbrock func: {optimizer_name} with {len(iter_x)} iterations, lr={lr:.6f}')
     plt.plot(1.0, 1.0, 'gD')
     plt.plot(iter_x[-1], iter_y[-1], 'rD')
-    plt.savefig(f'../docs/visualizations/rosenbrock_{optimizer_name}.png')
+    plt.savefig(str(optimizer_plot_path))
     plt.close()
 
 
@@ -113,7 +113,8 @@ def execute_experiments(
     for item in optimizers:
         optimizer_class, lr_low, lr_hi = item
 
-        if (root_path / f'{exp_name}_{optimizer_class.__name__}.png').exists():
+        optimizer_plot_path = root_path / f'{exp_name}_{optimizer_class.__name__}.png'
+        if optimizer_plot_path.exists():
             continue
 
         space = {
@@ -129,7 +130,7 @@ def execute_experiments(
                 max_evals=200,
                 rstate=np.random.default_rng(seed),
             )
-        except hyperopt.exceptions.AllTrialsFailed:
+        except AllTrialsFailed:
             continue
 
         steps = execute_steps(
@@ -140,7 +141,7 @@ def execute_experiments(
             500,
         )
 
-        plot_func(steps, optimizer_class.__name__, best['lr'])
+        plot_func(steps, optimizer_plot_path, optimizer_class.__name__, best['lr'])
 
 
 def main():
@@ -149,19 +150,14 @@ def main():
     np.random.seed(42)
     torch.manual_seed(42)
 
-    root_path = Path('..') / 'docs' / 'visualizations'
+    root_path = Path('.') / 'docs' / 'visualizations'
 
     optimizers = [
-        (torch.optim.AdamW, -6, 0.5),
-        (torch.optim.Adam, -6, 0.5),
-        (torch.optim.SGD, -6, -1.0),
+        (optimizer, -6, 0.5)
+        for optimizer_name, optimizer in OPTIMIZERS.items()
+        if optimizer_name.lower() not in {'alig', 'lomo', 'adalomo', 'bsam', 'adammini'}
     ]
-
-    for optimizer_name, optimizer in OPTIMIZERS.items():
-        if optimizer_name.lower() in {'alig', 'lomo', 'adalomo', 'bsam', 'adammini'}:
-            continue
-
-        optimizers.append((optimizer, -6, 0.2))
+    optimizers.extend([(torch.optim.AdamW, -6, 0.5), (torch.optim.Adam, -6, 0.5), (torch.optim.SGD, -6, -1.0)])
 
     execute_experiments(
         optimizers,
@@ -175,12 +171,12 @@ def main():
 
     execute_experiments(
         optimizers,
-        objective_rosenbrok,
+        objective_rosenbrock,
         rosenbrock,
         plot_rosenbrok,
         (-2.0, 2.0),
         root_path,
-        'rosenbrok',
+        'rosenbrock',
     )
 
 

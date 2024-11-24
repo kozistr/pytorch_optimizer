@@ -1,12 +1,12 @@
 --index-url https://pypi.org/simple
 --extra-index-url https://download.pytorch.org/whl/cpu
 numpy<2.0
-torch==2.3.1
-mkdocs==1.6.0
-mkdocs-material==9.5.29
-pymdown-extensions==10.8.1
-mkdocstrings-python==1.10.5
+torch==2.5.1
+mkdocs==1.6.1
+mkdocs-material==9.5.45
+pymdown-extensions==10.12
+mkdocstrings-python==1.12.2
 markdown-include==0.8.1
 mdx_truly_sane_lists==1.3
-mkdocs-awesome-pages-plugin==2.9.2
-griffe<1.0
+mkdocs-awesome-pages-plugin==2.9.3
+griffe==1.5.1
