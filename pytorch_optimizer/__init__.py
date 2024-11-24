@@ -13,6 +13,7 @@ from pytorch_optimizer.loss import (
     LovaszHingeLoss,
     SoftF1Loss,
     TverskyLoss,
+    bi_tempered_logistic_loss,
     get_supported_loss_functions,
     soft_dice_score,
     soft_jaccard_score,

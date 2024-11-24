@@ -3,7 +3,11 @@ from typing import Dict, List, Optional, Sequence, Set, Union
 
 from torch import nn
 
-from pytorch_optimizer.loss.bi_tempered import BinaryBiTemperedLogisticLoss, BiTemperedLogisticLoss
+from pytorch_optimizer.loss.bi_tempered import (
+    BinaryBiTemperedLogisticLoss,
+    BiTemperedLogisticLoss,
+    bi_tempered_logistic_loss,
+)
 from pytorch_optimizer.loss.cross_entropy import BCELoss
 from pytorch_optimizer.loss.dice import DiceLoss, soft_dice_score
 from pytorch_optimizer.loss.f1 import SoftF1Loss
