@@ -480,8 +480,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Kate, {'lr': 5e-2}, 10),
     (StableAdamW, {'lr': 1e0}, 5),
     (AdamG, {'lr': 1e0}, 20),
-    (AdEMAMix, {'lr': 1e0}, 5),
-    (AdEMAMix, {'lr': 1e0, 't_alpha_beta3': 5}, 5),
+    (AdEMAMix, {'lr': 1e0}, 3),
+    (AdEMAMix, {'lr': 1e0, 't_alpha_beta3': 5}, 3),
+    (AdEMAMix, {'lr': 1e0, 'cautious': True}, 2),
     (
         SOAP,
         {'lr': 1e0, 'shampoo_beta': 0.95, 'precondition_frequency': 1, 'merge_dims': False, 'precondition_1d': True},
