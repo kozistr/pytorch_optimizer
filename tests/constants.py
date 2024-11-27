@@ -471,6 +471,11 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
         {'lr': 5e-1, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 2, 'projection_type': 'full'},
         5,
     ),
+    (
+        GaLore,
+        {'lr': 1e0, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 1, 'projection_type': 'random'},
+        5,
+    ),
     (Adalite, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (ScheduleFreeSGD, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (ScheduleFreeAdamW, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
