@@ -7,7 +7,7 @@ from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
-PROJECTION_TYPE = Literal['std', 'reverse_std', 'right', 'left', 'full']
+PROJECTION_TYPE = Literal['std', 'reverse_std', 'right', 'left', 'full', 'random']
 
 
 class GaLoreProjector:
@@ -16,8 +16,8 @@ class GaLoreProjector:
     :param rank: int. low rank to project.
     :param update_proj_gap: int. num steps to update the projection.
     :param scale: float. scale factor.
-    :param projection_type: PROJECTION_TYPE. type of projection. 'std', 'reverse_std', 'right', 'left', 'full' are
-        supported.
+    :param projection_type: PROJECTION_TYPE. type of projection. 'std', 'reverse_std', 'right', 'left', 'full' and
+        'random' are supported.
     """
 
     def __init__(
@@ -101,6 +101,14 @@ class GaLoreProjector:
             self.ortho_matrix = self.get_orthogonal_matrix(grad, self.rank, projection_type='full')
         return torch.matmul(self.ortho_matrix[0].t(), grad) @ self.ortho_matrix[1].t()
 
+    def get_low_rank_grad_random(self, grad: torch.Tensor, steps: int) -> torch.Tensor:
+        is_right: bool = grad.size(0) >= grad.size(1)
+        if self.ortho_matrix is None or steps % self.update_proj_gap == 0:
+            self.ortho_matrix = self.get_orthogonal_matrix(
+                grad, self.rank, projection_type='right' if is_right else 'left'
+            )
+        return torch.matmul(grad, self.ortho_matrix.t()) if is_right else torch.matmul(self.ortho_matrix.t(), grad)
+
     def project(self, full_rank_grad: torch.Tensor, steps: int) -> torch.Tensor:
         if self.projection_type == 'std':
             return self.get_low_rank_grad_std(full_rank_grad, steps)
@@ -112,6 +120,8 @@ class GaLoreProjector:
             return self.get_low_rank_grad_left(full_rank_grad, steps)
         if self.projection_type == 'full':
             return self.get_low_rank_grad_full(full_rank_grad, steps)
+        if self.projection_type == 'random':
+            return self.get_low_rank_grad_random(full_rank_grad, steps)
         raise NotImplementedError
 
     def project_back(self, low_rank_grad: torch.Tensor) -> torch.Tensor:
@@ -133,6 +143,12 @@ class GaLoreProjector:
             return torch.matmul(self.ortho_matrix, low_rank_grad) * self.scale
         if self.projection_type == 'full':
             return torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1].t() * self.scale
+        if self.projection_type == 'random':
+            return (
+                torch.matmul(low_rank_grad, self.ortho_matrix.t())
+                if low_rank_grad.shape[0] >= low_rank_grad.shape[1]
+                else torch.matmul(self.ortho_matrix, low_rank_grad)
+            ) * self.scale
 
         raise NotImplementedError
 

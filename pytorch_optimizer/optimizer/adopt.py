@@ -1,3 +1,6 @@
+import math
+from typing import Callable, Optional
+
 import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
@@ -22,6 +25,7 @@ class ADOPT(BaseOptimizer):
         params: PARAMETERS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.9999),
+        clip_lambda: Optional[Callable[[float], float]] = lambda step: math.pow(step, 0.25),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
@@ -32,6 +36,8 @@ class ADOPT(BaseOptimizer):
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.clip_lambda = clip_lambda
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -104,10 +110,13 @@ class ADOPT(BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad.conj(), value=1.0 - beta2)
 
                 de_nom = exp_avg_sq.sqrt().clamp_(min=group['eps'])
-                if group['step'] == 2:
-                    exp_avg.addcdiv_(grad, de_nom)
-                else:
-                    exp_avg.mul_(beta1).addcdiv_(grad, de_nom, value=1.0 - beta1)
+
+                normed_grad = grad.div(de_nom)
+                if self.clip_lambda is not None:
+                    clip = self.clip_lambda(group['step'])
+                    normed_grad.clamp_(-clip, clip)
+
+                exp_avg.lerp_(normed_grad, weight=1.0 - beta1)
 
                 p.add_(exp_avg, alpha=-group['lr'])
 

@@ -30,6 +30,7 @@ class AdaFactor(BaseOptimizer):
     :param momentum_dtype: torch.dtype. type of momentum variable. In VIT paper observed that storing momentum in
         half-precision (bfloat16 type) does not affect training dynamics and has no effect on the outcome while
         reducing optimize overhead from 2-fold to 1.5-fold.
+    :param cautious: bool. whether to use the Cautious variant.
     """
 
     def __init__(
@@ -49,6 +50,7 @@ class AdaFactor(BaseOptimizer):
         eps1: float = 1e-30,
         eps2: float = 1e-3,
         momentum_dtype: torch.dtype = torch.bfloat16,
+        cautious: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -62,6 +64,7 @@ class AdaFactor(BaseOptimizer):
         self.eps1 = eps1
         self.eps2 = eps2
         self.momentum_dtype = momentum_dtype
+        self.cautious = cautious
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -214,7 +217,9 @@ class AdaFactor(BaseOptimizer):
                     exp_avg = state['exp_avg']
                     exp_avg.mul_(beta1).add_(update, alpha=1.0 - beta1)
 
-                    update = exp_avg
+                    update = exp_avg.clone()
+                    if self.cautious:
+                        self.apply_cautious(update, grad)
 
                 self.apply_weight_decay(
                     p=p,

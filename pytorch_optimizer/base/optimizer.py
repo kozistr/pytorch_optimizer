@@ -256,6 +256,17 @@ class BaseOptimizer(ABC, Optimizer):
         torch.mul(r_factor, c_factor, out=output)
 
     @staticmethod
+    def apply_cautious(update: torch.Tensor, grad: torch.Tensor) -> None:
+        r"""Apply the Cautious Optimizer feature.
+
+        :param update: torch.Tensor. update. it'll be masked in in-place manner.
+        :param grad: torch.Tensor. gradient.
+        """
+        mask = (update * grad > 0).to(grad.dtype)
+        mask.mul_(mask.numel() / (mask.sum() + 1))
+        update.mul_(mask)
+
+    @staticmethod
     def validate_range(x: float, name: str, low: float, high: float, range_type: str = '[)') -> None:
         if range_type == '[)' and not low <= x < high:
             raise ValueError(f'[-] {name} must be in the range [{low}, {high})')
