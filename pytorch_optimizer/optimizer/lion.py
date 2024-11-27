@@ -18,6 +18,7 @@ class Lion(BaseOptimizer):
     :param use_gc: bool. use gradient centralization.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
+    :param cautious: bool. whether to use the Cautious variant.
     """
 
     def __init__(
@@ -31,6 +32,7 @@ class Lion(BaseOptimizer):
         use_gc: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
+        cautious: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -38,6 +40,7 @@ class Lion(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
 
         self.use_gc = use_gc
+        self.cautious = cautious
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -113,6 +116,9 @@ class Lion(BaseOptimizer):
 
                 update.mul_(beta1).add_(grad, alpha=1.0 - beta1).sign_()
                 exp_avg.mul_(beta2).add_(s_grad, alpha=1.0 - beta2)
+
+                if self.cautious:
+                    self.apply_cautious(update, grad)
 
                 p.add_(update, alpha=-group['lr'])
 
