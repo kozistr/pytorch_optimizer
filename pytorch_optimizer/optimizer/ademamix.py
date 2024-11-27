@@ -19,6 +19,7 @@ class AdEMAMix(BaseOptimizer):
     :param fixed_decay: bool. fix weight decay.
     :param alpha: float. usually between 4 and 10 would work well.
     :param t_alpha_beta3: Optional[float]. total number of iterations is preferred when needed.
+    :param cautious: bool. whether to use cautious feature.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -32,6 +33,7 @@ class AdEMAMix(BaseOptimizer):
         fixed_decay: bool = False,
         alpha: float = 5.0,
         t_alpha_beta3: Optional[float] = None,
+        cautious: bool = False,
         eps: float = 1e-8,
         **kwargs,
     ):
@@ -41,6 +43,8 @@ class AdEMAMix(BaseOptimizer):
         self.validate_non_negative(t_alpha_beta3, 't_alpha_beta3')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.cautious = cautious
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -71,9 +75,7 @@ class AdEMAMix(BaseOptimizer):
 
     @staticmethod
     def schedule_alpha(t_alpha_beta3: Optional[float], step: int, alpha: float) -> float:
-        if t_alpha_beta3 is None:
-            return alpha
-        return min(step * alpha / t_alpha_beta3, alpha)
+        return alpha if t_alpha_beta3 is None else min(step * alpha / t_alpha_beta3, alpha)
 
     @staticmethod
     def schedule_beta3(t_alpha_beta3: Optional[float], step: int, beta1: float, beta3: float) -> float:
@@ -106,6 +108,8 @@ class AdEMAMix(BaseOptimizer):
 
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
+
+            step_size: float = group['lr'] / bias_correction1
 
             alpha_t: float = self.schedule_alpha(group['t_alpha_beta3'], group['step'], group['alpha'])
             beta3_t: float = self.schedule_beta3(group['t_alpha_beta3'], group['step'], beta1, beta3)
@@ -140,10 +144,12 @@ class AdEMAMix(BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                 exp_avg_slow.mul_(beta3_t).add_(grad, alpha=1.0 - beta3_t)
 
-                de_nom = (exp_avg_sq.sqrt() / bias_correction2_sq).add_(group['eps'])
+                de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
-                step_size = group['lr'] / bias_correction1
+                update = (exp_avg + alpha_t * exp_avg_slow).div_(de_nom)
+                if self.cautious:
+                    self.apply_cautious(update, grad)
 
-                p.addcdiv_(exp_avg + alpha_t * exp_avg_slow, de_nom, value=-step_size)
+                p.add_(update, alpha=-step_size)
 
         return loss
