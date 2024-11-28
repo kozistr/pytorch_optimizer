@@ -355,6 +355,10 @@ With the default bias-correction, Adam may actually make larger than requested g
 
 Correcting the norm of a gradient in each iteration based on the adaptive training history of gradient norm.
 
+### Cautious optimizer
+
+Updates only occur when the proposed update direction aligns with the current gradient.
+
 ## Frequently asked questions
 
 [here](docs/qa.md)
