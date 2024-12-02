@@ -49,7 +49,6 @@ from pytorch_optimizer.optimizer import (
     DAdaptAdan,
     DAdaptLion,
     DAdaptSGD,
-    DeMo,
     DiffGrad,
     FAdam,
     Fromage,
