@@ -130,6 +130,7 @@ testpaths = "tests"
 omit = [
     "./pytorch_optimizer/optimizer/rotograd.py",
     "./pytorch_optimizer/optimizer/adam_mini.py",
+    "./pytorch_optimizer/optimizer/demo.py",
 ]
 
 [build-system]
