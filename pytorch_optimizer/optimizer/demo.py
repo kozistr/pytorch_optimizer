@@ -280,7 +280,7 @@ def get_smaller_split(n: int, close_to: int) -> int:
     return n
 
 
-class DeMo(torch.optim.SGD, BaseOptimizer):
+class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
     r"""Decoupled Momentum Optimization.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
