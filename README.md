@@ -10,7 +10,7 @@
 
 **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
 I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
-Currently, **79 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
+Currently, **80 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
@@ -184,6 +184,8 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | ADOPT         | *Modified Adam Can Converge with Any β2 with the Optimal Rate*                                    | [github](https://github.com/iShohei220/adopt)                                                                  | <https://arxiv.org/abs/2411.02853>                                                          | [cite](https://github.com/iShohei220/adopt?tab=readme-ov-file#citation)                                                             |
 | FTRL          | *Follow The Regularized Leader*                                                                   |                                                                                                                | <https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/41159.pdf> |                                                                                                                                     |
 | Cautious      | *Improving Training with One Line of Code*                                                        | [github](https://github.com/kyleliang919/C-Optim)                                                              | <https://arxiv.org/pdf/2411.16085v1>                                                        | [cite](https://github.com/kyleliang919/C-Optim?tab=readme-ov-file#citation)                                                         |
+| DeMo          | *Decoupled Momentum Optimization*                                                                 | [github](https://github.com/bloc97/DeMo)                                                                       | <https://arxiv.org/abs/2411.19870>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv241119870P/exportcitation)                                                        |
+| MicroAdam     | *Accurate Adaptive Optimization with Low Space Overhead and Provable Convergence*                 | [github](https://github.com/IST-DASLab/MicroAdam)                                                              | <https://arxiv.org/abs/2405.15593>                                                          | [cite](https://github.com/IST-DASLab/MicroAdam?tab=readme-ov-file#citing)                                                           |
 
 ## Supported LR Scheduler
 
