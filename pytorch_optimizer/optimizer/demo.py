@@ -82,7 +82,7 @@ class TransformDCT:
             self.b_dict[n2] = n2w
 
             x = self.einsum_2d_t(x, n1w, n2w)
-            return rearrange(x, ' h x w -> (y h) (x w)')
+            return rearrange(x, 'y h x w -> (y h) (x w)')
 
         n1 = x.shape[1]
         n1w = self.b_dict[n1].to(x.device)
