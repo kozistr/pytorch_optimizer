@@ -38,6 +38,7 @@ from pytorch_optimizer.optimizer.apollo import Apollo
 from pytorch_optimizer.optimizer.avagrad import AvaGrad
 from pytorch_optimizer.optimizer.came import CAME
 from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptLion, DAdaptSGD
+from pytorch_optimizer.optimizer.demo import DeMo
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.fadam import FAdam
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
