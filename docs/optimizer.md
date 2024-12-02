@@ -152,6 +152,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.DeMo
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.DiffGrad
     :docstring:
     :members:
