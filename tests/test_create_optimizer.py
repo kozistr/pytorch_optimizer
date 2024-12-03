@@ -16,6 +16,8 @@ def test_create_optimizer(use_lookahead, optimizer_name):
         kwargs.update({'num_iterations': 1})
     elif optimizer_name == 'bsam':
         kwargs.update({'num_data': 1})
+    elif optimizer_name == 'demo':
+        kwargs = {}
 
     create_optimizer(
         LogisticRegression(),

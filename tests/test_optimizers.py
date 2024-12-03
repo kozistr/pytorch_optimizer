@@ -67,6 +67,10 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
 
     if optimizer_name == 'AliG':
         config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
+    if optimizer_name == 'Muon':
+        adamw_params = [p for p in parameters if p.ndim < 2]
+        parameters = [p for p in parameters if p.ndim >= 2]
+        config.update({'adamw_params': adamw_params})
 
     optimizer = optimizer_class(parameters, **config)
 
