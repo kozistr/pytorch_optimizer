@@ -302,10 +302,13 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
         process_group: Optional[ProcessGroup] = None,
         **kwargs,
     ):
+        self.validate_learning_rate(lr)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_range(compression_decay, 'compression_decay', 0.0, 1.0, range_type='[)')
         self.validate_positive(compression_top_k, 'compression_top_k')
         self.validate_positive(compression_chunk, 'compression_chunk')
+
+        self.weight_decay = weight_decay
 
         self.compression_decay = compression_decay
         self.compression_top_k = compression_top_k
@@ -406,7 +409,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
                     p,
                     grad,
                     lr=lr,
-                    weight_decay=group['weight_decay'],
+                    weight_decay=self.weight_decay,
                     weight_decouple=True,
                     fixed_decay=False,
                 )
