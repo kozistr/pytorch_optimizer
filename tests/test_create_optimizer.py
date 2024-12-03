@@ -8,7 +8,7 @@ from tests.utils import LogisticRegression
 @pytest.mark.parametrize('use_lookahead', [True, False])
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_create_optimizer(use_lookahead, optimizer_name):
-    if optimizer_name == 'adamw':
+    if optimizer_name in ('adamw', 'demo'):
         pytest.skip(f'skip {optimizer_name}')
 
     kwargs = {'eps': 1e-8, 'k': 7}

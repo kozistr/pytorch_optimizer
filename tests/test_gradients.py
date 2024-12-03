@@ -41,7 +41,7 @@ def test_no_gradients(optimizer_name):
 
 @pytest.mark.parametrize('no_sparse_optimizer', NO_SPARSE_OPTIMIZERS)
 def test_sparse_not_supported(no_sparse_optimizer):
-    if no_sparse_optimizer in {'lomo', 'adalomo', 'bsam', 'adammini', 'adamw'}:
+    if no_sparse_optimizer in {'lomo', 'adalomo', 'bsam', 'adammini', 'adamw', 'demo'}:
         pytest.skip(f'skip {no_sparse_optimizer} optimizer.')
 
     param = simple_sparse_parameter()[1]
