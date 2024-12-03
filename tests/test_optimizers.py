@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 import torch
@@ -13,11 +15,13 @@ from pytorch_optimizer.optimizer import (
     WSAM,
     DynamicLossScaler,
     Lookahead,
+    Muon,
     PCGrad,
     load_optimizer,
 )
 from pytorch_optimizer.optimizer.alig import l2_projection
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
+from pytorch_optimizer.optimizer.muon import zero_power_via_newton_schulz_5
 from tests.constants import (
     ADAMD_SUPPORTED_OPTIMIZERS,
     ADANORM_SUPPORTED_OPTIMIZERS,
@@ -67,6 +71,10 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
 
     if optimizer_name == 'AliG':
         config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
+    if optimizer_name == 'Muon':
+        adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
+        parameters = [p for i, p in enumerate(parameters) if i < 2]
+        config.update({'adamw_params': adamw_params})
 
     optimizer = optimizer_class(parameters, **config)
 
@@ -752,3 +760,35 @@ def test_soap_merge_dims_channel_last(environment):
         optimizer.zero_grad()
         loss_fn(model(x_data).squeeze(), y_data.squeeze()).backward()
         optimizer.step()
+
+
+def test_muon_zero_power_via_newton_schulz_5():
+    x = torch.FloatTensor(([[1.0911, 0.8774], [0.7698, -0.3501], [0.8795, -1.1103]]))
+    output = zero_power_via_newton_schulz_5(x, num_steps=6)
+
+    expected_output = np.asarray([[0.5156, 0.4531], [0.3281, -0.1445], [0.3438, -0.5000]])
+
+    np.testing.assert_almost_equal(output.float().numpy(), expected_output, decimal=4)
+
+    with pytest.raises(ValueError):
+        _ = zero_power_via_newton_schulz_5(x[0], num_steps=6)
+
+
+@pytest.mark.parametrize('rank', ['1', '0'])
+def test_muon_rank(rank):
+    os.environ['RANK'] = rank
+
+    model = nn.Sequential(
+        nn.Conv1d(1, 1, 1),
+        nn.Conv1d(1, 1, 1),
+        nn.Conv1d(1, 1, 1),
+    )
+
+    optimizer = Muon(model.parameters())
+    optimizer.zero_grad()
+
+    model[0].weight.grad = torch.randn(1, 1, 1)
+    model[1].weight.grad = torch.randn(1, 1, 1)
+    model[2].weight.grad = torch.randn(1, 1, 1)
+
+    optimizer.step()

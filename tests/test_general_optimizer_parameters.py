@@ -52,6 +52,8 @@ def test_epsilon(optimizer_name):
         'bsam',
         'adalomo',
         'ftrl',
+        'demo',
+        'muon',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
@@ -80,6 +82,7 @@ def test_weight_decay(optimizer_name):
         'amos',
         'lomo',
         'ftrl',
+        'muon',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 

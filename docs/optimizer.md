@@ -228,6 +228,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Muon
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Nero
     :docstring:
     :members:

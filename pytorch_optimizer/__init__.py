@@ -109,6 +109,7 @@ from pytorch_optimizer.optimizer import (
     Lamb,
     Lion,
     Lookahead,
+    Muon,
     Nero,
     NovoGrad,
     PAdam,

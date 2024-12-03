@@ -10,7 +10,7 @@
 
 **pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
 I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
-Currently, **80 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
+Currently, **81 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
@@ -186,6 +186,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | Cautious      | *Improving Training with One Line of Code*                                                        | [github](https://github.com/kyleliang919/C-Optim)                                                              | <https://arxiv.org/pdf/2411.16085v1>                                                        | [cite](https://github.com/kyleliang919/C-Optim?tab=readme-ov-file#citation)                                                         |
 | DeMo          | *Decoupled Momentum Optimization*                                                                 | [github](https://github.com/bloc97/DeMo)                                                                       | <https://arxiv.org/abs/2411.19870>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv241119870P/exportcitation)                                                        |
 | MicroAdam     | *Accurate Adaptive Optimization with Low Space Overhead and Provable Convergence*                 | [github](https://github.com/IST-DASLab/MicroAdam)                                                              | <https://arxiv.org/abs/2405.15593>                                                          | [cite](https://github.com/IST-DASLab/MicroAdam?tab=readme-ov-file#citing)                                                           |
+| Muon          | *MomentUm Orthogonalized by Newton-schulz*                                                        | [github](https://github.com/KellerJordan/Muon)                                                                 | <https://x.com/kellerjordan0/status/1842300916864844014>                                    | [cite](https://github.com/KellerJordan/Muon)                                                                                        |
 
 ## Supported LR Scheduler
 
