@@ -234,7 +234,7 @@ class Muon(BaseOptimizer):
 
                 buf1, buf2 = state['moment1'], state['moment2']
                 buf1.lerp_(grad, weight=1.0 - beta1)
-                buf2.lerp_(grad.square(), weight=1 - beta2)
+                buf2.lerp_(grad.square(), weight=1.0 - beta2)
 
                 g = buf1 / buf2.sqrt().add_(group['adamw_eps'])
 
