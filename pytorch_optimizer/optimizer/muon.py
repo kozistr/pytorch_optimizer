@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch.distributed import ReduceOp, all_reduce
@@ -119,7 +119,7 @@ class Muon(BaseOptimizer):
         return 'Muon'
 
     @staticmethod
-    def get_parameters(params: PARAMETERS) -> PARAMETERS:
+    def get_parameters(params: PARAMETERS) -> List[torch.Tensor]:
         if isinstance(params, list) and isinstance(params[0], torch.Tensor):
             return params
 
