@@ -99,12 +99,11 @@ class Muon(BaseOptimizer):
                 new_params.extend(group['params'])
             params = new_params
 
-        adamw_params = []
         if isinstance(params, list) and isinstance(params[0], dict) and 'params' in params[0]:
             new_params = []
             for group in adamw_params:
                 new_params.extend(group['params'])
-            params = new_params
+            adamw_params = new_params
 
         params.extend(adamw_params)
 
