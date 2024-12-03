@@ -168,6 +168,9 @@ class Muon(BaseOptimizer):
                         raise NoSparseGradientError(str(self))
                     params.append(p)
 
+            if len(params) == 0:
+                continue
+
             lr = group['lr']
             momentum = group['momentum']
 
