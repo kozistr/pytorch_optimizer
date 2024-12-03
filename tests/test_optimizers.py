@@ -63,9 +63,6 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
 
     optimizer_class, config, iterations = optimizer_fp32_config
 
-    if optimizer_class.__name__ != 'Muon':
-        pytest.skip()
-
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name == 'Nero' and 'constraints' not in config:
         pytest.skip(f'skip {optimizer_name} w/o {config}')
