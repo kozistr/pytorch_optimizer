@@ -93,19 +93,11 @@ class Muon(BaseOptimizer):
         self.validate_non_negative(adamw_wd, 'adamw_wd')
         self.validate_non_negative(adamw_eps, 'adamw_eps')
 
-        if isinstance(params, list) and isinstance(params[0], dict) and 'params' in params[0]:
-            new_params = []
-            for group in params:
-                new_params.extend(group['params'])
-            params = new_params
-
-        if isinstance(params, list) and isinstance(params[0], dict) and 'params' in params[0]:
-            new_params = []
-            for group in adamw_params:
-                new_params.extend(group['params'])
-            adamw_params = new_params
-
+        params = self.get_parameters(params)
+        adamw_params = self.get_parameters(adamw_params) if adamw_params is not None else []
         params.extend(adamw_params)
+        # print(params)
+        # print(adamw_params)
 
         self.world_size: int = os.environ.get('WORLD_SIZE', 1)
         self.rank: int = os.environ.get('RANK', 0)
@@ -127,6 +119,20 @@ class Muon(BaseOptimizer):
 
     def __str__(self) -> str:
         return 'Muon'
+
+    @staticmethod
+    def get_parameters(params: PARAMETERS) -> PARAMETERS:
+        if isinstance(params, list) and isinstance(params[0], torch.Tensor):
+            return params
+
+        new_params = []
+        for group in params:
+            if isinstance(group, dict) and 'params' in group:
+                new_params.extend(group['params'])
+            else:
+                new_params.append(group)
+
+        return new_params
 
     def set_muon_state(self, params: PARAMETERS, adamw_params: PARAMETERS, threshold: int = 8192) -> None:
         r"""Set use_muon flag."""
