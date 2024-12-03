@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 import torch
@@ -13,6 +15,7 @@ from pytorch_optimizer.optimizer import (
     WSAM,
     DynamicLossScaler,
     Lookahead,
+    Muon,
     PCGrad,
     load_optimizer,
 )
@@ -772,3 +775,23 @@ def test_muon_zero_power_via_newton_schulz_5():
 
     with pytest.raises(ValueError):
         _ = zero_power_via_newton_schulz_5(x[0], num_steps=6)
+
+
+@pytest.mark.parametrize('rank', ['1', '0'])
+def test_muon_rank(rank):
+    os.environ['RANK'] = rank
+
+    model = nn.Sequential(
+        nn.Conv1d(1, 1, 1),
+        nn.Conv1d(1, 1, 1),
+        nn.Conv1d(1, 1, 1),
+    )
+
+    optimizer = Muon(model.parameters())
+    optimizer.zero_grad()
+
+    model[0].weight.grad = torch.randn(1, 1, 1)
+    model[1].weight.grad = torch.randn(1, 1, 1)
+    model[2].weight.grad = torch.randn(1, 1, 1)
+
+    optimizer.step()
