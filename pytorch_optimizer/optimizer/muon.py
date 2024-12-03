@@ -96,8 +96,6 @@ class Muon(BaseOptimizer):
         params = self.get_parameters(params)
         adamw_params = self.get_parameters(adamw_params) if adamw_params is not None else []
         params.extend(adamw_params)
-        # print(params)
-        # print(adamw_params)
 
         self.world_size: int = os.environ.get('WORLD_SIZE', 1)
         self.rank: int = os.environ.get('RANK', 0)
@@ -128,7 +126,7 @@ class Muon(BaseOptimizer):
         new_params = []
         for group in params:
             if isinstance(group, dict) and 'params' in group:
-                new_params.extend(group['params'])
+                new_params.extend(list(group['params']))
             else:
                 new_params.append(group)
 
