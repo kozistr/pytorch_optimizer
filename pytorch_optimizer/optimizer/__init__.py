@@ -56,6 +56,7 @@ from pytorch_optimizer.optimizer.lomo import LOMO, AdaLOMO
 from pytorch_optimizer.optimizer.lookahead import Lookahead
 from pytorch_optimizer.optimizer.madgrad import MADGRAD
 from pytorch_optimizer.optimizer.msvag import MSVAG
+from pytorch_optimizer.optimizer.muon import Muon
 from pytorch_optimizer.optimizer.nero import Nero
 from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.padam import PAdam
@@ -272,6 +273,8 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     SOAP,
     ADOPT,
     FTRL,
+    DeMo,
+    Muon,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
