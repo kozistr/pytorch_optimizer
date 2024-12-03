@@ -1,5 +1,5 @@
 import os
-from typing import Iterable, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
 from torch.distributed import ReduceOp, all_reduce
@@ -212,18 +212,15 @@ class Muon(BaseOptimizer):
                 p.add_(g, alpha=-lr)
                 curr_idx += p.numel()
 
-            params = [
-                p
-                for p in group['params']
-                if p.grad is not None and not p.grad.is_sparse and not self.state[p]['use_muon']
-            ]
+            params = [p for p in group['params'] if p.grad is not None and not self.state[p]['use_muon']]
 
-            lr = group['adamw_lr_ratio'] * group['lr']
+            lr: float = group['adamw_lr_ratio'] * group['lr']
             beta1, beta2 = group['adamw_betas']
 
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2: float = self.debias(beta2, group['step'])
             scale: float = bias_correction1 / bias_correction2 ** 0.5  # fmt: skip
+            step_size: float = lr / scale
 
             for p in params:
                 grad = p.grad
@@ -236,7 +233,7 @@ class Muon(BaseOptimizer):
                 buf1.lerp_(grad, weight=1.0 - beta1)
                 buf2.lerp_(grad.square(), weight=1.0 - beta2)
 
-                g = buf1 / buf2.sqrt().add_(group['adamw_eps'])
+                update = buf1 / buf2.sqrt().add_(group['adamw_eps'])
 
                 self.apply_weight_decay(
                     p,
@@ -247,6 +244,6 @@ class Muon(BaseOptimizer):
                     fixed_decay=False,
                 )
 
-                p.add_(g, alpha=-lr / scale)
+                p.add_(update, alpha=-step_size)
 
         return loss

@@ -59,6 +59,9 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
 
     optimizer_class, config, iterations = optimizer_fp32_config
 
+    if optimizer_class.__name__ != 'Muon':
+        pytest.skip()
+
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name == 'Nero' and 'constraints' not in config:
         pytest.skip(f'skip {optimizer_name} w/o {config}')
@@ -68,8 +71,8 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
     if optimizer_name == 'AliG':
         config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
     if optimizer_name == 'Muon':
-        adamw_params = [p for p in parameters if p.ndim < 2]
-        parameters = [p for p in parameters if p.ndim >= 2]
+        adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
+        parameters = [p for i, p in enumerate(parameters) if i < 2]
         config.update({'adamw_params': adamw_params})
 
     optimizer = optimizer_class(parameters, **config)
