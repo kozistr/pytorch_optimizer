@@ -22,6 +22,7 @@ class AdamP(BaseOptimizer):
     :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
         on scale-variant parameters.
     :param use_gc: bool. use gradient centralization.
+    :param cautious: bool. whether to use the Cautious variant.
     :param nesterov: bool. enables Nesterov momentum.
     :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
     :param adanorm: bool. whether to use the AdaNorm variant.
@@ -40,6 +41,7 @@ class AdamP(BaseOptimizer):
         delta: float = 0.1,
         wd_ratio: float = 0.1,
         use_gc: bool = False,
+        cautious: bool = False,
         nesterov: bool = False,
         r: float = 0.95,
         adanorm: bool = False,
@@ -54,6 +56,7 @@ class AdamP(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.use_gc = use_gc
+        self.cautious = cautious
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -169,6 +172,9 @@ class AdamP(BaseOptimizer):
                     step_size=group['lr'],
                     bias_correction1=bias_correction1,
                 )
+
+                if self.cautious:
+                    self.apply_cautious(perturb, grad)
 
                 p.add_(perturb, alpha=-step_size)
 
