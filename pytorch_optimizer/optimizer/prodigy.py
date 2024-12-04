@@ -16,7 +16,7 @@ class Prodigy(BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. betas.
-    :param beta3: float. coefficients for computing the Prodidy step-size using running averages. If set to None,
+    :param beta3: float. coefficients for computing the Prodigy step-size using running averages. If set to None,
         uses the value of square root of beta2.
     :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
     :param d_coef: float. Coefficient in the expression for the estimate of d.
