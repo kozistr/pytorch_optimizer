@@ -639,18 +639,12 @@ def test_dynamic_scaler():
     scaler.update_scale(overflow=False)
 
 
-def test_schedule_free_train_mode():
-    param = simple_parameter(True)
-
-    opt = load_optimizer('ScheduleFreeAdamW')([param])
-    opt.reset()
-    opt.eval()
-    opt.train()
-
-    opt = load_optimizer('ScheduleFreeSGD')([param])
-    opt.reset()
-    opt.eval()
-    opt.train()
+@pytest.mark.parametrize('optimizer_name', ['ScheduleFreeAdamW', 'ScheduleFreeSGD', 'ScheduleFreeRAdam'])
+def test_schedule_free_methods(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)([simple_parameter(True)])
+    optimizer.reset()
+    optimizer.eval()
+    optimizer.train()
 
 
 @pytest.mark.parametrize('filter_type', ['mean', 'sum'])
