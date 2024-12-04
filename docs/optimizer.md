@@ -204,6 +204,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.LaProp
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.LARS
     :docstring:
     :members:
@@ -293,6 +297,10 @@
     :members:
 
 ::: pytorch_optimizer.ScheduleFreeAdamW
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.ScheduleFreeRAdam
     :docstring:
     :members:
 
