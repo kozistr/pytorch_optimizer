@@ -26,6 +26,9 @@ class Prodigy(BaseOptimizer):
     :param fixed_decay: bool. fix weight decay.
     :param bias_correction: bool. turn on Adam's bias correction.
     :param safeguard_warmup: bool. remove lr from the denominator of D estimate to avoid issues during warm-up stage.
+    :param slice_p: int. Reduce memory usage by calculating LR adaptation statistics on only every p-th entry of each
+        tensor. For values greater than 1 this an approximation to standard Prodigy. Values ~11 are reasonable.
+    :param cautious: bool. whether to use the Cautious variant.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -43,6 +46,8 @@ class Prodigy(BaseOptimizer):
         fixed_decay: bool = False,
         bias_correction: bool = False,
         safeguard_warmup: bool = False,
+        slice_p: int = 1,
+        cautious: bool = False,
         eps: float = 1e-8,
         **kwargs,
     ):
@@ -50,6 +55,9 @@ class Prodigy(BaseOptimizer):
         self.validate_betas((*betas, beta3))
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+        self.validate_positive(slice_p, 'slice_p')
+
+        self.cautious = cautious
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -65,6 +73,7 @@ class Prodigy(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'bias_correction': bias_correction,
             'safeguard_warmup': safeguard_warmup,
+            'slice_p': slice_p,
             'step': 1,
             'eps': eps,
         }
@@ -118,6 +127,7 @@ class Prodigy(BaseOptimizer):
         d_numerator.mul_(beta3)
 
         for group in self.param_groups:
+            slice_p = group['slice_p']
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -129,13 +139,20 @@ class Prodigy(BaseOptimizer):
                 state = self.state[p]
                 if len(state) == 0:
                     state['s'] = torch.zeros_like(p)
-                    state['p0'] = p.clone()
+                    state['p0'] = (
+                        p.flatten()[::slice_p].clone()
+                        if p.any()
+                        else torch.tensor(0, device=p.device, dtype=p.dtype)
+                    )  # fmt: skip
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
                 p0, exp_avg, exp_avg_sq = state['p0'], state['exp_avg'], state['exp_avg_sq']
 
-                d_numerator.add_(torch.dot(grad.flatten(), (p0 - p).flatten()), alpha=(d / d0) * d_lr)
+                d_numerator.add_(
+                    torch.dot(grad.flatten()[::slice_p], p0 - p.flatten()[::slice_p]),
+                    alpha=(d / d0) * d_lr,
+                )  # fmt: skip
 
                 exp_avg.mul_(beta1).add_(grad, alpha=d * (1.0 - beta1))
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=d * d * (1.0 - beta2))
@@ -170,10 +187,6 @@ class Prodigy(BaseOptimizer):
 
                 state = self.state[p]
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
-                de_nom = exp_avg_sq.sqrt().add_(d * group['eps'])
-
                 self.apply_weight_decay(
                     p,
                     p.grad,
@@ -183,6 +196,12 @@ class Prodigy(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                p.addcdiv_(exp_avg, de_nom, value=-d_lr)
+                update = state['exp_avg'].clone()
+                update.div_(state['exp_avg_sq'].sqrt().add_(d * group['eps']))
+
+                if self.cautious:
+                    self.apply_cautious(update, p.grad)
+
+                p.add_(update, alpha=-d_lr)
 
         return loss
