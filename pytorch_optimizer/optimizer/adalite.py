@@ -41,7 +41,7 @@ class Adalite(BaseOptimizer):
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps1, 'eps1')
-        self.validate_non_negative(eps2, 'eps1')
+        self.validate_non_negative(eps2, 'eps2')
 
         defaults: DEFAULTS = {
             'lr': lr,
