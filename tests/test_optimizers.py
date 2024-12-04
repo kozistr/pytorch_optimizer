@@ -26,6 +26,7 @@ from tests.constants import (
     ADAMD_SUPPORTED_OPTIMIZERS,
     ADANORM_SUPPORTED_OPTIMIZERS,
     ADAPTIVE_FLAGS,
+    COPT_SUPPORTED_OPTIMIZERS,
     DECOUPLE_FLAGS,
     OPTIMIZERS,
     PULLBACK_MOMENTUM,
@@ -297,7 +298,7 @@ def test_adanorm_optimizer(optimizer_config, environment):
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adanorm_condition(optimizer_config):
+def test_adanorm_variant(optimizer_config):
     param = simple_parameter(True)
     param.grad = torch.ones(1, 1)
 
@@ -311,7 +312,7 @@ def test_adanorm_condition(optimizer_config):
 
 
 @pytest.mark.parametrize('optimizer_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adamd_optimizers(optimizer_config, environment):
+def test_adamd_variant(optimizer_config, environment):
     (x_data, y_data), model, loss_fn = environment
 
     optimizer_class, config, num_iterations = optimizer_config
@@ -333,6 +334,31 @@ def test_adamd_optimizers(optimizer_config, environment):
         optimizer.step()
 
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('optimizer_config', COPT_SUPPORTED_OPTIMIZERS, ids=ids)
+def test_cautious_variant(optimizer_config, environment):
+    (x_data, y_data), model, loss_fn = environment
+
+    optimizer_class, config, num_iterations = optimizer_config
+
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(num_iterations):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward()
+
+        optimizer.step()
+
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('reduction', ['mean', 'sum'])
@@ -613,18 +639,12 @@ def test_dynamic_scaler():
     scaler.update_scale(overflow=False)
 
 
-def test_schedule_free_train_mode():
-    param = simple_parameter(True)
-
-    opt = load_optimizer('ScheduleFreeAdamW')([param])
-    opt.reset()
-    opt.eval()
-    opt.train()
-
-    opt = load_optimizer('ScheduleFreeSGD')([param])
-    opt.reset()
-    opt.eval()
-    opt.train()
+@pytest.mark.parametrize('optimizer_name', ['ScheduleFreeAdamW', 'ScheduleFreeSGD', 'ScheduleFreeRAdam'])
+def test_schedule_free_methods(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)([simple_parameter(True)])
+    optimizer.reset()
+    optimizer.eval()
+    optimizer.train()
 
 
 @pytest.mark.parametrize('filter_type', ['mean', 'sum'])

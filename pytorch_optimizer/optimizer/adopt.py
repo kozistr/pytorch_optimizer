@@ -17,6 +17,7 @@ class ADOPT(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
+    :param cautious: bool. whether to use the Cautious variant.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -29,6 +30,7 @@ class ADOPT(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
+        cautious: bool = False,
         eps: float = 1e-6,
         **kwargs,
     ):
@@ -38,6 +40,7 @@ class ADOPT(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.clip_lambda = clip_lambda
+        self.cautious = cautious
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -118,6 +121,12 @@ class ADOPT(BaseOptimizer):
 
                 exp_avg.lerp_(normed_grad, weight=1.0 - beta1)
 
-                p.add_(exp_avg, alpha=-group['lr'])
+                if self.cautious:
+                    update = exp_avg.clone()
+                    self.apply_cautious(update, normed_grad)
+                else:
+                    update = exp_avg
+
+                p.add_(update, alpha=-group['lr'])
 
         return loss

@@ -57,6 +57,7 @@ from pytorch_optimizer.optimizer import (
     GrokFastAdamW,
     Kate,
     Lamb,
+    LaProp,
     Lion,
     Muon,
     Nero,
@@ -69,6 +70,7 @@ from pytorch_optimizer.optimizer import (
     Ranger21,
     ScalableShampoo,
     ScheduleFreeAdamW,
+    ScheduleFreeRAdam,
     ScheduleFreeSGD,
     Shampoo,
     SignSGD,
@@ -146,6 +148,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'ademamix',
     'soap',
     'muon',
+    'laprop',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -204,7 +207,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (MADGRAD, {'lr': 5e-1, 'weight_decay': 1e-3, 'eps': 0.0}, 10),
     (MADGRAD, {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.0}, 10),
     (MADGRAD, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': True}, 10),
-    (RAdam, {'lr': 5e-0, 'weight_decay': 1e-3}, 10),
+    (RAdam, {'lr': 5e0, 'weight_decay': 1e-3}, 10),
     (RAdam, {'lr': 5e-1, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 5),
     (SGDP, {'lr': 5e-1, 'weight_decay': 1e-4}, 10),
     (SGDP, {'lr': 5e-1, 'weight_decay': 1e-4, 'nesterov': True}, 10),
@@ -377,7 +380,6 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdamS, {'lr': 1e0, 'weight_decay': 1e-3, 'ams_bound': True}, 20),
     (AdaFactor, {'lr': 1e1, 'weight_decay': 1e-3, 'scale_parameter': False}, 100),
     (AdaFactor, {'lr': 1e1, 'weight_decay': 1e-3, 'ams_bound': True}, 120),
-    (AdaFactor, {'lr': 1e1, 'weight_decay': 1e-3, 'cautious': True}, 70),
     (AdaFactor, {'lr': 1e1, 'betas': (None, 0.999), 'weight_decay': 1e-3}, 40),
     (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'rebound': 'belief'}, 10),
@@ -386,7 +388,6 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 10),
-    (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'cautious': True}, 5),
     (AliG, {'max_lr': 5e-1, 'momentum': 0.9}, 5),
     (AliG, {'max_lr': 5e-1, 'momentum': 0.9, 'adjusted_momentum': True}, 5),
     (SM3, {'lr': 5e-1, 'momentum': 0.9, 'beta': 0.9}, 5),
@@ -482,6 +483,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (ScheduleFreeSGD, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (ScheduleFreeAdamW, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (ScheduleFreeAdamW, {'lr': 1e-2, 'weight_decay': 1e-3, 'use_palm': True}, 5),
+    (ScheduleFreeRAdam, {'lr': 1e0, 'weight_decay': 1e-3, 'degenerated_to_sgd': True}, 5),
+    (ScheduleFreeRAdam, {'lr': 1e0, 'weight_decay': 1e-3, 'use_palm': True, 'degenerated_to_sgd': True}, 5),
     (FAdam, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (GrokFastAdamW, {'lr': 5e0, 'weight_decay': 1e-3, 'grokfast_after_step': 1}, 5),
     (Kate, {'lr': 5e-2}, 10),
@@ -489,7 +492,6 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdamG, {'lr': 1e0}, 20),
     (AdEMAMix, {'lr': 1e0}, 3),
     (AdEMAMix, {'lr': 1e0, 't_alpha_beta3': 5}, 3),
-    (AdEMAMix, {'lr': 1e0, 'cautious': True}, 2),
     (
         SOAP,
         {'lr': 1e0, 'shampoo_beta': 0.95, 'precondition_frequency': 1, 'merge_dims': False, 'precondition_1d': True},
@@ -499,6 +501,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (FTRL, {'lr': 1e0, 'beta': 0.0, 'lambda_1': 0.0, 'lambda_2': 0.0}, 5),
     (Muon, {'lr': 1e0, 'ns_steps': 6, 'adam_lr': 1e0, 'adamw_wd': 1e-2}, 5),
     (Muon, {'lr': 1e0, 'ns_steps': 6, 'adam_lr': 1e0, 'adamw_wd': 1e-2, 'nesterov': False}, 5),
+    (LaProp, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
+    (LaProp, {'lr': 1e0, 'centered': True, 'weight_decay': 1e-3}, 11),
+    (LaProp, {'lr': 1e0, 'ams_bound': True, 'weight_decay': 1e-3}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
@@ -539,4 +544,12 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (AvaGrad, {'lr': 1e1, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
     (AdaHessian, {'lr': 5e0, 'weight_decay': 1e-3, 'adam_debias': True}, 5),
     (Aida, {'lr': 1e1, 'weight_decay': 1e-3, 'rectify': True, 'adam_debias': True}, 10),
+]
+COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
+    (AdaFactor, {'lr': 1e1, 'weight_decay': 1e-3, 'cautious': True}, 70),
+    (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'cautious': True}, 5),
+    (AdEMAMix, {'lr': 1e0, 'cautious': True}, 2),
+    (LaProp, {'lr': 1e0, 'cautious': True}, 2),
+    (AdamP, {'lr': 1e0, 'cautious': True}, 2),
+    (ADOPT, {'lr': 1e1, 'cautious': True}, 3),
 ]
