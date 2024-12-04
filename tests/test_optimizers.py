@@ -298,7 +298,7 @@ def test_adanorm_optimizer(optimizer_config, environment):
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adanorm_condition(optimizer_config):
+def test_adanorm_variant(optimizer_config):
     param = simple_parameter(True)
     param.grad = torch.ones(1, 1)
 
@@ -312,7 +312,7 @@ def test_adanorm_condition(optimizer_config):
 
 
 @pytest.mark.parametrize('optimizer_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adamd_optimizers(optimizer_config, environment):
+def test_adamd_variant(optimizer_config, environment):
     (x_data, y_data), model, loss_fn = environment
 
     optimizer_class, config, num_iterations = optimizer_config
@@ -337,7 +337,7 @@ def test_adamd_optimizers(optimizer_config, environment):
 
 
 @pytest.mark.parametrize('optimizer_config', COPT_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_copt_optimizers(optimizer_config, environment):
+def test_cautious_variant(optimizer_config, environment):
     (x_data, y_data), model, loss_fn = environment
 
     optimizer_class, config, num_iterations = optimizer_config

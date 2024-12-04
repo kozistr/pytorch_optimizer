@@ -551,4 +551,5 @@ COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], i
     (AdEMAMix, {'lr': 1e0, 'cautious': True}, 2),
     (LaProp, {'lr': 1e0, 'cautious': True}, 2),
     (AdamP, {'lr': 1e0, 'cautious': True}, 2),
+    (ADOPT, {'lr': 1e1, 'cautious': True}, 3),
 ]
