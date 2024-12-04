@@ -8,9 +8,13 @@
 | Status  | [![PyPi download](https://static.pepy.tech/badge/pytorch-optimizer)](https://pepy.tech/project/pytorch-optimizer) [![PyPi month download](https://static.pepy.tech/badge/pytorch-optimizer/month)](https://pepy.tech/project/pytorch-optimizer)                                                                                                                                                       |
 | License | [![apache](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)                                                                                                                                                                                                                                                                                     |
 
-**pytorch-optimizer** is optimizer & lr scheduler collections in PyTorch. 
-I just re-implemented (speed & memory tweaks, plug-ins) the algorithm while based on the original paper. Also, It includes useful and practical optimization ideas.  
-Currently, **81 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!  
+## The reasons why you use `pytorch-optimizer`.
+
+1. Wide range of supported optimizers. Currently, **83 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+2. Including many variants such as `Cautious`, `AdamD`, `Gradient Centrailiaztion`
+3. Easy to use, clean, and tested codes
+4. Active maintenance
+5. Somewhat a bit more optimized compared to the original implementation
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
@@ -187,6 +191,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | DeMo          | *Decoupled Momentum Optimization*                                                                 | [github](https://github.com/bloc97/DeMo)                                                                       | <https://arxiv.org/abs/2411.19870>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv241119870P/exportcitation)                                                        |
 | MicroAdam     | *Accurate Adaptive Optimization with Low Space Overhead and Provable Convergence*                 | [github](https://github.com/IST-DASLab/MicroAdam)                                                              | <https://arxiv.org/abs/2405.15593>                                                          | [cite](https://github.com/IST-DASLab/MicroAdam?tab=readme-ov-file#citing)                                                           |
 | Muon          | *MomentUm Orthogonalized by Newton-schulz*                                                        | [github](https://github.com/KellerJordan/Muon)                                                                 | <https://x.com/kellerjordan0/status/1842300916864844014>                                    | [cite](https://github.com/KellerJordan/Muon)                                                                                        |
+| LaProp        | *Separating Momentum and Adaptivity in Adam*                                                      | [github](https://github.com/Z-T-WANG/LaProp-Optimizer)                                                         | <https://arxiv.org/abs/2002.04839>                                                          | [cite](https://github.com/Z-T-WANG/LaProp-Optimizer?tab=readme-ov-file#citation)                                                    |
 
 ## Supported LR Scheduler
 
