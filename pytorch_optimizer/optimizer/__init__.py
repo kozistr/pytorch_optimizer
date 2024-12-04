@@ -50,6 +50,7 @@ from pytorch_optimizer.optimizer.gravity import Gravity
 from pytorch_optimizer.optimizer.grokfast import GrokFastAdamW
 from pytorch_optimizer.optimizer.kate import Kate
 from pytorch_optimizer.optimizer.lamb import Lamb
+from pytorch_optimizer.optimizer.laprop import LaProp
 from pytorch_optimizer.optimizer.lars import LARS
 from pytorch_optimizer.optimizer.lion import Lion
 from pytorch_optimizer.optimizer.lomo import LOMO, AdaLOMO
@@ -71,7 +72,7 @@ from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
 from pytorch_optimizer.optimizer.rotograd import RotoGrad
 from pytorch_optimizer.optimizer.sam import BSAM, GSAM, SAM, WSAM
-from pytorch_optimizer.optimizer.schedulefree import ScheduleFreeAdamW, ScheduleFreeSGD
+from pytorch_optimizer.optimizer.schedulefree import ScheduleFreeAdamW, ScheduleFreeRAdam, ScheduleFreeSGD
 from pytorch_optimizer.optimizer.sgd import ASGD, SGDW, AccSGD, SignSGD
 from pytorch_optimizer.optimizer.sgdp import SGDP
 from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
@@ -275,6 +276,8 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     FTRL,
     DeMo,
     Muon,
+    ScheduleFreeRAdam,
+    LaProp,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
