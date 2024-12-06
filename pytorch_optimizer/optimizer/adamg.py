@@ -24,9 +24,9 @@ class AdamG(BaseOptimizer):
     def __init__(
         self,
         params: PARAMETERS,
-        lr: float = 1e-3,
+        lr: float = 1.0,
         betas: BETAS = (0.95, 0.999, 0.95),
-        p: float = 0.5,
+        p: float = 0.2,
         q: float = 0.24,
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
@@ -88,8 +88,8 @@ class AdamG(BaseOptimizer):
 
             beta1, beta2, beta3 = group['betas']
 
-            bias_correction1: float = 1.0 - self.debias(beta1, group['step'])
-            bias_correction2: float = 1.0 - self.debias(beta2, group['step'])
+            bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2: float = self.debias(beta2, group['step'])
             step_size: float = min(group['lr'], 1.0 / math.sqrt(group['step']))
 
             for p in group['params']:
