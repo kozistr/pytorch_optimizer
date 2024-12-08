@@ -489,7 +489,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (GrokFastAdamW, {'lr': 5e0, 'weight_decay': 1e-3, 'grokfast_after_step': 1}, 5),
     (Kate, {'lr': 5e-2}, 10),
     (StableAdamW, {'lr': 1e0}, 5),
-    (AdamG, {'lr': 1e0}, 20),
+    (AdamG, {'lr': 1e0, 'p': 0.5}, 60),
     (AdEMAMix, {'lr': 1e0}, 3),
     (AdEMAMix, {'lr': 1e0, 't_alpha_beta3': 5}, 3),
     (
