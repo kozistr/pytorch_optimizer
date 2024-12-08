@@ -77,15 +77,12 @@ def test_lookahead_parameters():
 
     _ = opt.__getstate__()
 
-    # test lookahead step `k`
     with pytest.raises(ValueError):
         Lookahead(optimizer, k=0)
 
-    # test ema ratio `alpha`
     with pytest.raises(ValueError):
         Lookahead(optimizer, alpha=-0.1)
 
-    # test invalid pullback momentum type
     with pytest.raises(ValueError):
         Lookahead(optimizer, pullback_momentum='invalid')
 

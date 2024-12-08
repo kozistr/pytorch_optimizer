@@ -17,6 +17,7 @@ class AdaShift(BaseOptimizer):
     :param keep_num: int. number of gradients used to compute first moment estimation.
     :param reduce_func: Optional[Callable]. function applied to squared gradients to further reduce the correlation.
         If None, no function is applied.
+    :param cautious: bool. whether to use cautious feature.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -27,6 +28,7 @@ class AdaShift(BaseOptimizer):
         betas: BETAS = (0.9, 0.999),
         keep_num: int = 10,
         reduce_func: Optional[Callable] = torch.max,
+        cautious: bool = False,
         eps: float = 1e-10,
         **kwargs,
     ):
@@ -36,6 +38,7 @@ class AdaShift(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.reduce_func: Callable = reduce_func if reduce_func is not None else lambda x: x
+        self.cautious = cautious
 
         defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'keep_num': keep_num, 'eps': eps}
         super().__init__(params, defaults)
@@ -101,13 +104,16 @@ class AdaShift(BaseOptimizer):
                 exp_avg = state['exp_avg']
                 exp_avg.sub_(offset_grad, alpha=first_grad_weight).mul_(beta1).add_(grad, alpha=last_grad_weight)
 
-                reduced_grad_sq = self.reduce_func(offset_grad.mul_(offset_grad))
+                reduced_grad_sq = self.reduce_func(offset_grad.pow_(2))
 
                 exp_avg_sq = state['exp_avg_sq']
                 exp_avg_sq.mul_(beta2).add_(reduced_grad_sq, alpha=1.0 - beta2)
 
-                de_nom = exp_avg_sq.div(bias_correction).sqrt_().add_(group['eps'])
+                update = exp_avg.clone()
+                update.div_(exp_avg_sq.div(bias_correction).sqrt_().add_(group['eps']))
+                if self.cautious:
+                    self.apply_cautious(update, grad)
 
-                p.addcdiv_(exp_avg, de_nom, value=-group['lr'])
+                p.add_(update, alpha=-group['lr'])
 
         return loss

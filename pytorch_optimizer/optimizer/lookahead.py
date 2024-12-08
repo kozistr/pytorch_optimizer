@@ -31,11 +31,10 @@ class Lookahead(BaseOptimizer):
         self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
 
+        self.optimizer = optimizer
         self.alpha = alpha
         self.k = k
         self.pullback_momentum = pullback_momentum
-
-        self.optimizer = optimizer
 
         self.state: STATE = defaultdict(dict)
 
@@ -93,11 +92,12 @@ class Lookahead(BaseOptimizer):
                 del state['backup_params']
 
     def state_dict(self) -> STATE:
-        return self.optimizer.state_dict()
+        return {'lookahead_state': self.state, 'base_optimizer': self.optimizer.state_dict()}
 
     def load_state_dict(self, state: STATE):
         r"""Load state."""
-        self.optimizer.load_state_dict(state)
+        self.state = state['lookahead_state']
+        self.optimizer.load_state_dict(state['base_optimizer'])
 
     @torch.no_grad()
     def zero_grad(self):
