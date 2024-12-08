@@ -31,11 +31,10 @@ class Lookahead(BaseOptimizer):
         self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
 
+        self.optimizer = optimizer
         self.alpha = alpha
         self.k = k
         self.pullback_momentum = pullback_momentum
-
-        self.optimizer = optimizer
 
         self.state: STATE = defaultdict(dict)
 
