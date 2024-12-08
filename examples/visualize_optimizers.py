@@ -31,6 +31,8 @@ def execute_steps(func, initial_state, optimizer_class, optimizer_config, num_it
 
     if optimizer_class.__name__ == 'Ranger21':
         optimizer_config.update({'num_iterations': num_iters})
+    if optimizer_class.__name__ == 'AdaShift':
+        optimizer_config.update({'keep_num': 1})
 
     optimizer = optimizer_class([x], **optimizer_config)
 
@@ -155,7 +157,7 @@ def main():
     optimizers = [
         (optimizer, -6, 0.5)
         for optimizer_name, optimizer in OPTIMIZERS.items()
-        if optimizer_name.lower() not in {'alig', 'lomo', 'adalomo', 'bsam', 'adammini'}
+        if optimizer_name.lower() not in {'alig', 'lomo', 'adalomo', 'bsam', 'adammini', 'demo'}
     ]
     optimizers.extend([(torch.optim.AdamW, -6, 0.5), (torch.optim.Adam, -6, 0.5), (torch.optim.SGD, -6, -1.0)])
 
