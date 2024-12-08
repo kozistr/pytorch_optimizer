@@ -170,6 +170,10 @@
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_Lamb.png)
 
+### LaProp
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_LaProp.png)
+
 ### LARS
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_LARS.png)
@@ -185,6 +189,10 @@
 ### MSVAG
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_MSVAG.png)
+
+### Muon
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_Muon.png)
 
 ### Nero
 
@@ -237,6 +245,10 @@
 ### ScheduleFreeAdamW
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_ScheduleFreeAdamW.png)
+
+### ScheduleFreeRAdam
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_ScheduleFreeRAdam.png)
 
 ### ScheduleFreeSGD
 
@@ -464,6 +476,10 @@
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_Lamb.png)
 
+### LaProp
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_LaProp.png)
+
 ### LARS
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_LARS.png)
@@ -479,6 +495,10 @@
 ### MSVAG
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_MSVAG.png)
+
+### Muon
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_Muon.png)
 
 ### Nero
 
@@ -531,6 +551,10 @@
 ### ScheduleFreeAdamW
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_ScheduleFreeAdamW.png)
+
+### ScheduleFreeRAdam
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_ScheduleFreeRAdam.png)
 
 ### ScheduleFreeSGD
 
