@@ -10,11 +10,11 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-1. Wide range of supported optimizers. Currently, **83 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
-2. Including many variants such as `Cautious`, `AdamD`, `Gradient Centrailiaztion`
-3. Easy to use, clean, and tested codes
-4. Active maintenance
-5. Somewhat a bit more optimized compared to the original implementation
+* Wide range of supported optimizers. Currently, **83 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Including many variants such as `Cautious`, `AdamD`, `Gradient Centrailiaztion`
+* Easy to use, clean, and tested codes
+* Active maintenance
+* Somewhat a bit more optimized compared to the original implementation
 
 Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 

@@ -1,11 +1,13 @@
 import math
-from typing import Optional
+from typing import Literal, Optional
 
 import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+
+VARIANTS = Literal['uni', 'inc', 'exp']
 
 
 class A2Grad(BaseOptimizer):
@@ -26,7 +28,7 @@ class A2Grad(BaseOptimizer):
         beta: float = 10.0,
         lips: float = 10.0,
         rho: float = 0.5,
-        variant: str = 'uni',
+        variant: VARIANTS = 'uni',
         **kwargs,
     ):
         self.validate_learning_rate(lr)
