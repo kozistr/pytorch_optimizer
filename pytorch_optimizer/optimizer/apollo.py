@@ -192,6 +192,7 @@ class APOLLO(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'correct_bias': correct_bias,
             'eps': eps,
+            **kwargs,
         }
         super().__init__(params, defaults)
 
@@ -242,18 +243,16 @@ class APOLLO(BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
-                if 'rank' in group:
+                if 'rank' in group and p.dim() > 1:
                     if 'projector' not in state:
                         state['projector'] = GaLoreProjector(
-                            group['rank'],
+                            rank=group['rank'],
                             update_proj_gap=group['update_proj_gap'],
                             scale=group['scale'],
-                            proj_type=group['proj_type'],
+                            projection_type=group['projection_type'],
                         )
 
-                    grad = state['projector'].project(
-                        grad, group['step'], from_random_matrix=group['projection_type'] == 'random'
-                    )
+                    grad = state['projector'].project(grad, group['step'], from_random_matrix=True)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
@@ -262,7 +261,7 @@ class APOLLO(BaseOptimizer):
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
                 norm_grad = exp_avg / de_nom
-                if 'rank' in group:
+                if 'rank' in group and p.dim() > 1:
                     if group['scale_type'] == 'channel':
                         norm_dim: int = 0 if norm_grad.shape[0] < norm_grad.shape[1] else 1
                         scaling_factor = torch.norm(norm_grad, dim=norm_dim) / (torch.norm(grad, dim=norm_dim) + 1e-8)
@@ -271,7 +270,7 @@ class APOLLO(BaseOptimizer):
                     else:
                         scaling_factor = torch.norm(norm_grad) / (torch.norm(grad) + 1e-8)
 
-                    scaling_grad = p.grad * scaling_factor
+                    scaling_grad = grad * scaling_factor
 
                     scaling_grad_norm = torch.norm(scaling_grad)
                     if 'scaling_grad' in state:
@@ -289,12 +288,13 @@ class APOLLO(BaseOptimizer):
                     state['scaling_grad'] = scaling_grad_norm
 
                     norm_grad = scaling_grad * np.sqrt(group['scale'])
+                    norm_grad = state['projector'].project_back(norm_grad)
 
                 p.add_(norm_grad, alpha=-step_size)
 
                 self.apply_weight_decay(
                     p,
-                    p.grad,
+                    grad,
                     lr=step_size,
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],
