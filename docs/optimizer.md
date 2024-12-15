@@ -116,7 +116,11 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.Apollo
+::: pytorch_optimizer.APOLLO
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.ApolloDQN
     :docstring:
     :members:
 
