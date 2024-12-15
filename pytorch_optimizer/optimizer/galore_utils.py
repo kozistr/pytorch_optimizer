@@ -45,8 +45,8 @@ class GaLoreProjector:
         if not from_random_matrix:
             u, _, vh = torch.linalg.svd(weights if is_float else weights.float(), full_matrices=False)
         else:
-            u = torch.randn((rank, weights.size(1)), device=original_device, dtype=original_type) / math.sqrt(rank)
-            vh = torch.randn((weights.size(0), rank), device=original_device, dtype=original_type) / math.sqrt(rank)
+            u = torch.randn((weights.size(0), rank), device=original_device, dtype=original_type) / math.sqrt(rank)
+            vh = torch.randn((rank, weights.size(1)), device=original_device, dtype=original_type) / math.sqrt(rank)
 
         if projection_type == 'right':
             b = vh[:rank, :]
