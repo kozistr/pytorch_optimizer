@@ -506,8 +506,32 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (LaProp, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (LaProp, {'lr': 1e0, 'centered': True, 'weight_decay': 1e-3}, 11),
     (LaProp, {'lr': 1e0, 'ams_bound': True, 'weight_decay': 1e-3}, 5),
-    (APOLLO, {'lr': 1e0, 'weight_decay': 1e-3, 'rank': 2, 'scale_type': 'tensor', 'projection_type': 'random'}, 5),
-    (APOLLO, {'lr': 1e0, 'weight_decay': 1e-3, 'rank': 2, 'scale_type': 'channel'}, 5),
+    (
+        APOLLO,
+        {
+            'lr': 1e-1,
+            'weight_decay': 1e-3,
+            'rank': 2,
+            'update_proj_gap': 1,
+            'scale': 1.0,
+            'scale_type': 'tensor',
+            'projection_type': 'right',
+        },
+        15,
+    ),
+    (
+        APOLLO,
+        {
+            'lr': 1e-1,
+            'weight_decay': 1e-3,
+            'rank': 2,
+            'update_proj_gap': 1,
+            'scale': 1.0,
+            'scale_type': 'channel',
+            'projection_type': 'right',
+        },
+        15,
+    ),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
