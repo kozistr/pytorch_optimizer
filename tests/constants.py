@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Tuple, Union
 
 from pytorch_optimizer.optimizer import (
     ADOPT,
+    APOLLO,
     ASGD,
     CAME,
     FTRL,
@@ -42,7 +43,7 @@ from pytorch_optimizer.optimizer import (
     Aida,
     AliG,
     Amos,
-    Apollo,
+    ApolloDQN,
     AvaGrad,
     DAdaptAdaGrad,
     DAdaptAdam,
@@ -149,6 +150,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'soap',
     'muon',
     'laprop',
+    'apollo',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -381,9 +383,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaFactor, {'lr': 1e1, 'weight_decay': 1e-3, 'scale_parameter': False}, 100),
     (AdaFactor, {'lr': 1e1, 'weight_decay': 1e-3, 'ams_bound': True}, 120),
     (AdaFactor, {'lr': 1e1, 'betas': (None, 0.999), 'weight_decay': 1e-3}, 40),
-    (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
-    (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'rebound': 'belief'}, 10),
-    (Apollo, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decay_type': 'stable', 'warmup_steps': 0}, 50),
+    (ApolloDQN, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
+    (ApolloDQN, {'lr': 5e-1, 'weight_decay': 1e-3, 'rebound': 'belief'}, 10),
+    (ApolloDQN, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decay_type': 'stable', 'warmup_steps': 0}, 50),
     (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'grad_averaging': True}, 5),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
@@ -504,6 +506,32 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (LaProp, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (LaProp, {'lr': 1e0, 'centered': True, 'weight_decay': 1e-3}, 11),
     (LaProp, {'lr': 1e0, 'ams_bound': True, 'weight_decay': 1e-3}, 5),
+    (
+        APOLLO,
+        {
+            'lr': 1e-1,
+            'weight_decay': 1e-3,
+            'rank': 2,
+            'update_proj_gap': 1,
+            'scale': 1.0,
+            'scale_type': 'tensor',
+            'projection_type': 'right',
+        },
+        15,
+    ),
+    (
+        APOLLO,
+        {
+            'lr': 1e-1,
+            'weight_decay': 1e-3,
+            'rank': 2,
+            'update_proj_gap': 1,
+            'scale': 1.0,
+            'scale_type': 'channel',
+            'projection_type': 'right',
+        },
+        15,
+    ),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),

@@ -112,7 +112,7 @@ def test_momentum(optimizer_name):
         optimizer(None, momentum=-1e-3)
 
 
-@pytest.mark.parametrize('optimizer_name', ['nero', 'apollo', 'sm3', 'msvag', 'ranger21'])
+@pytest.mark.parametrize('optimizer_name', ['nero', 'apollodqn', 'sm3', 'msvag', 'ranger21'])
 def test_beta(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
 

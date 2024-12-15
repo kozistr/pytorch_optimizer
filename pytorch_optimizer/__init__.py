@@ -42,6 +42,7 @@ from pytorch_optimizer.lr_scheduler import (
 )
 from pytorch_optimizer.optimizer import (
     ADOPT,
+    APOLLO,
     ASGD,
     BSAM,
     CAME,
@@ -90,7 +91,7 @@ from pytorch_optimizer.optimizer import (
     Aida,
     AliG,
     Amos,
-    Apollo,
+    ApolloDQN,
     AvaGrad,
     DAdaptAdaGrad,
     DAdaptAdam,
