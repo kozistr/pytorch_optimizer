@@ -3,7 +3,7 @@ import torch
 from torch import nn
 
 from pytorch_optimizer.optimizer import SAM, WSAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
-from pytorch_optimizer.optimizer.galore import GaLoreProjector
+from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
 from tests.constants import PULLBACK_MOMENTUM
 from tests.utils import Example, simple_parameter, simple_zero_rank_parameter
 
@@ -231,7 +231,7 @@ def test_lars_parameters():
 
 
 def test_apollo_parameters():
-    opt = load_optimizer('apollo')
+    opt = load_optimizer('apollodqn')
 
     # test rebound type
     with pytest.raises(ValueError):
@@ -256,6 +256,8 @@ def test_ranger_parameters():
 
 def test_galore_projection_type():
     p = torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)
+
+    _ = GaLoreProjector.get_orthogonal_matrix(p, 1, projection_type='left', from_random_matrix=True)
 
     with pytest.raises(NotImplementedError):
         GaLoreProjector(projection_type='invalid').project(p, 1)
