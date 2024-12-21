@@ -21,7 +21,7 @@ from pytorch_optimizer.optimizer import (
 )
 from pytorch_optimizer.optimizer.alig import l2_projection
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
-from pytorch_optimizer.optimizer.muon import zero_power_via_newton_schulz_5
+from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 from tests.constants import (
     ADAMD_SUPPORTED_OPTIMIZERS,
     ADANORM_SUPPORTED_OPTIMIZERS,
