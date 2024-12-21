@@ -586,4 +586,6 @@ COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], i
     (AdamP, {'lr': 1e0, 'cautious': True}, 2),
     (ADOPT, {'lr': 1e1, 'cautious': True}, 3),
     (AdaShift, {'lr': 1e1, 'keep_num': 1, 'cautious': True}, 3),
+    (MARS, {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3, 'cautious': True}, 3),
+    (MARS, {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3, 'optimize_1d': True, 'cautious': True}, 3),
 ]
