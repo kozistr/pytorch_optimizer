@@ -332,6 +332,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.SGDSaI
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.SGDP
     :docstring:
     :members:

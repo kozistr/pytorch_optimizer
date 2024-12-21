@@ -121,8 +121,9 @@ class MARS(BaseOptimizer):
 
         exp_avg.mul_(beta1).add_(c_t, alpha=1.0 - beta1)
 
+        update = exp_avg.clone()
         if cautious:
-            self.apply_cautious(exp_avg, grad)
+            self.apply_cautious(update, grad)
 
         if mars_type == 'adamw' or (mars_type == 'shampoo' and not is_grad_2d):
             exp_avg_sq.mul_(beta2).addcmul_(c_t, c_t, value=1.0 - beta2)
@@ -130,17 +131,17 @@ class MARS(BaseOptimizer):
             bias_correction1: float = self.debias(beta1, step)
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, step))
 
-            update = self.apply_ams_bound(ams_bound, exp_avg_sq, max_exp_avg_sq, eps)
-            update.div_(bias_correction2_sq).mul_(bias_correction1)
+            de_nom = self.apply_ams_bound(ams_bound, exp_avg_sq, max_exp_avg_sq, eps)
+            de_nom.div_(bias_correction2_sq).mul_(bias_correction1)
 
-            return exp_avg.div(update)
+            return update.div_(de_nom)
 
         if mars_type == 'lion':
-            return exp_avg.sign()
+            return update.sign_()
 
-        factor: float = max(1.0, grad.size(0) / grad.size(1)) ** 0.5
+        factor: float = math.sqrt(max(1.0, grad.size(0) / grad.size(1)))
 
-        return zero_power_via_newton_schulz_5(exp_avg.mul(1.0 / (1.0 - beta1)), eps=eps).mul_(factor)
+        return zero_power_via_newton_schulz_5(update.mul_(1.0 / (1.0 - beta1)), eps=eps).mul_(factor)
 
     def optimize_1d(
         self,
@@ -162,13 +163,15 @@ class MARS(BaseOptimizer):
         exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
         exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-        update = self.apply_ams_bound(ams_bound, exp_avg_sq, max_exp_avg_sq, eps)
-        update.div_(bias_correction2_sq).mul_(bias_correction1)
+        update = exp_avg.clone()
 
         if cautious:
-            self.apply_cautious(exp_avg, grad)
+            self.apply_cautious(update, grad)
 
-        return exp_avg.div(update)
+        de_nom = self.apply_ams_bound(ams_bound, exp_avg_sq, max_exp_avg_sq, eps)
+        de_nom.div_(bias_correction2_sq).mul_(bias_correction1)
+
+        return update.div_(de_nom)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
