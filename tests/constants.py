@@ -74,6 +74,7 @@ from pytorch_optimizer.optimizer import (
     ScheduleFreeAdamW,
     ScheduleFreeRAdam,
     ScheduleFreeSGD,
+    SGDSaI,
     Shampoo,
     SignSGD,
     SophiaH,
@@ -538,6 +539,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (MARS, {'lr': 1e-1, 'weight_decay': 1e-3, 'mars_type': 'lion', 'optimize_1d': True}, 5),
     (MARS, {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3, 'mars_type': 'shampoo'}, 5),
     (MARS, {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3, 'mars_type': 'adamw', 'ams_bound': True}, 5),
+    (SGDSaI, {'lr': 1e-4, 'weight_decay': 1e-4}, 15),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
