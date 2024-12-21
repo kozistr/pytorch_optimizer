@@ -51,6 +51,7 @@ from pytorch_optimizer.optimizer import (
     LARS,
     LOMO,
     MADGRAD,
+    MARS,
     MSVAG,
     PID,
     PNM,
