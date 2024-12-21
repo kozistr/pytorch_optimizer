@@ -110,9 +110,10 @@ class AdaShift(BaseOptimizer):
                 exp_avg_sq.mul_(beta2).add_(reduced_grad_sq, alpha=1.0 - beta2)
 
                 update = exp_avg.clone()
-                update.div_(exp_avg_sq.div(bias_correction).sqrt_().add_(group['eps']))
                 if self.cautious:
                     self.apply_cautious(update, grad)
+
+                update.div_(exp_avg_sq.div(bias_correction).sqrt_().add_(group['eps']))
 
                 p.add_(update, alpha=-group['lr'])
 

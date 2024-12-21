@@ -146,10 +146,11 @@ class AdEMAMix(BaseOptimizer):
 
                 de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
+                update = exp_avg.clone()
                 if self.cautious:
-                    self.apply_cautious(exp_avg, grad)
+                    self.apply_cautious(update, grad)
 
-                update = (exp_avg + alpha_t * exp_avg_slow).div_(de_nom)
+                update.add_(exp_avg_slow, alpha=alpha_t).div_(de_nom)
 
                 p.add_(update, alpha=-step_size)
 
