@@ -102,9 +102,13 @@
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_Amos.png)
 
-### Apollo
+### APOLLO
 
-![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_Apollo.png)
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_APOLLO.png)
+
+### ApolloDQN
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_ApolloDQN.png)
 
 ### ASGD
 
@@ -189,6 +193,10 @@
 ### MADGRAD
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_MADGRAD.png)
+
+### MARS
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_MARS.png)
 
 ### MSVAG
 
@@ -412,9 +420,13 @@
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_Amos.png)
 
-### Apollo
+### APOLLO
 
-![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_Apollo.png)
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_APOLLO.png)
+
+### ApolloDQN
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_ApolloDQN.png)
 
 ### ASGD
 
@@ -499,6 +511,10 @@
 ### MADGRAD
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_MADGRAD.png)
+
+### MARS
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_MARS.png)
 
 ### MSVAG
 
