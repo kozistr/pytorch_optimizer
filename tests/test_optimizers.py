@@ -812,3 +812,11 @@ def test_muon_rank(rank):
     model[2].weight.grad = torch.randn(1, 1, 1)
 
     optimizer.step()
+
+
+def test_mars_c_t_norm():
+    param = simple_parameter(True)
+    param.grad[0] = 100.0
+
+    optimizer = load_optimizer('mars')([param], optimize_1d=True)
+    optimizer.step()
