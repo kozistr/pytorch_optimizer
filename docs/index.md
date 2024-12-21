@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **84 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **85 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `Cautious`, `AdamD`, `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -193,6 +193,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | Muon          | *MomentUm Orthogonalized by Newton-schulz*                                                        | [github](https://github.com/KellerJordan/Muon)                                                                 | <https://x.com/kellerjordan0/status/1842300916864844014>                                    | [cite](https://github.com/KellerJordan/Muon)                                                                                        |
 | LaProp        | *Separating Momentum and Adaptivity in Adam*                                                      | [github](https://github.com/Z-T-WANG/LaProp-Optimizer)                                                         | <https://arxiv.org/abs/2002.04839>                                                          | [cite](https://github.com/Z-T-WANG/LaProp-Optimizer?tab=readme-ov-file#citation)                                                    |
 | APOLLO        | *SGD-like Memory, AdamW-level Performance*                                                        | [github](https://github.com/zhuhanqing/APOLLO)                                                                 | <https://arxiv.org/abs/2412.05270>                                                          | [cite](https://github.com/zhuhanqing/APOLLO?tab=readme-ov-file#-citation)                                                           |
+| MARS          | *Unleashing the Power of Variance Reduction for Training Large Models*                            | [github](https://github.com/AGI-Arena/MARS)                                                                    | <https://arxiv.org/abs/2411.10438>                                                          | [cite](https://github.com/AGI-Arena/MARS/tree/main?tab=readme-ov-file#citation)                                                     |
 
 ## Supported LR Scheduler
 
