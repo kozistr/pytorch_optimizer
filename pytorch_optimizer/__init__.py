@@ -128,6 +128,7 @@ from pytorch_optimizer.optimizer import (
     ScheduleFreeAdamW,
     ScheduleFreeRAdam,
     ScheduleFreeSGD,
+    SGDSaI,
     Shampoo,
     SignSGD,
     SophiaH,
