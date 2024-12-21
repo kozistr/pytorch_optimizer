@@ -525,3 +525,41 @@ def merge_small_dims(shape_to_merge: Union[List[int], torch.Size], max_dim: int)
     merged_shape.append(product)
 
     return merged_shape if len(merged_shape) > 1 else [1]
+
+
+def zero_power_via_newton_schulz_5(
+    g: torch.Tensor, num_steps: int = 10, eps: float = 1e-7, weights: Tuple[int, int, int] = (3.4445, -4.7750, 2.0315)
+) -> torch.Tensor:
+    r"""Compute the zeroth power / orthogonalization of G.
+
+    Newton-Schulz iteration to compute the zeroth power / orthogonalization of G. We opt to use a quintic iteration
+    whose coefficients are selected to maximize the slope at zero. For the purpose of minimizing steps, it turns out
+    to be empirically effective to keep increasing the slope at zero even beyond the point where the iteration no
+    longer converges all the way to one everywhere on the interval. This iteration therefore does not produce UV^T but
+    rather something like US'V^T where S' is diagonal with S_{ii}' ~ Uniform(0.5, 1.5), which turns out not to hurt
+    model performance at all relative to UV^T, where USV^T = G is the SVD.
+
+    :param g: torch.Tensor. matrix.
+    :param num_steps: int. number of iterations.
+    :param eps: float. add this times I to G, to make is positive definite. For scaling, we multiply it by the largest
+        eigenvalue of G.
+    :param weights: Tuple[int, int, int]. weights.
+    """
+    if len(g.shape) != 2:
+        raise ValueError('shape of g must be 2-dimensional')
+
+    x = g.bfloat16()
+    x.div_(x.norm().add_(eps))
+
+    if g.size(0) > g.size(1):
+        x = x.T
+
+    for _ in range(num_steps):
+        a = x @ x.T
+        b = weights[1] * a + weights[2] * a @ a
+        x = weights[0] * x + b @ x
+
+    if g.size(0) > g.size(1):
+        x = x.T
+
+    return x
