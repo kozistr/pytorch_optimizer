@@ -17,15 +17,18 @@ class MARS(BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param gamma: float. the scaling parameter that controls the strength of gradient correction.
+    :param mars_type: MARS TYPE. type of MARS. `adamw`, `lion`, `shampoo` are supported.
+    :param optimize_1d: bool. whether MARS should optimize 1D parameters.
+    :param lr_1d: float. learning rate for AdamW when optimize_1d is set to False.
     :param betas_1d: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
         for 1d.
-    :param gamma: float. gamma.
-    :param mars_type: MARS TYPE. type of MARS. `adamw`, `lion`, `shampoo` are supported.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decay_1d: float. weight decay for 1d.
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param ams_bound: bool. whether to use the AMSBound variant.
+    :param cautious: bool. whether to use cautious feature.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -39,11 +42,12 @@ class MARS(BaseOptimizer):
         optimize_1d: bool = False,
         lr_1d: bool = 3e-3,
         betas_1d: BETAS = (0.9, 0.95),
-        weight_decay_1d: float = 1e-1,
         weight_decay: float = 0.0,
+        weight_decay_1d: float = 1e-1,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         ams_bound: bool = False,
+        cautious: bool = False,
         eps: float = 1e-8,
         **kwargs,
     ):
@@ -70,6 +74,7 @@ class MARS(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'ams_bound': ams_bound,
+            'cautious': cautious,
             'eps': eps,
         }
 
@@ -104,6 +109,7 @@ class MARS(BaseOptimizer):
         is_grad_2d: bool,
         step: int,
         ams_bound: bool,
+        cautious: bool,
         eps: float,
     ) -> torch.Tensor:
         beta1, beta2 = betas
@@ -114,6 +120,9 @@ class MARS(BaseOptimizer):
             c_t.div_(c_t_norm)
 
         exp_avg.mul_(beta1).add_(c_t, alpha=1.0 - beta1)
+
+        if cautious:
+            self.apply_cautious(exp_avg, grad)
 
         if mars_type == 'adamw' or (mars_type == 'shampoo' and not is_grad_2d):
             exp_avg_sq.mul_(beta2).addcmul_(c_t, c_t, value=1.0 - beta2)
@@ -142,6 +151,7 @@ class MARS(BaseOptimizer):
         betas: BETAS,
         step: int,
         ams_bound: bool,
+        cautious: bool,
         eps: float,
     ) -> torch.Tensor:
         beta1, beta2 = betas
@@ -154,6 +164,9 @@ class MARS(BaseOptimizer):
 
         update = self.apply_ams_bound(ams_bound, exp_avg_sq, max_exp_avg_sq, eps)
         update.div_(bias_correction2_sq).mul_(bias_correction1)
+
+        if cautious:
+            self.apply_cautious(exp_avg, grad)
 
         return exp_avg.div(update)
 
@@ -207,6 +220,7 @@ class MARS(BaseOptimizer):
                         is_grad_2d,
                         group['step'],
                         group['ams_bound'],
+                        group['cautious'],
                         group['eps'],
                     )
                 else:
@@ -218,6 +232,7 @@ class MARS(BaseOptimizer):
                         group['betas_1d'],
                         group['step'],
                         group['ams_bound'],
+                        group['cautious'],
                         group['eps'],
                     )
 
