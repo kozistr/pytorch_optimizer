@@ -232,6 +232,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.MARS
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.MSVAG
     :docstring:
     :members:
