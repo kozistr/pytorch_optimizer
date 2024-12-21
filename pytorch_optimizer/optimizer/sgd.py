@@ -356,6 +356,9 @@ class SignSGD(BaseOptimizer):
         }
         super().__init__(params, defaults)
 
+    def __str__(self) -> str:
+        return 'SignSGD'
+
     @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
@@ -394,5 +397,126 @@ class SignSGD(BaseOptimizer):
                     buf = grad
 
                 p.add_(torch.sign(buf), alpha=-group['lr'])
+
+        return loss
+
+
+class SGDSaI(BaseOptimizer):
+    r"""No More Adam: Learning Rate Scaling at Initialization is All You Need.
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param momentum: float. momentum factor (0.0 = SignSGD, >0 = Signum).
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param eps: float. term added to the denominator to improve numerical stability.
+    """
+
+    def __init__(
+        self,
+        params: PARAMETERS,
+        lr: float = 1e-3,
+        momentum: float = 0.9,
+        weight_decay: float = 1e-2,
+        weight_decouple: bool = True,
+        eps: float = 1e-8,
+        **kwargs,
+    ):
+        self.validate_learning_rate(lr)
+        self.validate_range(momentum, 'beta', 0.0, 1.0)
+        self.validate_non_negative(weight_decay, 'weight_decay')
+        self.validate_non_negative(eps, 'eps')
+
+        self.has_warmup: bool = False
+
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'momentum': momentum,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+            'eps': eps,
+        }
+        super().__init__(params, defaults)
+
+    def __str__(self) -> str:
+        return 'SGDSaI'
+
+    @torch.no_grad()
+    def reset(self):
+        for group in self.param_groups:
+            group['step'] = 0
+            for p in group['params']:
+                state = self.state[p]
+
+                if group['momentum'] > 0.0:
+                    state['momentum_buffer'] = torch.zeros_like(p)
+
+    @torch.no_grad()
+    def warmup_step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                grad = p.grad
+                if grad.is_sparse:
+                    raise NoSparseGradientError(str(self))
+
+                sigma = grad.std().nan_to_num_()
+                grad_norm_snr = grad.norm()
+                grad_norm_snr.div_(sigma.add_(group['eps']))
+
+                self.state[p]['gsnr'] = grad_norm_snr
+
+        self.has_warmup = True
+
+        return loss
+
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        if not self.has_warmup:
+            self.warmup_step(closure)
+
+        loss: LOSS = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+
+        for group in self.param_groups:
+            momentum = group['momentum']
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                grad = p.grad
+
+                state = self.state[p]
+
+                if momentum > 0.0:
+                    if 'momentum_buffer' not in state:
+                        state['momentum_buffer'] = grad.clone()
+
+                    buf = state['momentum_buffer']
+                    buf.mul_(momentum).add_(grad, alpha=1.0 - momentum)
+                else:
+                    buf = grad
+
+                step_size = group['lr'] * state['gsnr']
+
+                self.apply_weight_decay(
+                    p,
+                    grad,
+                    group['lr'],
+                    group['weight_decay'],
+                    group['weight_decouple'],
+                    False,
+                )
+
+                p.add_(buf, alpha=-step_size)
 
         return loss
