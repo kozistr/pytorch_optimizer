@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **86 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **87 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `Cautious`, `AdamD`, `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -195,6 +195,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | APOLLO        | *SGD-like Memory, AdamW-level Performance*                                                        | [github](https://github.com/zhuhanqing/APOLLO)                                                                 | <https://arxiv.org/abs/2412.05270>                                                          | [cite](https://github.com/zhuhanqing/APOLLO?tab=readme-ov-file#-citation)                                                           |
 | MARS          | *Unleashing the Power of Variance Reduction for Training Large Models*                            | [github](https://github.com/AGI-Arena/MARS)                                                                    | <https://arxiv.org/abs/2411.10438>                                                          | [cite](https://github.com/AGI-Arena/MARS/tree/main?tab=readme-ov-file#citation)                                                     |
 | SGDSaI        | *No More Adam: Learning Rate Scaling at Initialization is All You Need*                           | [github](https://github.com/AnonymousAlethiometer/SGD_SaI)                                                     | <https://arxiv.org/abs/2411.10438>                                                          | [cite](https://github.com/AnonymousAlethiometer/SGD_SaI?tab=readme-ov-file#citation)                                                |
+| Grams         | *Grams: Gradient Descent with Adaptive Momentum Scaling*                                          |                                                                                                                | <https://arxiv.org/abs/2412.17107>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv241217107C/exportcitation)                                                        |
 
 ## Supported LR Scheduler
 
