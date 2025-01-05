@@ -55,6 +55,7 @@ from pytorch_optimizer.optimizer import (
     FAdam,
     Fromage,
     GaLore,
+    Grams,
     Gravity,
     GrokFastAdamW,
     Kate,
@@ -541,6 +542,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (MARS, {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3, 'mars_type': 'adamw', 'ams_bound': True}, 5),
     (SGDSaI, {'lr': 1e0}, 15),
     (SGDSaI, {'lr': 1e0, 'momentum': 0.0}, 15),
+    (Grams, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),
