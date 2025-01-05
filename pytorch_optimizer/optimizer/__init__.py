@@ -46,6 +46,7 @@ from pytorch_optimizer.optimizer.fromage import Fromage
 from pytorch_optimizer.optimizer.ftrl import FTRL
 from pytorch_optimizer.optimizer.galore import GaLore
 from pytorch_optimizer.optimizer.gc import centralize_gradient
+from pytorch_optimizer.optimizer.grams import Grams
 from pytorch_optimizer.optimizer.gravity import Gravity
 from pytorch_optimizer.optimizer.grokfast import GrokFastAdamW
 from pytorch_optimizer.optimizer.kate import Kate
@@ -282,6 +283,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     LaProp,
     MARS,
     SGDSaI,
+    Grams,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
