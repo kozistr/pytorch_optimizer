@@ -188,6 +188,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Grams
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Gravity
     :docstring:
     :members:
