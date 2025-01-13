@@ -107,13 +107,12 @@ class StableAdamW(BaseOptimizer):
                 exp_avg.lerp_(grad, weight=beta1_comp)
                 exp_avg_sq.mul_(beta2_hat).addcmul_(grad, grad, value=1.0 - beta2_hat)
 
-                rms = grad.pow(2).div_(exp_avg_sq.clip(min=eps_p2)).mean().sqrt_()
-
-                lr = group['lr'] / rms.clip(min=1.0)
+                rms = self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
+                lr = group['lr'] / rms
 
                 self.apply_weight_decay(
                     p,
-                    p.grad,
+                    grad,
                     lr=lr,
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],

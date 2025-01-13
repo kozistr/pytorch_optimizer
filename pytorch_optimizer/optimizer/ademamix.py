@@ -19,7 +19,8 @@ class AdEMAMix(BaseOptimizer):
     :param fixed_decay: bool. fix weight decay.
     :param alpha: float. usually between 4 and 10 would work well.
     :param t_alpha_beta3: Optional[float]. total number of iterations is preferred when needed.
-    :param cautious: bool. whether to use cautious feature.
+    :param cautious: bool. whether to use the Cautious variant.
+    :param stable_adamw: bool. whether to use stable AdamW variant.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -34,6 +35,7 @@ class AdEMAMix(BaseOptimizer):
         alpha: float = 5.0,
         t_alpha_beta3: Optional[float] = None,
         cautious: bool = False,
+        stable_adamw: bool = False,
         eps: float = 1e-8,
         **kwargs,
     ):
@@ -45,6 +47,7 @@ class AdEMAMix(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.cautious = cautious
+        self.stable_adamw = stable_adamw
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -129,15 +132,6 @@ class AdEMAMix(BaseOptimizer):
                     state['exp_avg_sq'] = torch.zeros_like(p)
                     state['exp_avg_slow'] = torch.zeros_like(p)
 
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
-
                 exp_avg, exp_avg_sq, exp_avg_slow = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_slow']
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
@@ -150,8 +144,20 @@ class AdEMAMix(BaseOptimizer):
                 if self.cautious:
                     self.apply_cautious(update, grad)
 
+                if self.stable_adamw:
+                    step_size /= self.get_stable_adamw_rms(grad, exp_avg_sq)
+
                 update.add_(exp_avg_slow, alpha=alpha_t).div_(de_nom)
 
                 p.add_(update, alpha=-step_size)
+
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=step_size,
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
         return loss

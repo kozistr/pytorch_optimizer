@@ -18,6 +18,7 @@ class ADOPT(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param cautious: bool. whether to use the Cautious variant.
+    :param stable_adamw: bool. whether to use stable AdamW variant.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -31,6 +32,7 @@ class ADOPT(BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         cautious: bool = False,
+        stable_adamw: bool = False,
         eps: float = 1e-6,
         **kwargs,
     ):
@@ -41,6 +43,7 @@ class ADOPT(BaseOptimizer):
 
         self.clip_lambda = clip_lambda
         self.cautious = cautious
+        self.stable_adamw = stable_adamw
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -80,6 +83,7 @@ class ADOPT(BaseOptimizer):
                 group['step'] = 1
 
             beta1, beta2 = group['betas']
+            lr: float = group['lr']
 
             for p in group['params']:
                 if p.grad is None:
@@ -98,7 +102,7 @@ class ADOPT(BaseOptimizer):
                 self.apply_weight_decay(
                     p=p,
                     grad=grad,
-                    lr=group['lr'],
+                    lr=lr,
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],
                     fixed_decay=group['fixed_decay'],
@@ -127,6 +131,9 @@ class ADOPT(BaseOptimizer):
                 else:
                     update = exp_avg
 
-                p.add_(update, alpha=-group['lr'])
+                if self.stable_adamw:
+                    lr /= self.get_stable_adamw_rms(grad, exp_avg_sq)
+
+                p.add_(update, alpha=-lr)
 
         return loss
