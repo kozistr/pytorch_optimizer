@@ -81,7 +81,7 @@ class VanillaMTL(nn.Module):
             else:
                 preds.append(out_i)
 
-        return preds if len(extra_out) == 0 else preds, extra_out
+        return preds if len(extra_out) == 0 else (preds, extra_out)
 
     def backward(self, losses, backbone_loss=None, **kwargs):
         for loss in losses:
@@ -272,7 +272,7 @@ class RotateOnly(nn.Module):
             else:
                 preds.append(out_i)
 
-        return preds if len(extra_out) == 0 else preds, extra_out
+        return preds if len(extra_out) == 0 else (preds, extra_out)
 
     def backward(self, losses: Sequence[torch.Tensor], backbone_loss=None, **kwargs) -> None:
         r"""Compute the backward computations for the entire model.
