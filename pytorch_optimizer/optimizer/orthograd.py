@@ -35,15 +35,11 @@ class OrthoGrad(BaseOptimizer):
             w = p.view(-1)
             g = p.grad.view(-1)
 
-            w_norm_sq = torch.dot(w, w).add_(self.eps)
-            proj = torch.dot(w, g) / w_norm_sq
-            g_ortho = g - proj * w
+            proj = torch.dot(w, g).div_(torch.dot(w, w).add_(self.eps))
+            g_ortho = g.to(dtype=torch.float32, copy=True).sub_(w, alpha=proj)
+            g_ortho_scaled = g_ortho.mul_(g.norm(2).div_(g_ortho.norm(2).add_(self.eps)))
 
-            g_norm = g.norm(2)
-            g_orth_norm = g_ortho.norm(2).add_(self.eps)
-            g_orth_scaled = g_ortho * (g_norm / g_orth_norm)
-
-            p.grad.copy_(g_orth_scaled.view_as(p.grad))
+            p.grad.copy_(g_ortho_scaled.view_as(p.grad))
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
