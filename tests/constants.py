@@ -443,6 +443,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SWATS, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (SWATS, {'lr': 5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 5),
     (Prodigy, {'lr': 5e1, 'beta3': None, 'weight_decay': 1e-3}, 10),
+    (Prodigy, {'lr': 5e0, 'beta3': None, 'weight_decay': 1e-3, 'eps': None}, 15),
     (Prodigy, {'lr': 5e1, 'beta3': 0.999, 'weight_decay': 1e-3}, 10),
     (Prodigy, {'lr': 1e1, 'beta3': 0.999, 'weight_decay': 1e-3, 'bias_correction': True}, 15),
     (Prodigy, {'lr': 1e0, 'beta3': 0.999, 'weight_decay': 1e-3, 'safeguard_warmup': True}, 15),
