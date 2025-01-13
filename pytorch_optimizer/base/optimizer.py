@@ -267,14 +267,14 @@ class BaseOptimizer(ABC, Optimizer):
         update.mul_(mask)
 
     @staticmethod
-    def get_stable_adamw_rms(grad: torch.Tensor, exp_avg_sq: torch.Tensor, eps: float = 1e-16) -> torch.Tensor:
-        r"""Get RMS.
+    def get_stable_adamw_rms(grad: torch.Tensor, exp_avg_sq: torch.Tensor, eps: float = 1e-16) -> float:
+        r"""Get StableAdamW RMS.
 
         :param grad: torch.Tensor. gradient.
         :param exp_avg_sq: torch.Tensor. exp_avg_sq.
         :param eps: float. epsilon.
         """
-        return grad.pow(2).div_(exp_avg_sq.clip(min=eps)).mean().sqrt_().clip_(min=1.0)
+        return grad.pow(2).div_(exp_avg_sq.clip(min=eps)).mean().sqrt_().clip_(min=1.0).item()
 
     @staticmethod
     def validate_range(x: float, name: str, low: float, high: float, range_type: str = '[)') -> None:
