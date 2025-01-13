@@ -28,7 +28,7 @@ from pytorch_optimizer.optimizer.utils import (
     to_real,
     unit_norm,
 )
-from tests.utils import Example
+from tests.utils import Example, build_orthograd
 
 
 def test_has_overflow():
@@ -261,3 +261,8 @@ def test_cpu_offload_optimizer():
 
     state_dict = opt.state_dict()
     opt.load_state_dict(state_dict)
+
+
+def test_orthograd_name():
+    optimizer = build_orthograd(Example().parameters())
+    assert str(optimizer).lower() == 'orthograd'
