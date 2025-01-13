@@ -595,3 +595,7 @@ COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], i
     (MARS, {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3, 'cautious': True}, 3),
     (MARS, {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3, 'optimize_1d': True, 'cautious': True}, 3),
 ]
+STABLE_ADAMW_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
+    (ADOPT, {'lr': 1e0, 'weight_decay': 1e-3, 'stable_adamw': True}, 5),
+    (AdEMAMix, {'lr': 1e0, 'weight_decay': 1e-3, 'stable_adamw': True}, 10),
+]

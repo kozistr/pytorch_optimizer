@@ -30,6 +30,7 @@ from tests.constants import (
     DECOUPLE_FLAGS,
     OPTIMIZERS,
     PULLBACK_MOMENTUM,
+    STABLE_ADAMW_SUPPORTED_OPTIMIZERS,
 )
 from tests.utils import (
     Example,
@@ -338,6 +339,31 @@ def test_adamd_variant(optimizer_config, environment):
 
 @pytest.mark.parametrize('optimizer_config', COPT_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_cautious_variant(optimizer_config, environment):
+    (x_data, y_data), model, loss_fn = environment
+
+    optimizer_class, config, num_iterations = optimizer_config
+
+    optimizer = optimizer_class(model.parameters(), **config)
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(num_iterations):
+        optimizer.zero_grad()
+
+        y_pred = model(x_data)
+        loss = loss_fn(y_pred, y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward()
+
+        optimizer.step()
+
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('optimizer_config', STABLE_ADAMW_SUPPORTED_OPTIMIZERS, ids=ids)
+def test_stable_adamw_variant(optimizer_config, environment):
     (x_data, y_data), model, loss_fn = environment
 
     optimizer_class, config, num_iterations = optimizer_config
