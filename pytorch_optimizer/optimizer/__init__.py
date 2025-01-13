@@ -63,6 +63,7 @@ from pytorch_optimizer.optimizer.msvag import MSVAG
 from pytorch_optimizer.optimizer.muon import Muon
 from pytorch_optimizer.optimizer.nero import Nero
 from pytorch_optimizer.optimizer.novograd import NovoGrad
+from pytorch_optimizer.optimizer.orthograd import OrthoGrad
 from pytorch_optimizer.optimizer.padam import PAdam
 from pytorch_optimizer.optimizer.pcgrad import PCGrad
 from pytorch_optimizer.optimizer.pid import PID
