@@ -373,6 +373,10 @@ Correcting the norm of a gradient in each iteration based on the adaptive traini
 
 Updates only occur when the proposed update direction aligns with the current gradient.
 
+### Adam-ATAN2
+
+Adam-atan2 is a new numerically stable, scale-invariant version of Adam that eliminates the epsilon hyperparameter.
+
 ## Frequently asked questions
 
 [here](docs/qa.md)
