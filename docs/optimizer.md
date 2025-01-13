@@ -256,6 +256,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.OrthoGrad
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.PAdam
     :docstring:
     :members:
