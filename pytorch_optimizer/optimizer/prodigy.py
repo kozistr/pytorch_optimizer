@@ -16,7 +16,7 @@ class Prodigy(BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. betas.
-    :param beta3: float. coefficients for computing the Prodidy step-size using running averages. If set to None,
+    :param beta3: float. coefficients for computing the Prodigy step-size using running averages. If set to None,
         uses the value of square root of beta2.
     :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
     :param d_coef: float. Coefficient in the expression for the estimate of d.
@@ -26,7 +26,8 @@ class Prodigy(BaseOptimizer):
     :param fixed_decay: bool. fix weight decay.
     :param bias_correction: bool. turn on Adam's bias correction.
     :param safeguard_warmup: bool. remove lr from the denominator of D estimate to avoid issues during warm-up stage.
-    :param eps: float. term added to the denominator to improve numerical stability.
+    :param eps: float. term added to the denominator to improve numerical stability. when eps is None, use atan2 rather
+        than epsilon and division for parameter updates.
     """
 
     def __init__(
@@ -43,7 +44,7 @@ class Prodigy(BaseOptimizer):
         fixed_decay: bool = False,
         bias_correction: bool = False,
         safeguard_warmup: bool = False,
-        eps: float = 1e-8,
+        eps: Optional[float] = 1e-8,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -172,8 +173,6 @@ class Prodigy(BaseOptimizer):
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                de_nom = exp_avg_sq.sqrt().add_(d * group['eps'])
-
                 self.apply_weight_decay(
                     p,
                     p.grad,
@@ -183,6 +182,13 @@ class Prodigy(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                p.addcdiv_(exp_avg, de_nom, value=-d_lr)
+                de_nom = exp_avg_sq.sqrt()
+
+                if group['eps'] is not None:
+                    de_nom.add_(d * group['eps'])
+                    p.addcdiv_(exp_avg, de_nom, value=-d_lr)
+                else:
+                    update = exp_avg.clone().atan2_(de_nom)
+                    p.add_(update, alpha=-d_lr)
 
         return loss
