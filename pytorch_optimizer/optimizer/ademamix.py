@@ -132,6 +132,15 @@ class AdEMAMix(BaseOptimizer):
                     state['exp_avg_sq'] = torch.zeros_like(p)
                     state['exp_avg_slow'] = torch.zeros_like(p)
 
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
+
                 exp_avg, exp_avg_sq, exp_avg_slow = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_slow']
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
@@ -150,14 +159,5 @@ class AdEMAMix(BaseOptimizer):
                 update.add_(exp_avg_slow, alpha=alpha_t).div_(de_nom)
 
                 p.add_(update, alpha=-step_size)
-
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=step_size,
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
 
         return loss
