@@ -11,6 +11,8 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 class Ranger25(BaseOptimizer):
     r"""Mixin' every fancy optimizer hacks.
 
+    ADOPT + AdEMAMix + Cautious + StableAdamW + Adam-Atan2
+
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
@@ -19,10 +21,10 @@ class Ranger25(BaseOptimizer):
     :param fixed_decay: bool. fix weight decay.
     :param alpha: float. usually between 4 and 10 would work well.
     :param t_alpha_beta3: Optional[float]. total number of iterations is preferred when needed.
-    :param n_sma_threshold: number of SMA threshold (recommended is 5).
     :param cautious: bool. whether to use the Cautious variant.
     :param stable_adamw: bool. whether to use stable AdamW variant.
-    :param eps: float. term added to the denominator to improve numerical stability.
+    :param eps: Optional[float]. term added to the denominator to improve numerical stability. when eps is None and
+        stable_adamw is False, adam-atan2 feature will be used.
     """
 
     def __init__(
@@ -35,10 +37,9 @@ class Ranger25(BaseOptimizer):
         fixed_decay: bool = False,
         alpha: float = 5.0,
         t_alpha_beta3: Optional[float] = None,
-        n_sma_threshold: int = 5,
         cautious: bool = True,
         stable_adamw: bool = True,
-        eps: float = 1e-8,
+        eps: Optional[float] = 1e-8,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -48,9 +49,8 @@ class Ranger25(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
-        self.n_sma_threshold = n_sma_threshold
         self.cautious = cautious
-        self.stable_adamw = stable_adamw
+        self.stable_adamw: bool = stable_adamw if isinstance(eps, float) else False
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -60,7 +60,7 @@ class Ranger25(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'alpha': alpha,
             't_alpha_beta3': t_alpha_beta3,
-            'eps': eps,
+            'eps': eps if (eps is not None) or (eps is None and not stable_adamw) else 1e-8,
         }
 
         super().__init__(params, defaults)
@@ -147,15 +147,13 @@ class Ranger25(BaseOptimizer):
 
                 exp_avg, exp_avg_sq, exp_avg_slow = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_slow']
 
-                de_nom = exp_avg_sq.sqrt().clamp_(min=group['eps'])
-
-                normed_grad = grad.div(de_nom).clamp_(-clip, clip)
+                normed_grad = grad.div(
+                    exp_avg_sq.sqrt().clamp_(min=group['eps'] if group['eps'] is not None else 1e-8)
+                ).clamp_(-clip, clip)
 
                 exp_avg.mul_(beta1).add_(normed_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                 exp_avg_slow.mul_(beta3_t).add_(normed_grad, alpha=1.0 - beta3_t)
-
-                de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
                 update = exp_avg.clone()
                 if self.cautious:
@@ -164,21 +162,14 @@ class Ranger25(BaseOptimizer):
                 if self.stable_adamw:
                     step_size /= self.get_stable_adamw_rms(grad, exp_avg_sq)
 
-                step_size, n_sma = self.get_rectify_step_size(
-                    is_rectify=True,
-                    step=group['step'],
-                    lr=step_size,
-                    beta2=beta2,
-                    n_sma_threshold=self.n_sma_threshold,
-                    degenerated_to_sgd=False,
-                )
+                update.add_(exp_avg_slow, alpha=alpha_t)
 
-                update.add_(exp_avg_slow, alpha=alpha_t).div_(de_nom)
+                de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq)
 
-                if n_sma >= self.n_sma_threshold:
-                    de_nom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p.addcdiv_(update, de_nom, value=-step_size)
-                else:
-                    p.add_(update, alpha=-step_size)
+                if group['eps'] is not None:
+                    p.addcdiv_(update, de_nom.add_(group['eps']), value=-step_size)
+                    continue
+
+                p.add_(update.atan2_(de_nom), alpha=-step_size)
 
         return loss
