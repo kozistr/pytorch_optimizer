@@ -1,7 +1,9 @@
+from typing import Callable, Dict
+
 import torch
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, LOSS, OPTIMIZER, PARAMETERS
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER
 
 
 class OrthoGrad(BaseOptimizer):
@@ -9,18 +11,27 @@ class OrthoGrad(BaseOptimizer):
 
     A wrapper optimizer that projects gradients to be orthogonal to the current parameters before performing an update.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param optimizer: OPTIMIZER. base optimizer.
     """
 
-    def __init__(self, params: PARAMETERS, optimizer: OPTIMIZER = torch.optim.AdamW, **kwargs):
+    def __init__(self, optimizer: OPTIMIZER, **kwargs):
+        self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
+        self._optimizer_step_post_hooks: Dict[int, Callable] = {}
         self.eps: float = 1e-30
 
-        super().__init__(params, {})
-        self.base_optimizer = optimizer(self.param_groups, **kwargs)
+        self.optimizer = optimizer
+
+        self.defaults: DEFAULTS = optimizer.defaults
 
     def __str__(self) -> str:
         return 'OrthoGrad'
+
+    @property
+    def param_groups(self):
+        return self.optimizer.param_groups
+
+    def __getstate__(self):
+        return {'optimizer': self.optimizer}
 
     @torch.no_grad()
     def reset(self):
@@ -45,4 +56,4 @@ class OrthoGrad(BaseOptimizer):
     def step(self, closure: CLOSURE = None) -> LOSS:
         for group in self.param_groups:
             self.orthogonalize_gradients(group['params'])
-        return self.base_optimizer.step(closure)
+        return self.optimizer.step(closure)
