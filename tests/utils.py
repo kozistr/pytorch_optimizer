@@ -108,7 +108,7 @@ def build_lookahead(*parameters, **kwargs):
 
 
 def build_orthograd(*parameters, **kwargs):
-    return OrthoGrad(*parameters, torch.optim.AdamW, **kwargs)
+    return OrthoGrad(AdamW(*parameters, **kwargs))
 
 
 def ids(v) -> str:
