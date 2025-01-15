@@ -2,15 +2,16 @@ from collections import defaultdict
 from typing import Callable, Dict
 
 import torch
+from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER, STATE
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
 
 
 class Lookahead(BaseOptimizer):
     r"""k steps forward, 1 step back.
 
-    :param optimizer: OPTIMIZER. base optimizer.
+    :param optimizer: OPTIMIZER_INSTANCE_OR_CLASS. base optimizer.
     :param k: int. number of lookahead steps.
     :param alpha: float. linear interpolation factor.
     :param pullback_momentum: str. change to inner optimizer momentum on interpolation update.
@@ -18,7 +19,7 @@ class Lookahead(BaseOptimizer):
 
     def __init__(
         self,
-        optimizer: OPTIMIZER,
+        optimizer: OPTIMIZER_INSTANCE_OR_CLASS,
         k: int = 5,
         alpha: float = 0.5,
         pullback_momentum: str = 'none',
@@ -28,10 +29,17 @@ class Lookahead(BaseOptimizer):
         self.validate_range(alpha, 'alpha', 0.0, 1.0)
         self.validate_options(pullback_momentum, 'pullback_momentum', ['none', 'reset', 'pullback'])
 
+        if isinstance(optimizer, Optimizer):
+            self.optimizer = optimizer
+        elif 'params' in kwargs:
+            params = kwargs.pop('params')
+            self.optimizer = optimizer(params, **kwargs)
+        else:
+            raise ValueError('Need to pass `params` when you pass the torch.optim.Optimizer instance.')
+
         self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
 
-        self.optimizer = optimizer
         self.alpha = alpha
         self.k = k
         self.pullback_momentum = pullback_momentum
@@ -53,7 +61,7 @@ class Lookahead(BaseOptimizer):
             'lookahead_alpha': alpha,
             'lookahead_k': k,
             'lookahead_pullback_momentum': pullback_momentum,
-            **optimizer.defaults,
+            **self.optimizer.defaults,
         }
 
     @property

@@ -2,9 +2,10 @@ from typing import Callable, Dict, List, Tuple
 
 import torch
 from torch import nn
+from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS
 
 
 def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
@@ -91,7 +92,7 @@ class TRAC(BaseOptimizer):
 
                 optimizer.step()
 
-    :param optimizer: Optimizer. base optimizer.
+    :param optimizer: OPTIMIZER_INSTANCE_OR_CLASS. base optimizer.
     :param betas: List[float]. list of beta values.
     :param num_coefs: int. the number of polynomial coefficients to use in the approximation.
     :param s_prev: float. initial scale value.
@@ -100,7 +101,7 @@ class TRAC(BaseOptimizer):
 
     def __init__(
         self,
-        optimizer: OPTIMIZER,
+        optimizer: OPTIMIZER_INSTANCE_OR_CLASS,
         betas: List[float] = (0.9, 0.99, 0.999, 0.9999, 0.99999, 0.999999),
         num_coefs: int = 128,
         s_prev: float = 1e-8,
@@ -110,6 +111,14 @@ class TRAC(BaseOptimizer):
         self.validate_positive(num_coefs, 'num_coefs')
         self.validate_non_negative(s_prev, 's_prev')
         self.validate_non_negative(eps, 'eps')
+
+        if isinstance(optimizer, Optimizer):
+            self.optimizer = optimizer
+        elif 'params' in kwargs:
+            params = kwargs.pop('params')
+            self.optimizer = optimizer(params, **kwargs)
+        else:
+            raise ValueError('Need to pass `params` when you pass the torch.optim.Optimizer instance.')
 
         self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
@@ -121,8 +130,7 @@ class TRAC(BaseOptimizer):
 
         self.f_term = self.s_prev / self.erf_imag(1.0 / torch.sqrt(torch.tensor(2.0)))
 
-        self.optimizer = optimizer
-        self.defaults: DEFAULTS = optimizer.defaults
+        self.defaults: DEFAULTS = self.optimizer.defaults
 
     def __str__(self) -> str:
         return 'TRAC'
