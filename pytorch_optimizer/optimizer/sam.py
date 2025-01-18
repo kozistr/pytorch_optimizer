@@ -6,6 +6,7 @@ from torch import nn
 from torch.distributed import ReduceOp, all_reduce, get_world_size, is_initialized
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.utils import clip_grad_norm_
+from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -54,7 +55,7 @@ class SAM(BaseOptimizer):
                 optimizer.zero_grad()
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param base_optimizer: Optimizer. base optimizer.
+    :param base_optimizer: OPTIMIZER. base optimizer.
     :param rho: float. size of the neighborhood for computing the max loss.
     :param adaptive: bool. element-wise Adaptive SAM.
     :param perturb_eps: float. eps for perturbation.
@@ -79,7 +80,7 @@ class SAM(BaseOptimizer):
         defaults.update(kwargs)
         super().__init__(params, defaults)
 
-        self.base_optimizer = base_optimizer(self.param_groups, **kwargs)
+        self.base_optimizer: Optimizer = base_optimizer(self.param_groups, **kwargs)
         self.param_groups = self.base_optimizer.param_groups
 
     def __str__(self) -> str:
@@ -187,7 +188,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
     def __init__(
         self,
         params: PARAMETERS,
-        base_optimizer: OPTIMIZER,
+        base_optimizer: Optimizer,
         model: nn.Module,
         rho_scheduler,
         alpha: float = 0.4,

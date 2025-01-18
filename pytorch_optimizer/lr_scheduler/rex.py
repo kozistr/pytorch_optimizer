@@ -1,8 +1,7 @@
 from typing import List, Optional
 
+from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
-
-from pytorch_optimizer.base.types import OPTIMIZER
 
 
 class REXScheduler(LRScheduler):
@@ -16,7 +15,7 @@ class REXScheduler(LRScheduler):
 
     def __init__(
         self,
-        optimizer: OPTIMIZER,
+        optimizer: Optimizer,
         total_steps: int,
         max_lr: float = 1.0,
         min_lr: float = 0.0,
@@ -35,7 +34,7 @@ class REXScheduler(LRScheduler):
 
         self.init_lr()
 
-    def init_lr(self):
+    def init_lr(self) -> None:
         self.base_lrs = []
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.min_lr

@@ -5,9 +5,9 @@ from typing import Iterable, List, Tuple
 import numpy as np
 import torch
 from torch import nn
+from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import OPTIMIZER
 
 
 def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:
@@ -29,11 +29,11 @@ def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor
 class PCGrad(BaseOptimizer):
     r"""Gradient Surgery for Multi-Task Learning.
 
-    :param optimizer: OPTIMIZER: optimizer instance.
+    :param optimizer: Optimizer: optimizer instance.
     :param reduction: str. reduction method.
     """
 
-    def __init__(self, optimizer: OPTIMIZER, reduction: str = 'mean'):
+    def __init__(self, optimizer: Optimizer, reduction: str = 'mean'):
         self.validate_options(reduction, 'reduction', ['mean', 'sum'])
 
         self.optimizer = optimizer
@@ -49,7 +49,7 @@ class PCGrad(BaseOptimizer):
     def step(self):
         return self.optimizer.step()
 
-    def set_grad(self, grads: List[torch.Tensor]):
+    def set_grad(self, grads: List[torch.Tensor]) -> None:
         idx: int = 0
         for group in self.optimizer.param_groups:
             for p in group['params']:
@@ -121,7 +121,7 @@ class PCGrad(BaseOptimizer):
 
         return merged_grad
 
-    def pc_backward(self, objectives: Iterable[nn.Module]):
+    def pc_backward(self, objectives: Iterable[nn.Module]) -> None:
         r"""Calculate the gradient of the parameters.
 
         :param objectives: Iterable[nn.Module]. a list of objectives.

@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import List
 
+from torch.optim import Optimizer
+
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
-from pytorch_optimizer.base.types import OPTIMIZER
 
 
 class BaseLinearWarmupScheduler(ABC):
@@ -10,7 +11,7 @@ class BaseLinearWarmupScheduler(ABC):
 
         The LR Scheduler class based on this class has linear warmup strategy.
 
-    :param optimizer: Optimizer. OPTIMIZER. It will set learning rate to all trainable parameters in optimizer.
+    :param optimizer: Optimizer. It will set learning rate to all trainable parameters in optimizer.
     :param t_max: int. total steps to train.
     :param max_lr: float. maximum lr.
     :param min_lr: float. minimum lr.
@@ -20,7 +21,7 @@ class BaseLinearWarmupScheduler(ABC):
 
     def __init__(
         self,
-        optimizer: OPTIMIZER,
+        optimizer: Optimizer,
         t_max: int,
         max_lr: float,
         min_lr: float = 0.0,
