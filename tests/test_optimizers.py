@@ -847,6 +847,9 @@ def test_mars_c_t_norm():
     optimizer.step()
 
 
-def test_spam_non_zero_count():
+def test_spam_optimizer():
     optimizer = load_optimizer('spam')(Example().parameters(), density=0.0)
+    optimizer.step()
+
+    optimizer = load_optimizer('spam')([simple_parameter(True)], grad_accu_steps=0, update_proj_gap=1)
     optimizer.step()
