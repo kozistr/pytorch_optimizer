@@ -63,7 +63,7 @@ class Nero(BaseOptimizer):
             for p in group['params']:
                 if group['constraints'] and p.dim() > 1:
                     p.sub_(neuron_mean(p))
-                    p.div_(neuron_norm(p) + group['eps'])
+                    p.div_(neuron_norm(p).add_(group['eps']))
 
                 state = self.state[p]
 
@@ -94,7 +94,7 @@ class Nero(BaseOptimizer):
                 if len(state) == 0:
                     if group['constraints'] and p.dim() > 1:
                         p.sub_(neuron_mean(p))
-                        p.div_(neuron_norm(p) + group['eps'])
+                        p.div_(neuron_norm(p).add_(group['eps']))
 
                     state['step'] = 0
                     state['exp_avg_sq'] = torch.zeros_like(neuron_norm(p))
@@ -114,10 +114,10 @@ class Nero(BaseOptimizer):
                 grad_normed = grad / ((exp_avg_sq / bias_correction).sqrt_().add_(group['eps']))
                 torch.nan_to_num(grad_normed, nan=0.0, out=grad_normed)
 
-                p.sub_(grad_normed, alpha=group['lr'] * state['scale'])
+                p.add_(grad_normed, alpha=-group['lr'] * state['scale'])
 
                 if group['constraints'] and p.dim() > 1:
                     p.sub_(neuron_mean(p))
-                    p.div_(neuron_norm(p) + group['eps'])
+                    p.div_(neuron_norm(p).add_(group['eps']))
 
         return loss

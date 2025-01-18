@@ -61,6 +61,7 @@ from pytorch_optimizer.optimizer import (
     SGDW,
     SM3,
     SOAP,
+    SPAM,
     SRMM,
     SWATS,
     TRAC,

@@ -368,6 +368,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.SPAM
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.SRMM
     :docstring:
     :members:

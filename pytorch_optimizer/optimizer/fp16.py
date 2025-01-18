@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
-from pytorch_optimizer.base.types import CLOSURE, OPTIMIZER, PARAMETERS
+from pytorch_optimizer.base.types import CLOSURE, PARAMETERS
 from pytorch_optimizer.optimizer.utils import clip_grad_norm, has_overflow
 
 
@@ -100,7 +100,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
 
     def __init__(
         self,
-        optimizer: OPTIMIZER,
+        optimizer: Optimizer,
         aggregate_g_norms: bool = False,
         min_loss_scale: float = 2 ** -5,
     ):  # fmt: skip
@@ -113,10 +113,9 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
 
         # we want the optimizer to be tracking the fp32 parameters
         if len(optimizer.param_groups) != 1:
-            # future implementers: this should hopefully be a matter of just
-            # iterating through the param groups and keeping track of the pointer
-            # through the fp32_params
-            raise NotImplementedError('[-] Need to implement the parameter group transfer.')
+            # future implementers: this should hopefully be a matter of just iterating through the param groups and
+            # keeping track of the pointer through the fp32_params
+            raise NotImplementedError('Need to implement the parameter group transfer.')
 
         optimizer.param_groups[0]['params'] = self.fp32_params
 
@@ -124,17 +123,16 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
         self.needs_sync: bool = True
 
     @classmethod
-    def get_parameters(cls, optimizer: OPTIMIZER):
+    def get_parameters(cls, optimizer: Optimizer) -> List:
         params: List = []
-        for pg in optimizer.param_groups:
-            params += list(pg['params'])
+        for group in optimizer.param_groups:
+            params += list(group['params'])
         return params
 
     @classmethod
     def build_fp32_params(
         cls, parameters: PARAMETERS, flatten: bool = True
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
-        # create FP32 copy of parameters and grads
         if flatten:
             total_param_size: int = sum(p.numel() for p in parameters)
             fp32_params = torch.zeros(total_param_size, dtype=torch.float, device=parameters[0].device)
@@ -142,7 +140,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
             offset: int = 0
             for p in parameters:
                 p_num_el = p.numel()
-                fp32_params[offset : offset + p_num_el].copy_(p.view(-1))
+                fp32_params[offset:offset + p_num_el].copy_(p.view(-1))  # fmt: skip
                 offset += p_num_el
 
             fp32_params = nn.Parameter(fp32_params)
@@ -168,9 +166,9 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
     def load_state_dict(self, state_dict: Dict):
         r"""Load an optimizer state dict.
 
-            In general, we should prefer the configuration of the existing optimizer instance
-            (e.g., learning rate) over that found in the state_dict. This allows us to
-            resume training from a checkpoint using a new set of optimizer args.
+            In general, we should prefer the configuration of the existing optimizer instance (e.g., learning rate)
+            over that found in the state_dict. This allows us to resume training from a checkpoint using a new set of
+            optimizer args.
 
         :param state_dict: Dict. state_dict.
         """
@@ -196,35 +194,34 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
         if update_main_grads:
             self.update_main_grads()
 
-    def sync_fp16_grads_to_fp32(self, multiply_grads: float = 1.0):
+    def sync_fp16_grads_to_fp32(self, multiply_grads: float = 1.0) -> None:
         r"""Sync fp16 to fp32 gradients."""
         if self.needs_sync:
             if self.scaler is not None:
-                # correct for dynamic loss scaler
                 multiply_grads /= self.scaler.loss_scale
 
-            # copy FP16 grads to FP32
-            for p, p32 in zip(self.fp16_params, self.fp32_params):
-                if not p.requires_grad:
+            for p16, p32 in zip(self.fp16_params, self.fp32_params):
+                if not p16.requires_grad:
                     continue
 
-                if p.grad is not None:
-                    p32.grad.copy_(p.grad)
+                if p16.grad is not None:
+                    p32.grad.copy_(p16.grad)
                     p32.grad.mul_(multiply_grads)
                 else:
-                    p32.grad = torch.zeros_like(p, dtype=torch.float)
+                    p32.grad = torch.zeros_like(p16, dtype=torch.float)
 
             self.needs_sync = False
 
-    def multiply_grads(self, c: float):
+    def multiply_grads(self, c: float) -> None:
         r"""Multiply grads by a constant c."""
         if self.needs_sync:
             self.sync_fp16_grads_to_fp32(c)
-        else:
-            for p32 in self.fp32_params:
-                p32.grad.mul_(c)
+            return
 
-    def update_main_grads(self):
+        for p32 in self.fp32_params:
+            p32.grad.mul_(c)
+
+    def update_main_grads(self) -> None:
         self.sync_fp16_grads_to_fp32()
 
     def clip_main_grads(self, max_norm: float):
@@ -249,8 +246,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
 
                     raise FloatingPointError(
                         f'Minimum loss scale reached ({self.min_loss_scale}). Your loss is probably exploding. '
-                        'Try lowering the learning rate, using gradient clipping or '
-                        'increasing the batch size.\n'
+                        'Try lowering the learning rate, using gradient clipping or increasing the batch size.\n'
                         f'Overflow: setting loss scale to {self.scaler.loss_scale}'
                     )
 
@@ -261,16 +257,15 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
         self.sync_fp16_grads_to_fp32()
         self.optimizer.step(closure)
 
-        # copy FP32 params back into FP16 model
-        for p, p32 in zip(self.fp16_params, self.fp32_params):
-            if not p.requires_grad:
+        for p16, p32 in zip(self.fp16_params, self.fp32_params):
+            if not p16.requires_grad:
                 continue
-            p.data.copy_(p32)
+            p16.data.copy_(p32)
 
-    def zero_grad(self):
+    def zero_grad(self) -> None:
         r"""Clear the gradients of all optimized parameters."""
-        for p in self.fp16_params:
-            p.grad = None
+        for p16 in self.fp16_params:
+            p16.grad = None
         for p32 in self.fp32_params:
             p32.grad.zero_()
         self.needs_sync = False

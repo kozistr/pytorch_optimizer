@@ -1,9 +1,8 @@
 import math
 from typing import List, Optional
 
+from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
-
-from pytorch_optimizer.base.types import OPTIMIZER
 
 
 class CosineAnnealingWarmupRestarts(LRScheduler):
@@ -21,7 +20,7 @@ class CosineAnnealingWarmupRestarts(LRScheduler):
 
     def __init__(
         self,
-        optimizer: OPTIMIZER,
+        optimizer: Optimizer,
         first_cycle_steps: int,
         cycle_mult: float = 1.0,
         max_lr: float = 1e-4,
@@ -53,7 +52,7 @@ class CosineAnnealingWarmupRestarts(LRScheduler):
 
         self.init_lr()
 
-    def init_lr(self):
+    def init_lr(self) -> None:
         self.base_lrs = []
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.min_lr

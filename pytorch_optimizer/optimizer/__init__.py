@@ -1,10 +1,10 @@
 import fnmatch
 from importlib.util import find_spec
-from typing import Dict, List, Optional, Sequence, Set, Union
+from typing import Dict, List, Optional, Sequence, Set, Type, Union
 
 import torch
 from torch import nn
-from torch.optim import AdamW
+from torch.optim import AdamW, Optimizer
 
 from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS
 from pytorch_optimizer.optimizer.a2grad import A2Grad
@@ -83,6 +83,7 @@ from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
 from pytorch_optimizer.optimizer.sm3 import SM3
 from pytorch_optimizer.optimizer.soap import SOAP
 from pytorch_optimizer.optimizer.sophia import SophiaH
+from pytorch_optimizer.optimizer.spam import SPAM
 from pytorch_optimizer.optimizer.srmm import SRMM
 from pytorch_optimizer.optimizer.swats import SWATS
 from pytorch_optimizer.optimizer.tiger import Tiger
@@ -286,6 +287,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     MARS,
     SGDSaI,
     Grams,
+    SPAM,
     Ranger25,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
@@ -298,8 +300,9 @@ def create_optimizer(
     weight_decay: float = 0.0,
     wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
     use_lookahead: bool = False,
+    use_orthograd: bool = False,
     **kwargs,
-):
+) -> Optimizer:
     r"""Build optimizer.
 
     :param model: nn.Module. model.
@@ -307,7 +310,8 @@ def create_optimizer(
     :param lr: float. learning rate.
     :param weight_decay: float. weight decay.
     :param wd_ban_list: List[str]. weight decay ban list by layer.
-    :param use_lookahead: bool. use lookahead.
+    :param use_lookahead: bool. use Lookahead.
+    :param use_orthograd: bool. use OrthoGrad.
     """
     optimizer_name = optimizer_name.lower()
 
@@ -315,14 +319,17 @@ def create_optimizer(
         get_optimizer_parameters(model, weight_decay, wd_ban_list) if weight_decay > 0.0 else model.parameters()
     )
 
-    optimizer = load_optimizer(optimizer_name)
+    optimizer_class: OPTIMIZER = load_optimizer(optimizer_name)
 
     if optimizer_name == 'alig':
-        optimizer = optimizer(parameters, max_lr=lr, **kwargs)
+        optimizer = optimizer_class(parameters, max_lr=lr, **kwargs)
     elif optimizer_name in {'lomo', 'adalomo', 'adammini'}:
-        optimizer = optimizer(model, lr=lr, **kwargs)
+        optimizer = optimizer_class(model, lr=lr, **kwargs)
     else:
-        optimizer = optimizer(parameters, lr=lr, **kwargs)
+        optimizer = optimizer_class(parameters, lr=lr, **kwargs)
+
+    if use_orthograd:
+        optimizer = OrthoGrad(optimizer, **kwargs)
 
     if use_lookahead:
         optimizer = Lookahead(

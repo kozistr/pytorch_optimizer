@@ -6,10 +6,14 @@ from tests.utils import LogisticRegression
 
 
 @pytest.mark.parametrize('use_lookahead', [True, False])
+@pytest.mark.parametrize('use_orthograd', [True, False])
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
-def test_create_optimizer(use_lookahead, optimizer_name):
+def test_create_optimizer(use_lookahead, use_orthograd, optimizer_name):
     if optimizer_name in ('adamw', 'demo'):
         pytest.skip(f'skip {optimizer_name}')
+
+    if use_lookahead and use_orthograd:
+        pytest.skip()
 
     kwargs = {'eps': 1e-8, 'k': 7}
     if optimizer_name == 'ranger21':
@@ -23,6 +27,7 @@ def test_create_optimizer(use_lookahead, optimizer_name):
         LogisticRegression(),
         optimizer_name=optimizer_name,
         use_lookahead=use_lookahead,
+        use_orthograd=use_orthograd,
         **kwargs,
     )
 

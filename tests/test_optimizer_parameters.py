@@ -2,7 +2,17 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer.optimizer import SAM, WSAM, Lookahead, PCGrad, Ranger21, SafeFP16Optimizer, load_optimizer
+from pytorch_optimizer.optimizer import (
+    SAM,
+    TRAC,
+    WSAM,
+    Lookahead,
+    OrthoGrad,
+    PCGrad,
+    Ranger21,
+    SafeFP16Optimizer,
+    load_optimizer,
+)
 from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
 from tests.constants import PULLBACK_MOMENTUM
 from tests.utils import Example, simple_parameter, simple_zero_rank_parameter
@@ -44,7 +54,7 @@ def test_came_parameters():
 
 
 def test_pcgrad_parameters():
-    opt = load_optimizer('adamw')([simple_parameter()])
+    opt = load_optimizer('adamp')([simple_parameter()])
 
     # test reduction
     for reduction in ['mean', 'sum']:
@@ -56,16 +66,17 @@ def test_pcgrad_parameters():
 
 def test_sam_parameters():
     with pytest.raises(ValueError):
-        SAM(None, load_optimizer('adamw'), rho=-0.1)
+        SAM(None, load_optimizer('adamp'), rho=-0.1)
 
 
 def test_wsam_parameters():
     with pytest.raises(ValueError):
-        WSAM(None, None, load_optimizer('adamw'), rho=-0.1)
+        WSAM(None, None, load_optimizer('adamp'), rho=-0.1)
 
 
 def test_lookahead_parameters():
-    optimizer = load_optimizer('adamw')([simple_parameter()])
+    optimizer_instance = load_optimizer('adamp')
+    optimizer = optimizer_instance([simple_parameter()])
 
     for pullback_momentum in PULLBACK_MOMENTUM:
         opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
@@ -267,3 +278,14 @@ def test_galore_projection_type():
 
     with pytest.raises(ValueError):
         GaLoreProjector.get_orthogonal_matrix(p, 1, projection_type='std')
+
+
+@pytest.mark.parametrize('optimizer_instance', [Lookahead, OrthoGrad, TRAC])
+def test_load_optimizer(optimizer_instance):
+    params = [simple_parameter()]
+
+    _ = optimizer_instance(torch.optim.AdamW(params))
+    _ = optimizer_instance(torch.optim.AdamW, params=params)
+
+    with pytest.raises(ValueError):
+        optimizer_instance(torch.optim.AdamW)
