@@ -845,3 +845,8 @@ def test_mars_c_t_norm():
 
     optimizer = load_optimizer('mars')([param], optimize_1d=True)
     optimizer.step()
+
+
+def test_spam_non_zero_count():
+    optimizer = load_optimizer('spam')(Example().parameters(), density=0.0)
+    optimizer.step()
