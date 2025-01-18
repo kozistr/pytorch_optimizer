@@ -326,16 +326,16 @@ def create_optimizer(
     else:
         optimizer = optimizer_class(parameters, lr=lr, **kwargs)
 
+    if use_orthograd:
+        optimizer = OrthoGrad(optimizer, **kwargs)
+
     if use_lookahead:
-        return Lookahead(
+        optimizer = Lookahead(
             optimizer,
             k=kwargs.get('k', 5),
             alpha=kwargs.get('alpha', 0.5),
             pullback_momentum=kwargs.get('pullback_momentum', 'none'),
         )
-
-    if use_orthograd:
-        return OrthoGrad(optimizer, **kwargs)
 
     return optimizer
 
