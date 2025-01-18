@@ -1,10 +1,10 @@
 import fnmatch
 from importlib.util import find_spec
-from typing import Dict, List, Optional, Sequence, Set, Union
+from typing import Dict, List, Optional, Sequence, Set, Type, Union
 
 import torch
 from torch import nn
-from torch.optim import AdamW
+from torch.optim import AdamW, Optimizer
 
 from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS
 from pytorch_optimizer.optimizer.a2grad import A2Grad
@@ -300,7 +300,7 @@ def create_optimizer(
     use_lookahead: bool = False,
     use_orthograd: bool = False,
     **kwargs,
-):
+) -> Optimizer:
     r"""Build optimizer.
 
     :param model: nn.Module. model.
@@ -317,7 +317,7 @@ def create_optimizer(
         get_optimizer_parameters(model, weight_decay, wd_ban_list) if weight_decay > 0.0 else model.parameters()
     )
 
-    optimizer_class = load_optimizer(optimizer_name)
+    optimizer_class: OPTIMIZER = load_optimizer(optimizer_name)
 
     if optimizer_name == 'alig':
         optimizer = optimizer_class(parameters, max_lr=lr, **kwargs)

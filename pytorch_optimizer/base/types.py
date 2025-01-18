@@ -11,6 +11,7 @@ DEFAULTS = Dict
 PARAMETERS = Optional[Union[Iterable[Dict], Iterable[torch.Tensor]]]
 STATE = Dict
 OPTIMIZER = Type[Optimizer]
+OPTIMIZER_INSTANCE_OR_CLASS = Union[OPTIMIZER, Optimizer]
 SCHEDULER = Type[LRScheduler]
 
 HUTCHINSON_G = Literal['gaussian', 'rademacher']
