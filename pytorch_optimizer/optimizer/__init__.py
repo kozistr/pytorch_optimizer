@@ -83,6 +83,7 @@ from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
 from pytorch_optimizer.optimizer.sm3 import SM3
 from pytorch_optimizer.optimizer.soap import SOAP
 from pytorch_optimizer.optimizer.sophia import SophiaH
+from pytorch_optimizer.optimizer.spam import SPAM
 from pytorch_optimizer.optimizer.srmm import SRMM
 from pytorch_optimizer.optimizer.swats import SWATS
 from pytorch_optimizer.optimizer.tiger import Tiger
@@ -286,6 +287,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     MARS,
     SGDSaI,
     Grams,
+    SPAM,
     Ranger25,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
