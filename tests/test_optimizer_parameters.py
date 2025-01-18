@@ -288,4 +288,4 @@ def test_load_optimizer(optimizer_instance):
     _ = optimizer_instance(torch.optim.AdamW, params=params)
 
     with pytest.raises(ValueError):
-        Lookahead(torch.optim.AdamW)
+        optimizer_instance(torch.optim.AdamW)
