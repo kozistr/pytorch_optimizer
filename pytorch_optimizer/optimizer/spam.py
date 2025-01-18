@@ -228,7 +228,7 @@ class SPAM(BaseOptimizer):
                 if 'mask' in state:
                     grad = grad[state['mask']]
 
-                if len(state) == 0:
+                if 'exp_avg' not in state:
                     state['exp_avg'] = torch.zeros_like(grad)
                     state['exp_avg_sq'] = torch.zeros_like(grad)
 
@@ -258,11 +258,14 @@ class SPAM(BaseOptimizer):
                 else:
                     p.addcdiv_(exp_avg, de_nom, value=-step_size * scale_factor)
 
-                if group['weight_decay'] > 0:
-                    if 'mask' in state:
-                        p[state['mask']].add_(p[state['mask']], alpha=-group['lr'] * group['weight_decay'])
-                    else:
-                        p.add_(p, alpha=-group['lr'] * group['weight_decay'])
+                self.apply_weight_decay(
+                    p[state['mask']] if 'mask' in state else p,
+                    grad=None,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=True,
+                    fixed_decay=False,
+                )
 
         self.state['total_step'] += 1
         self.state['current_step'] += 1
