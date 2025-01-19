@@ -21,6 +21,7 @@ from pytorch_optimizer.optimizer import (
     SPAM,
     SRMM,
     SWATS,
+    TAM,
     A2Grad,
     AccSGD,
     AdaBelief,
@@ -40,6 +41,7 @@ from pytorch_optimizer.optimizer import (
     AdaPNM,
     AdaShift,
     AdaSmooth,
+    AdaTAM,
     AdEMAMix,
     AggMo,
     Aida,
@@ -158,6 +160,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'laprop',
     'apollo',
     'mars',
+    'adatam',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -549,6 +552,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SGDSaI, {'lr': 1e0, 'momentum': 0.0}, 15),
     (Grams, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
     (SPAM, {'lr': 1e0, 'weight_decay': 1e-3, 'warmup_epoch': 1, 'grad_accu_steps': 1, 'update_proj_gap': 1}, 5),
+    (TAM, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
+    (AdaTAM, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
     (Ranger25, {'lr': 1e0}, 5),
     (Ranger25, {'lr': 1e0, 't_alpha_beta3': 5}, 5),
     (Ranger25, {'lr': 1e-1, 'stable_adamw': False, 'eps': None}, 5),
