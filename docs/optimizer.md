@@ -380,6 +380,14 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.TAM
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.AdaTAM
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Tiger
     :docstring:
     :members:
