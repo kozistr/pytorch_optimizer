@@ -107,8 +107,7 @@ class StableAdamW(BaseOptimizer):
                 exp_avg.lerp_(grad, weight=beta1_comp)
                 exp_avg_sq.mul_(beta2_hat).addcmul_(grad, grad, value=1.0 - beta2_hat)
 
-                rms = self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
-                lr = group['lr'] / rms
+                lr: float = group['lr'] / self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
 
                 self.apply_weight_decay(
                     p,

@@ -86,6 +86,7 @@ from pytorch_optimizer.optimizer.sophia import SophiaH
 from pytorch_optimizer.optimizer.spam import SPAM
 from pytorch_optimizer.optimizer.srmm import SRMM
 from pytorch_optimizer.optimizer.swats import SWATS
+from pytorch_optimizer.optimizer.tam import TAM, AdaTAM
 from pytorch_optimizer.optimizer.tiger import Tiger
 from pytorch_optimizer.optimizer.trac import TRAC
 from pytorch_optimizer.optimizer.yogi import Yogi
@@ -252,6 +253,8 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     SRMM,
     AvaGrad,
     AdaShift,
+    TAM,
+    AdaTAM,
     AdaDelta,
     Amos,
     AdaHessian,

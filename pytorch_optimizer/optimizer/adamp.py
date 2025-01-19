@@ -141,6 +141,10 @@ class AdamP(BaseOptimizer):
                 inv_de_nom = exp_avg_sq.rsqrt().add_(group['eps']).mul_(bias_correction2_sq)
 
                 perturb = exp_avg.clone()
+
+                if self.cautious:
+                    self.apply_cautious(perturb, grad)
+
                 if group['nesterov']:
                     perturb.mul_(beta1).addcmul_(grad, inv_de_nom, value=1.0 - beta1)
                 else:
@@ -172,9 +176,6 @@ class AdamP(BaseOptimizer):
                     step_size=group['lr'],
                     bias_correction1=bias_correction1,
                 )
-
-                if self.cautious:
-                    self.apply_cautious(perturb, grad)
 
                 p.add_(perturb, alpha=-step_size)
 

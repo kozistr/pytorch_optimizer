@@ -406,7 +406,7 @@ class SGDSaI(BaseOptimizer):
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
-    :param momentum: float.  coefficients used for computing running averages of gradient.
+    :param momentum: float. coefficients used for computing running averages of gradient.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param eps: float. term added to the denominator to improve numerical stability.
@@ -423,7 +423,7 @@ class SGDSaI(BaseOptimizer):
         **kwargs,
     ):
         self.validate_learning_rate(lr)
-        self.validate_range(momentum, 'beta', 0.0, 1.0)
+        self.validate_range(momentum, 'momentum', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 

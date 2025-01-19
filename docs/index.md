@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **90 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **92 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -199,6 +199,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | OrthoGrad     | *Grokking at the Edge of Numerical Stability*                                                     | [github](https://github.com/LucasPrietoAl/grokking-at-the-edge-of-numerical-stability)                         | <https://arxiv.org/abs/2501.04697>                                                          | [cite](https://github.com/LucasPrietoAl/grokking-at-the-edge-of-numerical-stability?tab=readme-ov-file#citation)                    |
 | Adam-ATAN2    | *Scaling Exponents Across Parameterizations and Optimizers*                                       |                                                                                                                | <https://arxiv.org/abs/2407.05872>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv240705872E/exportcitation)                                                        |
 | SPAM          | *Spike-Aware Adam with Momentum Reset for Stable LLM Training*                                    | [github](https://github.com/TianjinYellow/SPAM-Optimizer)                                                      | <https://arxiv.org/abs/2501.06842>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250106842H/exportcitation)                                                        |
+| TAM           | *Torque-Aware Momentum*                                                                           |                                                                                                                | <https://arxiv.org/abs/2412.18790>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv241218790M/exportcitation)                                                        |
 
 ## Supported LR Scheduler
 
