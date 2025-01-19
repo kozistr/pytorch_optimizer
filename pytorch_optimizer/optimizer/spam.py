@@ -81,7 +81,7 @@ class SPAM(BaseOptimizer):
         self.validate_non_negative(density, 'density')
         self.validate_non_negative(threshold, 'threshold')
         self.validate_non_negative(grad_accu_steps, 'grad_accu_steps')
-        self.validate_non_negative(update_proj_gap, 'update_proj_gap')
+        self.validate_positive(update_proj_gap, 'update_proj_gap')
         self.validate_non_negative(eps, 'eps')
 
         self.density = density
@@ -91,41 +91,32 @@ class SPAM(BaseOptimizer):
         self.update_proj_gap = update_proj_gap
         self.warmup = CosineDecay(0.99, warmup_epoch)
 
-        defaults: DEFAULTS = {
-            'lr': lr,
-            'betas': betas,
-            'weight_decay': weight_decay,
-            'eps': eps,
-            **kwargs,
-        }
+        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps, **kwargs}
         super().__init__(params, defaults)
 
         self.init_masks()
 
         self.state['total_step'] = 0
-        self.state['current_step'] = warmup_epoch + 1
+        self.state['current_step'] = self.warmup_epoch + 1
 
     @staticmethod
-    def initialize_random_rank_boolean_tensor(m: int, n: int, density: float) -> torch.Tensor:
+    def initialize_random_rank_boolean_tensor(m: int, n: int, density: float, device: torch.device) -> torch.Tensor:
         r"""Create an (m x n) boolean tensor with `density` fraction of True entries.
 
         :param m: int. number of rows.
         :param n: int. number of columns.
         :param density: float. fraction of True entries. 1.0 means all True.
+        :param device: torch.device. device.
         """
         total_elements: int = m * n
         non_zero_count: int = int(density * total_elements)
 
-        tensor = torch.zeros((m, n), dtype=torch.bool)
+        tensor = torch.zeros(total_elements, dtype=torch.bool, device=device)
 
-        if non_zero_count == 0:
-            return tensor
+        if non_zero_count > 0:
+            tensor[torch.randperm(total_elements, device=device)[:non_zero_count]] = True
 
-        indices = torch.randperm(total_elements)[:non_zero_count]
-        rows, cols = indices // n, indices % n
-        tensor[rows, cols] = True
-
-        return tensor
+        return tensor.view(m, n)
 
     def update_mask_random(self, density: float, p: torch.Tensor, old_mask: torch.Tensor) -> torch.Tensor:
         r"""Update a random mask.
@@ -164,9 +155,8 @@ class SPAM(BaseOptimizer):
             for p in group['params']:
                 state = self.state[p]
                 if 'mask' in state:
-                    new_mask = self.update_mask_random(self.density, p, state['mask'])
-                    state['mask'] = new_mask
-                    p.mask = new_mask
+                    state['mask'] = self.update_mask_random(self.density, p, state['mask'])
+                    p.mask = state['mask']
 
     def init_masks(self) -> None:
         r"""Initialize random masks for each parameter group that has 'density'."""
@@ -175,10 +165,11 @@ class SPAM(BaseOptimizer):
                 state = self.state[p]
                 if p.dim() == 2 and 'mask' not in state:
                     state['mask'] = self.initialize_random_rank_boolean_tensor(
-                        p.shape[0],
-                        p.shape[1],
+                        m=p.shape[0],
+                        n=p.shape[1],
                         density=self.density,
-                    ).to(p.device)
+                        device=p.device,
+                    )
 
     def __str__(self) -> str:
         return 'SPAM'
