@@ -35,9 +35,7 @@ class OrthoGrad(BaseOptimizer):
             params = kwargs.pop("params")
             self.optimizer = optimizer(params, **kwargs)
         else:
-            raise ValueError(
-                "Need to pass `params` when you pass the torch.optim.Optimizer instance."
-            )
+            raise ValueError("Need to pass `params` when you pass the torch.optim.Optimizer instance.")
 
         self.defaults: DEFAULTS = self.optimizer.defaults
 
@@ -66,9 +64,7 @@ class OrthoGrad(BaseOptimizer):
 
             proj = torch.dot(w, g).div_(torch.dot(w, w).add_(self.eps))
             g_ortho = g.to(dtype=torch.float32, copy=True).sub_(w, alpha=proj)
-            g_ortho_scaled = g_ortho.mul_(
-                g.norm(2).div_(g_ortho.norm(2).add_(self.eps))
-            )
+            g_ortho_scaled = g_ortho.mul_(g.norm(2).div_(g_ortho.norm(2).add_(self.eps)))
 
             p.grad.copy_(g_ortho_scaled.view_as(p.grad))
 
