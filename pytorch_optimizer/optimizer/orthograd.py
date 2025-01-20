@@ -31,23 +31,23 @@ class OrthoGrad(BaseOptimizer):
 
         if isinstance(optimizer, Optimizer):
             self.optimizer = optimizer
-        elif "params" in kwargs:
-            params = kwargs.pop("params")
+        elif 'params' in kwargs:
+            params = kwargs.pop('params')
             self.optimizer = optimizer(params, **kwargs)
         else:
-            raise ValueError("Need to pass `params` when you pass the torch.optim.Optimizer instance.")
+            raise ValueError('Need to pass `params` when you pass the torch.optim.Optimizer instance.')
 
         self.defaults: DEFAULTS = self.optimizer.defaults
 
     def __str__(self) -> str:
-        return "OrthoGrad"
+        return 'OrthoGrad'
 
     @property
     def param_groups(self):
         return self.optimizer.param_groups
 
     def __getstate__(self):
-        return {"optimizer": self.optimizer}
+        return {'optimizer': self.optimizer}
 
     @torch.no_grad()
     def reset(self):
@@ -71,5 +71,5 @@ class OrthoGrad(BaseOptimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         for group in self.param_groups:
-            self.orthogonalize_gradients(group["params"])
+            self.orthogonalize_gradients(group['params'])
         return self.optimizer.step(closure)
