@@ -1,10 +1,17 @@
+from collections import defaultdict
 from typing import Callable, Dict
 
 import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS
+from pytorch_optimizer.base.types import (
+    CLOSURE,
+    DEFAULTS,
+    LOSS,
+    OPTIMIZER_INSTANCE_OR_CLASS,
+    STATE,
+)
 
 
 class OrthoGrad(BaseOptimizer):
@@ -19,6 +26,8 @@ class OrthoGrad(BaseOptimizer):
         self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
         self.eps: float = 1e-30
+
+        self.state: STATE = defaultdict(dict)
 
         if isinstance(optimizer, Optimizer):
             self.optimizer = optimizer
