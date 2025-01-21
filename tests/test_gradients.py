@@ -37,7 +37,7 @@ def test_no_gradients(optimizer_name):
     sphere_loss(p1 + p3).backward(create_graph=True)
 
     optimizer.step(lambda: 0.1)  # for AliG optimizer
-    if optimizer_name not in {'lookahead', 'trac'}:
+    if optimizer_name not in {'lookahead', 'trac', 'orthograd'}:
         optimizer.zero_grad(set_to_none=True)
 
 
