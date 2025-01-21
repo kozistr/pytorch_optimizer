@@ -265,6 +265,9 @@ def test_cpu_offload_optimizer():
 
 def test_orthograd_name():
     optimizer = build_orthograd(Example().parameters())
+    optimizer.zero_grad()
+
     _ = optimizer.param_groups
-    _ = optimizer.__getstate__()
+    _ = optimizer.state
+
     assert str(optimizer).lower() == 'orthograd'
