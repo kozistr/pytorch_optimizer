@@ -31,8 +31,6 @@ class OrthoGrad(BaseOptimizer):
         self._optimizer_load_state_dict_post_hooks: Dict[int, Callable] = {}
         self.eps: float = 1e-30
 
-        self.state: STATE = defaultdict(dict)
-
         if isinstance(optimizer, Optimizer):
             self.optimizer = optimizer
         elif 'params' in kwargs:
@@ -50,8 +48,13 @@ class OrthoGrad(BaseOptimizer):
     def param_groups(self):
         return self.optimizer.param_groups
 
-    def __getstate__(self):
-        return {'optimizer': self.optimizer}
+    @property
+    def state(self):
+        return self.optimizer.state
+
+    @torch.no_grad()
+    def zero_grad(self) -> None:
+        self.optimizer.zero_grad(set_to_none=True)
 
     @torch.no_grad()
     def reset(self):
