@@ -1,17 +1,10 @@
-from collections import defaultdict
 from typing import Callable, Dict
 
 import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import (
-    CLOSURE,
-    DEFAULTS,
-    LOSS,
-    OPTIMIZER_INSTANCE_OR_CLASS,
-    STATE,
-)
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS
 
 
 class OrthoGrad(BaseOptimizer):
