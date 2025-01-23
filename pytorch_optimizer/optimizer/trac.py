@@ -108,6 +108,12 @@ class TRAC(BaseOptimizer):
         eps: float = 1e-8,
         **kwargs,
     ):
+        self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
+        self._optimizer_step_post_hooks: Dict[int, Callable] = {}
+        self._optimizer_state_dict_pre_hooks: Dict[int, Callable] = {}
+        self._optimizer_state_dict_post_hooks: Dict[int, Callable] = {}
+        self._optimizer_load_state_dict_pre_hooks: Dict[int, Callable] = {}
+        self._optimizer_load_state_dict_post_hooks: Dict[int, Callable] = {}
         self.validate_positive(num_coefs, 'num_coefs')
         self.validate_non_negative(s_prev, 's_prev')
         self.validate_non_negative(eps, 'eps')
