@@ -46,6 +46,7 @@ from pytorch_optimizer.optimizer import (
     ASGD,
     BSAM,
     CAME,
+    FOCUS,
     FTRL,
     GSAM,
     LARS,
