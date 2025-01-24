@@ -54,6 +54,7 @@ def test_epsilon(optimizer_name):
         'ftrl',
         'demo',
         'muon',
+        'focus',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
