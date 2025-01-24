@@ -34,7 +34,7 @@ def test_load_lr_scheduler_invalid(invalid_lr_scheduler_names):
 
 
 def test_get_supported_optimizers():
-    assert len(get_supported_optimizers()) == 90
+    assert len(get_supported_optimizers()) == 91
     assert len(get_supported_optimizers('adam*')) == 7
     assert len(get_supported_optimizers(['adam*', 'ranger*'])) == 10
 

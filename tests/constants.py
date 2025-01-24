@@ -5,6 +5,7 @@ from pytorch_optimizer.optimizer import (
     APOLLO,
     ASGD,
     CAME,
+    FOCUS,
     FTRL,
     LARS,
     MADGRAD,
@@ -161,6 +162,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'apollo',
     'mars',
     'adatam',
+    'focus',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -554,6 +556,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SPAM, {'lr': 1e0, 'weight_decay': 1e-3, 'warmup_epoch': 1, 'grad_accu_steps': 1, 'update_proj_gap': 1}, 5),
     (TAM, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (AdaTAM, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
+    (FOCUS, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
     (Ranger25, {'lr': 1e0}, 5),
     (Ranger25, {'lr': 1e0, 't_alpha_beta3': 5}, 5),
     (Ranger25, {'lr': 1e-1, 'stable_adamw': False, 'eps': None}, 5),
