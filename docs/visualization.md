@@ -154,6 +154,10 @@
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_FAdam.png)
 
+### FOCUS
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_FOCUS.png)
+
 ### Fromage
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_Fromage.png)
@@ -495,6 +499,10 @@
 ### FAdam
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_FAdam.png)
+
+### FOCUS
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_FOCUS.png)
 
 ### Fromage
 
