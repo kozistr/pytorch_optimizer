@@ -85,11 +85,11 @@ class FOCUS(BaseOptimizer):
 
                 pbar_hat = pbar / bias_correction2
 
+                if weight_decay > 0.0:
+                    p.add_(pbar_hat, alpha=-group['lr'] * weight_decay)
+
                 update = (p - pbar_hat).sign_().mul_(group['gamma']).add_(torch.sign(exp_avg))
 
                 p.add_(update, alpha=-group['lr'])
-
-                if weight_decay > 0.0:
-                    p.add_(pbar_hat, alpha=-group['lr'] * weight_decay)
 
         return loss
