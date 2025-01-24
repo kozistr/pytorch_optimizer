@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Callable, Dict, List, Tuple
 
 import torch
@@ -5,7 +6,7 @@ from torch import nn
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
 
 
 def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
@@ -110,10 +111,6 @@ class TRAC(BaseOptimizer):
     ):
         self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
-        self._optimizer_state_dict_pre_hooks: Dict[int, Callable] = {}
-        self._optimizer_state_dict_post_hooks: Dict[int, Callable] = {}
-        self._optimizer_load_state_dict_pre_hooks: Dict[int, Callable] = {}
-        self._optimizer_load_state_dict_post_hooks: Dict[int, Callable] = {}
         self.validate_positive(num_coefs, 'num_coefs')
         self.validate_non_negative(s_prev, 's_prev')
         self.validate_non_negative(eps, 'eps')
@@ -136,6 +133,8 @@ class TRAC(BaseOptimizer):
 
         self.f_term = self.s_prev / self.erf_imag(1.0 / torch.sqrt(torch.tensor(2.0)))
 
+        self.state: STATE = defaultdict(dict)
+
         self.defaults: DEFAULTS = self.optimizer.defaults
 
     def __str__(self) -> str:
@@ -145,9 +144,42 @@ class TRAC(BaseOptimizer):
     def param_groups(self):
         return self.optimizer.param_groups
 
-    @property
-    def state(self):
-        return self.optimizer.state
+    def __getstate__(self):
+        return {
+            'state': self.state,
+            'optimizer': self.optimizer,
+            'erf': self.erf,
+            'betas': self.betas,
+            's_prev': self.s_prev,
+            'eps': self.eps,
+            'f_term': self.f_term,
+        }
+
+    def state_dict(self) -> STATE:
+        trac_state = {}
+        trac_state['global'] = {key: value for key, value in self.state['trac'].items() if not torch.is_tensor(key)}
+
+        trac_state['params'] = []
+        for group in self.param_groups:
+            for p in group['params']:
+                if p in self.state['trac']:
+                    trac_state['params'].append(self.state['trac'][p])
+
+        return {'trac_state': trac_state, 'base_optimizer': self.optimizer.state_dict(), 'erf': self.erf.state_dict()}
+
+    def load_state_dict(self, state: STATE):
+        self.optimizer.load_state_dict(state['base_optimizer'])
+        self.erf.load_state_dict(state['erf'])
+
+        self.state['trac'] = {}
+        self.state['trac'].update(state['trac_state']['global'])
+
+        param_idx = 0
+        for group in self.param_groups:
+            for p in group['params']:
+                if param_idx < len(state['trac_state']['params']):
+                    self.state['trac'][p] = state['trac_state']['params'][param_idx]
+                    param_idx += 1
 
     @torch.no_grad()
     def reset(self):

@@ -4,7 +4,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
 
 
 class OrthoGrad(BaseOptimizer):
@@ -18,10 +18,6 @@ class OrthoGrad(BaseOptimizer):
     def __init__(self, optimizer: OPTIMIZER_INSTANCE_OR_CLASS, **kwargs) -> None:
         self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
-        self._optimizer_state_dict_pre_hooks: Dict[int, Callable] = {}
-        self._optimizer_state_dict_post_hooks: Dict[int, Callable] = {}
-        self._optimizer_load_state_dict_pre_hooks: Dict[int, Callable] = {}
-        self._optimizer_load_state_dict_post_hooks: Dict[int, Callable] = {}
         self.eps: float = 1e-30
 
         if isinstance(optimizer, Optimizer):
@@ -43,7 +39,17 @@ class OrthoGrad(BaseOptimizer):
 
     @property
     def state(self):
-        return self.optimizer.state
+        return {}
+
+    def __getstate__(self):
+        return {'optimizer': self.optimizer}
+
+    def state_dict(self) -> STATE:
+        return {'base_optimizer': self.optimizer.state_dict()}
+
+    def load_state_dict(self, state: STATE):
+        r"""Load state."""
+        self.optimizer.load_state_dict(state['base_optimizer'])
 
     @torch.no_grad()
     def zero_grad(self) -> None:
