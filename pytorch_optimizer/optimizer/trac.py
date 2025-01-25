@@ -5,7 +5,7 @@ from torch import nn
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
 
 
 def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
@@ -112,23 +112,17 @@ class TRAC(BaseOptimizer):
         self.validate_non_negative(s_prev, 's_prev')
         self.validate_non_negative(eps, 'eps')
 
-        if isinstance(optimizer, Optimizer):
-            self.optimizer = optimizer
-        elif 'params' in kwargs:
-            params = kwargs.pop('params')
-            self.optimizer = optimizer(params, **kwargs)
-        else:
-            raise ValueError('Need to pass `params` when you pass the torch.optim.Optimizer instance.')
-
         self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
 
-        self.erf = ERF1994(num_coefs=num_coefs)
+        self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
+
         self.betas = betas
         self.s_prev = s_prev
         self.eps = eps
 
-        self.f_term = self.s_prev / self.erf_imag(1.0 / torch.sqrt(torch.tensor(2.0)))
+        self.erf: nn.Module = ERF1994(num_coefs=num_coefs)
+        self.f_term: torch.Tensor = self.s_prev / self.erf_imag(1.0 / torch.sqrt(torch.tensor(2.0)))
 
         self.defaults: DEFAULTS = self.optimizer.defaults
 
@@ -140,8 +134,14 @@ class TRAC(BaseOptimizer):
         return self.optimizer.param_groups
 
     @property
-    def state(self):
+    def state(self) -> STATE:
         return self.optimizer.state
+
+    def state_dict(self) -> STATE:
+        return self.optimizer.state_dict()
+
+    def load_state_dict(self, state_dict: STATE) -> None:
+        self.optimizer.load_state_dict(state_dict)
 
     @torch.no_grad()
     def reset(self):

@@ -29,13 +29,7 @@ class Lookahead(BaseOptimizer):
         self.validate_range(alpha, 'alpha', 0.0, 1.0)
         self.validate_options(pullback_momentum, 'pullback_momentum', ['none', 'reset', 'pullback'])
 
-        if isinstance(optimizer, Optimizer):
-            self.optimizer = optimizer
-        elif 'params' in kwargs:
-            params = kwargs.pop('params')
-            self.optimizer = optimizer(params, **kwargs)
-        else:
-            raise ValueError('Need to pass `params` when you pass the torch.optim.Optimizer instance.')
+        self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
 
         self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}

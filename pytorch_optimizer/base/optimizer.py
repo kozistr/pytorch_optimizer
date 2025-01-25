@@ -6,7 +6,16 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
-from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, HUTCHINSON_G, LOSS, PARAMETERS, STATE
+from pytorch_optimizer.base.types import (
+    BETAS,
+    CLOSURE,
+    DEFAULTS,
+    HUTCHINSON_G,
+    LOSS,
+    OPTIMIZER_INSTANCE_OR_CLASS,
+    PARAMETERS,
+    STATE,
+)
 
 
 class BaseOptimizer(ABC, Optimizer):
@@ -14,6 +23,18 @@ class BaseOptimizer(ABC, Optimizer):
 
     def __init__(self, params: PARAMETERS, defaults: DEFAULTS) -> None:
         super().__init__(params, defaults)
+
+    @staticmethod
+    def load_optimizer(optimizer: OPTIMIZER_INSTANCE_OR_CLASS, **kwargs) -> Optimizer:
+        r"""Build torch.optim.Optimizer class."""
+        if isinstance(optimizer, Optimizer):
+            return optimizer
+
+        if 'params' in kwargs:
+            params = kwargs.pop('params')
+            return optimizer(params, **kwargs)
+
+        raise ValueError('need to pass `params` when you pass the `torch.optim.Optimizer` instance.')
 
     @staticmethod
     @torch.no_grad()
