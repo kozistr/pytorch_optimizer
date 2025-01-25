@@ -42,6 +42,7 @@ from pytorch_optimizer.optimizer.demo import DeMo
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.experimental.ranger25 import Ranger25
 from pytorch_optimizer.optimizer.fadam import FAdam
+from pytorch_optimizer.optimizer.focus import FOCUS
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
 from pytorch_optimizer.optimizer.fromage import Fromage
 from pytorch_optimizer.optimizer.ftrl import FTRL
@@ -289,6 +290,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     LaProp,
     MARS,
     SGDSaI,
+    FOCUS,
     Grams,
     SPAM,
     Ranger25,

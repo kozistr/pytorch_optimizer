@@ -176,6 +176,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.FOCUS
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Fromage
     :docstring:
     :members:
