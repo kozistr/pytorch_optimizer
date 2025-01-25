@@ -281,11 +281,18 @@ def test_galore_projection_type():
 
 
 @pytest.mark.parametrize('optimizer_instance', [Lookahead, OrthoGrad, TRAC])
-def test_load_optimizer(optimizer_instance):
+def test_load_wrapper_optimizer(optimizer_instance):
     params = [simple_parameter()]
 
     _ = optimizer_instance(torch.optim.AdamW(params))
-    _ = optimizer_instance(torch.optim.AdamW, params=params)
+    optimizer = optimizer_instance(torch.optim.AdamW, params=params)
+    optimizer.zero_grad()
 
     with pytest.raises(ValueError):
         optimizer_instance(torch.optim.AdamW)
+
+    _ = optimizer.param_groups
+    _ = optimizer.state
+
+    state = optimizer.state_dict()
+    optimizer.load_state_dict(state)
