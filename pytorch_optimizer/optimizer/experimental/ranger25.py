@@ -11,7 +11,7 @@ from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMET
 class Ranger25(BaseOptimizer):
     r"""Mixin' every fancy optimizer hacks.
 
-    ADOPT + AdEMAMix + Cautious + StableAdamW + Adam-Atan2
+    ADOPT + AdEMAMix + Cautious + StableAdamW + Adam-Atan2 + OrthoGrad
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
@@ -23,6 +23,7 @@ class Ranger25(BaseOptimizer):
     :param t_alpha_beta3: Optional[float]. total number of iterations is preferred when needed.
     :param cautious: bool. whether to use the Cautious variant.
     :param stable_adamw: bool. whether to use stable AdamW variant.
+    :param orthograd: bool. whether to use orthograd variant.
     :param eps: Optional[float]. term added to the denominator to improve numerical stability. when eps is None and
         stable_adamw is False, adam-atan2 feature will be used.
     """
@@ -39,6 +40,7 @@ class Ranger25(BaseOptimizer):
         t_alpha_beta3: Optional[float] = None,
         cautious: bool = True,
         stable_adamw: bool = True,
+        orthograd: bool = True,
         eps: Optional[float] = 1e-8,
         **kwargs,
     ):
@@ -51,6 +53,7 @@ class Ranger25(BaseOptimizer):
 
         self.cautious = cautious
         self.stable_adamw: bool = stable_adamw if isinstance(eps, float) else False
+        self.orthograd = orthograd
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -98,11 +101,30 @@ class Ranger25(BaseOptimizer):
         )
 
     @torch.no_grad()
+    def orthogonalize_gradients(self, params, eps: float = 1e-16) -> None:
+        for p in params:
+            if p.grad is None or p.grad.is_sparse:
+                continue
+
+            w = p.view(-1)
+            g = p.grad.view(-1)
+
+            proj = torch.dot(w, g).div_(torch.dot(w, w).add_(eps))
+            g_ortho = g.to(dtype=torch.float32, copy=True).sub_(w, alpha=proj)
+            g_ortho_scaled = g_ortho.mul_(g.norm(2).div_(g_ortho.norm(2).add_(eps)))
+
+            p.grad.copy_(g_ortho_scaled.view_as(p.grad))
+
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
+
+        if self.orthograd:
+            for group in self.param_groups:
+                self.orthogonalize_gradients(group['params'])
 
         for group in self.param_groups:
             if 'step' in group:

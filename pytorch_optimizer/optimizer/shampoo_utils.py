@@ -31,7 +31,6 @@ class Graft:
 
     def add_statistics(self, grad: torch.Tensor, unused_beta2: float) -> None:
         r"""Add the statistics."""
-        pass
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         r"""Get preconditioned gradient."""

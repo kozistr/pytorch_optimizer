@@ -4,7 +4,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS
+from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
 
 
 class OrthoGrad(BaseOptimizer):
@@ -20,13 +20,7 @@ class OrthoGrad(BaseOptimizer):
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
         self.eps: float = 1e-30
 
-        if isinstance(optimizer, Optimizer):
-            self.optimizer = optimizer
-        elif 'params' in kwargs:
-            params = kwargs.pop('params')
-            self.optimizer = optimizer(params, **kwargs)
-        else:
-            raise ValueError('Need to pass `params` when you pass the torch.optim.Optimizer instance.')
+        self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
 
         self.defaults: DEFAULTS = self.optimizer.defaults
 
@@ -38,8 +32,14 @@ class OrthoGrad(BaseOptimizer):
         return self.optimizer.param_groups
 
     @property
-    def state(self):
+    def state(self) -> STATE:
         return self.optimizer.state
+
+    def state_dict(self) -> STATE:
+        return self.optimizer.state_dict()
+
+    def load_state_dict(self, state_dict: STATE) -> None:
+        self.optimizer.load_state_dict(state_dict)
 
     @torch.no_grad()
     def zero_grad(self) -> None:
@@ -52,7 +52,7 @@ class OrthoGrad(BaseOptimizer):
     @torch.no_grad()
     def orthogonalize_gradients(self, params) -> None:
         for p in params:
-            if p.grad is None:
+            if p.grad is None or p.grad.is_sparse:
                 continue
 
             w = p.view(-1)

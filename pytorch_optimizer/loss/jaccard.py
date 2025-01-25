@@ -49,7 +49,7 @@ class JaccardLoss(_Loss):
     def __init__(
         self,
         mode: CLASS_MODE,
-        classes: List[int] = None,
+        classes: Optional[List[int]] = None,
         log_loss: bool = False,
         from_logits: bool = True,
         label_smooth: float = 0.0,
@@ -59,7 +59,7 @@ class JaccardLoss(_Loss):
 
         if classes is not None:
             if mode == 'binary':
-                raise ValueError('[-] Masking classes is not supported with mode=binary')
+                raise ValueError('masking classes is not supported with mode=binary')
 
             classes = torch.LongTensor(classes)
 

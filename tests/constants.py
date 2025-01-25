@@ -557,9 +557,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (TAM, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (AdaTAM, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
     (FOCUS, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
-    (Ranger25, {'lr': 1e0}, 5),
-    (Ranger25, {'lr': 1e0, 't_alpha_beta3': 5}, 5),
-    (Ranger25, {'lr': 1e-1, 'stable_adamw': False, 'eps': None}, 5),
+    (Ranger25, {'lr': 5e0}, 2),
+    (Ranger25, {'lr': 5e0, 't_alpha_beta3': 5}, 2),
+    (Ranger25, {'lr': 2e-1, 'stable_adamw': False, 'orthograd': False, 'eps': None}, 3),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'adanorm': True}, 10),

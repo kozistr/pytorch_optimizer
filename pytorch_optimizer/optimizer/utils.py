@@ -48,7 +48,8 @@ else:
             return is_deepspeed_zero3_enabled()  # pragma: no cover
 
         warnings.warn(
-            'you need to install `transformers` to use `is_deepspeed_zero3_enabled` function. it\'ll return False.',
+            'you need to install `transformers` to use `is_deepspeed_zero3_enabled` function. '
+            'it will return False.',
             category=ImportWarning,
             stacklevel=2,
         )
