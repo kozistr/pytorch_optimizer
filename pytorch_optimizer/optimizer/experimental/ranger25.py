@@ -103,7 +103,7 @@ class Ranger25(BaseOptimizer):
     @torch.no_grad()
     def orthogonalize_gradients(self, params, eps: float = 1e-16) -> None:
         for p in params:
-            if p.grad is None:
+            if p.grad is None or p.grad.is_sparse:
                 continue
 
             w = p.view(-1)
