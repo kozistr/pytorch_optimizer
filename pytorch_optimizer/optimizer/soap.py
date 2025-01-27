@@ -102,7 +102,7 @@ class SOAP(BaseOptimizer):
 
         for mat in state['Q']:
             if len(mat) > 0:
-                grad = torch.tensordot(grad, mat, dims=[[0], [0 if project_type == 'forward' else 1]])
+                grad = torch.tensordot(grad, mat.to(grad.dtype), dims=[[0], [0 if project_type == 'forward' else 1]])
             else:
                 grad = grad.permute([*list(range(1, len(grad.shape))), 0])
 
