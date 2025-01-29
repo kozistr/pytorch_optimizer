@@ -81,8 +81,8 @@ class SOAP(BaseOptimizer):
             for p in group['params']:
                 state = self.state[p]
 
-                state['exp_avg'] = torch.zeros_like(p)
-                state['exp_avg_sq'] = torch.zeros_like(p)
+                state['exp_avg'] = torch.zeros_like(p, dtype=p.dtype)
+                state['exp_avg_sq'] = torch.zeros_like(p, dtype=p.dtype)
 
     def project(
         self,
@@ -102,7 +102,7 @@ class SOAP(BaseOptimizer):
 
         for mat in state['Q']:
             if len(mat) > 0:
-                grad = torch.tensordot(grad, mat.to(grad.dtype), dims=[[0], [0 if project_type == 'forward' else 1]])
+                grad = torch.tensordot(grad, mat, dims=[[0], [0 if project_type == 'forward' else 1]])
             else:
                 grad = grad.permute([*list(range(1, len(grad.shape))), 0])
 
@@ -123,9 +123,11 @@ class SOAP(BaseOptimizer):
                 continue
 
             try:
-                _, q = torch.linalg.eigh(m + 1e-30 * torch.eye(m.shape[0], device=m.device))
+                _, q = torch.linalg.eigh(m + 1e-30 * torch.eye(m.shape[0], device=m.device, dtype=m.dtype))
             except Exception:  # pragma: no cover
-                _, q = torch.linalg.eigh(m.to(torch.float64) + 1e-30 * torch.eye(m.shape[0], device=m.device))
+                _, q = torch.linalg.eigh(
+                    m.to(torch.float64) + 1e-30 * torch.eye(m.shape[0], device=m.device, dtype=m.dtype)
+                )
                 q = q.to(m.dtype)
 
             q = torch.flip(q, dims=[1])
@@ -156,7 +158,13 @@ class SOAP(BaseOptimizer):
 
             power_iter = m @ o[:, sort_idx]
 
-            q, _ = torch.linalg.qr(power_iter)
+            # Compute QR decomposition
+            # We cast to float32 because:
+            #  - torch.linalg.qr does not have support for types like bfloat16 as of PyTorch 2.5.1
+            #  - the correctness / numerical stability of the Q orthogonalization is important for the stability
+            #    of the optimizer
+            q, _ = torch.linalg.qr(power_iter.to(torch.float32))
+            q = q.to(power_iter.dtype)
 
             matrices.append(q)
 
@@ -185,7 +193,7 @@ class SOAP(BaseOptimizer):
             if not precondition_1d or grad.shape[0] > max_precondition_dim:
                 state['GG'].append([])
             else:
-                state['GG'].append(torch.zeros(grad.shape[0], grad.shape[0], device=grad.device))
+                state['GG'].append(torch.zeros(grad.shape[0], grad.shape[0], device=grad.device, dtype=grad.dtype))
         else:
             if merge_dims:
                 grad = grad.reshape(merge_small_dims(grad.size(), max_precondition_dim))
@@ -194,7 +202,7 @@ class SOAP(BaseOptimizer):
                 if sh > max_precondition_dim:
                     state['GG'].append([])
                 else:
-                    state['GG'].append(torch.zeros(sh, sh, device=grad.device))
+                    state['GG'].append(torch.zeros(sh, sh, device=grad.device, dtype=grad.dtype))
 
         state['Q'] = None
         state['precondition_frequency'] = precondition_frequency
@@ -261,8 +269,8 @@ class SOAP(BaseOptimizer):
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(grad)
-                    state['exp_avg_sq'] = torch.zeros_like(grad)
+                    state['exp_avg'] = torch.zeros_like(grad, dtype=p.dtype)
+                    state['exp_avg_sq'] = torch.zeros_like(grad, dtype=p.dtype)
 
                     self.init_pre_conditioner(
                         grad,
