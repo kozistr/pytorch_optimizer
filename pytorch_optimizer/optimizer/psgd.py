@@ -1,6 +1,6 @@
 import math
 from string import ascii_lowercase, ascii_uppercase
-from typing import Callable, List, Literal, Optional, Tuple
+from typing import Callable, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -124,7 +124,7 @@ class Kron(BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        update_prob = self.param_groups[0]['pre_conditioner_update_probability']
+        update_prob: Union[float, Callable] = self.param_groups[0]['pre_conditioner_update_probability']
         if callable(update_prob):
             update_prob = update_prob(self.prob_step)
 
@@ -247,7 +247,7 @@ def initialize_q_expressions(
     elif memory_save_mode == 'all_diag':
         dim_diag = [True for _ in shape]
     else:
-        raise ValueError(
+        raise NotImplementedError(
             f'invalid memory_save_mode {memory_save_mode}. '
             'it must be one of [None, \'one_diag\', \'smart_one_diag\', \'all_diag\']'
         )
