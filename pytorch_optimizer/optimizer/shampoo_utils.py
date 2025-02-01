@@ -186,7 +186,8 @@ class BlockPartitioner:
             n: int = len(indices) + 1
 
             partitions: List[torch.Tensor] = [
-                torch.cat(partitions[idx:idx + n], dim=i) for idx in range(0, len(partitions), n)  # fmt: skip
+                torch.cat(partitions[idx : idx + n], dim=i)
+                for idx in range(0, len(partitions), n)  # fmt: skip
             ]
 
         return partitions[0]
@@ -367,7 +368,7 @@ class PreConditioner:
             self.precondition_block(
                 partitioned_grad,
                 self.should_precondition_dims,
-                self.pre_conditioners[i * self.rank:(i + 1) * self.rank]  # fmt: skip
+                self.pre_conditioners[i * self.rank : (i + 1) * self.rank],  # fmt: skip
             )
             for i, partitioned_grad in enumerate(partitioned_grads)
         ]

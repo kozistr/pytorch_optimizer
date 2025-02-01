@@ -25,7 +25,7 @@ class FTRL(BaseOptimizer):
         beta: float = 0.0,
         lambda_1: float = 0.0,
         lambda_2: float = 0.0,
-        **kwargs
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(beta, 'beta')
