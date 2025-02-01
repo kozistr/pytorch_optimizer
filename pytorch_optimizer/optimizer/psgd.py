@@ -55,6 +55,7 @@ class Kron(BaseOptimizer):
         raw gradients.
     :param mu_dtype: Optional[torch.dtype]. dtype of the momentum accumulator.
     :param precondition_dtype: torch.dtype. dtype of the pre-conditioner.
+    :param balance_prob: float. probability of performing balancing.
     """
 
     def __init__(
@@ -71,6 +72,8 @@ class Kron(BaseOptimizer):
         momentum_into_precondition_update: bool = True,
         mu_dtype: Optional[torch.dtype] = None,
         precondition_dtype: Optional[torch.dtype] = torch.float32,
+        balance_prob: float = 0.01,
+        **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
@@ -79,10 +82,10 @@ class Kron(BaseOptimizer):
         if pre_conditioner_update_probability is None:
             pre_conditioner_update_probability = precondition_update_prob_schedule()
 
+        self.balance_prob: float = balance_prob
         self.eps: float = torch.finfo(torch.bfloat16).tiny
         self.prob_step: int = 0
         self.update_counter: int = 0
-        self.balance_prob: float = 0.01
 
         defaults = {
             'lr': lr,
@@ -139,10 +142,9 @@ class Kron(BaseOptimizer):
             else:
                 group['step'] = 1
 
-            bias_correction1: float = self.debias_beta(group['momentum'], group['step'])
+            bias_correction1: float = self.debias(group['momentum'], group['step'])
 
             mu_dtype, precondition_dtype = group['mu_dtype'], group['precondition_dtype']
-            momentum_into_precondition_update = group['momentum_into_precondition_update']
 
             for p in group['params']:
                 if p.grad is None:
@@ -169,10 +171,11 @@ class Kron(BaseOptimizer):
                 momentum_buffer.mul_(group['momentum']).add_(grad, alpha=1.0 - group['momentum'])
 
                 if mu_dtype is not None:
-                    momentum_buffer.copy_(momentum_buffer.to(dtype=mu_dtype, non_blocking=True))
+                    momentum_buffer = momentum_buffer.to(dtype=mu_dtype, non_blocking=True)
 
-                de_biased_momentum = momentum_buffer / bias_correction1
-                de_biased_momentum = de_biased_momentum.to(dtype=precondition_dtype, non_blocking=True)
+                de_biased_momentum = (momentum_buffer / bias_correction1).to(
+                    dtype=precondition_dtype, non_blocking=True
+                )
 
                 if grad.dim() > 1 and balance:
                     balance_q(state['Q'])
@@ -182,7 +185,7 @@ class Kron(BaseOptimizer):
                         state['Q'],
                         state['expressions'],
                         torch.randn_like(de_biased_momentum, dtype=precondition_dtype),
-                        de_biased_momentum if momentum_into_precondition_update else grad,
+                        de_biased_momentum if group['momentum_into_precondition_update'] else grad,
                         group['precondition_lr'],
                         self.eps,
                     )
@@ -227,21 +230,26 @@ def initialize_q_expressions(
         return qs, (expressions_a, expression_gr, expression_r)
 
     if len(shape) > 13:
-        raise ValueError(f'Got tensor with dim {len(t.shape)}. Einstein runs out of letters!')
+        raise ValueError(f'got tensor with dim {len(t.shape)}. Einstein runs out of letters!')
 
     scale = math.pow(scale, 1.0 / len(shape))
 
     if memory_save_mode is None:
         dim_diag = [False for _ in shape]
     elif memory_save_mode == 'one_diag':
-        rev_sorted_dims = np.argsort(shape)[::-1]
         dim_diag = [False for _ in shape]
-        dim_diag[rev_sorted_dims[0]] = True
+        dim_diag[np.argsort(shape)[::-1][0]] = True
+    elif memory_save_mode == 'smart_one_diag':
+        dim_diag = [False for _ in shape]
+        sorted_shape = sorted(shape)
+        if len(shape) >= 2 and sorted_shape[-1] > sorted_shape[-2]:
+            dim_diag[np.argsort(shape)[::-1][0]] = True
     elif memory_save_mode == 'all_diag':
         dim_diag = [True for _ in shape]
     else:
         raise ValueError(
-            f'invalid memory_save_mode: {memory_save_mode}, must be one of [None, \'one_diag\', \'all_diag\']'
+            f'invalid memory_save_mode {memory_save_mode}. '
+            'it must be one of [None, \'one_diag\', \'smart_one_diag\', \'all_diag\']'
         )
 
     qs: List[torch.Tensor] = []
@@ -282,12 +290,10 @@ def initialize_q_expressions(
 
     expr_a: str = ','.join(piece_1a) + f',{piece_2a}->{piece_3a}'
     expr_r: str = ','.join(piece_1p) + ',' + ','.join(piece_2p) + f',{piece_3p}->{piece_4p}'
-    expr_gs: List[str] = tuple(expr_gr)
 
-    return qs, (expr_a, expr_gs, expr_r)
+    return qs, (expr_a, expr_gr, expr_r)
 
 
-@torch.compile(fullgraph=True, dynamic=False)
 def balance_q(q_in: List[torch.Tensor]) -> None:
     r"""Balance Q."""
     norms = torch.stack([q.norm(float('inf')) for q in q_in])
@@ -306,7 +312,6 @@ def solve_triangular_right(x: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
     return out.to(dtype=orig_dtype, non_blocking=True)
 
 
-@torch.compile(fullgraph=True, dynamic=False)
 def get_a_and_conj_b(
     expr_a: List[str], g: torch.Tensor, qs: List[torch.Tensor], v: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -325,7 +330,6 @@ def get_a_and_conj_b(
     return a, conj_b
 
 
-@torch.compile(fullgraph=True, dynamic=False)
 def get_q_terms(expr_gs: List[str], a: torch.Tensor, conj_b: torch.Tensor) -> List[Tuple[torch.Tensor, torch.Tensor]]:
     r"""Get Q terms."""
     terms: List = []
@@ -366,7 +370,6 @@ def update_precondition(
         q.sub_(tmp)
 
 
-@torch.compile(fullgraph=True, dynamic=False)
 def get_precondition_grad(qs: list[torch.Tensor], expressions: list[str], g: torch.Tensor) -> torch.Tensor:
     r"""Precondition gradient G with pre-conditioner Q."""
     return torch.einsum(expressions[-1], *[x.conj() for x in qs], *qs, g)

@@ -4,7 +4,7 @@ import torch
 from torch.linalg import vector_norm
 
 
-def damped_pair_vg(g: torch.Tensor, damp: float = 2**-13) -> Tuple[torch.Tensor, torch.Tensor]:
+def damped_pair_vg(g: torch.Tensor, damp: float = 2 ** -13) -> Tuple[torch.Tensor, torch.Tensor]:  # fmt: skip
     r"""Get damped pair v and g.
 
     Instead of return (v, g), it returns pair (v, g + sqrt(eps)*mean(abs(g))*v)
