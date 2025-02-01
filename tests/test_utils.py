@@ -7,6 +7,7 @@ from torch import nn
 
 from pytorch_optimizer.optimizer import get_optimizer_parameters
 from pytorch_optimizer.optimizer.nero import neuron_mean, neuron_norm
+from pytorch_optimizer.optimizer.psgd import initialize_q_expressions
 from pytorch_optimizer.optimizer.psgd_utils import (
     damped_pair_vg,
     norm_lower_bound,
@@ -320,3 +321,17 @@ def test_update_precondition_dense():
     y = update_precondition_dense(q, dxs, dgs)
 
     torch.testing.assert_close(y, q)
+
+
+def test_initialize_q_expressions():
+    x = torch.zeros(1)
+    _ = initialize_q_expressions(x, 0.0, 0, 0, None)
+
+    with pytest.raises(ValueError):
+        initialize_q_expressions(x.expand(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1), 0.0, 0, 0, None)
+
+    with pytest.raises(NotImplementedError):
+        initialize_q_expressions(x, 0.0, 0, 0, 'invalid')
+
+    for memory_save_mode in ('one_diag', 'all_diag', 'smart_one_diag'):
+        initialize_q_expressions(torch.FloatTensor([[1], [2]]), 0.0, 0, 0, memory_save_mode)
