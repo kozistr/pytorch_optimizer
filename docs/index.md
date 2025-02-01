@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **93 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **94 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -201,6 +201,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | SPAM          | *Spike-Aware Adam with Momentum Reset for Stable LLM Training*                                    | [github](https://github.com/TianjinYellow/SPAM-Optimizer)                                                      | <https://arxiv.org/abs/2501.06842>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250106842H/exportcitation)                                                        |
 | TAM           | *Torque-Aware Momentum*                                                                           |                                                                                                                | <https://arxiv.org/abs/2412.18790>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv241218790M/exportcitation)                                                        |
 | FOCUS         | *First Order Concentrated Updating Scheme*                                                        | [github](https://github.com/liuyz0/FOCUS)                                                                      | <https://arxiv.org/abs/2501.12243>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250112243M/exportcitation)                                                        |
+| PSGD          | *Preconditioned Stochastic Gradient Descent*                                                      | [github](https://github.com/lixilinx/psgd_torch)                                                               | <https://arxiv.org/abs/1512.04202>                                                          | [cite](https://github.com/lixilinx/psgd_torch?tab=readme-ov-file#resources)                                                         |
 
 ## Supported LR Scheduler
 
