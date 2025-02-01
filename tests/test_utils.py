@@ -325,7 +325,7 @@ def test_update_precondition_dense():
 
 def test_initialize_q_expressions():
     x = torch.zeros(1)
-    _ = initialize_q_expressions(x, 0.0, 0, 0, None)
+    _ = initialize_q_expressions(x.squeeze(), 0.0, 0, 0, None)
 
     with pytest.raises(ValueError):
         initialize_q_expressions(x.expand(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1), 0.0, 0, 0, None)
