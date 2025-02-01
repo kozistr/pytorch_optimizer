@@ -338,7 +338,7 @@ class BaseOptimizer(ABC, Optimizer):
     @staticmethod
     def validate_options(x: str, name: str, options: List[str]) -> None:
         if x not in options:
-            opts: str = ' or '.join([f'\'{option}\'' for option in options]).strip()
+            opts: str = ' or '.join([f"'{option}'" for option in options]).strip()
             raise ValueError(f'[-] {name} {x} must be one of ({opts})')
 
     @staticmethod
