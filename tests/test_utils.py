@@ -7,6 +7,13 @@ from torch import nn
 
 from pytorch_optimizer.optimizer import get_optimizer_parameters
 from pytorch_optimizer.optimizer.nero import neuron_mean, neuron_norm
+from pytorch_optimizer.optimizer.psgd_utils import (
+    damped_pair_vg,
+    norm_lower_bound,
+    triu_with_diagonal_and_above,
+    update_precondition_dense,
+    woodbury_identity,
+)
 from pytorch_optimizer.optimizer.shampoo_utils import (
     BlockPartitioner,
     PreConditioner,
@@ -271,3 +278,45 @@ def test_orthograd_name():
     _ = optimizer.state
 
     assert str(optimizer).lower() == 'orthograd'
+
+
+def test_damped_pair_vg():
+    x = torch.zeros(2)
+    y = damped_pair_vg(x)[1]
+
+    torch.testing.assert_close(x, y)
+
+
+def test_norm_lower_bound():
+    x = torch.zeros(1)
+    y = norm_lower_bound(x)
+    torch.testing.assert_close(y, x.squeeze())
+
+    x = torch.FloatTensor([[1, 1]])
+    y = norm_lower_bound(x)
+    torch.testing.assert_close(y, torch.tensor(1.4142135))
+
+    x = torch.FloatTensor([[2, 1], [2, 1]])
+    y = norm_lower_bound(x)
+    torch.testing.assert_close(y, torch.tensor(3.16227769))
+
+
+def test_woodbury_identity():
+    x = torch.FloatTensor([[1]])
+    woodbury_identity(x, x, x)
+
+
+def test_triu_with_diagonal_and_above():
+    x = torch.FloatTensor([[1, 2], [3, 4]])
+    y = triu_with_diagonal_and_above(x)
+    torch.testing.assert_close(y, torch.FloatTensor([[1, 4], [0, 4]]))
+
+
+def test_update_precondition_dense():
+    q = torch.FloatTensor([[1]])
+    dxs = [q] * 1
+    dgs = [q] * 1
+
+    y = update_precondition_dense(q, dxs, dgs)
+
+    torch.testing.assert_close(y, q)
