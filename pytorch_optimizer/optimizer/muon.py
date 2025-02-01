@@ -95,10 +95,10 @@ class Muon(BaseOptimizer):
 
         return new_params
 
-    def set_muon_state(self, params: PARAMETERS, adamw_params: PARAMETERS, threshold: int = 8192) -> None:
+    def set_muon_state(self, params: PARAMETERS, adamw_params: PARAMETERS) -> None:
         r"""Set use_muon flag."""
         for p in params:
-            self.state[p]['use_muon'] = p.ndim >= 2 and p.size(0) < threshold
+            self.state[p]['use_muon'] = p.ndim >= 2
 
         for p in adamw_params:
             self.state[p]['use_muon'] = False
