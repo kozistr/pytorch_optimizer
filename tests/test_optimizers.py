@@ -853,3 +853,21 @@ def test_spam_optimizer():
 
     optimizer = load_optimizer('spam')([simple_parameter(True)], grad_accu_steps=0, update_proj_gap=1)
     optimizer.step()
+
+
+def test_kron_optimizer():
+    model = Example()
+
+    optimizer = load_optimizer('kron')(
+        model.parameters(),
+        weight_decay=1e-3,
+        pre_conditioner_update_probability=1.0,
+        balance_prob=1.0,
+        mu_dtype=torch.bfloat16,
+    )
+    optimizer.zero_grad()
+
+    model.fc1.weight.grad = torch.randn((1, 1))
+    model.norm1.weight.grad = torch.randn((1,))
+
+    optimizer.step()

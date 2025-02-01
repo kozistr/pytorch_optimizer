@@ -113,6 +113,7 @@ from pytorch_optimizer.optimizer import (
     Gravity,
     GrokFastAdamW,
     Kate,
+    Kron,
     Lamb,
     LaProp,
     Lion,

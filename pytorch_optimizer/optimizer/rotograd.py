@@ -378,7 +378,7 @@ class RotoGrad(RotateOnly):
             self.initial_grads = grad_norms
             conv_ratios = [torch.ones((1,)) for _ in range(len(self.initial_grads))]
         else:
-            conv_ratios = [x / y for x, y, in zip(grad_norms, self.initial_grads)]
+            conv_ratios = [x / y for x, y in zip(grad_norms, self.initial_grads)]
 
         self.counter += 1
 

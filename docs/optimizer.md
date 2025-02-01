@@ -284,6 +284,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Kron
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.QHAdam
     :docstring:
     :members:
