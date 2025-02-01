@@ -72,7 +72,6 @@ def triu_with_diagonal_and_above(a: torch.Tensor) -> torch.Tensor:
     return torch.triu(a, diagonal=0) + torch.triu(a, diagonal=1)
 
 
-@torch.jit.script
 def update_precondition_dense(
     q: torch.Tensor, dxs: List[torch.Tensor], dgs: List[torch.Tensor], step: float = 0.01, eps: float = 1.2e-38
 ) -> torch.Tensor:
