@@ -42,8 +42,8 @@ class OrthoGrad(BaseOptimizer):
         self.optimizer.load_state_dict(state_dict)
 
     @torch.no_grad()
-    def zero_grad(self) -> None:
-        self.optimizer.zero_grad(set_to_none=True)
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        self.optimizer.zero_grad(set_to_none=set_to_none)
 
     @torch.no_grad()
     def reset(self):

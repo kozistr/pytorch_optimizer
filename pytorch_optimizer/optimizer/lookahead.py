@@ -72,6 +72,10 @@ class Lookahead(BaseOptimizer):
         }
 
     @torch.no_grad()
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        self.optimizer.zero_grad(set_to_none=set_to_none)
+
+    @torch.no_grad()
     def reset(self):
         for group in self.param_groups:
             group['counter'] = 0
@@ -100,10 +104,6 @@ class Lookahead(BaseOptimizer):
         r"""Load state."""
         self.state = state['lookahead_state']
         self.optimizer.load_state_dict(state['base_optimizer'])
-
-    @torch.no_grad()
-    def zero_grad(self):
-        self.optimizer.zero_grad(set_to_none=True)
 
     @torch.no_grad()
     def update(self, group: Dict):
