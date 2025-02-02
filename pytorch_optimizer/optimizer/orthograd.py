@@ -50,7 +50,7 @@ class OrthoGrad(BaseOptimizer):
         pass
 
     @torch.no_grad()
-    def orthogonalize_gradients(self, params) -> None:
+    def apply_orthogonal_gradients(self, params) -> None:
         for p in params:
             if p.grad is None or p.grad.is_sparse:
                 continue
@@ -67,5 +67,5 @@ class OrthoGrad(BaseOptimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         for group in self.param_groups:
-            self.orthogonalize_gradients(group['params'])
+            self.apply_orthogonal_gradients(group['params'])
         return self.optimizer.step(closure)
