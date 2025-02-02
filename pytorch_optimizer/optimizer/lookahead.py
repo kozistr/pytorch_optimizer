@@ -100,7 +100,7 @@ class Lookahead(BaseOptimizer):
     def state_dict(self) -> STATE:
         return {'lookahead_state': self.state, 'base_optimizer': self.optimizer.state_dict()}
 
-    def load_state_dict(self, state: STATE):
+    def load_state_dict(self, state: STATE) -> None:
         r"""Load state."""
         self.state = state['lookahead_state']
         self.optimizer.load_state_dict(state['base_optimizer'])
