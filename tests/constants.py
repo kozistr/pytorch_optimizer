@@ -165,6 +165,7 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'mars',
     'adatam',
     'focus',
+    'exadam',
 ]
 
 VALID_LR_SCHEDULER_NAMES: List[str] = [
@@ -189,7 +190,7 @@ INVALID_LR_SCHEDULER_NAMES: List[str] = ['dummy']
 
 OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
-    (build_orthograd, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
+    (build_orthograd, {'lr': 7.5e-1, 'weight_decay': 1e-3}, 10),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 5),
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
