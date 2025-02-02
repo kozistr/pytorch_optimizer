@@ -126,7 +126,7 @@ class SOAP(BaseOptimizer):
                 _, q = torch.linalg.eigh(m + 1e-30 * torch.eye(m.shape[0], device=m.device, dtype=m.dtype))
             except Exception:  # pragma: no cover
                 _, q = torch.linalg.eigh(
-                    m.to(torch.float64) + 1e-30 * torch.eye(m.shape[0], device=m.device, dtype=m.dtype)
+                    m.to(torch.float64) + 1e-30 * torch.eye(m.shape[0], device=m.device, dtype=torch.float64)
                 )
                 q = q.to(m.dtype)
 
