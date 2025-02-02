@@ -164,6 +164,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.EXAdam
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.DynamicLossScaler
     :docstring:
     :members:
