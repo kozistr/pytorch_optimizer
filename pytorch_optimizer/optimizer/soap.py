@@ -269,8 +269,8 @@ class SOAP(BaseOptimizer):
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(grad, dtype=p.dtype)
-                    state['exp_avg_sq'] = torch.zeros_like(grad, dtype=p.dtype)
+                    state['exp_avg'] = torch.zeros_like(grad)
+                    state['exp_avg_sq'] = torch.zeros_like(grad)
 
                     self.init_pre_conditioner(
                         grad,
