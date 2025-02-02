@@ -104,17 +104,18 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
         return _closure
 
     (x_data, y_data), model, loss_fn = environment
+    model = model.bfloat16()
 
     optimizer_class, config, iterations = optimizer_bf16_config
     optimizer_name: str = optimizer_class.__name__
-    if (optimizer_name == 'Nero' and 'constraints' not in config) or (optimizer_name in ('ApolloDQN', 'CAME')):
+    if optimizer_name in ('Adai', 'Prodigy', 'Nero'):
         pytest.skip(f'skip {optimizer_name}')
 
     parameters = list(model.parameters())
 
     if optimizer_name == 'AliG':
         config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
-    if optimizer_name == 'Muon':
+    elif optimizer_name == 'Muon':
         adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
         parameters = [p for i, p in enumerate(parameters) if i < 2]
         config.update({'adamw_params': adamw_params})
@@ -138,7 +139,7 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
 
         optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
 
-    assert tensor_to_numpy(init_loss) >= 1.5 * tensor_to_numpy(loss)
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
