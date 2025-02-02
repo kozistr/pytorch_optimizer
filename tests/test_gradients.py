@@ -34,11 +34,12 @@ def test_no_gradients(optimizer_name):
         optimizer = load_optimizer(optimizer_name)(params)
 
     optimizer.zero_grad()
-    sphere_loss(p1 + p3).backward(create_graph=True)
+
+    loss = sphere_loss(p1 + p3)
+    p1.grad, p3.grad = torch.autograd.grad(loss, [p1, p3], create_graph=True)
 
     optimizer.step(lambda: 0.1)  # for AliG optimizer
-    if optimizer_name not in {'lookahead', 'trac', 'orthograd'}:
-        optimizer.zero_grad(set_to_none=True)
+    optimizer.zero_grad(set_to_none=True)
 
 
 @pytest.mark.parametrize('no_sparse_optimizer', NO_SPARSE_OPTIMIZERS)
@@ -113,21 +114,6 @@ def test_sparse_supported(sparse_optimizer):
                 optimizer.step()
         else:
             optimizer.step()
-
-
-@pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
-def test_bf16_gradient(optimizer_name):
-    if optimizer_name in {'shampoo', 'lomo', 'adalomo', 'bsam', 'adammini', 'soap', 'demo'}:
-        pytest.skip(f'skip {optimizer_name}')
-
-    param = torch.randn(1, 1).bfloat16().requires_grad_(True)
-
-    opt = load_optimizer(optimizer=optimizer_name)
-    optimizer = opt([param], num_iterations=1) if optimizer_name == 'ranger21' else opt([param])
-
-    sphere_loss(param).backward(create_graph=True)
-    optimizer.step(lambda: 0.1)
-    optimizer.zero_grad(True)
 
 
 def test_sam_no_gradient():

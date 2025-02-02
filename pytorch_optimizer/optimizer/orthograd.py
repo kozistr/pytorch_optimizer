@@ -42,15 +42,15 @@ class OrthoGrad(BaseOptimizer):
         self.optimizer.load_state_dict(state_dict)
 
     @torch.no_grad()
-    def zero_grad(self) -> None:
-        self.optimizer.zero_grad(set_to_none=True)
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        self.optimizer.zero_grad(set_to_none=set_to_none)
 
     @torch.no_grad()
     def reset(self):
         pass
 
     @torch.no_grad()
-    def orthogonalize_gradients(self, params) -> None:
+    def apply_orthogonal_gradients(self, params) -> None:
         for p in params:
             if p.grad is None or p.grad.is_sparse:
                 continue
@@ -67,5 +67,5 @@ class OrthoGrad(BaseOptimizer):
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         for group in self.param_groups:
-            self.orthogonalize_gradients(group['params'])
+            self.apply_orthogonal_gradients(group['params'])
         return self.optimizer.step(closure)

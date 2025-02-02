@@ -498,9 +498,9 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
     :param matrix: torch.Tensor. a square positive semi-definite matrix.
     :param power: float. rank.
     """
-    u, s, vh = torch.linalg.svd(matrix, full_matrices=False)
+    u, s, vh = torch.linalg.svd(matrix.to(torch.float32), full_matrices=False)
     s.pow_(-1.0 / power)
-    return u @ (s.diag() if len(matrix.shape) == 2 else s.diag_embed()) @ vh
+    return (u @ (s.diag() if len(matrix.shape) == 2 else s.diag_embed()) @ vh).to(matrix.dtype)
 
 
 def merge_small_dims(shape_to_merge: Union[List[int], torch.Size], max_dim: int) -> List[int]:

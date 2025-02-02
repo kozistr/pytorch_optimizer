@@ -95,6 +95,53 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
+@pytest.mark.parametrize('optimizer_bf16_config', OPTIMIZERS, ids=ids)
+def test_bf16_optimizers(optimizer_bf16_config, environment):
+    def closure(x):
+        def _closure() -> float:
+            return x
+
+        return _closure
+
+    (x_data, y_data), model, loss_fn = environment
+    model = model.bfloat16()
+
+    optimizer_class, config, iterations = optimizer_bf16_config
+    optimizer_name: str = optimizer_class.__name__
+    if optimizer_name in ('Adai', 'Prodigy', 'Nero'):
+        pytest.skip(f'skip {optimizer_name}')
+
+    parameters = list(model.parameters())
+
+    if optimizer_name == 'AliG':
+        config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
+    elif optimizer_name == 'Muon':
+        adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
+        parameters = [p for i, p in enumerate(parameters) if i < 2]
+        config.update({'adamw_params': adamw_params})
+
+    optimizer = optimizer_class(parameters, **config)
+
+    context = torch.autocast('cpu', dtype=torch.bfloat16)
+    scaler = torch.GradScaler(device='cpu', enabled=False)
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(iterations):
+        optimizer.zero_grad()
+
+        with context:
+            loss = loss_fn(model(x_data), y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        scaler.scale(loss).backward(create_graph=optimizer_name in ('AdaHessian', 'SophiaH'))
+
+        optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
+
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+
+
 @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
 def test_lookahead(pullback_momentum, environment):
     (x_data, y_data), model, loss_fn = environment

@@ -160,13 +160,13 @@ class TRAC(BaseOptimizer):
                 self.state['trac'][p] = p.clone()
 
     @torch.no_grad()
-    def zero_grad(self) -> None:
-        self.optimizer.zero_grad(set_to_none=True)
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        self.optimizer.zero_grad(set_to_none=set_to_none)
 
     @torch.no_grad()
     def erf_imag(self, x: torch.Tensor) -> torch.Tensor:
         if not torch.is_floating_point(x):
-            x = x.to(torch.float32)
+            x = x.real.to(torch.float32)
 
         ix = torch.complex(torch.zeros_like(x), x)
 

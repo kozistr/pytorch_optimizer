@@ -1,6 +1,9 @@
 import math
 
 import torch
+from torch.nn import Parameter, ParameterList
+from torch.optim import SGD, Optimizer
+from torch.optim.lr_scheduler import CosineAnnealingLR, LRScheduler
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -17,11 +20,8 @@ class CosineDecay:
     """
 
     def __init__(self, death_rate: float, t_max: int, eta_min: float = 0.0, last_epoch: int = -1):
-        self.sgd = torch.optim.SGD(
-            torch.nn.ParameterList([torch.nn.Parameter(torch.zeros(1))]),
-            lr=death_rate,
-        )
-        self.cosine_stepper = torch.optim.lr_scheduler.CosineAnnealingLR(self.sgd, t_max + 1, eta_min, last_epoch)
+        self.sgd: Optimizer = SGD(ParameterList([Parameter(torch.zeros(1))]), lr=death_rate)
+        self.cosine_stepper: LRScheduler = CosineAnnealingLR(self.sgd, t_max + 1, eta_min, last_epoch)
         self.T_max = t_max
         self.eta_min = eta_min
 

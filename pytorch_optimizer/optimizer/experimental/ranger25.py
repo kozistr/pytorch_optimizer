@@ -101,7 +101,7 @@ class Ranger25(BaseOptimizer):
         )
 
     @torch.no_grad()
-    def orthogonalize_gradients(self, params, eps: float = 1e-16) -> None:
+    def apply_orthogonal_gradients(self, params, eps: float = 1e-16) -> None:
         for p in params:
             if p.grad is None or p.grad.is_sparse:
                 continue
@@ -124,7 +124,7 @@ class Ranger25(BaseOptimizer):
 
         if self.orthograd:
             for group in self.param_groups:
-                self.orthogonalize_gradients(group['params'])
+                self.apply_orthogonal_gradients(group['params'])
 
         for group in self.param_groups:
             if 'step' in group:
