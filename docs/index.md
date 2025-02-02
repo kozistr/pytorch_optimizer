@@ -79,6 +79,7 @@ optimizer = create_optimizer(
     weight_decay=1e-3,
     use_gc=True,
     use_lookahead=True,
+    use_orthograd=False,
 )
 ```
 
