@@ -106,6 +106,7 @@ from pytorch_optimizer.optimizer import (
     DeMo,
     DiffGrad,
     DynamicLossScaler,
+    EXAdam,
     FAdam,
     Fromage,
     GaLore,
