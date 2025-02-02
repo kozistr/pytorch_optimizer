@@ -467,7 +467,7 @@ class SGDSaI(BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
-                sigma = grad.std().nan_to_num_()
+                sigma = grad.std().nan_to_num_() if grad.dim > 1 and grad.size(0) != 1 else 0
                 grad_norm = grad.norm()
 
                 g_snr = grad_norm.div_(sigma.add_(group['eps'])) if sigma != 0.0 else grad_norm
