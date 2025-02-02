@@ -215,7 +215,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True}, 5),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'max_grad_norm': 0.0}, 5),
-    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'grad_averaging': False}, 5),
+    (Lamb, {'lr': 5e-2, 'weight_decay': 1e-3, 'grad_averaging': False}, 5),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'adam': True, 'eps': 1e-8}, 5),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'eps': 1e-8}, 5),
     (Lamb, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True, 'degenerated_to_sgd': True}, 5),
@@ -514,7 +514,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (
         SOAP,
         {'lr': 1e0, 'shampoo_beta': 0.95, 'precondition_frequency': 1, 'merge_dims': False, 'precondition_1d': True},
-        3,
+        5,
     ),
     (ADOPT, {'lr': 1e0}, 5),
     (FTRL, {'lr': 1e0, 'beta': 0.0, 'lambda_1': 0.0, 'lambda_2': 0.0}, 5),
