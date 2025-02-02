@@ -81,8 +81,8 @@ class SOAP(BaseOptimizer):
             for p in group['params']:
                 state = self.state[p]
 
-                state['exp_avg'] = torch.zeros_like(p, dtype=p.dtype)
-                state['exp_avg_sq'] = torch.zeros_like(p, dtype=p.dtype)
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
 
     def project(
         self,
