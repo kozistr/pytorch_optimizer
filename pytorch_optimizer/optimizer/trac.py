@@ -166,7 +166,7 @@ class TRAC(BaseOptimizer):
     @torch.no_grad()
     def erf_imag(self, x: torch.Tensor) -> torch.Tensor:
         if not torch.is_floating_point(x):
-            x = x.to(torch.float32)
+            x = x.real.to(torch.float32)
 
         ix = torch.complex(torch.zeros_like(x), x)
 
