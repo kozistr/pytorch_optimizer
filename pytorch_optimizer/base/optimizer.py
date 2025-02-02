@@ -103,7 +103,7 @@ class BaseOptimizer(ABC, Optimizer):
         :param distribution: HUTCHINSON_G. type of distribution.
         """
         if distribution not in ('gaussian', 'rademacher'):
-            raise NotImplementedError(f'[-] Hessian with distribution {distribution} is not implemented.')
+            raise NotImplementedError(f'hessian with distribution {distribution} is not implemented.')
 
         params: List[torch.Tensor] = [
             p
