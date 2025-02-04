@@ -52,7 +52,7 @@ class Ranger25(BaseOptimizer):
         lookahead_blending_alpha: float = 0.5,
         cautious: bool = True,
         stable_adamw: bool = True,
-        orthograd: bool = True,
+        orthograd: bool = False,
         eps: Optional[float] = 1e-8,
         **kwargs,
     ):
