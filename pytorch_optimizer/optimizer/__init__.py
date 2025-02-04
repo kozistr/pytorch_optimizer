@@ -1,10 +1,10 @@
 import fnmatch
 from importlib.util import find_spec
-from typing import Dict, List, Optional, Sequence, Set, Type, Union
+from typing import Dict, List, Optional, Sequence, Set, Union
 
 import torch
 from torch import nn
-from torch.optim import AdamW, Optimizer
+from torch.optim import SGD, Adam, AdamW, Optimizer
 
 from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS
 from pytorch_optimizer.optimizer.a2grad import A2Grad
@@ -206,6 +206,8 @@ def load_optimizer(optimizer: str) -> OPTIMIZER:
 
 OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdamW,
+    Adam,
+    SGD,
     AdaBelief,
     AdaBound,
     PID,
