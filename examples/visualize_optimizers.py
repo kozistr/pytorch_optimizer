@@ -1,8 +1,12 @@
 import math
+from functools import partial
 from pathlib import Path
 from typing import Callable, Dict, Tuple, Union
 
+import numpy as np
 import torch
+from hyperopt import fmin, hp, tpe
+from hyperopt.exceptions import AllTrialsFailed
 from matplotlib import pyplot as plt
 from torch import nn
 
@@ -80,14 +84,14 @@ def execute_steps(
 
 
 def objective(
-    func: Callable,
+    params: Dict,
+    criterion: Callable,
     optimizer_class,
-    lr: float,
     initial_state: Tuple[float, float],
-    num_iters: int = 500,
-    minimum: Tuple[float, float] = (0, 0),
+    minimum: Tuple[float, float],
+    num_iters: int = 100,
 ) -> float:
-    steps = execute_steps(func, initial_state, optimizer_class, {'lr': lr}, num_iters)
+    steps = execute_steps(criterion, initial_state, optimizer_class, {'lr': params['lr']}, num_iters)
     return ((steps[0, -1] - minimum[0]) ** 2 + (steps[1, -1] - minimum[1]) ** 2).item()
 
 
@@ -99,7 +103,7 @@ def plot_function(
     lr: float,
     x_range: Tuple[float, float],
     y_range: Tuple[float, float],
-):
+) -> None:
     x = torch.linspace(x_range[0], x_range[1], 200)
     y = torch.linspace(y_range[0], y_range[1], 200)
 
@@ -129,40 +133,54 @@ def execute_experiments(
     exp_name: str,
     x_range: Tuple[float, float],
     y_range: Tuple[float, float],
+    minimum: Tuple[float, float],
+    seed: int = 42,
 ) -> None:
     for optimizer_class, lr_low, lr_hi in optimizers:
         optimizer_plot_path = root_path / f'{exp_name}_{optimizer_class.__name__}.png'
         if optimizer_plot_path.exists():
             continue
 
-        lr_range = torch.logspace(lr_low, lr_hi, 200)
-        losses = torch.tensor([objective(func, optimizer_class, lr.item(), initial_state) for lr in lr_range])
+        fn = partial(
+            objective, criterion=func, optimizer_class=optimizer_class, initial_state=initial_state, minimum=minimum
+        )
 
-        best_loss: float = min(losses).item()
-        best_lr: float = lr_range[losses.argmin()].item()
+        space = {'lr': hp.loguniform('lr', lr_low, lr_hi)}
+
+        try:
+            best_lr: float = fmin(
+                fn=fn,
+                space=space,
+                algo=tpe.suggest,
+                max_evals=200,
+                rstate=np.random.default_rng(seed),
+            )['lr']
+        except AllTrialsFailed:
+            print(f'{optimizer_class.__name__} failed to optimize {func.__name__}')  # noqa: T201
+            continue
 
         steps = execute_steps(func, initial_state, optimizer_class, {'lr': best_lr}, 500)
-        print(  # noqa: T201
-            f'optimizer: {optimizer_class.__name__}, best loss: {best_loss:.6f}, best lr: {best_lr:.6f}'
-        )
 
         plot_function(func, steps, optimizer_plot_path, optimizer_class.__name__, best_lr, x_range, y_range)
 
 
 def main():
+    np.random.seed(42)
     torch.manual_seed(42)
 
     root_path = Path('.') / 'docs' / 'visualizations'
     root_path.mkdir(parents=True, exist_ok=True)
 
     optimizers = [
-        (optimizer, -5.0, 1.0)
+        (optimizer, -5.0, 1.0 if optimizer_name != 'adahessian' else 8.0)
         for optimizer_name, optimizer in OPTIMIZERS.items()
         if optimizer_name not in ('lomo', 'adalomo', 'demo')
     ]
 
-    execute_experiments(optimizers, rastrigin, (-2.0, 3.5), root_path, 'rastrigin', (-4.5, 4.5), (-4.5, 4.5))
-    execute_experiments(optimizers, rosenbrock, (-2.0, 2.0), root_path, 'rosenbrock', (-2, 2), (-1, 3))
+    execute_experiments(
+        optimizers, rastrigin, (-2.0, 3.5), root_path, 'rastrigin', (-4.5, 4.5), (-4.5, 4.5), (0.0, 0.0)
+    )
+    execute_experiments(optimizers, rosenbrock, (-2.0, 2.0), root_path, 'rosenbrock', (-2, 2), (-1, 3), (1.0, 1.0))
 
 
 if __name__ == '__main__':
