@@ -6,12 +6,22 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.optimizer.agc import agc
+from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
 class Ranger25(BaseOptimizer):
     r"""Mixin' every fancy optimizer hacks.
 
-    ADOPT + AdEMAMix + Cautious + StableAdamW + Adam-Atan2 + OrthoGrad
+        Here's the components
+            * ADOPT
+            * AdEMAMix
+            * Cautious
+            * StableAdamW or Adam-atan2
+            * OrthoGrad
+            * Adaptive gradient clipping
+            * Gradient centralization
+            * Lookahead
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
@@ -38,6 +48,8 @@ class Ranger25(BaseOptimizer):
         fixed_decay: bool = False,
         alpha: float = 5.0,
         t_alpha_beta3: Optional[float] = None,
+        lookahead_merge_time: int = 5,
+        lookahead_blending_alpha: float = 0.5,
         cautious: bool = True,
         stable_adamw: bool = True,
         orthograd: bool = True,
@@ -49,7 +61,13 @@ class Ranger25(BaseOptimizer):
         self.validate_non_negative(alpha, 'alpha')
         self.validate_non_negative(t_alpha_beta3, 't_alpha_beta3')
         self.validate_non_negative(weight_decay, 'weight_decay')
+        self.validate_positive(lookahead_merge_time, 'lookahead_merge_time')
+        self.validate_range(lookahead_blending_alpha, 'lookahead_blending_alpha', 0.0, 1.0, '[]')
         self.validate_non_negative(eps, 'eps')
+
+        self.lookahead_step: int = 0
+        self.lookahead_merge_time = lookahead_merge_time
+        self.lookahead_blending_alpha = lookahead_blending_alpha
 
         self.cautious = cautious
         self.stable_adamw: bool = stable_adamw if isinstance(eps, float) else False
@@ -169,6 +187,9 @@ class Ranger25(BaseOptimizer):
 
                 exp_avg, exp_avg_sq, exp_avg_slow = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_slow']
 
+                grad.copy_(agc(p, grad))
+                centralize_gradient(grad, gc_conv_only=False)
+
                 normed_grad = grad.div(
                     exp_avg_sq.sqrt().clamp_(min=group['eps'] if group['eps'] is not None else 1e-8)
                 ).clamp_(-clip, clip)
@@ -194,4 +215,25 @@ class Ranger25(BaseOptimizer):
 
                 p.add_(update.atan2_(de_nom), alpha=-step_size)
 
+        self.apply_lookahead()
+
         return loss
+
+    def apply_lookahead(self) -> None:
+        self.lookahead_step += 1
+        if self.lookahead_step < self.lookahead_merge_time:
+            return
+
+        self.lookahead_step = 0
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                state = self.state[p]
+
+                p.mul_(self.lookahead_blending_alpha).add_(
+                    state['slow_momentum'],
+                    alpha=1.0 - self.lookahead_blending_alpha,
+                )
+                state['slow_momentum'].copy_(p)
