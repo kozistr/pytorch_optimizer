@@ -7,7 +7,6 @@ from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.agc import agc
-from pytorch_optimizer.optimizer.gc import centralize_gradient
 
 
 class Ranger25(BaseOptimizer):
@@ -20,7 +19,6 @@ class Ranger25(BaseOptimizer):
             * StableAdamW or Adam-atan2
             * OrthoGrad
             * Adaptive gradient clipping
-            * Gradient centralization
             * Lookahead
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
@@ -52,7 +50,7 @@ class Ranger25(BaseOptimizer):
         lookahead_blending_alpha: float = 0.5,
         cautious: bool = True,
         stable_adamw: bool = True,
-        orthograd: bool = False,
+        orthograd: bool = True,
         eps: Optional[float] = 1e-8,
         **kwargs,
     ):
@@ -190,7 +188,6 @@ class Ranger25(BaseOptimizer):
                 exp_avg, exp_avg_sq, exp_avg_slow = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_slow']
 
                 grad.copy_(agc(p, grad))
-                centralize_gradient(grad, gc_conv_only=False)
 
                 normed_grad = grad.div(
                     exp_avg_sq.sqrt().clamp_(min=group['eps'] if group['eps'] is not None else 1e-8)
