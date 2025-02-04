@@ -213,9 +213,9 @@ class Ranger25(BaseOptimizer):
                 else:
                     p.add_(update.atan2_(de_nom), alpha=-step_size)
 
-                if group['step'] % group['lookahead_merge_time'] == 0:
+                if group['step'] % self.lookahead_merge_time == 0:
                     slow_p = state['slow_momentum']
-                    slow_p.lerp_(p, alpha=group['lookahead_blending_alpha'])
+                    slow_p.lerp_(p, alpha=self.lookahead_blending_alpha)
                     p.copy_(slow_p)
 
         return loss
