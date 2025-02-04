@@ -63,10 +63,8 @@ class Ranger25(BaseOptimizer):
         self.validate_range(lookahead_blending_alpha, 'lookahead_blending_alpha', 0.0, 1.0, '[]')
         self.validate_non_negative(eps, 'eps')
 
-        self.lookahead_step: int = 0
         self.lookahead_merge_time = lookahead_merge_time
         self.lookahead_blending_alpha = lookahead_blending_alpha
-
         self.cautious = cautious
         self.stable_adamw: bool = stable_adamw if isinstance(eps, float) else False
         self.orthograd = orthograd
