@@ -175,7 +175,7 @@ def main():
     optimizers = [
         (optimizer, -5.0, 1.0 if optimizer_name != 'adahessian' else 8.0)
         for optimizer_name, optimizer in OPTIMIZERS.items()
-        if optimizer_name not in ('lomo', 'adalomo', 'demo')
+        if optimizer_name not in ('lomo', 'adalomo', 'demo', 'a2grad')
     ]
 
     execute_experiments(
