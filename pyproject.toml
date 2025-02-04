@@ -29,8 +29,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -52,7 +50,7 @@ numpy = [
     { version = "<=1.24.4", python = "<3.9" },
 ]
 torch = [
-    { version = ">=1.10,<2.5", python = ">=3.8,<3.9", source = "torch" },
+    { version = ">=1.10,<2.5", python = "<3.9", source = "torch" },
     { version = ">=1.10", python = ">=3.9", source = "torch" },
 ]
 

@@ -331,8 +331,6 @@ class ScheduleFreeRAdam(BaseOptimizer):
     :param r: float. use polynomial weighting in the average with power r.
     :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
         set to 0 for no weighting.
-    :param warmup_steps: int. enables a linear learning rate warmup.
-    :param ams_bound: bool. whether to use the AMSBound variant.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 

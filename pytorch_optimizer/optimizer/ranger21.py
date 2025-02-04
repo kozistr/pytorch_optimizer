@@ -296,7 +296,7 @@ class Ranger21(BaseOptimizer):
 
                 step_size: float = self.apply_adam_debias(group['adam_debias'], lr, bias_correction1)
 
-                pn_momentum = grad_ma.mul(1.0 + 1.0).add_(neg_grad_ma, alpha=-1.0).mul_(1.0 / noise_norm)
+                pn_momentum = grad_ma.mul(2.0).add_(neg_grad_ma, alpha=-1.0).mul_(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)
 
         self.lookahead_process_step()

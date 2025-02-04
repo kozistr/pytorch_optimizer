@@ -6,12 +6,20 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.optimizer.agc import agc
 
 
 class Ranger25(BaseOptimizer):
     r"""Mixin' every fancy optimizer hacks.
 
-    ADOPT + AdEMAMix + Cautious + StableAdamW + Adam-Atan2 + OrthoGrad
+        Here's the components
+            * ADOPT
+            * AdEMAMix
+            * Cautious
+            * StableAdamW or Adam-atan2
+            * OrthoGrad
+            * Adaptive gradient clipping
+            * Lookahead
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
@@ -23,7 +31,7 @@ class Ranger25(BaseOptimizer):
     :param t_alpha_beta3: Optional[float]. total number of iterations is preferred when needed.
     :param cautious: bool. whether to use the Cautious variant.
     :param stable_adamw: bool. whether to use stable AdamW variant.
-    :param orthograd: bool. whether to use orthograd variant.
+    :param orthograd: bool. whether to use OrthoGrad variant.
     :param eps: Optional[float]. term added to the denominator to improve numerical stability. when eps is None and
         stable_adamw is False, adam-atan2 feature will be used.
     """
@@ -32,12 +40,14 @@ class Ranger25(BaseOptimizer):
         self,
         params: PARAMETERS,
         lr: float = 1e-3,
-        betas: BETAS = (0.9, 0.999, 0.9999),
+        betas: BETAS = (0.95, 0.98, 0.9999),
         weight_decay: float = 1e-3,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         alpha: float = 5.0,
         t_alpha_beta3: Optional[float] = None,
+        lookahead_merge_time: int = 5,
+        lookahead_blending_alpha: float = 0.5,
         cautious: bool = True,
         stable_adamw: bool = True,
         orthograd: bool = True,
@@ -49,8 +59,12 @@ class Ranger25(BaseOptimizer):
         self.validate_non_negative(alpha, 'alpha')
         self.validate_non_negative(t_alpha_beta3, 't_alpha_beta3')
         self.validate_non_negative(weight_decay, 'weight_decay')
+        self.validate_positive(lookahead_merge_time, 'lookahead_merge_time')
+        self.validate_range(lookahead_blending_alpha, 'lookahead_blending_alpha', 0.0, 1.0, '[]')
         self.validate_non_negative(eps, 'eps')
 
+        self.lookahead_merge_time = lookahead_merge_time
+        self.lookahead_blending_alpha = lookahead_blending_alpha
         self.cautious = cautious
         self.stable_adamw: bool = stable_adamw if isinstance(eps, float) else False
         self.orthograd = orthograd
@@ -81,6 +95,7 @@ class Ranger25(BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['exp_avg_slow'] = torch.zeros_like(p)
+                state['slow_momentum'] = p.clone()
 
     @staticmethod
     def schedule_alpha(t_alpha_beta3: Optional[float], step: int, alpha: float) -> float:
@@ -157,6 +172,7 @@ class Ranger25(BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
                     state['exp_avg_slow'] = torch.zeros_like(p)
+                    state['slow_momentum'] = p.clone()
 
                 self.apply_weight_decay(
                     p=p,
@@ -168,6 +184,8 @@ class Ranger25(BaseOptimizer):
                 )
 
                 exp_avg, exp_avg_sq, exp_avg_slow = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_slow']
+
+                grad.copy_(agc(p, grad))
 
                 normed_grad = grad.div(
                     exp_avg_sq.sqrt().clamp_(min=group['eps'] if group['eps'] is not None else 1e-8)
@@ -190,8 +208,12 @@ class Ranger25(BaseOptimizer):
 
                 if group['eps'] is not None:
                     p.addcdiv_(update, de_nom.add_(group['eps']), value=-step_size)
-                    continue
+                else:
+                    p.add_(update.atan2_(de_nom), alpha=-step_size)
 
-                p.add_(update.atan2_(de_nom), alpha=-step_size)
+                if group['step'] % self.lookahead_merge_time == 0:
+                    slow_p = state['slow_momentum']
+                    slow_p.lerp_(p, weight=self.lookahead_blending_alpha)
+                    p.copy_(slow_p)
 
         return loss
