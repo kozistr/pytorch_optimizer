@@ -31,7 +31,7 @@ class Ranger25(BaseOptimizer):
     :param t_alpha_beta3: Optional[float]. total number of iterations is preferred when needed.
     :param cautious: bool. whether to use the Cautious variant.
     :param stable_adamw: bool. whether to use stable AdamW variant.
-    :param orthograd: bool. whether to use orthograd variant.
+    :param orthograd: bool. whether to use OrthoGrad variant.
     :param eps: Optional[float]. term added to the denominator to improve numerical stability. when eps is None and
         stable_adamw is False, adam-atan2 feature will be used.
     """
@@ -40,7 +40,7 @@ class Ranger25(BaseOptimizer):
         self,
         params: PARAMETERS,
         lr: float = 1e-3,
-        betas: BETAS = (0.9, 0.999, 0.9999),
+        betas: BETAS = (0.95, 0.98, 0.9999),
         weight_decay: float = 1e-3,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
