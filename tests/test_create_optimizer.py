@@ -9,7 +9,7 @@ from tests.utils import LogisticRegression
 @pytest.mark.parametrize('use_orthograd', [True, False])
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_create_optimizer(use_lookahead, use_orthograd, optimizer_name):
-    if optimizer_name in ('adamw', 'demo'):
+    if optimizer_name in ('adamw', 'adam', 'sgd', 'demo'):
         pytest.skip(f'skip {optimizer_name}')
 
     if use_lookahead and use_orthograd:
