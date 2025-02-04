@@ -1,6 +1,7 @@
 import fnmatch
 from importlib.util import find_spec
 from typing import Dict, List, Optional, Sequence, Set, Union
+from warnings import warn
 
 import torch
 from torch import nn
@@ -343,6 +344,10 @@ def create_optimizer(
         optimizer = OrthoGrad(optimizer, **kwargs)
 
     if use_lookahead:
+        if optimizer_name in ('ranger', 'ranger21', 'ranger25'):
+            warn(f'{optimizer} already has a Lookahead variant.', UserWarning, 1)
+            return optimizer
+
         optimizer = Lookahead(
             optimizer,
             k=kwargs.get('k', 5),
