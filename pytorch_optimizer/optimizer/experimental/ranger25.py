@@ -210,29 +210,12 @@ class Ranger25(BaseOptimizer):
 
                 if group['eps'] is not None:
                     p.addcdiv_(update, de_nom.add_(group['eps']), value=-step_size)
-                    continue
+                else:
+                    p.add_(update.atan2_(de_nom), alpha=-step_size)
 
-                p.add_(update.atan2_(de_nom), alpha=-step_size)
-
-        self.apply_lookahead()
+                if group['step'] % group['lookahead_merge_time'] == 0:
+                    slow_p = state['slow_momentum']
+                    slow_p.lerp_(p, alpha=group['lookahead_blending_alpha'])
+                    p.copy_(slow_p)
 
         return loss
-
-    def apply_lookahead(self) -> None:
-        self.lookahead_step += 1
-        if self.lookahead_step < self.lookahead_merge_time:
-            return
-
-        self.lookahead_step = 0
-        for group in self.param_groups:
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                state = self.state[p]
-
-                p.mul_(self.lookahead_blending_alpha).add_(
-                    state['slow_momentum'],
-                    alpha=1.0 - self.lookahead_blending_alpha,
-                )
-                state['slow_momentum'].copy_(p)
