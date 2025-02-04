@@ -103,6 +103,7 @@ def plot_function(
     lr: float,
     x_range: Tuple[float, float],
     y_range: Tuple[float, float],
+    minimum: Tuple[float, float],
 ) -> None:
     x = torch.linspace(x_range[0], x_range[1], 200)
     y = torch.linspace(y_range[0], y_range[1], 200)
@@ -119,7 +120,7 @@ def plot_function(
     ax.plot(iter_x, iter_y, color='r', marker='x')
     ax.set_title(f'{func.__name__} func: {optimizer_name} with {len(iter_x)} iterations, lr={lr:.6f}')
 
-    plt.plot(0, 0, 'gD')
+    plt.plot(*minimum, 'gD')
     plt.plot(iter_x[-1], iter_y[-1], 'rD')
     plt.savefig(str(optimizer_plot_path))
     plt.close()
@@ -161,7 +162,7 @@ def execute_experiments(
 
         steps = execute_steps(func, initial_state, optimizer_class, {'lr': best_lr}, 500)
 
-        plot_function(func, steps, optimizer_plot_path, optimizer_class.__name__, best_lr, x_range, y_range)
+        plot_function(func, steps, optimizer_plot_path, optimizer_class.__name__, best_lr, x_range, y_range, minimum)
 
 
 def main():
