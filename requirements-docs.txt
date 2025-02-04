@@ -1,7 +1,7 @@
 --index-url https://pypi.org/simple
 --extra-index-url https://download.pytorch.org/whl/cpu
 numpy<2.0
-torch==2.5.1
+torch==2.6.0
 mkdocs==1.6.1
 mkdocs-material==9.5.45
 pymdown-extensions==10.12
