@@ -2,10 +2,6 @@
 
 ## Rastrigin
 
-### A2Grad
-
-![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_A2Grad.png)
-
 ### AccSGD
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_AccSGD.png)
@@ -371,10 +367,6 @@
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_Yogi.png)
 
 ## Rosenbrock
-
-### A2Grad
-
-![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_A2Grad.png)
 
 ### AccSGD
 
