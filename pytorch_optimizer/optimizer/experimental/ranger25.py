@@ -215,7 +215,7 @@ class Ranger25(BaseOptimizer):
 
                 if group['step'] % self.lookahead_merge_time == 0:
                     slow_p = state['slow_momentum']
-                    slow_p.lerp_(p, alpha=self.lookahead_blending_alpha)
+                    slow_p.lerp_(p, weight=self.lookahead_blending_alpha)
                     p.copy_(slow_p)
 
         return loss
