@@ -99,6 +99,7 @@ class Ranger25(BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['exp_avg_slow'] = torch.zeros_like(p)
+                state['slow_momentum'] = p.clone()
 
     @staticmethod
     def schedule_alpha(t_alpha_beta3: Optional[float], step: int, alpha: float) -> float:
@@ -175,6 +176,7 @@ class Ranger25(BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
                     state['exp_avg_slow'] = torch.zeros_like(p)
+                    state['slow_momentum'] = p.clone()
 
                 self.apply_weight_decay(
                     p=p,
