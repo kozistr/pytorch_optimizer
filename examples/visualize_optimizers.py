@@ -48,7 +48,7 @@ def execute_steps(
 
     if optimizer_name == 'ranger21':
         optimizer_config.update({'num_iterations': num_iters})
-    if optimizer_name == 'ranger21':
+    elif optimizer_name == 'ranger25':
         optimizer_config.update({'orthograd': False})
     elif optimizer_name == 'adashift':
         optimizer_config.update({'keep_num': 1})
