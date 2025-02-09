@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **97 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **98 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -204,6 +204,8 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | FOCUS         | *First Order Concentrated Updating Scheme*                                                        | [github](https://github.com/liuyz0/FOCUS)                                                                      | <https://arxiv.org/abs/2501.12243>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250112243M/exportcitation)                                                        |
 | PSGD          | *Preconditioned Stochastic Gradient Descent*                                                      | [github](https://github.com/lixilinx/psgd_torch)                                                               | <https://arxiv.org/abs/1512.04202>                                                          | [cite](https://github.com/lixilinx/psgd_torch?tab=readme-ov-file#resources)                                                         |
 | EXAdam        | *The Power of Adaptive Cross-Moments*                                                             | [github](https://github.com/AhmedMostafa16/EXAdam)                                                             | <https://arxiv.org/abs/2412.20302>                                                          | [cite](https://github.com/AhmedMostafa16/EXAdam?tab=readme-ov-file#citation)                                                        |
+| GCSAM         | *Gradient Centralized Sharpness Aware Minimization*                                               | [github](https://github.com/mhassann22/GCSAM)                                                                  | <https://arxiv.org/abs/2501.11584>                                                          | [cite](https://github.com/mhassann22/GCSAM?tab=readme-ov-file#citation)                                                             |
+| LookSAM       | *Towards Efficient and Scalable Sharpness-Aware Minimization*                                     | [github](https://github.com/rollovd/LookSAM)                                                                   | <https://arxiv.org/abs/2203.02714>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2022arXiv220302714L/exportcitation)                                                        |
 
 ## Supported LR Scheduler
 
