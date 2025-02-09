@@ -119,6 +119,7 @@ from pytorch_optimizer.optimizer import (
     LaProp,
     Lion,
     Lookahead,
+    LookSAM,
     Muon,
     Nero,
     NovoGrad,
