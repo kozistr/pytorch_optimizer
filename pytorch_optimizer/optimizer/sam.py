@@ -11,6 +11,7 @@ from torch.optim import Optimizer
 from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.types import BETAS, CLOSURE, DEFAULTS, OPTIMIZER, PARAMETERS
+from pytorch_optimizer.optimizer.gc import centralize_gradient
 from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_running_stats
 
 
@@ -58,6 +59,7 @@ class SAM(BaseOptimizer):
     :param base_optimizer: OPTIMIZER. base optimizer.
     :param rho: float. size of the neighborhood for computing the max loss.
     :param adaptive: bool. element-wise Adaptive SAM.
+    :param use_gc: bool. perform gradient centralization, GCSAM variant.
     :param perturb_eps: float. eps for perturbation.
     :param kwargs: Dict. parameters for optimizer.
     """
@@ -68,12 +70,14 @@ class SAM(BaseOptimizer):
         base_optimizer: OPTIMIZER,
         rho: float = 0.05,
         adaptive: bool = False,
+        use_gc: bool = False,
         perturb_eps: float = 1e-12,
         **kwargs,
     ):
         self.validate_non_negative(rho, 'rho')
         self.validate_non_negative(perturb_eps, 'perturb_eps')
 
+        self.use_gc = use_gc
         self.perturb_eps = perturb_eps
 
         defaults: DEFAULTS = {'rho': rho, 'adaptive': adaptive}
@@ -92,16 +96,20 @@ class SAM(BaseOptimizer):
 
     @torch.no_grad()
     def first_step(self, zero_grad: bool = False):
-        grad_norm = self.grad_norm()
+        grad_norm = self.grad_norm().add_(self.perturb_eps)
         for group in self.param_groups:
-            scale = group['rho'] / (grad_norm + self.perturb_eps)
+            scale = group['rho'] / grad_norm
 
             for p in group['params']:
                 if p.grad is None:
                     continue
 
+                grad = p.grad
+                if self.use_gc:
+                    centralize_gradient(grad, gc_conv_only=False)
+
                 self.state[p]['old_p'] = p.clone()
-                e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * p.grad * scale.to(p)
+                e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * grad * scale.to(p)
 
                 p.add_(e_w)
 
@@ -670,3 +678,187 @@ class BSAM(BaseOptimizer):
         self.third_step()
 
         return loss
+
+
+class LookSAM(BaseOptimizer):
+    r"""Towards Efficient and Scalable Sharpness-Aware Minimization.
+
+    Example:
+    -------
+        Here's an example::
+
+            model = YourModel()
+            base_optimizer = Ranger21
+            optimizer = LookSAM(model.parameters(), base_optimizer)
+
+            for input, output in data:
+                # first forward-backward pass
+
+                loss = loss_function(output, model(input))
+                loss.backward()
+                optimizer.first_step(zero_grad=True)
+
+                # second forward-backward pass
+                # make sure to do a full forward pass
+                loss_function(output, model(input)).backward()
+                optimizer.second_step(zero_grad=True)
+
+        Alternative example with a single closure-based step function::
+
+            model = YourModel()
+            base_optimizer = Ranger21
+            optimizer = LookSAM(model.parameters(), base_optimizer)
+
+            def closure():
+                loss = loss_function(output, model(input))
+                loss.backward()
+                return loss
+
+            for input, output in data:
+                loss = loss_function(output, model(input))
+                loss.backward()
+                optimizer.step(closure)
+                optimizer.zero_grad()
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param base_optimizer: OPTIMIZER. base optimizer.
+    :param rho: float. size of the neighborhood for computing the max loss.
+    :param k: int. lookahead step.
+    :param alpha: float. lookahead blending alpha.
+    :param adaptive: bool. element-wise Adaptive SAM.
+    :param use_gc: bool. perform gradient centralization, GCSAM variant.
+    :param perturb_eps: float. eps for perturbation.
+    :param kwargs: Dict. parameters for optimizer.
+    """
+
+    def __init__(
+        self,
+        params: PARAMETERS,
+        base_optimizer: OPTIMIZER,
+        rho: float = 0.1,
+        k: int = 10,
+        alpha: float = 0.7,
+        adaptive: bool = False,
+        use_gc: bool = False,
+        perturb_eps: float = 1e-12,
+        **kwargs,
+    ):
+        self.validate_non_negative(rho, 'rho')
+        self.validate_positive(k, 'k')
+        self.validate_range(alpha, 'alpha', 0.0, 1.0, '()')
+        self.validate_non_negative(perturb_eps, 'perturb_eps')
+
+        self.k = k
+        self.alpha = alpha
+        self.use_gc = use_gc
+        self.perturb_eps = perturb_eps
+
+        defaults: DEFAULTS = {'rho': rho, 'adaptive': adaptive}
+        defaults.update(kwargs)
+
+        super().__init__(params, defaults)
+
+        self.base_optimizer: Optimizer = base_optimizer(self.param_groups, **kwargs)
+        self.param_groups = self.base_optimizer.param_groups
+
+    def __str__(self) -> str:
+        return 'LookSAM'
+
+    @torch.no_grad()
+    def reset(self):
+        pass
+
+    def get_step(self):
+        return (
+            self.param_groups[0]['step']
+            if 'step' in self.param_groups[0]
+            else next(iter(self.base_optimizer.state.values()))['step'] if self.base_optimizer.state else 0
+        )
+
+    @torch.no_grad()
+    def first_step(self, zero_grad: bool = False) -> None:
+        if self.get_step() % self.k != 0:
+            return
+
+        grad_norm = self.grad_norm().add_(self.perturb_eps)
+        for group in self.param_groups:
+            scale = group['rho'] / grad_norm
+
+            for i, p in enumerate(group['params']):
+                if p.grad is None:
+                    continue
+
+                grad = p.grad
+                if self.use_gc:
+                    centralize_gradient(grad, gc_conv_only=False)
+
+                self.state[p]['old_p'] = p.clone()
+                self.state[f'old_grad_p_{i}']['old_grad_p'] = grad.clone()
+
+                e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * grad * scale.to(p)
+                p.add_(e_w)
+
+        if zero_grad:
+            self.zero_grad()
+
+    @torch.no_grad()
+    def second_step(self, zero_grad: bool = False):
+        step = self.get_step()
+
+        for group in self.param_groups:
+            for i, p in enumerate(group['params']):
+                if p.grad is None:
+                    continue
+
+                grad = p.grad
+                grad_norm = grad.norm(p=2)
+
+                if step % self.k == 0:
+                    old_grad_p = self.state[f'old_grad_p_{i}']['old_grad_p']
+
+                    g_grad_norm = old_grad_p / old_grad_p.norm(p=2)
+                    g_s_grad_norm = grad / grad_norm
+
+                    self.state[f'gv_{i}']['gv'] = torch.sub(
+                        grad, grad_norm * torch.sum(g_grad_norm * g_s_grad_norm) * g_grad_norm
+                    )
+                else:
+                    gv = self.state[f'gv_{i}']['gv']
+                    grad.add_(grad_norm / (gv.norm(p=2) + 1e-8) * gv, alpha=self.alpha)
+
+                p.data = self.state[p]['old_p']
+
+        self.base_optimizer.step()
+
+        if zero_grad:
+            self.zero_grad()
+
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None):
+        if closure is None:
+            raise NoClosureError(str(self))
+
+        self.first_step(zero_grad=True)
+
+        with torch.enable_grad():
+            closure()
+
+        self.second_step()
+
+    def grad_norm(self) -> torch.Tensor:
+        shared_device = self.param_groups[0]['params'][0].device
+        return torch.norm(
+            torch.stack(
+                [
+                    ((torch.abs(p) if group['adaptive'] else 1.0) * p.grad).norm(p=2).to(shared_device)
+                    for group in self.param_groups
+                    for p in group['params']
+                    if p.grad is not None
+                ]
+            ),
+            p=2,
+        )
+
+    def load_state_dict(self, state_dict: Dict):
+        super().load_state_dict(state_dict)
+        self.base_optimizer.param_groups = self.param_groups
