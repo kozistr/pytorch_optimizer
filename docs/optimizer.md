@@ -240,6 +240,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.LookSAM
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.MADGRAD
     :docstring:
     :members:
