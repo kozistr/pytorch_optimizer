@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
-from pytorch_optimizer.optimizer import SAM, TRAC, WSAM, AdamP, Lookahead, OrthoGrad, load_optimizer
+from pytorch_optimizer.optimizer import SAM, TRAC, WSAM, AdamP, Lookahead, LookSAM, OrthoGrad, load_optimizer
 from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
 from tests.utils import build_environment, simple_parameter, simple_sparse_parameter, sphere_loss
 
@@ -116,12 +116,13 @@ def test_sparse_supported(sparse_optimizer):
             optimizer.step()
 
 
-def test_sam_no_gradient():
+@pytest.mark.parametrize('optimizer', [SAM, LookSAM])
+def test_sam_no_gradient(optimizer):
     (x_data, y_data), model, loss_fn = build_environment()
     model.fc1.weight.requires_grad = False
     model.fc1.weight.grad = None
 
-    optimizer = SAM(model.parameters(), AdamP)
+    optimizer = optimizer(model.parameters(), AdamP)
     optimizer.zero_grad()
 
     loss = loss_fn(y_data, model(x_data))

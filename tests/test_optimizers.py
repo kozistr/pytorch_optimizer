@@ -15,6 +15,7 @@ from pytorch_optimizer.optimizer import (
     WSAM,
     DynamicLossScaler,
     Lookahead,
+    LookSAM,
     Muon,
     PCGrad,
     load_optimizer,
@@ -169,7 +170,7 @@ def test_lookahead(pullback_momentum, environment):
 def test_sam_optimizer(adaptive, environment):
     (x_data, y_data), model, loss_fn = environment
 
-    optimizer = SAM(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive)
+    optimizer = SAM(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive, use_gc=True)
 
     init_loss, loss = np.inf, np.inf
     for _ in range(5):
@@ -190,7 +191,51 @@ def test_sam_optimizer(adaptive, environment):
 def test_sam_optimizer_with_closure(adaptive, environment):
     (x_data, y_data), model, loss_fn = environment
 
-    optimizer = SAM(model.parameters(), load_optimizer('adamp'), lr=5e-1, adaptive=adaptive)
+    optimizer = SAM(model.parameters(), load_optimizer('adamw'), lr=5e-1, adaptive=adaptive)
+
+    def closure():
+        first_loss = loss_fn(y_data, model(x_data))
+        first_loss.backward()
+        return first_loss
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(5):
+        loss = loss_fn(y_data, model(x_data))
+        loss.backward()
+
+        optimizer.step(closure)
+        optimizer.zero_grad()
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
+
+def test_looksam_optimizer(environment):
+    (x_data, y_data), model, loss_fn = environment
+
+    optimizer = LookSAM(model.parameters(), load_optimizer('adamw'), k=2, lr=5e-1, use_gc=True)
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(5):
+        loss = loss_fn(y_data, model(x_data))
+        loss.backward()
+        optimizer.first_step(zero_grad=True)
+
+        loss_fn(y_data, model(x_data)).backward()
+        optimizer.second_step(zero_grad=True)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
+
+def test_looksam_optimizer_with_closure(environment):
+    (x_data, y_data), model, loss_fn = environment
+
+    optimizer = LookSAM(model.parameters(), load_optimizer('adamw'), lr=5e-1)
 
     def closure():
         first_loss = loss_fn(y_data, model(x_data))
@@ -497,6 +542,12 @@ def test_no_closure():
         optimizer.step()
 
     optimizer = BSAM([param], 1)
+    optimizer.zero_grad()
+
+    with pytest.raises(NoClosureError):
+        optimizer.step()
+
+    optimizer = LookSAM([param], load_optimizer('adamp'))
     optimizer.zero_grad()
 
     with pytest.raises(NoClosureError):

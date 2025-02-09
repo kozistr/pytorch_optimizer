@@ -7,6 +7,7 @@ from pytorch_optimizer.optimizer import (
     TRAC,
     WSAM,
     Lookahead,
+    LookSAM,
     OrthoGrad,
     PCGrad,
     Ranger21,
@@ -106,6 +107,12 @@ def test_sam_methods():
 
 def test_wsam_methods():
     optimizer = WSAM(None, [simple_parameter()], load_optimizer('adamp'))
+    optimizer.reset()
+    optimizer.load_state_dict(optimizer.state_dict())
+
+
+def test_looksam_methods():
+    optimizer = LookSAM([simple_parameter()], load_optimizer('adamp'))
     optimizer.reset()
     optimizer.load_state_dict(optimizer.state_dict())
 
