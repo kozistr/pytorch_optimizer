@@ -232,6 +232,30 @@ def test_looksam_optimizer(environment):
     assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
 
 
+def test_looksam_optimizer_with_closure(environment):
+    (x_data, y_data), model, loss_fn = environment
+
+    optimizer = LookSAM(model.parameters(), load_optimizer('adamw'), lr=5e-1)
+
+    def closure():
+        first_loss = loss_fn(y_data, model(x_data))
+        first_loss.backward()
+        return first_loss
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(5):
+        loss = loss_fn(y_data, model(x_data))
+        loss.backward()
+
+        optimizer.step(closure)
+        optimizer.zero_grad()
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+
+
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
 @pytest.mark.parametrize('decouple', DECOUPLE_FLAGS)
 def test_wsam_optimizer(adaptive, decouple, environment):
