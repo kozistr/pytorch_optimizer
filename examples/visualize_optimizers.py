@@ -154,7 +154,7 @@ def rastrigin(
     x: Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor],
     a: float = 10.0,
     add_noise: bool = DIFFICULT_RASTRIGIN,
-    noise_scale: float = 0.2,
+    noise_scale: float = 0.1,
 ) -> torch.Tensor:
     """
     Rastrigin function (non-convex, global minimum at (0, 0)).
