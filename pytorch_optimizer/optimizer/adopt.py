@@ -115,8 +115,6 @@ class ADOPT(BaseOptimizer):
                     exp_avg_sq.addcmul_(grad, grad.conj())
                     continue
 
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad.conj(), value=1.0 - beta2)
-
                 de_nom = exp_avg_sq.sqrt().clamp_(min=group['eps'])
 
                 normed_grad = grad.div(de_nom)
@@ -136,5 +134,7 @@ class ADOPT(BaseOptimizer):
                     lr /= self.get_stable_adamw_rms(grad, exp_avg_sq)
 
                 p.add_(update, alpha=-lr)
+
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad.conj(), value=1.0 - beta2)
 
         return loss
