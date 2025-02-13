@@ -14,66 +14,29 @@ from torch import nn
 from pytorch_optimizer.optimizer import OPTIMIZERS
 from pytorch_optimizer.optimizer.alig import l2_projection
 
-# ─── Warning ignoring ─────────────────────────────────────────────────────────
-# Ignore specific warnings to avoid clutter in the output
 warnings.filterwarnings('ignore', category=UserWarning)
 
-# ─── Configs ──────────────────────────────────────────────────────────────────
-# Configuration constants for the optimization experiments
-
-# List of optimizers to ignore
-OPTIMIZERS_IGNORE = ('lomo', 'adalomo', 'demo', 'a2grad', 'alig') # BUG: fix `alig`, invalid .__name__
-
-# Optimizers that require the model as input during initialization
+OPTIMIZERS_IGNORE = ('lomo', 'adalomo', 'demo', 'a2grad', 'alig')  # BUG: fix `alig`, invalid .__name__
 OPTIMIZERS_MODEL_INPUT_NEEDED = ('lomo', 'adalomo', 'adammini')
-
-# Optimizers that require the computation graph to be retained for second-order derivatives
 OPTIMIZERS_GRAPH_NEEDED = ('adahessian', 'sophiah')
-
-# Optimizers that require a closure for step
 OPTIMIZERS_CLOSURE_NEEDED = ('alig', 'bsam')
-
-# Number of evaluations per hyperparameter during hyperparameter optimization
-# - More = better hyperparameter tuning but slower / less = faster but less accurate
 EVAL_PER_HYPYPERPARAM = 540
-
-# Number of optimization steps during hyperparameter tuning
 OPTIMIZATION_STEPS = 300
-
-# Number of optimization steps during final testing with the best hyperparameters
 TESTING_OPTIMIZATION_STEPS = 650
-
-# Makes determine difficult to optimize
 DIFFICULT_RASTRIGIN = False
-
-# Enable/disable average loss penalty
 USE_AVERAGE_LOSS_PENALTY = True
-
-# Scaling factor for average loss
 AVERAGE_LOSS_PENALTY_FACTOR = 1.0
-
-# Random seed for reproducibility
 SEARCH_SEED = 42
+LOSS_MIN_TRESH = 0
 
-# Minimum loss threshold to stop hyperparameter optimization early
-# - Should be tuned when using USE_AVERAGE_LOSS_PENALTY relative to AVERAGE_LOSS_PENALTY_FACTOR
-# - Should be tuned when changing OPTIMIZATION_STEPS
-LOSS_MIN_TRESH = 0 # 0 to remove the early stopping
-
-# ─── Optimizer Search Space Configuration ─────────────────────────────────────
-# Define the search space for hyperparameters of different optimizers
-
-# Default hyperparameter search space (for most optimizers)
 default_search_space = {'lr': hp.uniform('lr', 0, 2)}
-
-# Special cases with additional hyperparameters or different ranges
 special_search_spaces = {
-    'adafactor': {'lr': hp.uniform('lr', 0, 10)}, # Wider range of lr
-    'adams': {'lr': hp.uniform('lr', 0, 10)}, # Wider range of lr
-    'dadaptadagrad': {'lr': hp.uniform('lr', 0, 10)},  # Wider range of lr
-    'dadaptlion': {'lr': hp.uniform('lr', 0, 10)},  # Wider range of lr
-    'padam': {'lr': hp.uniform('lr', 0, 10)},  # Wider range of lr
-    'dadaptadam': {'lr': hp.uniform('lr', 0, 10)},  # Wider range of lr
+    'adafactor': {'lr': hp.uniform('lr', 0, 10)},
+    'adams': {'lr': hp.uniform('lr', 0, 10)},
+    'dadaptadagrad': {'lr': hp.uniform('lr', 0, 10)},
+    'dadaptlion': {'lr': hp.uniform('lr', 0, 10)},
+    'padam': {'lr': hp.uniform('lr', 0, 10)},
+    'dadaptadam': {'lr': hp.uniform('lr', 0, 10)},
     'adahessian': {'lr': hp.uniform('lr', 0, 800)},  # Wider range for second-order optimizers
     'sophiah': {'lr': hp.uniform('lr', 0, 60)},  # Wider range for second-order optimizers
     'pid': {
@@ -81,60 +44,57 @@ special_search_spaces = {
         'derivative': hp.quniform('derivative', 2, 14, 0.5),
         'integral': hp.quniform('integral', 1, 10, 0.5),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
-    },  # Tune the derivative and integral terms + momentum coefficient
+    },
     'sgdp': {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
-    },  # Tune the momentum coefficient
+    },
     'accsgd': {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
         'kappa': hp.uniformint('kappa', 1, 1000),
-    },  # Tune the momentum coefficient + kappa
+    },
     'sgdw': {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
-    },  # Tune the momentum coefficient
+    },
     'signsgd': {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
-    },  # Tune the momentum coefficient
+    },
     'sgdsai': {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
-    },  # Tune the momentum coefficient
+    },
     'sgd': {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
-    },  # Tune the momentum coefficient
+    },
     'AliG': {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
-    },  # Tune the momentum coefficient
+    },
     'asgd': {
         'lr': hp.uniform('lr', 0, 0.8),
-        'amplifier':  hp.uniform('amplifier', 0, 0.5),
+        'amplifier': hp.uniform('amplifier', 0, 0.5),
     },
     'amos': {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
-    }, # Tune the momentum coefficient
+    },
     'schedulefreesgd': {
         'lr': hp.uniform('lr', 0, 3),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
-    }, # Tune the momentum coefficient + high lr range
+    },
     'kron': {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
-    }, # Tune the momentum coefficient
+    },
     'muon': {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
-    }, # Tune the momentum coefficient
+    },
 }
-
-# ─── Test Functions ──────────────────────────────────────────────────────────
-# Define test functions for optimization experiments
 
 
 def rosenbrock(x: Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]) -> torch.Tensor:
@@ -179,10 +139,6 @@ def rastrigin(
     return result
 
 
-# ─── Model Definition ────────────────────────────────────────────────────────
-# Define a simple PyTorch model for optimization
-
-
 class Model(nn.Module):
     """
     Simple 2D optimization model maintaining state for parameters being optimized.
@@ -206,10 +162,6 @@ class Model(nn.Module):
             torch.Tensor: Computed function value.
         """
         return self.func(self.x)
-
-
-# ─── Core Optimization Logic ────────────────────────────────────────────────
-# Core logic for executing optimization steps
 
 
 def execute_steps(
@@ -298,10 +250,6 @@ def execute_steps(
     return steps, losses
 
 
-# ─── Hyperparameter Optimization ─────────────────────────────────────────────
-# Logic for optimizing hyperparameters using Hyperopt
-
-
 def objective(
     params: Dict,
     criterion: Callable,
@@ -356,10 +304,6 @@ def objective(
     return final_distance + penalty
 
 
-# ─── Visualization ──────────────────────────────────────────────────────────
-# Logic for generating visualizations of optimization paths
-
-
 def plot_function(
     func: Callable,
     optimization_steps: torch.Tensor,
@@ -407,10 +351,6 @@ def plot_function(
     plt.legend()
     plt.savefig(str(output_path))
     plt.close()
-
-
-# ─── Experiment Execution ────────────────────────────────────────────────────
-# Logic for running optimization experiments
 
 
 def execute_experiments(
@@ -467,7 +407,6 @@ def execute_experiments(
                 algo=tpe.suggest,
                 max_evals=max_evals,
                 loss_threshold=LOSS_MIN_TRESH,
-                max_queue_len=6,
                 rstate=np.random.default_rng(seed),
             )
         except AllTrialsFailed:
@@ -481,10 +420,6 @@ def execute_experiments(
 
         # Generate and save visualization
         plot_function(func, steps, output_path, optimizer_name, best_params, x_range, y_range, minimum)
-
-
-# ─── Main Execution ──────────────────────────────────────────────────────────
-# Main function to execute the experiments
 
 
 def main():
