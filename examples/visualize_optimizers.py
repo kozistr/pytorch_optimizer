@@ -384,7 +384,9 @@ def execute_experiments(
         if output_path.exists():
             continue  # Skip already generated plots
 
-        print(f'({i}/{len(optimizers)}) Processing {optimizer_name}... (Params to tune: {", ".join(search_space.keys())})')  # noqa: E501, T201
+        print(  # noqa: T201
+            f'({i}/{len(optimizers)}) Processing {optimizer_name}... (Params to tune: {", ".join(search_space.keys())})'  # noqa: E501
+        )
 
         # Select hyperparameter search space
         num_hyperparams = len(search_space)
