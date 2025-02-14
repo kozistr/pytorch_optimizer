@@ -7,7 +7,7 @@ import torch
 from torch import nn
 from torch.optim import SGD, Adam, AdamW, Optimizer
 
-from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS
+from pytorch_optimizer.base.type import OPTIMIZER, PARAMETERS
 from pytorch_optimizer.optimizer.a2grad import A2Grad
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
@@ -49,7 +49,7 @@ from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimize
 from pytorch_optimizer.optimizer.fromage import Fromage
 from pytorch_optimizer.optimizer.ftrl import FTRL
 from pytorch_optimizer.optimizer.galore import GaLore
-from pytorch_optimizer.optimizer.gc import centralize_gradient
+from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 from pytorch_optimizer.optimizer.grams import Grams
 from pytorch_optimizer.optimizer.gravity import Gravity
 from pytorch_optimizer.optimizer.grokfast import GrokFastAdamW

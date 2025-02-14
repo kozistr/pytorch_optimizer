@@ -4,7 +4,7 @@ import torch
 from torch.nn.functional import logsigmoid, one_hot
 from torch.nn.modules.loss import _Loss
 
-from pytorch_optimizer.base.types import CLASS_MODE
+from pytorch_optimizer.base.type import CLASS_MODE
 
 
 def soft_jaccard_score(

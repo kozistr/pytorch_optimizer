@@ -14,10 +14,8 @@ def agc(
     :param agc_clip_val: float. norm clip.
     :param eps: float. simple stop from div by zero and no relation to standard optimizer eps.
     """
-    p_norm = unit_norm(p).clamp_min_(agc_eps)
+    max_norm = unit_norm(p).clamp_min_(agc_eps).mul_(agc_clip_val)
     g_norm = unit_norm(grad).clamp_min_(eps)
-
-    max_norm = p_norm * agc_clip_val
 
     clipped_grad = grad * (max_norm / g_norm)
 

@@ -1,8 +1,8 @@
 import math
-import warnings
 from functools import partial
 from pathlib import Path
-from typing import Callable, Dict, Tuple, Union
+from typing import Callable, Dict, List, Tuple, Union
+from warnings import filterwarnings
 
 import numpy as np
 import torch
@@ -14,23 +14,23 @@ from torch import nn
 from pytorch_optimizer.optimizer import OPTIMIZERS
 from pytorch_optimizer.optimizer.alig import l2_projection
 
-warnings.filterwarnings('ignore', category=UserWarning)
+filterwarnings('ignore', category=UserWarning)
 
 OPTIMIZERS_IGNORE = ('lomo', 'adalomo', 'demo', 'a2grad', 'alig')  # BUG: fix `alig`, invalid .__name__
 OPTIMIZERS_MODEL_INPUT_NEEDED = ('lomo', 'adalomo', 'adammini')
 OPTIMIZERS_GRAPH_NEEDED = ('adahessian', 'sophiah')
 OPTIMIZERS_CLOSURE_NEEDED = ('alig', 'bsam')
-EVAL_PER_HYPYPERPARAM = 540
-OPTIMIZATION_STEPS = 300
-TESTING_OPTIMIZATION_STEPS = 650
-DIFFICULT_RASTRIGIN = False
-USE_AVERAGE_LOSS_PENALTY = True
-AVERAGE_LOSS_PENALTY_FACTOR = 1.0
-SEARCH_SEED = 42
-LOSS_MIN_TRESH = 0
+EVAL_PER_HYPERPARAM: int = 540
+OPTIMIZATION_STEPS: int = 300
+TESTING_OPTIMIZATION_STEPS: int = 650
+DIFFICULT_RASTRIGIN: bool = False
+USE_AVERAGE_LOSS_PENALTY: bool = True
+AVERAGE_LOSS_PENALTY_FACTOR: float = 1.0
+SEARCH_SEED: int = 42
+LOSS_MIN_THRESHOLD: float = 0.0
 
-default_search_space = {'lr': hp.uniform('lr', 0, 2)}
-special_search_spaces = {
+DEFAULT_SEARCH_SPACES = {'lr': hp.uniform('lr', 0, 2)}
+SPECIAL_SEARCH_SPACES = {
     'adafactor': {'lr': hp.uniform('lr', 0, 10)},
     'adams': {'lr': hp.uniform('lr', 0, 10)},
     'dadaptadagrad': {'lr': hp.uniform('lr', 0, 10)},
@@ -170,7 +170,7 @@ def execute_steps(
     optimizer_class: torch.optim.Optimizer,
     optimizer_config: Dict,
     num_iters: int = 500,
-) -> torch.Tensor:
+) -> Tuple[torch.Tensor, List[float]]:
     """
     Execute optimization steps for a given configuration.
 
@@ -201,7 +201,6 @@ def execute_steps(
 
         return closure
 
-    # Initialize the model and optimizer
     model = Model(func, initial_state)
     parameters = list(model.parameters())
     optimizer_name: str = optimizer_class.__name__.lower()
@@ -218,30 +217,25 @@ def execute_steps(
     elif optimizer_name == 'bsam':
         optimizer_config['num_data'] = 1
 
-    # Special initialization for memory-efficient optimizers
     if optimizer_name in OPTIMIZERS_MODEL_INPUT_NEEDED:
         optimizer = optimizer_class(model, **optimizer_config)
     else:
         optimizer = optimizer_class(parameters, **optimizer_config)
 
-    # Track optimization path
-    losses = []
     steps = torch.zeros((2, num_iters + 1), dtype=torch.float32)
     steps[:, 0] = model.x.detach()
 
+    losses = []
     for i in range(1, num_iters + 1):
         optimizer.zero_grad()
+
         loss = model()
         losses.append(loss.item())
 
-        # Special handling for second-order optimizers
-        create_graph = optimizer_name in OPTIMIZERS_GRAPH_NEEDED
-        loss.backward(create_graph=create_graph)
+        loss.backward(create_graph=optimizer_name in OPTIMIZERS_GRAPH_NEEDED)
 
-        # Gradient clipping for stability
         nn.utils.clip_grad_norm_(parameters, 1.0)
 
-        # Closure required for certain optimizers
         closure = create_closure(loss) if optimizer_name in OPTIMIZERS_CLOSURE_NEEDED else None
         optimizer.step(closure)
 
@@ -279,25 +273,19 @@ def objective(
             - A penalty for boundary violations.
             - An optional penalty for higher average loss during optimization (if enabled).
     """
-    # Execute optimization steps and get losses
-    steps, losses = execute_steps(  # Modified to unpack losses
-        criterion, initial_state, optimizer_class, params, num_iters
-    )
+    steps, losses = execute_steps(criterion, initial_state, optimizer_class, params, num_iters)
 
-    # Calculate boundary violations
     x_min_violation = torch.clamp(x_bounds[0] - steps[0], min=0).max()
     x_max_violation = torch.clamp(steps[0] - x_bounds[1], min=0).max()
     y_min_violation = torch.clamp(y_bounds[0] - steps[1], min=0).max()
     y_max_violation = torch.clamp(steps[1] - y_bounds[1], min=0).max()
     total_violation = x_min_violation + x_max_violation + y_min_violation + y_max_violation
 
-    # Calculate average loss penalty
-    avg_loss = sum(losses) / len(losses) if losses else 0.0
     penalty = 75 * total_violation.item()
     if USE_AVERAGE_LOSS_PENALTY:
+        avg_loss: float = sum(losses) / len(losses) if losses else 0.0
         penalty += avg_loss * AVERAGE_LOSS_PENALTY_FACTOR
 
-    # Calculate final distance to minimum
     final_position = steps[:, -1]
     final_distance = ((final_position[0] - minimum[0]) ** 2 + (final_position[1] - minimum[1]) ** 2).item()
 
@@ -309,7 +297,7 @@ def plot_function(
     optimization_steps: torch.Tensor,
     output_path: Path,
     optimizer_name: str,
-    params: dict,
+    params: Dict,
     x_range: Tuple[float, float],
     y_range: Tuple[float, float],
     minimum: Tuple[float, float],
@@ -335,26 +323,21 @@ def plot_function(
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(1, 1, 1)
 
-    # Plot function contours and optimization path
     ax.contour(x_grid.numpy(), y_grid.numpy(), z.numpy(), 20, cmap='jet')
     ax.plot(optimization_steps[0], optimization_steps[1], color='r', marker='x', markersize=3)
 
-    # Mark global minimum and final position
     plt.plot(*minimum, 'gD', label='Global Minimum')
     plt.plot(optimization_steps[0, -1], optimization_steps[1, -1], 'bD', label='Final Position')
 
-    ax.set_title(
-        f'{func.__name__} func: {optimizer_name} with {TESTING_OPTIMIZATION_STEPS} iterations\n{
-            ", ".join(f"{k}={round(v, 4)}" for k, v in params.items())
-        }'
-    )
+    config: str = ', '.join(f'{k}={round(v, 4)}' for k, v in params.items())
+    ax.set_title(f'{func.__name__} func: {optimizer_name} with {TESTING_OPTIMIZATION_STEPS} iterations\n{config}')
     plt.legend()
     plt.savefig(str(output_path))
     plt.close()
 
 
 def execute_experiments(
-    optimizers: list,
+    optimizers: List,
     func: Callable,
     initial_state: Tuple[float, float],
     output_dir: Path,
@@ -362,7 +345,7 @@ def execute_experiments(
     x_range: Tuple[float, float],
     y_range: Tuple[float, float],
     minimum: Tuple[float, float],
-    seed: int = 42,
+    seed: int = SEARCH_SEED,
 ) -> None:
     """
     Run optimization experiments for multiple optimizers.
@@ -382,15 +365,14 @@ def execute_experiments(
         optimizer_name = optimizer_class.__name__
         output_path = output_dir / f'{experiment_name}_{optimizer_name}.png'
         if output_path.exists():
-            continue  # Skip already generated plots
+            continue
 
         print(  # noqa: T201
             f'({i}/{len(optimizers)}) Processing {optimizer_name}... (Params to tune: {", ".join(search_space.keys())})'  # noqa: E501
         )
 
-        # Select hyperparameter search space
-        num_hyperparams = len(search_space)
-        max_evals = EVAL_PER_HYPYPERPARAM * num_hyperparams  # Scale evaluations based on hyperparameter count
+        num_hyperparams: int = len(search_space)
+        max_evals: int = EVAL_PER_HYPERPARAM * num_hyperparams
 
         objective_fn = partial(
             objective,
@@ -402,43 +384,38 @@ def execute_experiments(
             y_bounds=y_range,
             num_iters=OPTIMIZATION_STEPS,
         )
+
         try:
             best_params = fmin(
                 fn=objective_fn,
                 space=search_space,
                 algo=tpe.suggest,
                 max_evals=max_evals,
-                loss_threshold=LOSS_MIN_TRESH,
+                loss_threshold=LOSS_MIN_THRESHOLD,
                 rstate=np.random.default_rng(seed),
             )
         except AllTrialsFailed:
             print(f'⚠️ {optimizer_name} failed to optimize {func.__name__}')  # noqa: T201
             continue
 
-        # Run final optimization with best parameters
-        steps, _ = execute_steps(  # Modified to ignore losses
-            func, initial_state, optimizer_class, best_params, TESTING_OPTIMIZATION_STEPS
-        )
+        steps, _ = execute_steps(func, initial_state, optimizer_class, best_params, TESTING_OPTIMIZATION_STEPS)
 
-        # Generate and save visualization
         plot_function(func, steps, output_path, optimizer_name, best_params, x_range, y_range, minimum)
 
 
 def main():
-    """Main execution routine for optimization experiments."""
     np.random.seed(SEARCH_SEED)
     torch.manual_seed(SEARCH_SEED)
+
     output_dir = Path('.') / 'docs' / 'visualizations'
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Prepare the list of optimizers and their search spaces
     optimizers = [
-        (optimizer, special_search_spaces.get(optimizer_name, default_search_space))
+        (optimizer, SPECIAL_SEARCH_SPACES.get(optimizer_name, DEFAULT_SEARCH_SPACES))
         for optimizer_name, optimizer in OPTIMIZERS.items()
         if optimizer_name not in OPTIMIZERS_IGNORE
     ]
 
-    # Run experiments for the Rastrigin function
     print('Executing Rastrigin experiments...')  # noqa: T201
     execute_experiments(
         optimizers,
@@ -452,7 +429,6 @@ def main():
         seed=SEARCH_SEED,
     )
 
-    # Run experiments for the Rosenbrock function
     print('Executing Rosenbrock experiments...')  # noqa: T201
     execute_experiments(
         optimizers,

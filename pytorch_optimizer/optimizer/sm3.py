@@ -1,7 +1,7 @@
 import torch
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
 
 
 @torch.no_grad()

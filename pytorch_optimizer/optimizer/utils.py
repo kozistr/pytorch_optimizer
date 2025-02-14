@@ -13,7 +13,7 @@ from torch.nn.functional import cosine_similarity
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.utils import clip_grad_norm_
 
-from pytorch_optimizer.base.types import CLOSURE, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, LOSS, PARAMETERS
 
 
 def parse_pytorch_version(version_string: str) -> List[int]:
