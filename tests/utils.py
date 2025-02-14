@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.nn import functional as f
 
-from pytorch_optimizer.base.types import LOSS
+from pytorch_optimizer.base.type import LOSS
 from pytorch_optimizer.optimizer import AdamW, Lookahead, OrthoGrad
 
 

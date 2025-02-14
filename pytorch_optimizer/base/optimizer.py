@@ -6,7 +6,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
-from pytorch_optimizer.base.types import (
+from pytorch_optimizer.base.type import (
     BETAS,
     CLOSURE,
     DEFAULTS,

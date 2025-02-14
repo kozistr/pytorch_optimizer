@@ -7,7 +7,7 @@ import torch
 from torch import nn
 from torch.optim import SGD, Adam, AdamW, Optimizer
 
-from pytorch_optimizer.base.types import OPTIMIZER, PARAMETERS
+from pytorch_optimizer.base.type import OPTIMIZER, PARAMETERS
 from pytorch_optimizer.optimizer.a2grad import A2Grad
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound

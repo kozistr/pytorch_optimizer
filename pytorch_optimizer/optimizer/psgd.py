@@ -7,7 +7,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.psgd_utils import norm_lower_bound
 
 MEMORY_SAVE_MODE_TYPE = Literal['one_diag', 'smart_one_diag', 'all_diag']

@@ -7,7 +7,7 @@ from torch.distributed import ProcessGroup, all_gather, get_world_size
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.types import CLOSURE, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, LOSS, PARAMETERS
 
 HAS_EINOPS: bool = find_spec('einops') is not None
 
