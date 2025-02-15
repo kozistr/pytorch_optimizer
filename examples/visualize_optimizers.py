@@ -16,7 +16,7 @@ from pytorch_optimizer.optimizer.alig import l2_projection
 
 filterwarnings('ignore', category=UserWarning)
 
-OPTIMIZERS_IGNORE = ('lomo', 'adalomo', 'demo', 'a2grad', 'alig')  # BUG: fix `alig`, invalid .__name__
+OPTIMIZERS_IGNORE = ('lomo', 'adalomo', 'demo', 'a2grad')
 OPTIMIZERS_MODEL_INPUT_NEEDED = ('lomo', 'adalomo', 'adammini')
 OPTIMIZERS_GRAPH_NEEDED = ('adahessian', 'sophiah')
 OPTIMIZERS_CLOSURE_NEEDED = ('alig', 'bsam')
@@ -70,8 +70,8 @@ SPECIAL_SEARCH_SPACES = {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
     },
-    'AliG': {
-        'lr': hp.uniform('lr', 0, 0.8),
+    'alig': {
+        'max_lr': hp.uniform('max_lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
     },
     'asgd': {
@@ -398,7 +398,7 @@ def execute_experiments(
             print(f'⚠️ {optimizer_name} failed to optimize {func.__name__}')  # noqa: T201
             continue
 
-        steps, _ = execute_steps(func, initial_state, optimizer_class, best_params, TESTING_OPTIMIZATION_STEPS)
+        steps, _ = execute_steps(func, initial_state, optimizer_class, best_params.copy(), TESTING_OPTIMIZATION_STEPS)
 
         plot_function(func, steps, output_path, optimizer_name, best_params, x_range, y_range, minimum)
 
