@@ -265,8 +265,11 @@ class ScheduleFreeAdamW(BaseOptimizer):
 
             if group['use_palm']:
                 beta2: float = 1.0 - group['step'] ** -0.8
+                debias: float = 1.0 - (1.0 - beta2) / (1.0 - beta2 ** group['step'])
                 # unnecessary bias correction when PaLM beta2 scheduling
                 bias_correction2 = 1.0
+            else:
+                debias: float = beta2
 
             for p in group['params']:
                 if p.grad is None:
@@ -286,7 +289,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
                     grad.add_(p, alpha=group['weight_decay'])
 
                 z, exp_avg_sq = state['z'], state['exp_avg_sq']
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+                exp_avg_sq.mul_(debias).addcmul_(grad, grad, value=1.0 - debias)
                 de_nom = self.apply_ams_bound(
                     ams_bound=group['ams_bound'],
                     exp_avg_sq=exp_avg_sq.div(bias_correction2),
@@ -433,8 +436,11 @@ class ScheduleFreeRAdam(BaseOptimizer):
 
             if group['use_palm']:
                 beta2: float = 1.0 - group['step'] ** -0.8
+                debias: float = 1.0 - (1.0 - beta2) / (1.0 - beta2 ** group['step'])
                 # unnecessary bias correction when PaLM beta2 scheduling
                 bias_correction2_sq = 1.0
+            else:
+                debias: float = beta2
 
             for p in group['params']:
                 if p.grad is None:
@@ -454,7 +460,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
                     grad.add_(p, alpha=group['weight_decay'])
 
                 z, exp_avg_sq = state['z'], state['exp_avg_sq']
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+                exp_avg_sq.mul_(debias).addcmul_(grad, grad, value=1.0 - debias)
 
                 if n_sma > 4.0:
                     de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
