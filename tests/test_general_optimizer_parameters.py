@@ -57,6 +57,7 @@ def test_epsilon(optimizer_name):
         'focus',
         'kron',
         'sgd',
+        'scion',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
@@ -86,6 +87,7 @@ def test_weight_decay(optimizer_name):
         'lomo',
         'ftrl',
         'muon',
+        'scion',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 

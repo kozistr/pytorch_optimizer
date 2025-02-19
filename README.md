@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **98 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **99 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -206,6 +206,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | EXAdam        | *The Power of Adaptive Cross-Moments*                                                             | [github](https://github.com/AhmedMostafa16/EXAdam)                                                             | <https://arxiv.org/abs/2412.20302>                                                          | [cite](https://github.com/AhmedMostafa16/EXAdam?tab=readme-ov-file#citation)                                                        |
 | GCSAM         | *Gradient Centralized Sharpness Aware Minimization*                                               | [github](https://github.com/mhassann22/GCSAM)                                                                  | <https://arxiv.org/abs/2501.11584>                                                          | [cite](https://github.com/mhassann22/GCSAM?tab=readme-ov-file#citation)                                                             |
 | LookSAM       | *Towards Efficient and Scalable Sharpness-Aware Minimization*                                     | [github](https://github.com/rollovd/LookSAM)                                                                   | <https://arxiv.org/abs/2203.02714>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2022arXiv220302714L/exportcitation)                                                        |
+| SCION         | *Training Deep Learning Models with Norm-Constrained LMOs*                                        |                                                                                                                | <https://arxiv.org/abs/2502.07529>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250207529P/exportcitation)                                                        |
 
 ## Supported LR Scheduler
 

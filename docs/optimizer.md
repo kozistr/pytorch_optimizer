@@ -336,6 +336,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.SCION
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.StableAdamW
     :docstring:
     :members:
