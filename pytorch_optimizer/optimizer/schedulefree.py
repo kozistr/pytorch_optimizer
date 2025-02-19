@@ -15,6 +15,7 @@ class ScheduleFreeSGD(BaseOptimizer):
     :param lr: float. learning rate.
     :param momentum: float. momentum factor, must be between 0 and 1 exclusive.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param r: float. use polynomial weighting in the average with power r.
     :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
@@ -29,6 +30,7 @@ class ScheduleFreeSGD(BaseOptimizer):
         lr: float = 1.0,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
+        weight_decouple: bool = True,
         fixed_decay: bool = False,
         r: float = 0.0,
         weight_lr_power: float = 2.0,
@@ -45,6 +47,7 @@ class ScheduleFreeSGD(BaseOptimizer):
             'lr': lr,
             'momentum': momentum,
             'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'r': r,
             'weight_lr_power': weight_lr_power,
