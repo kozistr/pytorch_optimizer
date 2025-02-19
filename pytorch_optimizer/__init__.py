@@ -58,6 +58,7 @@ from pytorch_optimizer.optimizer import (
     PNM,
     QHM,
     SAM,
+    SCION,
     SGDP,
     SGDW,
     SM3,
