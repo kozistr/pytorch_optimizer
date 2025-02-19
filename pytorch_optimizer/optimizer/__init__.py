@@ -301,6 +301,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     SPAM,
     Kron,
     EXAdam,
+    SCION,
     Ranger25,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
