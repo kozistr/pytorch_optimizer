@@ -423,11 +423,8 @@ class ScheduleFreeRAdam(BaseOptimizer):
             if n_sma > 4:
                 # cancel bias correction2
                 lr = lr / bias_correction2_sq
-            elif lr < 0.:
-                # n_sma < 4.0 and degenerated_to_sgd is False
-                lr = 0.0
 
-            lr_max = group['lr_max'] = max(lr, group['lr_max'])
+            lr_max = group['lr_max'] = max(lr, group['lr_max'], 0.0)
 
             weight = (group['step'] ** group['r']) * (lr_max ** group['weight_lr_power'])
             weight_sum = group['weight_sum'] = group['weight_sum'] + weight
@@ -466,13 +463,14 @@ class ScheduleFreeRAdam(BaseOptimizer):
                     de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
                     grad.div_(de_nom)
 
-                grad.mul_(lr)
-                if group['weight_decouple']:
-                    grad.add_(p, alpha=group['weight_decay'] * (1.0 if group['fixed_decay'] else lr))
+                if lr > 0.0:
+                    grad.mul_(lr)
+                    if group['weight_decouple']:
+                        grad.add_(p, alpha=group['weight_decay'] * (1.0 if group['fixed_decay'] else lr))
 
-                p.lerp_(z, weight=checkpoint)
-                p.add_(grad, alpha=beta1 * (1.0 - checkpoint) - 1.0)
+                    p.lerp_(z, weight=checkpoint)
+                    p.add_(grad, alpha=beta1 * (1.0 - checkpoint) - 1.0)
 
-                z.sub_(grad)
+                    z.sub_(grad)
 
         return loss
