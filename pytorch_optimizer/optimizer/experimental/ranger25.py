@@ -40,7 +40,7 @@ class Ranger25(BaseOptimizer):
         self,
         params: PARAMETERS,
         lr: float = 1e-3,
-        betas: BETAS = (0.95, 0.98, 0.9999),
+        betas: BETAS = (0.9, 0.98, 0.9999),
         weight_decay: float = 1e-3,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
