@@ -1,4 +1,3 @@
-import math
 from typing import List
 
 import torch
@@ -15,8 +14,6 @@ class ScheduleFreeSGD(BaseOptimizer):
     :param lr: float. learning rate.
     :param momentum: float. momentum factor, must be between 0 and 1 exclusive.
     :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
     :param r: float. use polynomial weighting in the average with power r.
     :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
         set to 0 for no weighting.
@@ -30,8 +27,6 @@ class ScheduleFreeSGD(BaseOptimizer):
         lr: float = 1.0,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
-        weight_decouple: bool = True,
-        fixed_decay: bool = False,
         r: float = 0.0,
         weight_lr_power: float = 2.0,
         warmup_steps: int = 0,
@@ -47,8 +42,6 @@ class ScheduleFreeSGD(BaseOptimizer):
             'lr': lr,
             'momentum': momentum,
             'weight_decay': weight_decay,
-            'weight_decouple': weight_decouple,
-            'fixed_decay': fixed_decay,
             'r': r,
             'weight_lr_power': weight_lr_power,
             'warmup_steps': warmup_steps,
@@ -114,7 +107,7 @@ class ScheduleFreeSGD(BaseOptimizer):
             lr: float = group['lr'] * schedule
             lr_max = group['lr_max'] = max(lr, group['lr_max'])
 
-            weight = (group['step'] ** group['r']) * (lr_max ** group['weight_lr_power'])
+            weight: float = (group['step'] ** group['r']) * (lr_max ** group['weight_lr_power'])
             weight_sum = group['weight_sum'] = group['weight_sum'] + weight
 
             checkpoint: float = weight / weight_sum if weight_sum != 0.0 else 0.0
@@ -137,8 +130,8 @@ class ScheduleFreeSGD(BaseOptimizer):
                     grad=grad,
                     lr=lr,
                     weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
+                    weight_decouple=False,
+                    fixed_decay=False,
                 )
 
                 z = state['z']
@@ -158,8 +151,6 @@ class ScheduleFreeAdamW(BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
     :param r: float. use polynomial weighting in the average with power r.
     :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
         set to 0 for no weighting.
@@ -174,8 +165,6 @@ class ScheduleFreeAdamW(BaseOptimizer):
         lr: float = 2.5e-3,
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
-        weight_decouple: bool = True,
-        fixed_decay: bool = False,
         r: float = 0.0,
         weight_lr_power: float = 2.0,
         warmup_steps: int = 0,
@@ -192,8 +181,6 @@ class ScheduleFreeAdamW(BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
-            'weight_decouple': weight_decouple,
-            'fixed_decay': fixed_decay,
             'r': r,
             'weight_lr_power': weight_lr_power,
             'warmup_steps': warmup_steps,
@@ -259,21 +246,15 @@ class ScheduleFreeAdamW(BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
+            bias_correction2: float = self.debias(beta2, group['step'])
 
-            lr: float = group['lr'] * schedule * bias_correction2_sq
+            lr: float = group['lr'] * schedule
             lr_max = group['lr_max'] = max(lr, group['lr_max'])
 
-            weight = (group['step'] ** group['r']) * (lr_max ** group['weight_lr_power'])
+            weight: float = (group['step'] ** group['r']) * (lr_max ** group['weight_lr_power'])
             weight_sum = group['weight_sum'] = group['weight_sum'] + weight
 
             checkpoint: float = weight / weight_sum if weight_sum != 0.0 else 0.0
-
-            if group['use_palm']:
-                beta2: float = 1.0 - group['step'] ** -0.8
-                debias: float = (1.0 - beta2) / (1.0 - beta2 ** group['step'])
-            else:
-                debias: float = beta2
 
             for p in group['params']:
                 if p.grad is None:
@@ -289,26 +270,26 @@ class ScheduleFreeAdamW(BaseOptimizer):
                     state['z'] = p.clone()
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=lr,
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
-
                 z, exp_avg_sq = state['z'], state['exp_avg_sq']
-                exp_avg_sq.mul_(debias).addcmul_(grad, grad, value=1.0 - debias)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 de_nom = self.apply_ams_bound(
                     ams_bound=group['ams_bound'],
-                    exp_avg_sq=exp_avg_sq,
+                    exp_avg_sq=exp_avg_sq.div(bias_correction2),
                     max_exp_avg_sq=state.get('max_exp_avg_sq', None),
                     eps=group['eps'],
                 )
 
                 grad.div_(de_nom)
+
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=lr,
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=False,
+                    fixed_decay=False,
+                )
 
                 p.lerp_(z, weight=checkpoint)
                 p.add_(grad, alpha=lr * (beta1 * (1.0 - checkpoint) - 1))
@@ -325,12 +306,13 @@ class ScheduleFreeRAdam(BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param degenerated_to_sgd: float. degenerated to SGD.
     :param r: float. use polynomial weighting in the average with power r.
     :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
         set to 0 for no weighting.
+    :param silent_sgd_phase: bool. the optimizer will not use the first SGD phase of RAdam. This means that the
+        optimizer will not update model parameters during the early training steps (e.g., < 5 when β_2 = 0.999), but
+        just update the momentum values of the optimizer. This helps stabilize training by ensuring smoother warmup
+        behavior and more reliable calculation of the moving average coefficient (`ckp1`). Recommended to set to True.
     :param eps: float. term added to the denominator to improve numerical stability.
     """
 
@@ -340,11 +322,9 @@ class ScheduleFreeRAdam(BaseOptimizer):
         lr: float = 2.5e-3,
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
-        weight_decouple: bool = True,
-        fixed_decay: bool = False,
-        degenerated_to_sgd: bool = False,
         r: float = 0.0,
         weight_lr_power: float = 2.0,
+        silent_sgd_phase: bool = True,
         eps: float = 1e-8,
         **kwargs,
     ):
@@ -357,9 +337,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
-            'weight_decouple': weight_decouple,
-            'fixed_decay': fixed_decay,
-            'degenerated_to_sgd': degenerated_to_sgd,
+            'silent_sgd_phase': silent_sgd_phase,
             'r': r,
             'weight_lr_power': weight_lr_power,
             'eps': eps,
@@ -418,7 +396,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** group['step'])
+            bias_correction2: float = self.debias_beta(beta2, group['step'])
 
             lr, n_sma = self.get_rectify_step_size(
                 is_rectify=True,
@@ -426,23 +404,19 @@ class ScheduleFreeRAdam(BaseOptimizer):
                 lr=group['lr'],
                 beta2=beta2,
                 n_sma_threshold=4,
-                degenerated_to_sgd=group['degenerated_to_sgd'],
+                degenerated_to_sgd=False,
             )
+            if lr < 0.0:
+                lr = float(not group['silent_sgd_phase'])
 
             lr_max = group['lr_max'] = max(lr, group['lr_max'])
 
-            weight = (group['step'] ** group['r']) * (lr_max ** group['weight_lr_power'])
+            weight: float = (group['step'] ** group['r']) * (lr_max ** group['weight_lr_power'])
             weight_sum = group['weight_sum'] = group['weight_sum'] + weight
 
             checkpoint: float = weight / weight_sum if weight_sum != 0.0 else 0.0
 
             adaptive_y_lr: float = lr * (beta1 * (1.0 - checkpoint) - 1.0)
-
-            if group['use_palm']:
-                beta2: float = 1.0 - group['step'] ** -0.8
-                debias: float = (1.0 - beta2) / (1.0 - beta2 ** group['step'])
-            else:
-                debias: float = beta2
 
             for p in group['params']:
                 if p.grad is None:
@@ -459,10 +433,10 @@ class ScheduleFreeRAdam(BaseOptimizer):
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
                 z, exp_avg_sq = state['z'], state['exp_avg_sq']
-                exp_avg_sq.mul_(debias).addcmul_(grad, grad, value=1.0 - debias)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 if n_sma > 4.0:
-                    de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
+                    de_nom = exp_avg_sq.sqrt().div_(bias_correction2).add_(group['eps'])
                     grad.div_(de_nom)
 
                 self.apply_weight_decay(
@@ -470,8 +444,8 @@ class ScheduleFreeRAdam(BaseOptimizer):
                     grad=grad,
                     lr=lr,
                     weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
+                    weight_decouple=False,
+                    fixed_decay=False,
                 )
 
                 p.lerp_(z, weight=checkpoint)
