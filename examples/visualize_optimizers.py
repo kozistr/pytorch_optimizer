@@ -37,8 +37,8 @@ SPECIAL_SEARCH_SPACES = {
     'dadaptlion': {'lr': hp.uniform('lr', 0, 10)},
     'padam': {'lr': hp.uniform('lr', 0, 10)},
     'dadaptadam': {'lr': hp.uniform('lr', 0, 10)},
-    'adahessian': {'lr': hp.uniform('lr', 0, 800)},  # Wider range for second-order optimizers
-    'sophiah': {'lr': hp.uniform('lr', 0, 60)},  # Wider range for second-order optimizers
+    'adahessian': {'lr': hp.uniform('lr', 0, 800)},
+    'sophiah': {'lr': hp.uniform('lr', 0, 60)},
     'pid': {
         'lr': hp.uniform('lr', 0, 0.5),
         'derivative': hp.quniform('derivative', 2, 14, 0.5),
@@ -85,6 +85,9 @@ SPECIAL_SEARCH_SPACES = {
     'schedulefreesgd': {
         'lr': hp.uniform('lr', 0, 3),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
+    },
+    'schedulefreeradam': {
+        'lr': hp.uniform('lr', 1, 10),
     },
     'kron': {
         'lr': hp.uniform('lr', 0, 0.8),
