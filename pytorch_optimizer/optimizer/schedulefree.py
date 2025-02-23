@@ -396,7 +396,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction2: float = self.debias_beta(beta2, group['step'])
+            bias_correction2: float = self.debias(beta2, group['step'])
 
             lr, n_sma = self.get_rectify_step_size(
                 is_rectify=True,
