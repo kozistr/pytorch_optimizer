@@ -1,3 +1,4 @@
+import math
 import os
 from typing import List, Optional
 
@@ -31,7 +32,9 @@ class Muon(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param betas: The betas for the internal AdamW.
     :param nesterov: bool. whether to use nesterov momentum.
-    :param ns_steps: int. the number of Newton-Schulz iterations to run. (6 is probably always enough)
+    :param ns_steps: int. the number of Newton-Schulz iterations to run. (5 is probably always enough)
+    :param use_adjusted_lr: bool. whether to use adjusted learning rate, which is from the Moonlight.
+        reference: https://github.com/MoonshotAI/Moonlight/blob/master/examples/toy_train.py
     :param adamw_params: The parameters to be optimized by AdamW. Any parameters in `muon_params` which are {0, 1}-D or
         are detected as being the embed or lm_head will be optimized by AdamW as well.
     :param adamw_lr: The learning rate for the internal AdamW.
@@ -49,6 +52,7 @@ class Muon(BaseOptimizer):
         betas: BETAS = (0.9, 0.95),
         nesterov: bool = True,
         ns_steps: int = 5,
+        use_adjusted_lr: bool = False,
         adamw_params: Optional[PARAMETERS] = None,
         adamw_lr: float = 3e-4,
         adamw_wd: float = 0,
@@ -78,6 +82,7 @@ class Muon(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'nesterov': nesterov,
             'ns_steps': ns_steps,
+            'use_adjusted_lr': use_adjusted_lr,
             'adamw_lr': adamw_lr,
             'adamw_lr_ratio': adamw_lr / lr,
             'adamw_betas': betas,
@@ -123,6 +128,11 @@ class Muon(BaseOptimizer):
                 state['momentum_buffer'] = torch.zeros_like(p)
                 state['moment1'] = torch.zeros_like(p)
                 state['moment2'] = torch.zeros_like(p)
+
+    @staticmethod
+    def adjust_lr_for_muon(lr: float, param_shape) -> float:
+        adjusted_ratio: float = 0.2 * math.sqrt(max(param_shape[0], param_shape[1]))
+        return lr * adjusted_ratio
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -171,11 +181,8 @@ class Muon(BaseOptimizer):
                 buf.lerp_(grad, weight=1.0 - momentum)
 
                 grad = grad.lerp_(buf, momentum) if group['nesterov'] else buf
-                if grad.ndim == 4:
-                    grad = grad.view(len(grad), -1)
 
                 grad = zero_power_via_newton_schulz_5(grad, num_steps=group['ns_steps']).flatten()
-                grad.mul_(max(1.0, grad.size(0) / grad.size(1)) ** 0.5)
 
                 updates_flat[curr_idx:curr_idx + p.numel()] = grad  # fmt: skip
 
@@ -184,7 +191,7 @@ class Muon(BaseOptimizer):
 
             curr_idx: int = 0
             for p in params:
-                g = updates_flat[curr_idx:curr_idx + p.numel()].view_as(p).type_as(p)  # fmt: skip
+                g = updates_flat[curr_idx:curr_idx + p.numel()].view_as(p)  # fmt: skip
 
                 self.apply_weight_decay(
                     p,
@@ -195,7 +202,9 @@ class Muon(BaseOptimizer):
                     fixed_decay=False,
                 )
 
-                p.add_(g, alpha=-lr)
+                lr: float = self.adjust_lr_for_muon(lr, p.size()) if group['use_adjusted_lr'] else lr
+
+                p.add_(g, alpha=-lr * (max(1.0, p.size(-2) / p.size(-1)) ** 0.5))
                 curr_idx += p.numel()
 
             params = [p for p in group['params'] if p.grad is not None and not self.state[p]['use_muon']]
