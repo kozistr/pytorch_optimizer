@@ -11,11 +11,14 @@ from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schu
 
 
 class Muon(BaseOptimizer):
-    r"""MomentUm Orthogonalized by Newton-schulz.
+    r"""Momentum Orthogonalized by Newton-schulz.
 
     Muon internally runs standard SGD-momentum, and then performs an orthogonalization post-processing step, in which
     each 2D parameter's update is replaced with the nearest orthogonal matrix. To efficiently orthogonalize each
     update, we use a Newton-Schulz iteration, which has the advantage that it can be stably run in bfloat16 on the GPU.
+
+    Muon is intended to optimize only the internal ≥2D parameters of a network. Embeddings, classifier heads, and
+    scalar or vector parameters should be optimized using AdamW.
 
     Some warnings:
     - We believe this optimizer is unlikely to work well for training with small batch size.
@@ -24,6 +27,8 @@ class Muon(BaseOptimizer):
     :param params: PARAMETERS. the parameters to be optimized by Muon.
     :param lr: float. learning rate.
     :param momentum: float. the momentum used by the internal SGD.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param betas: The betas for the internal AdamW.
     :param nesterov: bool. whether to use nesterov momentum.
     :param ns_steps: int. the number of Newton-Schulz iterations to run. (6 is probably always enough)
@@ -39,9 +44,11 @@ class Muon(BaseOptimizer):
         params: PARAMETERS,
         lr: float = 2e-2,
         momentum: float = 0.95,
-        betas: BETAS = (0.95, 0.95),
+        weight_decay: float = 1e-2,
+        weight_decouple: bool = True,
+        betas: BETAS = (0.9, 0.95),
         nesterov: bool = True,
-        ns_steps: int = 6,
+        ns_steps: int = 5,
         adamw_params: Optional[PARAMETERS] = None,
         adamw_lr: float = 3e-4,
         adamw_wd: float = 0,
@@ -50,6 +57,7 @@ class Muon(BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_learning_rate(adamw_lr)
+        self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='[)')
         self.validate_positive(ns_steps, 'ns_steps')
         self.validate_betas(betas)
@@ -66,6 +74,8 @@ class Muon(BaseOptimizer):
         defaults: DEFAULTS = {
             'lr': lr,
             'momentum': momentum,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
             'nesterov': nesterov,
             'ns_steps': ns_steps,
             'adamw_lr': adamw_lr,
@@ -149,26 +159,25 @@ class Muon(BaseOptimizer):
                     curr_idx += p.numel()
                     continue
 
-                g = p.grad
-                if g.ndim > 2:
-                    g = g.view(g.size(0), -1)
+                grad = p.grad
+                if grad.ndim > 2:
+                    grad = grad.view(grad.size(0), -1)
 
                 state = self.state[p]
                 if 'momentum_buffer' not in state:
-                    state['momentum_buffer'] = torch.zeros_like(g)
+                    state['momentum_buffer'] = torch.zeros_like(grad)
 
                 buf = state['momentum_buffer']
-                buf.mul_(momentum).add_(g)
+                buf.lerp_(grad, weight=1.0 - momentum)
 
-                if group['nesterov']:
-                    g.add_(buf, alpha=momentum)
-                else:
-                    g = buf
+                grad = grad.lerp_(buf, momentum) if group['nesterov'] else buf
+                if grad.ndim == 4:
+                    grad = grad.view(len(grad), -1)
 
-                g = zero_power_via_newton_schulz_5(g, num_steps=group['ns_steps'])
-                g.mul_(max(1.0, g.size(0) / g.size(1)) ** 0.5)
+                grad = zero_power_via_newton_schulz_5(grad, num_steps=group['ns_steps']).flatten()
+                grad.mul_(max(1.0, grad.size(0) / grad.size(1)) ** 0.5)
 
-                updates_flat[curr_idx:curr_idx + p.numel()] = g.flatten()  # fmt: skip
+                updates_flat[curr_idx:curr_idx + p.numel()] = grad  # fmt: skip
 
             if self.world_size > 1:  # pragma: no cover
                 all_reduce(updates_flat, op=ReduceOp.SUM)
@@ -176,6 +185,16 @@ class Muon(BaseOptimizer):
             curr_idx: int = 0
             for p in params:
                 g = updates_flat[curr_idx:curr_idx + p.numel()].view_as(p).type_as(p)  # fmt: skip
+
+                self.apply_weight_decay(
+                    p,
+                    g,
+                    lr=lr,
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=False,
+                )
+
                 p.add_(g, alpha=-lr)
                 curr_idx += p.numel()
 
