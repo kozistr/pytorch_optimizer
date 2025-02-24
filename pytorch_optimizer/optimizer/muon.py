@@ -158,7 +158,6 @@ class Muon(BaseOptimizer):
             if len(params) == 0:
                 continue
 
-            lr = group['lr']
             momentum = group['momentum']
 
             total_params: int = sum(p.numel() for p in params)
@@ -196,14 +195,14 @@ class Muon(BaseOptimizer):
 
                 self.apply_weight_decay(
                     p,
-                    g,
-                    lr=lr,
+                    grad=g,
+                    lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],
                     fixed_decay=False,
                 )
 
-                lr: float = self.adjust_lr_for_muon(lr, p.size()) if group['use_adjusted_lr'] else lr
+                lr: float = self.adjust_lr_for_muon(group['lr'], p.size()) if group['use_adjusted_lr'] else group['lr']
 
                 p.add_(g, alpha=-lr * (max(1.0, p.size(-2) / p.size(-1)) ** 0.5))
                 curr_idx += p.numel()
