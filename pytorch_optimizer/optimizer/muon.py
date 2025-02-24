@@ -35,11 +35,12 @@ class Muon(BaseOptimizer):
     :param ns_steps: int. the number of Newton-Schulz iterations to run. (5 is probably always enough)
     :param use_adjusted_lr: bool. whether to use adjusted learning rate, which is from the Moonlight.
         reference: https://github.com/MoonshotAI/Moonlight/blob/master/examples/toy_train.py
-    :param adamw_params: The parameters to be optimized by AdamW. Any parameters in `muon_params` which are {0, 1}-D or
-        are detected as being the embed or lm_head will be optimized by AdamW as well.
-    :param adamw_lr: The learning rate for the internal AdamW.
-    :param adamw_wd: The weight decay for the internal AdamW.
-    :param adamw_eps: The epsilon for the internal AdamW.
+    :param adamw_params: Optional[PARAMETERS] The parameters to be optimized by AdamW. Any parameters in `muon_params`
+        which are {0, 1}-D or are detected as being the embed or lm_head will be optimized by AdamW as well. It'd be
+        better to create AdamW optimizer instead of using this.
+    :param adamw_lr: float. The learning rate for the internal AdamW.
+    :param adamw_wd: float. The weight decay for the internal AdamW.
+    :param adamw_eps: float. The epsilon for the internal AdamW.
     """
 
     def __init__(
@@ -55,7 +56,7 @@ class Muon(BaseOptimizer):
         use_adjusted_lr: bool = False,
         adamw_params: Optional[PARAMETERS] = None,
         adamw_lr: float = 3e-4,
-        adamw_wd: float = 0,
+        adamw_wd: float = 0.0,
         adamw_eps: float = 1e-8,
         **kwargs,
     ):
