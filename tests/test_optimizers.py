@@ -924,7 +924,7 @@ def test_muon_rank(rank):
     model = nn.Sequential(
         nn.Conv1d(1, 1, 1),
         nn.Conv1d(1, 1, 1),
-        nn.Conv1d(1, 1, 1),
+        nn.Conv2d(1, 1, (2, 2)),
     )
 
     optimizer = Muon(model.parameters())
@@ -932,7 +932,7 @@ def test_muon_rank(rank):
 
     model[0].weight.grad = torch.randn(1, 1, 1)
     model[1].weight.grad = torch.randn(1, 1, 1)
-    model[2].weight.grad = torch.randn(1, 1, 1)
+    model[2].weight.grad = torch.randn(1, 1, 2, 2)
 
     optimizer.step()
 
