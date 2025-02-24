@@ -528,7 +528,7 @@ def merge_small_dims(shape_to_merge: Union[List[int], torch.Size], max_dim: int)
 
 
 def zero_power_via_newton_schulz_5(
-    g: torch.Tensor, num_steps: int = 10, eps: float = 1e-7, weights: Tuple[int, int, int] = (3.4445, -4.7750, 2.0315)
+    g: torch.Tensor, num_steps: int = 5, eps: float = 1e-7, weights: Tuple[int, int, int] = (3.4445, -4.7750, 2.0315)
 ) -> torch.Tensor:
     r"""Compute the zeroth power / orthogonalization of G.
 

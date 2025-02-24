@@ -16,7 +16,7 @@ from pytorch_optimizer.optimizer.alig import l2_projection
 
 filterwarnings('ignore', category=UserWarning)
 
-OPTIMIZERS_IGNORE = ('lomo', 'adalomo', 'demo', 'a2grad')
+OPTIMIZERS_IGNORE = ('lomo', 'adalomo', 'demo', 'a2grad', 'muon')
 OPTIMIZERS_MODEL_INPUT_NEEDED = ('lomo', 'adalomo', 'adammini')
 OPTIMIZERS_GRAPH_NEEDED = ('adahessian', 'sophiah')
 OPTIMIZERS_CLOSURE_NEEDED = ('alig', 'bsam')
@@ -90,10 +90,6 @@ SPECIAL_SEARCH_SPACES = {
         'lr': hp.uniform('lr', 1, 10),
     },
     'kron': {
-        'lr': hp.uniform('lr', 0, 0.8),
-        'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
-    },
-    'muon': {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
     },
