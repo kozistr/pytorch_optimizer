@@ -88,6 +88,7 @@ from pytorch_optimizer.optimizer import (
     SignSGD,
     SophiaH,
     StableAdamW,
+    StableSPAM,
     Tiger,
     Yogi,
 )
@@ -557,6 +558,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (SGDSaI, {'lr': 1e0, 'momentum': 0.0}, 15),
     (Grams, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
     (SPAM, {'lr': 1e0, 'weight_decay': 1e-3, 'warmup_epoch': 1, 'grad_accu_steps': 1, 'update_proj_gap': 1}, 5),
+    (StableSPAM, {'lr': 1e0, 'weight_decay': 1e-3, 'update_proj_gap': 1, 't_max': 5}, 5),
     (TAM, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (AdaTAM, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
     (FOCUS, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
