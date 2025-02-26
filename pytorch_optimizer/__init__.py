@@ -144,6 +144,7 @@ from pytorch_optimizer.optimizer import (
     SignSGD,
     SophiaH,
     StableAdamW,
+    StableSPAM,
     Tiger,
     Yogi,
     agc,
