@@ -392,6 +392,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.StableSPAM
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.SRMM
     :docstring:
     :members:
