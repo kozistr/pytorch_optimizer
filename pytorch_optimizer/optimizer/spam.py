@@ -331,9 +331,9 @@ class StableSPAM(BaseOptimizer):
 
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
-                state['m_norm_t'] = torch.zeros(1, device=p.device, dtype=torch.float32)
-                state['v_norm_t'] = torch.zeros(1, device=p.device, dtype=torch.float32)
-                state['m_max_t'] = torch.zeros(1, device=p.device, dtype=torch.float32)
+                state['m_norm_t'] = torch.zeros(1, device=p.device, dtype=p.dtype)
+                state['v_norm_t'] = torch.zeros(1, device=p.device, dtype=p.dtype)
+                state['m_max_t'] = torch.zeros(1, device=p.device, dtype=p.dtype)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -375,9 +375,9 @@ class StableSPAM(BaseOptimizer):
                 if 'exp_avg' not in state:
                     state['exp_avg'] = torch.zeros_like(grad)
                     state['exp_avg_sq'] = torch.zeros_like(grad)
-                    state['m_norm_t'] = torch.zeros(1, device=grad.device, dtype=torch.float32)
-                    state['v_norm_t'] = torch.zeros(1, device=grad.device, dtype=torch.float32)
-                    state['m_max_t'] = torch.zeros(1, device=grad.device, dtype=torch.float32)
+                    state['m_norm_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
+                    state['v_norm_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
+                    state['m_max_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
 
                 self.apply_weight_decay(
                     p,
