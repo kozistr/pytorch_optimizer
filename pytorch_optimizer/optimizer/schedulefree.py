@@ -1,10 +1,12 @@
-from typing import List
+from collections import defaultdict
+from typing import Callable, Dict, List
 
 import torch
+from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, PARAMETERS, STATE
 
 
 class ScheduleFreeSGD(BaseOptimizer):
@@ -452,5 +454,199 @@ class ScheduleFreeRAdam(BaseOptimizer):
                 p.add_(grad, alpha=adaptive_y_lr)
 
                 z.sub_(grad, alpha=lr)
+
+        return loss
+
+
+class ScheduleFreeWrapper(BaseOptimizer):
+    r"""Wrap any optimizer to make it Schedule-Free.
+
+        This version uses a memory-efficient swap operation but may be slower than the reference version. In most cases
+        the performance difference is negligible. For the best possible performance and memory-usage, Schedule-Free
+        needs to be directly integrated with the base optimizer.
+
+        When using this version, you can disable the base optimizer's momentum, as it's no longer necessary when using
+        our wrapper's momentum (although you can use both types of momentum if you want).
+
+        If you set weight decay on the base optimizer, it computes weight decay at $z$. We offer the option to compute
+        weight decay at $y$, via the `weight_decay_at_y` parameter, which seems to give better results in our
+        experiments. This approach to decay only works correctly if the base optimizer uses group['lr'] as the current
+        learning rate.
+
+    :param optimizer: OPTIMIZER_INSTANCE_OR_CLASS. base optimizer.
+    :param momentum: float. momentum.
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param r: float. use polynomial weighting in the average with power r.
+    :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
+        set to 0 for no weighting.
+    """
+
+    def __init__(
+        self,
+        optimizer: OPTIMIZER_INSTANCE_OR_CLASS,
+        momentum: float = 0.9,
+        weight_decay: float = 0.0,
+        r: float = 0.0,
+        weight_lr_power: float = 2.0,
+        **kwargs,
+    ):
+        self.validate_range(momentum, 'momentum', 0.0, 1.0, '[)')
+        self.validate_non_negative(weight_decay, 'weight_decay')
+
+        self.momentum = momentum
+        self.weight_decay = weight_decay
+        self.r = r
+        self.weight_lr_power = weight_lr_power
+        self.train_mode: bool = False
+
+        self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
+
+        self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
+        self._optimizer_step_post_hooks: Dict[int, Callable] = {}
+
+        self.state: STATE = defaultdict(dict)
+
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+                state['z'] = torch.clone(p)
+
+        self.defaults = self.optimizer.defaults
+
+    def __str__(self) -> str:
+        return 'ScheduleFree'
+
+    @property
+    def param_groups(self):
+        return self.optimizer.param_groups
+
+    def __getstate__(self):
+        return {'state': self.state, 'optimizer': self.optimizer}
+
+    def add_param_group(self, param_group):
+        return self.optimizer.add_param_group(param_group)
+
+    def state_dict(self) -> STATE:
+        return {'schedulefree_state': self.state, 'base_optimizer': self.optimizer.state_dict()}
+
+    def load_state_dict(self, state: STATE) -> None:
+        r"""Load state."""
+        self.state = state['schedulefree_state']
+        self.optimizer.load_state_dict(state['base_optimizer'])
+
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        self.optimizer.zero_grad(set_to_none)
+
+    @torch.no_grad()
+    def eval(self):
+        if not self.train_mode:
+            return
+
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+                if 'z' in state:
+                    p.lerp_(end=state['z'], weight=1.0 - 1.0 / self.momentum)
+
+        self.train_mode = False
+
+    @torch.no_grad()
+    def train(self):
+        if self.train_mode:
+            return
+
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+                if 'z' in state:
+                    p.lerp_(end=state['z'], weight=1.0 - self.momentum)
+
+        self.train_mode = True
+
+    @torch.no_grad()
+    def reset(self):
+        pass
+
+    @staticmethod
+    def swap(x: torch.Tensor, y: torch.Tensor) -> None:
+        x.view(torch.uint8).bitwise_xor_(y.view(torch.uint8))
+        y.view(torch.uint8).bitwise_xor_(x.view(torch.uint8))
+        x.view(torch.uint8).bitwise_xor_(y.view(torch.uint8))
+
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        if not self.train_mode:
+            raise ValueError('optimizer was not in train mode when step is called. call .train() before training')
+
+        loss: LOSS = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                grad = p.grad
+                if grad.is_sparse:
+                    raise NoSparseGradientError(str(self))
+
+                state = self.state[p]
+
+                z = state['z']
+
+                self.apply_weight_decay(
+                    z,
+                    grad,
+                    lr=group['lr'],
+                    weight_decay=self.weight_decay,
+                    weight_decouple=True,
+                    fixed_decay=False,
+                )
+
+                self.apply_weight_decay(
+                    p,
+                    grad,
+                    lr=group['lr'],
+                    weight_decay=self.weight_decay,
+                    weight_decouple=True,
+                    fixed_decay=False,
+                    ratio=1.0 - self.momentum,
+                )
+
+                p.lerp_(end=z, weight=1.0 - 1.0 / self.momentum)
+
+                self.swap(z, p)
+
+        self.optimizer.step()
+
+        for group in self.param_groups:
+            if 'step' in group:
+                group['step'] += 1
+            else:
+                group['step'] = 1
+
+            lr: float = group['lr'] * group.get('d', 1.0)
+            lr_max = group['lr_max'] = max(lr, group.get('lr_max', 0))
+
+            weight: float = (group['step'] ** group['lr']) * (lr_max ** self.weight_lr_power)  # fmt: skip
+            weight_sum = group['weight_sum'] = group.get('weight_sum', 0.0) + weight
+
+            ckeckpoint: float = weight / weight_sum if weight_sum != 0.0 else 0.0
+
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                state = self.state[p]
+
+                z = state['z']
+
+                self.swap(z, p)
+
+                p.lerp_(end=z, weight=ckeckpoint)
+
+                p.lerp_(end=state['z'], weight=1.0 - self.momentum)
 
         return loss

@@ -80,7 +80,12 @@ from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
 from pytorch_optimizer.optimizer.rotograd import RotoGrad
 from pytorch_optimizer.optimizer.sam import BSAM, GSAM, SAM, WSAM, LookSAM
-from pytorch_optimizer.optimizer.schedulefree import ScheduleFreeAdamW, ScheduleFreeRAdam, ScheduleFreeSGD
+from pytorch_optimizer.optimizer.schedulefree import (
+    ScheduleFreeAdamW,
+    ScheduleFreeRAdam,
+    ScheduleFreeSGD,
+    ScheduleFreeWrapper,
+)
 from pytorch_optimizer.optimizer.scion import SCION
 from pytorch_optimizer.optimizer.sgd import ASGD, SGDW, AccSGD, SGDSaI, SignSGD
 from pytorch_optimizer.optimizer.sgdp import SGDP

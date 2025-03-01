@@ -4,7 +4,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.optimizer import SAM, TRAC, WSAM, AdamP, Lookahead, LookSAM, OrthoGrad, load_optimizer
 from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
-from tests.utils import build_environment, simple_parameter, simple_sparse_parameter, sphere_loss
+from tests.utils import build_environment, build_schedulefree, simple_parameter, simple_sparse_parameter, sphere_loss
 
 
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead', 'trac', 'orthograd'])
@@ -181,3 +181,13 @@ def test_2nd_stage_gradient(optimizer_name):
 def test_fromage_zero_norm():
     optimizer = load_optimizer('fromage')([simple_parameter(require_grad=True)])
     optimizer.step()
+
+
+def test_schedulefree_sparse_gradient():
+    param = simple_sparse_parameter()[1]
+
+    optimizer = build_schedulefree([param])
+    optimizer.train()
+
+    with pytest.raises(NoSparseGradientError):
+        optimizer.step(lambda: 0.1)

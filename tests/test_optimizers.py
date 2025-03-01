@@ -18,6 +18,7 @@ from pytorch_optimizer.optimizer import (
     LookSAM,
     Muon,
     PCGrad,
+    ScheduleFreeWrapper,
     load_optimizer,
 )
 from pytorch_optimizer.optimizer.alig import l2_projection
@@ -80,6 +81,9 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
 
     optimizer = optimizer_class(parameters, **config)
 
+    if optimizer_name.endswith('schedulefree'):
+        optimizer.train()
+
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
         optimizer.zero_grad()
@@ -122,6 +126,9 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
         config.update({'adamw_params': adamw_params})
 
     optimizer = optimizer_class(parameters, **config)
+
+    if optimizer_name.endswith('schedulefree'):
+        optimizer.train()
 
     context = torch.autocast('cpu', dtype=torch.bfloat16)
     scaler = torch.GradScaler(device='cpu', enabled=False)
@@ -512,9 +519,12 @@ def test_closure(optimizer):
     param.grad = None
 
     optimizer_name: str = optimizer.__name__
-    optimizer = optimizer([param], num_iterations=1) if optimizer_name == 'Ranger21' else optimizer([param])
 
+    optimizer = optimizer([param], num_iterations=1) if optimizer_name == 'Ranger21' else optimizer([param])
     optimizer.zero_grad()
+
+    if optimizer_name.endswith('schedulefree'):
+        optimizer.train()
 
     if optimizer_name in ('Ranger21', 'Adai', 'AdamS'):
         with pytest.raises(ZeroParameterSizeError):
@@ -969,3 +979,35 @@ def test_kron_optimizer():
     model.norm1.weight.grad = torch.randn((1,))
 
     optimizer.step()
+
+
+def test_schedulefree_wrapper():
+    model = Example()
+
+    optimizer = ScheduleFreeWrapper(load_optimizer('adamw')(model.parameters(), lr=1e-3, weight_decay=1e-3))
+    optimizer.reset()
+    optimizer.zero_grad()
+
+    model.fc1.weight.grad = torch.randn((1, 1))
+    model.norm1.weight.grad = torch.randn((1,))
+
+    with pytest.raises(ValueError):
+        optimizer.step()
+
+    optimizer.eval()
+    optimizer.train()
+
+    _ = optimizer.__str__
+    _ = optimizer.__getstate__()
+    _ = optimizer.param_groups
+
+    optimizer.load_state_dict(optimizer.state_dict())
+
+    optimizer.optimizer.step()
+    optimizer.step()
+
+    optimizer.eval()
+    optimizer.train()
+    optimizer.train()
+
+    optimizer.add_param_group({'params': []})

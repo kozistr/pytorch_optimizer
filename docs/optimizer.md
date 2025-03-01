@@ -336,6 +336,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.ScheduleFreeWrapper
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.SCION
     :docstring:
     :members:

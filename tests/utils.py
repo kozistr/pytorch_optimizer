@@ -6,7 +6,7 @@ from torch import nn
 from torch.nn import functional as f
 
 from pytorch_optimizer.base.type import LOSS
-from pytorch_optimizer.optimizer import AdamW, Lookahead, OrthoGrad
+from pytorch_optimizer.optimizer import AdamW, Lookahead, OrthoGrad, ScheduleFreeWrapper
 
 
 class LogisticRegression(nn.Module):
@@ -109,6 +109,10 @@ def build_lookahead(*parameters, **kwargs):
 
 def build_orthograd(*parameters, **kwargs):
     return OrthoGrad(AdamW(*parameters, **kwargs))
+
+
+def build_schedulefree(*parameters, **kwargs):
+    return ScheduleFreeWrapper(AdamW(*parameters, **kwargs))
 
 
 def ids(v) -> str:

@@ -412,7 +412,7 @@ def power_iteration(mat_g: torch.Tensor, num_iters: int = 100) -> torch.Tensor:
     return (v.t() @ mat_g @ v).clamp_min_(1e-16)
 
 
-@torch.no_grad()
+@torch.inference_mode()
 def compute_power_schur_newton(
     mat_g: torch.Tensor,
     p: int,
@@ -465,24 +465,27 @@ def compute_power_schur_newton(
     alpha: float = -1.0 / p
     alpha_identity = (1.0 - alpha) * identity
 
-    prev_error = torch.max(torch.abs(mat_m - identity))
+    prev_error = torch.dist(mat_m, identity, p=torch.inf)
+
+    mat_m_i = torch.empty_like(mat_m)
+    new_mat_root = torch.empty_like(mat_root)
 
     for _ in range(max_iters):
-        mat_m_i = alpha_identity + alpha * mat_m
+        torch.add(alpha_identity, alpha * mat_m, out=mat_m_i)
+        torch.matmul(mat_root, mat_m_i, out=new_mat_root)
 
-        new_mat_root = torch.matmul(mat_root, mat_m_i)
         torch.matmul(torch.linalg.matrix_power(mat_m_i, p), mat_m, out=mat_m)
 
-        error = torch.max(torch.abs(mat_m - identity))
+        error = torch.dist(mat_m, identity, p=torch.inf)
 
         # NOTE
-        # this is the main bottleneck that makes Scalable Shampoo slow.
-        # because it is handled on the Python side so values need to be on the CPU
-        # while XLA devices (e.g. TPU) doesn't seem to be affected.
+        # This is the main bottleneck that slows Scalable Shampoo.
+        # Because it is handled on the Python side so values need to be on the CPU
+        # while XLA devices (e.g. TPU) don't seem to be affected.
         if torch.logical_or(error > prev_error * max_error_ratio, error <= error_tolerance):
             break
 
-        mat_root = new_mat_root
+        mat_root.copy_(new_mat_root)
         prev_error = error
 
     return mat_root
