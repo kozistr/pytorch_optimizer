@@ -994,8 +994,10 @@ def test_schedulefree_wrapper():
     with pytest.raises(ValueError):
         optimizer.step()
 
+    optimizer.eval()
     optimizer.train()
 
+    _ = optimizer.__str__
     _ = optimizer.__getstate__()
     _ = optimizer.param_groups
 
@@ -1005,6 +1007,7 @@ def test_schedulefree_wrapper():
     optimizer.step()
 
     optimizer.eval()
+    optimizer.train()
     optimizer.train()
 
     optimizer.add_param_group({'params': []})
