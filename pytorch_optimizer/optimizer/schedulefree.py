@@ -594,9 +594,6 @@ class ScheduleFreeWrapper(BaseOptimizer):
 
                 state = self.state[p]
 
-                if 'z' not in state:
-                    state['z'] = torch.clone(p)
-
                 z = state['z']
 
                 self.apply_weight_decay(
