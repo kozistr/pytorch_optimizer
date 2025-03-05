@@ -204,7 +204,6 @@ def execute_steps(
     parameters = list(model.parameters())
     optimizer_name: str = optimizer_class.__name__.lower()
 
-    # Special handling for optimizers with unique requirements
     if optimizer_name == 'ranger21':
         optimizer_config['num_iterations'] = num_iters
     elif optimizer_name == 'ranger25':
@@ -215,11 +214,12 @@ def execute_steps(
         optimizer_config['projection_fn'] = lambda: l2_projection(parameters, max_norm=1)
     elif optimizer_name == 'bsam':
         optimizer_config['num_data'] = 1
+    elif optimizer_name == 'scion':
+        optimizer_config['scale'] = 50.0
 
-    if optimizer_name in OPTIMIZERS_MODEL_INPUT_NEEDED:
-        optimizer = optimizer_class(model, **optimizer_config)
-    else:
-        optimizer = optimizer_class(parameters, **optimizer_config)
+    optimizer = optimizer_class(
+        model if optimizer_name in OPTIMIZERS_MODEL_INPUT_NEEDED else parameters, **optimizer_config
+    )
 
     steps = torch.zeros((2, num_iters + 1), dtype=torch.float32)
     steps[:, 0] = model.x.detach()
@@ -394,7 +394,7 @@ def execute_experiments(
                 rstate=np.random.default_rng(seed),
             )
         except AllTrialsFailed:
-            print(f'⚠️ {optimizer_name} failed to optimize {func.__name__}')  # noqa: T201
+            print(f'{optimizer_name} failed to optimize {func.__name__}')  # noqa: T201
             continue
 
         steps, _ = execute_steps(func, initial_state, optimizer_class, best_params.copy(), TESTING_OPTIMIZATION_STEPS)
