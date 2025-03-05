@@ -12,9 +12,6 @@ def test_create_optimizer(use_lookahead, use_orthograd, optimizer_name):
     if optimizer_name in ('adamw', 'adam', 'sgd', 'demo'):
         pytest.skip(f'skip {optimizer_name}')
 
-    if optimizer_name in ('ranger', 'ranger21', 'ranger25') and use_lookahead:
-        pytest.skip(f'skip {optimizer_name}  w/ lookahead')
-
     if use_lookahead and use_orthograd:
         pytest.skip()
 
