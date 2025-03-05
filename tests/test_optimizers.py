@@ -981,6 +981,31 @@ def test_kron_optimizer():
     optimizer.step()
 
 
+def test_scion_lmo_types():
+    grad = torch.ones(2, 2)
+
+    expected = torch.FloatTensor([[0.3438, 0.3438], [0.3438, 0.3438]]).bfloat16()
+    actual = load_optimizer('scion').get_lmo_direction(grad, 'spectral')
+
+    torch.testing.assert_close(expected, actual, rtol=1e-5, atol=1e-5)
+
+    expected = torch.FloatTensor([[0.5, 0.5], [0.5, 0.5]])
+    actual = load_optimizer('scion').get_lmo_direction(grad, 'sign')
+    torch.testing.assert_close(actual, expected, rtol=1e-5, atol=1e-5)
+
+    expected = torch.FloatTensor([[0.7071, 0.7071], [0.7071, 0.7071]])
+    actual = load_optimizer('scion').get_lmo_direction(grad, 'row_norm')
+    torch.testing.assert_close(actual, expected, rtol=1e-5, atol=1e-5)
+
+    expected = torch.FloatTensor([[0.7071, 0.7071], [0.7071, 0.7071]])
+    actual = load_optimizer('scion').get_lmo_direction(grad, 'col_norm')
+    torch.testing.assert_close(actual, expected, rtol=1e-5, atol=1e-5)
+
+    expected = torch.FloatTensor([[0.5, 0.5], [0.5, 0.5]])
+    actual = load_optimizer('scion').get_lmo_direction(grad, 'asdf')
+    torch.testing.assert_close(actual, expected, rtol=1e-5, atol=1e-5)
+
+
 def test_schedulefree_wrapper():
     model = Example()
 
