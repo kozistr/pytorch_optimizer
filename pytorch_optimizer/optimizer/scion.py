@@ -69,7 +69,7 @@ class SCION(BaseOptimizer):
 
         fallback to `sign`
         """
-        d_out, d_in, *_ = grad.shape
+        d_out, d_in, *_ = grad.shape if grad.ndim > 1 else (grad.size(0), grad.size(0))
 
         if lmo_type == 'spectral':
             return (
