@@ -103,14 +103,14 @@ class Yogi(BaseOptimizer):
                 state = self.state[p]
 
                 if len(state) == 0:
-                    state['exp_avg'] = torch.full_like(p, fill_value=group['initial_accumulator'])
-                    state['exp_avg_sq'] = torch.full_like(p, fill_value=group['initial_accumulator'])
+                    state['exp_avg'] = torch.full_like(grad, fill_value=group['initial_accumulator'])
+                    state['exp_avg_sq'] = torch.full_like(grad, fill_value=group['initial_accumulator'])
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 self.apply_weight_decay(
                     p=p,
-                    grad=p.grad,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],

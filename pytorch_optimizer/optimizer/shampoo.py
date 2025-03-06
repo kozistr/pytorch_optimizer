@@ -303,7 +303,7 @@ class ScalableShampoo(BaseOptimizer):
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['momentum'] = torch.zeros_like(p)
+                    state['momentum'] = torch.zeros_like(grad)
                     state['pre_conditioner'] = PreConditioner(
                         p,
                         beta2,

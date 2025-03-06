@@ -389,7 +389,7 @@ class SignSGD(BaseOptimizer):
                 state = self.state[p]
                 if momentum > 0.0:
                     if len(state) == 0:
-                        state['momentum_buffer'] = torch.zeros_like(p)
+                        state['momentum_buffer'] = torch.zeros_like(grad)
 
                     buf = state['momentum_buffer']
                     buf.mul_(momentum).add_(grad, alpha=1.0 - momentum)
