@@ -155,7 +155,7 @@ class SPAM(BaseOptimizer):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
-                if p.ndim == 2 and 'mask' in state:
+                if p.dim() == 2 and 'mask' in state:
                     state['mask'] = self.update_mask_random(p, state['mask'])
                     p.mask = state['mask']
 
@@ -177,13 +177,7 @@ class SPAM(BaseOptimizer):
 
     @torch.no_grad()
     def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
-
-                state['exp_avg'] = torch.zeros_like(p)
-                state['exp_avg_sq'] = torch.zeros_like(p)
+        pass
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
