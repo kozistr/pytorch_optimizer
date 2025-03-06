@@ -68,7 +68,7 @@ class SPAM(BaseOptimizer):
         betas: BETAS = (0.9, 0.999),
         density: float = 1.0,
         weight_decay: float = 0.0,
-        warmup_epoch: int = 150,
+        warmup_epoch: int = 50,
         threshold: int = 5000,
         grad_accu_steps: int = 20,
         update_proj_gap: int = 500,
@@ -90,10 +90,11 @@ class SPAM(BaseOptimizer):
         self.threshold = threshold
         self.grad_accu_steps = grad_accu_steps
         self.update_proj_gap = update_proj_gap
-        self.warmup = CosineDecay(0.99, warmup_epoch)
 
         defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps, **kwargs}
         super().__init__(params, defaults)
+
+        self.warmup = CosineDecay(0.99, self.warmup_epoch)
 
         self.init_masks()
 
@@ -119,17 +120,16 @@ class SPAM(BaseOptimizer):
 
         return tensor.view(m, n)
 
-    def update_mask_random(self, density: float, p: torch.Tensor, old_mask: torch.Tensor) -> torch.Tensor:
+    def update_mask_random(self, p: torch.Tensor, old_mask: torch.Tensor) -> torch.Tensor:
         r"""Update a random mask.
 
         Create a new random mask with the same density, compute overlap ratio with old_mask, and update the EMA for
         the overlap region.
 
-        :param density: float. fraction of elements to keep.
         :param p: torch.Tensor. parameter to which the mask is applied.
         :param old_mask: torch.Tensor. previous binary mask.
         """
-        new_mask: torch.Tensor = torch.rand_like(p) < density
+        new_mask: torch.Tensor = torch.rand_like(p) < self.density
 
         exp_avg = torch.zeros_like(p[new_mask])
         exp_avg_sq = torch.zeros_like(p[new_mask])
@@ -155,8 +155,8 @@ class SPAM(BaseOptimizer):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
-                if 'mask' in state:
-                    state['mask'] = self.update_mask_random(self.density, p, state['mask'])
+                if p.ndim == 2 and 'mask' in state:
+                    state['mask'] = self.update_mask_random(p, state['mask'])
                     p.mask = state['mask']
 
     def init_masks(self) -> None:
@@ -220,11 +220,7 @@ class SPAM(BaseOptimizer):
                 if 'mask' in state:
                     grad = grad[state['mask']]
 
-                if 'exp_avg' not in state:
-                    state['exp_avg'] = torch.zeros_like(grad)
-                    state['exp_avg_sq'] = torch.zeros_like(grad)
-
-                if (self.state['total_step'] + 1) % self.update_proj_gap == 0:
+                if ('exp_avg' not in state) or (self.state['total_step'] + 1) % self.update_proj_gap == 0:
                     state['exp_avg'] = torch.zeros_like(grad)
                     state['exp_avg_sq'] = torch.zeros_like(grad)
 
