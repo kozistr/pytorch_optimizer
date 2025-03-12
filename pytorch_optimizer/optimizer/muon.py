@@ -1,6 +1,6 @@
 import math
 import os
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import torch
 from torch.distributed import ReduceOp, all_reduce
@@ -131,9 +131,18 @@ class Muon(BaseOptimizer):
                 state['moment2'] = torch.zeros_like(p)
 
     @staticmethod
-    def adjust_lr_for_muon(lr: float, param_shape) -> float:
-        adjusted_ratio: float = 0.2 * math.sqrt(max(param_shape[0], param_shape[1]))
-        return lr * adjusted_ratio
+    def get_adjusted_lr(lr: float, param_shape: Tuple[float, ...], use_adjusted_lr: bool = False) -> float:
+        r"""Get the adjust learning rate."""
+        output_shape, *input_shape = param_shape
+        input_shape = math.prod(input_shape)
+
+        ratio: float = (
+            math.pow(max(1.0, output_shape / input_shape), 0.5)
+            if use_adjusted_lr
+            else 0.2 * math.sqrt(max(output_shape, input_shape))
+        )
+
+        return lr * ratio
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -202,9 +211,9 @@ class Muon(BaseOptimizer):
                     fixed_decay=False,
                 )
 
-                lr: float = self.adjust_lr_for_muon(group['lr'], p.size()) if group['use_adjusted_lr'] else group['lr']
+                lr: float = self.get_adjusted_lr(group['lr'], p.size(), group['use_adjusted_lr'])
 
-                p.add_(g, alpha=-lr * (max(1.0, p.size(-2) / p.size(-1)) ** 0.5))
+                p.add_(g, alpha=-lr)
                 curr_idx += p.numel()
 
             params = [p for p in group['params'] if p.grad is not None and not self.state[p]['use_muon']]
