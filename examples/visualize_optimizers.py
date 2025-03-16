@@ -96,6 +96,26 @@ SPECIAL_SEARCH_SPACES = {
 }
 
 
+def ackley(
+    x: Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor], a: float = 20.0, b: float = 0.2, c: float = 2.0 * np.pi
+) -> torch.Tensor:
+    """
+    Ackley function (non-convex, global minimum at (0, 0)).
+
+    Args:
+        x: Input tensor containing 2D coordinates.
+        a: hyperparameter.
+        b: hyperparameter.
+        c: hyperparameter.
+
+    Returns:
+        torch.Tensor: Computed function value.
+    """
+    sum_sq = -a * torch.exp(-b * torch.sqrt(0.5 * (x[0] ** 2 + x[1] ** 2)))
+    cos = -torch.exp(0.5 * (torch.cos(c * x[0]) + torch.cos(c * x[1])))
+    return sum_sq + cos + np.exp(1) + a
+
+
 def rosenbrock(x: Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]) -> torch.Tensor:
     """
     Rosenbrock function (non-convex, global minimum at (1, 1)).
@@ -438,6 +458,26 @@ def main():
         x_range=(-2, 2),
         y_range=(-1, 3),
         minimum=(1.0, 1.0),
+        seed=SEARCH_SEED,
+    )
+
+    print('Executing Ackley experiments...')  # noqa: T201
+    execute_experiments(
+        [
+            (
+                OPTIMIZERS['ranger'],
+                {
+                    'lr': hp.quniform('lr', 0, 1, 0.01),
+                },
+            )
+        ],
+        ackley,
+        initial_state=(-2.0, -2.0),
+        output_dir=output_dir,
+        experiment_name='ackley',
+        x_range=(-5, 5),
+        y_range=(-5, 5),
+        minimum=(0.0, 0.0),
         seed=SEARCH_SEED,
     )
 
