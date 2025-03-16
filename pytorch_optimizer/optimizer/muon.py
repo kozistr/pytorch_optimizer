@@ -73,8 +73,8 @@ class Muon(BaseOptimizer):
         adamw_params = self.get_parameters(adamw_params) if adamw_params is not None else []
         params.extend(adamw_params)
 
-        self.world_size: int = int(os.environ.get('WORLD_SIZE', 1))
-        self.rank: int = int(os.environ.get('RANK', 0))
+        self.world_size: int = int(os.environ.get('WORLD_SIZE', '1'))
+        self.rank: int = int(os.environ.get('RANK', '0'))
 
         defaults: DEFAULTS = {
             'lr': lr,
