@@ -1026,9 +1026,17 @@ def test_schedulefree_wrapper():
     _ = optimizer.__getstate__()
     _ = optimizer.param_groups
 
-    optimizer.load_state_dict(optimizer.state_dict())
+    optimizer.step()
 
-    optimizer.optimizer.step()
+    backup_state = optimizer.state_dict()
+
+    optimizer = ScheduleFreeWrapper(load_optimizer('adamw')(model.parameters(), lr=1e-3, weight_decay=1e-3))
+    optimizer.reset()
+    optimizer.zero_grad()
+    optimizer.train()
+
+    optimizer.load_state_dict(backup_state)
+
     optimizer.step()
 
     optimizer.eval()

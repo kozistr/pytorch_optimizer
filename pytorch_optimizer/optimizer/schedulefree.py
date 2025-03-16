@@ -505,13 +505,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
 
         self.state: STATE = defaultdict(dict)
-
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
-                state['z'] = torch.clone(p)
-
-        self.defaults = self.optimizer.defaults
+        self.defaults: DEFAULTS = self.optimizer.defaults
 
     def __str__(self) -> str:
         return 'ScheduleFree'
@@ -594,6 +588,9 @@ class ScheduleFreeWrapper(BaseOptimizer):
 
                 state = self.state[p]
 
+                if 'z' not in state:
+                    state['z'] = p.clone()
+
                 z = state['z']
 
                 self.apply_weight_decay(
@@ -633,7 +630,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
             weight: float = (group['step'] ** group['lr']) * (lr_max ** self.weight_lr_power)  # fmt: skip
             weight_sum = group['weight_sum'] = group.get('weight_sum', 0.0) + weight
 
-            ckeckpoint: float = weight / weight_sum if weight_sum != 0.0 else 0.0
+            checkpoint: float = weight / weight_sum if weight_sum != 0.0 else 0.0
 
             for p in group['params']:
                 if p.grad is None:
@@ -645,7 +642,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
 
                 self.swap(z, p)
 
-                p.lerp_(end=z, weight=ckeckpoint)
+                p.lerp_(end=z, weight=checkpoint)
 
                 p.lerp_(end=state['z'], weight=1.0 - self.momentum)
 
