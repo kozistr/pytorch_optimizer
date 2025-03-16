@@ -22,6 +22,10 @@
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_AdaFactor.png)
 
+### AdaGC
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_AdaGC.png)
+
 ### AdaHessian
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_AdaHessian.png)
@@ -326,6 +330,10 @@
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_SignSGD.png)
 
+### SimplifiedAdEMAMix
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_SimplifiedAdEMAMix.png)
+
 ### SM3
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_SM3.png)
@@ -391,6 +399,10 @@
 ### AdaFactor
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_AdaFactor.png)
+
+### AdaGC
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_AdaGC.png)
 
 ### AdaHessian
 
@@ -695,6 +707,10 @@
 ### SignSGD
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_SignSGD.png)
+
+### SimplifiedAdEMAMix
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_SimplifiedAdEMAMix.png)
 
 ### SM3
 
