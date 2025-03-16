@@ -91,12 +91,12 @@ class SM3(BaseOptimizer):
                 state = self.state[p]
                 if len(state) == 0:
                     state['step'] = 0
-                    state['momentum_buffer'] = torch.zeros_like(p)
+                    state['momentum_buffer'] = torch.zeros_like(grad)
 
                     if grad.is_sparse:
                         state['accumulator_0'] = torch.zeros(shape[0], dtype=grad.dtype, device=grad.device)
                     elif rank == 0:
-                        state['accumulator_0'] = torch.zeros_like(p)
+                        state['accumulator_0'] = torch.zeros_like(grad)
                     else:
                         for i in range(rank):
                             state[f'accumulator_{i}'] = torch.zeros(

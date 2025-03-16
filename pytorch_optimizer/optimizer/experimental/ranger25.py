@@ -169,9 +169,9 @@ class Ranger25(BaseOptimizer):
                 state = self.state[p]
 
                 if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-                    state['exp_avg_slow'] = torch.zeros_like(p)
+                    state['exp_avg'] = torch.zeros_like(grad)
+                    state['exp_avg_sq'] = torch.zeros_like(grad)
+                    state['exp_avg_slow'] = torch.zeros_like(grad)
                     state['slow_momentum'] = p.clone()
 
                 self.apply_weight_decay(

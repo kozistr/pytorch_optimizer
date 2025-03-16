@@ -62,11 +62,7 @@ class SGDP(BaseOptimizer):
 
     @torch.no_grad()
     def reset(self):
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
-
-                state['momentum'] = torch.zeros_like(p)
+        pass
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -87,7 +83,7 @@ class SGDP(BaseOptimizer):
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['momentum'] = torch.zeros_like(p)
+                    state['momentum'] = torch.zeros_like(grad)
 
                 buf = state['momentum']
                 buf.mul_(momentum).add_(grad, alpha=1.0 - group['dampening'])

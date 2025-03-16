@@ -113,8 +113,8 @@ class SophiaH(BaseOptimizer):
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['momentum'] = torch.zeros_like(p)
-                    state['hessian_moment'] = torch.zeros_like(p)
+                    state['momentum'] = torch.zeros_like(grad)
+                    state['hessian_moment'] = torch.zeros_like(grad)
 
                 self.apply_weight_decay(
                     p=p,

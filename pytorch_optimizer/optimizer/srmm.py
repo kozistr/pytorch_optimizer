@@ -72,8 +72,8 @@ class SRMM(BaseOptimizer):
 
                 state = self.state[p]
                 if len(state) == 0:
-                    state['mov_avg_grad'] = torch.zeros_like(p)
-                    state['mov_avg_param'] = torch.zeros_like(p)
+                    state['mov_avg_grad'] = torch.zeros_like(grad)
+                    state['mov_avg_param'] = torch.zeros_like(grad)
 
                 mov_avg_grad, mov_avg_param = state['mov_avg_grad'], state['mov_avg_param']
 

@@ -54,13 +54,7 @@ class TAM(BaseOptimizer):
 
     @torch.no_grad()
     def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
-
-                state['s'] = torch.zeros_like(p)
-                state['momentum_buffer'] = torch.zeros_like(p)
+        pass
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -157,14 +151,7 @@ class AdaTAM(BaseOptimizer):
 
     @torch.no_grad()
     def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
-
-                state['s'] = torch.zeros_like(p)
-                state['exp_avg'] = torch.zeros_like(p)
-                state['exp_avg_sq'] = torch.zeros_like(p)
+        pass
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:

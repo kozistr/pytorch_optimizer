@@ -110,17 +110,17 @@ class SWATS(BaseOptimizer):
                 state = self.state[p]
 
                 if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
+                    state['exp_avg'] = torch.zeros_like(grad)
+                    state['exp_avg_sq'] = torch.zeros_like(grad)
                     state['exp_avg2'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
                     if group['ams_bound']:
-                        state['max_exp_avg_sq'] = torch.zeros_like(p)
+                        state['max_exp_avg_sq'] = torch.zeros_like(grad)
                     if group['adanorm']:
                         state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 self.apply_weight_decay(
                     p=p,
-                    grad=p.grad,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],

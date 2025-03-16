@@ -161,7 +161,7 @@ class SOAP(BaseOptimizer):
             # Compute QR decomposition
             # We cast to float32 because:
             #  - torch.linalg.qr does not have support for types like bfloat16 as of PyTorch 2.5.1
-            #  - the correctness / numerical stability of the Q orthogonalization is important for the stability
+            #  - the correctness / numerical stability of the Q orthogonality is important for the stability
             #    of the optimizer
             q, _ = torch.linalg.qr(power_iter.to(torch.float32))
             q = q.to(power_iter.dtype)
