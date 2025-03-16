@@ -41,7 +41,7 @@ class LOMO(BaseOptimizer):
         self.clip_grad_norm = clip_grad_norm
         self.clip_grad_value = clip_grad_value
 
-        self.local_rank: int = int(os.environ.get('LOCAL_RANK', 0))
+        self.local_rank: int = int(os.environ.get('LOCAL_RANK', '0'))
 
         self.gather_norm: bool = False
         self.grad_norms: List[torch.Tensor] = []
@@ -256,7 +256,7 @@ class AdaLOMO(BaseOptimizer):
         self.grad_norms: List[torch.Tensor] = []
         self.clip_coef: Optional[float] = None
 
-        self.local_rank: int = int(os.environ.get('LOCAL_RANK', 0))
+        self.local_rank: int = int(os.environ.get('LOCAL_RANK', '0'))
         self.zero3_enabled: bool = is_deepspeed_zero3_enabled()
 
         self.grad_func: Callable[[Any], Any] = self.fuse_update_zero3() if self.zero3_enabled else self.fuse_update()
