@@ -214,7 +214,7 @@ class SimplifiedAdEMAMix(BaseOptimizer):
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
-        return 'SimAdEMAMix'
+        return 'SimplifiedAdEMAMix'
 
     @torch.no_grad()
     def reset(self):
