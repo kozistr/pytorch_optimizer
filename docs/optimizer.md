@@ -28,6 +28,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.AdaGC
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AdaHessian
     :docstring:
     :members:
@@ -89,6 +93,10 @@
     :members:
 
 ::: pytorch_optimizer.AdEMAMix
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.SimplifiedAdEMAMix
     :docstring:
     :members:
 

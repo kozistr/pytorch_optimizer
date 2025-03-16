@@ -13,6 +13,7 @@ from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
 from pytorch_optimizer.optimizer.adadelta import AdaDelta
 from pytorch_optimizer.optimizer.adafactor import AdaFactor
+from pytorch_optimizer.optimizer.adagc import AdaGC
 from pytorch_optimizer.optimizer.adahessian import AdaHessian
 from pytorch_optimizer.optimizer.adai import Adai
 from pytorch_optimizer.optimizer.adalite import Adalite
@@ -28,7 +29,7 @@ from pytorch_optimizer.optimizer.adanorm import AdaNorm
 from pytorch_optimizer.optimizer.adapnm import AdaPNM
 from pytorch_optimizer.optimizer.adashift import AdaShift
 from pytorch_optimizer.optimizer.adasmooth import AdaSmooth
-from pytorch_optimizer.optimizer.ademamix import AdEMAMix
+from pytorch_optimizer.optimizer.ademamix import AdEMAMix, SimplifiedAdEMAMix
 from pytorch_optimizer.optimizer.adopt import ADOPT
 from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.aggmo import AggMo
@@ -292,6 +293,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaLOMO,
     AdamG,
     AdEMAMix,
+    SimplifiedAdEMAMix,
     SOAP,
     ADOPT,
     FTRL,
@@ -308,6 +310,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     EXAdam,
     SCION,
     StableSPAM,
+    AdaGC,
     Ranger25,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
