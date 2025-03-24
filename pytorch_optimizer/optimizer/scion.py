@@ -357,6 +357,14 @@ class SCION(BaseOptimizer):
         pass
 
     @torch.no_grad()
+    def init(self):
+        for group in self.param_groups:
+            norm = build_lmo_norm(group['norm_type'], **group['norm_kwargs'])
+            for p in group['params']:
+                norm.init(p)
+                p.mul_(group['scale'])
+
+    @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
         loss: LOSS = None
         if closure is not None:
@@ -397,5 +405,126 @@ class SCION(BaseOptimizer):
                     )
 
                 p.add_(update, alpha=-group['lr'])
+
+        return loss
+
+
+class SCIONLight(BaseOptimizer):
+    r"""Memory-efficient variant of the Scion optimizer.
+
+    Example:
+        >>> radius = 50.0
+        >>> parameter_groups = [{
+        ...     'params': model.transformer.h.parameters(),
+        ...     'norm_type': 'spectral',
+        ...     'norm_kwargs': {},
+        ...     'scale': radius,
+        ... }, {
+        ...     'params': model.lm_head.parameters(),
+        ...     'norm_type': 'sign',
+        ...     'norm_kwargs': {},
+        ...     'scale': radius * 60.0,
+        ... }]
+        >>> optimizer = SCIONLight(parameter_groups)
+
+        For more details, checkout here https://github.com/LIONS-EPFL/scion/tree/main?tab=readme-ov-file#examples
+
+    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
+    :param lr: float. learning rate.
+    :param momentum: float. momentum factor. 1.0 - usual momentum.
+    :param constraint: bool. whether to use a constraint SCG or not.
+    :param norm_type: int. supported LMO norm types. 0 stands for no normalization and 1 stands for AUTO. 0 to 7.
+        please check LMONorm Enum class for the details.
+    :param norm_kwargs: Optional[Dict]. arguments for the Norm.
+    :param scale: float. based on the usage of the original intend, 50.0 is used for Transformer block, and 3000.0 is
+        used for others (e.g. Embedding, LM head)
+    :param weight_decay: float. weight decay (L2 penalty).
+    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    """
+
+    def __init__(
+        self,
+        params: PARAMETERS,
+        lr: float = 1e-3,
+        momentum: float = 0.1,
+        constraint: bool = False,
+        norm_type: int = LMONorm.AUTO,
+        norm_kwargs: Optional[Dict] = None,
+        scale: float = 1.0,
+        weight_decay: float = 0.0,
+        weight_decouple: bool = True,
+        **kwargs,
+    ):
+        self.validate_learning_rate(lr)
+        self.validate_range(momentum, 'momentum', 0.0, 1.0, '(]')
+        self.validate_positive(scale, 'scale')
+
+        if norm_kwargs is None:
+            norm_kwargs = {}
+
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'momentum': momentum,
+            'constraint': constraint,
+            'norm_type': norm_type,
+            'norm_kwargs': norm_kwargs,
+            'scale': scale,
+            'weight_decay': weight_decay,
+            'weight_decouple': weight_decouple,
+        }
+        super().__init__(params, defaults)
+
+    def __str__(self) -> str:
+        return 'SCIONLight'
+
+    @torch.no_grad()
+    def reset(self):
+        pass
+
+    @torch.no_grad()
+    def init(self):
+        for group in self.param_groups:
+            norm = build_lmo_norm(group['norm_type'], **group['norm_kwargs'])
+            for p in group['params']:
+                norm.init(p)
+                p.mul_(group['scale'])
+
+    @torch.no_grad()
+    def step(self, closure: CLOSURE = None) -> LOSS:
+        loss: LOSS = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+
+        for group in self.param_groups:
+            norm = build_lmo_norm(group['norm_type'], **group['norm_kwargs'])
+
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                grad = p.grad
+                if grad.is_sparse:
+                    raise NoSparseGradientError(str(self))
+
+                update = norm.lmo(grad).mul_(group['scale'])
+
+                if group['constraint']:
+                    p.mul_(1.0 - group['lr'])
+
+                if not group['constraint'] and group['weight_decay'] > 0.0:
+                    self.apply_weight_decay(
+                        p,
+                        grad,
+                        lr=group['lr'],
+                        weight_decay=group['weight_decay'],
+                        weight_decouple=group['weight_decouple'],
+                        fixed_decay=False,
+                    )
+
+                p.add_(update, alpha=-group['lr'])
+
+                if group['momentum'] != 1.0:
+                    grad.mul_(1.0 - group['momentum'])
 
         return loss
