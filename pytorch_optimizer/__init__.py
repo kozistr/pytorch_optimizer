@@ -141,6 +141,7 @@ from pytorch_optimizer.optimizer import (
     ScheduleFreeRAdam,
     ScheduleFreeSGD,
     ScheduleFreeWrapper,
+    SCIONLight,
     SGDSaI,
     Shampoo,
     SignSGD,
