@@ -87,7 +87,7 @@ from pytorch_optimizer.optimizer.schedulefree import (
     ScheduleFreeSGD,
     ScheduleFreeWrapper,
 )
-from pytorch_optimizer.optimizer.scion import SCION
+from pytorch_optimizer.optimizer.scion import SCION, SCIONLight
 from pytorch_optimizer.optimizer.sgd import ASGD, SGDW, AccSGD, SGDSaI, SignSGD
 from pytorch_optimizer.optimizer.sgdp import SGDP
 from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
@@ -309,6 +309,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Kron,
     EXAdam,
     SCION,
+    SCIONLight,
     StableSPAM,
     AdaGC,
     Ranger25,
