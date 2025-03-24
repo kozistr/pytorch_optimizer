@@ -988,6 +988,11 @@ def test_build_lmo_types(lmo_type):
 
 
 def test_scion_lmo_types():
+    model = Example()
+
+    load_optimizer('scion')(model.parameters()).init()
+    load_optimizer('scionlight')(model.parameters()).init()
+
     grad_1d = torch.ones(1)
     grad_2d = torch.ones(1, 1)
     grad_4d = torch.ones(1, 1, 1, 1)
@@ -1009,6 +1014,10 @@ def test_scion_lmo_types():
         norm.lmo(grad_5d)
 
     norm = build_lmo_norm(norm_type=4, zero_init=True)
+    norm.init(grad_2d)
+    norm.lmo(grad_2d)
+
+    norm = build_lmo_norm(norm_type=4, zero_init=False)
     norm.init(grad_2d)
     norm.lmo(grad_2d)
 
