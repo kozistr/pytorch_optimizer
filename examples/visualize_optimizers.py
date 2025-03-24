@@ -93,6 +93,14 @@ SPECIAL_SEARCH_SPACES = {
         'lr': hp.uniform('lr', 0, 0.8),
         'momentum': hp.quniform('momentum', 0, 0.99, 0.01),
     },
+    'scion': {
+        'lr': hp.uniform('lr', 0, 1),
+        'scale': hp.uniform('scale', 1.0, 1000.0),
+    },
+    'scionlight': {
+        'lr': hp.uniform('lr', 0, 1),
+        'scale': hp.uniform('scale', 1.0, 1000.0),
+    },
 }
 
 
@@ -234,8 +242,6 @@ def execute_steps(
         optimizer_config['projection_fn'] = lambda: l2_projection(parameters, max_norm=1)
     elif optimizer_name == 'bsam':
         optimizer_config['num_data'] = 1
-    elif optimizer_name == 'scion':
-        optimizer_config['scale'] = 50.0
 
     optimizer = optimizer_class(
         model if optimizer_name in OPTIMIZERS_MODEL_INPUT_NEEDED else parameters, **optimizer_config
@@ -458,26 +464,6 @@ def main():
         x_range=(-2, 2),
         y_range=(-1, 3),
         minimum=(1.0, 1.0),
-        seed=SEARCH_SEED,
-    )
-
-    print('Executing Ackley experiments...')  # noqa: T201
-    execute_experiments(
-        [
-            (
-                OPTIMIZERS['ranger'],
-                {
-                    'lr': hp.quniform('lr', 0, 1, 0.01),
-                },
-            )
-        ],
-        ackley,
-        initial_state=(-2.0, -2.0),
-        output_dir=output_dir,
-        experiment_name='ackley',
-        x_range=(-5, 5),
-        y_range=(-5, 5),
-        minimum=(0.0, 0.0),
         seed=SEARCH_SEED,
     )
 
