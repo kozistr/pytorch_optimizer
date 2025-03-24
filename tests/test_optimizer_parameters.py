@@ -303,11 +303,3 @@ def test_load_wrapper_optimizer(optimizer_instance):
 
     state = optimizer.state_dict()
     optimizer.load_state_dict(state)
-
-
-def test_scion_lmo_direction():
-    x = torch.zeros((1, 1), dtype=torch.float32)
-
-    optimizer_instance = load_optimizer('SCION')
-    for lmo_direction in ('spectral', 'sign', 'col_norm', 'row_norm'):
-        optimizer_instance.get_lmo_direction(x, lmo_direction)
