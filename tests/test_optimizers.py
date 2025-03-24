@@ -23,6 +23,7 @@ from pytorch_optimizer.optimizer import (
 )
 from pytorch_optimizer.optimizer.alig import l2_projection
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
+from pytorch_optimizer.optimizer.scion import build_lmo_norm
 from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 from tests.constants import (
     ADAMD_SUPPORTED_OPTIMIZERS,
@@ -981,29 +982,43 @@ def test_kron_optimizer():
     optimizer.step()
 
 
+@pytest.mark.parametrize('lmo_type', list(range(9)))
+def test_build_lmo_types(lmo_type):
+    _ = build_lmo_norm(lmo_type)
+
+
 def test_scion_lmo_types():
-    grad = torch.ones(2, 2)
+    grad_1d = torch.ones(1)
+    grad_2d = torch.ones(1, 1)
+    grad_4d = torch.ones(1, 1, 1, 1)
+    grad_5d = torch.ones(1, 1, 1, 1, 1)
 
-    expected = torch.FloatTensor([[0.3438, 0.3438], [0.3438, 0.3438]]).bfloat16()
-    actual = load_optimizer('scion').get_lmo_direction(grad, 'spectral')
+    norm = build_lmo_norm(norm_type=0)
+    norm.init(grad_2d)
+    norm.lmo(grad_2d)
 
-    torch.testing.assert_close(expected, actual, rtol=1e-5, atol=1e-5)
+    norm = build_lmo_norm(norm_type=1, max_scale=True)
+    for grad in (grad_1d, grad_2d, grad_4d):
+        norm.init(grad)
+        norm.lmo(grad)
 
-    expected = torch.FloatTensor([[0.5, 0.5], [0.5, 0.5]])
-    actual = load_optimizer('scion').get_lmo_direction(grad, 'sign')
-    torch.testing.assert_close(actual, expected, rtol=1e-5, atol=1e-5)
+    with pytest.raises(NotImplementedError):
+        norm.init(grad_5d)
 
-    expected = torch.FloatTensor([[0.7071, 0.7071], [0.7071, 0.7071]])
-    actual = load_optimizer('scion').get_lmo_direction(grad, 'row_norm')
-    torch.testing.assert_close(actual, expected, rtol=1e-5, atol=1e-5)
+    with pytest.raises(NotImplementedError):
+        norm.lmo(grad_5d)
 
-    expected = torch.FloatTensor([[0.7071, 0.7071], [0.7071, 0.7071]])
-    actual = load_optimizer('scion').get_lmo_direction(grad, 'col_norm')
-    torch.testing.assert_close(actual, expected, rtol=1e-5, atol=1e-5)
+    norm = build_lmo_norm(norm_type=4, zero_init=True)
+    norm.init(grad_2d)
+    norm.lmo(grad_2d)
 
-    expected = torch.FloatTensor([[0.5, 0.5], [0.5, 0.5]])
-    actual = load_optimizer('scion').get_lmo_direction(grad, 'asdf')
-    torch.testing.assert_close(actual, expected, rtol=1e-5, atol=1e-5)
+    norm = build_lmo_norm(norm_type=6, normalized=True, transpose=True)
+    norm.init(grad_2d)
+    norm.lmo(grad_2d)
+
+    norm = build_lmo_norm(norm_type=7, normalized=True, transpose=True)
+    norm.init(grad_2d)
+    norm.lmo(grad_2d)
 
 
 def test_schedulefree_wrapper():
