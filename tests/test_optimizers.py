@@ -1007,15 +1007,15 @@ def test_scion_lmo_types():
         norm.init(grad)
         norm.lmo(grad)
 
-    norm = build_lmo_norm(norm_type=2, max_scale=True)
-    norm.init(grad_2d)
-    norm.lmo(grad_2d)
-
     with pytest.raises(NotImplementedError):
         norm.init(grad_5d)
 
     with pytest.raises(NotImplementedError):
         norm.lmo(grad_5d)
+
+    norm = build_lmo_norm(norm_type=2, max_scale=True)
+    norm.init(grad_2d)
+    norm.lmo(grad_2d)
 
     norm = build_lmo_norm(norm_type=4, zero_init=True)
     norm.init(grad_2d)
