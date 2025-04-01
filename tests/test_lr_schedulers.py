@@ -311,10 +311,10 @@ def test_wsd_lr_scheduler():
 
     lr_scheduler = get_wsd_schedule(optimizer, 2, 2, 3, min_lr_ratio=0.1)
 
-    expected_lrs = [0.0, 0.0005, 0.001, 0.001, 0.001, 0.000775, 0.000325, 0.0001, 0.0001, 0.0001]
+    expected_lrs = [0.0005, 0.001, 0.001, 0.001, 0.000775, 0.000325, 0.0001, 0.0001, 0.0001]
 
     for step, expected_lr in enumerate(expected_lrs):
-        lr_scheduler.step(step)
+        lr_scheduler.step()
         np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_last_lr(), 6)
 
 
