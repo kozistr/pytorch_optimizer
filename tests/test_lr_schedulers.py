@@ -200,7 +200,8 @@ def test_get_chebyshev_lr():
     optimizer.step()
 
     lr_scheduler = get_chebyshev_schedule(optimizer, num_epochs=16, is_warmup=True)
-    lr_scheduler.step(0)
+    lr_scheduler.last_epoch = 0
+    lr_scheduler.step()
 
     np.testing.assert_almost_equal(lr_scheduler.get_last_lr(), 1e-3)
 
@@ -208,9 +209,10 @@ def test_get_chebyshev_lr():
     optimizer.step()
 
     lr_scheduler = get_chebyshev_schedule(optimizer, num_epochs=16, is_warmup=False)
+    lr_scheduler.last_epoch = 0
 
-    for i, expected_lr in enumerate(recipes, start=1):
-        lr_scheduler.step(i)
+    for expected_lr in recipes:
+        lr_scheduler.step()
         np.testing.assert_almost_equal(lr_scheduler.get_last_lr(), expected_lr)
 
 
@@ -313,7 +315,7 @@ def test_wsd_lr_scheduler():
 
     expected_lrs = [0.0005, 0.001, 0.001, 0.001, 0.000775, 0.000325, 0.0001, 0.0001, 0.0001]
 
-    for step, expected_lr in enumerate(expected_lrs):
+    for expected_lr in expected_lrs:
         lr_scheduler.step()
         np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_last_lr(), 6)
 
