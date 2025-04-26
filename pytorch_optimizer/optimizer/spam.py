@@ -31,7 +31,8 @@ class CosineDecay:
 
         :param current_step: int. Current step index.
         """
-        self.cosine_stepper.step(current_step)
+        self.cosine_stepper.last_epoch = current_step
+        self.cosine_stepper.step()
 
     def get_death_rate(self, current_step: int) -> float:
         r"""Get the updated rate (death_rate) at the given step.
@@ -266,9 +267,9 @@ class StableSPAM(BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param gamma1: float.
-    :param gamma2: float.
-    :param theta: float.
+    :param gamma1: float. gamma1 parameter.
+    :param gamma2: float. gamma2 parameter.
+    :param theta: float. theta parameter.
     :param t_max: Optional[int]. total number of steps.
     :param eta_min: float. eta_min of CosineDecay.
     :param weight_decay: float. weight decay (L2 penalty).

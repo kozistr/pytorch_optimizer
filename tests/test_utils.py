@@ -247,9 +247,9 @@ def test_version_utils():
     with pytest.raises(ValueError):
         parse_pytorch_version('a.s.d.f')
 
-    assert parse_pytorch_version(torch.__version__) == [2, 6, 0]
+    assert parse_pytorch_version(torch.__version__) == [2, 7, 0]
 
-    assert compare_versions('2.6.0', '2.4.0') >= 0
+    assert compare_versions('2.7.0', '2.4.0') >= 0
 
 
 def test_cpu_offload_optimizer():
