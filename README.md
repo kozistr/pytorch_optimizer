@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **102 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **103 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -211,6 +211,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | StableSPAM          | *How to Train in 4-Bit More Stably than 16-Bit Adam*                                              | [github](https://github.com/TianjinYellow/StableSPAM)                                                          | <https://arxiv.org/abs/2502.17055>                                                          |                                                                                                                                     |
 | AdaGC               | *Improving Training Stability for Large Language Model Pretraining*                               |                                                                                                                | <https://arxiv.org/abs/2502.11034>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250211034W/exportcitation)                                                        |
 | Simplified-Ademamix | *Connections between Schedule-Free Optimizers, AdEMAMix, and Accelerated SGD Variants*            | [github](https://github.com/DepenM/Simplified-AdEMAMix/)                                                       | <https://arxiv.org/abs/2502.02431>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250202431M/exportcitation)                                                        |
+| Fira                | *Can We Achieve Full-rank Training of LLMs Under Low-rank Constraint?*                            | [github](https://github.com/xichen-fy/Fira)                                                                    | <https://arxiv.org/abs/2410.01623                                                           | [cite](https://github.com/xichen-fy/Fira/tree/main?tab=readme-ov-file#citation)                                                     |
 
 ## Supported LR Scheduler
 
