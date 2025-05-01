@@ -211,7 +211,7 @@ class Alice(BaseOptimizer):
         return torch.linalg.eigh(u.T @ a @ u)
 
     def switch(self, q: torch.Tensor, u_prev: torch.Tensor, rank: int, leading_basis: int) -> torch.Tensor:
-        vals, vecs = self.subspace_iteration(q, u_prev, num_steps=1)
+        vals, vecs = self.subspace_iteration(q.to(torch.float32), u_prev.to(torch.float32), num_steps=1)
 
         leading_indices = torch.argsort(vals, descending=True)[:leading_basis]
         u_t1 = vecs[:, leading_indices]
@@ -219,7 +219,7 @@ class Alice(BaseOptimizer):
         u_c, _ = torch.linalg.qr(torch.eye(q.shape[0], device=q.device) - u_t1 @ u_t1.T)
         u_t2 = u_c[:, :rank - leading_basis]  # fmt: skip
 
-        return torch.cat([u_t1, u_t2], dim=1)
+        return torch.cat([u_t1, u_t2], dim=1).to(q.dtype)
 
     @staticmethod
     def compensation(
