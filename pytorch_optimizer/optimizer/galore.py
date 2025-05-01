@@ -84,11 +84,7 @@ class GaLore(BaseOptimizer):
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-
-                if 'rank' in group and p.dim() > 1:
+                if 'rank' in group and p.dim() == 2:
                     if 'projector' not in state:
                         state['projector'] = GaLoreProjector(
                             rank=group['rank'],
@@ -99,14 +95,9 @@ class GaLore(BaseOptimizer):
 
                     grad = state['projector'].project(grad, group['step'])
 
-                self.apply_weight_decay(
-                    p=p,
-                    grad=None,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=True,
-                    fixed_decay=False,
-                )
+                if 'exp_avg' not in state:
+                    state['exp_avg'] = torch.zeros_like(grad)
+                    state['exp_avg_sq'] = torch.zeros_like(grad)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
@@ -116,9 +107,18 @@ class GaLore(BaseOptimizer):
 
                 norm_grad = exp_avg / de_nom
 
-                if 'rank' in group and p.dim() > 1:
+                if 'rank' in group and p.dim() == 2:
                     norm_grad = state['projector'].project_back(norm_grad)
 
                 p.add_(norm_grad, alpha=-step_size)
+
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=True,
+                    fixed_decay=False,
+                )
 
         return loss
