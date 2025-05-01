@@ -123,9 +123,6 @@ class RACS(BaseOptimizer):
                 )
                 state['theta'] = grad_hat_norm.mul_(threshold)
 
-                if len(p.shape) == 1:
-                    p = p.squeeze(0)  # noqa: PLW2901
-
                 p.add_(grad_hat, alpha=-group['lr'] * group['alpha'] * threshold)
 
         return loss
@@ -175,6 +172,7 @@ class Alice(BaseOptimizer):
         self.validate_positive(rank, 'rank')
         self.validate_positive(gamma, 'gamma')
         self.validate_positive(leading_basis, 'leading_basis')
+        self.validate_non_negative(rank - leading_basis, 'rank - leading_basis')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
@@ -219,25 +217,40 @@ class Alice(BaseOptimizer):
         u_t1 = vecs[:, leading_indices]
 
         u_c, _ = torch.linalg.qr(torch.eye(q.shape[0], device=q.device) - u_t1 @ u_t1.T)
-        u_t2 = u_c[:, : rank - leading_basis]
+        u_t2 = u_c[:, :rank - leading_basis]  # fmt: skip
 
         return torch.cat([u_t1, u_t2], dim=1)
 
     @staticmethod
     def compensation(
-        grad: torch.Tensor, u: torch.Tensor, p: torch.Tensor, phi: torch.Tensor, gamma: float, decay_rate: float
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        grad: torch.Tensor,
+        u: torch.Tensor,
+        p: torch.Tensor,
+        phi: torch.Tensor,
+        gamma: float,
+        decay_rate: float,
+        rank: int,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         m, n = grad.shape
 
-        p = decay_rate * p + (1.0 - decay_rate) * (grad.pow(2).sum(dim=1) - (u.T @ grad).pow(2).sum(dim=1))
-        c_t = math.sqrt(abs(m - n)) * (grad - u @ u.T @ grad) / p.sqrt()
+        sigma = u.T @ grad
 
-        n = gamma / max(torch.norm(c_t) / phi, gamma) if phi.item() > 0 else 1.0
+        p.mul_(decay_rate).add_(grad.pow(2).sum(dim=0) - sigma.pow(2).sum(dim=0), alpha=1.0 - decay_rate).clamp_min_(
+            1e-8
+        )
 
-        c_t = n * c_t
+        d = torch.zeros_like(grad)
+        diag_len: int = min(m, n)
+        d[torch.arange(diag_len), torch.arange(diag_len)] = 1.0 / p.sqrt()[:diag_len]
+
+        c_t = math.sqrt(m - rank) * (grad - u @ sigma) * d if m >= rank else torch.zeros_like(grad)
+
+        n = gamma / max(torch.norm(c_t) / phi, gamma) if phi.item() > 0 else torch.ones_like(phi)
+
+        c_t.mul_(n)
         phi = torch.norm(c_t)
 
-        return c_t, p, phi
+        return c_t, phi
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -265,16 +278,20 @@ class Alice(BaseOptimizer):
 
                 state = self.state[p]
 
+                if len(p.shape) == 1:
+                    p = p.unsqueeze(0)  # noqa: PLW2901
+                    grad = grad.unsqueeze(0)
+
                 if len(state) == 0:
                     m, n = grad.shape
 
                     state['U'] = torch.zeros((m, rank), dtype=p.dtype, device=p.device)
                     state['Q'] = torch.zeros((rank, rank), dtype=p.dtype, device=p.device)
 
-                    state['m'] = torch.zeros((rank, m), dtype=p.dtype, device=p.device)
-                    state['v'] = torch.zeros((rank, m), dtype=p.dtype, device=p.device)
+                    state['m'] = torch.zeros((rank, n), dtype=p.dtype, device=p.device)
+                    state['v'] = torch.zeros((rank, n), dtype=p.dtype, device=p.device)
 
-                    state['p'] = torch.zeros((m,), dtype=p.dtype, device=p.device)
+                    state['p'] = torch.zeros((n,), dtype=p.dtype, device=p.device)
                     state['phi'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
                 self.apply_weight_decay(
@@ -298,14 +315,13 @@ class Alice(BaseOptimizer):
                 m.mul_(beta1).add_(sigma, alpha=1.0 - beta1)
                 v.mul_(beta2).add_(sigma.pow(2), alpha=1.0 - beta2)
 
-                c_t, norm, phi = self.compensation(grad, u, state['p'], state['phi'], group['gamma'], beta1)
+                c_t, phi = self.compensation(grad, u, state['p'], state['phi'], group['gamma'], beta1, rank)
 
-                update = m / v.sqrt()
-                update = update + group['alpha_c'] * c_t
+                update = u @ (m / v.sqrt())
+                update.add_(c_t, alpha=group['alpha_c'])
 
                 p.add_(update, alpha=-group['lr'] * group['alpha'])
 
-                state['p'] = norm
                 state['phi'] = phi
 
         return loss
