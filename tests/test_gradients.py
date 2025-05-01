@@ -30,6 +30,8 @@ def test_no_gradients(optimizer_name):
         optimizer = TRAC(load_optimizer('adamw')(params))
     elif optimizer_name == 'orthograd':
         optimizer = OrthoGrad(load_optimizer('adamw')(params))
+    elif optimizer_name == 'alice':
+        optimizer = load_optimizer('alice')(params, rank=2, leading_basis=1)
     else:
         optimizer = load_optimizer(optimizer_name)(params)
 

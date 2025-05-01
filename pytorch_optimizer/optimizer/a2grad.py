@@ -49,17 +49,7 @@ class A2Grad(BaseOptimizer):
 
     @torch.no_grad()
     def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
-
-                state['alpha_k'] = 1.0
-                state['v_k'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
-                state['avg_grad'] = torch.zeros_like(p)
-                state['x_k'] = p.clone()
-                if self.variant == 'exp':
-                    state['v_kk'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
+        pass
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:

@@ -188,6 +188,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Fira
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.FOCUS
     :docstring:
     :members:

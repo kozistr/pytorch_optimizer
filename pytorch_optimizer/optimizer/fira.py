@@ -8,8 +8,8 @@ from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETE
 from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
 
 
-class GaLore(BaseOptimizer):
-    r"""AdamW optimizer with GaLore projector.
+class Fira(BaseOptimizer):
+    r"""Can We Achieve Full-rank Training of LLMs Under Low-rank Constraint? Fira with AdamW optimizer.
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
@@ -43,16 +43,11 @@ class GaLore(BaseOptimizer):
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
-        return 'GaLore'
+        return 'Fira'
 
     @torch.no_grad()
     def reset(self):
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
-
-                state['exp_avg'] = torch.zeros_like(p)
-                state['exp_avg_sq'] = torch.zeros_like(p)
+        pass
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -108,7 +103,27 @@ class GaLore(BaseOptimizer):
                 norm_grad = exp_avg / de_nom
 
                 if 'rank' in group and p.dim() == 2:
-                    norm_grad = state['projector'].project_back(norm_grad)
+                    sub_grad = state['projector'].project_back(grad)
+
+                    norm_dim: int = 0 if norm_grad.shape[0] < norm_grad.shape[1] else 1
+
+                    scaling_factor = torch.norm(norm_grad, dim=norm_dim) / (torch.norm(grad, dim=norm_dim) + 1e-8)
+                    if norm_dim == 1:
+                        scaling_factor = scaling_factor.unsqueeze(1)
+
+                    scaling_grad = grad.sub(sub_grad).mul_(scaling_factor)
+
+                    if 'scaling_grad' in state:
+                        scaling_grad_norm = torch.norm(scaling_grad)
+
+                        limiter = max(scaling_grad_norm / (state['scaling_grad'] + 1e-8), 1.01) / 1.01
+                        scaling_grad.div_(limiter)
+
+                        state['scaling_grad'] = scaling_grad_norm / limiter
+                    else:
+                        state['scaling_grad'] = torch.norm(scaling_grad)
+
+                    norm_grad = state['projector'].project_back(norm_grad).add_(scaling_grad)
 
                 p.add_(norm_grad, alpha=-step_size)
 

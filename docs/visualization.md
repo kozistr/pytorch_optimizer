@@ -174,6 +174,10 @@
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_FAdam.png)
 
+### Fira
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_Fira.png)
+
 ### FOCUS
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_FOCUS.png)
@@ -555,6 +559,10 @@
 ### FAdam
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_FAdam.png)
+
+### Fira
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_Fira.png)
 
 ### FOCUS
 
