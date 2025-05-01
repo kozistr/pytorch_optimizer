@@ -77,6 +77,7 @@ from pytorch_optimizer.optimizer.prodigy import Prodigy
 from pytorch_optimizer.optimizer.psgd import Kron
 from pytorch_optimizer.optimizer.qhadam import QHAdam
 from pytorch_optimizer.optimizer.qhm import QHM
+from pytorch_optimizer.optimizer.racs import RACS, Alice
 from pytorch_optimizer.optimizer.radam import RAdam
 from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
@@ -315,6 +316,8 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaGC,
     Ranger25,
     Fira,
+    RACS,
+    Alice,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
