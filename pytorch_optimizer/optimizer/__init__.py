@@ -45,6 +45,7 @@ from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.exadam import EXAdam
 from pytorch_optimizer.optimizer.experimental.ranger25 import Ranger25
 from pytorch_optimizer.optimizer.fadam import FAdam
+from pytorch_optimizer.optimizer.fira import Fira
 from pytorch_optimizer.optimizer.focus import FOCUS
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
 from pytorch_optimizer.optimizer.fromage import Fromage
@@ -313,6 +314,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     StableSPAM,
     AdaGC,
     Ranger25,
+    Fira,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

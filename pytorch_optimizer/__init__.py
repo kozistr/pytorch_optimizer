@@ -110,6 +110,7 @@ from pytorch_optimizer.optimizer import (
     DynamicLossScaler,
     EXAdam,
     FAdam,
+    Fira,
     Fromage,
     GaLore,
     Grams,
