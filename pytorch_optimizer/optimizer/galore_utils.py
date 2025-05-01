@@ -64,60 +64,72 @@ class GaLoreProjector:
             else (a.to(original_device).type(original_type), b.to(original_device).type(original_type))
         )
 
-    def get_low_rank_grad_std(self, grad: torch.Tensor, steps: int, from_random_matrix: bool) -> torch.Tensor:
+    def get_low_rank_grad_std(
+        self, grad: torch.Tensor, update_ortho_matrix: bool, from_random_matrix: bool
+    ) -> torch.Tensor:
         if grad.shape[0] >= grad.shape[1]:
-            if self.ortho_matrix is None or steps % self.update_proj_gap == 0:
+            if update_ortho_matrix:
                 self.ortho_matrix = self.get_orthogonal_matrix(
                     grad, self.rank, projection_type='right', from_random_matrix=from_random_matrix
                 )
             return torch.matmul(grad, self.ortho_matrix.t())
 
-        if self.ortho_matrix is None or steps % self.update_proj_gap == 0:
+        if update_ortho_matrix:
             self.ortho_matrix = self.get_orthogonal_matrix(
                 grad, self.rank, projection_type='left', from_random_matrix=from_random_matrix
             )
 
         return torch.matmul(self.ortho_matrix.t(), grad)
 
-    def get_low_rank_grad_reverse_std(self, grad: torch.Tensor, steps: int, from_random_matrix: bool) -> torch.Tensor:
+    def get_low_rank_grad_reverse_std(
+        self, grad: torch.Tensor, update_ortho_matrix: bool, from_random_matrix: bool
+    ) -> torch.Tensor:
         if grad.shape[0] >= grad.shape[1]:
-            if self.ortho_matrix is None or steps % self.update_proj_gap == 0:
+            if update_ortho_matrix:
                 self.ortho_matrix = self.get_orthogonal_matrix(
                     grad, self.rank, projection_type='left', from_random_matrix=from_random_matrix
                 )
             return torch.matmul(self.ortho_matrix.t(), grad)
 
-        if self.ortho_matrix is None or steps % self.update_proj_gap == 0:
+        if update_ortho_matrix:
             self.ortho_matrix = self.get_orthogonal_matrix(
                 grad, self.rank, projection_type='right', from_random_matrix=from_random_matrix
             )
 
         return torch.matmul(grad, self.ortho_matrix.t())
 
-    def get_low_rank_grad_right(self, grad: torch.Tensor, steps: int, from_random_matrix: bool) -> torch.Tensor:
-        if self.ortho_matrix is None or steps % self.update_proj_gap == 0:
+    def get_low_rank_grad_right(
+        self, grad: torch.Tensor, update_ortho_matrix: bool, from_random_matrix: bool
+    ) -> torch.Tensor:
+        if update_ortho_matrix:
             self.ortho_matrix = self.get_orthogonal_matrix(
                 grad, self.rank, projection_type='right', from_random_matrix=from_random_matrix
             )
         return torch.matmul(grad, self.ortho_matrix.t())
 
-    def get_low_rank_grad_left(self, grad: torch.Tensor, steps: int, from_random_matrix: bool) -> torch.Tensor:
-        if self.ortho_matrix is None or steps % self.update_proj_gap == 0:
+    def get_low_rank_grad_left(
+        self, grad: torch.Tensor, update_ortho_matrix: bool, from_random_matrix: bool
+    ) -> torch.Tensor:
+        if update_ortho_matrix:
             self.ortho_matrix = self.get_orthogonal_matrix(
                 grad, self.rank, projection_type='left', from_random_matrix=from_random_matrix
             )
         return torch.matmul(self.ortho_matrix.t(), grad)
 
-    def get_low_rank_grad_full(self, grad: torch.Tensor, steps: int, from_random_matrix: bool) -> torch.Tensor:
-        if self.ortho_matrix is None or steps % self.update_proj_gap == 0:
+    def get_low_rank_grad_full(
+        self, grad: torch.Tensor, update_ortho_matrix: bool, from_random_matrix: bool
+    ) -> torch.Tensor:
+        if update_ortho_matrix:
             self.ortho_matrix = self.get_orthogonal_matrix(
                 grad, self.rank, projection_type='full', from_random_matrix=from_random_matrix
             )
         return torch.matmul(self.ortho_matrix[0].t(), grad) @ self.ortho_matrix[1].t()
 
-    def get_low_rank_grad_random(self, grad: torch.Tensor, steps: int, from_random_matrix: bool) -> torch.Tensor:
+    def get_low_rank_grad_random(
+        self, grad: torch.Tensor, update_ortho_matrix: bool, from_random_matrix: bool
+    ) -> torch.Tensor:
         is_right: bool = grad.size(0) >= grad.size(1)
-        if self.ortho_matrix is None or steps % self.update_proj_gap == 0:
+        if update_ortho_matrix:
             self.ortho_matrix = self.get_orthogonal_matrix(
                 grad,
                 self.rank,
@@ -126,19 +138,21 @@ class GaLoreProjector:
             )
         return torch.matmul(grad, self.ortho_matrix.t()) if is_right else torch.matmul(self.ortho_matrix.t(), grad)
 
-    def project(self, full_rank_grad: torch.Tensor, steps: int, from_random_matrix: bool = False) -> torch.Tensor:
+    def project(self, full_rank_grad: torch.Tensor, num_steps: int, from_random_matrix: bool = False) -> torch.Tensor:
+        update_ortho_matrix: bool = self.ortho_matrix is None or num_steps % self.update_proj_gap == 0
+
         if self.projection_type == 'std':
-            return self.get_low_rank_grad_std(full_rank_grad, steps, from_random_matrix)
+            return self.get_low_rank_grad_std(full_rank_grad, update_ortho_matrix, from_random_matrix)
         if self.projection_type == 'reverse_std':
-            return self.get_low_rank_grad_reverse_std(full_rank_grad, steps, from_random_matrix)
+            return self.get_low_rank_grad_reverse_std(full_rank_grad, update_ortho_matrix, from_random_matrix)
         if self.projection_type == 'right':
-            return self.get_low_rank_grad_right(full_rank_grad, steps, from_random_matrix)
+            return self.get_low_rank_grad_right(full_rank_grad, update_ortho_matrix, from_random_matrix)
         if self.projection_type == 'left':
-            return self.get_low_rank_grad_left(full_rank_grad, steps, from_random_matrix)
+            return self.get_low_rank_grad_left(full_rank_grad, update_ortho_matrix, from_random_matrix)
         if self.projection_type == 'full':
-            return self.get_low_rank_grad_full(full_rank_grad, steps, from_random_matrix)
+            return self.get_low_rank_grad_full(full_rank_grad, update_ortho_matrix, from_random_matrix)
         if self.projection_type == 'random':
-            return self.get_low_rank_grad_random(full_rank_grad, steps, from_random_matrix)
+            return self.get_low_rank_grad_random(full_rank_grad, update_ortho_matrix, from_random_matrix)
         raise NotImplementedError
 
     def project_back(self, low_rank_grad: torch.Tensor) -> torch.Tensor:
@@ -150,19 +164,19 @@ class GaLoreProjector:
             ) * self.scale
         if self.projection_type == 'reverse_std':
             return (
-                torch.matmul(self.ortho_matrix, low_rank_grad.t())
-                if low_rank_grad.shape[0] <= low_rank_grad.shape[1]
-                else torch.matmul(low_rank_grad, self.ortho_matrix.t())
+                torch.matmul(self.ortho_matrix, low_rank_grad)
+                if low_rank_grad.shape[0] > low_rank_grad.shape[1]
+                else torch.matmul(low_rank_grad, self.ortho_matrix)
             ) * self.scale
         if self.projection_type == 'right':
-            return torch.matmul(low_rank_grad, self.ortho_matrix.t()) * self.scale
+            return torch.matmul(low_rank_grad, self.ortho_matrix) * self.scale
         if self.projection_type == 'left':
             return torch.matmul(self.ortho_matrix, low_rank_grad) * self.scale
         if self.projection_type == 'full':
-            return torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1].t() * self.scale
+            return torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1] * self.scale
         if self.projection_type == 'random':
             return (
-                torch.matmul(low_rank_grad, self.ortho_matrix.t())
+                torch.matmul(low_rank_grad, self.ortho_matrix)
                 if low_rank_grad.shape[0] >= low_rank_grad.shape[1]
                 else torch.matmul(self.ortho_matrix, low_rank_grad)
             ) * self.scale
