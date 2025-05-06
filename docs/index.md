@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **105 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **106 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -213,6 +213,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | Simplified-Ademamix | *Connections between Schedule-Free Optimizers, AdEMAMix, and Accelerated SGD Variants*                     | [github](https://github.com/DepenM/Simplified-AdEMAMix/)                                                       | <https://arxiv.org/abs/2502.02431>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250202431M/exportcitation)                                                        |
 | Fira                | *Can We Achieve Full-rank Training of LLMs Under Low-rank Constraint?*                                     | [github](https://github.com/xichen-fy/Fira)                                                                    | <https://arxiv.org/abs/2410.01623>                                                          | [cite](https://github.com/xichen-fy/Fira/tree/main?tab=readme-ov-file#citation)                                                     |
 | RACS & Alice        | *Towards Efficient Optimizer Design for LLM via Structured Fisher Approximation with a Low-Rank Extension* |                                                                                                                | <https://arxiv.org/pdf/2502.07752>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250207752G/exportcitation)                                                        |
+| VSGD                | *Variational Stochastic Gradient Descent for Deep Neural Networks*                                         | [github](https://github.com/generativeai-tue/vsgd)                                                             | <https://openreview.net/forum?id=xu4ATNjcdy>                                                | [cite](https://github.com/generativeai-tue/vsgd/tree/main?tab=readme-ov-file#cite)                                                  |
 
 ## Supported LR Scheduler
 
