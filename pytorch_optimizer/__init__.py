@@ -69,6 +69,7 @@ from pytorch_optimizer.optimizer import (
     SWATS,
     TAM,
     TRAC,
+    VSGD,
     WSAM,
     A2Grad,
     AccSGD,
