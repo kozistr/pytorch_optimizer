@@ -20,8 +20,9 @@ keywords = [
     "PNM", "Prodigy", "PSGD", "QHAdam", "QHM", "RACS", "RAdam", "Ranger", "Ranger21", "RotoGrad", "SAM", "GCSAM",
     "LookSAM", "ScheduleFreeSGD", "ScheduleFreeAdamW", "ScheduleFreeRAdam", "SCION", "SGDP", "Shampoo",
     "ScalableShampoo", "SGDW", "SignSGD", "SM3", "SOAP", "SopihaH", "SPAM", "StableSPAM", "SRMM", "StableAdamW",
-    "SWATS", "TAM", "Tiger", "TRAC", "WSAM", "Yogi", "BCE", "BCEFocal", "Focal", "FocalCosine", "SoftF1", "Dice",
-    "LDAM", "Jaccard", "Bi-Tempered", "Tversky", "FocalTversky", "LovaszHinge", "bitsandbytes", "WSD", "QGaLore",
+    "SWATS", "TAM", "Tiger", "TRAC", "VSGD", "WSAM", "Yogi", "BCE", "BCEFocal", "Focal", "FocalCosine", "SoftF1",
+    "Dice", "LDAM", "Jaccard", "Bi-Tempered", "Tversky", "FocalTversky", "LovaszHinge", "bitsandbytes", "WSD",
+    "QGaLore",
 ]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",

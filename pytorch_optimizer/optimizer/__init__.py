@@ -90,7 +90,7 @@ from pytorch_optimizer.optimizer.schedulefree import (
     ScheduleFreeWrapper,
 )
 from pytorch_optimizer.optimizer.scion import SCION, SCIONLight
-from pytorch_optimizer.optimizer.sgd import ASGD, SGDW, AccSGD, SGDSaI, SignSGD
+from pytorch_optimizer.optimizer.sgd import ASGD, SGDW, VSGD, AccSGD, SGDSaI, SignSGD
 from pytorch_optimizer.optimizer.sgdp import SGDP
 from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
 from pytorch_optimizer.optimizer.sm3 import SM3
@@ -318,6 +318,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Fira,
     RACS,
     Alice,
+    VSGD,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

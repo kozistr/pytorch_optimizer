@@ -274,6 +274,10 @@
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_QHM.png)
 
+### RACS
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_RACS.png)
+
 ### RAdam
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_RAdam.png)
@@ -381,6 +385,10 @@
 ### Tiger
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_Tiger.png)
+
+### VSGD
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_VSGD.png)
 
 ### Yogi
 
@@ -660,6 +668,10 @@
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_QHM.png)
 
+### RACS
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_RACS.png)
+
 ### RAdam
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_RAdam.png)
@@ -767,6 +779,10 @@
 ### Tiger
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_Tiger.png)
+
+### VSGD
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_VSGD.png)
 
 ### Yogi
 
