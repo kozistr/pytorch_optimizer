@@ -436,6 +436,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.VSGD
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.WSAM
     :docstring:
     :members:
