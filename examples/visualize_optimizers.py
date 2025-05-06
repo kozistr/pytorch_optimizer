@@ -16,7 +16,7 @@ from pytorch_optimizer.optimizer.alig import l2_projection
 
 filterwarnings('ignore', category=UserWarning)
 
-OPTIMIZERS_IGNORE = ('lomo', 'adalomo', 'demo', 'a2grad', 'muon')
+OPTIMIZERS_IGNORE = ('lomo', 'adalomo', 'demo', 'a2grad', 'muon', 'alice')
 OPTIMIZERS_MODEL_INPUT_NEEDED = ('lomo', 'adalomo', 'adammini')
 OPTIMIZERS_GRAPH_NEEDED = ('adahessian', 'sophiah')
 OPTIMIZERS_CLOSURE_NEEDED = ('alig', 'bsam')
