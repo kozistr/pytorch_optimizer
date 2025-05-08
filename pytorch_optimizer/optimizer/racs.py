@@ -86,13 +86,14 @@ class RACS(BaseOptimizer):
 
                 state = self.state[p]
 
-                if len(p.shape) == 1:
-                    p = p.unsqueeze(0)  # noqa: PLW2901
-                    grad = grad.unsqueeze(0)
+                if grad.ndim < 2:
+                    grad = grad.reshape(len(grad), 1)
+                elif grad.ndim > 2:
+                    grad = grad.reshape(len(grad), -1)
 
                 if len(state) == 0:
-                    state['s'] = torch.zeros(p.size(0), dtype=p.dtype, device=p.device)
-                    state['q'] = torch.ones(p.size(1), dtype=p.dtype, device=p.device)
+                    state['s'] = torch.zeros(grad.size(0), dtype=grad.dtype, device=grad.device)
+                    state['q'] = torch.ones(grad.size(1), dtype=grad.dtype, device=grad.device)
                     state['theta'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 self.apply_weight_decay(
@@ -123,7 +124,7 @@ class RACS(BaseOptimizer):
                 )
                 state['theta'] = grad_hat_norm.mul_(threshold)
 
-                p.add_(grad_hat, alpha=-group['lr'] * group['alpha'] * threshold)
+                p.add_(grad_hat.view_as(p), alpha=-group['lr'] * group['alpha'] * threshold)
 
         return loss
 
@@ -278,9 +279,10 @@ class Alice(BaseOptimizer):
 
                 state = self.state[p]
 
-                if len(p.shape) == 1:
-                    p = p.unsqueeze(0)  # noqa: PLW2901
-                    grad = grad.unsqueeze(0)
+                if grad.ndim < 2:
+                    grad = grad.reshape(len(grad), 1)
+                elif grad.ndim > 2:
+                    grad = grad.reshape(len(grad), -1)
 
                 if len(state) == 0:
                     m, n = grad.shape
@@ -320,7 +322,7 @@ class Alice(BaseOptimizer):
                 update = u @ (m / v.sqrt())
                 update.add_(c_t, alpha=group['alpha_c'])
 
-                p.add_(update, alpha=-group['lr'] * group['alpha'])
+                p.add_(update.view_as(p), alpha=-group['lr'] * group['alpha'])
 
                 state['phi'] = phi
 
