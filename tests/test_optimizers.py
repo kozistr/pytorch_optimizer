@@ -1072,3 +1072,19 @@ def test_schedulefree_wrapper():
     optimizer.train()
 
     optimizer.add_param_group({'params': []})
+
+
+@pytest.mark.parametrize('optimizer_name', ['racs', 'alice'])
+def test_non_linear_parameters(optimizer_name):
+    model = nn.Sequential(
+        nn.Conv1d(8, 4, 1),
+        nn.Conv2d(8, 4, (2, 2)),
+    )
+
+    optimizer = load_optimizer(optimizer_name)(model.parameters(), rank=4, leading_basis=2)
+    optimizer.zero_grad()
+
+    model[0].weight.grad = torch.randn(4, 8, 1)
+    model[1].weight.grad = torch.randn(4, 8, 2, 2)
+
+    optimizer.step()
