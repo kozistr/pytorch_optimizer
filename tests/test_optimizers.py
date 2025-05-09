@@ -168,8 +168,8 @@ def test_complex_optimizers(optimizer_complex_config, complex_environment):
     optimizer_class, config, iterations = optimizer_complex_config
     optimizer_name: str = optimizer_class.__name__.lower()
 
-    if (optimizer_name not in COMPLEX_OPTIMIZERS) or ('ams_bound' in config):
-        pytest.skip(f'{optimizer_name} w/ {config} does not support.')
+    if optimizer_name not in COMPLEX_OPTIMIZERS:
+        pytest.skip(f'{optimizer_name} does not support')
 
     (x_data, y_data), model, loss_fn = complex_environment
 
