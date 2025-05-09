@@ -1,7 +1,7 @@
 import torch
 from torch.nn.functional import softmax
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
@@ -75,6 +75,9 @@ class Adalite(BaseOptimizer):
             if grad.is_sparse:
                 raise NoSparseGradientError(str(self))
 
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
             state = self.state[p]
 
             if len(state) == 0:
@@ -110,8 +113,6 @@ class Adalite(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 

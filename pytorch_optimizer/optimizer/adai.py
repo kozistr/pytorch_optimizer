@@ -2,7 +2,7 @@ import math
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSizeError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
@@ -70,6 +70,9 @@ class Adai(BaseOptimizer):
             if grad.is_sparse:
                 raise NoSparseGradientError(str(self))
 
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
             state = self.state[p]
 
             if len(state) == 0:
@@ -103,8 +106,6 @@ class Adai(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 param_size += p.numel()
 

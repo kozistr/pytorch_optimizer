@@ -115,12 +115,14 @@ class AdamP(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
+
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
+                p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
 
                 if group.get('use_gc'):
                     centralize_gradient(grad, gc_conv_only=False)
@@ -132,7 +134,6 @@ class AdamP(BaseOptimizer):
                     r=group.get('adanorm_r', None),
                 )
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 

@@ -59,6 +59,9 @@ class A2Grad(BaseOptimizer):
             if grad.is_sparse:
                 raise NoSparseGradientError(str(self))
 
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
             state = self.state[p]
 
             if len(state) == 0:
@@ -91,11 +94,6 @@ class A2Grad(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
-
-                if torch.is_complex(p):
-                    raise NoComplexParameterError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 

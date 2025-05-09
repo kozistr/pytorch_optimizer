@@ -2,7 +2,7 @@ import math
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
@@ -80,6 +80,9 @@ class AdaGC(BaseOptimizer):
             if grad.is_sparse:
                 raise NoSparseGradientError(str(self))
 
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
             state = self.state[p]
 
             if 'exp_avg' not in state:
@@ -111,8 +114,6 @@ class AdaGC(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
@@ -127,7 +128,7 @@ class AdaGC(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                gamma = state['gamma']
+                exp_avg, exp_avg_sq, gamma = state['exp_avg'], state['exp_avg_sq'], state['gamma']
 
                 if group['step'] < group['warmup_steps']:
                     grad_norm = get_global_gradient_norm(self.param_groups).add_(group['eps'])
@@ -144,7 +145,6 @@ class AdaGC(BaseOptimizer):
 
                     gamma.mul_(group['beta']).add_(g_hat.norm(), alpha=1.0 - group['beta'])
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(g_hat, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(g_hat, g_hat, value=1.0 - beta2)
 

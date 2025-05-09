@@ -100,12 +100,14 @@ class AdaMod(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
+
+                exp_avg, exp_avg_sq, exp_avg_lr = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_lr']
+
+                p, grad, exp_avg, exp_avg_sq, exp_avg_lr = self.view_as_real(p, grad, exp_avg, exp_avg_sq, exp_avg_lr)
 
                 self.apply_weight_decay(
                     p=p,
@@ -116,7 +118,6 @@ class AdaMod(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
@@ -125,7 +126,6 @@ class AdaMod(BaseOptimizer):
                 update = torch.full_like(de_nom, fill_value=step_size)
                 update.div_(de_nom)
 
-                exp_avg_lr = state['exp_avg_lr']
                 exp_avg_lr.mul_(beta3).add_(update, alpha=1.0 - beta3)
 
                 torch.min(update, exp_avg_lr, out=update)

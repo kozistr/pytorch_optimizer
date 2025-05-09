@@ -88,8 +88,6 @@ class AdaDelta(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
@@ -105,12 +103,16 @@ class AdaDelta(BaseOptimizer):
                 )
 
                 square_avg, acc_delta = state['square_avg'], state['acc_delta']
+
+                p, grad, square_avg, acc_delta = self.view_as_real(p, grad, square_avg, acc_delta)
+
                 square_avg.mul_(rho).addcmul_(grad, grad, value=1.0 - rho)
 
                 std = square_avg.add(group['eps']).sqrt_()
                 delta = acc_delta.add(group['eps']).sqrt_().div_(std).mul_(grad)
 
                 acc_delta.mul_(rho).addcmul_(delta, delta, value=1.0 - rho)
+
                 p.add_(delta, alpha=-group['lr'])
 
         return loss

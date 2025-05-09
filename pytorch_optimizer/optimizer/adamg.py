@@ -108,12 +108,14 @@ class AdamG(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
+
+                m, v, r = state['m'], state['v'], state['r']
+
+                p, grad, m, v, r = self.view_as_real(p, grad, m, v, r)
 
                 self.apply_weight_decay(
                     p=p,
@@ -124,7 +126,6 @@ class AdamG(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                m, v, r = state['m'], state['v'], state['r']
                 v.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                 r.mul_(beta3).add_(self.s(v), alpha=1.0 - beta3)
                 m.mul_(beta1).addcmul_(r, grad, value=1.0 - beta1)

@@ -118,19 +118,23 @@ class Adan(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
+
+                exp_avg, exp_avg_sq, exp_avg_diff = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_diff']
+                grad_diff = state['previous_grad']
+
+                p, grad, exp_avg, exp_avg_sq, exp_avg_diff, grad_diff = self.view_as_real(
+                    p, grad, exp_avg, exp_avg_sq, exp_avg_diff, grad_diff
+                )
 
                 grad.mul_(clip_global_grad_norm)
 
                 if group.get('use_gc'):
                     centralize_gradient(grad, gc_conv_only=False)
 
-                grad_diff = state['previous_grad']
                 grad_diff.add_(grad)
 
                 s_grad = self.get_adanorm_gradient(
@@ -139,8 +143,6 @@ class Adan(BaseOptimizer):
                     exp_grad_norm=state.get('exp_grad_adanorm', None),
                     r=group.get('adanorm_r', None),
                 )
-
-                exp_avg, exp_avg_sq, exp_avg_diff = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_diff']
 
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_diff.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
@@ -159,6 +161,7 @@ class Adan(BaseOptimizer):
                 if not group['weight_decouple']:
                     p.div_(1.0 + group['lr'] * group['weight_decay'])
 
-                state['previous_grad'].copy_(-grad)
+                grad.neg_()
+                state['previous_grad'].copy_(grad if not torch.is_complex(grad) else torch.view_as_complex(grad))
 
         return loss

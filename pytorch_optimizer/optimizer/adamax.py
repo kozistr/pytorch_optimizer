@@ -99,12 +99,14 @@ class AdaMax(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
+
+                exp_avg, exp_inf = state['exp_avg'], state['exp_inf']
+
+                p, grad, exp_avg, exp_inf = self.view_as_real(p, grad, exp_avg, exp_inf)
 
                 self.apply_weight_decay(
                     p=p,
@@ -122,7 +124,6 @@ class AdaMax(BaseOptimizer):
                     r=group.get('adanorm_r', None),
                 )
 
-                exp_avg, exp_inf = state['exp_avg'], state['exp_inf']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
 
                 norm_buf = torch.cat(

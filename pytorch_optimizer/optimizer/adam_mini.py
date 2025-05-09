@@ -5,7 +5,7 @@ import torch
 from torch import distributed as dist
 from torch import nn
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS
 
@@ -286,6 +286,9 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
                 grad = p.grad
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
+
+                if torch.is_complex(p):
+                    raise NoComplexParameterError(str(self))
 
                 grad = grad.to(torch.float32)
 

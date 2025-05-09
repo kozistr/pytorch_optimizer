@@ -164,7 +164,10 @@ class BaseOptimizer(ABC, Optimizer):
         :param eps: float. epsilon.
         """
         if ams_bound:
-            torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
+            if torch.is_complex(max_exp_avg_sq):
+                max_exp_avg_sq = torch.view_as_real(max_exp_avg_sq)
+
+            torch.maximum(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
             de_nom = max_exp_avg_sq.add(eps)
         else:
             de_nom = exp_avg_sq.add(eps)
