@@ -54,6 +54,7 @@ class LaProp(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'ams_bound': ams_bound,
             'eps': eps,
+            **kwargs,
         }
 
         super().__init__(params, defaults)

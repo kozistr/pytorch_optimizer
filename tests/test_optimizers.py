@@ -614,12 +614,11 @@ def test_swats_sgd_phase(environment):
 
     opt = load_optimizer('swats')(model.parameters(), lr=1e-1, nesterov=True, eps=1.0)
 
-    opt.param_groups[0]['step'] = 1  # to bypass to adam -> sgd phase
-
     for _ in range(1):
         loss_fn(model(x_data), y_data).backward()
         opt.step()
 
+    opt.param_groups[0]['step'] = 1  # to bypass to adam -> sgd phase
     opt.param_groups[0]['phase'] = 'sgd'
 
     for _ in range(1):

@@ -64,6 +64,7 @@ class Ranger(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'eps': eps,
+            **kwargs,
         }
 
         super().__init__(params, defaults)

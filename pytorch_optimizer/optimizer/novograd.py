@@ -112,7 +112,7 @@ class NovoGrad(BaseOptimizer):
                 state = self.state[p]
 
                 grads_ema = state['grads_ema']
-                grads_ema.mul_(beta2).add_(grad.pow(2), alpha=1.0 - beta2)
+                grads_ema.mul_(beta2).add_(grad.pow(2).sum(), alpha=1.0 - beta2)
 
                 de_nom = grads_ema.sqrt().add_(group['eps'])
                 grad.div_(de_nom)
