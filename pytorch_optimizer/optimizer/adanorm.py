@@ -69,7 +69,7 @@ class AdaNorm(BaseOptimizer):
             if grad.is_sparse:
                 raise NoSparseGradientError(str(self))
 
-            if torch.is_tensor(p):
+            if torch.is_complex(p):
                 raise NoComplexParameterError(str(self))
 
             state = self.state[p]
