@@ -1,10 +1,17 @@
 import pytest
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.optimizer import SAM, TRAC, WSAM, AdamP, Lookahead, LookSAM, OrthoGrad, load_optimizer
-from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
-from tests.utils import build_environment, build_schedulefree, simple_parameter, simple_sparse_parameter, sphere_loss
+from tests.constants import NO_COMPLEX_OPTIMIZERS, NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
+from tests.utils import (
+    build_environment,
+    build_schedulefree,
+    simple_complex_parameter,
+    simple_parameter,
+    simple_sparse_parameter,
+    sphere_loss,
+)
 
 
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead', 'trac', 'orthograd'])
@@ -192,4 +199,17 @@ def test_schedulefree_sparse_gradient():
     optimizer.train()
 
     with pytest.raises(NoSparseGradientError):
+        optimizer.step(lambda: 0.1)
+
+
+@pytest.mark.parametrize('no_complex_optimizer', NO_COMPLEX_OPTIMIZERS)
+def test_complex_not_supported(no_complex_optimizer):
+    if no_complex_optimizer in ('adam', 'adamw', 'sgd', 'lomo', 'bsam', 'adammini', 'adalomo', 'ranger21'):
+        pytest.skip(f'skip {no_complex_optimizer}.')
+
+    param = simple_complex_parameter()
+
+    optimizer = load_optimizer(optimizer=no_complex_optimizer)([param])
+
+    with pytest.raises((Exception, AttributeError, TypeError, RuntimeError, NoComplexParameterError)):
         optimizer.step(lambda: 0.1)

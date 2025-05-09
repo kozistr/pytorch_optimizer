@@ -57,6 +57,7 @@ class AdaBound(BaseOptimizer):
             'ams_bound': ams_bound,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
         self.base_lrs: List[float] = [group['lr'] for group in self.param_groups]
@@ -132,6 +133,8 @@ class AdaBound(BaseOptimizer):
                 )
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+                p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
+
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 

@@ -3,7 +3,7 @@ from typing import Literal, Optional
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
@@ -94,13 +94,14 @@ class A2Grad(BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
+                if torch.is_complex(p):
+                    raise NoComplexParameterError(str(self))
+
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                avg_grad, v_k, x_k, v_kk = state['avg_grad'], state['v_k'], state['x_k'], state.get('v_kk', None)
-                p, grad, avg_grad, v_k, x_k, v_kk = self.view_as_real(p, grad, avg_grad, v_k, x_k, v_kk)
-
+                avg_grad, v_k, x_k = state['avg_grad'], state['v_k'], state['x_k']
                 avg_grad.add_(grad - avg_grad, alpha=group['step'] + 1)
 
                 delta_k = grad.clone()
@@ -113,6 +114,8 @@ class A2Grad(BaseOptimizer):
                         v_k.mul_((group['step'] / (group['step'] + 1)) ** 2)
                     v_k.add_(delta_k_sq)
                 else:
+                    v_kk = state['v_kk']
+
                     v_kk.mul_(group['rho']).add_(delta_k_sq, alpha=1.0 - group['rho'])
                     torch.max(v_kk, v_k, out=v_k)
 

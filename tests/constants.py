@@ -122,6 +122,11 @@ NO_SPARSE_OPTIMIZERS: List[str] = [
     optimizer for optimizer in VALID_OPTIMIZER_NAMES if optimizer not in SPARSE_OPTIMIZERS
 ]
 
+COMPLEX_OPTIMIZERS: List[str] = ['adabelief', 'adabound']
+NO_COMPLEX_OPTIMIZERS: List[str] = [
+    optimizer for optimizer in VALID_OPTIMIZER_NAMES if optimizer not in COMPLEX_OPTIMIZERS
+]
+
 BETA_OPTIMIZER_NAMES: List[str] = [
     'adabelief',
     'adabound',

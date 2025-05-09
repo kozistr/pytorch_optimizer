@@ -29,6 +29,7 @@ from tests.constants import (
     ADAMD_SUPPORTED_OPTIMIZERS,
     ADANORM_SUPPORTED_OPTIMIZERS,
     ADAPTIVE_FLAGS,
+    COMPLEX_OPTIMIZERS,
     COPT_SUPPORTED_OPTIMIZERS,
     DECOUPLE_FLAGS,
     OPTIMIZERS,
@@ -56,6 +57,11 @@ def environment():
     return build_environment()
 
 
+@pytest.fixture(scope='function')
+def complex_environment():
+    return build_environment(use_complex=True)
+
+
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
 def test_f32_optimizers(optimizer_fp32_config, environment):
     def closure(x):
@@ -64,12 +70,12 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
 
         return _closure
 
-    (x_data, y_data), model, loss_fn = environment
-
     optimizer_class, config, iterations = optimizer_fp32_config
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name == 'Nero' and 'constraints' not in config:
         pytest.skip(f'skip {optimizer_name} w/o {config}')
+
+    (x_data, y_data), model, loss_fn = environment
 
     parameters = list(model.parameters())
 
@@ -109,13 +115,13 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
 
         return _closure
 
-    (x_data, y_data), model, loss_fn = environment
-    model = model.bfloat16()
-
     optimizer_class, config, iterations = optimizer_bf16_config
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name in ('Adai', 'Prodigy', 'Nero'):
         pytest.skip(f'skip {optimizer_name}')
+
+    (x_data, y_data), model, loss_fn = environment
+    model = model.bfloat16()
 
     parameters = list(model.parameters())
 
@@ -145,6 +151,54 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
             init_loss = loss
 
         scaler.scale(loss).backward(create_graph=optimizer_name in ('AdaHessian', 'SophiaH'))
+
+        optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
+
+    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('optimizer_complex_config', OPTIMIZERS, ids=ids)
+def test_complex_optimizers(optimizer_complex_config, complex_environment):
+    def closure(x):
+        def _closure() -> float:
+            return x
+
+        return _closure
+
+    optimizer_class, config, iterations = optimizer_complex_config
+    optimizer_name: str = optimizer_class.__name__.lower()
+
+    if (optimizer_name not in COMPLEX_OPTIMIZERS) or ('ams_bound' in config):
+        pytest.skip(f'{optimizer_name} w/ {config} does not support.')
+
+    (x_data, y_data), model, loss_fn = complex_environment
+
+    x_data = x_data.to(torch.complex64)
+
+    parameters = list(model.parameters())
+
+    if optimizer_name == 'AliG':
+        config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
+    if optimizer_name == 'Muon':
+        adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
+        parameters = [p for i, p in enumerate(parameters) if i < 2]
+        config.update({'adamw_params': adamw_params})
+
+    optimizer = optimizer_class(parameters, **config)
+
+    if optimizer_name.endswith('schedulefree'):
+        optimizer.train()
+
+    init_loss, loss = np.inf, np.inf
+    for _ in range(iterations):
+        optimizer.zero_grad()
+
+        loss = loss_fn(model(x_data), y_data)
+
+        if init_loss == np.inf:
+            init_loss = loss
+
+        loss.backward(create_graph=optimizer_name in ('AdaHessian', 'SophiaH'))
 
         optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
 

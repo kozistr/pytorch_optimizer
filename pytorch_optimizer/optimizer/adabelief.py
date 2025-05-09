@@ -142,6 +142,10 @@ class AdaBelief(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
+                exp_avg, exp_avg_var = state['exp_avg'], state['exp_avg_var']
+
+                p, grad, exp_avg, exp_avg_var = self.view_as_real(p, grad, exp_avg, exp_avg_var)
+
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,
                     adanorm=group.get('adanorm', False),
@@ -149,7 +153,6 @@ class AdaBelief(BaseOptimizer):
                     r=group.get('adanorm_r', None),
                 )
 
-                exp_avg, exp_avg_var = state['exp_avg'], state['exp_avg_var']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
 
                 grad_residual = grad - exp_avg

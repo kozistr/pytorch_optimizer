@@ -21,6 +21,18 @@ class LogisticRegression(nn.Module):
         return self.fc2(x)
 
 
+class ComplexLogisticRegression(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(2, 2, dtype=torch.complex64)
+        self.fc2 = nn.Linear(2, 1, dtype=torch.complex64)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.fc1(x)
+        x = f.relu(x.real) + 1.0j * f.relu(x.imag)
+        return self.fc2(x).real
+
+
 class MultiHeadLogisticRegression(nn.Module):
     def __init__(self):
         super().__init__()
@@ -62,6 +74,12 @@ def simple_zero_rank_parameter(require_grad: bool = True) -> torch.Tensor:
 def simple_parameter(require_grad: bool = True) -> torch.Tensor:
     param = torch.zeros(1, 1).requires_grad_(require_grad)
     param.grad = torch.zeros(1, 1)
+    return param
+
+
+def simple_complex_parameter(require_grad: bool = True) -> torch.Tensor:
+    param = torch.zeros(1, 1, dtype=torch.complex64).requires_grad_(require_grad)
+    param.grad = torch.zeros(1, 1, dtype=torch.complex64)
     return param
 
 
@@ -123,11 +141,13 @@ def names(v) -> str:
     return v.__name__
 
 
-def build_environment(use_gpu: bool = False) -> Tuple[Tuple[torch.Tensor, torch.Tensor], nn.Module, nn.Module]:
+def build_environment(
+    use_gpu: bool = False, use_complex: bool = False
+) -> Tuple[Tuple[torch.Tensor, torch.Tensor], nn.Module, nn.Module]:
     torch.manual_seed(42)
 
     x_data, y_data = make_dataset()
-    model: nn.Module = LogisticRegression()
+    model: nn.Module = LogisticRegression() if not use_complex else ComplexLogisticRegression()
     loss_fn: nn.Module = nn.BCEWithLogitsLoss()
 
     if use_gpu and torch.cuda.is_available():
