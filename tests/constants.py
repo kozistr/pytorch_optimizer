@@ -139,6 +139,9 @@ COMPLEX_OPTIMIZERS: List[str] = [
     'amos',
     'apollodqn',
     'apollo',
+    'avagrad',
+    'diffgrad',
+    'exadam',
 ]
 NO_COMPLEX_OPTIMIZERS: List[str] = [
     optimizer for optimizer in VALID_OPTIMIZER_NAMES if optimizer not in COMPLEX_OPTIMIZERS
