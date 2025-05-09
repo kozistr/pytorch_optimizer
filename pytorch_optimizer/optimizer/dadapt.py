@@ -8,9 +8,9 @@ import math
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm, to_real
 
 
@@ -67,15 +67,17 @@ class DAdaptAdaGrad(BaseOptimizer):
     def __str__(self) -> str:
         return 'DAdaptAdaGrad'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            for p in group['params']:
-                if p.grad is None:
-                    continue
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                state = self.state[p]
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
 
+            state = self.state[p]
+
+            if 'alpha_k' not in state:
                 state['alpha_k'] = torch.full_like(p, fill_value=1e-6)
                 state['sk'] = torch.zeros_like(p)
                 state['x0'] = torch.clone(p)
@@ -110,20 +112,23 @@ class DAdaptAdaGrad(BaseOptimizer):
         sk_l1 = group['sk_l1']
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             eps = group['eps']
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 state = self.state[p]
-                if 'alpha_k' not in state:
-                    state['alpha_k'] = torch.full_like(p, fill_value=1e-6)
-                    state['sk'] = torch.zeros_like(p)
-                    state['x0'] = torch.clone(p)
-                    if grad.is_sparse:
-                        state['weighted_sk'] = torch.zeros_like(p)
 
                 sk, alpha_k = state['sk'], state['alpha_k']
 
@@ -273,12 +278,15 @@ class DAdaptAdam(BaseOptimizer):
         fixed_decay: bool = False,
         bias_correction: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -292,21 +300,27 @@ class DAdaptAdam(BaseOptimizer):
             'step': 0,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'DAdaptAdam'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                if p.grad is None:
-                    continue
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                state = self.state[p]
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
 
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['s'] = torch.zeros_like(p)
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
@@ -332,7 +346,6 @@ class DAdaptAdam(BaseOptimizer):
         bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** (group['step'] + 1))
         bias_correction: float = bias_correction1 / bias_correction2_sq
 
-        # it's not Adam Debias
         d_lr: float = self.apply_adam_debias(
             not group['bias_correction'], step_size=d * lr, bias_correction1=bias_correction
         )
@@ -345,19 +358,21 @@ class DAdaptAdam(BaseOptimizer):
         numerator_weighted = group['numerator_weighted']
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if 'step' not in state:
-                    state['s'] = torch.zeros_like(p)
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
 
                 exp_avg, exp_avg_sq, s = state['exp_avg'], state['exp_avg_sq'], state['s']
 
@@ -432,11 +447,14 @@ class DAdaptSGD(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='[)')
         self.validate_non_negative(weight_decay, 'weight_decay')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -448,21 +466,27 @@ class DAdaptSGD(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'step': 0,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'DAdaptSGD'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                if p.grad is None:
-                    continue
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                state = self.state[p]
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
 
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['z'] = p.clone()
                 state['s'] = torch.zeros_like(p)
                 state['x0'] = p.clone()
@@ -493,19 +517,18 @@ class DAdaptSGD(BaseOptimizer):
         d_lr: float = d * lr / g0_norm
 
         for group in self.param_groups:
+            if group['step'] == 0:
+                self.init_group(group)
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if len(state) == 0:
-                    state['z'] = p.clone()
-                    state['s'] = torch.zeros_like(p)
-                    state['x0'] = p.clone()
 
                 self.apply_weight_decay(
                     p=p,
@@ -571,12 +594,15 @@ class DAdaptAdan(BaseOptimizer):
         d0: float = 1e-6,
         growth_rate: float = float('inf'),
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -588,25 +614,32 @@ class DAdaptAdan(BaseOptimizer):
             'k': 0,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'DAdaptAdan'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            for p in group['params']:
-                if p.grad is None:
-                    continue
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                state = self.state[p]
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
 
-                state['step'] = 0
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if 'exp_avg' not in state:
                 state['s'] = torch.zeros_like(p)
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['exp_avg_diff'] = torch.zeros_like(p)
+                state['previous_grad'] = -grad.clone()
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -631,23 +664,19 @@ class DAdaptAdan(BaseOptimizer):
         gsq_weighted = group['gsq_weighted']
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 0
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if 'step' not in state:
-                    state['step'] = 0
-
-                    state['s'] = torch.zeros_like(p)
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-                    state['exp_avg_diff'] = torch.zeros_like(p)
-                    state['previous_grad'] = -grad.clone()
 
                 grad_diff = state['previous_grad']
                 grad_diff.add_(grad)
@@ -684,6 +713,8 @@ class DAdaptAdan(BaseOptimizer):
             d = max(d, min(d_hat, d * growth_rate))
 
         for group in self.param_groups:
+            group['step'] += 1
+
             group['gsq_weighted'] = gsq_weighted
             group['d'] = d
             for p in group['params']:
@@ -691,8 +722,6 @@ class DAdaptAdan(BaseOptimizer):
                     continue
 
                 state = self.state[p]
-
-                state['step'] += 1
 
                 exp_avg, exp_avg_sq, exp_avg_diff = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_diff']
 
@@ -734,11 +763,14 @@ class DAdaptLion(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -749,21 +781,27 @@ class DAdaptLion(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'step': 0,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'DAdaptLion'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                if p.grad is None:
-                    continue
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                state = self.state[p]
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
 
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
                 state['s'] = torch.zeros_like(p)
 
@@ -791,18 +829,18 @@ class DAdaptLion(BaseOptimizer):
         d_lr: float = d * lr
 
         for group in self.param_groups:
+            if group['step'] == 0:
+                self.init_group(group)
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['s'] = torch.zeros_like(p)
 
                 self.apply_weight_decay(
                     p=p,

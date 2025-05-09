@@ -3,9 +3,9 @@ from typing import Tuple
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class CAME(BaseOptimizer):
@@ -66,18 +66,24 @@ class CAME(BaseOptimizer):
     def __str__(self) -> str:
         return 'CAME'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                grad = p.grad
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
 
-                grad_shape: Tuple[int, ...] = grad.shape
-                factored: bool = self.get_options(grad_shape)
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
 
+            state = self.state[p]
+
+            grad_shape: Tuple[int, ...] = grad.shape
+            factored: bool = self.get_options(grad_shape)
+
+            if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
 
                 if factored:
@@ -126,10 +132,11 @@ class CAME(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2, beta3 = group['betas']
 
@@ -138,33 +145,13 @@ class CAME(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
                 grad_shape: Tuple[int, ...] = grad.shape
                 factored: bool = self.get_options(grad_shape)
-
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-
-                    if factored:
-                        state['exp_avg_sq_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype, device=grad.device)
-                        state['exp_avg_sq_col'] = torch.zeros(
-                            grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype, device=grad.device
-                        )
-                        state['exp_avg_res_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype, device=grad.device)
-                        state['exp_avg_res_col'] = torch.zeros(
-                            grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype, device=grad.device
-                        )
-                    else:
-                        state['exp_avg_sq'] = torch.zeros_like(grad)
-
-                    if group['ams_bound']:
-                        state['exp_avg_sq_hat'] = torch.zeros_like(grad)
-
-                    state['RMS'] = 0.0
 
                 state['RMS'] = self.get_rms(p)
 

@@ -124,12 +124,16 @@ class DiffGrad(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
+
+                exp_avg, exp_avg_sq, previous_grad = state['exp_avg'], state['exp_avg_sq'], state['previous_grad']
+
+                p, grad, exp_avg, exp_avg_sq, previous_grad = self.view_as_real(
+                    p, grad, exp_avg, exp_avg_sq, previous_grad
+                )
 
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,
@@ -138,7 +142,6 @@ class DiffGrad(BaseOptimizer):
                     r=group.get('adanorm_r', None),
                 )
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
@@ -149,9 +152,11 @@ class DiffGrad(BaseOptimizer):
                     eps=group['eps'],
                 )
 
-                dfc = state['previous_grad'].clone()
+                dfc = previous_grad.clone()
                 dfc.sub_(grad).abs_().sigmoid_().mul_(exp_avg)
-                state['previous_grad'].copy_(grad)
+                state['previous_grad'].copy_(
+                    torch.view_as_complex(grad) if torch.is_complex(state['previous_grad']) else grad
+                )
 
                 if not group['rectify']:
                     p.addcdiv_(exp_avg, de_nom, value=-step_size)

@@ -110,6 +110,10 @@ class AvaGrad(BaseOptimizer):
 
                 state = self.state[p]
 
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
+                p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
+
                 self.apply_weight_decay(
                     p=p,
                     grad=grad,
@@ -119,10 +123,7 @@ class AvaGrad(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                exp_avg = state['exp_avg']
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
-
-                exp_avg_sq = state['exp_avg_sq']
                 sqrt_exp_avg_sq = exp_avg_sq.sqrt()
 
                 if group['step'] > 1:
