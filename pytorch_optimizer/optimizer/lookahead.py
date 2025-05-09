@@ -76,7 +76,7 @@ class Lookahead(BaseOptimizer):
         self.optimizer.zero_grad(set_to_none=set_to_none)
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['counter'] = 0
 

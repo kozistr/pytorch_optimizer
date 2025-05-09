@@ -20,6 +20,7 @@ class RACS(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -33,6 +34,7 @@ class RACS(BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -41,6 +43,8 @@ class RACS(BaseOptimizer):
         self.validate_positive(gamma, 'gamma')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -52,13 +56,14 @@ class RACS(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'RACS'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()
@@ -146,6 +151,7 @@ class Alice(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -163,6 +169,7 @@ class Alice(BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -176,6 +183,8 @@ class Alice(BaseOptimizer):
         self.validate_non_negative(rank - leading_basis, 'rank - leading_basis')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -191,13 +200,14 @@ class Alice(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Alice'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @staticmethod

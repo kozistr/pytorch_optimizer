@@ -12,13 +12,14 @@ class Amos(BaseOptimizer):
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
-    :param beta: float. A float slightly < 1. We recommend setting `1 - beta` to the same order of magnitude
-        as the learning rate. similarity with beta2 in Adam.
+    :param beta: float. A float slightly < 1. We recommend setting `1 - beta` to the same order of magnitude as the
+        learning rate. similarity with beta2 in Adam.
     :param momentum: float. Exponential decay rate for optional moving average of updates.
     :param extra_l2: float. Additional L2 regularization.
     :param c_coef: float. Coefficient for decay_factor_c.
     :param d_coef: float. Coefficient for decay_factor_d.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -31,6 +32,7 @@ class Amos(BaseOptimizer):
         c_coef: float = 0.25,
         d_coef: float = 0.25,
         eps: float = 1e-18,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -41,6 +43,7 @@ class Amos(BaseOptimizer):
 
         self.c_coef = c_coef
         self.d_coef = d_coef
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -56,7 +59,7 @@ class Amos(BaseOptimizer):
         return 'Amos'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

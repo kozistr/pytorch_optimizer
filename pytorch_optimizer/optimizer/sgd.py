@@ -17,6 +17,7 @@ class AccSGD(BaseOptimizer):
     :param xi: float. statistical advantage parameter.
     :param constant: float. any small constant under 1.
     :param weight_decay: float. weight decay.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -27,6 +28,7 @@ class AccSGD(BaseOptimizer):
         xi: float = 10.0,
         constant: float = 0.7,
         weight_decay: float = 0.0,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -35,6 +37,8 @@ class AccSGD(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_boundary(constant, boundary=1.0, bound_type='upper')
 
+        self.maximize = maximize
+
         defaults: DEFAULTS = {
             'lr': lr,
             'kappa': kappa,
@@ -42,13 +46,14 @@ class AccSGD(BaseOptimizer):
             'constant': constant,
             'weight_decay': weight_decay,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'AccSGD'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:
@@ -113,7 +118,8 @@ class SGDW(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param dampening: float. dampening for momentum.
-    :param nesterov: bool. enables Nesterov momentum
+    :param nesterov: bool. enables Nesterov momentum.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -125,11 +131,14 @@ class SGDW(BaseOptimizer):
         weight_decouple: bool = True,
         dampening: float = 0.0,
         nesterov: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -146,7 +155,7 @@ class SGDW(BaseOptimizer):
         return 'SGDW'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
@@ -211,6 +220,7 @@ class ASGD(BaseOptimizer):
     :param theta: float. theta.
     :param dampening: float. dampening for momentum.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -224,12 +234,15 @@ class ASGD(BaseOptimizer):
         theta: float = 1.0,
         dampening: float = 1.0,
         eps: float = 1e-5,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(amplifier, 'amplifier')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -248,7 +261,7 @@ class ASGD(BaseOptimizer):
         return 'ASGD'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             for _ in group['params']:
                 pass
@@ -333,6 +346,7 @@ class SignSGD(BaseOptimizer):
     :param momentum: float. momentum factor (0.0 = SignSGD, >0 = Signum).
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -342,11 +356,14 @@ class SignSGD(BaseOptimizer):
         momentum: float = 0.9,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'beta', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -354,13 +371,14 @@ class SignSGD(BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'SignSGD'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:
@@ -410,6 +428,7 @@ class SGDSaI(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -420,6 +439,7 @@ class SGDSaI(BaseOptimizer):
         weight_decay: float = 1e-2,
         weight_decouple: bool = True,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -428,6 +448,7 @@ class SGDSaI(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.has_warmup: bool = False
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -436,13 +457,14 @@ class SGDSaI(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'SGDSaI'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:
@@ -533,6 +555,7 @@ class VSGD(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -574,7 +597,7 @@ class VSGD(BaseOptimizer):
         return 'VSGD'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()

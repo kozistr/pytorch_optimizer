@@ -15,6 +15,7 @@ class LARS(BaseOptimizer):
     :param dampening: float. dampening for momentum.
     :param trust_coefficient: float. trust_coefficient.
     :param nesterov: bool. enables nesterov momentum.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -26,6 +27,7 @@ class LARS(BaseOptimizer):
         dampening: float = 0.0,
         trust_coefficient: float = 1e-3,
         nesterov: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -33,6 +35,8 @@ class LARS(BaseOptimizer):
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
         self.validate_range(dampening, 'dampening', 0.0, 1.0)
         self.validate_non_negative(trust_coefficient, 'trust_coefficient')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -42,13 +46,14 @@ class LARS(BaseOptimizer):
             'trust_coefficient': trust_coefficient,
             'nesterov': nesterov,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Lars'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]

@@ -21,6 +21,7 @@ class SGDP(BaseOptimizer):
         on scale-variant parameters.
     :param nesterov: bool. enables nesterov momentum.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -36,12 +37,15 @@ class SGDP(BaseOptimizer):
         wd_ratio: float = 0.1,
         nesterov: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_range(wd_ratio, 'wd_ratio', 0.0, 1.0)
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -55,13 +59,14 @@ class SGDP(BaseOptimizer):
             'nesterov': nesterov,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'SGDP'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()

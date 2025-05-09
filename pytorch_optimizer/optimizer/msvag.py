@@ -11,6 +11,7 @@ class MSVAG(BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param beta: float. Moving average (momentum) constant (scalar tensor or float value).
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -18,19 +19,23 @@ class MSVAG(BaseOptimizer):
         params: PARAMETERS,
         lr: float = 1e-2,
         beta: float = 0.9,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')
 
+        self.maximize = maximize
+
         defaults: DEFAULTS = {'lr': lr, 'beta': beta}
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'MSVAG'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]

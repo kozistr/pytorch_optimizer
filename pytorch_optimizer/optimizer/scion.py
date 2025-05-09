@@ -315,6 +315,7 @@ class SCION(BaseOptimizer):
         used for others (e.g. Embedding, LM head)
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -328,11 +329,14 @@ class SCION(BaseOptimizer):
         scale: float = 1.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, '(]')
         self.validate_positive(scale, 'scale')
+
+        self.maximize = maximize
 
         if norm_kwargs is None:
             norm_kwargs = {}
@@ -347,13 +351,14 @@ class SCION(BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'SCION'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()
@@ -440,6 +445,7 @@ class SCIONLight(BaseOptimizer):
         used for others (e.g. Embedding, LM head)
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -453,11 +459,14 @@ class SCIONLight(BaseOptimizer):
         scale: float = 1.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, '(]')
         self.validate_positive(scale, 'scale')
+
+        self.maximize = maximize
 
         if norm_kwargs is None:
             norm_kwargs = {}
@@ -478,7 +487,7 @@ class SCIONLight(BaseOptimizer):
         return 'SCIONLight'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()

@@ -33,6 +33,7 @@ class SM3(BaseOptimizer):
         memory usage if `momentum > 0.0`. This is ignored if the parameter's gradient is sparse.
     :param beta: float. coefficient used for exponential moving averages.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -42,6 +43,7 @@ class SM3(BaseOptimizer):
         momentum: float = 0.0,
         beta: float = 0.0,
         eps: float = 1e-30,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -49,14 +51,17 @@ class SM3(BaseOptimizer):
         self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')
         self.validate_non_negative(eps, 'eps')
 
+        self.maximize = maximize
+
         defaults: DEFAULTS = {'lr': lr, 'momentum': momentum, 'beta': beta, 'eps': eps}
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'SM3'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]

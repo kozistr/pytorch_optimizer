@@ -3,7 +3,7 @@ from torch.nn.functional import softmax
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class Adalite(BaseOptimizer):
@@ -20,6 +20,7 @@ class Adalite(BaseOptimizer):
     :param tau: float.
     :param eps1: float. term added to the denominator to improve numerical stability.
     :param eps2: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -35,6 +36,7 @@ class Adalite(BaseOptimizer):
         tau: float = 1.0,
         eps1: float = 1e-6,
         eps2: float = 1e-10,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -42,6 +44,8 @@ class Adalite(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps1, 'eps1')
         self.validate_non_negative(eps2, 'eps2')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -54,19 +58,26 @@ class Adalite(BaseOptimizer):
             'tau': tau,
             'eps1': eps1,
             'eps2': eps2,
+            **kwargs,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Adalite'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 if len(p.shape) < 2:
                     state['m_avg'] = torch.zeros_like(p)
                     state['v_avg'] = torch.zeros_like(p)
@@ -86,10 +97,11 @@ class Adalite(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -101,19 +113,9 @@ class Adalite(BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 state = self.state[p]
-
-                if len(state) == 0:
-                    if len(p.shape) < 2:
-                        state['m_avg'] = torch.zeros_like(p)
-                        state['v_avg'] = torch.zeros_like(p)
-                    else:
-                        state['v_avg_0'] = torch.zeros_like(p.mean(dim=1))
-                        state['v_avg_1'] = torch.zeros_like(p.mean(dim=0))
-
-                        state['m_avg_c'] = torch.zeros_like(p.mean(dim=1)[:, None])
-                        state['m_avg_r'] = torch.zeros_like(p.mean(dim=0)[None, :])
-                        state['m_avg_u'] = torch.zeros_like(p.mean().unsqueeze(0).unsqueeze(0))
 
                 if sum(grad.shape) > 1:
                     trust_ratio = (p.norm() / grad.norm().clip(min=group['g_norm_min'])).clip(min=group['ratio_min'])

@@ -14,6 +14,7 @@ class Tiger(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -24,11 +25,14 @@ class Tiger(BaseOptimizer):
         weight_decay: float = 0.01,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[)')
         self.validate_non_negative(weight_decay, 'weight_decay')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -44,7 +48,7 @@ class Tiger(BaseOptimizer):
         return 'Tiger'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()

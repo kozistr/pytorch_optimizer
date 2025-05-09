@@ -20,21 +20,26 @@ class Fromage(BaseOptimizer):
     :param lr: float. learning rate.
     :param p_bound: Optional[float]. Restricts the optimisation to a bounded set. A value of 2.0 restricts parameter
         norms to lie within 2x their initial norms. This regularises the model class.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
-    def __init__(self, params: PARAMETERS, lr: float = 1e-2, p_bound: Optional[float] = None, **kwargs):
+    def __init__(
+        self, params: PARAMETERS, lr: float = 1e-2, p_bound: Optional[float] = None, maximize: bool = False, **kwargs
+    ):
         self.validate_learning_rate(lr)
 
         self.p_bound = p_bound
+        self.maximize = maximize
 
         defaults: DEFAULTS = {'lr': lr}
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Fromage'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]

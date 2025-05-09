@@ -17,6 +17,7 @@ class TAM(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -29,6 +30,7 @@ class TAM(BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -36,6 +38,8 @@ class TAM(BaseOptimizer):
         self.validate_range(decay_rate, 'decay_rate', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -53,7 +57,7 @@ class TAM(BaseOptimizer):
         return 'TAM'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()
@@ -114,6 +118,7 @@ class AdaTAM(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -126,6 +131,7 @@ class AdaTAM(BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -133,6 +139,8 @@ class AdaTAM(BaseOptimizer):
         self.validate_range(decay_rate, 'decay_rate', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -150,7 +158,7 @@ class AdaTAM(BaseOptimizer):
         return 'AdaTAM'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()

@@ -27,6 +27,7 @@ class SOAP(BaseOptimizer):
     :param correct_bias: bool. whether to correct bias in Adam.
     :param normalize_gradient: bool. whether to normalize the gradients.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -44,6 +45,7 @@ class SOAP(BaseOptimizer):
         normalize_gradient: bool = False,
         data_format: DATA_FORMAT = 'channels_first',
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -55,6 +57,7 @@ class SOAP(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.data_format = data_format
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -69,13 +72,14 @@ class SOAP(BaseOptimizer):
             'normalize_gradient': normalize_gradient,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'SOAP'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

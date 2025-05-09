@@ -40,7 +40,7 @@ class PCGrad(BaseOptimizer):
         self.reduction = reduction
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         self.zero_grad()
 
     def zero_grad(self):

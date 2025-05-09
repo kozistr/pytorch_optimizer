@@ -17,6 +17,7 @@ class PNM(BaseOptimizer):
     :param weight_decouple: bool. use weight_decouple.
     :param fixed_decay: bool. fix weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -28,12 +29,15 @@ class PNM(BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -42,13 +46,14 @@ class PNM(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'PNM'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

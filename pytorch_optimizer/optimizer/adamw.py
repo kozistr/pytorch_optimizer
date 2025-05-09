@@ -18,6 +18,7 @@ class StableAdamW(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. decoupled weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -29,12 +30,15 @@ class StableAdamW(BaseOptimizer):
         weight_decay: float = 1e-2,
         weight_decouple: bool = True,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -51,7 +55,7 @@ class StableAdamW(BaseOptimizer):
         return 'StableAdamW'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

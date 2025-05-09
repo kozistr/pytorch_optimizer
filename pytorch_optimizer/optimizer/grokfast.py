@@ -112,6 +112,7 @@ class GrokFastAdamW(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -128,6 +129,7 @@ class GrokFastAdamW(BaseOptimizer):
         fixed_decay: bool = False,
         normalize_lr: bool = True,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -135,6 +137,8 @@ class GrokFastAdamW(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_range(grokfast_alpha, 'grokfast_alpha', 0.0, 1.0)
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         if grokfast and normalize_lr:
             lr /= 1.0 + grokfast_lamb
@@ -157,7 +161,7 @@ class GrokFastAdamW(BaseOptimizer):
         return 'GrokFastAdamW'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

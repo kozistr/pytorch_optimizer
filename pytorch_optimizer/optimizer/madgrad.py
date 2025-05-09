@@ -22,6 +22,7 @@ class MADGRAD(BaseOptimizer):
         MADGRAD optimizer requires less weight decay than other methods, often as little as zero.
         On sparse problems both weight_decay and momentum should be set to 0.
     :param weight_decouple: float. Apply AdamW style decoupled weight decay.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -32,12 +33,15 @@ class MADGRAD(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         eps: float = 1e-6,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -46,13 +50,14 @@ class MADGRAD(BaseOptimizer):
             'momentum': momentum,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'MADGRAD'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         self.state['k'] = torch.tensor([0], dtype=torch.long, requires_grad=False)
 
         for group in self.param_groups:

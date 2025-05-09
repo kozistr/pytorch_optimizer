@@ -13,6 +13,7 @@ class FOCUS(BaseOptimizer):
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param gamma: float. control the strength of the attraction.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -22,12 +23,15 @@ class FOCUS(BaseOptimizer):
         betas: BETAS = (0.9, 0.999),
         gamma: float = 0.1,
         weight_decay: float = 0.0,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_range(gamma, 'gamma', 0.0, 1.0, '[)')
         self.validate_non_negative(weight_decay, 'weight_decay')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'gamma': gamma, 'weight_decay': weight_decay}
 
@@ -37,7 +41,7 @@ class FOCUS(BaseOptimizer):
         return 'FOCUS'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

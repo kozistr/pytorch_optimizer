@@ -2,7 +2,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class RAdam(BaseOptimizer):
@@ -16,10 +16,8 @@ class RAdam(BaseOptimizer):
     :param fixed_decay: bool. fix weight decay.
     :param n_sma_threshold: int. (recommended is 5).
     :param degenerated_to_sgd: float. degenerated to SGD.
-    :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
-    :param adanorm: bool. whether to use the AdaNorm variant.
-    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -32,10 +30,8 @@ class RAdam(BaseOptimizer):
         fixed_decay: bool = False,
         n_sma_threshold: int = 5,
         degenerated_to_sgd: bool = False,
-        r: float = 0.95,
-        adanorm: bool = False,
-        adam_debias: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -45,6 +41,7 @@ class RAdam(BaseOptimizer):
 
         self.n_sma_threshold = n_sma_threshold
         self.degenerated_to_sgd = degenerated_to_sgd
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -52,29 +49,32 @@ class RAdam(BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
-            'adanorm': adanorm,
-            'adam_debias': adam_debias,
             'eps': eps,
+            **kwargs,
         }
-        if adanorm:
-            defaults.update({'r': r})
 
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'RAdam'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
-                if group['adanorm']:
-                    state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
+
+                if group.get('adanorm'):
+                    state['exp_grad_adanorm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -84,10 +84,11 @@ class RAdam(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -103,7 +104,7 @@ class RAdam(BaseOptimizer):
             )
 
             step_size = self.apply_adam_debias(
-                adam_debias=group['adam_debias'],
+                adam_debias=group.get('adam_debias', False),
                 step_size=step_size,
                 bias_correction1=bias_correction1,
             )
@@ -116,13 +117,9 @@ class RAdam(BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
-                state = self.state[p]
+                self.maximize_gradient(grad, maximize=self.maximize)
 
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-                    if group['adanorm']:
-                        state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
+                state = self.state[p]
 
                 if step_size > 0 or n_sma >= self.n_sma_threshold:
                     self.apply_weight_decay(
@@ -136,9 +133,9 @@ class RAdam(BaseOptimizer):
 
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,
-                    adanorm=group['adanorm'],
-                    exp_grad_norm=state.get('exp_grad_norm', None),
-                    r=group.get('r', None),
+                    adanorm=group.get('adanorm', False),
+                    exp_grad_norm=state.get('exp_grad_adanorm', None),
+                    r=group.get('adanorm_r', None),
                 )
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']

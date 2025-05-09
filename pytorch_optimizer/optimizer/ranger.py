@@ -2,7 +2,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 
 
@@ -19,10 +19,8 @@ class Ranger(BaseOptimizer):
     :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high.
     :param use_gc: bool. use Gradient Centralization (both convolution & fc layers).
     :param gc_conv_only: bool. use Gradient Centralization (only convolution layer).
-    :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
-    :param adanorm: bool. whether to use the AdaNorm variant.
-    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -39,10 +37,8 @@ class Ranger(BaseOptimizer):
         fixed_decay: bool = False,
         use_gc: bool = True,
         gc_conv_only: bool = False,
-        r: float = 0.95,
-        adanorm: bool = False,
-        adam_debias: bool = False,
         eps: float = 1e-5,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -56,6 +52,7 @@ class Ranger(BaseOptimizer):
         self.degenerated_to_sgd = degenerated_to_sgd
         self.use_gc = use_gc
         self.gc_gradient_threshold: int = 3 if gc_conv_only else 1
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -66,31 +63,33 @@ class Ranger(BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
-            'adanorm': adanorm,
-            'adam_debias': adam_debias,
             'eps': eps,
         }
-        if adanorm:
-            defaults.update({'r': r})
 
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Ranger'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['slow_buffer'] = torch.empty_like(p)
                 state['slow_buffer'].copy_(p)
-                if group['adanorm']:
-                    state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
+
+                if group.get('adanorm'):
+                    state['exp_grad_adanorm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -100,10 +99,11 @@ class Ranger(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -119,7 +119,7 @@ class Ranger(BaseOptimizer):
             )
 
             step_size = self.apply_adam_debias(
-                adam_debias=group['adam_debias'],
+                adam_debias=group.get('adam_debias', False),
                 step_size=step_size,
                 bias_correction1=bias_correction1,
             )
@@ -132,14 +132,9 @@ class Ranger(BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 state = self.state[p]
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-                    state['slow_buffer'] = torch.empty_like(p)
-                    state['slow_buffer'].copy_(p)
-                    if group['adanorm']:
-                        state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 if self.use_gc and grad.dim() > self.gc_gradient_threshold:
                     centralize_gradient(grad, gc_conv_only=False)
@@ -155,9 +150,9 @@ class Ranger(BaseOptimizer):
 
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,
-                    adanorm=group['adanorm'],
-                    exp_grad_norm=state.get('exp_grad_norm', None),
-                    r=group.get('r', None),
+                    adanorm=group.get('adanorm', False),
+                    exp_grad_norm=state.get('exp_grad_adanorm', None),
+                    r=group.get('adanorm_r', None),
                 )
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']

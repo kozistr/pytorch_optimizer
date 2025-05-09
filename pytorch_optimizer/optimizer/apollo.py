@@ -24,6 +24,7 @@ class ApolloDQN(BaseOptimizer):
     :param weight_decay_type: str. type of weight decay. (l2, decoupled, stable).
     :param warmup_steps: int. number of warmup steps.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -65,7 +66,7 @@ class ApolloDQN(BaseOptimizer):
         return 'ApolloDQN'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:
@@ -163,6 +164,7 @@ class APOLLO(BaseOptimizer):
     :param fixed_decay: bool. fix weight decay.
     :param correct_bias: bool. Whether to correct bias in Adam.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -176,12 +178,15 @@ class APOLLO(BaseOptimizer):
         fixed_decay: bool = False,
         correct_bias: bool = True,
         eps: float = 1e-6,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -194,13 +199,14 @@ class APOLLO(BaseOptimizer):
             'eps': eps,
             **kwargs,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'APOLLO'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

@@ -24,6 +24,7 @@ class Shampoo(BaseOptimizer):
     :param preconditioning_compute_steps: int. performance tuning params for controlling memory and compute
         requirements. How often to compute pre-conditioner.
     :param matrix_eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -36,6 +37,7 @@ class Shampoo(BaseOptimizer):
         fixed_decay: bool = False,
         preconditioning_compute_steps: int = 1,
         matrix_eps: float = 1e-6,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -45,6 +47,7 @@ class Shampoo(BaseOptimizer):
         self.validate_non_negative(matrix_eps, 'matrix_eps')
 
         self.preconditioning_compute_steps = preconditioning_compute_steps
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -54,13 +57,14 @@ class Shampoo(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'matrix_eps': matrix_eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Shampoo'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
 
@@ -187,6 +191,7 @@ class ScalableShampoo(BaseOptimizer):
         Theoretically, Schur-Newton method is faster than SVD method. However, the inefficiency of the loop code and
         proper svd kernel, SVD is much faster in some cases (usually in case of small models).
         see https://github.com/kozistr/pytorch_optimizer/pull/103
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -212,6 +217,7 @@ class ScalableShampoo(BaseOptimizer):
         diagonal_eps: float = 1e-10,
         matrix_eps: float = 1e-6,
         use_svd: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -236,6 +242,7 @@ class ScalableShampoo(BaseOptimizer):
         self.diagonal_eps = diagonal_eps
         self.matrix_eps = matrix_eps
         self.use_svd = use_svd
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -246,13 +253,14 @@ class ScalableShampoo(BaseOptimizer):
             'moving_average_for_momentum': moving_average_for_momentum,
             'nesterov': nesterov,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'ScalableShampoo'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

@@ -21,6 +21,7 @@ class CAME(BaseOptimizer):
     :param ams_bound: bool. whether to use the AMSBound variant.
     :param eps1: float. term added to the denominator to improve numerical stability.
     :param eps2: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -35,6 +36,7 @@ class CAME(BaseOptimizer):
         ams_bound: bool = False,
         eps1: float = 1e-30,
         eps2: float = 1e-16,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -46,6 +48,7 @@ class CAME(BaseOptimizer):
         self.clip_threshold = clip_threshold
         self.eps1 = eps1
         self.eps2 = eps2
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -57,13 +60,14 @@ class CAME(BaseOptimizer):
             'eps1': eps1,
             'eps2': eps2,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'CAME'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

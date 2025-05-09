@@ -60,6 +60,7 @@ class SPAM(BaseOptimizer):
     :param grad_accu_steps: int. gradient accumulation steps before threshold-based masking applies. defaults to 20.
     :param update_proj_gap: int. update projection gap.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -74,6 +75,7 @@ class SPAM(BaseOptimizer):
         grad_accu_steps: int = 20,
         update_proj_gap: int = 500,
         eps: float = 1e-6,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -91,8 +93,10 @@ class SPAM(BaseOptimizer):
         self.threshold = threshold
         self.grad_accu_steps = grad_accu_steps
         self.update_proj_gap = update_proj_gap
+        self.maximize = maximize
 
         defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps, **kwargs}
+
         super().__init__(params, defaults)
 
         self.warmup = CosineDecay(0.99, self.warmup_epoch)
@@ -177,7 +181,7 @@ class SPAM(BaseOptimizer):
         return 'SPAM'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()
@@ -275,6 +279,7 @@ class StableSPAM(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param update_proj_gap: int. update projection gap.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -290,6 +295,7 @@ class StableSPAM(BaseOptimizer):
         weight_decay: float = 0.0,
         update_proj_gap: int = 1000,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -304,17 +310,19 @@ class StableSPAM(BaseOptimizer):
         self.t_max = t_max
         self.update_proj_gap = update_proj_gap
         self.warmup = CosineDecay(1.0, t_max, eta_min=eta_min) if t_max is not None else None
+        self.maximize = maximize
 
         self.total_step: int = 0
 
         defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps, **kwargs}
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'StableSPAM'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

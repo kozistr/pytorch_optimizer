@@ -26,6 +26,7 @@ class AliG(BaseOptimizer):
     :param projection_fn: Callable. projection function to enforce constraints.
     :param momentum: float. momentum.
     :param adjusted_momentum: bool. if True, use pytorch-like momentum, instead of standard Nesterov momentum.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -35,14 +36,17 @@ class AliG(BaseOptimizer):
         projection_fn: Optional[Callable] = None,
         momentum: float = 0.0,
         adjusted_momentum: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(max_lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
 
         self.projection_fn = projection_fn
+        self.maximize = maximize
 
         defaults: DEFAULTS = {'max_lr': max_lr, 'adjusted_momentum': adjusted_momentum, 'momentum': momentum}
+
         super().__init__(params, defaults)
 
         if self.projection_fn is not None:
@@ -52,7 +56,7 @@ class AliG(BaseOptimizer):
         return 'AliG'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]

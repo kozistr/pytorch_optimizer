@@ -86,7 +86,7 @@ class Ranger25(BaseOptimizer):
         return 'Ranger25'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

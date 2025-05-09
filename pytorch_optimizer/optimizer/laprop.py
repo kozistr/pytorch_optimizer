@@ -4,7 +4,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class LaProp(BaseOptimizer):
@@ -18,8 +18,8 @@ class LaProp(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param ams_bound: bool. whether to use the AMSBound variant.
-    :param cautious: bool. whether to use the Cautious variant.
     :param eps: float. epsilon value.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -33,8 +33,8 @@ class LaProp(BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         ams_bound: bool = False,
-        cautious: bool = False,
         eps: float = 1e-15,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -42,8 +42,8 @@ class LaProp(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
-        self.cautious = cautious
         self.steps_before_using_centered: int = steps_before_using_centered
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -61,13 +61,18 @@ class LaProp(BaseOptimizer):
     def __str__(self) -> str:
         return 'LaProp'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['exp_avg_lr_1'] = 0.0
@@ -75,6 +80,7 @@ class LaProp(BaseOptimizer):
 
                 if group['centered']:
                     state['exp_mean_avg_beta2'] = torch.zeros_like(p)
+
                 if group['ams_bound']:
                     state['max_exp_avg_sq'] = torch.zeros_like(p)
 
@@ -86,10 +92,11 @@ class LaProp(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -103,18 +110,9 @@ class LaProp(BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 state = self.state[p]
-
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-                    state['exp_avg_lr_1'] = 0.0
-                    state['exp_avg_lr_2'] = 0.0
-
-                    if group['centered']:
-                        state['exp_mean_avg_beta2'] = torch.zeros_like(p)
-                    if group['ams_bound']:
-                        state['max_exp_avg_sq'] = torch.zeros_like(p)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
@@ -142,7 +140,7 @@ class LaProp(BaseOptimizer):
 
                 exp_avg.mul_(beta1).addcdiv_(grad, de_nom, value=(1.0 - beta1) * group['lr'])
 
-                if self.cautious:
+                if group.get('cautious'):
                     update = exp_avg.clone()
                     self.apply_cautious(update, grad)
                 else:
@@ -152,7 +150,7 @@ class LaProp(BaseOptimizer):
 
                 self.apply_weight_decay(
                     p=p,
-                    grad=p.grad,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],

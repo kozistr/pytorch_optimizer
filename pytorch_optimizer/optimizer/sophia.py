@@ -23,6 +23,7 @@ class SophiaH(BaseOptimizer):
     :param num_samples: int. times to sample `z` for the approximation of the hessian trace.
     :param hessian_distribution: HUTCHINSON_G. type of distribution to initialize hessian.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -38,6 +39,7 @@ class SophiaH(BaseOptimizer):
         num_samples: int = 1,
         hessian_distribution: HUTCHINSON_G = 'gaussian',
         eps: float = 1e-12,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -52,6 +54,7 @@ class SophiaH(BaseOptimizer):
         self.update_period = update_period
         self.num_samples = num_samples
         self.distribution = hessian_distribution
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -62,13 +65,14 @@ class SophiaH(BaseOptimizer):
             'p': p,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'SophiaH'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

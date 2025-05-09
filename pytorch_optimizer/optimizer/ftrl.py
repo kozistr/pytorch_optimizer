@@ -15,6 +15,7 @@ class FTRL(BaseOptimizer):
     :param beta: float. beta value in the paper.
     :param lambda_1: float. L1 regularization parameter.
     :param lambda_2: float. L2 regularization parameter.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -25,6 +26,7 @@ class FTRL(BaseOptimizer):
         beta: float = 0.0,
         lambda_1: float = 0.0,
         lambda_2: float = 0.0,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -33,14 +35,17 @@ class FTRL(BaseOptimizer):
         self.validate_non_negative(lambda_1, 'lambda_1')
         self.validate_non_negative(lambda_2, 'lambda_2')
 
+        self.maximize = maximize
+
         defaults: DEFAULTS = {'lr': lr, 'lr_power': lr_power, 'beta': beta, 'lambda_1': lambda_1, 'lambda_2': lambda_2}
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'FTRL'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]

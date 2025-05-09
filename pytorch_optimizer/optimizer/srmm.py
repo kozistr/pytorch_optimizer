@@ -14,6 +14,7 @@ class SRMM(BaseOptimizer):
     :param lr: float. learning rate.
     :param beta: float. adaptivity weight.
     :param memory_length: Optional[int]. internal memory length for moving average. None for no refreshing.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -36,7 +37,7 @@ class SRMM(BaseOptimizer):
         return 'SRMM'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

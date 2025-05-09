@@ -18,6 +18,7 @@ class PAdam(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -30,6 +31,7 @@ class PAdam(BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -37,6 +39,8 @@ class PAdam(BaseOptimizer):
         self.validate_range(partial, 'partial', 0.0, 1.0, range_type='(]')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -47,13 +51,14 @@ class PAdam(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'PAdam'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

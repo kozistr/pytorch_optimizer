@@ -56,6 +56,7 @@ class Kron(BaseOptimizer):
     :param mu_dtype: Optional[torch.dtype]. dtype of the momentum accumulator.
     :param precondition_dtype: torch.dtype. dtype of the pre-conditioner.
     :param balance_prob: float. probability of performing balancing.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -73,6 +74,7 @@ class Kron(BaseOptimizer):
         mu_dtype: Optional[torch.dtype] = None,
         precondition_dtype: Optional[torch.dtype] = torch.float32,
         balance_prob: float = 0.01,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -86,6 +88,7 @@ class Kron(BaseOptimizer):
         self.eps: float = torch.finfo(torch.bfloat16).tiny
         self.prob_step: int = 0
         self.update_counter: int = 0
+        self.maximize = maximize
 
         defaults = {
             'lr': lr,
@@ -109,7 +112,7 @@ class Kron(BaseOptimizer):
         return 'Kron'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

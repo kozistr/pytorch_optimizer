@@ -28,8 +28,8 @@ class MARS(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param ams_bound: bool. whether to use the AMSBound variant.
-    :param cautious: bool. whether to use cautious feature.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -49,6 +49,7 @@ class MARS(BaseOptimizer):
         ams_bound: bool = False,
         cautious: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -60,6 +61,8 @@ class MARS(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(weight_decay_1d, 'weight_decay_1d')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -76,6 +79,7 @@ class MARS(BaseOptimizer):
             'ams_bound': ams_bound,
             'cautious': cautious,
             'eps': eps,
+            **kwargs,
         }
 
         super().__init__(params, defaults)
@@ -84,7 +88,7 @@ class MARS(BaseOptimizer):
         return 'MARS'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:
@@ -223,7 +227,7 @@ class MARS(BaseOptimizer):
                         is_grad_2d,
                         group['step'],
                         group['ams_bound'],
-                        group['cautious'],
+                        group.get('cautious'),
                         group['eps'],
                     )
                 else:
@@ -235,7 +239,7 @@ class MARS(BaseOptimizer):
                         group['betas_1d'],
                         group['step'],
                         group['ams_bound'],
-                        group['cautious'],
+                        group.get('cautious'),
                         group['eps'],
                     )
 

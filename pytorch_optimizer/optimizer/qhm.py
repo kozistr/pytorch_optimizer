@@ -15,6 +15,7 @@ class QHM(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -26,12 +27,15 @@ class QHM(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_nus(nu)
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -41,13 +45,14 @@ class QHM(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'QHM'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:

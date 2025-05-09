@@ -28,6 +28,7 @@ class Prodigy(BaseOptimizer):
     :param safeguard_warmup: bool. remove lr from the denominator of D estimate to avoid issues during warm-up stage.
     :param eps: float. term added to the denominator to improve numerical stability. when eps is None, use atan2 rather
         than epsilon and division for parameter updates.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -45,12 +46,15 @@ class Prodigy(BaseOptimizer):
         bias_correction: bool = False,
         safeguard_warmup: bool = False,
         eps: Optional[float] = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas((*betas, beta3))
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -69,13 +73,14 @@ class Prodigy(BaseOptimizer):
             'step': 1,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Prodigy'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 1
             for p in group['params']:

@@ -378,7 +378,7 @@ def test_adanorm_optimizer(optimizer_config, environment):
 
     optimizer_class, config, num_iterations = optimizer_config
 
-    optimizer = optimizer_class(model.parameters(), **config)
+    optimizer = optimizer_class(model.parameters(), **config, adanorm=True)
 
     init_loss, loss = np.inf, np.inf
     for _ in range(num_iterations):
@@ -417,7 +417,7 @@ def test_adamd_variant(optimizer_config, environment):
 
     optimizer_class, config, num_iterations = optimizer_config
 
-    optimizer = optimizer_class(model.parameters(), **config)
+    optimizer = optimizer_class(model.parameters(), **config, adam_debias=True)
 
     init_loss, loss = np.inf, np.inf
     for _ in range(num_iterations):
@@ -442,7 +442,7 @@ def test_cautious_variant(optimizer_config, environment):
 
     optimizer_class, config, num_iterations = optimizer_config
 
-    optimizer = optimizer_class(model.parameters(), **config)
+    optimizer = optimizer_class(model.parameters(), **config, cautious=True)
 
     init_loss, loss = np.inf, np.inf
     for _ in range(num_iterations):
@@ -495,7 +495,7 @@ def test_pc_grad_optimizers(reduction):
     loss_fn_2: nn.Module = nn.L1Loss()
 
     optimizer = PCGrad(load_optimizer('adamp')(model.parameters(), lr=1e-1), reduction=reduction)
-    optimizer.reset()
+    optimizer.init_group()
 
     init_loss, loss = np.inf, np.inf
     for _ in range(5):
@@ -627,47 +627,6 @@ def test_swats_sgd_phase(environment):
         opt.step()
 
 
-@pytest.mark.parametrize(
-    'optimizer_config', OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS + [(BSAM, {'num_data': 1}, 1)], ids=ids
-)
-def test_reset(optimizer_config):
-    optimizer_class, config, _ = optimizer_config
-    if optimizer_class.__name__ == 'Ranger21':
-        config.update({'num_iterations': 1})
-
-    optimizer = optimizer_class([simple_parameter()], **config)
-    optimizer.reset()
-
-
-@pytest.mark.parametrize('require_gradient', [False, True])
-@pytest.mark.parametrize('sparse_gradient', [False, True])
-@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan', 'DAdaptLion'])
-def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
-    param = simple_sparse_parameter(require_gradient)[1] if sparse_gradient else simple_parameter(require_gradient)
-    if not require_gradient:
-        param.grad = None
-
-    optimizer = load_optimizer(optimizer_name)([param])
-    optimizer.reset()
-
-    assert str(optimizer) == optimizer_name
-
-
-def test_prodigy_reset():
-    param = simple_parameter(True)
-    param.grad = None
-
-    optimizer = load_optimizer('prodigy')([param])
-    optimizer.reset()
-
-    assert str(optimizer) == 'Prodigy'
-
-
-def test_adalite_reset():
-    optimizer = load_optimizer('adalite')([simple_zero_rank_parameter(True)])
-    optimizer.reset()
-
-
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2])
 def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type, environment):
     (x_data, y_data), _, loss_fn = environment
@@ -715,7 +674,6 @@ def test_lomo_deepspeed_zero3(optimizer_name, environment):
     model.fc1.weight.__setattr__('ds_tensor', 0)
 
     optimizer = load_optimizer(optimizer_name)(model)
-    optimizer.reset()
 
     assert str(optimizer).lower() == optimizer_name
 
@@ -723,7 +681,6 @@ def test_lomo_deepspeed_zero3(optimizer_name, environment):
 def test_lomo_clip_grad_norm_with_fp16(environment):
     _, model, _ = environment
 
-    # clip grad norm with fp16
     model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
 
     with pytest.raises(ValueError):
@@ -776,7 +733,6 @@ def test_dynamic_scaler():
 @pytest.mark.parametrize('optimizer_name', ['ScheduleFreeAdamW', 'ScheduleFreeSGD', 'ScheduleFreeRAdam'])
 def test_schedule_free_methods(optimizer_name):
     optimizer = load_optimizer(optimizer_name)([simple_parameter(True)])
-    optimizer.reset()
     optimizer.eval()
     optimizer.train()
 
@@ -817,7 +773,6 @@ def test_stableadamw_optimizer(environment):
     model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
 
     optimizer = load_optimizer('StableAdamW')(model.parameters())
-    optimizer.reset()
     optimizer.step()
 
 
@@ -825,7 +780,6 @@ def test_adam_mini_optimizer(environment):
     _, model, _ = environment
 
     optimizer = load_optimizer('AdamMini')(model)
-    optimizer.reset()
     optimizer.step()
 
 
@@ -854,7 +808,7 @@ def test_trac_optimizer_erf_imag():
 
     optimizer = TRAC(load_optimizer('adamw')(model.parameters()))
 
-    optimizer.reset()
+    optimizer.init_group()
     optimizer.zero_grad()
 
     complex_tensor = torch.complex(torch.tensor(0.0), torch.tensor(1.0))
@@ -1038,7 +992,7 @@ def test_schedulefree_wrapper():
     model = Example()
 
     optimizer = ScheduleFreeWrapper(load_optimizer('adamw')(model.parameters(), lr=1e-3, weight_decay=1e-3))
-    optimizer.reset()
+    optimizer.init_group()
     optimizer.zero_grad()
 
     model.fc1.weight.grad = torch.randn((1, 1))
@@ -1059,7 +1013,7 @@ def test_schedulefree_wrapper():
     backup_state = optimizer.state_dict()
 
     optimizer = ScheduleFreeWrapper(load_optimizer('adamw')(model.parameters(), lr=1e-3, weight_decay=1e-3))
-    optimizer.reset()
+    optimizer.init_group()
     optimizer.zero_grad()
     optimizer.train()
 

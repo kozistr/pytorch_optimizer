@@ -12,6 +12,7 @@ class Gravity(BaseOptimizer):
     :param lr: float. learning rate.
     :param alpha: float. alpha controls the V initialization.
     :param beta: float. beta will be used to compute running average of V.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -20,20 +21,24 @@ class Gravity(BaseOptimizer):
         lr: float = 1e-2,
         alpha: float = 0.01,
         beta: float = 0.9,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(alpha, 'alpha', 0.0, 1.0)
         self.validate_range(beta, 'beta', 0.0, 1.0, range_type='[]')
 
+        self.maximize = maximize
+
         defaults: DEFAULTS = {'lr': lr, 'alpha': alpha, 'beta': beta}
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Gravity'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]

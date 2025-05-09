@@ -21,6 +21,7 @@ class ScheduleFreeSGD(BaseOptimizer):
         set to 0 for no weighting.
     :param warmup_steps: int. enables a linear learning rate warmup.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -33,12 +34,15 @@ class ScheduleFreeSGD(BaseOptimizer):
         weight_lr_power: float = 2.0,
         warmup_steps: int = 0,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='[]')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -52,6 +56,7 @@ class ScheduleFreeSGD(BaseOptimizer):
             'weight_sum': 0.0,
             'lr_max': -1.0,
         }
+
         super().__init__(params, defaults)
 
         self.base_lrs: List[float] = [group['lr'] for group in self.param_groups]
@@ -80,7 +85,7 @@ class ScheduleFreeSGD(BaseOptimizer):
                 group['train_mode'] = True
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:
@@ -159,6 +164,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
     :param warmup_steps: int. enables a linear learning rate warmup.
     :param ams_bound: bool. whether to use the AMSBound variant.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -172,12 +178,15 @@ class ScheduleFreeAdamW(BaseOptimizer):
         warmup_steps: int = 0,
         ams_bound: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -193,6 +202,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
             'lr_max': -1.0,
             'use_palm': kwargs.get('use_palm', False),
         }
+
         super().__init__(params, defaults)
 
         self.base_lrs: List[float] = [group['lr'] for group in self.param_groups]
@@ -221,7 +231,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
                 group['train_mode'] = True
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:
@@ -316,6 +326,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
         just update the momentum values of the optimizer. This helps stabilize training by ensuring smoother warmup
         behavior and more reliable calculation of the moving average coefficient (`ckp1`). Recommended to set to True.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -328,12 +339,15 @@ class ScheduleFreeRAdam(BaseOptimizer):
         weight_lr_power: float = 2.0,
         silent_sgd_phase: bool = True,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -348,6 +362,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
             'lr_max': -1.0,
             'use_palm': kwargs.get('use_palm', False),
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
@@ -374,7 +389,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
                 group['train_mode'] = True
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:
@@ -479,6 +494,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
     :param r: float. use polynomial weighting in the average with power r.
     :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
         set to 0 for no weighting.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -488,6 +504,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
         weight_decay: float = 0.0,
         r: float = 0.0,
         weight_lr_power: float = 2.0,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_range(momentum, 'momentum', 0.0, 1.0, '[)')
@@ -498,6 +515,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
         self.r = r
         self.weight_lr_power = weight_lr_power
         self.train_mode: bool = False
+        self.maximize = maximize
 
         self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
 
@@ -558,7 +576,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
         self.train_mode = True
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @staticmethod

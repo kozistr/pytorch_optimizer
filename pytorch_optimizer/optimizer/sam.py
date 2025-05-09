@@ -91,7 +91,7 @@ class SAM(BaseOptimizer):
         return 'SAM'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()
@@ -235,7 +235,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         return 'GSAM'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()
@@ -426,7 +426,7 @@ class WSAM(BaseOptimizer):
         return 'WSAM'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()
@@ -599,7 +599,7 @@ class BSAM(BaseOptimizer):
         return 'bSAM'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
@@ -765,7 +765,7 @@ class LookSAM(BaseOptimizer):
         return 'LookSAM'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     def get_step(self):

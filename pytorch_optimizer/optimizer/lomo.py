@@ -22,6 +22,7 @@ class LOMO(BaseOptimizer):
     :param lr: float. learning rate.
     :param clip_grad_norm: Optional[float]. clip grad norm.
     :param clip_grad_value: Optional[float]. clip grad value.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -30,6 +31,7 @@ class LOMO(BaseOptimizer):
         lr: float = 1e-3,
         clip_grad_norm: Optional[float] = None,
         clip_grad_value: Optional[float] = None,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -40,6 +42,7 @@ class LOMO(BaseOptimizer):
         self.lr = lr
         self.clip_grad_norm = clip_grad_norm
         self.clip_grad_value = clip_grad_value
+        self.maximize = maximize
 
         self.local_rank: int = int(os.environ.get('LOCAL_RANK', '0'))
 
@@ -56,9 +59,7 @@ class LOMO(BaseOptimizer):
         self.loss_scaler: Optional[DynamicLossScaler] = None
         if p0.dtype == torch.float16:
             if clip_grad_norm is None:
-                raise ValueError(
-                    '[-] Loss scaling is recommended to be used with grad norm to get better performance.'
-                )
+                raise ValueError('loss scaling is recommended to be used with grad norm to get better performance.')
 
             self.loss_scaler = DynamicLossScaler(init_scale=2 ** 16)  # fmt: skip
 
@@ -73,7 +74,7 @@ class LOMO(BaseOptimizer):
         return 'LOMO'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     def fuse_update(self) -> Callable[[Any], Any]:
@@ -298,7 +299,7 @@ class AdaLOMO(BaseOptimizer):
                 p.register_hook(self.grad_func)
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     def fuse_update(self) -> Callable[[Any], Any]:

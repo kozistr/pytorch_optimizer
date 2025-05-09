@@ -17,6 +17,7 @@ class FAdam(BaseOptimizer):
     :param eps: float. term added to the denominator to improve numerical stability.
     :param momentum_dtype: torch.dtype. type of momentum.
     :param fim_dtype: torch.dtype. type of fim.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -30,6 +31,7 @@ class FAdam(BaseOptimizer):
         eps: float = 1e-8,
         momentum_dtype: torch.dtype = torch.float32,
         fim_dtype: torch.dtype = torch.float32,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -41,6 +43,7 @@ class FAdam(BaseOptimizer):
 
         self.momentum_dtype = momentum_dtype
         self.fim_dtype = fim_dtype
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -57,7 +60,7 @@ class FAdam(BaseOptimizer):
         return 'FAdam'
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         for group in self.param_groups:
             group['step'] = 0
             for p in group['params']:
