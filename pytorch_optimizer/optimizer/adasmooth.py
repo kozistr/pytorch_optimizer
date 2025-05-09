@@ -2,7 +2,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class AdaSmooth(BaseOptimizer):
@@ -44,6 +44,7 @@ class AdaSmooth(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'eps': eps,
+            **kwargs,
         }
 
         super().__init__(params, defaults)
@@ -51,13 +52,18 @@ class AdaSmooth(BaseOptimizer):
     def __str__(self) -> str:
         return 'AdaSmooth'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['prev_param'] = torch.zeros_like(p)
                 state['s'] = torch.zeros_like(p)
                 state['n'] = torch.zeros_like(p)
@@ -71,10 +77,11 @@ class AdaSmooth(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -83,16 +90,14 @@ class AdaSmooth(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['prev_param'] = torch.zeros_like(p)
-                    state['s'] = torch.zeros_like(p)
-                    state['n'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
+                s, n, prev_param, exp_avg_sq = state['s'], state['n'], state['prev_param'], state['exp_avg_sq']
+
+                p, grad, s, n, prev_param, exp_avg_sq = self.view_as_real(p, grad, s, n, prev_param, exp_avg_sq)
 
                 self.apply_weight_decay(
                     p=p,
@@ -103,10 +108,8 @@ class AdaSmooth(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                prev_param = state['prev_param']
                 p_diff = p - prev_param
 
-                s, n = state['s'], state['n']
                 s.add_(p_diff)
                 n.add_(p_diff.abs())
 
@@ -115,7 +118,6 @@ class AdaSmooth(BaseOptimizer):
 
                 c_p2 = c.pow(2)
 
-                exp_avg_sq = state['exp_avg_sq']
                 exp_avg_sq.mul_(1.0 - c_p2).addcmul_(grad, grad, value=c_p2)
 
                 step_size = torch.full_like(exp_avg_sq, fill_value=group['lr'])
@@ -123,6 +125,6 @@ class AdaSmooth(BaseOptimizer):
 
                 p.add_(-step_size)
 
-                state['prev_param'].copy_(p)
+                state['prev_param'].copy_(torch.view_as_complex(p) if torch.is_complex(state['prev_param']) else p)
 
         return loss

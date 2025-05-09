@@ -387,7 +387,7 @@ class BaseOptimizer(ABC, Optimizer):
         r"""View imaginary tensors as real tensors."""
         if torch.is_complex(param):
             param = torch.view_as_real(param)
-            state_and_grads = tuple(torch.view_as_real(s) for s in state_and_grads if s is not None)
+            state_and_grads = tuple(torch.view_as_real(s) if s is not None else None for s in state_and_grads)
 
         return param, *state_and_grads
 

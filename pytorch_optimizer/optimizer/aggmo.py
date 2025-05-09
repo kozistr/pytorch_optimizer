@@ -2,7 +2,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class AggMo(BaseOptimizer):
@@ -47,14 +47,21 @@ class AggMo(BaseOptimizer):
     def __str__(self) -> str:
         return 'AggMo'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        betas = kwargs.get('betas')
 
-                state['momentum_buffer'] = {beta: torch.zeros_like(p) for beta in group['betas']}
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['momentum_buffer'] = {beta: torch.zeros_like(p) for beta in betas}
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -64,25 +71,23 @@ class AggMo(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
-                group['step'] = 1
-
             betas = group['betas']
+
+            if 'step' not in group:
+                self.init_group(group, betas=betas)
+                group['step'] = 1
+            else:
+                group['step'] += 1
 
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if len(state) == 0:
-                    state['momentum_buffer'] = {beta: torch.zeros_like(p) for beta in betas}
 
                 self.apply_weight_decay(
                     p=p,

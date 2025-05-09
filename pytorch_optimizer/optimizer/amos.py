@@ -4,7 +4,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class Amos(BaseOptimizer):
@@ -58,13 +58,18 @@ class Amos(BaseOptimizer):
     def __str__(self) -> str:
         return 'Amos'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['exp_avg_sq'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
                 state['decay'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
                 if group['momentum'] > 0.0:
@@ -73,9 +78,9 @@ class Amos(BaseOptimizer):
     @staticmethod
     def get_scale(p: torch.Tensor) -> float:
         r"""Get expected scale for model weights."""
-        if len(p.shape) == 1:  # expected 'bias'
+        if len(p.shape) == 1:
             return 0.5
-        if len(p.shape) == 2:  # expected Embedding, Linear, ...
+        if len(p.shape) == 2:
             return math.sqrt(2 / p.size(1))
         return math.sqrt(1 / p.size(1))
 
@@ -87,10 +92,11 @@ class Amos(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             momentum, beta = group['momentum'], group['beta']
 
@@ -102,16 +108,10 @@ class Amos(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if len(state) == 0:
-                    state['exp_avg_sq'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
-                    state['decay'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
-                    if group['momentum'] > 0.0:
-                        state['exp_avg'] = torch.zeros_like(p)
 
                 g2 = grad.pow(2).mean()
                 init_lr: float = group['lr'] * self.get_scale(p)

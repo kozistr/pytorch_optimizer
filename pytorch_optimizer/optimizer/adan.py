@@ -162,6 +162,8 @@ class Adan(BaseOptimizer):
                     p.div_(1.0 + group['lr'] * group['weight_decay'])
 
                 grad.neg_()
-                state['previous_grad'].copy_(grad if not torch.is_complex(grad) else torch.view_as_complex(grad))
+                state['previous_grad'].copy_(
+                    torch.view_as_complex(grad) if torch.is_complex(state['previous_grad']) else grad
+                )
 
         return loss

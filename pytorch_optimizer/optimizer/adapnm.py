@@ -110,8 +110,6 @@ class AdaPNM(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
@@ -126,10 +124,16 @@ class AdaPNM(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
+                exp_avg_sq = state['exp_avg_sq']
+
                 if group['step'] % 2 == 1:
                     exp_avg, neg_exp_avg = state['exp_avg'], state['neg_exp_avg']
                 else:
                     exp_avg, neg_exp_avg = state['neg_exp_avg'], state['exp_avg']
+
+                p, grad, exp_avg, neg_exp_avg, exp_avg_sq = self.view_as_real(
+                    p, grad, exp_avg, neg_exp_avg, exp_avg_sq
+                )
 
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,
@@ -138,7 +142,6 @@ class AdaPNM(BaseOptimizer):
                     r=group.get('adanorm_r', None),
                 )
 
-                exp_avg_sq = state['exp_avg_sq']
                 exp_avg.mul_(beta1_p2).add_(s_grad, alpha=1.0 - beta1_p2)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
@@ -151,6 +154,7 @@ class AdaPNM(BaseOptimizer):
                 de_nom.div_(bias_correction2_sq)
 
                 pn_momentum = exp_avg.mul(1.0 + beta3).add_(neg_exp_avg, alpha=-beta3).mul_(1.0 / noise_norm)
+
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)
 
         return loss

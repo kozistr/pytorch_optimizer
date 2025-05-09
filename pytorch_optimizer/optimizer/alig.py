@@ -4,7 +4,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoClosureError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
@@ -55,14 +55,21 @@ class AliG(BaseOptimizer):
     def __str__(self) -> str:
         return 'AliG'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        momentum: float = kwargs.get('momentum')
 
-                if group['momentum'] > 0.0:
-                    state['momentum_buffer'] = torch.zeros_like(p)
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0 and momentum > 0.0:
+                state['momentum_buffer'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def compute_step_size(self, loss: float) -> float:
@@ -82,28 +89,33 @@ class AliG(BaseOptimizer):
         un_clipped_step_size: float = self.compute_step_size(loss)
 
         for group in self.param_groups:
+            momentum = group['momentum']
+
+            if 'step' not in group:
+                self.init_group(group, momentum=momentum)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             step_size = group['step_size'] = (
                 min(un_clipped_step_size, group['max_lr']) if group['max_lr'] is not None else un_clipped_step_size
             )
-            momentum = group['momentum']
 
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if len(state) == 0 and momentum > 0.0:
-                    state['momentum_buffer'] = torch.zeros_like(p)
+
+                p, grad, buffer = self.view_as_real(p, grad, state.get('momentum_buffer', None))
 
                 p.add_(grad, alpha=-step_size)
 
-                if momentum > 0.0:
-                    buffer = state['momentum_buffer']
-
+                if buffer is not None:
                     if group['adjusted_momentum']:
                         buffer.mul_(momentum).sub_(grad)
                         p.add_(buffer, alpha=step_size * momentum)

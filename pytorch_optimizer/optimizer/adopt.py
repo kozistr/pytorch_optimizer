@@ -95,12 +95,14 @@ class ADOPT(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
+
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
+                p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
 
                 self.apply_weight_decay(
                     p=p,
@@ -110,8 +112,6 @@ class ADOPT(BaseOptimizer):
                     weight_decouple=group['weight_decouple'],
                     fixed_decay=group['fixed_decay'],
                 )
-
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                 if group['step'] == 1:
                     exp_avg_sq.addcmul_(grad, grad.conj())
