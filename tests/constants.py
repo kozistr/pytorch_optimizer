@@ -132,6 +132,13 @@ COMPLEX_OPTIMIZERS: List[str] = [
     'adamp',
     'stableadamw',
     'adan',
+    'adapnm',
+    'adasmooth',
+    'adopt',
+    'alig',
+    'amos',
+    'apollodqn',
+    'apollo',
 ]
 NO_COMPLEX_OPTIMIZERS: List[str] = [
     optimizer for optimizer in VALID_OPTIMIZER_NAMES if optimizer not in COMPLEX_OPTIMIZERS

@@ -211,5 +211,5 @@ def test_complex_not_supported(no_complex_optimizer):
 
     optimizer = load_optimizer(optimizer=no_complex_optimizer)([param])
 
-    with pytest.raises((Exception, AttributeError, TypeError, ValueError, RuntimeError, NoComplexParameterError)):
+    with pytest.raises(NoComplexParameterError):
         optimizer.step(lambda: 0.1)

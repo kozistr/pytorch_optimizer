@@ -177,9 +177,9 @@ def test_complex_optimizers(optimizer_complex_config, complex_environment):
 
     parameters = list(model.parameters())
 
-    if optimizer_name == 'AliG':
+    if optimizer_name == 'alig':
         config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
-    if optimizer_name == 'Muon':
+    if optimizer_name == 'muon':
         adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
         parameters = [p for i, p in enumerate(parameters) if i < 2]
         config.update({'adamw_params': adamw_params})
@@ -198,9 +198,9 @@ def test_complex_optimizers(optimizer_complex_config, complex_environment):
         if init_loss == np.inf:
             init_loss = loss
 
-        loss.backward(create_graph=optimizer_name in ('AdaHessian', 'SophiaH'))
+        loss.backward(create_graph=optimizer_name in ('adaHessian', 'sophiah'))
 
-        optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
+        optimizer.step(closure(loss) if optimizer_name == 'alig' else None)
 
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
