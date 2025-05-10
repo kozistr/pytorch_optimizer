@@ -86,8 +86,7 @@ class Ranger(BaseOptimizer):
             if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
-                state['slow_buffer'] = torch.empty_like(p)
-                state['slow_buffer'].copy_(p)
+                state['slow_buffer'] = p.clone()
 
                 if group.get('adanorm'):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
@@ -130,12 +129,16 @@ class Ranger(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
+
+                exp_avg, exp_avg_sq, slow_buffer = state['exp_avg'], state['exp_avg_sq'], state['slow_buffer']
+
+                p, grad, exp_avg, exp_avg_sq, slow_buffer = self.view_as_real(
+                    p, grad, exp_avg, exp_avg_sq, slow_buffer
+                )
 
                 if self.use_gc and grad.dim() > self.gc_gradient_threshold:
                     centralize_gradient(grad, gc_conv_only=False)
@@ -156,7 +159,6 @@ class Ranger(BaseOptimizer):
                     r=group.get('adanorm_r', None),
                 )
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
@@ -167,8 +169,7 @@ class Ranger(BaseOptimizer):
                     p.add_(exp_avg, alpha=-step_size)
 
                 if group['step'] % group['k'] == 0:
-                    slow_p = state['slow_buffer']
-                    slow_p.add_(p - slow_p, alpha=group['alpha'])
-                    p.copy_(slow_p)
+                    slow_buffer.lerp_(p, weight=group['alpha'])
+                    p.copy_(slow_buffer)
 
         return loss

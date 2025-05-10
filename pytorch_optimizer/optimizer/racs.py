@@ -3,9 +3,9 @@ from typing import Tuple
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class RACS(BaseOptimizer):
@@ -62,8 +62,7 @@ class RACS(BaseOptimizer):
     def __str__(self) -> str:
         return 'RACS'
 
-    @torch.no_grad()
-    def init_group(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     @torch.no_grad()
@@ -74,10 +73,10 @@ class RACS(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta = group['beta']
 
@@ -88,6 +87,9 @@ class RACS(BaseOptimizer):
                 grad = p.grad
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
+
+                if torch.is_complex(p):
+                    raise NoComplexParameterError(str(self))
 
                 state = self.state[p]
 
@@ -206,8 +208,7 @@ class Alice(BaseOptimizer):
     def __str__(self) -> str:
         return 'Alice'
 
-    @torch.no_grad()
-    def init_group(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     @staticmethod
@@ -271,10 +272,10 @@ class Alice(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2, beta3 = group['betas']
             rank, leading_basis = group['rank'], group['leading_basis']
@@ -286,6 +287,9 @@ class Alice(BaseOptimizer):
                 grad = p.grad
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
+
+                if torch.is_complex(p):
+                    raise NoComplexParameterError(str(self))
 
                 state = self.state[p]
 
