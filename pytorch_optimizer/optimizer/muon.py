@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 import torch
 from torch.distributed import ReduceOp, all_reduce
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
@@ -125,14 +125,7 @@ class Muon(BaseOptimizer):
 
     @torch.no_grad()
     def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
-
-                state['momentum_buffer'] = torch.zeros_like(p)
-                state['moment1'] = torch.zeros_like(p)
-                state['moment2'] = torch.zeros_like(p)
+        pass
 
     @staticmethod
     def get_adjusted_lr(lr: float, param_shape: Tuple[float, ...], use_adjusted_lr: bool = False) -> float:
@@ -166,6 +159,8 @@ class Muon(BaseOptimizer):
                 if p.grad is not None and self.state[p]['use_muon']:
                     if p.grad.is_sparse:
                         raise NoSparseGradientError(str(self))
+                    if torch.is_complex(p):
+                        raise NoComplexParameterError(str(self))
                     params.append(p)
 
             if len(params) == 0:

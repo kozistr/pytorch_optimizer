@@ -5,9 +5,9 @@ from typing import Callable, List, Literal, Optional, Tuple, Union
 import numpy as np
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.psgd_utils import norm_lower_bound
 
 MEMORY_SAVE_MODE_TYPE = Literal['one_diag', 'smart_one_diag', 'all_diag']
@@ -111,14 +111,8 @@ class Kron(BaseOptimizer):
     def __str__(self) -> str:
         return 'Kron'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
-
-                state['momentum_buffer'] = p.grad.clone()
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        pass
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -156,6 +150,9 @@ class Kron(BaseOptimizer):
                 grad = p.grad
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
+
+                if torch.is_complex(p):
+                    raise NoComplexParameterError(str(self))
 
                 state = self.state[p]
 

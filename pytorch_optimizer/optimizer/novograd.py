@@ -2,7 +2,7 @@ import math
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
@@ -66,12 +66,15 @@ class NovoGrad(BaseOptimizer):
             if grad.is_sparse:
                 raise NoSparseGradientError(str(self))
 
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
             state = self.state[p]
 
             grad_p2 = grad.pow(2).sum()
 
             if len(state) == 0:
-                state['moments'] = grad.div(grad_p2.sqrt() + group['eps']) + group['weight_decay'] * p
+                state['moments'] = grad.div(grad_p2.sqrt().add_(group['eps'])) + group['weight_decay'] * p
                 state['grads_ema'] = grad_p2
 
     @torch.no_grad()
@@ -104,14 +107,13 @@ class NovoGrad(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                grads_ema = state['grads_ema']
+                grads_ema, moments = state['grads_ema'], state['moments']
+
                 grads_ema.mul_(beta2).add_(grad.pow(2).sum(), alpha=1.0 - beta2)
 
                 de_nom = grads_ema.sqrt().add_(group['eps'])
@@ -129,7 +131,6 @@ class NovoGrad(BaseOptimizer):
                 if group['grad_averaging']:
                     grad.mul_(1.0 - beta1)
 
-                moments = state['moments']
                 moments.mul_(beta1).add_(grad)
 
                 p.add_(moments, alpha=-step_size)
