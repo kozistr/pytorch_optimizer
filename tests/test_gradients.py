@@ -204,7 +204,7 @@ def test_schedulefree_sparse_gradient():
 
 @pytest.mark.parametrize('no_complex_optimizer', NO_COMPLEX_OPTIMIZERS)
 def test_complex_not_supported(no_complex_optimizer):
-    if no_complex_optimizer in ('adam', 'adamw', 'sgd', 'lomo', 'bsam', 'adammini', 'adalomo'):
+    if no_complex_optimizer in ('adam', 'adamw', 'sgd', 'lomo', 'bsam', 'adammini', 'adalomo', 'demo'):
         pytest.skip(f'skip {no_complex_optimizer}.')
 
     param = simple_complex_parameter()
