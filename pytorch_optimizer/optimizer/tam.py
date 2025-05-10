@@ -3,7 +3,7 @@ from torch.nn.functional import normalize
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class TAM(BaseOptimizer):
@@ -56,9 +56,20 @@ class TAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'TAM'
 
-    @torch.no_grad()
-    def init_group(self):
-        pass
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['s'] = torch.zeros_like(grad)
+                state['momentum_buffer'] = grad.clone()
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -68,21 +79,24 @@ class TAM(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             momentum: float = group['momentum']
             decay_rate: float = group['decay_rate']
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if len(state) == 0:
-                    state['s'] = torch.zeros_like(grad)
-                    state['momentum_buffer'] = grad.clone()
 
                 s, momentum_buffer = state['s'], state['momentum_buffer']
 
@@ -157,9 +171,21 @@ class AdaTAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'AdaTAM'
 
-    @torch.no_grad()
-    def init_group(self):
-        pass
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['s'] = torch.zeros_like(grad)
+                state['exp_avg'] = torch.zeros_like(grad)
+                state['exp_avg_sq'] = torch.zeros_like(grad)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -170,6 +196,7 @@ class AdaTAM(BaseOptimizer):
 
         for group in self.param_groups:
             if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
             else:
                 group['step'] += 1
@@ -182,15 +209,10 @@ class AdaTAM(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if len(state) == 0:
-                    state['s'] = torch.zeros_like(grad)
-                    state['exp_avg'] = torch.zeros_like(grad)
-                    state['exp_avg_sq'] = torch.zeros_like(grad)
 
                 self.apply_weight_decay(
                     p,

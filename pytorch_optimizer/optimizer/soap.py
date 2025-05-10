@@ -4,9 +4,9 @@ from typing import List, Optional
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DATA_FORMAT, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DATA_FORMAT, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.shampoo_utils import merge_small_dims
 
 
@@ -78,15 +78,44 @@ class SOAP(BaseOptimizer):
     def __str__(self) -> str:
         return 'SOAP'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        _, beta2 = group['betas']
 
-                state['exp_avg'] = torch.zeros_like(p)
-                state['exp_avg_sq'] = torch.zeros_like(p)
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['exp_avg'] = torch.zeros_like(grad)
+                state['exp_avg_sq'] = torch.zeros_like(grad)
+
+                self.init_pre_conditioner(
+                    grad,
+                    state,
+                    precondition_frequency=group['precondition_frequency'],
+                    shampoo_beta=group['shampoo_beta'] if group['shampoo_beta'] is not None else beta2,
+                    max_precondition_dim=group['max_precondition_dim'],
+                    precondition_1d=group['precondition_1d'],
+                    merge_dims=group['merge_dims'],
+                )
+
+                self.update_pre_conditioner(
+                    grad,
+                    state,
+                    step=group['step'],
+                    max_precondition_dim=group['max_precondition_dim'],
+                    precondition_1d=group['precondition_1d'],
+                    merge_dims=group['merge_dims'],
+                )
 
     def project(
         self,
@@ -257,45 +286,31 @@ class SOAP(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
                 group['step'] = 1
+                self.init_group(group)
+                continue
+
+            group['step'] += 1
 
             beta1, beta2 = group['betas']
+
+            step_size: float = group['lr']
+            if group['correct_bias']:
+                bias_correction1: float = self.debias(beta1, group['step'])
+                bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
+
+                step_size *= bias_correction2_sq / bias_correction1
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(grad)
-                    state['exp_avg_sq'] = torch.zeros_like(grad)
-
-                    self.init_pre_conditioner(
-                        grad,
-                        state,
-                        precondition_frequency=group['precondition_frequency'],
-                        shampoo_beta=group['shampoo_beta'] if group['shampoo_beta'] is not None else beta2,
-                        max_precondition_dim=group['max_precondition_dim'],
-                        precondition_1d=group['precondition_1d'],
-                        merge_dims=group['merge_dims'],
-                    )
-
-                    self.update_pre_conditioner(
-                        grad,
-                        state,
-                        step=group['step'],
-                        max_precondition_dim=group['max_precondition_dim'],
-                        precondition_1d=group['precondition_1d'],
-                        merge_dims=group['merge_dims'],
-                    )
-
-                    continue
 
                 grad_projected = self.project(
                     grad, state, merge_dims=group['merge_dims'], max_precondition_dim=group['max_precondition_dim']
@@ -312,13 +327,6 @@ class SOAP(BaseOptimizer):
                     exp_avg, state, merge_dims=group['merge_dims'], max_precondition_dim=group['max_precondition_dim']
                 )
 
-                step_size = group['lr']
-                if group['correct_bias']:
-                    bias_correction1: float = self.debias(beta1, group['step'])
-                    bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
-
-                    step_size *= bias_correction2_sq / bias_correction1
-
                 norm_grad = self.project(
                     exp_avg_projected / de_nom,
                     state,
@@ -334,7 +342,7 @@ class SOAP(BaseOptimizer):
 
                 self.apply_weight_decay(
                     p,
-                    grad,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=True,

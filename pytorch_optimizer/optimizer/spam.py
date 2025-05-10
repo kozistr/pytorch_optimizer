@@ -6,9 +6,9 @@ from torch.nn import Parameter, ParameterList
 from torch.optim import SGD, Optimizer
 from torch.optim.lr_scheduler import CosineAnnealingLR, LRScheduler
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class CosineDecay:
@@ -180,8 +180,7 @@ class SPAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'SPAM'
 
-    @torch.no_grad()
-    def init_group(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     @torch.no_grad()
@@ -195,6 +194,7 @@ class SPAM(BaseOptimizer):
 
         for group in self.param_groups:
             if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
             else:
                 group['step'] += 1
@@ -213,6 +213,11 @@ class SPAM(BaseOptimizer):
                 grad = p.grad
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
+
+                if torch.is_complex(p):
+                    raise NoComplexParameterError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
@@ -321,18 +326,26 @@ class StableSPAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'StableSPAM'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                state['exp_avg'] = torch.zeros_like(p)
-                state['exp_avg_sq'] = torch.zeros_like(p)
-                state['m_norm_t'] = torch.zeros(1, device=p.device, dtype=p.dtype)
-                state['v_norm_t'] = torch.zeros(1, device=p.device, dtype=p.dtype)
-                state['m_max_t'] = torch.zeros(1, device=p.device, dtype=p.dtype)
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if 'exp_avg' not in state:
+                state['exp_avg'] = torch.zeros_like(grad)
+                state['exp_avg_sq'] = torch.zeros_like(grad)
+                state['m_norm_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
+                state['v_norm_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
+                state['m_max_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -342,10 +355,12 @@ class StableSPAM(BaseOptimizer):
                 loss = closure()
 
         self.total_step += 1
+
         scale: float = self.warmup.get_death_rate(self.total_step) if self.warmup is not None else 1.0
 
         for group in self.param_groups:
             if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
             else:
                 group['step'] += 1
@@ -366,17 +381,10 @@ class StableSPAM(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if 'exp_avg' not in state:
-                    state['exp_avg'] = torch.zeros_like(grad)
-                    state['exp_avg_sq'] = torch.zeros_like(grad)
-                    state['m_norm_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
-                    state['v_norm_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
-                    state['m_max_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
 
                 self.apply_weight_decay(
                     p,

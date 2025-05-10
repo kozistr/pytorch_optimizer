@@ -536,6 +536,8 @@ class SCIONLight(BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 update = norm.lmo(grad).mul_(group['scale'])
 
                 if group['constraint']:

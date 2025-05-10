@@ -1,7 +1,8 @@
 import torch
 
+from pytorch_optimizer.base.exception import NoComplexParameterError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 @torch.no_grad()
@@ -60,14 +61,33 @@ class SM3(BaseOptimizer):
     def __str__(self) -> str:
         return 'SM3'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                state['step'] = 0
-                state['momentum_buffer'] = torch.zeros_like(p)
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            grad = p.grad
+
+            shape = grad.shape
+            rank: int = len(shape)
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['momentum_buffer'] = torch.zeros_like(grad)
+
+                if grad.is_sparse:
+                    state['accumulator_0'] = torch.zeros(shape[0], dtype=grad.dtype, device=grad.device)
+                elif rank == 0:
+                    state['accumulator_0'] = torch.zeros_like(grad)
+                else:
+                    for i in range(rank):
+                        state[f'accumulator_{i}'] = torch.zeros(
+                            [1] * i + [shape[i]] + [1] * (rank - 1 - i), dtype=grad.dtype, device=grad.device
+                        )
 
     @staticmethod
     def make_sparse(grad: torch.Tensor, values: torch.Tensor) -> torch.Tensor:
@@ -83,32 +103,26 @@ class SM3(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             momentum, beta = group['momentum'], group['beta']
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 shape = grad.shape
                 rank: int = len(shape)
 
                 state = self.state[p]
-                if len(state) == 0:
-                    state['step'] = 0
-                    state['momentum_buffer'] = torch.zeros_like(grad)
-
-                    if grad.is_sparse:
-                        state['accumulator_0'] = torch.zeros(shape[0], dtype=grad.dtype, device=grad.device)
-                    elif rank == 0:
-                        state['accumulator_0'] = torch.zeros_like(grad)
-                    else:
-                        for i in range(rank):
-                            state[f'accumulator_{i}'] = torch.zeros(
-                                [1] * i + [shape[i]] + [1] * (rank - 1 - i), dtype=grad.dtype, device=grad.device
-                            )
-
-                state['step'] += 1
 
                 if grad.is_sparse:
                     grad = grad.coalesce()

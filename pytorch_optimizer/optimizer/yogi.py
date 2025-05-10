@@ -100,8 +100,6 @@ class Yogi(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
@@ -120,7 +118,15 @@ class Yogi(BaseOptimizer):
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
-                exp_avg_sq.addcmul_((exp_avg_sq - grad_p2).sign_(), grad_p2, value=-(1.0 - beta2))
+                exp_avg_sq.addcmul_(
+                    (
+                        (exp_avg_sq - grad_p2).sign_()
+                        if not torch.is_complex(exp_avg_sq)
+                        else (exp_avg_sq - grad_p2).sgn_()
+                    ),
+                    grad_p2,
+                    value=-(1.0 - beta2),
+                )
 
                 de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
