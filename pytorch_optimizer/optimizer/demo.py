@@ -5,7 +5,7 @@ from typing import List, Optional
 import torch
 from torch.distributed import ProcessGroup, all_gather, get_world_size
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import CLOSURE, LOSS, PARAMETERS
 
@@ -289,6 +289,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
     :param compression_top_k: int. compression_top_k.
     :param compression_chunk: int. compression_chunk.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -300,6 +301,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
         compression_chunk: int = 64,
         weight_decay: float = 0.0,
         process_group: Optional[ProcessGroup] = None,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -317,6 +319,8 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
 
         self.data_transmit: int = 0
         self.data_receive: int = 0
+
+        self.maximize = maximize
 
         super().__init__(
             params,
@@ -379,7 +383,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
         return sparse_idx_list, sparse_val_list
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         pass
 
     @torch.no_grad()
@@ -402,6 +406,9 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
                 grad = p.grad
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
+
+                if torch.is_complex(p):
+                    raise NoComplexParameterError(str(self))
 
                 state = self.demo_state.get(p, {})
 

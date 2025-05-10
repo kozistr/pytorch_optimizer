@@ -2,9 +2,9 @@ from typing import List, Optional
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, HUTCHINSON_G, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, HUTCHINSON_G, LOSS, PARAMETERS
 
 
 class AdaHessian(BaseOptimizer):
@@ -22,8 +22,8 @@ class AdaHessian(BaseOptimizer):
     :param update_period: int. number of steps after which to apply hessian approximation.
     :param num_samples: int. times to sample `z` for the approximation of the hessian trace.
     :param hessian_distribution: HUTCHINSON_G. type of distribution to initialize hessian.
-    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -38,8 +38,8 @@ class AdaHessian(BaseOptimizer):
         update_period: int = 1,
         num_samples: int = 1,
         hessian_distribution: HUTCHINSON_G = 'rademacher',
-        adam_debias: bool = False,
         eps: float = 1e-16,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -51,6 +51,7 @@ class AdaHessian(BaseOptimizer):
         self.update_period = update_period
         self.num_samples = num_samples
         self.distribution = hessian_distribution
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -59,20 +60,30 @@ class AdaHessian(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'hessian_power': hessian_power,
-            'adam_debias': adam_debias,
             'eps': eps,
+            **kwargs,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'AdaHessian'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if 'exp_avg' not in state:
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_hessian_diag_sq'] = torch.zeros_like(p)
 
@@ -97,28 +108,28 @@ class AdaHessian(BaseOptimizer):
             )
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2: float = self.debias(beta2, group['step'])
 
+            step_size: float = self.apply_adam_debias(group.get('adam_debias', False), group['lr'], bias_correction1)
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if 'exp_avg' not in state:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_hessian_diag_sq'] = torch.zeros_like(p)
 
                 self.apply_weight_decay(
                     p=p,
@@ -137,7 +148,6 @@ class AdaHessian(BaseOptimizer):
 
                 de_nom = (exp_hessian_diag_sq / bias_correction2).pow_(group['hessian_power'] / 2).add_(group['eps'])
 
-                step_size: float = self.apply_adam_debias(group['adam_debias'], group['lr'], bias_correction1)
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
 
         return loss

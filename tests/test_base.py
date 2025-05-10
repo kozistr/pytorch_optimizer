@@ -44,3 +44,12 @@ def test_non_positive():
 def test_mod():
     with pytest.raises(ValueError):
         BaseOptimizer.validate_mod(10, 3)
+
+
+def test_maximize_gradient():
+    grad = torch.ones((1,))
+    expected = -grad
+
+    BaseOptimizer.maximize_gradient(grad, True)
+
+    torch.testing.assert_close(grad, expected)

@@ -2,7 +2,7 @@ import pytest
 
 from pytorch_optimizer.optimizer import create_optimizer, load_optimizer
 from tests.constants import VALID_OPTIMIZER_NAMES
-from tests.utils import LogisticRegression
+from tests.utils import Example
 
 
 @pytest.mark.parametrize('use_lookahead', [True, False])
@@ -24,7 +24,7 @@ def test_create_optimizer(use_lookahead, use_orthograd, optimizer_name):
         kwargs = {}
 
     create_optimizer(
-        LogisticRegression(),
+        Example(),
         optimizer_name=optimizer_name,
         use_lookahead=use_lookahead,
         use_orthograd=use_orthograd,

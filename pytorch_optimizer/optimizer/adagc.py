@@ -2,9 +2,9 @@ import math
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
@@ -22,6 +22,7 @@ class AdaGC(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -37,6 +38,7 @@ class AdaGC(BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -47,6 +49,8 @@ class AdaGC(BaseOptimizer):
         self.validate_non_negative(warmup_steps, 'warmup_steps')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -59,15 +63,32 @@ class AdaGC(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'eps': eps,
+            **kwargs,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'AdaGC'
 
-    @torch.no_grad()
-    def reset(self):
-        pass
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if 'exp_avg' not in state:
+                state['exp_avg'] = torch.zeros_like(grad)
+                state['exp_avg_sq'] = torch.zeros_like(grad)
+                state['gamma'] = torch.empty((1,), device=grad.device, dtype=grad.dtype)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -77,10 +98,11 @@ class AdaGC(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -92,15 +114,10 @@ class AdaGC(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if 'exp_avg' not in state:
-                    state['exp_avg'] = torch.zeros_like(grad)
-                    state['exp_avg_sq'] = torch.zeros_like(grad)
-                    state['gamma'] = torch.empty((1,), device=grad.device, dtype=grad.dtype)
 
                 self.apply_weight_decay(
                     p=p,
@@ -111,7 +128,7 @@ class AdaGC(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                gamma = state['gamma']
+                exp_avg, exp_avg_sq, gamma = state['exp_avg'], state['exp_avg_sq'], state['gamma']
 
                 if group['step'] < group['warmup_steps']:
                     grad_norm = get_global_gradient_norm(self.param_groups).add_(group['eps'])
@@ -128,7 +145,6 @@ class AdaGC(BaseOptimizer):
 
                     gamma.mul_(group['beta']).add_(g_hat.norm(), alpha=1.0 - group['beta'])
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(g_hat, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(g_hat, g_hat, value=1.0 - beta2)
 

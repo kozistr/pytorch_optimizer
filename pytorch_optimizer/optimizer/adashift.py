@@ -3,9 +3,9 @@ from typing import Callable, Optional
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class AdaShift(BaseOptimizer):
@@ -17,8 +17,8 @@ class AdaShift(BaseOptimizer):
     :param keep_num: int. number of gradients used to compute first moment estimation.
     :param reduce_func: Optional[Callable]. function applied to squared gradients to further reduce the correlation.
         If None, no function is applied.
-    :param cautious: bool. whether to use cautious feature.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -28,8 +28,8 @@ class AdaShift(BaseOptimizer):
         betas: BETAS = (0.9, 0.999),
         keep_num: int = 10,
         reduce_func: Optional[Callable] = torch.max,
-        cautious: bool = False,
         eps: float = 1e-10,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -38,22 +38,31 @@ class AdaShift(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.reduce_func: Callable = reduce_func if reduce_func is not None else lambda x: x
-        self.cautious = cautious
+        self.maximize = maximize
 
-        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'keep_num': keep_num, 'eps': eps}
+        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'keep_num': keep_num, 'eps': eps, **kwargs}
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'AdaShift'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                state['grad_queue'] = deque([p.grad.clone()], maxlen=group['keep_num'])
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['grad_queue'] = deque([grad.clone()], maxlen=group['keep_num'])
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
@@ -65,10 +74,11 @@ class AdaShift(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -83,15 +93,10 @@ class AdaShift(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if len(state) == 0:
-                    state['grad_queue'] = deque([grad.clone()], maxlen=group['keep_num'])
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
 
                 grad_queue = state['grad_queue']
                 grad_queue.append(grad.clone())
@@ -110,7 +115,7 @@ class AdaShift(BaseOptimizer):
                 exp_avg_sq.mul_(beta2).add_(reduced_grad_sq, alpha=1.0 - beta2)
 
                 update = exp_avg.clone()
-                if self.cautious:
+                if group.get('cautious'):
                     self.apply_cautious(update, grad)
 
                 update.div_(exp_avg_sq.div(bias_correction).sqrt_().add_(group['eps']))

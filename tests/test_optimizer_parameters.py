@@ -16,7 +16,7 @@ from pytorch_optimizer.optimizer import (
 )
 from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
 from tests.constants import PULLBACK_MOMENTUM
-from tests.utils import Example, simple_parameter, simple_zero_rank_parameter
+from tests.utils import Example, simple_parameter
 
 
 def test_shampoo_parameters():
@@ -101,19 +101,19 @@ def test_lookahead_parameters():
 
 def test_sam_methods():
     optimizer = SAM([simple_parameter()], load_optimizer('adamp'))
-    optimizer.reset()
+    optimizer.init_group()
     optimizer.load_state_dict(optimizer.state_dict())
 
 
 def test_wsam_methods():
     optimizer = WSAM(None, [simple_parameter()], load_optimizer('adamp'))
-    optimizer.reset()
+    optimizer.init_group()
     optimizer.load_state_dict(optimizer.state_dict())
 
 
 def test_looksam_methods():
     optimizer = LookSAM([simple_parameter()], load_optimizer('adamp'))
-    optimizer.reset()
+    optimizer.init_group()
     optimizer.load_state_dict(optimizer.state_dict())
 
 
@@ -166,11 +166,6 @@ def test_ranger21_closure():
     optimizer.step(closure)
 
 
-def test_adafactor_reset():
-    opt = load_optimizer('adafactor')([simple_zero_rank_parameter(True)])
-    opt.reset()
-
-
 def test_adafactor_get_lr():
     model: nn.Module = Example()
     opt = load_optimizer('adafactor')(model.parameters())
@@ -179,11 +174,6 @@ def test_adafactor_get_lr():
 
     for warmup_init, expected_lr in recipes:
         assert opt.get_lr(1.0, 1, 1.0, True, warmup_init, True) == expected_lr
-
-
-def test_came_reset():
-    opt = load_optimizer('came')([simple_zero_rank_parameter(True)])
-    opt.reset()
 
 
 def test_a2grad_parameters():
@@ -231,7 +221,6 @@ def test_accsgd_parameters():
 def test_asgd_parameters():
     opt = load_optimizer('asgd')
 
-    # test amplifier
     with pytest.raises(ValueError):
         opt([simple_parameter(False)], amplifier=-1.0)
 
@@ -239,11 +228,9 @@ def test_asgd_parameters():
 def test_lars_parameters():
     opt = load_optimizer('lars')
 
-    # test dampening
     with pytest.raises(ValueError):
         opt(None, dampening=-0.1)
 
-    # test trust_coefficient
     with pytest.raises(ValueError):
         opt(None, trust_coefficient=-1e-3)
 
@@ -251,11 +238,9 @@ def test_lars_parameters():
 def test_apollo_parameters():
     opt = load_optimizer('apollodqn')
 
-    # test rebound type
     with pytest.raises(ValueError):
         opt(None, rebound='dummy')
 
-    # test weight_decay_type
     with pytest.raises(ValueError):
         opt(None, weight_decay_type='dummy')
 
@@ -263,11 +248,9 @@ def test_apollo_parameters():
 def test_ranger_parameters():
     opt = load_optimizer('ranger')
 
-    # test ema ratio `alpha`
     with pytest.raises(ValueError):
         opt(None, alpha=-0.1)
 
-    # test lookahead step `k`
     with pytest.raises(ValueError):
         opt(None, k=-1)
 

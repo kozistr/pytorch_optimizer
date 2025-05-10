@@ -5,9 +5,9 @@ from typing import List, Optional, Tuple
 import torch
 from torch.distributed import ReduceOp, all_reduce
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 
 
@@ -41,6 +41,7 @@ class Muon(BaseOptimizer):
     :param adamw_lr: float. The learning rate for the internal AdamW.
     :param adamw_wd: float. The weight decay for the internal AdamW.
     :param adamw_eps: float. The epsilon for the internal AdamW.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -58,6 +59,7 @@ class Muon(BaseOptimizer):
         adamw_lr: float = 3e-4,
         adamw_wd: float = 0.0,
         adamw_eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -75,6 +77,7 @@ class Muon(BaseOptimizer):
 
         self.world_size: int = int(os.environ.get('WORLD_SIZE', '1'))
         self.rank: int = int(os.environ.get('RANK', '0'))
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -90,6 +93,7 @@ class Muon(BaseOptimizer):
             'adamw_wd': adamw_wd,
             'adamw_eps': adamw_eps,
         }
+
         super().__init__(params, defaults)
 
         self.set_muon_state(params, adamw_params)
@@ -119,16 +123,8 @@ class Muon(BaseOptimizer):
         for p in adamw_params:
             self.state[p]['use_muon'] = False
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
-
-                state['momentum_buffer'] = torch.zeros_like(p)
-                state['moment1'] = torch.zeros_like(p)
-                state['moment2'] = torch.zeros_like(p)
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        pass
 
     @staticmethod
     def get_adjusted_lr(lr: float, param_shape: Tuple[float, ...], use_adjusted_lr: bool = False) -> float:
@@ -152,16 +148,19 @@ class Muon(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             params = []
             for p in group['params']:
                 if p.grad is not None and self.state[p]['use_muon']:
                     if p.grad.is_sparse:
                         raise NoSparseGradientError(str(self))
+                    if torch.is_complex(p):
+                        raise NoComplexParameterError(str(self))
                     params.append(p)
 
             if len(params) == 0:

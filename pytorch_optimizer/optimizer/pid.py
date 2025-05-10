@@ -2,7 +2,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class PID(BaseOptimizer):
@@ -17,6 +17,7 @@ class PID(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -30,6 +31,7 @@ class PID(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -37,6 +39,8 @@ class PID(BaseOptimizer):
         self.validate_non_negative(derivative, 'derivative')
         self.validate_non_negative(integral, 'integral')
         self.validate_non_negative(weight_decay, 'weight_decay')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -48,22 +52,27 @@ class PID(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'PID'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                if group['momentum'] > 0.0:
-                    state['grad_buffer'] = torch.zeros_like(p)
-                    state['i_buffer'] = torch.zeros_like(p)
-                    state['d_buffer'] = torch.zeros_like(p)
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0 and group['momentum'] > 0.0:
+                state['grad_buffer'] = torch.zeros_like(p)
+                state['i_buffer'] = torch.zeros_like(p)
+                state['d_buffer'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -73,29 +82,33 @@ class PID(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0 and group['momentum'] > 0.0:
-                    state['grad_buffer'] = torch.zeros_like(p)
-                    state['i_buffer'] = torch.zeros_like(p)
-                    state['d_buffer'] = torch.zeros_like(p)
+                g_buf, i_buf, d_buf = (
+                    state.get('grad_buffer', None),
+                    state.get('i_buffer', None),
+                    state.get('d_buffer', None),
+                )
+
+                p, grad, g_buf, i_buf, d_buf = self.view_as_real(p, grad, g_buf, i_buf, d_buf)
 
                 self.apply_weight_decay(
                     p=p,
-                    grad=p.grad,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],
@@ -103,10 +116,7 @@ class PID(BaseOptimizer):
                 )
 
                 if group['momentum'] > 0.0:
-                    i_buf = state['i_buffer']
                     i_buf.mul_(group['momentum']).add_(grad, alpha=1.0 - group['dampening'])
-
-                    g_buf, d_buf = state['grad_buffer'], state['d_buffer']
                     d_buf.mul_(group['momentum'])
 
                     if group['step'] > 1:

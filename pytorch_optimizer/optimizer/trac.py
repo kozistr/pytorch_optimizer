@@ -144,7 +144,7 @@ class TRAC(BaseOptimizer):
         self.optimizer.load_state_dict(state_dict)
 
     @torch.no_grad()
-    def reset(self):
+    def init_group(self):
         device = self.param_groups[0]['params'][0].device
 
         self.state['trac'] = {

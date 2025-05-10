@@ -5,9 +5,9 @@ from typing import Callable, List, Literal, Optional, Tuple, Union
 import numpy as np
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.psgd_utils import norm_lower_bound
 
 MEMORY_SAVE_MODE_TYPE = Literal['one_diag', 'smart_one_diag', 'all_diag']
@@ -56,6 +56,7 @@ class Kron(BaseOptimizer):
     :param mu_dtype: Optional[torch.dtype]. dtype of the momentum accumulator.
     :param precondition_dtype: torch.dtype. dtype of the pre-conditioner.
     :param balance_prob: float. probability of performing balancing.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -73,6 +74,7 @@ class Kron(BaseOptimizer):
         mu_dtype: Optional[torch.dtype] = None,
         precondition_dtype: Optional[torch.dtype] = torch.float32,
         balance_prob: float = 0.01,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -86,6 +88,7 @@ class Kron(BaseOptimizer):
         self.eps: float = torch.finfo(torch.bfloat16).tiny
         self.prob_step: int = 0
         self.update_counter: int = 0
+        self.maximize = maximize
 
         defaults = {
             'lr': lr,
@@ -108,14 +111,8 @@ class Kron(BaseOptimizer):
     def __str__(self) -> str:
         return 'Kron'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
-
-                state['momentum_buffer'] = p.grad.clone()
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        pass
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -153,6 +150,9 @@ class Kron(BaseOptimizer):
                 grad = p.grad
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
+
+                if torch.is_complex(p):
+                    raise NoComplexParameterError(str(self))
 
                 state = self.state[p]
 

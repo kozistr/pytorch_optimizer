@@ -7,7 +7,7 @@ from torch import nn
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 FILTER_TYPE = Literal['mean', 'sum']
 
@@ -112,6 +112,7 @@ class GrokFastAdamW(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -128,6 +129,7 @@ class GrokFastAdamW(BaseOptimizer):
         fixed_decay: bool = False,
         normalize_lr: bool = True,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -135,6 +137,8 @@ class GrokFastAdamW(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_range(grokfast_alpha, 'grokfast_alpha', 0.0, 1.0)
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         if grokfast and normalize_lr:
             lr /= 1.0 + grokfast_lamb
@@ -156,15 +160,22 @@ class GrokFastAdamW(BaseOptimizer):
     def __str__(self) -> str:
         return 'GrokFastAdamW'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
+                if group['grokfast'] and group['grokfast_lamb'] > 0.0:
+                    state['grok_exp_avg'] = grad.clone()
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -174,10 +185,11 @@ class GrokFastAdamW(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -193,16 +205,20 @@ class GrokFastAdamW(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-                    if group['grokfast'] and group['grokfast_lamb'] > 0.0:
-                        state['grok_exp_avg'] = grad.clone()
+                exp_avg, exp_avg_sq, grok_exp_avg = (
+                    state['exp_avg'],
+                    state['exp_avg_sq'],
+                    state.get('grok_exp_avg', None),
+                )
+
+                p, grad, exp_avg, exp_avg_sq, grok_exp_avg = self.view_as_real(
+                    p, grad, exp_avg, exp_avg_sq, grok_exp_avg
+                )
 
                 self.apply_weight_decay(
                     p=p,
@@ -214,12 +230,9 @@ class GrokFastAdamW(BaseOptimizer):
                 )
 
                 if should_grokfast:
-                    grok_exp_avg = state['grok_exp_avg']
                     grok_exp_avg.lerp_(grad, weight=1.0 - group['grokfast_alpha'])
-
                     grad.add_(grok_exp_avg, alpha=group['grokfast_lamb'])
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 

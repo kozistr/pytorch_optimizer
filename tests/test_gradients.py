@@ -1,10 +1,17 @@
 import pytest
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.optimizer import SAM, TRAC, WSAM, AdamP, Lookahead, LookSAM, OrthoGrad, load_optimizer
-from tests.constants import NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
-from tests.utils import build_environment, build_schedulefree, simple_parameter, simple_sparse_parameter, sphere_loss
+from tests.constants import NO_COMPLEX_OPTIMIZERS, NO_SPARSE_OPTIMIZERS, SPARSE_OPTIMIZERS, VALID_OPTIMIZER_NAMES
+from tests.utils import (
+    build_model,
+    build_schedulefree,
+    simple_complex_parameter,
+    simple_parameter,
+    simple_sparse_parameter,
+    sphere_loss,
+)
 
 
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead', 'trac', 'orthograd'])
@@ -110,7 +117,7 @@ def test_sparse_supported(sparse_optimizer):
 
     if sparse_optimizer in ('madgrad', 'dadapt'):
         optimizer = opt([simple_sparse_parameter()[1]], momentum=0.9, weight_decay=1e-3)
-        optimizer.reset()
+
         if sparse_optimizer == 'madgrad':
             with pytest.raises(NoSparseGradientError):
                 optimizer.step()
@@ -119,8 +126,10 @@ def test_sparse_supported(sparse_optimizer):
 
 
 @pytest.mark.parametrize('optimizer', [SAM, LookSAM])
-def test_sam_no_gradient(optimizer):
-    (x_data, y_data), model, loss_fn = build_environment()
+def test_sam_no_gradient(optimizer, environment):
+    x_data, y_data = environment
+    model, loss_fn = build_model()
+
     model.fc1.weight.requires_grad = False
     model.fc1.weight.grad = None
 
@@ -135,8 +144,10 @@ def test_sam_no_gradient(optimizer):
     optimizer.second_step(zero_grad=True)
 
 
-def test_wsam_no_gradient():
-    (x_data, y_data), model, loss_fn = build_environment()
+def test_wsam_no_gradient(environment):
+    x_data, y_data = environment
+    model, loss_fn = build_model()
+
     model.fc1.weight.requires_grad = False
     model.fc1.weight.grad = None
 
@@ -192,4 +203,24 @@ def test_schedulefree_sparse_gradient():
     optimizer.train()
 
     with pytest.raises(NoSparseGradientError):
+        optimizer.step(lambda: 0.1)
+
+
+@pytest.mark.parametrize('no_complex_optimizer', NO_COMPLEX_OPTIMIZERS)
+def test_complex_not_supported(no_complex_optimizer):
+    if no_complex_optimizer in ('adam', 'adamw', 'sgd', 'lomo', 'bsam', 'adammini', 'adalomo', 'demo'):
+        pytest.skip(f'skip {no_complex_optimizer}.')
+
+    param = simple_complex_parameter()
+
+    opt = load_optimizer(optimizer=no_complex_optimizer)
+
+    if no_complex_optimizer == 'ranger21':
+        optimizer = opt([param], num_iterations=1)
+    elif no_complex_optimizer == 'adahessian':
+        optimizer = opt([param], update_period=2)
+    else:
+        optimizer = opt([param])
+
+    with pytest.raises(NoComplexParameterError):
         optimizer.step(lambda: 0.1)

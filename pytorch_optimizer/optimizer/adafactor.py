@@ -3,9 +3,9 @@ from typing import Optional, Tuple
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class AdaFactor(BaseOptimizer):
@@ -23,14 +23,14 @@ class AdaFactor(BaseOptimizer):
     :param ams_bound: bool. whether to use the AMSBound variant.
     :param scale_parameter: bool. if true, learning rate is scaled by root-mean-square of parameter.
     :param relative_step: bool. if true, time-dependent learning rate is computed instead of external learning rate.
-    :param warmup_init: bool. time-dependent learning rate computation depends on whether warm-up initialization
-        is being used.
+    :param warmup_init: bool. time-dependent learning rate computation depends on whether warm-up initialization is
+        being used.
     :param eps1: float. term added to the denominator to improve numerical stability.
     :param eps2: float. term added to the denominator to improve numerical stability.
     :param momentum_dtype: torch.dtype. type of momentum variable. In VIT paper observed that storing momentum in
         half-precision (bfloat16 type) does not affect training dynamics and has no effect on the outcome while
         reducing optimize overhead from 2-fold to 1.5-fold.
-    :param cautious: bool. whether to use the Cautious variant.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -50,7 +50,7 @@ class AdaFactor(BaseOptimizer):
         eps1: float = 1e-30,
         eps2: float = 1e-3,
         momentum_dtype: torch.dtype = torch.bfloat16,
-        cautious: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -64,7 +64,7 @@ class AdaFactor(BaseOptimizer):
         self.eps1 = eps1
         self.eps2 = eps2
         self.momentum_dtype = momentum_dtype
-        self.cautious = cautious
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -78,25 +78,35 @@ class AdaFactor(BaseOptimizer):
             'warmup_init': warmup_init,
             'eps1': eps1,
             'eps2': eps2,
+            **kwargs,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'AdaFactor'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        beta1: float = kwargs.get('beta1')
 
-                grad = p.grad
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                grad_shape: Tuple[int, ...] = grad.shape
-                factored: bool = self.get_options(grad_shape)
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
 
-                if group['betas'][0] is not None:
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            grad_shape: Tuple[int, ...] = grad.shape
+            factored: bool = self.get_options(grad_shape)
+
+            if len(state) == 0:
+                if beta1 is not None:
                     state['exp_avg'] = torch.zeros_like(p, dtype=self.momentum_dtype)
 
                 if factored:
@@ -138,12 +148,13 @@ class AdaFactor(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
-                group['step'] = 1
-
             beta1, beta2 = group['betas']
+
+            if 'step' not in group:
+                self.init_group(group, beta1=beta1)
+                group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta2_t: float = 1.0 - math.pow(group['step'], self.decay_rate)
 
@@ -152,30 +163,13 @@ class AdaFactor(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
                 grad_shape: Tuple[int, ...] = grad.shape
                 factored: bool = self.get_options(grad_shape)
-
-                if len(state) == 0:
-                    if beta1 is not None:
-                        state['exp_avg'] = torch.zeros_like(p, dtype=self.momentum_dtype)
-
-                    if factored:
-                        state['exp_avg_sq_row'] = torch.zeros(grad_shape[:-1], dtype=grad.dtype, device=grad.device)
-                        state['exp_avg_sq_col'] = torch.zeros(
-                            grad_shape[:-2] + grad_shape[-1:], dtype=grad.dtype, device=grad.device
-                        )
-                    else:
-                        state['exp_avg_sq'] = torch.zeros_like(grad)
-
-                    if group['ams_bound']:
-                        state['exp_avg_sq_hat'] = torch.zeros_like(grad)
-
-                    state['RMS'] = 0.0
 
                 state['RMS'] = self.get_rms(p)
 
@@ -218,7 +212,7 @@ class AdaFactor(BaseOptimizer):
                     exp_avg.mul_(beta1).add_(update, alpha=1.0 - beta1)
 
                     update = exp_avg.clone()
-                    if self.cautious:
+                    if group.get('cautious'):
                         self.apply_cautious(update, grad)
 
                 self.apply_weight_decay(

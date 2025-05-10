@@ -2,7 +2,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class FTRL(BaseOptimizer):
@@ -15,6 +15,7 @@ class FTRL(BaseOptimizer):
     :param beta: float. beta value in the paper.
     :param lambda_1: float. L1 regularization parameter.
     :param lambda_2: float. L2 regularization parameter.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -25,6 +26,7 @@ class FTRL(BaseOptimizer):
         beta: float = 0.0,
         lambda_1: float = 0.0,
         lambda_2: float = 0.0,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -33,18 +35,27 @@ class FTRL(BaseOptimizer):
         self.validate_non_negative(lambda_1, 'lambda_1')
         self.validate_non_negative(lambda_2, 'lambda_2')
 
+        self.maximize = maximize
+
         defaults: DEFAULTS = {'lr': lr, 'lr_power': lr_power, 'beta': beta, 'lambda_1': lambda_1, 'lambda_2': lambda_2}
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'FTRL'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['z'] = torch.zeros_like(p)
                 state['n'] = torch.zeros_like(p)
 
@@ -56,21 +67,25 @@ class FTRL(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['z'] = torch.zeros_like(p)
-                    state['n'] = torch.zeros_like(p)
-
                 z, n = state['z'], state['n']
+
+                p, grad, z, n = self.view_as_real(p, grad, z, n)
 
                 grad_p2 = grad.pow(2)
 
