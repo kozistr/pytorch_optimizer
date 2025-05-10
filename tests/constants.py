@@ -160,6 +160,16 @@ COMPLEX_OPTIMIZERS: List[str] = [
     'pnm',
     'qhadam',
     'qhm',
+    'radam',
+    'ranger',
+    'schedulefreesgd',
+    'schedulefreeadamw',
+    'schedulefreeradam',
+    'scion',
+    'scionlight',
+    'accsgd',
+    'sgdw',
+    'asgd',
 ]
 NO_COMPLEX_OPTIMIZERS: List[str] = [
     optimizer for optimizer in VALID_OPTIMIZER_NAMES if optimizer not in COMPLEX_OPTIMIZERS
