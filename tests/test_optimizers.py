@@ -338,6 +338,7 @@ def test_lomo_deepspeed_zero3(optimizer_name):
     model.fc1.weight.__setattr__('ds_tensor', 0)
 
     optimizer = load_optimizer(optimizer_name)(model)
+    optimizer.init_group({})
 
     assert str(optimizer).lower() == optimizer_name
 

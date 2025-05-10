@@ -273,7 +273,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBound, {'lr': 1e0, 'gamma': 0.1, 'weight_decay': 1e-3, 'fixed_decay': True}, 20),
     (AdaBound, {'lr': 1e0, 'gamma': 0.1, 'weight_decay': 1e-3, 'weight_decouple': False}, 20),
     (AdaBound, {'lr': 1e0, 'gamma': 0.1, 'weight_decay': 1e-3, 'ams_bound': True}, 20),
-    (Adai, {'lr': 5e-1, 'weight_decay': 0.0}, 5),
+    (Adai, {'lr': 5e0, 'weight_decay': 0.0, 'use_gc': True}, 5),
     (Adai, {'lr': 5e-1, 'weight_decay': 0.0, 'dampening': 0.9}, 5),
     (Adai, {'lr': 5e-1, 'weight_decay': 1e-4, 'weight_decouple': False}, 5),
     (Adai, {'lr': 5e-1, 'weight_decay': 1e-4, 'weight_decouple': True}, 5),
