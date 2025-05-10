@@ -155,6 +155,11 @@ COMPLEX_OPTIMIZERS: List[str] = [
     'lion',
     'mars',
     'msvag',
+    'padam',
+    'pid',
+    'pnm',
+    'qhadam',
+    'qhm',
 ]
 NO_COMPLEX_OPTIMIZERS: List[str] = [
     optimizer for optimizer in VALID_OPTIMIZER_NAMES if optimizer not in COMPLEX_OPTIMIZERS

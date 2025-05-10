@@ -179,10 +179,6 @@ def test_complex_optimizers(optimizer_complex_config, complex_environment):
 
     if optimizer_name == 'alig':
         config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
-    if optimizer_name == 'muon':
-        adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
-        parameters = [p for i, p in enumerate(parameters) if i < 2]
-        config.update({'adamw_params': adamw_params})
 
     optimizer = optimizer_class(parameters, **config)
 
