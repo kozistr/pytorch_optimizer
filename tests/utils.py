@@ -79,7 +79,7 @@ def simple_parameter(require_grad: bool = True) -> torch.Tensor:
 
 def simple_complex_parameter(require_grad: bool = True) -> torch.Tensor:
     param = torch.zeros(1, 1, dtype=torch.complex64).requires_grad_(require_grad)
-    param.grad = torch.zeros(1, 1, dtype=torch.complex64)
+    param.grad = torch.randn(1, 1, dtype=torch.complex64)
     return param
 
 

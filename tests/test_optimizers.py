@@ -194,7 +194,7 @@ def test_complex_optimizers(optimizer_complex_config, complex_environment):
         if init_loss == np.inf:
             init_loss = loss
 
-        loss.backward(create_graph=optimizer_name in ('adaHessian', 'sophiah'))
+        loss.backward(create_graph=optimizer_name in ('adahessian', 'sophiah'))
 
         optimizer.step(closure(loss) if optimizer_name == 'alig' else None)
 
@@ -1041,7 +1041,6 @@ def test_schedulefree_wrapper():
     model = Example()
 
     optimizer = ScheduleFreeWrapper(load_optimizer('adamw')(model.parameters(), lr=1e-3, weight_decay=1e-3))
-    optimizer.init_group()
     optimizer.zero_grad()
 
     model.fc1.weight.grad = torch.randn((1, 1))
@@ -1062,7 +1061,6 @@ def test_schedulefree_wrapper():
     backup_state = optimizer.state_dict()
 
     optimizer = ScheduleFreeWrapper(load_optimizer('adamw')(model.parameters(), lr=1e-3, weight_decay=1e-3))
-    optimizer.init_group()
     optimizer.zero_grad()
     optimizer.train()
 

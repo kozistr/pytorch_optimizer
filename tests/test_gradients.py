@@ -204,12 +204,19 @@ def test_schedulefree_sparse_gradient():
 
 @pytest.mark.parametrize('no_complex_optimizer', NO_COMPLEX_OPTIMIZERS)
 def test_complex_not_supported(no_complex_optimizer):
-    if no_complex_optimizer in ('adam', 'adamw', 'sgd', 'lomo', 'bsam', 'adammini', 'adalomo', 'ranger21'):
+    if no_complex_optimizer in ('adam', 'adamw', 'sgd', 'lomo', 'bsam', 'adammini', 'adalomo'):
         pytest.skip(f'skip {no_complex_optimizer}.')
 
     param = simple_complex_parameter()
 
-    optimizer = load_optimizer(optimizer=no_complex_optimizer)([param])
+    opt = load_optimizer(optimizer=no_complex_optimizer)
+
+    if no_complex_optimizer == 'ranger21':
+        optimizer = opt([param], num_iterations=1)
+    elif no_complex_optimizer == 'adahessian':
+        optimizer = opt([param], update_period=2)
+    else:
+        optimizer = opt([param])
 
     with pytest.raises(NoComplexParameterError):
         optimizer.step(lambda: 0.1)

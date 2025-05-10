@@ -148,7 +148,7 @@ COMPLEX_OPTIMIZERS: List[str] = [
     'ftrl',
     'grams',
     'gravity',
-    'grokfast',
+    'grokfastadamw',
     'kate',
     'lamb',
     'laprop',
