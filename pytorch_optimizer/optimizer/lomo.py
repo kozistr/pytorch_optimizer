@@ -7,7 +7,7 @@ from torch import nn
 from torch.distributed import ReduceOp, all_reduce
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import DEFAULTS
+from pytorch_optimizer.base.type import DEFAULTS, GROUP
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler
 from pytorch_optimizer.optimizer.utils import has_overflow, is_deepspeed_zero3_enabled
 
@@ -74,8 +74,7 @@ class LOMO(BaseOptimizer):
     def __str__(self) -> str:
         return 'LOMO'
 
-    @torch.no_grad()
-    def init_group(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     def fuse_update(self) -> Callable[[Any], Any]:
@@ -300,8 +299,7 @@ class AdaLOMO(BaseOptimizer):
             if p.requires_grad:
                 p.register_hook(self.grad_func)
 
-    @torch.no_grad()
-    def init_group(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     def fuse_update(self) -> Callable[[Any], Any]:

@@ -5,7 +5,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
 
 
 class Lookahead(BaseOptimizer):
@@ -75,10 +75,8 @@ class Lookahead(BaseOptimizer):
     def zero_grad(self, set_to_none: bool = True) -> None:
         self.optimizer.zero_grad(set_to_none=set_to_none)
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['counter'] = 0
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        pass
 
     def backup_and_load_cache(self):
         r"""Backup cache parameters."""

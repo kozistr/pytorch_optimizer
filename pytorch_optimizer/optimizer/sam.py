@@ -10,7 +10,7 @@ from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, OPTIMIZER, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, OPTIMIZER, PARAMETERS
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_running_stats
 
@@ -593,17 +593,20 @@ class BSAM(BaseOptimizer):
 
         defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'rho': rho, 'adaptive': adaptive}
         defaults.update(kwargs)
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'bSAM'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            state = self.state[p]
+
+            if 's' not in state:
                 state['s'] = torch.ones_like(p)
                 state['noisy_gradient'] = torch.zeros_like(p.grad)
                 state['momentum'] = torch.zeros_like(p)
@@ -611,16 +614,17 @@ class BSAM(BaseOptimizer):
     @torch.no_grad()
     def first_step(self):
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 state = self.state[p]
-
-                if 's' not in state:
-                    state['s'] = torch.ones_like(p)
-                    state['noisy_gradient'] = torch.zeros_like(p.grad)
-                    state['momentum'] = torch.zeros_like(p)
 
                 noise = torch.normal(0.0, 1 / (self.num_data * state['s']))
 
