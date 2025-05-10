@@ -152,8 +152,6 @@ class Lamb(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 if self.pre_norm:
                     grad.div_(grad_norm)
@@ -162,6 +160,10 @@ class Lamb(BaseOptimizer):
 
                 state = self.state[p]
 
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
+                p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
+
                 s_grad = self.get_adanorm_gradient(
                     grad=grad,
                     adanorm=group.get('adanorm', False),
@@ -169,7 +171,6 @@ class Lamb(BaseOptimizer):
                     r=group.get('adanorm_r', None),
                 )
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(s_grad, alpha=beta3)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 

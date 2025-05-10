@@ -2,7 +2,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class Kate(BaseOptimizer):
@@ -51,13 +51,18 @@ class Kate(BaseOptimizer):
     def __str__(self) -> str:
         return 'Kate'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['m'] = torch.zeros_like(p)
                 state['b'] = torch.zeros_like(p)
 
@@ -69,24 +74,25 @@ class Kate(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['m'] = torch.zeros_like(p)
-                    state['b'] = torch.zeros_like(p)
+                m, b = state['m'], state['b']
+
+                p, grad, m, b = self.view_as_real(p, grad, m, b)
 
                 self.apply_weight_decay(
                     p=p,
@@ -97,11 +103,9 @@ class Kate(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                grad_p2 = torch.mul(grad, grad)
+                grad_p2 = grad.pow(2)
 
-                m, b = state['m'], state['b']
                 b.mul_(b).add_(grad_p2).add_(group['eps'])
-
                 m.mul_(m).add_(grad_p2, alpha=group['delta']).add_(grad_p2 / b).sqrt_()
 
                 update = m.mul(grad).div_(b)

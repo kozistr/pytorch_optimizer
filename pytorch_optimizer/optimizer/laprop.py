@@ -108,14 +108,21 @@ class LaProp(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+                exp_avg, exp_avg_sq, exp_mean_avg_beta2 = (
+                    state['exp_avg'],
+                    state['exp_avg_sq'],
+                    state.get('exp_mean_avg_beta2', None),
+                )
+
+                p, grad, exp_avg, exp_avg_sq, exp_mean_avg_beta2 = self.view_as_real(
+                    p, grad, exp_avg, exp_avg_sq, exp_mean_avg_beta2
+                )
+
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 state['exp_avg_lr_1'] = state['exp_avg_lr_1'] * beta1 + (1.0 - beta1) * group['lr']
@@ -126,7 +133,6 @@ class LaProp(BaseOptimizer):
 
                 de_nom = exp_avg_sq
                 if group['centered']:
-                    exp_mean_avg_beta2 = state['exp_mean_avg_beta2']
                     exp_mean_avg_beta2.mul_(beta2).add_(grad, alpha=1.0 - beta2)
                     if group['step'] > self.steps_before_using_centered:
                         de_nom -= exp_mean_avg_beta2.pow(2)

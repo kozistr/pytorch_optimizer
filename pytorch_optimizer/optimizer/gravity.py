@@ -2,7 +2,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class Gravity(BaseOptimizer):
@@ -37,12 +37,18 @@ class Gravity(BaseOptimizer):
     def __str__(self) -> str:
         return 'Gravity'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['v'] = torch.empty_like(p).normal_(mean=0.0, std=group['alpha'] / group['lr'])
 
     @torch.no_grad()
@@ -53,10 +59,11 @@ class Gravity(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta_t: float = (group['beta'] * group['step'] + 1) / (group['step'] + 2)
 
@@ -65,15 +72,14 @@ class Gravity(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['v'] = torch.empty_like(p).normal_(mean=0.0, std=group['alpha'] / group['lr'])
-
                 v = state['v']
+
+                p, grad, v = self.view_as_real(p, grad, v)
 
                 m = 1.0 / grad.abs().max()
                 zeta = grad / (1.0 + (grad / m) ** 2)

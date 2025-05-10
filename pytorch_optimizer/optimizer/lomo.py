@@ -68,6 +68,7 @@ class LOMO(BaseOptimizer):
                 p.register_hook(self.grad_func)
 
         defaults: DEFAULTS = {'lr': lr}
+
         super().__init__(self.model.parameters(), defaults)
 
     def __str__(self) -> str:
@@ -276,6 +277,7 @@ class AdaLOMO(BaseOptimizer):
             'eps1': eps1,
             'eps2': eps2,
         }
+
         super().__init__(self.model.parameters(), defaults)
 
     def __str__(self) -> str:
@@ -420,17 +422,17 @@ class AdaLOMO(BaseOptimizer):
                 lr = self.lr * max(self.eps2, p_rms)
 
                 self.apply_weight_decay(
-                    partitioned_p,
-                    grad_fp32,
-                    lr,
-                    self.weight_decay,
+                    p=partitioned_p,
+                    grad=grad_fp32,
+                    lr=lr,
+                    weight_decay=self.weight_decay,
                     weight_decouple=True,
                     fixed_decay=False,
                 )
 
                 partitioned_p.add_(partitioned_update, alpha=-lr)
 
-                p.ds_tensor[: end - start] = partitioned_p
+                p.ds_tensor[:end - start] = partitioned_p  # fmt: skip
 
             return x
 

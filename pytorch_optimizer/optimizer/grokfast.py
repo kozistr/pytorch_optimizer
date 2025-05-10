@@ -7,7 +7,7 @@ from torch import nn
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 FILTER_TYPE = Literal['mean', 'sum']
 
@@ -160,15 +160,22 @@ class GrokFastAdamW(BaseOptimizer):
     def __str__(self) -> str:
         return 'GrokFastAdamW'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
+                if group['grokfast'] and group['grokfast_lamb'] > 0.0:
+                    state['grok_exp_avg'] = grad.clone()
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -178,10 +185,11 @@ class GrokFastAdamW(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -197,16 +205,20 @@ class GrokFastAdamW(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-                    if group['grokfast'] and group['grokfast_lamb'] > 0.0:
-                        state['grok_exp_avg'] = grad.clone()
+                exp_avg, exp_avg_sq, grok_exp_avg = (
+                    state['exp_avg'],
+                    state['exp_avg_sq'],
+                    state.get('grok_exp_avg', None),
+                )
+
+                p, grad, exp_avg, exp_avg_sq, grok_exp_avg = self.view_as_real(
+                    p, grad, exp_avg, exp_avg_sq, grok_exp_avg
+                )
 
                 self.apply_weight_decay(
                     p=p,
@@ -218,12 +230,9 @@ class GrokFastAdamW(BaseOptimizer):
                 )
 
                 if should_grokfast:
-                    grok_exp_avg = state['grok_exp_avg']
                     grok_exp_avg.lerp_(grad, weight=1.0 - group['grokfast_alpha'])
-
                     grad.add_(grok_exp_avg, alpha=group['grokfast_lamb'])
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 

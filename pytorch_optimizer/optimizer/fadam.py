@@ -1,8 +1,8 @@
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class FAdam(BaseOptimizer):
@@ -15,8 +15,8 @@ class FAdam(BaseOptimizer):
     :param clip: float. maximum norm of the gradient.
     :param p: float. momentum factor.
     :param eps: float. term added to the denominator to improve numerical stability.
-    :param momentum_dtype: torch.dtype. type of momentum.
-    :param fim_dtype: torch.dtype. type of fim.
+    :param momentum_dtype: torch.dtype. dtype of momentum.
+    :param fim_dtype: torch.dtype. dtype of fim.
     :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
@@ -59,13 +59,21 @@ class FAdam(BaseOptimizer):
     def __str__(self) -> str:
         return 'FAdam'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['momentum'] = torch.zeros_like(p, dtype=self.momentum_dtype)
                 state['fim'] = torch.zeros_like(p, dtype=self.fim_dtype)
 
@@ -77,10 +85,11 @@ class FAdam(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -91,15 +100,13 @@ class FAdam(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if len(state) == 0:
-                    state['momentum'] = torch.zeros_like(p, dtype=self.momentum_dtype)
-                    state['fim'] = torch.zeros_like(p, dtype=self.fim_dtype)
 
                 momentum, fim = state['momentum'], state['fim']
+
                 fim.mul_(curr_beta2).addcmul_(grad, grad, value=1.0 - curr_beta2)
 
                 rms_grad = grad.pow(2).mean().sqrt_()

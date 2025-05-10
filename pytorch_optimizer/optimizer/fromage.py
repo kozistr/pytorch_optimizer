@@ -10,7 +10,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class Fromage(BaseOptimizer):
@@ -38,14 +38,19 @@ class Fromage(BaseOptimizer):
     def __str__(self) -> str:
         return 'Fromage'
 
-    @torch.no_grad()
-    def init_group(self):
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                if self.p_bound is not None:
-                    state['max'] = p.norm().mul_(self.p_bound)
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0 and self.p_bound is not None:
+                state['max'] = p.norm().mul_(self.p_bound)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -55,19 +60,25 @@ class Fromage(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             pre_factor: float = math.sqrt(1 + group['lr'] ** 2)
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0 and self.p_bound is not None:
-                    state['max'] = p.norm().mul_(self.p_bound)
+                p, grad = self.view_as_real(p, grad)
 
                 p_norm, g_norm = p.norm(), grad.norm()
 

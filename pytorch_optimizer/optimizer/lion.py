@@ -87,19 +87,21 @@ class Lion(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
+
+                exp_avg = state['exp_avg']
+
+                p, grad, exp_avg = self.view_as_real(p, grad, exp_avg)
 
                 if group.get('use_gc'):
                     centralize_gradient(grad, gc_conv_only=False)
 
                 self.apply_weight_decay(
                     p=p,
-                    grad=p.grad,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],
@@ -113,7 +115,6 @@ class Lion(BaseOptimizer):
                     r=group.get('adanorm_r', None),
                 )
 
-                exp_avg = state['exp_avg']
                 update = exp_avg.clone()
 
                 update.mul_(beta1).add_(grad, alpha=1.0 - beta1).sign_()

@@ -358,11 +358,10 @@ class DAdaptAdam(BaseOptimizer):
         numerator_weighted = group['numerator_weighted']
 
         for group in self.param_groups:
-            if 'step' not in group:
+            if group['step'] == 0:
                 self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+
+            group['step'] += 1
 
             for p in group['params']:
                 if p.grad is None:
