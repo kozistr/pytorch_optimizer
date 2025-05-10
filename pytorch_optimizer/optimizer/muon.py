@@ -7,7 +7,7 @@ from torch.distributed import ReduceOp, all_reduce
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 
 
@@ -123,8 +123,7 @@ class Muon(BaseOptimizer):
         for p in adamw_params:
             self.state[p]['use_muon'] = False
 
-    @torch.no_grad()
-    def init_group(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     @staticmethod
@@ -149,10 +148,11 @@ class Muon(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             params = []
             for p in group['params']:

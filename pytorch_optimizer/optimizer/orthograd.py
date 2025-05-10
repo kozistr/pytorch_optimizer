@@ -4,7 +4,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
 
 
 class OrthoGrad(BaseOptimizer):
@@ -45,14 +45,13 @@ class OrthoGrad(BaseOptimizer):
     def zero_grad(self, set_to_none: bool = True) -> None:
         self.optimizer.zero_grad(set_to_none=set_to_none)
 
-    @torch.no_grad()
-    def init_group(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     @torch.no_grad()
     def apply_orthogonal_gradients(self, params) -> None:
         for p in params:
-            if p.grad is None or p.grad.is_sparse:
+            if p.grad is None or p.grad.is_sparse or torch.is_complex(p):
                 continue
 
             w = p.view(-1)
