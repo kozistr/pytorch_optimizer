@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 import torch
 from torch import nn
-from torch.nn import functional as f
+from torch.nn.functional import relu
 
 from pytorch_optimizer.base.type import LOSS
 from pytorch_optimizer.optimizer import AdamW, Lookahead, OrthoGrad, ScheduleFreeWrapper
@@ -17,7 +17,7 @@ class LogisticRegression(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.fc1(x)
-        x = f.relu(x)
+        x = relu(x)
         return self.fc2(x)
 
 
@@ -29,7 +29,7 @@ class ComplexLogisticRegression(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.fc1(x)
-        x = f.relu(x.real) + 1.0j * f.relu(x.imag)
+        x = relu(x.real) + 1.0j * relu(x.imag)
         return self.fc2(x).real
 
 
@@ -42,7 +42,7 @@ class MultiHeadLogisticRegression(nn.Module):
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         x = self.fc1(x)
-        x = f.relu(x)
+        x = relu(x)
         return self.head1(x), self.head2(x)
 
 
@@ -95,28 +95,6 @@ def simple_sparse_parameter(require_grad: bool = True) -> Tuple[torch.Tensor, to
     return weight, weight_sparse
 
 
-def make_dataset(num_samples: int = 100, dims: int = 2, seed: int = 42) -> Tuple[torch.Tensor, torch.Tensor]:
-    torch.manual_seed(42)
-    rng = np.random.RandomState(seed)
-
-    x = rng.randn(num_samples, dims) * 2
-
-    # center the first N/2 points at (-2, -2)
-    mid: int = num_samples // 2
-    x[:mid, :] = x[:mid, :] - 2 * np.ones((mid, dims))
-
-    # center the last N/2 points at (2, 2)
-    x[mid:, :] = x[mid:, :] + 2 * np.ones((mid, dims))
-
-    # labels: first N/2 are 0, last N/2 are 1
-    y = np.array([0] * mid + [1] * mid).reshape(100, 1)
-
-    x = torch.Tensor(x)
-    y = torch.Tensor(y)
-
-    return x, y
-
-
 def dummy_closure() -> LOSS:
     return 1.0
 
@@ -141,26 +119,14 @@ def names(v) -> str:
     return v.__name__
 
 
-def build_environment(
-    use_gpu: bool = False, use_complex: bool = False
-) -> Tuple[Tuple[torch.Tensor, torch.Tensor], nn.Module, nn.Module]:
-    torch.manual_seed(42)
-
-    x_data, y_data = make_dataset()
-    model: nn.Module = LogisticRegression() if not use_complex else ComplexLogisticRegression()
-    loss_fn: nn.Module = nn.BCEWithLogitsLoss()
-
-    if use_gpu and torch.cuda.is_available():
-        x_data, y_data = x_data.cuda(), y_data.cuda()
-        model = model.cuda()
-        loss_fn = loss_fn.cuda()
-
-    return (x_data, y_data), model, loss_fn
-
-
 def tensor_to_numpy(x: torch.Tensor) -> np.ndarray:
     return x.detach().cpu().numpy()
 
 
 def sphere_loss(x: torch.Tensor) -> torch.Tensor:
     return (x ** 2).sum()  # fmt: skip
+
+
+def build_model(use_complex: bool = False):
+    torch.manual_seed(42)
+    return ComplexLogisticRegression() if use_complex else LogisticRegression(), nn.BCEWithLogitsLoss()
