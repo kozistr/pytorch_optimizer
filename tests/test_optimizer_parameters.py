@@ -7,11 +7,13 @@ from pytorch_optimizer.optimizer import (
     WSAM,
     Lookahead,
     LookSAM,
+    BSAM,
     PCGrad,
     Ranger21,
     SafeFP16Optimizer,
     load_optimizer,
 )
+from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
 from tests.constants import PULLBACK_MOMENTUM
 from tests.utils import Example, simple_parameter
@@ -86,16 +88,21 @@ def test_lookahead_parameters():
         Lookahead(optimizer, pullback_momentum='invalid')
 
 
-@pytest.mark.parametrize('optimizer', [SAM, WSAM, LookSAM])
+@pytest.mark.parametrize('optimizer', [SAM, WSAM, LookSAM, BSAM])
 def test_sam_family_methods(optimizer):
     base_optimizer = load_optimizer('lion')
 
-    opt = optimizer(params=[simple_parameter()], model=None, base_optimizer=base_optimizer)
-    opt.init_group({})
+    opt = optimizer(params=[simple_parameter()], model=None, base_optimizer=base_optimizer, num_data=1)
+    opt.zero_grad()
+
+    opt.init_group({'params': []})
     opt.load_state_dict(opt.state_dict())
 
+    with pytest.raises(NoClosureError):
+        opt.step()
+
     with pytest.raises(ValueError):
-        optimizer(model=None, params=None, base_optimizer=base_optimizer, rho=-0.1)
+        optimizer(model=None, params=None, base_optimizer=base_optimizer, rho=-0.1, num_data=1)
 
 
 def test_safe_fp16_methods():
