@@ -2,18 +2,18 @@ import pytest
 import torch
 from torch import nn
 
+from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.optimizer import (
+    BSAM,
     SAM,
     WSAM,
     Lookahead,
     LookSAM,
-    BSAM,
     PCGrad,
     Ranger21,
     SafeFP16Optimizer,
     load_optimizer,
 )
-from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
 from tests.constants import PULLBACK_MOMENTUM
 from tests.utils import Example, simple_parameter

@@ -6,15 +6,7 @@ import torch
 from torch import nn
 
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
-from pytorch_optimizer.optimizer import (
-    BSAM,
-    SAM,
-    WSAM,
-    DynamicLossScaler,
-    LookSAM,
-    Muon,
-    load_optimizer,
-)
+from pytorch_optimizer.optimizer import DynamicLossScaler, Muon, load_optimizer
 from pytorch_optimizer.optimizer.alig import l2_projection
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
@@ -244,12 +236,10 @@ def test_hessian_optimizer(optimizer_name):
     optimizer = load_optimizer(optimizer_name)([param], **parameters)
     optimizer.zero_grad(set_to_none=True)
 
-    # Hutchinson (internal) estimator
     sphere_loss(param).backward(create_graph=True)
     optimizer.step()
     optimizer.zero_grad(set_to_none=True)
 
-    # External estimator
     sphere_loss(param).backward()
     optimizer.step(hessian=torch.zeros_like(param).unsqueeze(0))
 
