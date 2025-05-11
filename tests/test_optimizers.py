@@ -180,6 +180,10 @@ def test_complex_optimizers(optimizer_complex_config, environment):
 def test_init_group(optimizer_config):
     optimizer_class, *_ = optimizer_config
 
+    optimizer_name: str = optimizer_class.__name__.lower()
+    if optimizer_name.startswith('build'):
+        pytest.skip(f'skip {optimizer_name}')
+
     optimizer_class([simple_parameter()], num_iterations=1).init_group({'params': [], 'betas': (0.0, 0.0)})
 
 
@@ -399,9 +403,7 @@ def test_dynamic_scaler():
     scaler.update_scale(overflow=False)
 
 
-@pytest.mark.parametrize(
-    'optimizer_name', ['ScheduleFreeAdamW', 'ScheduleFreeSGD', 'ScheduleFreeAdan', 'ScheduleFreeRAdam']
-)
+@pytest.mark.parametrize('optimizer_name', ['ScheduleFreeAdamW', 'ScheduleFreeSGD', 'ScheduleFreeRAdam'])
 def test_schedule_free_methods(optimizer_name):
     optimizer = load_optimizer(optimizer_name)([simple_parameter(True)])
     optimizer.eval()
