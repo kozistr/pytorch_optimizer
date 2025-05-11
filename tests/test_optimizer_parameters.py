@@ -62,16 +62,6 @@ def test_pcgrad_parameters():
         PCGrad(opt, reduction='invalid')
 
 
-def test_sam_parameters():
-    with pytest.raises(ValueError):
-        SAM(None, load_optimizer('adamp'), rho=-0.1)
-
-
-def test_wsam_parameters():
-    with pytest.raises(ValueError):
-        WSAM(None, None, load_optimizer('adamp'), rho=-0.1)
-
-
 def test_lookahead_parameters():
     optimizer_instance = load_optimizer('adamp')
     optimizer = optimizer_instance([simple_parameter()])
@@ -96,22 +86,16 @@ def test_lookahead_parameters():
         Lookahead(optimizer, pullback_momentum='invalid')
 
 
-def test_sam_methods():
-    optimizer = SAM([simple_parameter()], load_optimizer('adamp'))
-    optimizer.init_group()
-    optimizer.load_state_dict(optimizer.state_dict())
+@pytest.mark.parametrize('optimizer', [SAM, WSAM, LookSAM])
+def test_sam_family_methods(optimizer):
+    base_optimizer = load_optimizer('lion')
 
+    opt = optimizer(params=[simple_parameter()], model=None, base_optimizer=base_optimizer)
+    opt.init_group({})
+    opt.load_state_dict(opt.state_dict())
 
-def test_wsam_methods():
-    optimizer = WSAM(None, [simple_parameter()], load_optimizer('adamp'))
-    optimizer.init_group()
-    optimizer.load_state_dict(optimizer.state_dict())
-
-
-def test_looksam_methods():
-    optimizer = LookSAM([simple_parameter()], load_optimizer('adamp'))
-    optimizer.init_group()
-    optimizer.load_state_dict(optimizer.state_dict())
+    with pytest.raises(ValueError):
+        optimizer(model=None, params=None, base_optimizer=base_optimizer, rho=-0.1)
 
 
 def test_safe_fp16_methods():

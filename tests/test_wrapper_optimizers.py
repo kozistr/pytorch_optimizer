@@ -105,6 +105,7 @@ def test_looksam_optimizer(environment):
     for _ in range(5):
         loss = loss_fn(y_data, model(x_data))
         loss.backward()
+
         optimizer.first_step(zero_grad=True)
 
         loss_fn(y_data, model(x_data)).backward()
