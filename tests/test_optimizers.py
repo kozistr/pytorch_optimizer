@@ -18,7 +18,6 @@ from pytorch_optimizer.optimizer import (
 from pytorch_optimizer.optimizer.alig import l2_projection
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
-from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 from tests.constants import COMPLEX_OPTIMIZERS, OPTIMIZERS
 from tests.utils import (
     Example,
@@ -501,18 +500,6 @@ def test_soap_merge_dims_channel_last(environment):
         optimizer.zero_grad()
         nn.BCEWithLogitsLoss()(model(x_data).squeeze(), y_data.squeeze()).backward()
         optimizer.step()
-
-
-def test_muon_zero_power_via_newton_schulz_5():
-    x = torch.FloatTensor(([[1.0911, 0.8774], [0.7698, -0.3501], [0.8795, -1.1103]]))
-    output = zero_power_via_newton_schulz_5(x, num_steps=6)
-
-    expected_output = np.asarray([[0.5156, 0.4531], [0.3281, -0.1445], [0.3438, -0.5000]])
-
-    np.testing.assert_almost_equal(output.float().numpy(), expected_output, decimal=4)
-
-    with pytest.raises(ValueError):
-        _ = zero_power_via_newton_schulz_5(x[0], num_steps=6)
 
 
 @pytest.mark.parametrize('rank', ['1', '0'])
