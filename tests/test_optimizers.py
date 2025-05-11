@@ -278,28 +278,26 @@ def test_hessian_optimizer(optimizer_name):
     optimizer.step(hessian=torch.zeros_like(param).unsqueeze(0))
 
 
-def test_swats_sgd_phase(environment):
-    x_data, y_data = environment
-    model, loss_fn = build_model()
+def test_swats_sgd_phase():
+    model, _ = build_model()
 
     opt = load_optimizer('swats')(model.parameters(), lr=1e-1, nesterov=True, eps=1.0)
 
-    for _ in range(1):
-        loss_fn(model(x_data), y_data).backward()
-        opt.step()
+    model.fc1.weight.grad = None
+    model.fc2.weight.grad = torch.zeros(1, 2)
+    opt.step()
 
-    opt.param_groups[0]['step'] = 1  # to bypass to adam -> sgd phase
+    model.fc1.weight.grad = None
+    model.fc2.weight.grad = torch.ones(1, 2)
+    opt.step()
+
     opt.param_groups[0]['phase'] = 'sgd'
-
-    for _ in range(1):
-        loss_fn(model(x_data), y_data).backward()
-        opt.step()
+    opt.step()
 
 
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2])
-def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type, environment):
-    x_data, y_data = environment
-    model, loss_fn = build_model()
+def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
+    model, _ = build_model()
 
     model = nn.Sequential(
         nn.Linear(2, 4096),
@@ -316,7 +314,9 @@ def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type, environ
     )
     optimizer.zero_grad()
 
-    loss_fn(model(x_data), y_data).backward()
+    model[0].weight.grad = torch.zeros(4096, 2)
+    model[1].weight.grad = torch.zeros(512, 4096)
+    model[2].weight.grad = torch.zeros(1, 512)
 
     optimizer.step()
 
