@@ -476,8 +476,10 @@ def test_soap_parameters(params):
     for _ in range(2):
         optimizer.zero_grad()
 
-        model[0].weight.grad = None
-        model[1].weight.grad = torch.randn((1, 8))
+        model[0].weight.grad = torch.zeros((8, 2))
+        model[0].bias.grad = torch.zeros((8,))
+        model[1].weight.grad = torch.zeros((1, 8))
+        model[1].bias.grad = torch.zeros((1,))
 
         optimizer.step()
 
