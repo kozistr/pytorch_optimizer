@@ -406,6 +406,8 @@ def test_dynamic_scaler():
 @pytest.mark.parametrize('optimizer_name', ['ScheduleFreeAdamW', 'ScheduleFreeSGD', 'ScheduleFreeRAdam'])
 def test_schedule_free_methods(optimizer_name):
     optimizer = load_optimizer(optimizer_name)([simple_parameter(True)])
+    optimizer.step()
+
     optimizer.eval()
     optimizer.train()
 
