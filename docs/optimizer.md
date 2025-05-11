@@ -116,6 +116,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Alice
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AliG
     :docstring:
     :members:
@@ -313,6 +317,10 @@
     :members:
 
 ::: pytorch_optimizer.QHM
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.RACS
     :docstring:
     :members:
 
