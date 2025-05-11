@@ -177,6 +177,13 @@ def test_complex_optimizers(optimizer_complex_config, environment):
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_init_group(optimizer_config):
+    optimizer_class, *_ = optimizer_config
+
+    optimizer_class([simple_parameter()], num_iterations=1).init_group({'params': [], 'betas': (0.0, 0.0)})
+
+
 @pytest.mark.parametrize('optimizer', {config[0] for config in OPTIMIZERS}, ids=names)
 def test_closure(optimizer):
     param = simple_parameter()

@@ -12,13 +12,14 @@ from pytorch_optimizer import (
     CosineScheduler,
     Lookahead,
     LookSAM,
+    OrthoGrad,
     PCGrad,
     ProportionScheduler,
     ScheduleFreeWrapper,
     load_optimizer,
 )
 from tests.constants import ADAPTIVE_FLAGS, DECOUPLE_FLAGS, PULLBACK_MOMENTUM
-from tests.utils import Example, MultiHeadLogisticRegression, build_model, tensor_to_numpy
+from tests.utils import Example, MultiHeadLogisticRegression, build_model, simple_parameter, tensor_to_numpy
 
 
 @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
@@ -353,3 +354,22 @@ def test_trac_optimizer_erf_imag():
     optimizer.erf_imag(complex_tensor)
 
     assert str(optimizer).lower() == 'trac'
+
+
+@pytest.mark.parametrize('wrapper_optimizer_instance', [Lookahead, OrthoGrad, TRAC])
+def test_load_wrapper_optimizer(wrapper_optimizer_instance):
+    params = [simple_parameter()]
+
+    _ = wrapper_optimizer_instance(torch.optim.AdamW(params))
+
+    optimizer = wrapper_optimizer_instance(torch.optim.AdamW, params=params)
+    optimizer.zero_grad()
+
+    with pytest.raises(ValueError):
+        wrapper_optimizer_instance(torch.optim.AdamW)
+
+    _ = optimizer.param_groups
+    _ = optimizer.state
+
+    state = optimizer.state_dict()
+    optimizer.load_state_dict(state)

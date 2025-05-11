@@ -4,11 +4,9 @@ from torch import nn
 
 from pytorch_optimizer.optimizer import (
     SAM,
-    TRAC,
     WSAM,
     Lookahead,
     LookSAM,
-    OrthoGrad,
     PCGrad,
     Ranger21,
     SafeFP16Optimizer,
@@ -55,14 +53,13 @@ def test_came_parameters():
 
 
 def test_pcgrad_parameters():
-    opt = load_optimizer('adamp')([simple_parameter()])
+    opt = load_optimizer('adamw')([simple_parameter()])
 
-    # test reduction
-    for reduction in ['mean', 'sum']:
+    for reduction in ('mean', 'sum'):
         PCGrad(opt, reduction=reduction)
 
     with pytest.raises(ValueError):
-        PCGrad(opt, reduction='wrong')
+        PCGrad(opt, reduction='invalid')
 
 
 def test_sam_parameters():
@@ -268,21 +265,3 @@ def test_galore_projection_type():
 
     with pytest.raises(ValueError):
         GaLoreProjector.get_orthogonal_matrix(p, 1, projection_type='std')
-
-
-@pytest.mark.parametrize('optimizer_instance', [Lookahead, OrthoGrad, TRAC])
-def test_load_wrapper_optimizer(optimizer_instance):
-    params = [simple_parameter()]
-
-    _ = optimizer_instance(torch.optim.AdamW(params))
-    optimizer = optimizer_instance(torch.optim.AdamW, params=params)
-    optimizer.zero_grad()
-
-    with pytest.raises(ValueError):
-        optimizer_instance(torch.optim.AdamW)
-
-    _ = optimizer.param_groups
-    _ = optimizer.state
-
-    state = optimizer.state_dict()
-    optimizer.load_state_dict(state)
