@@ -346,8 +346,6 @@ def test_trac_optimizer_erf_imag():
     model = Example()
 
     optimizer = TRAC(load_optimizer('adamw')(model.parameters()))
-
-    optimizer.init_group()
     optimizer.zero_grad()
 
     complex_tensor = torch.complex(torch.tensor(0.0), torch.tensor(1.0))
