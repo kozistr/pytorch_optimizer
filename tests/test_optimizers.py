@@ -462,9 +462,7 @@ def test_adam_mini_optimizer():
         },
     ],
 )
-def test_soap_parameters(params, environment):
-    x_data, y_data = environment
-
+def test_soap_parameters(params):
     model = nn.Sequential(
         nn.Linear(2, 8),
         nn.Linear(8, 1),
@@ -474,7 +472,10 @@ def test_soap_parameters(params, environment):
 
     for _ in range(2):
         optimizer.zero_grad()
-        nn.BCEWithLogitsLoss()(model(x_data), y_data).backward()
+
+        model[0].weight.grad = None
+        model[1].weight.grad = torch.randn((1, 8))
+
         optimizer.step()
 
 
