@@ -6,42 +6,17 @@ import torch
 from torch import nn
 
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
-from pytorch_optimizer.lr_scheduler import CosineScheduler, ProportionScheduler
-from pytorch_optimizer.optimizer import (
-    BSAM,
-    GSAM,
-    SAM,
-    TRAC,
-    WSAM,
-    DynamicLossScaler,
-    Lookahead,
-    LookSAM,
-    Muon,
-    PCGrad,
-    ScheduleFreeWrapper,
-    load_optimizer,
-)
+from pytorch_optimizer.optimizer import DynamicLossScaler, Muon, load_optimizer
 from pytorch_optimizer.optimizer.alig import l2_projection
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
-from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
-from tests.constants import (
-    ADAMD_SUPPORTED_OPTIMIZERS,
-    ADANORM_SUPPORTED_OPTIMIZERS,
-    ADAPTIVE_FLAGS,
-    COPT_SUPPORTED_OPTIMIZERS,
-    DECOUPLE_FLAGS,
-    OPTIMIZERS,
-    PULLBACK_MOMENTUM,
-    STABLE_ADAMW_SUPPORTED_OPTIMIZERS,
-)
+from tests.constants import COMPLEX_OPTIMIZERS, OPTIMIZERS
 from tests.utils import (
     Example,
-    MultiHeadLogisticRegression,
-    build_environment,
+    LogisticRegression,
+    build_model,
     dummy_closure,
     ids,
-    make_dataset,
     names,
     simple_parameter,
     simple_sparse_parameter,
@@ -49,11 +24,6 @@ from tests.utils import (
     sphere_loss,
     tensor_to_numpy,
 )
-
-
-@pytest.fixture(scope='function')
-def environment():
-    return build_environment()
 
 
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
@@ -64,12 +34,13 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
 
         return _closure
 
-    (x_data, y_data), model, loss_fn = environment
-
     optimizer_class, config, iterations = optimizer_fp32_config
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name == 'Nero' and 'constraints' not in config:
         pytest.skip(f'skip {optimizer_name} w/o {config}')
+
+    x_data, y_data = environment
+    model, loss_fn = build_model()
 
     parameters = list(model.parameters())
 
@@ -109,13 +80,14 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
 
         return _closure
 
-    (x_data, y_data), model, loss_fn = environment
-    model = model.bfloat16()
-
     optimizer_class, config, iterations = optimizer_bf16_config
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name in ('Adai', 'Prodigy', 'Nero'):
         pytest.skip(f'skip {optimizer_name}')
+
+    x_data, y_data = environment
+    model, loss_fn = build_model()
+    model = model.bfloat16()
 
     parameters = list(model.parameters())
 
@@ -151,367 +123,60 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
-def test_lookahead(pullback_momentum, environment):
-    (x_data, y_data), model, loss_fn = environment
+@pytest.mark.parametrize('optimizer_complex_config', OPTIMIZERS, ids=ids)
+def test_complex_optimizers(optimizer_complex_config, environment):
+    def closure(x):
+        def _closure() -> float:
+            return x
 
-    optimizer = Lookahead(load_optimizer('adamw')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
+        return _closure
+
+    optimizer_class, config, iterations = optimizer_complex_config
+    optimizer_name: str = optimizer_class.__name__.lower()
+
+    if optimizer_name not in COMPLEX_OPTIMIZERS:
+        pytest.skip(f'{optimizer_name} does not support')
+
+    x_data, y_data = environment
+    model, loss_fn = build_model(use_complex=True)
+
+    x_data = x_data.to(torch.complex64)
+
+    parameters = list(model.parameters())
+
+    if optimizer_name == 'alig':
+        config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
+
+    optimizer = optimizer_class(parameters, **config)
+
+    if optimizer_name.endswith('schedulefree'):
+        optimizer.train()
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(5):
+    for _ in range(iterations):
         optimizer.zero_grad()
 
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
+        loss = loss_fn(model(x_data), y_data)
 
         if init_loss == np.inf:
             init_loss = loss
 
-        loss.backward()
+        loss.backward(create_graph=optimizer_name in ('adahessian', 'sophiah'))
 
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_sam_optimizer(adaptive, environment):
-    (x_data, y_data), model, loss_fn = environment
-
-    optimizer = SAM(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive, use_gc=True)
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(5):
-        loss = loss_fn(y_data, model(x_data))
-        loss.backward()
-        optimizer.first_step(zero_grad=True)
-
-        loss_fn(y_data, model(x_data)).backward()
-        optimizer.second_step(zero_grad=True)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_sam_optimizer_with_closure(adaptive, environment):
-    (x_data, y_data), model, loss_fn = environment
-
-    optimizer = SAM(model.parameters(), load_optimizer('adamw'), lr=5e-1, adaptive=adaptive)
-
-    def closure():
-        first_loss = loss_fn(y_data, model(x_data))
-        first_loss.backward()
-        return first_loss
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(5):
-        loss = loss_fn(y_data, model(x_data))
-        loss.backward()
-
-        optimizer.step(closure)
-        optimizer.zero_grad()
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
-
-
-def test_looksam_optimizer(environment):
-    (x_data, y_data), model, loss_fn = environment
-
-    optimizer = LookSAM(model.parameters(), load_optimizer('adamw'), k=2, lr=5e-1, use_gc=True)
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(5):
-        loss = loss_fn(y_data, model(x_data))
-        loss.backward()
-        optimizer.first_step(zero_grad=True)
-
-        loss_fn(y_data, model(x_data)).backward()
-        optimizer.second_step(zero_grad=True)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
-
-
-def test_looksam_optimizer_with_closure(environment):
-    (x_data, y_data), model, loss_fn = environment
-
-    optimizer = LookSAM(model.parameters(), load_optimizer('adamw'), lr=5e-1)
-
-    def closure():
-        first_loss = loss_fn(y_data, model(x_data))
-        first_loss.backward()
-        return first_loss
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(5):
-        loss = loss_fn(y_data, model(x_data))
-        loss.backward()
-
-        optimizer.step(closure)
-        optimizer.zero_grad()
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-@pytest.mark.parametrize('decouple', DECOUPLE_FLAGS)
-def test_wsam_optimizer(adaptive, decouple, environment):
-    (x_data, y_data), model, loss_fn = environment
-
-    optimizer = WSAM(
-        model,
-        model.parameters(),
-        load_optimizer('adamp'),
-        lr=5e-2,
-        adaptive=adaptive,
-        decouple=decouple,
-        max_norm=100.0,
-    )
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(10):
-        loss = loss_fn(y_data, model(x_data))
-        loss.backward()
-        optimizer.first_step(zero_grad=True)
-
-        loss_fn(y_data, model(x_data)).backward()
-        optimizer.second_step(zero_grad=True)
-
-        if init_loss == np.inf:
-            init_loss = loss
+        optimizer.step(closure(loss) if optimizer_name == 'alig' else None)
 
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_wsam_optimizer_with_closure(adaptive, environment):
-    (x_data, y_data), model, loss_fn = environment
-
-    optimizer = WSAM(model, model.parameters(), load_optimizer('adamp'), lr=5e-2, adaptive=adaptive, max_norm=100.0)
-
-    def closure():
-        output = model(x_data)
-        loss = loss_fn(output, y_data)
-        loss.backward()
-        return loss
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(10):
-        loss = optimizer.step(closure)
-        optimizer.zero_grad()
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_gsam_optimizer(adaptive, environment):
-    pytest.skip('skip GSAM optimizer')
-
-    (x_data, y_data), model, loss_fn = environment
-
-    lr: float = 5e-1
-    num_iterations: int = 25
-
-    base_optimizer = load_optimizer('adamp')(model.parameters(), lr=lr)
-    lr_scheduler = CosineScheduler(base_optimizer, t_max=num_iterations, max_lr=lr, min_lr=lr, init_lr=lr)
-    rho_scheduler = ProportionScheduler(lr_scheduler, max_lr=lr, min_lr=lr)
-    optimizer = GSAM(
-        model.parameters(), base_optimizer=base_optimizer, model=model, rho_scheduler=rho_scheduler, adaptive=adaptive
-    )
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(num_iterations):
-        optimizer.set_closure(loss_fn, x_data, y_data)
-        _, loss = optimizer.step()
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        lr_scheduler.step()
-        optimizer.update_rho_t()
-
-    assert tensor_to_numpy(init_loss) > 1.2 * tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_bsam_optimizer(adaptive, environment):
-    (x_data, y_data), model, loss_fn = environment
-
-    optimizer = BSAM(model.parameters(), lr=2e-3, num_data=len(x_data), rho=1e-5, adaptive=adaptive)
-
-    def closure():
-        first_loss = loss_fn(y_data, model(x_data))
-        first_loss.backward()
-        return first_loss
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(20):
-        loss = loss_fn(y_data, model(x_data))
-        loss.backward()
-
-        optimizer.step(closure)
-        optimizer.zero_grad()
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adanorm_optimizer(optimizer_config, environment):
-    (x_data, y_data), model, loss_fn = environment
-
-    optimizer_class, config, num_iterations = optimizer_config
-
-    optimizer = optimizer_class(model.parameters(), **config)
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(num_iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 1.75 * tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adanorm_variant(optimizer_config):
-    param = simple_parameter(True)
-    param.grad = torch.ones(1, 1)
-
-    optimizer_class, config = optimizer_config[:2]
-
-    optimizer = optimizer_class([param], adanorm=True)
-    optimizer.step()
-
-    param.grad = torch.zeros(1, 1)
-    optimizer.step()
-
-
-@pytest.mark.parametrize('optimizer_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_adamd_variant(optimizer_config, environment):
-    (x_data, y_data), model, loss_fn = environment
-
-    optimizer_class, config, num_iterations = optimizer_config
-
-    optimizer = optimizer_class(model.parameters(), **config)
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(num_iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward(create_graph=optimizer_class.__name__ in ('AdaHessian',))
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('optimizer_config', COPT_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_cautious_variant(optimizer_config, environment):
-    (x_data, y_data), model, loss_fn = environment
-
-    optimizer_class, config, num_iterations = optimizer_config
-
-    optimizer = optimizer_class(model.parameters(), **config)
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(num_iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('optimizer_config', STABLE_ADAMW_SUPPORTED_OPTIMIZERS, ids=ids)
-def test_stable_adamw_variant(optimizer_config, environment):
-    (x_data, y_data), model, loss_fn = environment
-
-    optimizer_class, config, num_iterations = optimizer_config
-
-    optimizer = optimizer_class(model.parameters(), **config)
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(num_iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
-
-
-@pytest.mark.parametrize('reduction', ['mean', 'sum'])
-def test_pc_grad_optimizers(reduction):
-    x_data, y_data = make_dataset()
-
-    model: nn.Module = MultiHeadLogisticRegression()
-    loss_fn_1: nn.Module = nn.BCEWithLogitsLoss()
-    loss_fn_2: nn.Module = nn.L1Loss()
-
-    optimizer = PCGrad(load_optimizer('adamp')(model.parameters(), lr=1e-1), reduction=reduction)
-    optimizer.reset()
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(5):
-        optimizer.zero_grad()
-
-        y_pred_1, y_pred_2 = model(x_data)
-        loss1, loss2 = loss_fn_1(y_pred_1, y_data), loss_fn_2(y_pred_2, y_data)
-
-        loss = (loss1 + loss2) / 2.0
-        if init_loss == np.inf:
-            init_loss = loss
-
-        optimizer.pc_backward([loss1, loss2])
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 1.25 * tensor_to_numpy(loss)
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_init_group(optimizer_config):
+    optimizer_class, *_ = optimizer_config
+
+    optimizer_name: str = optimizer_class.__name__.lower()
+    if optimizer_name.startswith('build'):
+        pytest.skip(f'skip {optimizer_name}')
+
+    optimizer_class([simple_parameter()], num_iterations=1).init_group({'params': [], 'betas': (0.0, 0.0)})
 
 
 @pytest.mark.parametrize('optimizer', {config[0] for config in OPTIMIZERS}, ids=names)
@@ -535,34 +200,6 @@ def test_closure(optimizer):
             optimizer.step()
     else:
         optimizer.step(closure=dummy_closure)
-
-
-def test_no_closure():
-    param = simple_parameter()
-
-    optimizer = SAM([param], load_optimizer('adamp'))
-    optimizer.zero_grad()
-
-    with pytest.raises(NoClosureError):
-        optimizer.step()
-
-    optimizer = WSAM(None, [param], load_optimizer('adamp'))
-    optimizer.zero_grad()
-
-    with pytest.raises(NoClosureError):
-        optimizer.step()
-
-    optimizer = BSAM([param], 1)
-    optimizer.zero_grad()
-
-    with pytest.raises(NoClosureError):
-        optimizer.step()
-
-    optimizer = LookSAM([param], load_optimizer('adamp'))
-    optimizer.zero_grad()
-
-    with pytest.raises(NoClosureError):
-        optimizer.step()
 
 
 def test_nero_zero_scale():
@@ -599,78 +236,34 @@ def test_hessian_optimizer(optimizer_name):
     optimizer = load_optimizer(optimizer_name)([param], **parameters)
     optimizer.zero_grad(set_to_none=True)
 
-    # Hutchinson (internal) estimator
     sphere_loss(param).backward(create_graph=True)
     optimizer.step()
     optimizer.zero_grad(set_to_none=True)
 
-    # External estimator
     sphere_loss(param).backward()
     optimizer.step(hessian=torch.zeros_like(param).unsqueeze(0))
 
 
-def test_swats_sgd_phase(environment):
-    (x_data, y_data), model, loss_fn = environment
+def test_swats_sgd_phase():
+    model, _ = build_model()
 
     opt = load_optimizer('swats')(model.parameters(), lr=1e-1, nesterov=True, eps=1.0)
 
-    opt.param_groups[0]['step'] = 1  # to bypass to adam -> sgd phase
+    model.fc1.weight.grad = None
+    model.fc2.weight.grad = torch.zeros(1, 2)
+    opt.step()
 
-    for _ in range(1):
-        loss_fn(model(x_data), y_data).backward()
-        opt.step()
+    model.fc1.weight.grad = None
+    model.fc2.weight.grad = torch.ones(1, 2)
+    opt.step()
 
     opt.param_groups[0]['phase'] = 'sgd'
-
-    for _ in range(1):
-        loss_fn(model(x_data), y_data).backward()
-        opt.step()
-
-
-@pytest.mark.parametrize(
-    'optimizer_config', OPTIMIZERS + ADANORM_SUPPORTED_OPTIMIZERS + [(BSAM, {'num_data': 1}, 1)], ids=ids
-)
-def test_reset(optimizer_config):
-    optimizer_class, config, _ = optimizer_config
-    if optimizer_class.__name__ == 'Ranger21':
-        config.update({'num_iterations': 1})
-
-    optimizer = optimizer_class([simple_parameter()], **config)
-    optimizer.reset()
-
-
-@pytest.mark.parametrize('require_gradient', [False, True])
-@pytest.mark.parametrize('sparse_gradient', [False, True])
-@pytest.mark.parametrize('optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan', 'DAdaptLion'])
-def test_d_adapt_reset(require_gradient, sparse_gradient, optimizer_name):
-    param = simple_sparse_parameter(require_gradient)[1] if sparse_gradient else simple_parameter(require_gradient)
-    if not require_gradient:
-        param.grad = None
-
-    optimizer = load_optimizer(optimizer_name)([param])
-    optimizer.reset()
-
-    assert str(optimizer) == optimizer_name
-
-
-def test_prodigy_reset():
-    param = simple_parameter(True)
-    param.grad = None
-
-    optimizer = load_optimizer('prodigy')([param])
-    optimizer.reset()
-
-    assert str(optimizer) == 'Prodigy'
-
-
-def test_adalite_reset():
-    optimizer = load_optimizer('adalite')([simple_zero_rank_parameter(True)])
-    optimizer.reset()
+    opt.step()
 
 
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2])
-def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type, environment):
-    (x_data, y_data), _, loss_fn = environment
+def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
+    model, _ = build_model()
 
     model = nn.Sequential(
         nn.Linear(2, 4096),
@@ -687,7 +280,9 @@ def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type, environ
     )
     optimizer.zero_grad()
 
-    loss_fn(model(x_data), y_data).backward()
+    model[0].weight.grad = torch.zeros(4096, 2)
+    model[1].weight.grad = torch.zeros(512, 4096)
+    model[2].weight.grad = torch.zeros(1, 512)
 
     optimizer.step()
 
@@ -709,21 +304,20 @@ def test_sm3_rank0():
 
 
 @pytest.mark.parametrize('optimizer_name', ['lomo', 'adalomo'])
-def test_lomo_deepspeed_zero3(optimizer_name, environment):
-    _, model, _ = environment
+def test_lomo_deepspeed_zero3(optimizer_name):
+    model = LogisticRegression()
 
     model.fc1.weight.__setattr__('ds_tensor', 0)
 
     optimizer = load_optimizer(optimizer_name)(model)
-    optimizer.reset()
+    optimizer.init_group({})
 
     assert str(optimizer).lower() == optimizer_name
 
 
-def test_lomo_clip_grad_norm_with_fp16(environment):
-    _, model, _ = environment
+def test_lomo_clip_grad_norm_with_fp16():
+    model = LogisticRegression()
 
-    # clip grad norm with fp16
     model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
 
     with pytest.raises(ValueError):
@@ -731,10 +325,8 @@ def test_lomo_clip_grad_norm_with_fp16(environment):
 
 
 @pytest.mark.parametrize('optimizer_name', ['lomo'])
-def test_lomo_fused_backward(optimizer_name, environment):
-    _, model, _ = environment
-
-    optimizer = load_optimizer(optimizer_name)(model, clip_grad_norm=1.0)
+def test_lomo_fused_backward(optimizer_name):
+    optimizer = load_optimizer(optimizer_name)(LogisticRegression(), clip_grad_norm=1.0)
     with pytest.raises(ValueError):
         optimizer.fused_backward(loss=0.1, lr=0.1)
 
@@ -776,91 +368,52 @@ def test_dynamic_scaler():
 @pytest.mark.parametrize('optimizer_name', ['ScheduleFreeAdamW', 'ScheduleFreeSGD', 'ScheduleFreeRAdam'])
 def test_schedule_free_methods(optimizer_name):
     optimizer = load_optimizer(optimizer_name)([simple_parameter(True)])
-    optimizer.reset()
+    optimizer.step()
+
     optimizer.eval()
     optimizer.train()
 
 
 @pytest.mark.parametrize('filter_type', ['mean', 'sum'])
-def test_grokfast_ma(filter_type, environment):
-    _, model, _ = environment
+def test_grokfast_ma(filter_type):
+    model = LogisticRegression()
 
     model.fc1.weight.grad = torch.randn(2, 2)
     model.fc1.bias.grad = torch.randn(2)
     model.fc2.weight.grad = torch.randn(1, 2)
     model.fc2.bias.grad = torch.randn(1)
 
-    _ = gradfilter_ma(model, None, window_size=1, filter_type=filter_type, warmup=False)
+    gradfilter_ma(model, None, window_size=1, filter_type=filter_type, warmup=False)
 
 
-def test_grokfast_ma_invalid(environment):
-    _, model, _ = environment
-
+def test_grokfast_ma_invalid():
     with pytest.raises(ValueError):
-        _ = gradfilter_ma(model, None, window_size=1, filter_type='asdf', warmup=False)
+        gradfilter_ma(LogisticRegression(), None, window_size=1, filter_type='asdf', warmup=False)
 
 
-def test_grokfast_ema(environment):
-    _, model, _ = environment
+def test_grokfast_ema():
+    model = LogisticRegression()
 
     model.fc1.weight.grad = torch.randn(2, 2)
     model.fc1.bias.grad = torch.randn(2)
     model.fc2.weight.grad = torch.randn(1, 2)
     model.fc2.bias.grad = torch.randn(1)
 
-    _ = gradfilter_ema(model, None)
+    gradfilter_ema(model, None)
 
 
-def test_stableadamw_optimizer(environment):
-    _, model, _ = environment
+def test_stableadamw_optimizer():
+    model = LogisticRegression()
 
     model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
 
     optimizer = load_optimizer('StableAdamW')(model.parameters())
-    optimizer.reset()
     optimizer.step()
 
 
-def test_adam_mini_optimizer(environment):
-    _, model, _ = environment
-
-    optimizer = load_optimizer('AdamMini')(model)
-    optimizer.reset()
+def test_adam_mini_optimizer():
+    optimizer = load_optimizer('AdamMini')(LogisticRegression())
     optimizer.step()
-
-
-def test_trac_optimizer(environment):
-    (x_data, y_data), model, loss_fn = environment
-
-    optimizer = TRAC(load_optimizer('adamw')(model.parameters(), lr=1e0))
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(3):
-        loss = loss_fn(model(x_data), y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-        optimizer.zero_grad()
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
-
-
-def test_trac_optimizer_erf_imag():
-    model = Example()
-
-    optimizer = TRAC(load_optimizer('adamw')(model.parameters()))
-
-    optimizer.reset()
-    optimizer.zero_grad()
-
-    complex_tensor = torch.complex(torch.tensor(0.0), torch.tensor(1.0))
-    optimizer.erf_imag(complex_tensor)
-
-    assert str(optimizer).lower() == 'trac'
 
 
 @pytest.mark.parametrize(
@@ -876,9 +429,7 @@ def test_trac_optimizer_erf_imag():
         },
     ],
 )
-def test_soap_parameters(params, environment):
-    (x_data, y_data), _, loss_fn = environment
-
+def test_soap_parameters(params):
     model = nn.Sequential(
         nn.Linear(2, 8),
         nn.Linear(8, 1),
@@ -888,12 +439,17 @@ def test_soap_parameters(params, environment):
 
     for _ in range(2):
         optimizer.zero_grad()
-        loss_fn(model(x_data), y_data).backward()
+
+        model[0].weight.grad = torch.zeros((8, 2))
+        model[0].bias.grad = torch.zeros((8,))
+        model[1].weight.grad = torch.zeros((1, 8))
+        model[1].bias.grad = None
+
         optimizer.step()
 
 
 def test_soap_merge_dims_channel_last(environment):
-    (x_data, y_data), _, loss_fn = environment
+    x_data, y_data = environment
 
     x_data = x_data.reshape(-1, 1, 2, 1).repeat_interleave(2, dim=-1).to(memory_format=torch.channels_last)
 
@@ -912,20 +468,8 @@ def test_soap_merge_dims_channel_last(environment):
 
     for _ in range(2):
         optimizer.zero_grad()
-        loss_fn(model(x_data).squeeze(), y_data.squeeze()).backward()
+        nn.BCEWithLogitsLoss()(model(x_data).squeeze(), y_data.squeeze()).backward()
         optimizer.step()
-
-
-def test_muon_zero_power_via_newton_schulz_5():
-    x = torch.FloatTensor(([[1.0911, 0.8774], [0.7698, -0.3501], [0.8795, -1.1103]]))
-    output = zero_power_via_newton_schulz_5(x, num_steps=6)
-
-    expected_output = np.asarray([[0.5156, 0.4531], [0.3281, -0.1445], [0.3438, -0.5000]])
-
-    np.testing.assert_almost_equal(output.float().numpy(), expected_output, decimal=4)
-
-    with pytest.raises(ValueError):
-        _ = zero_power_via_newton_schulz_5(x[0], num_steps=6)
 
 
 @pytest.mark.parametrize('rank', ['1', '0'])
@@ -984,7 +528,7 @@ def test_kron_optimizer():
 
 @pytest.mark.parametrize('lmo_type', list(range(9)))
 def test_build_lmo_types(lmo_type):
-    _ = build_lmo_norm(lmo_type)
+    build_lmo_norm(lmo_type)
 
 
 def test_scion_lmo_types():
@@ -1034,41 +578,17 @@ def test_scion_lmo_types():
     norm.lmo(grad_2d)
 
 
-def test_schedulefree_wrapper():
-    model = Example()
+@pytest.mark.parametrize('optimizer_name', ['racs', 'alice'])
+def test_non_linear_parameters(optimizer_name):
+    model = nn.Sequential(
+        nn.Conv1d(8, 4, 1),
+        nn.Conv2d(8, 4, (2, 2)),
+    )
 
-    optimizer = ScheduleFreeWrapper(load_optimizer('adamw')(model.parameters(), lr=1e-3, weight_decay=1e-3))
-    optimizer.reset()
+    optimizer = load_optimizer(optimizer_name)(model.parameters(), rank=4, leading_basis=2)
     optimizer.zero_grad()
 
-    model.fc1.weight.grad = torch.randn((1, 1))
-    model.norm1.weight.grad = torch.randn((1,))
-
-    with pytest.raises(ValueError):
-        optimizer.step()
-
-    optimizer.eval()
-    optimizer.train()
-
-    _ = optimizer.__str__
-    _ = optimizer.__getstate__()
-    _ = optimizer.param_groups
+    model[0].weight.grad = torch.randn(4, 8, 1)
+    model[1].weight.grad = torch.randn(4, 8, 2, 2)
 
     optimizer.step()
-
-    backup_state = optimizer.state_dict()
-
-    optimizer = ScheduleFreeWrapper(load_optimizer('adamw')(model.parameters(), lr=1e-3, weight_decay=1e-3))
-    optimizer.reset()
-    optimizer.zero_grad()
-    optimizer.train()
-
-    optimizer.load_state_dict(backup_state)
-
-    optimizer.step()
-
-    optimizer.eval()
-    optimizer.train()
-    optimizer.train()
-
-    optimizer.add_param_group({'params': []})

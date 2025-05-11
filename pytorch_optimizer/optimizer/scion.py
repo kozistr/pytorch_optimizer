@@ -6,7 +6,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 
 
@@ -315,6 +315,7 @@ class SCION(BaseOptimizer):
         used for others (e.g. Embedding, LM head)
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -328,11 +329,14 @@ class SCION(BaseOptimizer):
         scale: float = 1.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, '(]')
         self.validate_positive(scale, 'scale')
+
+        self.maximize = maximize
 
         if norm_kwargs is None:
             norm_kwargs = {}
@@ -347,14 +351,25 @@ class SCION(BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'SCION'
 
-    @torch.no_grad()
-    def reset(self):
-        pass
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if 'd' not in state:
+                state['d'] = torch.zeros_like(grad)
 
     @torch.no_grad()
     def init(self):
@@ -372,6 +387,12 @@ class SCION(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             norm = build_lmo_norm(group['norm_type'], **group['norm_kwargs'])
 
             for p in group['params']:
@@ -379,14 +400,13 @@ class SCION(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if 'd' not in state:
-                    state['d'] = torch.zeros_like(grad)
 
                 d = state['d']
+
                 d.mul_(1.0 - group['momentum']).add_(grad, alpha=group['momentum'])
 
                 update = norm.lmo(grad).mul_(group['scale'])
@@ -397,7 +417,7 @@ class SCION(BaseOptimizer):
                 if not group['constraint'] and group['weight_decay'] > 0.0:
                     self.apply_weight_decay(
                         p,
-                        grad,
+                        grad=grad,
                         lr=group['lr'],
                         weight_decay=group['weight_decay'],
                         weight_decouple=group['weight_decouple'],
@@ -440,6 +460,7 @@ class SCIONLight(BaseOptimizer):
         used for others (e.g. Embedding, LM head)
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -453,11 +474,14 @@ class SCIONLight(BaseOptimizer):
         scale: float = 1.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, '(]')
         self.validate_positive(scale, 'scale')
+
+        self.maximize = maximize
 
         if norm_kwargs is None:
             norm_kwargs = {}
@@ -477,8 +501,7 @@ class SCIONLight(BaseOptimizer):
     def __str__(self) -> str:
         return 'SCIONLight'
 
-    @torch.no_grad()
-    def reset(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     @torch.no_grad()
@@ -497,6 +520,12 @@ class SCIONLight(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             norm = build_lmo_norm(group['norm_type'], **group['norm_kwargs'])
 
             for p in group['params']:
@@ -507,6 +536,8 @@ class SCIONLight(BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 update = norm.lmo(grad).mul_(group['scale'])
 
                 if group['constraint']:
@@ -515,7 +546,7 @@ class SCIONLight(BaseOptimizer):
                 if not group['constraint'] and group['weight_decay'] > 0.0:
                     self.apply_weight_decay(
                         p,
-                        grad,
+                        grad=grad,
                         lr=group['lr'],
                         weight_decay=group['weight_decay'],
                         weight_decouple=group['weight_decouple'],

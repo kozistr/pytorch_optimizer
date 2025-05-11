@@ -2,13 +2,13 @@ import pytest
 import torch
 from torch import nn
 
+from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.optimizer import (
+    BSAM,
     SAM,
-    TRAC,
     WSAM,
     Lookahead,
     LookSAM,
-    OrthoGrad,
     PCGrad,
     Ranger21,
     SafeFP16Optimizer,
@@ -16,7 +16,7 @@ from pytorch_optimizer.optimizer import (
 )
 from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
 from tests.constants import PULLBACK_MOMENTUM
-from tests.utils import Example, simple_parameter, simple_zero_rank_parameter
+from tests.utils import Example, simple_parameter
 
 
 def test_shampoo_parameters():
@@ -55,24 +55,13 @@ def test_came_parameters():
 
 
 def test_pcgrad_parameters():
-    opt = load_optimizer('adamp')([simple_parameter()])
+    opt = load_optimizer('adamw')([simple_parameter()])
 
-    # test reduction
-    for reduction in ['mean', 'sum']:
+    for reduction in ('mean', 'sum'):
         PCGrad(opt, reduction=reduction)
 
     with pytest.raises(ValueError):
-        PCGrad(opt, reduction='wrong')
-
-
-def test_sam_parameters():
-    with pytest.raises(ValueError):
-        SAM(None, load_optimizer('adamp'), rho=-0.1)
-
-
-def test_wsam_parameters():
-    with pytest.raises(ValueError):
-        WSAM(None, None, load_optimizer('adamp'), rho=-0.1)
+        PCGrad(opt, reduction='invalid')
 
 
 def test_lookahead_parameters():
@@ -99,22 +88,21 @@ def test_lookahead_parameters():
         Lookahead(optimizer, pullback_momentum='invalid')
 
 
-def test_sam_methods():
-    optimizer = SAM([simple_parameter()], load_optimizer('adamp'))
-    optimizer.reset()
-    optimizer.load_state_dict(optimizer.state_dict())
+@pytest.mark.parametrize('optimizer', [SAM, WSAM, LookSAM, BSAM])
+def test_sam_family_methods(optimizer):
+    base_optimizer = load_optimizer('lion')
 
+    opt = optimizer(params=[simple_parameter()], model=None, base_optimizer=base_optimizer, num_data=1)
+    opt.zero_grad()
 
-def test_wsam_methods():
-    optimizer = WSAM(None, [simple_parameter()], load_optimizer('adamp'))
-    optimizer.reset()
-    optimizer.load_state_dict(optimizer.state_dict())
+    opt.init_group({'params': []})
+    opt.load_state_dict(opt.state_dict())
 
+    with pytest.raises(NoClosureError):
+        opt.step()
 
-def test_looksam_methods():
-    optimizer = LookSAM([simple_parameter()], load_optimizer('adamp'))
-    optimizer.reset()
-    optimizer.load_state_dict(optimizer.state_dict())
+    with pytest.raises(ValueError):
+        optimizer(model=None, params=None, base_optimizer=base_optimizer, rho=-0.1, num_data=1)
 
 
 def test_safe_fp16_methods():
@@ -166,11 +154,6 @@ def test_ranger21_closure():
     optimizer.step(closure)
 
 
-def test_adafactor_reset():
-    opt = load_optimizer('adafactor')([simple_zero_rank_parameter(True)])
-    opt.reset()
-
-
 def test_adafactor_get_lr():
     model: nn.Module = Example()
     opt = load_optimizer('adafactor')(model.parameters())
@@ -179,11 +162,6 @@ def test_adafactor_get_lr():
 
     for warmup_init, expected_lr in recipes:
         assert opt.get_lr(1.0, 1, 1.0, True, warmup_init, True) == expected_lr
-
-
-def test_came_reset():
-    opt = load_optimizer('came')([simple_zero_rank_parameter(True)])
-    opt.reset()
 
 
 def test_a2grad_parameters():
@@ -231,7 +209,6 @@ def test_accsgd_parameters():
 def test_asgd_parameters():
     opt = load_optimizer('asgd')
 
-    # test amplifier
     with pytest.raises(ValueError):
         opt([simple_parameter(False)], amplifier=-1.0)
 
@@ -239,11 +216,9 @@ def test_asgd_parameters():
 def test_lars_parameters():
     opt = load_optimizer('lars')
 
-    # test dampening
     with pytest.raises(ValueError):
         opt(None, dampening=-0.1)
 
-    # test trust_coefficient
     with pytest.raises(ValueError):
         opt(None, trust_coefficient=-1e-3)
 
@@ -251,11 +226,9 @@ def test_lars_parameters():
 def test_apollo_parameters():
     opt = load_optimizer('apollodqn')
 
-    # test rebound type
     with pytest.raises(ValueError):
         opt(None, rebound='dummy')
 
-    # test weight_decay_type
     with pytest.raises(ValueError):
         opt(None, weight_decay_type='dummy')
 
@@ -263,11 +236,9 @@ def test_apollo_parameters():
 def test_ranger_parameters():
     opt = load_optimizer('ranger')
 
-    # test ema ratio `alpha`
     with pytest.raises(ValueError):
         opt(None, alpha=-0.1)
 
-    # test lookahead step `k`
     with pytest.raises(ValueError):
         opt(None, k=-1)
 
@@ -285,21 +256,3 @@ def test_galore_projection_type():
 
     with pytest.raises(ValueError):
         GaLoreProjector.get_orthogonal_matrix(p, 1, projection_type='std')
-
-
-@pytest.mark.parametrize('optimizer_instance', [Lookahead, OrthoGrad, TRAC])
-def test_load_wrapper_optimizer(optimizer_instance):
-    params = [simple_parameter()]
-
-    _ = optimizer_instance(torch.optim.AdamW(params))
-    optimizer = optimizer_instance(torch.optim.AdamW, params=params)
-    optimizer.zero_grad()
-
-    with pytest.raises(ValueError):
-        optimizer_instance(torch.optim.AdamW)
-
-    _ = optimizer.param_groups
-    _ = optimizer.state
-
-    state = optimizer.state_dict()
-    optimizer.load_state_dict(state)

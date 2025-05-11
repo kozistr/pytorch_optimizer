@@ -2,7 +2,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.utils import projection
 
 
@@ -17,10 +17,11 @@ class SGDP(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param delta: float. threshold that determines whether a set of parameters is scale invariant or not.
-    :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
-        on scale-variant parameters.
+    :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied on
+        scale-variant parameters.
     :param nesterov: bool. enables nesterov momentum.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -36,12 +37,15 @@ class SGDP(BaseOptimizer):
         wd_ratio: float = 0.1,
         nesterov: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_range(wd_ratio, 'wd_ratio', 0.0, 1.0)
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -55,14 +59,24 @@ class SGDP(BaseOptimizer):
             'nesterov': nesterov,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'SGDP'
 
-    @torch.no_grad()
-    def reset(self):
-        pass
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+            if len(state) == 0:
+                state['momentum'] = torch.zeros_like(grad)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -72,20 +86,28 @@ class SGDP(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             momentum = group['momentum']
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if len(state) == 0:
-                    state['momentum'] = torch.zeros_like(grad)
 
                 buf = state['momentum']
+
+                p, grad, buf = self.view_as_real(p, grad, buf)
+
                 buf.mul_(momentum).add_(grad, alpha=1.0 - group['dampening'])
 
                 d_p = buf.clone()
@@ -105,7 +127,7 @@ class SGDP(BaseOptimizer):
 
                 self.apply_weight_decay(
                     p=p,
-                    grad=None,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],

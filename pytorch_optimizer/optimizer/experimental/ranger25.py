@@ -3,9 +3,9 @@ from typing import Optional
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.agc import agc
 
 
@@ -34,6 +34,7 @@ class Ranger25(BaseOptimizer):
     :param orthograd: bool. whether to use OrthoGrad variant.
     :param eps: Optional[float]. term added to the denominator to improve numerical stability. when eps is None and
         stable_adamw is False, adam-atan2 feature will be used.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -52,6 +53,7 @@ class Ranger25(BaseOptimizer):
         stable_adamw: bool = True,
         orthograd: bool = True,
         eps: Optional[float] = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -68,6 +70,7 @@ class Ranger25(BaseOptimizer):
         self.cautious = cautious
         self.stable_adamw: bool = stable_adamw if isinstance(eps, float) else False
         self.orthograd = orthograd
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -85,16 +88,24 @@ class Ranger25(BaseOptimizer):
     def __str__(self) -> str:
         return 'Ranger25'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                state['exp_avg'] = torch.zeros_like(p)
-                state['exp_avg_sq'] = torch.zeros_like(p)
-                state['exp_avg_slow'] = torch.zeros_like(p)
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['exp_avg'] = torch.zeros_like(grad)
+                state['exp_avg_sq'] = torch.zeros_like(grad)
+                state['exp_avg_slow'] = torch.zeros_like(grad)
                 state['slow_momentum'] = p.clone()
 
     @staticmethod
@@ -118,7 +129,7 @@ class Ranger25(BaseOptimizer):
     @torch.no_grad()
     def apply_orthogonal_gradients(self, params, eps: float = 1e-16) -> None:
         for p in params:
-            if p.grad is None or p.grad.is_sparse:
+            if p.grad is None or p.grad.is_sparse or torch.is_complex(p):
                 continue
 
             w = p.view(-1)
@@ -142,10 +153,11 @@ class Ranger25(BaseOptimizer):
                 self.apply_orthogonal_gradients(group['params'])
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2, beta3 = group['betas']
 
@@ -163,16 +175,10 @@ class Ranger25(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(grad)
-                    state['exp_avg_sq'] = torch.zeros_like(grad)
-                    state['exp_avg_slow'] = torch.zeros_like(grad)
-                    state['slow_momentum'] = p.clone()
 
                 self.apply_weight_decay(
                     p=p,

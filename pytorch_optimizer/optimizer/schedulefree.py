@@ -6,7 +6,16 @@ from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, PARAMETERS, STATE
+from pytorch_optimizer.base.type import (
+    BETAS,
+    CLOSURE,
+    DEFAULTS,
+    GROUP,
+    LOSS,
+    OPTIMIZER_INSTANCE_OR_CLASS,
+    PARAMETERS,
+    STATE,
+)
 
 
 class ScheduleFreeSGD(BaseOptimizer):
@@ -21,6 +30,7 @@ class ScheduleFreeSGD(BaseOptimizer):
         set to 0 for no weighting.
     :param warmup_steps: int. enables a linear learning rate warmup.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -33,12 +43,15 @@ class ScheduleFreeSGD(BaseOptimizer):
         weight_lr_power: float = 2.0,
         warmup_steps: int = 0,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='[]')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -52,6 +65,7 @@ class ScheduleFreeSGD(BaseOptimizer):
             'weight_sum': 0.0,
             'lr_max': -1.0,
         }
+
         super().__init__(params, defaults)
 
         self.base_lrs: List[float] = [group['lr'] for group in self.param_groups]
@@ -79,13 +93,18 @@ class ScheduleFreeSGD(BaseOptimizer):
                         p.data.lerp_(end=state['z'], weight=1.0 - momentum)
                 group['train_mode'] = True
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['z'] = p.clone()
 
     @torch.no_grad()
@@ -96,10 +115,11 @@ class ScheduleFreeSGD(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             warmup_steps: int = group['warmup_steps']
             schedule: float = group['step'] / warmup_steps if group['step'] < warmup_steps else 1.0
@@ -119,13 +139,14 @@ class ScheduleFreeSGD(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['z'] = p.clone()
+                z = state['z']
+
+                p, grad, z = self.view_as_real(p, grad, z)
 
                 self.apply_weight_decay(
                     p=p,
@@ -135,8 +156,6 @@ class ScheduleFreeSGD(BaseOptimizer):
                     weight_decouple=False,
                     fixed_decay=False,
                 )
-
-                z = state['z']
 
                 p.lerp_(z, weight=checkpoint)
                 p.add_(grad, alpha=lr * (momentum * (1.0 - checkpoint) - 1))
@@ -159,6 +178,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
     :param warmup_steps: int. enables a linear learning rate warmup.
     :param ams_bound: bool. whether to use the AMSBound variant.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -172,12 +192,15 @@ class ScheduleFreeAdamW(BaseOptimizer):
         warmup_steps: int = 0,
         ams_bound: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -193,6 +216,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
             'lr_max': -1.0,
             'use_palm': kwargs.get('use_palm', False),
         }
+
         super().__init__(params, defaults)
 
         self.base_lrs: List[float] = [group['lr'] for group in self.param_groups]
@@ -220,13 +244,18 @@ class ScheduleFreeAdamW(BaseOptimizer):
                         p.data.lerp_(end=state['z'], weight=1.0 - beta1)
                 group['train_mode'] = True
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['z'] = p.clone()
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
@@ -238,10 +267,11 @@ class ScheduleFreeAdamW(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             warmup_steps: int = group['warmup_steps']
             schedule: float = group['step'] / warmup_steps if group['step'] < warmup_steps else 1.0
@@ -263,16 +293,15 @@ class ScheduleFreeAdamW(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['z'] = p.clone()
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-
                 z, exp_avg_sq = state['z'], state['exp_avg_sq']
+
+                p, grad, z, exp_avg_sq = self.view_as_real(p, grad, z, exp_avg_sq)
+
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 de_nom = self.apply_ams_bound(
@@ -316,6 +345,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
         just update the momentum values of the optimizer. This helps stabilize training by ensuring smoother warmup
         behavior and more reliable calculation of the moving average coefficient (`ckp1`). Recommended to set to True.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -328,12 +358,15 @@ class ScheduleFreeRAdam(BaseOptimizer):
         weight_lr_power: float = 2.0,
         silent_sgd_phase: bool = True,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -348,6 +381,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
             'lr_max': -1.0,
             'use_palm': kwargs.get('use_palm', False),
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
@@ -373,13 +407,18 @@ class ScheduleFreeRAdam(BaseOptimizer):
                         p.data.lerp_(end=state['z'], weight=1.0 - beta1)
                 group['train_mode'] = True
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['z'] = p.clone()
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
@@ -391,10 +430,11 @@ class ScheduleFreeRAdam(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -425,16 +465,15 @@ class ScheduleFreeRAdam(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['z'] = p.clone()
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-
                 z, exp_avg_sq = state['z'], state['exp_avg_sq']
+
+                p, grad, z, exp_avg_sq = self.view_as_real(p, grad, z, exp_avg_sq)
+
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 if n_sma > 4.0:
@@ -479,6 +518,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
     :param r: float. use polynomial weighting in the average with power r.
     :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
         set to 0 for no weighting.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -488,6 +528,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
         weight_decay: float = 0.0,
         r: float = 0.0,
         weight_lr_power: float = 2.0,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_range(momentum, 'momentum', 0.0, 1.0, '[)')
@@ -498,6 +539,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
         self.r = r
         self.weight_lr_power = weight_lr_power
         self.train_mode: bool = False
+        self.maximize = maximize
 
         self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
 
@@ -557,9 +599,19 @@ class ScheduleFreeWrapper(BaseOptimizer):
 
         self.train_mode = True
 
-    @torch.no_grad()
-    def reset(self):
-        pass
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if 'z' not in state:
+                state['z'] = p.clone()
 
     @staticmethod
     def swap(x: torch.Tensor, y: torch.Tensor) -> None:
@@ -578,24 +630,27 @@ class ScheduleFreeWrapper(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if 'z' not in state:
-                    state['z'] = p.clone()
 
                 z = state['z']
 
                 self.apply_weight_decay(
                     z,
-                    grad,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=self.weight_decay,
                     weight_decouple=True,
@@ -604,7 +659,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
 
                 self.apply_weight_decay(
                     p,
-                    grad,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=self.weight_decay,
                     weight_decouple=True,
@@ -619,11 +674,6 @@ class ScheduleFreeWrapper(BaseOptimizer):
         self.optimizer.step()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
-                group['step'] = 1
-
             lr: float = group['lr'] * group.get('d', 1.0)
             lr_max = group['lr_max'] = max(lr, group.get('lr_max', 0))
 

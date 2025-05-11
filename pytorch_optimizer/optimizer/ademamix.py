@@ -3,9 +3,9 @@ from typing import Optional
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class AdEMAMix(BaseOptimizer):
@@ -19,9 +19,8 @@ class AdEMAMix(BaseOptimizer):
     :param fixed_decay: bool. fix weight decay.
     :param alpha: float. usually between 4 and 10 would work well.
     :param t_alpha_beta3: Optional[float]. total number of iterations is preferred when needed.
-    :param cautious: bool. whether to use the Cautious variant.
-    :param stable_adamw: bool. whether to use stable AdamW variant.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -34,9 +33,8 @@ class AdEMAMix(BaseOptimizer):
         fixed_decay: bool = False,
         alpha: float = 5.0,
         t_alpha_beta3: Optional[float] = None,
-        cautious: bool = False,
-        stable_adamw: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -46,8 +44,7 @@ class AdEMAMix(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
-        self.cautious = cautious
-        self.stable_adamw = stable_adamw
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -58,6 +55,7 @@ class AdEMAMix(BaseOptimizer):
             'alpha': alpha,
             't_alpha_beta3': t_alpha_beta3,
             'eps': eps,
+            **kwargs,
         }
 
         super().__init__(params, defaults)
@@ -65,13 +63,21 @@ class AdEMAMix(BaseOptimizer):
     def __str__(self) -> str:
         return 'AdEMAMix'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['exp_avg_slow'] = torch.zeros_like(p)
@@ -102,10 +108,11 @@ class AdEMAMix(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2, beta3 = group['betas']
 
@@ -122,15 +129,10 @@ class AdEMAMix(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-                    state['exp_avg_slow'] = torch.zeros_like(p)
 
                 self.apply_weight_decay(
                     p=p,
@@ -150,10 +152,10 @@ class AdEMAMix(BaseOptimizer):
                 de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
                 update = exp_avg.clone()
-                if self.cautious:
+                if group.get('cautious'):
                     self.apply_cautious(update, grad)
 
-                if self.stable_adamw:
+                if group.get('stable_adamw'):
                     step_size /= self.get_stable_adamw_rms(grad, exp_avg_sq)
 
                 update.add_(exp_avg_slow, alpha=alpha_t).div_(de_nom)
@@ -176,6 +178,7 @@ class SimplifiedAdEMAMix(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -190,6 +193,7 @@ class SimplifiedAdEMAMix(BaseOptimizer):
         beta1_warmup: Optional[int] = None,
         min_beta1: float = 0.9,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -198,6 +202,8 @@ class SimplifiedAdEMAMix(BaseOptimizer):
         self.validate_non_negative(min_beta1, 'min_beta1')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -209,6 +215,7 @@ class SimplifiedAdEMAMix(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'eps': eps,
+            **kwargs,
         }
 
         super().__init__(params, defaults)
@@ -216,9 +223,25 @@ class SimplifiedAdEMAMix(BaseOptimizer):
     def __str__(self) -> str:
         return 'SimplifiedAdEMAMix'
 
-    @torch.no_grad()
-    def reset(self):
-        pass
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
+                state['num_sum'] = 0.0
+                state['den_sum'] = 0.0
 
     @staticmethod
     def linear_hl_warmup_scheduler(step: int, beta_end: float, beta_start: float = 0.0, warmup: int = 1) -> float:
@@ -243,10 +266,11 @@ class SimplifiedAdEMAMix(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -260,16 +284,10 @@ class SimplifiedAdEMAMix(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-                    state['num_sum'] = 0.0
-                    state['den_sum'] = 0.0
 
                 self.apply_weight_decay(
                     p=p,

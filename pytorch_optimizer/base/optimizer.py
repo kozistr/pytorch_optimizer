@@ -10,6 +10,7 @@ from pytorch_optimizer.base.type import (
     BETAS,
     CLOSURE,
     DEFAULTS,
+    GROUP,
     HUTCHINSON_G,
     LOSS,
     OPTIMIZER_INSTANCE_OR_CLASS,
@@ -163,7 +164,10 @@ class BaseOptimizer(ABC, Optimizer):
         :param eps: float. epsilon.
         """
         if ams_bound:
-            torch.max(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
+            if torch.is_complex(max_exp_avg_sq):
+                max_exp_avg_sq = torch.view_as_real(max_exp_avg_sq)
+
+            torch.maximum(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
             de_nom = max_exp_avg_sq.add(eps)
         else:
             de_nom = exp_avg_sq.add(eps)
@@ -195,7 +199,7 @@ class BaseOptimizer(ABC, Optimizer):
     def apply_adam_debias(adam_debias: bool, step_size: float, bias_correction1: float) -> float:
         r"""Apply AdamD variant.
 
-        :param adam_debias: bool. whether to apply AdamD.
+        :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
         :param step_size: float. step size.
         :param bias_correction1: float. bias_correction.
         """
@@ -247,16 +251,19 @@ class BaseOptimizer(ABC, Optimizer):
         r"""Get AdaNorm gradient.
 
         :param grad: torch.Tensor. gradient.
-        :param adanorm: bool. whether to apply AdaNorm.
+        :param adanorm: bool. whether to use the AdaNorm variant.
         :param exp_grad_norm: Optional[torch.Tensor]. exp_grad_norm.
-        :param r: float. Optional[float]. momentum (ratio).
+        :param r: Optional[float]. EMA factor. between 0.9 ~ 0.99 is preferred.
         """
         if not adanorm or exp_grad_norm is None:
             return grad
 
+        if r is None:
+            r = 0.95
+
         grad_norm = torch.linalg.norm(grad)
 
-        exp_grad_norm.mul_(r).add_(grad_norm, alpha=1.0 - r)
+        exp_grad_norm.mul(r).add_(grad_norm, alpha=1.0 - r)
 
         return grad.mul(exp_grad_norm).div_(grad_norm) if exp_grad_norm > grad_norm else grad
 
@@ -371,8 +378,27 @@ class BaseOptimizer(ABC, Optimizer):
             self.validate_range(nus[1], 'nu2', 0.0, 1.0, range_type='[]')
 
     @abstractmethod
-    def reset(self) -> None:  # pragma: no cover
-        raise NotImplementedError
+    def init_group(self, group: GROUP, **kwargs) -> None:  # pragma: no cover
+        r"""Initialize the group of the optimizer and return is_complex."""
+        return
+
+    @staticmethod
+    def view_as_real(param, *state_and_grads) -> tuple:
+        r"""View imaginary tensors as real tensors."""
+        if torch.is_complex(param):
+            param = torch.view_as_real(param)
+            state_and_grads = tuple(
+                torch.view_as_real(s) if (s is not None and torch.is_complex(s)) else s if s is not None else None
+                for s in state_and_grads
+            )
+
+        return param, *state_and_grads
+
+    @staticmethod
+    def maximize_gradient(grad: torch.Tensor, maximize: bool = False) -> None:
+        r"""Maximize the objective with respect to the params, instead of minimizing."""
+        if maximize:
+            grad.neg_()
 
     def step(self, closure: CLOSURE = None) -> LOSS:  # pragma: no cover
         raise NotImplementedError

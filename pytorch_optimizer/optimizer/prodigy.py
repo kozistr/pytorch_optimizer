@@ -3,9 +3,9 @@ from typing import Optional
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class Prodigy(BaseOptimizer):
@@ -28,6 +28,7 @@ class Prodigy(BaseOptimizer):
     :param safeguard_warmup: bool. remove lr from the denominator of D estimate to avoid issues during warm-up stage.
     :param eps: float. term added to the denominator to improve numerical stability. when eps is None, use atan2 rather
         than epsilon and division for parameter updates.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -45,12 +46,15 @@ class Prodigy(BaseOptimizer):
         bias_correction: bool = False,
         safeguard_warmup: bool = False,
         eps: Optional[float] = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas((*betas, beta3))
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -69,22 +73,29 @@ class Prodigy(BaseOptimizer):
             'step': 1,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Prodigy'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 1
-            for p in group['params']:
-                if p.grad is None:
-                    continue
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                state = self.state[p]
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
 
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['s'] = torch.zeros_like(p)
+                state['p0'] = p.clone()
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
@@ -101,7 +112,7 @@ class Prodigy(BaseOptimizer):
         d_de_nom = torch.tensor([0.0], device=device)
 
         beta1, beta2 = group['betas']
-        beta3 = group['beta3'] if group['beta3'] is not None else math.sqrt(beta2)
+        beta3: float = group['beta3'] if group['beta3'] is not None else math.sqrt(beta2)
 
         bias_correction1: float = self.debias(beta1, group['step'])
         bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
@@ -119,20 +130,20 @@ class Prodigy(BaseOptimizer):
         d_numerator.mul_(beta3)
 
         for group in self.param_groups:
+            if group['step'] == 1:
+                self.init_group(group)
+
+            group['step'] += 1
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if len(state) == 0:
-                    state['s'] = torch.zeros_like(p)
-                    state['p0'] = p.clone()
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
 
                 p0, exp_avg, exp_avg_sq = state['p0'], state['exp_avg'], state['exp_avg_sq']
 

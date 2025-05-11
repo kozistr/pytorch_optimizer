@@ -2,7 +2,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class LARS(BaseOptimizer):
@@ -15,6 +15,7 @@ class LARS(BaseOptimizer):
     :param dampening: float. dampening for momentum.
     :param trust_coefficient: float. trust_coefficient.
     :param nesterov: bool. enables nesterov momentum.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -26,6 +27,7 @@ class LARS(BaseOptimizer):
         dampening: float = 0.0,
         trust_coefficient: float = 1e-3,
         nesterov: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -33,6 +35,8 @@ class LARS(BaseOptimizer):
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
         self.validate_range(dampening, 'dampening', 0.0, 1.0)
         self.validate_non_negative(trust_coefficient, 'trust_coefficient')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -42,18 +46,26 @@ class LARS(BaseOptimizer):
             'trust_coefficient': trust_coefficient,
             'nesterov': nesterov,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Lars'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            for p in group['params']:
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if group['momentum'] > 0.0:
                 state = self.state[p]
 
-                state['mu'] = torch.zeros_like(p)
+                if 'momentum_buffer' not in state:
+                    state['momentum_buffer'] = grad.clone()
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -63,15 +75,23 @@ class LARS(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
-                if p.ndim > 1:  # if not normalization gamma/beta or bias
+                self.maximize_gradient(grad, maximize=self.maximize)
+
+                state = self.state[p]
+
+                if p.ndim > 1:
                     param_norm = torch.linalg.norm(p)
                     update_norm = torch.linalg.norm(grad)
 
@@ -87,10 +107,6 @@ class LARS(BaseOptimizer):
                     grad.mul_(trust_ratio)
 
                 if group['momentum'] > 0.0:
-                    state = self.state[p]
-                    if 'momentum_buffer' not in state:
-                        state['momentum_buffer'] = grad.clone().detach()
-
                     mb = state['momentum_buffer']
                     mb.mul_(group['momentum']).add_(grad, alpha=1.0 - group['dampening'])
 

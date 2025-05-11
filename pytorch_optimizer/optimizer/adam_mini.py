@@ -5,9 +5,9 @@ import torch
 from torch import distributed as dist
 from torch import nn
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS
 
 
 class AdamMini(BaseOptimizer):  # pragma: no cover
@@ -25,6 +25,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
     :param num_query_groups: Optional[int]. number of query groups in Group Query Attention (GQA). if not specified, it
         will be equal to num_heads. could be unspecified if you are training non-transformer models.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -38,6 +39,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         num_heads: int = 32,
         num_query_groups: Optional[int] = None,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -60,9 +62,12 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         self.embed_blocks: Set[str] = {'embed', 'embd', 'wte', 'lm_head.weight', 'output.weight'}
         self.qk_blocks: Set[str] = {'k_proj.weight', 'q_proj.weight', 'wq.weight', 'wk.weight'}
 
+        self.maximize = maximize
+
         groups = self.get_optimizer_groups(weight_decay)
 
-        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'eps': eps}
+        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'eps': eps, **kwargs}
+
         super().__init__(groups, defaults)
 
     def __str__(self) -> str:
@@ -91,15 +96,8 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
 
         return groups
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
-
-                state['m'] = torch.zeros_like(p, dtype=torch.float32)
-                state['v'] = torch.zeros_like(p, dtype=torch.float32)
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        pass
 
     @staticmethod
     def step_embed(
@@ -267,10 +265,11 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             name = group['name']
 
@@ -288,7 +287,12 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
+                if torch.is_complex(p):
+                    raise NoComplexParameterError(str(self))
+
                 grad = grad.to(torch.float32)
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 

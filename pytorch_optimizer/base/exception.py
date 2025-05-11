@@ -43,3 +43,16 @@ class NegativeStepError(Exception):
         self.note: str = step_type if step_type else 'step'
         self.message: str = f'{self.note} must be positive. ({num_steps} > 0)'
         super().__init__(self.message)
+
+
+class NoComplexParameterError(Exception):
+    """Raised when the dtype of the parameter is complex.
+
+    :param optimizer_name: str. optimizer name.
+    :param note: str. special conditions to note (default '').
+    """
+
+    def __init__(self, optimizer_name: str, note: str = ''):
+        self.note: str = ' ' if not note else f' w/ {note} '
+        self.message: str = f'{optimizer_name}{self.note}does not support complex parameter.'
+        super().__init__(self.message)

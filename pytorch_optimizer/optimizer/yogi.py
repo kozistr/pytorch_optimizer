@@ -4,7 +4,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class Yogi(BaseOptimizer):
@@ -17,10 +17,8 @@ class Yogi(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
-    :param r: float. EMA factor. between 0.9 ~ 0.99 is preferred.
-    :param adanorm: bool. whether to use the AdaNorm variant.
-    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -32,16 +30,16 @@ class Yogi(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
-        r: float = 0.95,
-        adanorm: bool = False,
-        adam_debias: bool = False,
         eps: float = 1e-3,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -50,29 +48,29 @@ class Yogi(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'initial_accumulator': initial_accumulator,
-            'adanorm': adanorm,
-            'adam_debias': adam_debias,
             'eps': eps,
+            **kwargs,
         }
-        if adanorm:
-            defaults.update({'r': r})
 
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Yogi'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                state['exp_avg'] = torch.full_like(p, fill_value=group['initial_accumulator'])
-                state['exp_avg_sq'] = torch.full_like(p, fill_value=group['initial_accumulator'])
-                if group['adanorm']:
-                    state['exp_grad_norm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['exp_avg'] = torch.full_like(grad, fill_value=group['initial_accumulator'])
+                state['exp_avg_sq'] = torch.full_like(grad, fill_value=group['initial_accumulator'])
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -82,31 +80,30 @@ class Yogi(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
+            step_size: float = self.apply_adam_debias(
+                adam_debias=group.get('adam_debias', False), step_size=group['lr'], bias_correction1=bias_correction1
+            )
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if len(state) == 0:
-                    state['exp_avg'] = torch.full_like(grad, fill_value=group['initial_accumulator'])
-                    state['exp_avg_sq'] = torch.full_like(grad, fill_value=group['initial_accumulator'])
-                    if group['adanorm']:
-                        state['exp_grad_norm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
                 self.apply_weight_decay(
                     p=p,
@@ -117,24 +114,21 @@ class Yogi(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                s_grad = self.get_adanorm_gradient(
-                    grad=grad,
-                    adanorm=group['adanorm'],
-                    exp_grad_norm=state.get('exp_grad_norm', None),
-                    r=group.get('r', None),
-                )
-
                 grad_p2 = grad.mul(grad)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
-                exp_avg_sq.addcmul_((exp_avg_sq - grad_p2).sign_(), grad_p2, value=-(1.0 - beta2))
+                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg_sq.addcmul_(
+                    (
+                        (exp_avg_sq - grad_p2).sign_()
+                        if not torch.is_complex(exp_avg_sq)
+                        else (exp_avg_sq - grad_p2).sgn_()
+                    ),
+                    grad_p2,
+                    value=-(1.0 - beta2),
+                )
 
                 de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
-
-                step_size: float = self.apply_adam_debias(
-                    adam_debias=group['adam_debias'], step_size=group['lr'], bias_correction1=bias_correction1
-                )
 
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
 

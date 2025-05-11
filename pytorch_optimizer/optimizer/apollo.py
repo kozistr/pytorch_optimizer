@@ -6,7 +6,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
 
 SCALE_TYPE = Literal['channel', 'tensor']
@@ -24,6 +24,7 @@ class ApolloDQN(BaseOptimizer):
     :param weight_decay_type: str. type of weight decay. (l2, decoupled, stable).
     :param warmup_steps: int. number of warmup steps.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -37,6 +38,7 @@ class ApolloDQN(BaseOptimizer):
         weight_decay_type: str = 'l2',
         warmup_steps: int = 500,
         eps: float = 1e-4,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -49,6 +51,7 @@ class ApolloDQN(BaseOptimizer):
         self.lr = lr
         self.warmup_steps = warmup_steps
         self.init_lr: float = init_lr if init_lr is not None else lr / 1000.0
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -59,18 +62,24 @@ class ApolloDQN(BaseOptimizer):
             'weight_decay_type': weight_decay_type,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'ApolloDQN'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['exp_avg_grad'] = torch.zeros_like(p)
                 state['approx_hessian'] = torch.zeros_like(p)
                 state['update'] = torch.zeros_like(p)
@@ -83,10 +92,11 @@ class ApolloDQN(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             current_lr: float = (
                 group['lr']
@@ -104,19 +114,17 @@ class ApolloDQN(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if len(state) == 0:
-                    state['exp_avg_grad'] = torch.zeros_like(p)
-                    state['approx_hessian'] = torch.zeros_like(p)
-                    state['update'] = torch.zeros_like(p)
+
+                exp_avg_grad, b, d_p = state['exp_avg_grad'], state['approx_hessian'], state['update']
+
+                p, grad, exp_avg_grad, b, d_p = self.view_as_real(p, grad, exp_avg_grad, b, d_p)
 
                 if weight_decay > 0.0 and group['weight_decay_type'] == 'l2':
                     grad.add_(p, alpha=weight_decay)
-
-                exp_avg_grad, b, d_p = state['exp_avg_grad'], state['approx_hessian'], state['update']
 
                 delta_grad = grad - exp_avg_grad
                 if group['rebound'] == 'belief':
@@ -163,6 +171,7 @@ class APOLLO(BaseOptimizer):
     :param fixed_decay: bool. fix weight decay.
     :param correct_bias: bool. Whether to correct bias in Adam.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -176,12 +185,15 @@ class APOLLO(BaseOptimizer):
         fixed_decay: bool = False,
         correct_bias: bool = True,
         eps: float = 1e-6,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -194,18 +206,24 @@ class APOLLO(BaseOptimizer):
             'eps': eps,
             **kwargs,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'APOLLO'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
@@ -217,10 +235,11 @@ class APOLLO(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -235,13 +254,14 @@ class APOLLO(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
+
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
+                p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
 
                 if 'rank' in group and p.dim() > 1:
                     if 'projector' not in state:
@@ -254,7 +274,6 @@ class APOLLO(BaseOptimizer):
 
                     grad = state['projector'].project(grad, group['step'], from_random_matrix=True)
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 

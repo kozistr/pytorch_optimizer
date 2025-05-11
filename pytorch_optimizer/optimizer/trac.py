@@ -5,7 +5,7 @@ from torch import nn
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
 
 
 def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
@@ -143,21 +143,10 @@ class TRAC(BaseOptimizer):
     def load_state_dict(self, state_dict: STATE) -> None:
         self.optimizer.load_state_dict(state_dict)
 
-    @torch.no_grad()
-    def reset(self):
-        device = self.param_groups[0]['params'][0].device
-
-        self.state['trac'] = {
-            'betas': torch.tensor(self.betas, device=device),
-            's': torch.zeros(1, device=device),
-            'variance': torch.zeros(len(self.betas), device=device),
-            'sigma': torch.full((len(self.betas),), 1e-8, device=device),
-            'step': 0,
-        }
-
-        for group in self.param_groups:
-            for p in group['params']:
-                self.state['trac'][p] = p.clone()
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        updates = kwargs.get('updates')
+        for p in group['params']:
+            self.state['trac'][p] = updates[p].clone()
 
     @torch.no_grad()
     def zero_grad(self, set_to_none: bool = True) -> None:
@@ -252,8 +241,7 @@ class TRAC(BaseOptimizer):
             }
 
             for group in self.param_groups:
-                for p in group['params']:
-                    self.state['trac'][p] = updates[p].clone()
+                self.init_group(group, updates=updates)
 
         self.trac_step(updates, grads)
 

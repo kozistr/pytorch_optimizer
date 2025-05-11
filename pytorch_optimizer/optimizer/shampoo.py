@@ -1,8 +1,8 @@
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.shampoo_utils import (
     LayerWiseGrafting,
     PreConditioner,
@@ -24,6 +24,7 @@ class Shampoo(BaseOptimizer):
     :param preconditioning_compute_steps: int. performance tuning params for controlling memory and compute
         requirements. How often to compute pre-conditioner.
     :param matrix_eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -36,6 +37,7 @@ class Shampoo(BaseOptimizer):
         fixed_decay: bool = False,
         preconditioning_compute_steps: int = 1,
         matrix_eps: float = 1e-6,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -45,6 +47,7 @@ class Shampoo(BaseOptimizer):
         self.validate_non_negative(matrix_eps, 'matrix_eps')
 
         self.preconditioning_compute_steps = preconditioning_compute_steps
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -54,15 +57,33 @@ class Shampoo(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'matrix_eps': matrix_eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Shampoo'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                if group['momentum'] > 0.0:
+                    state['momentum_buffer'] = grad.clone()
+
+                for dim_id, dim in enumerate(grad.size()):
+                    state[f'pre_cond_{dim_id}'] = group['matrix_eps'] * torch.eye(dim, out=grad.new(dim, dim))
+                    state[f'inv_pre_cond_{dim_id}'] = grad.new(dim, dim).zero_()
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -72,10 +93,11 @@ class Shampoo(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             momentum = group['momentum']
 
@@ -84,17 +106,10 @@ class Shampoo(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if len(state) == 0:
-                    if momentum > 0.0:
-                        state['momentum_buffer'] = grad.clone()
-
-                    for dim_id, dim in enumerate(grad.size()):
-                        state[f'pre_cond_{dim_id}'] = group['matrix_eps'] * torch.eye(dim, out=grad.new(dim, dim))
-                        state[f'inv_pre_cond_{dim_id}'] = grad.new(dim, dim).zero_()
 
                 if momentum > 0.0:
                     grad.mul_(1.0 - momentum).add_(state['momentum_buffer'], alpha=momentum)
@@ -187,6 +202,7 @@ class ScalableShampoo(BaseOptimizer):
         Theoretically, Schur-Newton method is faster than SVD method. However, the inefficiency of the loop code and
         proper svd kernel, SVD is much faster in some cases (usually in case of small models).
         see https://github.com/kozistr/pytorch_optimizer/pull/103
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -212,6 +228,7 @@ class ScalableShampoo(BaseOptimizer):
         diagonal_eps: float = 1e-10,
         matrix_eps: float = 1e-6,
         use_svd: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -236,6 +253,7 @@ class ScalableShampoo(BaseOptimizer):
         self.diagonal_eps = diagonal_eps
         self.matrix_eps = matrix_eps
         self.use_svd = use_svd
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -246,22 +264,33 @@ class ScalableShampoo(BaseOptimizer):
             'moving_average_for_momentum': moving_average_for_momentum,
             'nesterov': nesterov,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'ScalableShampoo'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        _, beta2 = group['betas']
 
-                state['momentum'] = torch.zeros_like(p)
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['momentum'] = torch.zeros_like(grad)
                 state['pre_conditioner'] = PreConditioner(
                     p,
-                    group['betas'][1],  # beta2
+                    beta2,
                     self.inverse_exponent_override,
                     self.block_size,
                     self.skip_preconditioning_rank_lt,
@@ -284,39 +313,26 @@ class ScalableShampoo(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
+
+            beta1, beta2 = group['betas']
 
             is_precondition_step: bool = self.is_precondition_step(group['step'])
             pre_conditioner_multiplier: float = 1.0 if group['decoupled_learning_rate'] else group['lr']
 
-            beta1, beta2 = group['betas']
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if len(state) == 0:
-                    state['momentum'] = torch.zeros_like(grad)
-                    state['pre_conditioner'] = PreConditioner(
-                        p,
-                        beta2,
-                        self.inverse_exponent_override,
-                        self.block_size,
-                        self.skip_preconditioning_rank_lt,
-                        self.no_preconditioning_for_layers_with_dim_gt,
-                        self.shape_interpretation,
-                        self.pre_conditioner_type,
-                        self.matrix_eps,
-                        self.use_svd,
-                    )
-                    state['graft'] = build_graft(p, self.graft_type, self.diagonal_eps)
 
                 pre_conditioner, graft = state['pre_conditioner'], state['graft']
 
@@ -340,10 +356,10 @@ class ScalableShampoo(BaseOptimizer):
                 for g in (graft_grad, shampoo_grad):
                     self.apply_weight_decay(
                         p,
-                        g,
-                        group['lr'],
-                        group['weight_decay'],
-                        group['decoupled_weight_decay'],
+                        grad=g,
+                        lr=group['lr'],
+                        weight_decay=group['weight_decay'],
+                        weight_decouple=group['decoupled_weight_decay'],
                         fixed_decay=False,
                     )
 

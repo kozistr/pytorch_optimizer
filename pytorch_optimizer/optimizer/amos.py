@@ -4,7 +4,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class Amos(BaseOptimizer):
@@ -12,13 +12,14 @@ class Amos(BaseOptimizer):
 
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
-    :param beta: float. A float slightly < 1. We recommend setting `1 - beta` to the same order of magnitude
-        as the learning rate. similarity with beta2 in Adam.
+    :param beta: float. A float slightly < 1. We recommend setting `1 - beta` to the same order of magnitude as the
+        learning rate. similarity with beta2 in Adam.
     :param momentum: float. Exponential decay rate for optional moving average of updates.
     :param extra_l2: float. Additional L2 regularization.
     :param c_coef: float. Coefficient for decay_factor_c.
     :param d_coef: float. Coefficient for decay_factor_d.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -31,6 +32,7 @@ class Amos(BaseOptimizer):
         c_coef: float = 0.25,
         d_coef: float = 0.25,
         eps: float = 1e-18,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -41,6 +43,7 @@ class Amos(BaseOptimizer):
 
         self.c_coef = c_coef
         self.d_coef = d_coef
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -55,13 +58,18 @@ class Amos(BaseOptimizer):
     def __str__(self) -> str:
         return 'Amos'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['exp_avg_sq'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
                 state['decay'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
                 if group['momentum'] > 0.0:
@@ -70,9 +78,9 @@ class Amos(BaseOptimizer):
     @staticmethod
     def get_scale(p: torch.Tensor) -> float:
         r"""Get expected scale for model weights."""
-        if len(p.shape) == 1:  # expected 'bias'
+        if len(p.shape) == 1:
             return 0.5
-        if len(p.shape) == 2:  # expected Embedding, Linear, ...
+        if len(p.shape) == 2:
             return math.sqrt(2 / p.size(1))
         return math.sqrt(1 / p.size(1))
 
@@ -84,10 +92,11 @@ class Amos(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             momentum, beta = group['momentum'], group['beta']
 
@@ -99,16 +108,10 @@ class Amos(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if len(state) == 0:
-                    state['exp_avg_sq'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
-                    state['decay'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
-                    if group['momentum'] > 0.0:
-                        state['exp_avg'] = torch.zeros_like(p)
 
                 g2 = grad.pow(2).mean()
                 init_lr: float = group['lr'] * self.get_scale(p)

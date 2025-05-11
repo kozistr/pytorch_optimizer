@@ -4,9 +4,9 @@ from typing import Optional
 import torch
 from torch.nn.functional import softplus
 
-from pytorch_optimizer.base.exception import NoSparseGradientError, ZeroParameterSizeError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
@@ -53,8 +53,8 @@ class Ranger21(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param norm_loss_factor: float. norm loss factor.
-    :param adam_debias: bool. Only correct the denominator to avoid inflating step sizes early in training.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(  # pylint: disable=R0913
@@ -80,8 +80,8 @@ class Ranger21(BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         norm_loss_factor: float = 1e-4,
-        adam_debias: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -104,6 +104,7 @@ class Ranger21(BaseOptimizer):
         self.lookahead_merge_time = lookahead_merge_time
         self.lookahead_blending_alpha = lookahead_blending_alpha
         self.norm_loss_factor = norm_loss_factor
+        self.maximize = maximize
 
         self.lookahead_step: int = 0
         self.starting_lr: float = lr
@@ -115,9 +116,10 @@ class Ranger21(BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
-            'adam_debias': adam_debias,
             'eps': eps,
+            **kwargs,
         }
+
         super().__init__(params, defaults)
 
         self.num_warm_up_iterations: int = (
@@ -136,13 +138,21 @@ class Ranger21(BaseOptimizer):
     def __str__(self) -> str:
         return 'Ranger21'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['grad_ma'] = torch.zeros_like(p)
                 state['variance_ma'] = torch.zeros_like(p)
                 state['lookahead_params'] = p.clone()
@@ -192,12 +202,12 @@ class Ranger21(BaseOptimizer):
         param_size: int = 0
         variance_ma_sum: float = 1.0
 
-        # Phase 1 - Accumulate all the variance_ma_sum to use in stable weight decay
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -208,28 +218,18 @@ class Ranger21(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
 
                 param_size += p.numel()
 
-                state = self.state[p]
-                if len(state) == 0:
-                    state['grad_ma'] = torch.zeros_like(p)
-                    state['variance_ma'] = torch.zeros_like(p)
-                    state['lookahead_params'] = p.clone()
-                    state['neg_grad_ma'] = torch.zeros_like(p)
-                    state['max_variance_ma'] = torch.zeros_like(p)
+                self.maximize_gradient(grad, maximize=self.maximize)
 
-                # Apply Adaptive Gradient Clipping (AGC)
+                state = self.state[p]
+
                 grad.copy_(agc(p, grad, self.agc_eps, self.agc_clipping_value))
 
-                # Apply gradient centralization & normalization
                 centralize_gradient(grad, gc_conv_only=False)
                 normalize_gradient(grad)
 
-                # second moment estimation
-                # using positive-negative momentum and bias correction
                 variance_ma = state['variance_ma']
                 variance_ma.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
                 variance_ma_sum += (variance_ma / bias_correction2).sum()
@@ -239,7 +239,6 @@ class Ranger21(BaseOptimizer):
 
         variance_normalized = math.sqrt(variance_ma_sum / param_size)
 
-        # Phase 2 - Apply weight decay and step
         for group in self.param_groups:
             beta1, beta2 = group['betas']
 
@@ -248,18 +247,18 @@ class Ranger21(BaseOptimizer):
 
             noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
 
-            # warm up & down
             if self.disable_lr_scheduler:
                 lr: float = group['lr']
             else:
                 lr: float = self.warm_up_dampening(group['lr'], group['step'])
                 lr = self.warm_down(lr, group['step'])
 
+            step_size: float = self.apply_adam_debias(group.get('adam_debias', False), lr, bias_correction1)
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
-                # stable weight decay
                 self.apply_weight_decay(
                     p=p,
                     grad=None,
@@ -270,7 +269,6 @@ class Ranger21(BaseOptimizer):
                     ratio=1.0 / variance_normalized,
                 )
 
-                # norm loss
                 correction = 2.0 * self.norm_loss_factor * (1.0 - 1.0 / unit_norm(p).add_(group['eps']))
                 p.mul_(1.0 - lr * correction)
 
@@ -293,8 +291,6 @@ class Ranger21(BaseOptimizer):
                 normalize_gradient(grad)
 
                 grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
-
-                step_size: float = self.apply_adam_debias(group['adam_debias'], lr, bias_correction1)
 
                 pn_momentum = grad_ma.mul(2.0).add_(neg_grad_ma, alpha=-1.0).mul_(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)

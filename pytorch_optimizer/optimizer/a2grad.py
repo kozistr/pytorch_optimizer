@@ -3,9 +3,9 @@ from typing import Literal, Optional
 
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 VARIANTS = Literal['uni', 'inc', 'exp']
 
@@ -18,7 +18,8 @@ class A2Grad(BaseOptimizer):
     :param beta: float. beta.
     :param lips: float. Lipschitz constant.
     :param rho: float. represents the degree of weighting decrease, a constant smoothing factor between 0 and 1.
-    :param variant: str. type of A2Grad optimizer. 'uni', 'inc', 'exp'.
+    :param variant: str. variant of A2Grad optimizer. 'uni', 'inc', 'exp'.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -29,6 +30,7 @@ class A2Grad(BaseOptimizer):
         lips: float = 10.0,
         rho: float = 0.5,
         variant: VARIANTS = 'uni',
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -37,6 +39,7 @@ class A2Grad(BaseOptimizer):
         self.validate_options(variant, 'variant', ['uni', 'inc', 'exp'])
 
         self.variant = variant
+        self.maximize = maximize
 
         defaults: DEFAULTS = {'beta': beta, 'lips': lips}
         if variant == 'exp':
@@ -47,9 +50,27 @@ class A2Grad(BaseOptimizer):
     def __str__(self) -> str:
         return 'A2Grad'
 
-    @torch.no_grad()
-    def reset(self):
-        pass
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['alpha_k'] = 1.0
+                state['v_k'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
+                state['avg_grad'] = grad.clone()
+                state['x_k'] = p.clone()
+                if self.variant == 'exp':
+                    state['v_kk'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -59,10 +80,11 @@ class A2Grad(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             gamma_k: float = 2.0 * group['lips'] / (group['step'] + 1)
             alpha_k_1: float = 2.0 / (group['step'] + 3)
@@ -72,19 +94,12 @@ class A2Grad(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if len(state) == 0:
-                    state['alpha_k'] = 1.0
-                    state['v_k'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
-                    state['avg_grad'] = grad.clone()
-                    state['x_k'] = p.clone()
-                    if self.variant == 'exp':
-                        state['v_kk'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
-                avg_grad = state['avg_grad']
+                avg_grad, v_k, x_k = state['avg_grad'], state['v_k'], state['x_k']
                 avg_grad.add_(grad - avg_grad, alpha=group['step'] + 1)
 
                 delta_k = grad.clone()
@@ -92,13 +107,13 @@ class A2Grad(BaseOptimizer):
 
                 delta_k_sq = delta_k.pow(2).sum()
 
-                v_k = state['v_k']
                 if self.variant in ('uni', 'inc'):
                     if self.variant == 'inc':
                         v_k.mul_((group['step'] / (group['step'] + 1)) ** 2)
                     v_k.add_(delta_k_sq)
                 else:
                     v_kk = state['v_kk']
+
                     v_kk.mul_(group['rho']).add_(delta_k_sq, alpha=1.0 - group['rho'])
                     torch.max(v_kk, v_k, out=v_k)
 
@@ -108,7 +123,6 @@ class A2Grad(BaseOptimizer):
 
                 coefficient = -1.0 / (gamma_k + group['beta'] * h_k.item())
 
-                x_k = state['x_k']
                 x_k.add_(grad, alpha=coefficient)
 
                 p.mul_(1.0 - alpha_k_1).add_(x_k, alpha=alpha_k_1)

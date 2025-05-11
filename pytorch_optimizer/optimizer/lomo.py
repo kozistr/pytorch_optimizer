@@ -7,7 +7,7 @@ from torch import nn
 from torch.distributed import ReduceOp, all_reduce
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import DEFAULTS
+from pytorch_optimizer.base.type import DEFAULTS, GROUP
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler
 from pytorch_optimizer.optimizer.utils import has_overflow, is_deepspeed_zero3_enabled
 
@@ -22,6 +22,7 @@ class LOMO(BaseOptimizer):
     :param lr: float. learning rate.
     :param clip_grad_norm: Optional[float]. clip grad norm.
     :param clip_grad_value: Optional[float]. clip grad value.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -30,6 +31,7 @@ class LOMO(BaseOptimizer):
         lr: float = 1e-3,
         clip_grad_norm: Optional[float] = None,
         clip_grad_value: Optional[float] = None,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -40,6 +42,7 @@ class LOMO(BaseOptimizer):
         self.lr = lr
         self.clip_grad_norm = clip_grad_norm
         self.clip_grad_value = clip_grad_value
+        self.maximize = maximize
 
         self.local_rank: int = int(os.environ.get('LOCAL_RANK', '0'))
 
@@ -56,9 +59,7 @@ class LOMO(BaseOptimizer):
         self.loss_scaler: Optional[DynamicLossScaler] = None
         if p0.dtype == torch.float16:
             if clip_grad_norm is None:
-                raise ValueError(
-                    '[-] Loss scaling is recommended to be used with grad norm to get better performance.'
-                )
+                raise ValueError('loss scaling is recommended to be used with grad norm to get better performance.')
 
             self.loss_scaler = DynamicLossScaler(init_scale=2 ** 16)  # fmt: skip
 
@@ -67,13 +68,13 @@ class LOMO(BaseOptimizer):
                 p.register_hook(self.grad_func)
 
         defaults: DEFAULTS = {'lr': lr}
+
         super().__init__(self.model.parameters(), defaults)
 
     def __str__(self) -> str:
         return 'LOMO'
 
-    @torch.no_grad()
-    def reset(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     def fuse_update(self) -> Callable[[Any], Any]:
@@ -275,6 +276,7 @@ class AdaLOMO(BaseOptimizer):
             'eps1': eps1,
             'eps2': eps2,
         }
+
         super().__init__(self.model.parameters(), defaults)
 
     def __str__(self) -> str:
@@ -297,8 +299,7 @@ class AdaLOMO(BaseOptimizer):
             if p.requires_grad:
                 p.register_hook(self.grad_func)
 
-    @torch.no_grad()
-    def reset(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     def fuse_update(self) -> Callable[[Any], Any]:
@@ -419,17 +420,17 @@ class AdaLOMO(BaseOptimizer):
                 lr = self.lr * max(self.eps2, p_rms)
 
                 self.apply_weight_decay(
-                    partitioned_p,
-                    grad_fp32,
-                    lr,
-                    self.weight_decay,
+                    p=partitioned_p,
+                    grad=grad_fp32,
+                    lr=lr,
+                    weight_decay=self.weight_decay,
                     weight_decouple=True,
                     fixed_decay=False,
                 )
 
                 partitioned_p.add_(partitioned_update, alpha=-lr)
 
-                p.ds_tensor[: end - start] = partitioned_p
+                p.ds_tensor[:end - start] = partitioned_p  # fmt: skip
 
             return x
 

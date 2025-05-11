@@ -1,11 +1,11 @@
 import math
-from typing import Dict, Tuple
+from typing import Tuple
 
 import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
 class AccSGD(BaseOptimizer):
@@ -17,6 +17,7 @@ class AccSGD(BaseOptimizer):
     :param xi: float. statistical advantage parameter.
     :param constant: float. any small constant under 1.
     :param weight_decay: float. weight decay.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -27,6 +28,7 @@ class AccSGD(BaseOptimizer):
         xi: float = 10.0,
         constant: float = 0.7,
         weight_decay: float = 0.0,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -35,6 +37,8 @@ class AccSGD(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_boundary(constant, boundary=1.0, bound_type='upper')
 
+        self.maximize = maximize
+
         defaults: DEFAULTS = {
             'lr': lr,
             'kappa': kappa,
@@ -42,18 +46,24 @@ class AccSGD(BaseOptimizer):
             'constant': constant,
             'weight_decay': weight_decay,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'AccSGD'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['momentum_buffer'] = p.clone()
 
     @torch.no_grad()
@@ -64,10 +74,11 @@ class AccSGD(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             large_lr: float = group['lr'] * group['kappa'] / group['constant']
             alpha: float = 1.0 - (group['xi'] * (group['constant'] ** 2) / group['kappa'])
@@ -79,17 +90,14 @@ class AccSGD(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['momentum_buffer'] = p.clone()
-
                 self.apply_weight_decay(
                     p,
-                    grad,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=False,
@@ -113,7 +121,8 @@ class SGDW(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param dampening: float. dampening for momentum.
-    :param nesterov: bool. enables Nesterov momentum
+    :param nesterov: bool. enables Nesterov momentum.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -125,11 +134,14 @@ class SGDW(BaseOptimizer):
         weight_decouple: bool = True,
         dampening: float = 0.0,
         nesterov: bool = False,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -145,14 +157,19 @@ class SGDW(BaseOptimizer):
     def __str__(self) -> str:
         return 'SGDW'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                if group['momentum'] > 0.0:
-                    state['momentum_buffer'] = p.grad.clone()
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['momentum_buffer'] = p.clone()
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -162,19 +179,23 @@ class SGDW(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             momentum = group['momentum']
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                if len(state) == 0 and momentum > 0.0:
-                    state['momentum_buffer'] = grad.clone()
 
                 if momentum > 0.0:
                     buf = state['momentum_buffer']
@@ -187,7 +208,7 @@ class SGDW(BaseOptimizer):
 
                 self.apply_weight_decay(
                     p,
-                    grad,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],
@@ -211,6 +232,7 @@ class ASGD(BaseOptimizer):
     :param theta: float. theta.
     :param dampening: float. dampening for momentum.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -224,12 +246,15 @@ class ASGD(BaseOptimizer):
         theta: float = 1.0,
         dampening: float = 1.0,
         eps: float = 1e-5,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(amplifier, 'amplifier')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -247,14 +272,11 @@ class ASGD(BaseOptimizer):
     def __str__(self) -> str:
         return 'ASGD'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            for _ in group['params']:
-                pass
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        pass
 
     @staticmethod
-    def get_norms_by_group(group: Dict, device: torch.device) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_norms_by_group(group: GROUP, device: torch.device) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""Get parameter & gradient norm by group."""
         p_norm = torch.zeros(1, dtype=torch.float32, device=device)
         g_norm = torch.zeros(1, dtype=torch.float32, device=device)
@@ -279,16 +301,12 @@ class ASGD(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'prev_param_norm' not in group and 'prev_grad_norm' not in group:
-                group['prev_param_norm'], group['prev_grad_norm'] = self.get_norms_by_group(
-                    group,
-                    device=group['params'][0].device,
-                )
+            device = group['params'][0].device
 
-            group['curr_param_norm'], group['curr_grad_norm'] = self.get_norms_by_group(
-                group,
-                device=group['params'][0].device,
-            )
+            if 'prev_param_norm' not in group and 'prev_grad_norm' not in group:
+                group['prev_param_norm'], group['prev_grad_norm'] = self.get_norms_by_group(group, device)
+
+            group['curr_param_norm'], group['curr_grad_norm'] = self.get_norms_by_group(group, device)
 
             param_diff_norm: float = (group['curr_param_norm'] - group['prev_param_norm']).item()
             grad_diff_norm: float = (group['curr_grad_norm'] - group['prev_grad_norm']).item()
@@ -333,6 +351,7 @@ class SignSGD(BaseOptimizer):
     :param momentum: float. momentum factor (0.0 = SignSGD, >0 = Signum).
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -342,11 +361,14 @@ class SignSGD(BaseOptimizer):
         momentum: float = 0.9,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'beta', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -354,20 +376,25 @@ class SignSGD(BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'SignSGD'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                if group['momentum'] > 0.0:
-                    state['momentum_buffer'] = torch.zeros_like(p)
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if group['momentum'] > 0.0:
+                state['momentum_buffer'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -377,26 +404,31 @@ class SignSGD(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             momentum = group['momentum']
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                if momentum > 0.0:
-                    if len(state) == 0:
-                        state['momentum_buffer'] = torch.zeros_like(grad)
 
+                if momentum > 0.0:
                     buf = state['momentum_buffer']
                     buf.mul_(momentum).add_(grad, alpha=1.0 - momentum)
                 else:
                     buf = grad
 
-                p.add_(torch.sign(buf), alpha=-group['lr'])
+                p.add_(torch.sign(buf) if not torch.is_complex(buf) else torch.sgn(buf), alpha=-group['lr'])
 
         return loss
 
@@ -410,6 +442,7 @@ class SGDSaI(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -420,6 +453,7 @@ class SGDSaI(BaseOptimizer):
         weight_decay: float = 1e-2,
         weight_decouple: bool = True,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -428,6 +462,7 @@ class SGDSaI(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.has_warmup: bool = False
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -436,20 +471,25 @@ class SGDSaI(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'eps': eps,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'SGDSaI'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
-                if group['momentum'] > 0.0:
-                    state['momentum_buffer'] = torch.zeros_like(p)
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if group['momentum'] > 0.0:
+                state['momentum_buffer'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def warmup_step(self, closure: CLOSURE = None) -> LOSS:
@@ -459,13 +499,17 @@ class SGDSaI(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 sigma = grad.std().nan_to_num_() if grad.ndim > 1 and grad.size(0) != 1 else 0
                 grad_norm = grad.norm()
@@ -489,19 +533,21 @@ class SGDSaI(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            group['step'] += 1
+
             momentum: float = group['momentum']
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 state = self.state[p]
 
                 if momentum > 0.0:
-                    if 'momentum_buffer' not in state:
-                        state['momentum_buffer'] = grad.clone()
-
                     buf = state['momentum_buffer']
                     buf.mul_(momentum).add_(grad, alpha=1.0 - momentum)
                 else:
@@ -509,11 +555,11 @@ class SGDSaI(BaseOptimizer):
 
                 self.apply_weight_decay(
                     p,
-                    grad,
-                    group['lr'],
-                    group['weight_decay'],
-                    group['weight_decouple'],
-                    False,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=False,
                 )
 
                 p.add_(buf, alpha=-group['lr'] * state['gsnr'])
@@ -533,6 +579,7 @@ class VSGD(BaseOptimizer):
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -546,6 +593,7 @@ class VSGD(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -555,6 +603,8 @@ class VSGD(BaseOptimizer):
         self.validate_non_negative(tau2, 'tau2')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -573,9 +623,21 @@ class VSGD(BaseOptimizer):
     def __str__(self) -> str:
         return 'VSGD'
 
-    @torch.no_grad()
-    def reset(self):
-        pass
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
+                state['mug'] = torch.zeros_like(p)
+                state['bg'] = torch.zeros_like(p)
+                state['bhg'] = torch.zeros_like(p)
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
@@ -586,6 +648,7 @@ class VSGD(BaseOptimizer):
 
         for group in self.param_groups:
             if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
             else:
                 group['step'] += 1
@@ -600,19 +663,14 @@ class VSGD(BaseOptimizer):
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['mug'] = torch.zeros_like(p)
-                    state['bg'] = torch.zeros_like(p)
-                    state['bhg'] = torch.zeros_like(p)
-
                 self.apply_weight_decay(
                     p,
-                    grad,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],

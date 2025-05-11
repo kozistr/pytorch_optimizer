@@ -10,9 +10,24 @@ from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, OPTIMIZER, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, OPTIMIZER, PARAMETERS
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_running_stats
+
+
+def get_global_gradient_norm(param_groups: PARAMETERS, device: torch.device) -> torch.Tensor:
+    r"""Get global gradient norm."""
+    return torch.norm(
+        torch.stack(
+            [
+                ((torch.abs(p) if group['adaptive'] else 1.0) * p.grad).norm(p=2).to(device)
+                for group in param_groups
+                for p in group['params']
+                if p.grad is not None
+            ]
+        ),
+        p=2,
+    )
 
 
 class SAM(BaseOptimizer):
@@ -80,8 +95,8 @@ class SAM(BaseOptimizer):
         self.use_gc = use_gc
         self.perturb_eps = perturb_eps
 
-        defaults: DEFAULTS = {'rho': rho, 'adaptive': adaptive}
-        defaults.update(kwargs)
+        defaults: DEFAULTS = {'rho': rho, 'adaptive': adaptive, **kwargs}
+
         super().__init__(params, defaults)
 
         self.base_optimizer: Optimizer = base_optimizer(self.param_groups, **kwargs)
@@ -90,13 +105,15 @@ class SAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'SAM'
 
-    @torch.no_grad()
-    def reset(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     @torch.no_grad()
     def first_step(self, zero_grad: bool = False):
-        grad_norm = self.grad_norm().add_(self.perturb_eps)
+        device = self.param_groups[0]['params'][0].device
+
+        grad_norm = get_global_gradient_norm(self.param_groups, device).add_(self.perturb_eps)
+
         for group in self.param_groups:
             scale = group['rho'] / grad_norm
 
@@ -109,6 +126,7 @@ class SAM(BaseOptimizer):
                     centralize_gradient(grad, gc_conv_only=False)
 
                 self.state[p]['old_p'] = p.clone()
+
                 e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * grad * scale.to(p)
 
                 p.add_(e_w)
@@ -141,20 +159,6 @@ class SAM(BaseOptimizer):
             closure()
 
         self.second_step()
-
-    def grad_norm(self) -> torch.Tensor:
-        shared_device = self.param_groups[0]['params'][0].device
-        return torch.norm(
-            torch.stack(
-                [
-                    ((torch.abs(p) if group['adaptive'] else 1.0) * p.grad).norm(p=2).to(shared_device)
-                    for group in self.param_groups
-                    for p in group['params']
-                    if p.grad is not None
-                ]
-            ),
-            p=2,
-        )
 
     def load_state_dict(self, state_dict: Dict):
         super().load_state_dict(state_dict)
@@ -218,15 +222,15 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         if hasattr(ReduceOp, 'AVG'):
             self.grad_reduce = ReduceOp.AVG
             self.manual_average: bool = False
-        else:  # PyTorch <= 1.11.0 does not have AVG, need to manually average across processes
+        else:
             self.grad_reduce = ReduceOp.SUM
             self.manual_average: bool = True
 
         self.base_optimizer = base_optimizer
         self.param_groups = self.base_optimizer.param_groups
 
-        defaults: DEFAULTS = {'adaptive': adaptive}
-        defaults.update(kwargs)
+        defaults: DEFAULTS = {'adaptive': adaptive, **kwargs}
+
         super().__init__(params, defaults)
 
         self.update_rho_t()
@@ -234,8 +238,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
     def __str__(self) -> str:
         return 'GSAM'
 
-    @torch.no_grad()
-    def reset(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     @torch.no_grad()
@@ -414,8 +417,7 @@ class WSAM(BaseOptimizer):
 
         alpha: float = gamma / (1.0 - gamma)
 
-        defaults: DEFAULTS = {'rho': rho, 'alpha': alpha, 'adaptive': adaptive, 'sam_eps': eps}
-        defaults.update(kwargs)
+        defaults: DEFAULTS = {'rho': rho, 'alpha': alpha, 'adaptive': adaptive, 'sam_eps': eps, **kwargs}
 
         super().__init__(params, defaults)
 
@@ -425,13 +427,15 @@ class WSAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'WSAM'
 
-    @torch.no_grad()
-    def reset(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     @torch.no_grad()
     def first_step(self, zero_grad: bool = False):
-        grad_norm = self.grad_norm()
+        device = self.param_groups[0]['params'][0].device
+
+        grad_norm = get_global_gradient_norm(self.param_groups, device)
+
         for group in self.param_groups:
             scale = group['rho'] / (grad_norm + group['sam_eps'])
 
@@ -516,21 +520,6 @@ class WSAM(BaseOptimizer):
 
         return loss
 
-    def grad_norm(self) -> torch.Tensor:
-        shared_device = self.param_groups[0]['params'][0].device
-
-        return torch.norm(
-            torch.stack(
-                [
-                    ((torch.abs(p) if group['adaptive'] else 1.0) * p.grad).norm(p=2).to(shared_device)
-                    for group in self.param_groups
-                    for p in group['params']
-                    if p.grad is not None
-                ]
-            ),
-            p=2,
-        )
-
     def load_state_dict(self, state_dict: Dict):
         super().load_state_dict(state_dict)
         self.base_optimizer.param_groups = self.param_groups
@@ -591,19 +580,28 @@ class BSAM(BaseOptimizer):
         self.num_data = num_data
         self.damping = damping
 
-        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'rho': rho, 'adaptive': adaptive}
-        defaults.update(kwargs)
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'rho': rho,
+            'adaptive': adaptive,
+            **kwargs,
+        }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'bSAM'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            state = self.state[p]
+
+            if 's' not in state:
                 state['s'] = torch.ones_like(p)
                 state['noisy_gradient'] = torch.zeros_like(p.grad)
                 state['momentum'] = torch.zeros_like(p)
@@ -611,16 +609,17 @@ class BSAM(BaseOptimizer):
     @torch.no_grad()
     def first_step(self):
         for group in self.param_groups:
+            if 'step' not in group:
+                self.init_group(group)
+                group['step'] = 1
+            else:
+                group['step'] += 1
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 state = self.state[p]
-
-                if 's' not in state:
-                    state['s'] = torch.ones_like(p)
-                    state['noisy_gradient'] = torch.zeros_like(p.grad)
-                    state['momentum'] = torch.zeros_like(p)
 
                 noise = torch.normal(0.0, 1 / (self.num_data * state['s']))
 
@@ -764,8 +763,7 @@ class LookSAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'LookSAM'
 
-    @torch.no_grad()
-    def reset(self):
+    def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
     def get_step(self):
@@ -780,7 +778,10 @@ class LookSAM(BaseOptimizer):
         if self.get_step() % self.k != 0:
             return
 
-        grad_norm = self.grad_norm().add_(self.perturb_eps)
+        device = self.param_groups[0]['params'][0].device
+
+        grad_norm = get_global_gradient_norm(self.param_groups, device).add_(self.perturb_eps)
+
         for group in self.param_groups:
             scale = group['rho'] / grad_norm
 
@@ -796,6 +797,7 @@ class LookSAM(BaseOptimizer):
                 self.state[f'old_grad_p_{i}']['old_grad_p'] = grad.clone()
 
                 e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * grad * scale.to(p)
+
                 p.add_(e_w)
 
         if zero_grad:
@@ -844,20 +846,6 @@ class LookSAM(BaseOptimizer):
             closure()
 
         self.second_step()
-
-    def grad_norm(self) -> torch.Tensor:
-        shared_device = self.param_groups[0]['params'][0].device
-        return torch.norm(
-            torch.stack(
-                [
-                    ((torch.abs(p) if group['adaptive'] else 1.0) * p.grad).norm(p=2).to(shared_device)
-                    for group in self.param_groups
-                    for p in group['params']
-                    if p.grad is not None
-                ]
-            ),
-            p=2,
-        )
 
     def load_state_dict(self, state_dict: Dict):
         super().load_state_dict(state_dict)

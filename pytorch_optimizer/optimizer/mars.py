@@ -5,7 +5,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 
 MARS_TYPE = Literal['adamw', 'lion', 'shampoo']
@@ -28,8 +28,8 @@ class MARS(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param ams_bound: bool. whether to use the AMSBound variant.
-    :param cautious: bool. whether to use cautious feature.
     :param eps: float. term added to the denominator to improve numerical stability.
+    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -49,6 +49,7 @@ class MARS(BaseOptimizer):
         ams_bound: bool = False,
         cautious: bool = False,
         eps: float = 1e-8,
+        maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -60,6 +61,8 @@ class MARS(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(weight_decay_1d, 'weight_decay_1d')
         self.validate_non_negative(eps, 'eps')
+
+        self.maximize = maximize
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -76,6 +79,7 @@ class MARS(BaseOptimizer):
             'ams_bound': ams_bound,
             'cautious': cautious,
             'eps': eps,
+            **kwargs,
         }
 
         super().__init__(params, defaults)
@@ -83,16 +87,22 @@ class MARS(BaseOptimizer):
     def __str__(self) -> str:
         return 'MARS'
 
-    @torch.no_grad()
-    def reset(self):
-        for group in self.param_groups:
-            group['step'] = 0
-            for p in group['params']:
-                state = self.state[p]
+    def init_group(self, group: GROUP, **kwargs) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
 
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            state = self.state[p]
+
+            if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['last_grad'] = torch.zeros_like(p)
+
                 if group['ams_bound']:
                     state['max_exp_avg_sq'] = torch.zeros_like(p)
 
@@ -141,7 +151,9 @@ class MARS(BaseOptimizer):
 
         factor: float = math.sqrt(max(1.0, grad.size(0) / grad.size(1)))
 
-        return zero_power_via_newton_schulz_5(update.mul_(1.0 / (1.0 - beta1)), eps=eps).mul_(factor)
+        update = update.view(update.size(0), -1)
+
+        return zero_power_via_newton_schulz_5(update.mul_(1.0 / (1.0 - beta1)), eps=eps).mul_(factor).view_as(grad)
 
     def optimize_1d(
         self,
@@ -181,39 +193,35 @@ class MARS(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' in group:
-                group['step'] += 1
-            else:
+            if 'step' not in group:
+                self.init_group(group)
                 group['step'] = 1
+            else:
+                group['step'] += 1
 
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
 
-                if len(state) == 0:
-                    state['exp_avg'] = torch.zeros_like(p)
-                    state['exp_avg_sq'] = torch.zeros_like(p)
-                    state['last_grad'] = torch.zeros_like(p)
-                    if group['ams_bound']:
-                        state['max_exp_avg_sq'] = torch.zeros_like(p)
+                exp_avg, exp_avg_sq, last_grad = state['exp_avg'], state['exp_avg_sq'], state['last_grad']
+
+                p, grad, exp_avg, exp_avg_sq, last_grad = self.view_as_real(p, grad, exp_avg, exp_avg_sq, last_grad)
 
                 is_grad_2d: bool = grad.ndim >= 2
                 step_size: float = (
                     group['lr'] if group['optimize_1d'] or is_grad_2d else group['lr'] * group['lr_1d_factor']
                 )
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
                 if group['optimize_1d'] or is_grad_2d:
                     update = self.optimize_mixed(
                         grad,
-                        state['last_grad'],
+                        last_grad,
                         exp_avg,
                         exp_avg_sq,
                         state.get('max_exp_avg_sq', None),
@@ -223,7 +231,7 @@ class MARS(BaseOptimizer):
                         is_grad_2d,
                         group['step'],
                         group['ams_bound'],
-                        group['cautious'],
+                        group.get('cautious'),
                         group['eps'],
                     )
                 else:
@@ -235,7 +243,7 @@ class MARS(BaseOptimizer):
                         group['betas_1d'],
                         group['step'],
                         group['ams_bound'],
-                        group['cautious'],
+                        group.get('cautious'),
                         group['eps'],
                     )
 
@@ -250,6 +258,6 @@ class MARS(BaseOptimizer):
 
                 p.add_(update, alpha=-step_size)
 
-                state['last_grad'] = grad
+                state['last_grad'] = torch.view_as_complex(grad) if torch.is_complex(state['last_grad']) else grad
 
         return loss
