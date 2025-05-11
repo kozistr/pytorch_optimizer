@@ -363,7 +363,7 @@ def test_load_wrapper_optimizer(wrapper_optimizer_instance):
     _ = wrapper_optimizer_instance(torch.optim.AdamW(params))
 
     optimizer = wrapper_optimizer_instance(torch.optim.AdamW, params=params)
-    optimizer.init_group({})
+    optimizer.init_group({'params': []}, updates=[])
     optimizer.zero_grad()
 
     with pytest.raises(ValueError):
