@@ -271,7 +271,7 @@ class ScalableShampoo(BaseOptimizer):
         return 'ScalableShampoo'
 
     def init_group(self, group: GROUP, **kwargs) -> None:
-        beta2: float = kwargs['beta2']
+        _, beta2 = group['betas']
 
         for p in group['params']:
             if p.grad is None:
@@ -313,13 +313,13 @@ class ScalableShampoo(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            beta1, beta2 = group['betas']
-
             if 'step' not in group:
-                self.init_group(group, beta2=beta2)
+                self.init_group(group)
                 group['step'] = 1
             else:
                 group['step'] += 1
+
+            beta1, beta2 = group['betas']
 
             is_precondition_step: bool = self.is_precondition_step(group['step'])
             pre_conditioner_multiplier: float = 1.0 if group['decoupled_learning_rate'] else group['lr']

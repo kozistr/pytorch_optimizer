@@ -276,7 +276,7 @@ class ASGD(BaseOptimizer):
         pass
 
     @staticmethod
-    def get_norms_by_group(group: Dict, device: torch.device) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_norms_by_group(group: GROUP, device: torch.device) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""Get parameter & gradient norm by group."""
         p_norm = torch.zeros(1, dtype=torch.float32, device=device)
         g_norm = torch.zeros(1, dtype=torch.float32, device=device)
@@ -301,16 +301,12 @@ class ASGD(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'prev_param_norm' not in group and 'prev_grad_norm' not in group:
-                group['prev_param_norm'], group['prev_grad_norm'] = self.get_norms_by_group(
-                    group,
-                    device=group['params'][0].device,
-                )
+            device = group['params'][0].device
 
-            group['curr_param_norm'], group['curr_grad_norm'] = self.get_norms_by_group(
-                group,
-                device=group['params'][0].device,
-            )
+            if 'prev_param_norm' not in group and 'prev_grad_norm' not in group:
+                group['prev_param_norm'], group['prev_grad_norm'] = self.get_norms_by_group(group, device)
+
+            group['curr_param_norm'], group['curr_grad_norm'] = self.get_norms_by_group(group, device)
 
             param_diff_norm: float = (group['curr_param_norm'] - group['prev_param_norm']).item()
             grad_diff_norm: float = (group['curr_grad_norm'] - group['prev_grad_norm']).item()
