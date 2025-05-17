@@ -123,14 +123,10 @@ def test_momentum(optimizer_name):
 def test_beta(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
 
-    if optimizer_name == 'ranger21':
-        # test beta0
-        with pytest.raises(ValueError):
-            optimizer(None, num_iterations=200, beta0=-0.1)
-    else:
-        # test beta
-        with pytest.raises(ValueError):
-            optimizer(None, beta=-0.1)
+    config = {'num_iterations': 200, 'beta0': -0.1} if optimizer_name == 'ranger21' else {'beta': -0.1}
+
+    with pytest.raises(ValueError):
+        optimizer(None, **config)
 
 
 @pytest.mark.parametrize('optimizer_name', BETA_OPTIMIZER_NAMES)
