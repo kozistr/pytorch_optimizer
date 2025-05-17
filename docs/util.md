@@ -32,23 +32,7 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.optimizer.utils.channel_view
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.optimizer.utils.layer_view
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.optimizer.utils.cosine_similarity_by_view
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.optimizer.utils.clip_grad_norm
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.optimizer.utils.projection
     :docstring:
     :members:
 
