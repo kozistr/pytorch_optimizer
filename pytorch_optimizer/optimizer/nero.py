@@ -5,7 +5,11 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
-from pytorch_optimizer.optimizer.utils import channel_view
+
+
+def channel_view(x: torch.Tensor) -> torch.Tensor:
+    r"""Do channel view."""
+    return x.view(x.size()[0], -1)
 
 
 def neuron_norm(x: torch.Tensor) -> torch.Tensor:
