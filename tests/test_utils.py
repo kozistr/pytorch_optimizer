@@ -27,6 +27,7 @@ from pytorch_optimizer.optimizer.utils import (
     CPUOffloadOptimizer,
     clip_grad_norm,
     compare_versions,
+    copy_stochastic,
     disable_running_stats,
     enable_running_stats,
     has_overflow,
@@ -348,3 +349,19 @@ def test_zero_power_via_newton_schulz_5():
 
     with pytest.raises(ValueError):
         _ = zero_power_via_newton_schulz_5(x[0], num_steps=6)
+
+
+def test_copy_stochastic():
+    n: int = 512
+
+    a = torch.full((n,), 1.0, dtype=torch.bfloat16)
+    b = torch.full((n,), 0.0002, dtype=torch.bfloat16)
+    result = torch.full((n,), 0.0, dtype=torch.bfloat16)
+
+    added = a.to(dtype=torch.float32) + b
+
+    result.copy_(added)
+    np.testing.assert_almost_equal(1.0000, result.to(dtype=torch.float32).mean().item(), decimal=4)
+
+    copy_stochastic(result, added)
+    np.testing.assert_almost_equal(1.0002, result.to(dtype=torch.float32).mean().item(), decimal=4)
