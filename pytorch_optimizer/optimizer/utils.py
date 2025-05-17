@@ -310,3 +310,26 @@ def reg_noise(
         loss.add_(reg - noise.mul_(noise_coef).sum())
 
     return loss
+
+
+@torch.no_grad()
+def copy_stochastic(target: torch.Tensor, source: torch.Tensor) -> None:
+    r"""Copy stochastic.
+
+    reference: https://github.com/pytorch/pytorch/issues/120376#issuecomment-1974828905
+
+    :param target: torch.Tensor. bfloat16 tensor.
+    :param source: torch.Tensor. float32 tensor.
+    """
+    result = torch.randint_like(
+        source,
+        dtype=torch.int32,
+        low=0,
+        high=1 << 16,
+    )
+
+    result.add_(source.view(dtype=torch.int32))
+
+    result.bitwise_and_(-65536)
+
+    target.copy_(result.view(dtype=torch.float32))
