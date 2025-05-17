@@ -4,12 +4,11 @@ import operator
 import re
 import warnings
 from importlib.util import find_spec
-from typing import Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Dict, List, Optional, Tuple, Type, Union
 
 import torch
 from torch import nn
 from torch.distributed import all_reduce
-from torch.nn.functional import cosine_similarity
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.utils import clip_grad_norm_
 
@@ -189,34 +188,6 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
         x.div_(s)
 
 
-def channel_view(x: torch.Tensor) -> torch.Tensor:
-    r"""Do channel view."""
-    return x.view(x.size()[0], -1)
-
-
-def layer_view(x: torch.Tensor) -> torch.Tensor:
-    r"""Do layer view."""
-    return x.view(1, -1)
-
-
-def cosine_similarity_by_view(
-    x: torch.Tensor,
-    y: torch.Tensor,
-    eps: float,
-    view_func: Callable[[torch.Tensor], torch.Tensor],
-) -> torch.Tensor:
-    r"""Calculate cosine similarity by the view.
-
-    :param x: torch.Tensor. src.
-    :param y: torch.Tensor. dst.
-    :param eps: float. epsilon.
-    :param view_func: Callable. view (channel or layer) function.
-    """
-    x = view_func(x)
-    y = view_func(y)
-    return cosine_similarity(x, y, dim=1, eps=eps).abs_()
-
-
 def clip_grad_norm(
     parameters: PARAMETERS,
     max_norm: float = 0.0,
@@ -256,29 +227,6 @@ def clip_grad_norm(
             p.grad.detach().mul_(clip_coefficient)
 
     return grad_norm
-
-
-def projection(
-    p: torch.Tensor,
-    grad: torch.Tensor,
-    perturb: torch.Tensor,
-    delta: float,
-    wd_ratio: float,
-    eps: float,
-) -> Tuple[torch.Tensor, float]:
-    r"""Project to remove the radial component from the update vector."""
-    wd: float = 1.0
-    expand_size: List[int] = [-1] + [1] * (len(p.shape) - 1)
-    for view_func in (channel_view, layer_view):
-        cosine_sim = cosine_similarity_by_view(grad, p, eps, view_func)
-
-        if cosine_sim.max() < delta / math.sqrt(view_func(p).size()[1]):
-            p_n = p / view_func(p).norm(dim=1).view(expand_size).add_(eps)
-            perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(expand_size)
-            wd = wd_ratio
-            return perturb, wd
-
-    return perturb, wd
 
 
 def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
@@ -362,3 +310,26 @@ def reg_noise(
         loss.add_(reg - noise.mul_(noise_coef).sum())
 
     return loss
+
+
+@torch.no_grad()
+def copy_stochastic(target: torch.Tensor, source: torch.Tensor) -> None:
+    r"""Copy stochastic.
+
+    reference: https://github.com/pytorch/pytorch/issues/120376#issuecomment-1974828905
+
+    :param target: torch.Tensor. bfloat16 tensor.
+    :param source: torch.Tensor. float32 tensor.
+    """
+    result = torch.randint_like(
+        source,
+        dtype=torch.int32,
+        low=0,
+        high=1 << 16,
+    )
+
+    result.add_(source.view(dtype=torch.int32))
+
+    result.bitwise_and_(-65536)
+
+    target.copy_(result.view(dtype=torch.float32))

@@ -21,7 +21,7 @@ from pytorch_optimizer.optimizer.adam_mini import AdamMini
 from pytorch_optimizer.optimizer.adamax import AdaMax
 from pytorch_optimizer.optimizer.adamg import AdamG
 from pytorch_optimizer.optimizer.adamod import AdaMod
-from pytorch_optimizer.optimizer.adamp import AdamP
+from pytorch_optimizer.optimizer.adamp import SGDP, AdamP
 from pytorch_optimizer.optimizer.adams import AdamS
 from pytorch_optimizer.optimizer.adamw import StableAdamW
 from pytorch_optimizer.optimizer.adan import Adan
@@ -91,7 +91,6 @@ from pytorch_optimizer.optimizer.schedulefree import (
 )
 from pytorch_optimizer.optimizer.scion import SCION, SCIONLight
 from pytorch_optimizer.optimizer.sgd import ASGD, SGDW, VSGD, AccSGD, SGDSaI, SignSGD
-from pytorch_optimizer.optimizer.sgdp import SGDP
 from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
 from pytorch_optimizer.optimizer.sm3 import SM3
 from pytorch_optimizer.optimizer.soap import SOAP

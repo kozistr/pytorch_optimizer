@@ -168,6 +168,7 @@ from pytorch_optimizer.optimizer import (
 from pytorch_optimizer.optimizer.utils import (
     CPUOffloadOptimizer,
     clip_grad_norm,
+    copy_stochastic,
     disable_running_stats,
     enable_running_stats,
     get_global_gradient_norm,
