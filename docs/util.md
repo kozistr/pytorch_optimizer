@@ -71,3 +71,7 @@
 ::: pytorch_optimizer.optimizer.utils.reg_noise
     :docstring:
     :members:
+
+::: pytorch_optimizer.optimizer.utils.copy_stochastic
+    :docstring:
+    :members:
