@@ -409,7 +409,7 @@ class SCION(BaseOptimizer):
 
                 d.mul_(1.0 - group['momentum']).add_(grad, alpha=group['momentum'])
 
-                update = norm.lmo(grad).mul_(group['scale'])
+                update = norm.lmo(d).mul_(group['scale'])
 
                 if group['constraint']:
                     p.mul_(1.0 - group['lr'])
