@@ -640,7 +640,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Kron, {'lr': 1e0, 'weight_decay': 1e-3}, 3),
     (EXAdam, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
     (SCION, {'lr': 5e-1, 'constraint': False, 'weight_decay': 1e-3}, 5),
-    (SCION, {'lr': 2e-1, 'constraint': True}, 5),
+    (SCION, {'lr': 5e-1, 'constraint': True}, 20),
     (SCIONLight, {'lr': 5e-1, 'constraint': False, 'weight_decay': 1e-3}, 5),
     (SCIONLight, {'lr': 2e-1, 'constraint': True}, 5),
     (AdaGC, {'lr': 1e-1, 'warmup_steps': 2, 'weight_decay': 1e-3}, 5),
