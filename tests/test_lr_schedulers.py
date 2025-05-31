@@ -307,17 +307,26 @@ def test_rex_lr_scheduler():
         np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr(), 6)
 
 
-def test_wsd_lr_scheduler():
+@pytest.mark.parametrize(
+    'recipe',
+    [
+        ('cosine', [0.0005, 0.001, 0.001, 0.001, 0.000775, 0.000325, 0.0001, 0.0001, 0.0001]),
+        ('1-sqrt', [0.0005, 0.001, 0.001, 0.001, 0.0004226, 0.0001835, 0.0001, 0.0001, 0.0001]),
+        ('1-square', [0.0005, 0.001, 0.001, 0.001, 0.0008888, 0.0005555, 0.0001, 0.0001, 0.0001]),
+        ('linear', [0.0005, 0.001, 0.001, 0.001, 0.0006666, 0.0003333, 0.0001, 0.0001, 0.0001]),
+    ],
+)
+def test_wsd_lr_scheduler(recipe):
     optimizer = AdamW(Example().parameters())
     optimizer.step()
 
-    lr_scheduler = get_wsd_schedule(optimizer, 2, 2, 3, min_lr_ratio=0.1)
+    cooldown_type, expected_lrs = recipe
 
-    expected_lrs = [0.0005, 0.001, 0.001, 0.001, 0.000775, 0.000325, 0.0001, 0.0001, 0.0001]
+    lr_scheduler = get_wsd_schedule(optimizer, 2, 2, 3, min_lr_ratio=0.1, cooldown_type=cooldown_type)
 
     for expected_lr in expected_lrs:
         lr_scheduler.step()
-        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_last_lr(), 6)
+        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_last_lr()[0], 7)
 
 
 def test_deberta_v3_large_lr_scheduler():
