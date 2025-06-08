@@ -93,6 +93,7 @@ from pytorch_optimizer.optimizer.scion import SCION, SCIONLight
 from pytorch_optimizer.optimizer.sgd import ASGD, SGDW, VSGD, AccSGD, SGDSaI, SignSGD
 from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
 from pytorch_optimizer.optimizer.sm3 import SM3
+from pytorch_optimizer.optimizer.snsm import AdamWSN
 from pytorch_optimizer.optimizer.soap import SOAP
 from pytorch_optimizer.optimizer.sophia import SophiaH
 from pytorch_optimizer.optimizer.spam import SPAM, StableSPAM
@@ -219,6 +220,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     SGD,
     AdaBelief,
     AdaBound,
+    AdamWSN,
     PID,
     AdamP,
     Adai,
