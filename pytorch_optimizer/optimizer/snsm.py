@@ -154,7 +154,7 @@ class AdamWSN(BaseOptimizer):
 
                 if group.get('sn'):
                     reshaped_grad = grad.view(size // state['subset_size'], state['subset_size'])
-                    second_moment_update = torch.sum(reshaped_grad**2, dim=1, keepdim=True)
+                    second_moment_update = torch.sum(reshaped_grad ** 2, dim=1, keepdim=True)  # fmt: skip
                 else:
                     second_moment_update = grad.pow(2)
 
