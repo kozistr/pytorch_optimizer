@@ -89,6 +89,7 @@ from pytorch_optimizer.optimizer import (
     AdamP,
     AdamS,
     AdamW,
+    AdamWSN,
     Adan,
     AdaNorm,
     AdaPNM,
