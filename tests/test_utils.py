@@ -23,6 +23,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
     zero_power_via_newton_schulz_5,
 )
 from pytorch_optimizer.optimizer.sm3 import reduce_max_except_dim
+from pytorch_optimizer.optimizer.snsm import closest_smaller_divisor_of_n_to_k
 from pytorch_optimizer.optimizer.utils import (
     CPUOffloadOptimizer,
     clip_grad_norm,
@@ -365,3 +366,11 @@ def test_copy_stochastic():
 
     copy_stochastic(result, added)
     np.testing.assert_almost_equal(1.0002, result.to(dtype=torch.float32).mean().item(), decimal=4)
+
+
+def test_csd():
+    assert closest_smaller_divisor_of_n_to_k(2, 2) == 2
+    assert closest_smaller_divisor_of_n_to_k(5, 3) == 1
+
+    with pytest.raises(ValueError):
+        closest_smaller_divisor_of_n_to_k(1, 2)
