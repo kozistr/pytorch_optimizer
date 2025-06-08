@@ -220,6 +220,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     SGD,
     AdaBelief,
     AdaBound,
+    AdamWSN,
     PID,
     AdamP,
     Adai,
