@@ -18,7 +18,7 @@ def closest_smaller_divisor_of_n_to_k(n: int, k: int) -> int:
     for i in range(k, 0, -1):
         if n % i == 0:
             return i
-    return -1
+    return -1  # pragma: no cover
 
 
 class AdamWSN(BaseOptimizer):
