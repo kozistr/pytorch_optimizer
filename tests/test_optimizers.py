@@ -50,6 +50,10 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
         adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
         parameters = [p for i, p in enumerate(parameters) if i < 2]
         config.update({'adamw_params': adamw_params})
+    if optimizer_name == 'AdamWSN':
+        sn_params = [p for p in parameters if p.size() == 2]
+        regular_params = [p for p in parameters if p.size() != 2]
+        parameters = [{'params': sn_params, 'sn': True}, {'params': regular_params, 'sn': False}]
 
     optimizer = optimizer_class(parameters, **config)
 
