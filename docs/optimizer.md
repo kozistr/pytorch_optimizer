@@ -72,6 +72,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.AdamWSN
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Adan
     :docstring:
     :members:
