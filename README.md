@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **107 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **108 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -215,6 +215,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | RACS & Alice        | *Towards Efficient Optimizer Design for LLM via Structured Fisher Approximation with a Low-Rank Extension*     |                                                                                                                | <https://arxiv.org/pdf/2502.07752>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250207752G/exportcitation)                                                        |
 | VSGD                | *Variational Stochastic Gradient Descent for Deep Neural Networks*                                             | [github](https://github.com/generativeai-tue/vsgd)                                                             | <https://openreview.net/forum?id=xu4ATNjcdy>                                                | [cite](https://github.com/generativeai-tue/vsgd/tree/main?tab=readme-ov-file#cite)                                                  |
 | SNSM                | *Subset-Norm and Subspace-Momentum: Faster Memory-Efficient Adaptive Optimization with Convergence Guarantees* | [github](https://github.com/timmytonga/sn-sm)                                                                  | <https://arxiv.org/abs/2411.07120>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv241107120N/exportcitation)                                                        |
+| AdamC               | Why Gradients Rapidly Increase Near the End of Training*                                                       |                                                                                                                | <https://arxiv.org/abs/2506.02285>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250602285D/exportcitation)                                                        |
 
 ## Supported LR Scheduler
 
