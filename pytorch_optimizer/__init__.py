@@ -83,6 +83,7 @@ from pytorch_optimizer.optimizer import (
     Adalite,
     AdaLOMO,
     AdaMax,
+    AdamC,
     AdamG,
     AdamMini,
     AdaMod,

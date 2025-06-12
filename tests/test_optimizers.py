@@ -26,6 +26,25 @@ from tests.utils import (
 )
 
 
+def build_optimizer_parameter(parameters, optimizer_name, config):
+    if optimizer_name == 'AliG':
+        config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
+    if optimizer_name == 'Muon':
+        adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
+        parameters = [p for i, p in enumerate(parameters) if i < 2]
+        config.update({'adamw_params': adamw_params})
+    if optimizer_name == 'AdamWSN':
+        sn_params = [p for p in parameters if p.ndim == 2]
+        regular_params = [p for p in parameters if p.ndim != 2]
+        parameters = [{'params': sn_params, 'sn': True}, {'params': regular_params, 'sn': False}]
+    if optimizer_name == 'AdamC':
+        norm_params = [p for i, p in enumerate(parameters) if i == 1]
+        regular_params = [p for i, p in enumerate(parameters) if i != 1]
+        parameters = [{'params': norm_params, 'normalized': True}, {'params': regular_params}]
+
+    return parameters, config
+
+
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
 def test_f32_optimizers(optimizer_fp32_config, environment):
     def closure(x):
@@ -42,18 +61,7 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
     x_data, y_data = environment
     model, loss_fn = build_model()
 
-    parameters = list(model.parameters())
-
-    if optimizer_name == 'AliG':
-        config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
-    if optimizer_name == 'Muon':
-        adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
-        parameters = [p for i, p in enumerate(parameters) if i < 2]
-        config.update({'adamw_params': adamw_params})
-    if optimizer_name == 'AdamWSN':
-        sn_params = [p for p in parameters if p.ndim == 2]
-        regular_params = [p for p in parameters if p.ndim != 2]
-        parameters = [{'params': sn_params, 'sn': True}, {'params': regular_params, 'sn': False}]
+    parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
     optimizer = optimizer_class(parameters, **config)
 
@@ -93,18 +101,7 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
     model, loss_fn = build_model()
     model = model.bfloat16()
 
-    parameters = list(model.parameters())
-
-    if optimizer_name == 'AliG':
-        config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
-    elif optimizer_name == 'Muon':
-        adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
-        parameters = [p for i, p in enumerate(parameters) if i < 2]
-        config.update({'adamw_params': adamw_params})
-    if optimizer_name == 'AdamWSN':
-        sn_params = [p for p in parameters if p.ndim == 2]
-        regular_params = [p for p in parameters if p.ndim != 2]
-        parameters = [{'params': sn_params, 'sn': True}, {'params': regular_params, 'sn': False}]
+    parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
     optimizer = optimizer_class(parameters, **config)
 
@@ -150,10 +147,7 @@ def test_complex_optimizers(optimizer_complex_config, environment):
 
     x_data = x_data.to(torch.complex64)
 
-    parameters = list(model.parameters())
-
-    if optimizer_name == 'alig':
-        config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
+    parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
     optimizer = optimizer_class(parameters, **config)
 

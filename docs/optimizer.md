@@ -56,6 +56,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.AdamC
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AdamG
     :docstring:
     :members:
