@@ -651,6 +651,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (VSGD, {'lr': 1e0}, 5),
     (AdamWSN, {'lr': 1e0}, 5),
     (AdamC, {'lr': 1e0}, 5),
+    (AdamC, {'lr': 1e0, 'ams_bound': True}, 5),
     (Ranger25, {'lr': 1e-1}, 3),
     (Ranger25, {'lr': 1e-1, 't_alpha_beta3': 5}, 3),
     (Ranger25, {'lr': 5e-2, 'stable_adamw': False, 'orthograd': False, 'eps': None, 'lookahead_merge_time': 2}, 3),
