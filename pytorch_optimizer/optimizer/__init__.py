@@ -19,6 +19,7 @@ from pytorch_optimizer.optimizer.adai import Adai
 from pytorch_optimizer.optimizer.adalite import Adalite
 from pytorch_optimizer.optimizer.adam_mini import AdamMini
 from pytorch_optimizer.optimizer.adamax import AdaMax
+from pytorch_optimizer.optimizer.adamc import AdamC
 from pytorch_optimizer.optimizer.adamg import AdamG
 from pytorch_optimizer.optimizer.adamod import AdaMod
 from pytorch_optimizer.optimizer.adamp import SGDP, AdamP
@@ -221,6 +222,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdaBelief,
     AdaBound,
     AdamWSN,
+    AdamC,
     PID,
     AdamP,
     Adai,
