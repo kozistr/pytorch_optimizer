@@ -50,7 +50,7 @@ def compute_normalization_binary_search(activations: torch.Tensor, t: float, num
         activations.dtype
     )
 
-    shape_partition: Tuple[int, ...] = activations.shape[:-1] + (1,)
+    shape_partition: Tuple[int, ...] = (*activations.shape[:-1], 1)
 
     lower = torch.zeros(shape_partition, dtype=activations.dtype, device=activations.device)
     upper = -log_t(1.0 / effective_dim, t) * torch.ones_like(lower)
