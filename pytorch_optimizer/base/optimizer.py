@@ -358,17 +358,17 @@ class BaseOptimizer(ABC, Optimizer):
         if x % y != 0:
             raise ValueError(f'[-] {x} must be divisible by {y}')
 
-    def validate_betas(self, betas: BETAS) -> None:
+    def validate_betas(self, betas: BETAS, beta_range_type: str = '[)', beta3_range_type: str = '[]') -> None:
         if betas[0] is not None:
-            self.validate_range(betas[0], 'beta1', 0.0, 1.0, range_type='[]')
+            self.validate_range(betas[0], 'beta1', 0.0, 1.0, range_type=beta_range_type)
 
-        self.validate_range(betas[1], 'beta2', 0.0, 1.0, range_type='[]')
+        self.validate_range(betas[1], 'beta2', 0.0, 1.0, range_type=beta_range_type)
 
         if len(betas) < 3:
             return
 
         if betas[2] is not None:
-            self.validate_range(betas[2], 'beta3', 0.0, 1.0, range_type='[]')
+            self.validate_range(betas[2], 'beta3', 0.0, 1.0, range_type=beta3_range_type)
 
     def validate_nus(self, nus: Union[float, Tuple[float, float]]) -> None:
         if isinstance(nus, float):
