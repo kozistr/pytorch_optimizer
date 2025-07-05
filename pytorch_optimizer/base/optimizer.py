@@ -360,15 +360,15 @@ class BaseOptimizer(ABC, Optimizer):
 
     def validate_betas(self, betas: BETAS) -> None:
         if betas[0] is not None:
-            self.validate_range(betas[0], 'beta1', 0.0, 1.0, range_type='[]')
+            self.validate_range(betas[0], 'beta1', 0.0, 1.0, range_type='[)')
 
-        self.validate_range(betas[1], 'beta2', 0.0, 1.0, range_type='[]')
+        self.validate_range(betas[1], 'beta2', 0.0, 1.0, range_type='[)')
 
         if len(betas) < 3:
             return
 
         if betas[2] is not None:
-            self.validate_range(betas[2], 'beta3', 0.0, 1.0, range_type='[]')
+            self.validate_range(betas[2], 'beta3', 0.0, 1.0, range_type='[)')
 
     def validate_nus(self, nus: Union[float, Tuple[float, float]]) -> None:
         if isinstance(nus, float):
