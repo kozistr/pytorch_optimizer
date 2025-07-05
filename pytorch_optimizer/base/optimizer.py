@@ -368,7 +368,7 @@ class BaseOptimizer(ABC, Optimizer):
             return
 
         if betas[2] is not None:
-            self.validate_range(betas[2], 'beta3', 0.0, 1.0, range_type='[)')
+            self.validate_range(betas[2], 'beta3', 0.0, 1.0, range_type='[]')
 
     def validate_nus(self, nus: Union[float, Tuple[float, float]]) -> None:
         if isinstance(nus, float):
