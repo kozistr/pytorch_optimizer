@@ -112,7 +112,7 @@ HAS_TORCHAO: bool = find_spec('torchao') is not None
 
 def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover  # noqa: PLR0911
     r"""Load bnb optimizer instance."""
-    from bitsandbytes import optim
+    from bitsandbytes import optim  # noqa: PLC0415
 
     if 'sgd8bit' in optimizer:
         return optim.SGD8bit
@@ -168,7 +168,7 @@ def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover  # noqa
 
 def load_q_galore_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
     r"""Load Q-GaLore optimizer instance."""
-    import q_galore_torch
+    import q_galore_torch  # noqa: PLC0415
 
     if 'adamw8bit' in optimizer:
         return q_galore_torch.QGaLoreAdamW8bit
@@ -178,7 +178,7 @@ def load_q_galore_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
 
 def load_ao_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
     r"""Load TorchAO optimizer instance."""
-    from torchao.prototype import low_bit_optim
+    from torchao.prototype import low_bit_optim  # noqa: PLC0415
 
     if 'adamw8bit' in optimizer:
         return low_bit_optim.AdamW8bit
