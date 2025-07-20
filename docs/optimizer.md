@@ -284,6 +284,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.AdaMuon
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Nero
     :docstring:
     :members:
