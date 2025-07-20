@@ -6,7 +6,7 @@ import torch
 from torch import nn
 
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
-from pytorch_optimizer.optimizer import DynamicLossScaler, Muon, load_optimizer
+from pytorch_optimizer.optimizer import DynamicLossScaler, load_optimizer
 from pytorch_optimizer.optimizer.alig import l2_projection
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
@@ -29,7 +29,7 @@ from tests.utils import (
 def build_optimizer_parameter(parameters, optimizer_name, config):
     if optimizer_name == 'AliG':
         config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
-    if optimizer_name == 'Muon':
+    if optimizer_name in ('Muon', 'AdaMuon'):
         adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
         parameters = [p for i, p in enumerate(parameters) if i < 2]
         config.update({'adamw_params': adamw_params})
@@ -474,8 +474,9 @@ def test_soap_merge_dims_channel_last(environment):
         optimizer.step()
 
 
+@pytest.mark.parametrize('optimizer_name', ['Muon', 'AdaMuon'])
 @pytest.mark.parametrize('rank', ['1', '0'])
-def test_muon_rank(rank):
+def test_muon_rank(optimizer_name, rank):
     os.environ['RANK'] = rank
 
     model = nn.Sequential(
@@ -484,7 +485,7 @@ def test_muon_rank(rank):
         nn.Conv2d(1, 1, (2, 2)),
     )
 
-    optimizer = Muon(model.parameters())
+    optimizer = load_optimizer(optimizer_name)(model.parameters())
     optimizer.zero_grad()
 
     model[0].weight.grad = torch.randn(1, 1, 1)
