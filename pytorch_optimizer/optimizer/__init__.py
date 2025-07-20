@@ -66,7 +66,7 @@ from pytorch_optimizer.optimizer.lookahead import Lookahead
 from pytorch_optimizer.optimizer.madgrad import MADGRAD
 from pytorch_optimizer.optimizer.mars import MARS
 from pytorch_optimizer.optimizer.msvag import MSVAG
-from pytorch_optimizer.optimizer.muon import Muon
+from pytorch_optimizer.optimizer.muon import AdaMuon, Muon
 from pytorch_optimizer.optimizer.nero import Nero
 from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.orthograd import OrthoGrad
@@ -322,6 +322,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     RACS,
     Alice,
     VSGD,
+    AdaMuon,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
