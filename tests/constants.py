@@ -601,7 +601,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Muon, {'lr': 5e0, 'use_adjusted_lr': True, 'adam_lr': 1e0, 'adamw_wd': 1e-2}, 5),
     (Muon, {'lr': 2e0, 'adam_lr': 1e0, 'adamw_wd': 1e-2, 'nesterov': False}, 5),
     (AdaMuon, {'lr': 5e0, 'use_adjusted_lr': True, 'adam_lr': 1e0, 'adamw_wd': 1e-2}, 5),
-    (AdaMuon, {'lr': 5e0, 'adam_lr': 1e0, 'adamw_wd': 1e-2, 'nesterov': False}, 5),
+    (AdaMuon, {'lr': 5e0, 'adam_lr': 1e0, 'adamw_wd': 1e-2, 'nesterov': False}, 7),
     (LaProp, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (LaProp, {'lr': 1e0, 'centered': True, 'weight_decay': 1e-3}, 11),
     (LaProp, {'lr': 1e0, 'ams_bound': True, 'weight_decay': 1e-3}, 5),
