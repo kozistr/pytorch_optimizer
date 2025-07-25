@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **109 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **110 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -217,6 +217,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | SNSM                | *Subset-Norm and Subspace-Momentum: Faster Memory-Efficient Adaptive Optimization with Convergence Guarantees* | [github](https://github.com/timmytonga/sn-sm)                                                                  | <https://arxiv.org/abs/2411.07120>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2024arXiv241107120N/exportcitation)                                                        |
 | AdamC               | *Why Gradients Rapidly Increase Near the End of Training*                                                      |                                                                                                                | <https://arxiv.org/abs/2506.02285>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250602285D/exportcitation)                                                        |
 | AdaMuon             | *Adaptive Muon Optimizer*                                                                                      |                                                                                                                | <https://arxiv.org/abs/2507.11005v1>                                                        | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250711005S/exportcitation)                                                        |
+| SPlus               | *A Stable Whitening Optimizer for Efficient Neural Network Training*                                           | [github](https://github.com/kvfrans/splus)                                                                     | <https://arxiv.org/abs/2506.07254>                                                          | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250607254F/exportcitation)                                                        |
 
 ## Supported LR Scheduler
 
