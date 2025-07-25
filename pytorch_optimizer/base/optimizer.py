@@ -154,7 +154,11 @@ class BaseOptimizer(ABC, Optimizer):
 
     @staticmethod
     def apply_ams_bound(
-        ams_bound: bool, exp_avg_sq: torch.Tensor, max_exp_avg_sq: Optional[torch.Tensor], eps: float
+        ams_bound: bool,
+        exp_avg_sq: torch.Tensor,
+        max_exp_avg_sq: Optional[torch.Tensor],
+        eps: float,
+        exp_avg_sq_eps: float = 1e-15,
     ) -> torch.Tensor:
         r"""Apply AMSBound variant.
 
@@ -162,15 +166,16 @@ class BaseOptimizer(ABC, Optimizer):
         :param exp_avg_sq: torch.Tensor. exp_avg_sq.
         :param max_exp_avg_sq: Optional[torch.Tensor]. max_exp_avg_sq.
         :param eps: float. epsilon.
+        :param exp_avg_sq_eps: float. eps value for numerical stability for exp_avg_sq.
         """
         if ams_bound:
             if torch.is_complex(max_exp_avg_sq):
                 max_exp_avg_sq = torch.view_as_real(max_exp_avg_sq)
 
             torch.maximum(max_exp_avg_sq, exp_avg_sq, out=max_exp_avg_sq)
-            de_nom = max_exp_avg_sq.add(eps)
+            de_nom = max_exp_avg_sq.add(exp_avg_sq_eps)
         else:
-            de_nom = exp_avg_sq.add(eps)
+            de_nom = exp_avg_sq.add(exp_avg_sq_eps)
 
         return de_nom.sqrt_().add_(eps)
 
