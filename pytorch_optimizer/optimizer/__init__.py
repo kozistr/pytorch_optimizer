@@ -98,6 +98,7 @@ from pytorch_optimizer.optimizer.snsm import AdamWSN
 from pytorch_optimizer.optimizer.soap import SOAP
 from pytorch_optimizer.optimizer.sophia import SophiaH
 from pytorch_optimizer.optimizer.spam import SPAM, StableSPAM
+from pytorch_optimizer.optimizer.splus import SPlus
 from pytorch_optimizer.optimizer.srmm import SRMM
 from pytorch_optimizer.optimizer.swats import SWATS
 from pytorch_optimizer.optimizer.tam import TAM, AdaTAM
@@ -323,6 +324,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Alice,
     VSGD,
     AdaMuon,
+    SPlus,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 

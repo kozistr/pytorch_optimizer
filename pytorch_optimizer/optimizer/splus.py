@@ -22,8 +22,8 @@ class SPlus(BaseOptimizer):
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
     :param ema_rate: float. exponential moving average decay rate.
-    :param inverse_steps: int. perform inverse.
-    :param nonstandard_constant: float.
+    :param inverse_steps: int. the number of steps to perform inverse.
+    :param nonstandard_constant: float. scale factor for learning rate in case of non-linear layer.
     :param max_dim: int. maximum number of dimensions to perform .
     :param eps: float. term added to the denominator to improve numerical stability.
     :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
@@ -57,6 +57,7 @@ class SPlus(BaseOptimizer):
 
         defaults: DEFAULTS = {
             'lr': lr,
+            'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
@@ -80,7 +81,7 @@ class SPlus(BaseOptimizer):
                 for p in group['params']:
                     state = self.state[p]
                     state['param_buffer'] = p.clone()
-                    p.lerp_(state['ema'], 1.0).mul_(1.0 / (1.0 - group['ema_rate'] ** group['step']))
+                    p.lerp_(state['ema'], weight=1.0).mul_(1.0 / (1.0 - group['ema_rate'] ** group['step']))
                 group['train_mode'] = False
 
     @torch.no_grad()
@@ -90,7 +91,7 @@ class SPlus(BaseOptimizer):
                 for p in group['params']:
                     state = self.state[p]
                     if 'param_buffer' in state:
-                        p.lerp_(state['param_buffer'], 1.0)
+                        p.lerp_(state['param_buffer'], weight=1.0)
                         del state['param_buffer']
                 group['train_mode'] = True
 
@@ -113,18 +114,19 @@ class SPlus(BaseOptimizer):
                 state['ema'] = torch.zeros_like(p)
                 if len(p.shape) == 2:
                     state['sides'] = [
-                        torch.zeros((d, d), device=p.device) if d < group['max_dim'] else None for d in p.shape
+                        torch.zeros((d, d), device=p.device, dtype=p.dtype) if d < group['max_dim'] else None
+                        for d in p.shape
                     ]
                     state['q_sides'] = [
-                        torch.eye(d, device=p.device) if d < group['max_dim'] else None for d in p.shape
+                        torch.eye(d, device=p.device, dtype=p.dtype) if d < group['max_dim'] else None for d in p.shape
                     ]
 
     @staticmethod
-    def get_scaled_lr(shape: tuple[int, ...], lr: float, nonstandard_constant: float, max_dim: int = 10000) -> float:
+    def get_scaled_lr(shape: tuple[int, int], lr: float, nonstandard_constant: float, max_dim: int = 10000) -> float:
         scale: float = (
             nonstandard_constant
             if len(shape) != 2 or shape[0] > max_dim or shape[1] > max_dim
-            else (2.0 / (shape[0] + shape[1]))
+            else 2.0 / (shape[0] + shape[1])
         )
         return lr * scale
 
@@ -163,8 +165,8 @@ class SPlus(BaseOptimizer):
                     grad=grad,
                     lr=scaled_lr,
                     weight_decay=group['weight_decay'],
-                    weight_decouple=False,
-                    fixed_decay=False,
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
                 )
 
                 m, ema = state['momentum'], state['ema']
@@ -176,32 +178,35 @@ class SPlus(BaseOptimizer):
                     m = q_sides[0].T @ m if q_sides[0] is not None else m
                     m = m @ q_sides[1] if q_sides[1] is not None else m
 
-                    state['sides'][0] = (
-                        torch.lerp(sides[0], grad @ grad.T, 1.0 - group['b2']) if sides[0] is not None else None
-                    )
-                    state['sides'][1] = (
-                        torch.lerp(sides[1], grad.T @ grad, 1.0 - group['b2']) if sides[1] is not None else None
-                    )
+                    if sides[0] is not None:
+                        torch.lerp(sides[0], grad @ grad.T, weight=1.0 - beta2, out=sides[0])
 
-                    u = torch.sign(m)
-                    u = q_sides[0] @ u if q_sides[0] is not None else u
-                    u = u @ q_sides[1].T if q_sides[1] is not None else u
+                    if sides[1] is not None:
+                        torch.lerp(sides[1], grad.T @ grad, weight=1.0 - beta2, out=sides[1])
+
+                    update = torch.sign(m)
+
+                    if q_sides[0] is not None:
+                        update = q_sides[0] @ update
+
+                    if q_sides[1] is not None:
+                        update = update @ q_sides[1].T
 
                     if group['step'] == 1 or group['step'] % group['inverse_steps'] == 0:
                         if sides[0] is not None:
                             _, eig_vecs = torch.linalg.eigh(
-                                sides[0] + group['eps'] * torch.eye(sides[0].shape[0], device=p.device)
+                                sides[0].float() + torch.eye(sides[0].shape[0], device=p.device).mul_(group['eps'])
                             )
-                            state['q_sides'][0] = eig_vecs
+                            state['q_sides'][0] = eig_vecs.to(sides[0].dtype)
                         if sides[1] is not None:
                             _, eig_vecs = torch.linalg.eigh(
-                                sides[1] + group['eps'] * torch.eye(sides[1].shape[0], device=p.device)
+                                sides[1].float() + torch.eye(sides[1].shape[0], device=p.device).mul_(group['eps'])
                             )
-                            state['q_sides'][1] = eig_vecs
+                            state['q_sides'][1] = eig_vecs.to(sides[1].dtype)
                 else:
-                    u = torch.sign(m)
+                    update = torch.sign(m)
 
-                p.add_(u, alpha=-scaled_lr)
+                p.add_(update, alpha=-scaled_lr)
 
                 ema.lerp_(p, weight=1.0 - group['ema_rate'])
 

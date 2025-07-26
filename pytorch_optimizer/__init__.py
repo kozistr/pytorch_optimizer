@@ -154,6 +154,7 @@ from pytorch_optimizer.optimizer import (
     SignSGD,
     SimplifiedAdEMAMix,
     SophiaH,
+    SPlus,
     StableAdamW,
     StableSPAM,
     Tiger,
