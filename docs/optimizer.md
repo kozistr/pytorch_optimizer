@@ -432,6 +432,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.SPlus
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.SRMM
     :docstring:
     :members:
