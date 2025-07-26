@@ -29,15 +29,15 @@ from tests.utils import (
 def build_optimizer_parameter(parameters, optimizer_name, config):
     if optimizer_name == 'AliG':
         config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
-    if optimizer_name in ('Muon', 'AdaMuon'):
+    elif optimizer_name in ('Muon', 'AdaMuon'):
         adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
         parameters = [p for i, p in enumerate(parameters) if i < 2]
         config.update({'adamw_params': adamw_params})
-    if optimizer_name == 'AdamWSN':
+    elif optimizer_name == 'AdamWSN':
         sn_params = [p for p in parameters if p.ndim == 2]
         regular_params = [p for p in parameters if p.ndim != 2]
         parameters = [{'params': sn_params, 'sn': True}, {'params': regular_params, 'sn': False}]
-    if optimizer_name == 'AdamC':
+    elif optimizer_name == 'AdamC':
         norm_params = [p for i, p in enumerate(parameters) if i == 1]
         regular_params = [p for i, p in enumerate(parameters) if i != 1]
         parameters = [{'params': norm_params, 'normalized': True}, {'params': regular_params}]
@@ -595,3 +595,11 @@ def test_non_linear_parameters(optimizer_name):
     model[1].weight.grad = torch.randn(4, 8, 2, 2)
 
     optimizer.step()
+
+
+def test_splus_methods():
+    optimizer = load_optimizer('splus')([simple_parameter(True)])
+    optimizer.step()
+
+    optimizer.eval()
+    optimizer.train()
