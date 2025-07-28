@@ -222,7 +222,7 @@ def initialize_q_expressions(
     dtype: torch.dtype = dtype if dtype is not None else t.dtype
     shape = t.shape
     if len(shape) == 0:
-        qs: list[torch.Tensor] = [scale * torch.ones_like(t, dtype=dtype)]
+        qs: List[torch.Tensor] = [scale * torch.ones_like(t, dtype=dtype)]
         expressions_a: str = ',->'
         expression_gr: List[str] = [',->']
         expression_r: str = ',,->'
@@ -370,6 +370,6 @@ def update_precondition(
         q.sub_(tmp)
 
 
-def get_precondition_grad(qs: list[torch.Tensor], expressions: list[str], g: torch.Tensor) -> torch.Tensor:
+def get_precondition_grad(qs: List[torch.Tensor], expressions: List[str], g: torch.Tensor) -> torch.Tensor:
     r"""Precondition gradient G with pre-conditioner Q."""
     return torch.einsum(expressions[-1], *[x.conj() for x in qs], *qs, g)
