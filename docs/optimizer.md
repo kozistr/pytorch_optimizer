@@ -184,6 +184,18 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.EmoFact
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.EmoLynx
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.EmoNavi
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.EXAdam
     :docstring:
     :members:
