@@ -43,6 +43,7 @@ class EmoNavi(BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param shadow_weight: float. the weight of the shadow.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
@@ -55,6 +56,7 @@ class EmoNavi(BaseOptimizer):
         params: PARAMETERS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
+        shadow_weight: float = 0.05,
         weight_decay: float = 1e-2,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
@@ -64,6 +66,7 @@ class EmoNavi(BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
+        self.validate_range(shadow_weight, 'shadow_weight', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
@@ -72,6 +75,7 @@ class EmoNavi(BaseOptimizer):
         defaults: DEFAULTS = {
             'lr': lr,
             'betas': betas,
+            'shadow_weight': shadow_weight,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
@@ -145,7 +149,7 @@ class EmoNavi(BaseOptimizer):
 
                 if ratio > 0.0:
                     p.lerp_(shadow, weight=ratio)
-                    shadow.lerp_(p, weight=0.05)
+                    shadow.lerp_(p, weight=group['shadow_weight'])
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
@@ -166,6 +170,7 @@ class EmoLynx(BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param shadow_weight: float. the weight of the shadow.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
@@ -178,6 +183,7 @@ class EmoLynx(BaseOptimizer):
         params: PARAMETERS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.99),
+        shadow_weight: float = 0.05,
         weight_decay: float = 1e-2,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
@@ -187,6 +193,7 @@ class EmoLynx(BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
+        self.validate_range(shadow_weight, 'shadow_weight', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
@@ -195,6 +202,7 @@ class EmoLynx(BaseOptimizer):
         defaults: DEFAULTS = {
             'lr': lr,
             'betas': betas,
+            'shadow_weight': shadow_weight,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
@@ -267,12 +275,12 @@ class EmoLynx(BaseOptimizer):
 
                 if ratio > 0.0:
                     p.lerp_(shadow, weight=ratio)
-                    shadow.lerp_(p, weight=0.05)
+                    shadow.lerp_(p, weight=group['shadow_weight'])
 
-                blended_grad = grad.mul(1.0 - beta1).add_(exp_avg, alpha=beta1)
+                blended_grad = grad.mul(1.0 - beta1).add_(exp_avg, alpha=beta1).sign_()
                 exp_avg.mul_(beta2).add_(grad, alpha=1.0 - beta2)
 
-                p.add_(blended_grad.sign_(), alpha=-group['lr'])
+                p.add_(blended_grad, alpha=-group['lr'])
 
         return loss
 
@@ -285,6 +293,7 @@ class EmoFact(BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param shadow_weight: float. the weight of the shadow.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
     :param fixed_decay: bool. fix weight decay.
@@ -297,6 +306,7 @@ class EmoFact(BaseOptimizer):
         params: PARAMETERS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
+        shadow_weight: float = 0.05,
         weight_decay: float = 1e-2,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
@@ -306,6 +316,7 @@ class EmoFact(BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
+        self.validate_range(shadow_weight, 'shadow_weight', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
@@ -314,6 +325,7 @@ class EmoFact(BaseOptimizer):
         defaults: DEFAULTS = {
             'lr': lr,
             'betas': betas,
+            'shadow_weight': shadow_weight,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
@@ -345,10 +357,10 @@ class EmoFact(BaseOptimizer):
                 shape = p.size()
 
                 if len(shape) >= 2:
-                    r_shape = [s if i == 0 else 1 for i, s in enumerate(shape)]
+                    r_shape = [shape[0]] + [1] * (len(shape) - 1)
                     state['exp_avg_r'] = torch.zeros(r_shape, dtype=p.dtype, device=p.device)
 
-                    c_shape = [1 if i == 0 else s for i, s in enumerate(shape)]
+                    c_shape = [1, *list(shape[1:])]
                     state['exp_avg_c'] = torch.zeros(c_shape, dtype=p.dtype, device=p.device)
                 else:
                     state['exp_avg'] = torch.zeros_like(p)
@@ -397,19 +409,21 @@ class EmoFact(BaseOptimizer):
                     shadow = state['shadow']
 
                     p.lerp_(shadow, weight=ratio)
-                    shadow.lerp_(p, weight=0.05)
+                    shadow.lerp_(p, weight=group['shadow_weight'])
 
                 if grad.dim() >= 2:
                     exp_avg_r, exp_avg_c = state['exp_avg_r'], state['exp_avg_c']
 
                     grad_p2 = grad.pow(2)
-                    r_sq = torch.mean(grad_p2, dim=tuple(range(1, grad.dim())), keepdim=True).add_(group['eps'])
-                    c_sq = torch.mean(grad_p2, dim=0, keepdim=True).add_(group['eps'])
+                    r_sq = (
+                        torch.mean(grad_p2, dim=tuple(range(1, grad.dim())), keepdim=True).add_(group['eps']).sqrt_()
+                    )
+                    c_sq = torch.mean(grad_p2, dim=0, keepdim=True).add_(group['eps']).sqrt_()
 
-                    exp_avg_r.mul_(beta1).add_(r_sq.sqrt(), alpha=1.0 - beta1)
-                    exp_avg_c.mul_(beta1).add_(c_sq.sqrt(), alpha=1.0 - beta1)
+                    exp_avg_r.mul_(beta1).add_(r_sq, alpha=1.0 - beta1)
+                    exp_avg_c.mul_(beta1).add_(c_sq, alpha=1.0 - beta1)
 
-                    de_nom = torch.sqrt(exp_avg_r * exp_avg_c).add_(group['eps'])
+                    de_nom = (exp_avg_r * exp_avg_c).sqrt_().add_(group['eps'])
 
                     update = grad / de_nom
                 else:
