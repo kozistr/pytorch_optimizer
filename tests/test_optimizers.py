@@ -79,7 +79,7 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
 
         loss.backward(create_graph=optimizer_name in ('AdaHessian', 'SophiaH'))
 
-        optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
+        optimizer.step(closure(loss) if optimizer_name == 'AliG' or optimizer_name.startswith('Emo') else None)
 
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
@@ -123,7 +123,7 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
 
         scaler.scale(loss).backward(create_graph=optimizer_name in ('AdaHessian', 'SophiaH'))
 
-        optimizer.step(closure(loss) if optimizer_name == 'AliG' else None)
+        optimizer.step(closure(loss) if optimizer_name == 'AliG' or optimizer_name.startswith('Emo') else None)
 
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
@@ -165,7 +165,7 @@ def test_complex_optimizers(optimizer_complex_config, environment):
 
         loss.backward(create_graph=optimizer_name in ('adahessian', 'sophiah'))
 
-        optimizer.step(closure(loss) if optimizer_name == 'alig' else None)
+        optimizer.step(closure(loss) if optimizer_name == 'alig' or optimizer_name.startswith('emo') else None)
 
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
