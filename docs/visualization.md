@@ -166,6 +166,18 @@
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_DiffGrad.png)
 
+### EmoFact
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_EmoFact.png)
+
+### EmoLynx
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_EmoLynx.png)
+
+### EmoNavi
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_EmoNavi.png)
+
 ### EXAdam
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_EXAdam.png)
@@ -559,6 +571,18 @@
 ### DiffGrad
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_DiffGrad.png)
+
+### EmoFact
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_EmoFact.png)
+
+### EmoLynx
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_EmoLynx.png)
+
+### EmoNavi
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_EmoNavi.png)
 
 ### EXAdam
 
