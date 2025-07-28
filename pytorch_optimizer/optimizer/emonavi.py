@@ -1,5 +1,5 @@
 import math
-from typing import Dict
+from typing import Dict, Union
 
 import torch
 
@@ -8,11 +8,15 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
 
 
-def update_ema(state: Dict, loss_val: float) -> Dict[str, float]:
+def update_ema(state: Dict, loss: Union[float, torch.Tensor]) -> Dict[str, float]:
     r"""Update the EMA dictionary for the `short` and `long` terms."""
+    if isinstance(loss, torch.Tensor):
+        loss = loss.item()
+
     ema = state.setdefault('ema', {})
-    ema['short'] = 0.3 * loss_val + 0.7 * ema.get('short', loss_val)
-    ema['long'] = 0.01 * loss_val + 0.99 * ema.get('long', loss_val)
+    ema['short'] = 0.3 * loss + 0.7 * ema.get('short', loss)
+    ema['long'] = 0.01 * loss + 0.99 * ema.get('long', loss)
+
     return ema
 
 
@@ -141,7 +145,7 @@ class EmoNavi(BaseOptimizer):
                 shadow, exp_avg, exp_avg_sq = state['shadow'], state['exp_avg'], state['exp_avg_sq']
 
                 if ratio > 0.0:
-                    p.lerp_(shadow, alpha=ratio)
+                    p.lerp_(shadow, weight=ratio)
                     shadow.lerp_(p, weight=0.05)
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
@@ -264,7 +268,7 @@ class EmoLynx(BaseOptimizer):
                 shadow, exp_avg = state['shadow'], state['exp_avg']
 
                 if ratio > 0.0:
-                    p.lerp_(shadow, alpha=ratio)
+                    p.lerp_(shadow, weight=ratio)
                     shadow.lerp_(p, weight=0.05)
 
                 blended_grad = grad.mul(1.0 - beta1).add_(exp_avg, alpha=beta1)
@@ -395,7 +399,7 @@ class EmoFact(BaseOptimizer):
                 if ratio > 0.0:
                     shadow = state['shadow']
 
-                    p.lerp_(shadow, alpha=ratio)
+                    p.lerp_(shadow, weight=ratio)
                     shadow.lerp_(p, weight=0.05)
 
                 if grad.dim() >= 2:
