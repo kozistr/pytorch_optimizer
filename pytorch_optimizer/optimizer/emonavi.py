@@ -104,11 +104,10 @@ class EmoNavi(BaseOptimizer):
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
+        loss = 0.0
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
-        else:
-            loss = 0.0
 
         for group in self.param_groups:
             if 'step' not in group:
@@ -227,11 +226,10 @@ class EmoLynx(BaseOptimizer):
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
+        loss = 0.0
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
-        else:
-            loss = 0.0
 
         for group in self.param_groups:
             if 'step' not in group:
@@ -358,11 +356,10 @@ class EmoFact(BaseOptimizer):
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:
+        loss = 0.0
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
-        else:
-            loss = 0.0
 
         for group in self.param_groups:
             if 'step' not in group:
