@@ -1,13 +1,12 @@
 from typing import List, Optional
 
-import numpy as np
 import torch
 from torch import nn
 from torch.nn.functional import cross_entropy
 
 
 class LDAMLoss(nn.Module):
-    r"""LDAM Loss.
+    r"""label-distribution-aware margin loss.
 
     :param num_class_list: List[int]. list of number of class.
     :param max_m: float. max margin (`C` term in the paper).
@@ -20,11 +19,11 @@ class LDAMLoss(nn.Module):
     ):
         super().__init__()
 
-        cls_num_list = np.asarray(num_class_list)
-        m_list = 1.0 / np.sqrt(np.sqrt(cls_num_list))
-        m_list *= max_m / np.max(m_list)
+        cls_num_list: torch.Tensor = torch.FloatTensor(num_class_list)
+        m_list: torch.Tensor = 1.0 / cls_num_list.sqrt_().sqrt_()
+        m_list *= max_m / max(m_list)
 
-        self.m_list = torch.FloatTensor(m_list).unsqueeze(0)
+        self.m_list = m_list.unsqueeze(0)
         self.weight = weight
         self.s = s
 
