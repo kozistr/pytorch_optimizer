@@ -33,7 +33,7 @@ jobs:
         PYTHONDONTWRITEBYTECODE: 1
       run: make test
     - name: Check codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         directory: ./
