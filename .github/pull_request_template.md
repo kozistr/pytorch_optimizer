@@ -1,16 +1,3 @@
----
-Remove this part when you open the PR
-
-Here's a checklist before opening the Pull Request!
-
-1. PR title convention : [Type of PR] [Summary] (e.g. [Feature] Implement AdamP optimizer)
-2. Attach `as much information as possible you can`. It helps the reviewers a lot :)
-3. Make sure the code is perfectly `runnable & compatible`.
-4. If your PR is not ready yet, make your `PR` to `Draft PR`.
-5. Make sure `make format & check` before opening the `PR`.
-6. Or you just call the maintainer to help to fix code-style & test cases.
----
-
 ## Problem (Why?)
 
 _What problem are you trying to solve?_
@@ -26,3 +13,10 @@ _Are there any small changes?_
 ## Notes
 
 _Please note any questions, helps or contexts what maintainer(s) should know_
+
+## Checklist
+
+- [ ] Make sure to run `make format` before commit
+- [ ] My code adheres to the style guidelines of this project (`make check` shows no errors)
+- [ ] Both new and existing unit tests pass successfully on my local environment by running `make test`
+- [ ] I have made the necessary changes to the documentation
