@@ -603,3 +603,13 @@ def test_splus_methods():
 
     optimizer.eval()
     optimizer.train()
+
+
+def test_emoneco_optimizer():
+    p = simple_parameter(True)
+    optimizer = load_optimizer('emoneco')([p])
+
+    optimizer.init_group(optimizer.param_groups[0])
+    optimizer.state[p]['ema'] = {'short': 0.0847 / 0.7, 'long': 0.0}
+
+    optimizer.step()

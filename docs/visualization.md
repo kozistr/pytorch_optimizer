@@ -178,6 +178,14 @@
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_EmoNavi.png)
 
+### EmoNeco
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_EmoNeco.png)
+
+### EmoZeal
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_EmoZeal.png)
+
 ### EXAdam
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rastrigin_EXAdam.png)
@@ -583,6 +591,14 @@
 ### EmoNavi
 
 ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_EmoNavi.png)
+
+### EmoNeco
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_EmoNeco.png)
+
+### EmoZeal
+
+![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/docs/visualizations/rosenbrock_EmoZeal.png)
 
 ### EXAdam
 
