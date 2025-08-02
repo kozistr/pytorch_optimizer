@@ -196,6 +196,14 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.EmoNeco
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.EmoZeal
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.EXAdam
     :docstring:
     :members:
