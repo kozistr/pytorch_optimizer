@@ -666,7 +666,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (EmoNavi, {'lr': 5e-1}, 5),
     (EmoLynx, {'lr': 5e-1}, 5),
     (EmoFact, {'lr': 1e-1}, 5),
-    (EmoNeco, {'lr': 1e0}, 10),
+    (EmoNeco, {'lr': 1e0}, 5),
     (EmoZeal, {'lr': 1e-1}, 5),
     (EmoZeal, {'lr': 1e-1, 'use_shadow': False}, 5),
     (Ranger25, {'lr': 1e-1}, 3),
