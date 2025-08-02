@@ -117,6 +117,8 @@ from pytorch_optimizer.optimizer import (
     EmoFact,
     EmoLynx,
     EmoNavi,
+    EmoNeco,
+    EmoZeal,
     EXAdam,
     FAdam,
     Fira,
