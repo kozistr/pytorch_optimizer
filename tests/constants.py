@@ -587,6 +587,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Adalite, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (ScheduleFreeSGD, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (ScheduleFreeAdamW, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
+    (ScheduleFreeAdamW, {'lr': 1e0, 'weight_decay': 1e-3, 'decoupling_c': 200}, 5),
     (ScheduleFreeRAdam, {'lr': 1e2, 'weight_decay': 1e-3}, 20),
     (FAdam, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (GrokFastAdamW, {'lr': 5e0, 'weight_decay': 1e-3, 'grokfast_after_step': 1}, 5),
