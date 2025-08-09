@@ -1,7 +1,9 @@
 import math
-from typing import Tuple
+from typing import List, Tuple
 
 import torch
+from torch import nn
+from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -404,3 +406,40 @@ class AdaMuon(BaseOptimizer):
                     p.addcdiv_(exp_avg / bias_correction1, de_nom, value=-group['lr'])
 
         return loss
+
+
+def prepare_muon_parameters(
+    model: nn.Module,
+    optimizer_name: str,
+    lr: float,
+    weight_decay: float,
+    adamw_lr: float = 3e-4,
+    adamw_wd: float = 0.0,
+    **kwargs,
+) -> Optimizer:
+    r"""Prepare the parameters for Muon optimizer.
+
+    Be careful at using this function to prepare the parameters for Muon optimizer. It's not likely acting perfectly
+    for all cases. So, highly recommend you to create the Muon optimizer manually following by the given example in the
+    docstring.
+    """
+    muon_parameters: List[str] = []
+    non_muon_params: List[str] = []
+
+    for _, module in model.named_modules():
+        for name, param in module.named_parameters(recurse=False):
+            if (
+                isinstance(module, (nn.Linear, nn.Conv1d, nn.LSTM, nn.Conv2d))
+                and param.ndim >= 2
+                and 'head' not in name
+            ):
+                muon_parameters.append(param)
+            else:
+                non_muon_params.append(param)
+
+    param_groups: PARAMETERS = [
+        {'params': muon_parameters, 'lr': lr, 'weight_decay': weight_decay, 'use_muon': True},
+        {'params': non_muon_params, 'lr': adamw_lr, 'weight_decay': adamw_wd, 'use_muon': False},
+    ]
+
+    return Muon(param_groups, **kwargs) if optimizer_name.lower() == 'muon' else AdaMuon(param_groups, **kwargs)
