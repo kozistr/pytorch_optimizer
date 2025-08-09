@@ -1,10 +1,3 @@
-# v3.8.0
-## Change Log
-
-### Update
-
-* Re-implement `Muon` and `AdaMuon` optimizers based on the recent official implementation. (#408, #410)
-    * Their definitions have changed from the previous version, so please check out the documentation!
 # v3.7.0
 
 ## Change Log
