@@ -176,6 +176,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
     :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
         set to 0 for no weighting.
     :param warmup_steps: int. enables a linear learning rate warmup.
+    :param decoupling_c: int. proposed in Refined Schedule-Free AdamW optimizer. 200 would be good start value.
     :param ams_bound: bool. whether to use the AMSBound variant.
     :param eps: float. term added to the denominator to improve numerical stability.
     :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
@@ -190,6 +191,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
         r: float = 0.0,
         weight_lr_power: float = 2.0,
         warmup_steps: int = 0,
+        decoupling_c: int = 0,
         ams_bound: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
@@ -197,6 +199,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
+        self.validate_non_negative(decoupling_c, 'decoupling_c')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
@@ -209,6 +212,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
             'r': r,
             'weight_lr_power': weight_lr_power,
             'warmup_steps': warmup_steps,
+            'decoupling_c': decoupling_c,
             'ams_bound': ams_bound,
             'eps': eps,
             'train_mode': True,
@@ -287,6 +291,9 @@ class ScheduleFreeAdamW(BaseOptimizer):
             weight_sum = group['weight_sum'] = group['weight_sum'] + weight
 
             checkpoint: float = weight / weight_sum if weight_sum != 0.0 else 0.0
+
+            if group['decoupling_c'] > 0:
+                checkpoint = min(1.0, checkpoint * (1.0 - beta1) * group['decoupling_c'])
 
             for p in group['params']:
                 if p.grad is None:
