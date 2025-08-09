@@ -21,16 +21,16 @@ jobs:
 
       - name: Prepend changelog to CHANGELOG.md
         run: |
-          VERSION = "v3.8.0"
-          CHANGELOG_FILE = "docs/changelogs/$VERSION.md"
-          MAIN_CHANGELOG = "CHANGELOG.md"
+          VERSION="v3.8.0"
+          CHANGELOG_FILE="docs/changelogs/$VERSION.md"
+          MAIN_CHANGELOG="CHANGELOG.md"
 
           if [ ! -f "$CHANGELOG_FILE" ]; then
             echo "No changelog found for $VERSION"
             exit 1
           fi
 
-          TMP_FILE = $(mktemp)
+          TMP_FILE=$(mktemp)
 
           echo "# $VERSION" > "$TMP_FILE"
           cat "$CHANGELOG_FILE" >> "$TMP_FILE"
