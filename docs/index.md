@@ -20,7 +20,7 @@ Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimi
 
 ## Getting Started
 
-For more, see the [documentation](https://pytorch-optimizers.readthedocs.io/en/latest/).
+For more, see the [stable documentation](https://pytorch-optimizers.readthedocs.io/en/stable/) or [latest documentation](https://pytorch-optimizers.readthedocs.io/en/latest/).
 
 Most optimizers are under MIT or Apache 2.0 license, but a few optimizers like `Fromage`, `Nero` have `CC BY-NC-SA 4.0 license`, which is non-commercial. 
 So, please double-check the license before using it at your work.

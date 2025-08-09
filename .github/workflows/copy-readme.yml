@@ -1,0 +1,33 @@
+name: Copy README.md to docs/index.md
+
+on:
+  pull_request:
+    paths:
+      - README.md
+
+jobs:
+  copy-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy README.md to docs/index.md
+        run: cp README.md docs/index.md
+
+      - name: Commit updated CHANGELOG.md
+        uses: stefanzweifel/git-auto-commit-action@v6
+        id: auto-commit-action
+        with:
+          commit_message: "docs: update index.md"
+          file_pattern: docs/index.md
+          commit_user_name: "kozistr"
+          commit_user_email: "kozistr@gmail.com"
+          push_options: "--force"
+
+      - name: "Run if changes have been detected"
+        if: steps.auto-commit-action.outputs.changes_detected == 'true'
+        run: echo "Changes!"
+
+      - name: "Run if no changes have been detected"
+        if: steps.auto-commit-action.outputs.changes_detected == 'false'
+        run: echo "No Changes!"
