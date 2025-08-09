@@ -42,7 +42,6 @@ jobs:
         id: auto-commit-action
         with:
           commit_message: "docs: prepend ${{ env.TAG_NAME }} changelog to CHANGELOG.md"
-          branch: main
           file_pattern: CHANGELOG.md
           commit_user_name: "kozistr"
           commit_user_email: "kozistr@gmail.com"
