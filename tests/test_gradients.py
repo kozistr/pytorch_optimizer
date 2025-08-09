@@ -1,5 +1,6 @@
 import pytest
 import torch
+from torch import nn
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.optimizer import SAM, TRAC, WSAM, AdamP, Lookahead, LookSAM, OrthoGrad, load_optimizer
@@ -39,6 +40,9 @@ def test_no_gradients(optimizer_name):
         optimizer = OrthoGrad(load_optimizer('adamw')(params))
     elif optimizer_name == 'alice':
         optimizer = load_optimizer('alice')(params, rank=2, leading_basis=1)
+    elif optimizer_name in ('muon', 'adamuon'):
+        params = [{**param, 'use_muon': False} for param in params]
+        optimizer = load_optimizer(optimizer_name)(params)
     else:
         optimizer = load_optimizer(optimizer_name)(params)
 
@@ -59,7 +63,13 @@ def test_sparse_not_supported(no_sparse_optimizer):
     param = simple_sparse_parameter()[1]
 
     opt = load_optimizer(optimizer=no_sparse_optimizer)
-    optimizer = opt([param], num_iterations=1) if no_sparse_optimizer == 'ranger21' else opt([param])
+    if no_sparse_optimizer == 'ranger21':
+        optimizer = opt([param], num_iterations=1)
+    elif no_sparse_optimizer in ('muon', 'adamuon'):
+        params = [{'params': param, 'use_muon': False}]
+        optimizer = load_optimizer(no_sparse_optimizer)(params)
+    else:
+        optimizer = opt([param])
 
     with pytest.raises(NoSparseGradientError):
         optimizer.step(lambda: 0.1)
@@ -206,6 +216,21 @@ def test_schedulefree_sparse_gradient():
         optimizer.step(lambda: 0.1)
 
 
+@pytest.mark.parametrize('optimizer', ['muon', 'adamuon'])
+def test_muon_no_gradient(optimizer):
+    model = nn.Sequential(nn.Linear(1, 1))
+    model[0].weight.grad = None
+    model[0].bias.grad = None
+
+    params = [
+        {'params': [p for p in model.parameters() if p.ndim >= 2], 'use_muon': True},
+        {'params': [p for p in model.parameters() if p.ndim < 2], 'use_muon': False},
+    ]
+
+    optimizer = load_optimizer(optimizer)(params)
+    optimizer.step()
+
+
 @pytest.mark.parametrize('no_complex_optimizer', NO_COMPLEX_OPTIMIZERS)
 def test_complex_not_supported(no_complex_optimizer):
     if no_complex_optimizer in ('adam', 'adamw', 'sgd', 'lomo', 'bsam', 'adammini', 'adalomo', 'demo'):
@@ -219,6 +244,8 @@ def test_complex_not_supported(no_complex_optimizer):
         optimizer = opt([param], num_iterations=1)
     elif no_complex_optimizer == 'adahessian':
         optimizer = opt([param], update_period=2)
+    elif no_complex_optimizer in ('muon', 'adamuon'):
+        optimizer = opt([{'params': param, 'use_muon': True}])
     else:
         optimizer = opt([param])
 

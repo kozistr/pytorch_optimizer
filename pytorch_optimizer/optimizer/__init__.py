@@ -67,7 +67,7 @@ from pytorch_optimizer.optimizer.lookahead import Lookahead
 from pytorch_optimizer.optimizer.madgrad import MADGRAD
 from pytorch_optimizer.optimizer.mars import MARS
 from pytorch_optimizer.optimizer.msvag import MSVAG
-from pytorch_optimizer.optimizer.muon import AdaMuon, Muon
+from pytorch_optimizer.optimizer.muon import AdaMuon, Muon, prepare_muon_parameters
 from pytorch_optimizer.optimizer.nero import Nero
 from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.orthograd import OrthoGrad
@@ -365,8 +365,12 @@ def create_optimizer(
 
     if optimizer_name == 'alig':
         optimizer = optimizer_class(parameters, max_lr=lr, **kwargs)
-    elif optimizer_name in {'lomo', 'adalomo', 'adammini'}:
+    elif optimizer_name in ('lomo', 'adalomo', 'adammini'):
         optimizer = optimizer_class(model, lr=lr, **kwargs)
+    elif optimizer_name in ('muon', 'adamuon'):
+        warn(f'highly recommend you to manually create the {optimizer_name} manually.', UserWarning, 1)
+
+        optimizer = prepare_muon_parameters(model, optimizer_name, lr=lr, weight_decay=weight_decay, **kwargs)
     else:
         optimizer = optimizer_class(parameters, lr=lr, **kwargs)
 

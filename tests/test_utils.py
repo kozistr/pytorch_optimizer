@@ -256,7 +256,7 @@ def test_version_utils():
     if python_version.minor < 9:
         assert parse_pytorch_version(torch.__version__) == [2, 4, 1]
     else:
-        assert parse_pytorch_version(torch.__version__) == [2, 7, 1]
+        assert parse_pytorch_version(torch.__version__) == [2, 8, 0]
 
     assert compare_versions('2.7.0', '2.4.0') >= 0
 

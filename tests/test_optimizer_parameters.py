@@ -256,3 +256,9 @@ def test_galore_projection_type():
 
     with pytest.raises(ValueError):
         GaLoreProjector.get_orthogonal_matrix(p, 1, projection_type='std')
+
+
+@pytest.mark.parametrize('optimizer_name', ['Muon', 'AdaMuon'])
+def test_muon_use_muon_param(optimizer_name):
+    with pytest.raises(ValueError):
+        load_optimizer(optimizer_name)([Example().parameters()])
