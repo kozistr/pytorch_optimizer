@@ -240,7 +240,6 @@ BETA_OPTIMIZER_NAMES: List[str] = [
     'adamg',
     'ademamix',
     'soap',
-    'muon',
     'adamuon',
     'laprop',
     'apollo',
