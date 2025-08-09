@@ -1,0 +1,19 @@
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+
+github_actions:
+  - changed-files:
+    - any-glob-to-any-file:
+      - .github/workflows/**
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - pyproject.toml
+
+bug:
+  include:
+    - '\b[bB]ug[s]?\b'
+    - '\b[fF]ix(es)?\b'
