@@ -222,6 +222,8 @@ def test_complex_not_supported(no_complex_optimizer):
         optimizer = opt([param], num_iterations=1)
     elif no_complex_optimizer == 'adahessian':
         optimizer = opt([param], update_period=2)
+    elif no_complex_optimizer in ('muon', 'adamuon'):
+        optimizer = opt([{'params': param, 'use_muon': True}])
     else:
         optimizer = opt([param])
 
