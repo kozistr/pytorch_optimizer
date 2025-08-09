@@ -39,6 +39,9 @@ def test_no_gradients(optimizer_name):
         optimizer = OrthoGrad(load_optimizer('adamw')(params))
     elif optimizer_name == 'alice':
         optimizer = load_optimizer('alice')(params, rank=2, leading_basis=1)
+    elif optimizer_name in ('muon', 'adamuon'):
+        params = [{**param, 'use_muon': False} for param in params]
+        optimizer = load_optimizer(optimizer_name)(params)
     else:
         optimizer = load_optimizer(optimizer_name)(params)
 

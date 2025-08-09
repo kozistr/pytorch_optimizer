@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pytest
 import torch
@@ -30,9 +28,13 @@ def build_optimizer_parameter(parameters, optimizer_name, config):
     if optimizer_name == 'AliG':
         config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
     elif optimizer_name in ('Muon', 'AdaMuon'):
-        adamw_params = [p for i, p in enumerate(parameters) if i >= 2]
-        parameters = [p for i, p in enumerate(parameters) if i < 2]
-        config.update({'adamw_params': adamw_params})
+        hidden_weights = [p for p in parameters if p.ndim >= 2]
+        hidden_gains_biases = [p for p in parameters if p.ndim < 2]
+
+        parameters = [
+            {'params': hidden_weights, 'use_muon': True},
+            {'params': hidden_gains_biases, 'use_muon': False},
+        ]
     elif optimizer_name == 'AdamWSN':
         sn_params = [p for p in parameters if p.ndim == 2]
         regular_params = [p for p in parameters if p.ndim != 2]
@@ -178,7 +180,12 @@ def test_init_group(optimizer_config):
     if optimizer_name.startswith('build'):
         pytest.skip(f'skip {optimizer_name}')
 
-    optimizer_class([simple_parameter()], num_iterations=1).init_group({'params': [], 'betas': (0.0, 0.0)})
+    if optimizer_name in ('muon', 'adamuon'):
+        optimizer_class([{'params': simple_parameter(), 'use_muon': True}], num_iterations=1).init_group(
+            {'params': []}
+        )
+    else:
+        optimizer_class([simple_parameter()], num_iterations=1).init_group({'params': [], 'betas': (0.0, 0.0)})
 
 
 @pytest.mark.parametrize('optimizer', {config[0] for config in OPTIMIZERS}, ids=names)
@@ -188,7 +195,13 @@ def test_closure(optimizer):
 
     optimizer_name: str = optimizer.__name__
 
-    optimizer = optimizer([param], num_iterations=1) if optimizer_name == 'Ranger21' else optimizer([param])
+    if optimizer_name == 'Ranger21':
+        optimizer = optimizer([param], num_iterations=1)
+    elif optimizer_name in ('Muon', 'AdaMuon'):
+        optimizer = optimizer([{'params': param, 'use_muon': False}])
+    else:
+        optimizer = optimizer([param])
+
     optimizer.zero_grad()
 
     if optimizer_name.endswith('schedulefree'):
@@ -475,22 +488,24 @@ def test_soap_merge_dims_channel_last(environment):
 
 
 @pytest.mark.parametrize('optimizer_name', ['Muon', 'AdaMuon'])
-@pytest.mark.parametrize('rank', ['1', '0'])
-def test_muon_rank(optimizer_name, rank):
-    os.environ['RANK'] = rank
-
+def test_muon_high_dimensions(optimizer_name):
     model = nn.Sequential(
         nn.Conv1d(1, 1, 1),
-        nn.Conv1d(1, 1, 1),
         nn.Conv2d(1, 1, (2, 2)),
+        nn.LSTM(1, 1, num_layers=1, bias=True, bidirectional=True),
     )
 
-    optimizer = load_optimizer(optimizer_name)(model.parameters())
+    params = [
+        {'params': [p for p in model.parameters() if p.ndim >= 2], 'use_muon': True},
+        {'params': [p for p in model.parameters() if p.ndim < 2], 'use_muon': False},
+    ]
+
+    optimizer = load_optimizer(optimizer_name)(params)
     optimizer.zero_grad()
 
     model[0].weight.grad = torch.randn(1, 1, 1)
-    model[1].weight.grad = torch.randn(1, 1, 1)
-    model[2].weight.grad = torch.randn(1, 1, 2, 2)
+    model[1].weight.grad = torch.randn(1, 1, 2, 2)
+    model[2].weight_ih_l0.grad = model[2].weight_hh_l0.grad = torch.randn(4, 1)
 
     optimizer.step()
 
