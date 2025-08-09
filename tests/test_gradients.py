@@ -63,7 +63,13 @@ def test_sparse_not_supported(no_sparse_optimizer):
     param = simple_sparse_parameter()[1]
 
     opt = load_optimizer(optimizer=no_sparse_optimizer)
-    optimizer = opt([param], num_iterations=1) if no_sparse_optimizer == 'ranger21' else opt([param])
+    if no_sparse_optimizer == 'ranger21':
+        optimizer = opt([param], num_iterations=1)
+    elif no_sparse_optimizer in ('muon', 'adamuon'):
+        params = [{'params': param, 'use_muon': False}]
+        optimizer = load_optimizer(no_sparse_optimizer)(params)
+    else:
+        optimizer = opt([param])
 
     with pytest.raises(NoSparseGradientError):
         optimizer.step(lambda: 0.1)
