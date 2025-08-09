@@ -1,5 +1,6 @@
 import pytest
 import torch
+from torch import nn
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.optimizer import SAM, TRAC, WSAM, AdamP, Lookahead, LookSAM, OrthoGrad, load_optimizer
@@ -207,6 +208,21 @@ def test_schedulefree_sparse_gradient():
 
     with pytest.raises(NoSparseGradientError):
         optimizer.step(lambda: 0.1)
+
+
+@pytest.mark.parametrize('optimizer', ['muon', 'adamuon'])
+def test_muon_no_gradient(optimizer):
+    model = nn.Sequential(nn.Linear(1, 1))
+    model[0].weight.grad = None
+    model[0].bias.grad = None
+
+    params = [
+        {'params': [p for p in model.parameters() if p.ndim >= 2], 'use_muon': True},
+        {'params': [p for p in model.parameters() if p.ndim < 2], 'use_muon': False},
+    ]
+
+    optimizer = load_optimizer(optimizer)(params)
+    optimizer.step()
 
 
 @pytest.mark.parametrize('no_complex_optimizer', NO_COMPLEX_OPTIMIZERS)
