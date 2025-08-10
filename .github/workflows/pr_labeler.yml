@@ -17,6 +17,8 @@ jobs:
       pull-requests: write
 
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/labeler@v5
         if: ${{ github.event.action != 'labeled' && github.event.action != 'unlabeled' }}
         with:
