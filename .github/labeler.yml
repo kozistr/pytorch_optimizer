@@ -12,8 +12,3 @@ dependencies:
   - changed-files:
     - any-glob-to-any-file:
       - pyproject.toml
-
-bug:
-  include:
-    - '\b[bB]ug[s]?\b'
-    - '\b[fF]ix(es)?\b'
