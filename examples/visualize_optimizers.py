@@ -16,16 +16,18 @@ from pytorch_optimizer.optimizer.alig import l2_projection
 
 filterwarnings('ignore', category=UserWarning)
 
+IMG_FORMAT = 'jpg'
 OPTIMIZERS_IGNORE = ('lomo', 'adalomo', 'demo', 'a2grad', 'muon', 'alice', 'adamc', 'adamwsn', 'adamuon', 'splus')
 OPTIMIZERS_MODEL_INPUT_NEEDED = ('lomo', 'adalomo', 'adammini')
 OPTIMIZERS_GRAPH_NEEDED = ('adahessian', 'sophiah')
 OPTIMIZERS_CLOSURE_NEEDED = ('alig', 'bsam')
-EVAL_PER_HYPERPARAM: int = 540
-OPTIMIZATION_STEPS: int = 300
-TESTING_OPTIMIZATION_STEPS: int = 650
+EVAL_PER_HYPERPARAM: int = 600
+OPTIMIZATION_STEPS: int = 200
+TESTING_OPTIMIZATION_STEPS: dict[str, int] = {'rastrigin': 150, 'rosenbrock': 400}
 DIFFICULT_RASTRIGIN: bool = False
-USE_AVERAGE_LOSS_PENALTY: bool = True
-AVERAGE_LOSS_PENALTY_FACTOR: float = 1.0
+CONVERGENCE_LOSS_PENALTY_FACTOR: float = 0.2
+OSCILLATIONS_LOSS_PENALTY_FACTOR: float = 0.1
+AVERAGE_LOSS_PENALTY_FACTOR: float = 0.4
 SEARCH_SEED: int = 42
 LOSS_MIN_THRESHOLD: float = 0.0
 
@@ -279,42 +281,46 @@ def objective(
     y_bounds: Tuple[float, float],
     num_iters: int = 100,
 ) -> float:
-    """
-    Objective function for hyperparameter optimization with boundary constraints and optional average loss penalty.
+    """Objective function for hyperparameter optimization evaluating multiple performance metrics.
 
     Args:
-        params (Dict): Dictionary containing hyperparameters (e.g., learning rate).
-        criterion (Callable): Objective function to minimize.
-        optimizer_class (torch.optim.Optimizer): Optimizer class to evaluate.
-        initial_state (Tuple[float, float]): Starting coordinates for optimization.
-        minimum (Tuple[float, float]): Known global minimum coordinates.
-        x_bounds (Tuple[float, float]): Valid x range (min_x, max_x).
-        y_bounds (Tuple[float, float]): Valid y range (min_y, max_y).
-        num_iters (int, optional): Number of optimization steps. Defaults to 100.
+        params: Dictionary containing hyperparameters (e.g., learning rate).
+        criterion: Objective function to minimize.
+        optimizer_class: Optimizer class to evaluate.
+        initial_state: Starting coordinates for optimization.
+        minimum: Known global minimum coordinates.
+        x_bounds: Valid x range (min_x, max_x).
+        y_bounds: Valid y range (min_y, max_y).
+        num_iters: Number of optimization steps. Defaults to 100.
 
     Returns:
-        float: A combined loss value that includes:
-            - The squared distance from the final position to the known minimum.
-            - A penalty for boundary violations.
-            - An optional penalty for higher average loss during optimization (if enabled).
+        float: Combined loss value incorporating:
+            - Final distance to minimum
+            - Boundary constraint violations
+            - Optimization path stability
+            - Convergence quality metrics
     """
     steps, losses = execute_steps(criterion, initial_state, optimizer_class, params, num_iters)
 
-    x_min_violation = torch.clamp(x_bounds[0] - steps[0], min=0).max()
-    x_max_violation = torch.clamp(steps[0] - x_bounds[1], min=0).max()
-    y_min_violation = torch.clamp(y_bounds[0] - steps[1], min=0).max()
-    y_max_violation = torch.clamp(steps[1] - y_bounds[1], min=0).max()
-    total_violation = x_min_violation + x_max_violation + y_min_violation + y_max_violation
+    violations = (
+        torch.clamp(x_bounds[0] - steps[0], min=0).max()
+        + torch.clamp(steps[0] - x_bounds[1], min=0).max()
+        + torch.clamp(y_bounds[0] - steps[1], min=0).max()
+        + torch.clamp(steps[1] - y_bounds[1], min=0).max()
+    )
 
-    penalty = 75 * total_violation.item()
-    if USE_AVERAGE_LOSS_PENALTY:
-        avg_loss: float = sum(losses) / len(losses) if losses else 0.0
-        penalty += avg_loss * AVERAGE_LOSS_PENALTY_FACTOR
+    final_pos = steps[:, -1]
+    distance = ((final_pos[0] - minimum[0]) ** 2 + (final_pos[1] - minimum[1]) ** 2).item()
 
-    final_position = steps[:, -1]
-    final_distance = ((final_position[0] - minimum[0]) ** 2 + (final_position[1] - minimum[1]) ** 2).item()
+    avg_loss = sum(losses) / len(losses) if losses else 0.0
+    min_loss = min(losses) if losses else 0.0
 
-    return final_distance + penalty
+    return distance + (
+        100 * violations.item()
+        + AVERAGE_LOSS_PENALTY_FACTOR * avg_loss
+        + OSCILLATIONS_LOSS_PENALTY_FACTOR * torch.mean(torch.abs(steps[:, 1:] - steps[:, :-1])).item()
+        + CONVERGENCE_LOSS_PENALTY_FACTOR * (avg_loss - min_loss)
+    )
 
 
 def plot_function(
@@ -355,7 +361,9 @@ def plot_function(
     plt.plot(optimization_steps[0, -1], optimization_steps[1, -1], 'bD', label='Final Position')
 
     config: str = ', '.join(f'{k}={round(v, 4)}' for k, v in params.items())
-    ax.set_title(f'{func.__name__} func: {optimizer_name} with {TESTING_OPTIMIZATION_STEPS} iterations\n{config}')
+    ax.set_title(
+        f'{func.__name__} func: {optimizer_name} with {TESTING_OPTIMIZATION_STEPS[func.__name__]} iterations\n{config}'
+    )
     plt.legend()
     plt.savefig(str(output_path))
     plt.close()
@@ -388,7 +396,7 @@ def execute_experiments(
     """
     for i, (optimizer_class, search_space) in enumerate(optimizers, start=1):
         optimizer_name = optimizer_class.__name__
-        output_path = output_dir / f'{experiment_name}_{optimizer_name}.png'
+        output_path = output_dir / f'{experiment_name}_{optimizer_name}.{IMG_FORMAT}'
         if output_path.exists():
             continue
 
@@ -418,12 +426,15 @@ def execute_experiments(
                 max_evals=max_evals,
                 loss_threshold=LOSS_MIN_THRESHOLD,
                 rstate=np.random.default_rng(seed),
+                catch_eval_exceptions=True,
             )
         except AllTrialsFailed:
             print(f'{optimizer_name} failed to optimize {func.__name__}')  # noqa: T201
             continue
 
-        steps, _ = execute_steps(func, initial_state, optimizer_class, best_params.copy(), TESTING_OPTIMIZATION_STEPS)
+        steps, _ = execute_steps(
+            func, initial_state, optimizer_class, best_params.copy(), TESTING_OPTIMIZATION_STEPS[experiment_name]
+        )
 
         plot_function(func, steps, output_path, optimizer_name, best_params, x_range, y_range, minimum)
 
