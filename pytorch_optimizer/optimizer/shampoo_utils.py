@@ -185,10 +185,11 @@ class BlockPartitioner:
         for i, indices in reversed(self.splits):
             n: int = len(indices) + 1
 
+            # fmt: off
             partitions: List[torch.Tensor] = [
-                torch.cat(partitions[idx:idx + n], dim=i)
-                for idx in range(0, len(partitions), n)  # fmt: skip
+                torch.cat(partitions[idx:idx + n], dim=i) for idx in range(0, len(partitions), n)
             ]
+            # fmt: on
 
         return partitions[0]
 
@@ -364,14 +365,16 @@ class PreConditioner:
         reshaped_grad = torch.reshape(grad, self.transformed_shape)
         partitioned_grads = self.partitioner.partition(reshaped_grad)
 
+        # fmt: off
         pre_cond_partitioned_grads: List[torch.Tensor] = [
             self.precondition_block(
                 partitioned_grad,
                 self.should_precondition_dims,
-                self.pre_conditioners[i * self.rank:(i + 1) * self.rank],  # fmt: skip
+                self.pre_conditioners[i * self.rank:(i + 1) * self.rank],
             )
             for i, partitioned_grad in enumerate(partitioned_grads)
         ]
+        # fmt: on
 
         merged_grad = self.partitioner.merge_partitions(pre_cond_partitioned_grads)
 

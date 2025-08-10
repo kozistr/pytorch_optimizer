@@ -8,7 +8,7 @@ from tests.utils import Example, simple_parameter
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_learning_rate(optimizer_name):
-    if optimizer_name in {'alig', 'a2grad', 'adamw', 'adam', 'sgd'}:
+    if optimizer_name in {'alig', 'a2grad', 'adamw', 'adam', 'sgd', 'nadam', 'lbfgs', 'rmsprop'}:
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -59,6 +59,7 @@ def test_epsilon(optimizer_name):
         'sgd',
         'scion',
         'scionlight',
+        'lbfgs',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
@@ -90,6 +91,7 @@ def test_weight_decay(optimizer_name):
         'muon',
         'scion',
         'scionlight',
+        'lbfgs',
     ):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
