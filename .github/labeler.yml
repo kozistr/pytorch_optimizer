@@ -12,3 +12,18 @@ dependencies:
   - changed-files:
     - any-glob-to-any-file:
       - pyproject.toml
+
+optimizer:
+  - changed-files:
+      - any-glob-to-any-file:
+          - pytorch_optimizer/optimizer/**
+
+loss:
+  - changed-files:
+      - any-glob-to-any-file:
+          - pytorch_optimizer/loss/**
+
+lr_scheduler:
+  - changed-files:
+      - any-glob-to-any-file:
+          - pytorch_optimizer/lr_scheduler/**
