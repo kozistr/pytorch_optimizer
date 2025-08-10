@@ -103,7 +103,7 @@ select = [
 ignore = [
     "B905",
     "D100", "D102", "D104", "D105", "D107", "D203", "D213", "D413",
-    "PLR0912", "PLR0913", "PLR2004", "PLW2901",
+    "PLR0913", "PLR2004", "PLW2901",
     "Q003", "ARG002",
 ]
 fixable = ["ALL"]
@@ -125,8 +125,8 @@ force-sort-within-sections = false
 known-first-party = ["pytorch_optimizer"]
 
 [tool.ruff.lint.pylint]
-max-args = 7
 max-statements = 60
+max-branches = 17
 
 [tool.ruff.format]
 quote-style = "single"
