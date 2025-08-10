@@ -16,14 +16,25 @@ from pytorch_optimizer.optimizer.alig import l2_projection
 
 filterwarnings('ignore', category=UserWarning)
 
-IMG_FORMAT = 'jpg'
-OPTIMIZERS_IGNORE = ('lomo', 'adalomo', 'demo', 'a2grad', 'muon', 'alice', 'adamc', 'adamwsn', 'adamuon', 'splus')
-OPTIMIZERS_MODEL_INPUT_NEEDED = ('lomo', 'adalomo', 'adammini')
-OPTIMIZERS_GRAPH_NEEDED = ('adahessian', 'sophiah')
-OPTIMIZERS_CLOSURE_NEEDED = ('alig', 'bsam')
+IMG_FORMAT: str = 'jpg'
+OPTIMIZERS_IGNORE: Tuple[str, ...] = (
+    'lomo',
+    'adalomo',
+    'demo',
+    'a2grad',
+    'muon',
+    'alice',
+    'adamc',
+    'adamwsn',
+    'adamuon',
+    'splus',
+)
+OPTIMIZERS_MODEL_INPUT_NEEDED: Tuple[str, ...] = ('lomo', 'adalomo', 'adammini')
+OPTIMIZERS_GRAPH_NEEDED: Tuple[str, ...] = ('adahessian', 'sophiah')
+OPTIMIZERS_CLOSURE_NEEDED: Tuple[str, ...] = ('alig', 'bsam')
 EVAL_PER_HYPERPARAM: int = 600
 OPTIMIZATION_STEPS: int = 200
-TESTING_OPTIMIZATION_STEPS: dict[str, int] = {'rastrigin': 150, 'rosenbrock': 400}
+TESTING_OPTIMIZATION_STEPS: Dict[str, int] = {'rastrigin': 150, 'rosenbrock': 400}
 DIFFICULT_RASTRIGIN: bool = False
 CONVERGENCE_LOSS_PENALTY_FACTOR: float = 0.2
 OSCILLATIONS_LOSS_PENALTY_FACTOR: float = 0.1
@@ -31,8 +42,8 @@ AVERAGE_LOSS_PENALTY_FACTOR: float = 0.4
 SEARCH_SEED: int = 42
 LOSS_MIN_THRESHOLD: float = 0.0
 
-DEFAULT_SEARCH_SPACES = {'lr': hp.uniform('lr', 0, 2)}
-SPECIAL_SEARCH_SPACES = {
+DEFAULT_SEARCH_SPACES: Dict[str, object] = {'lr': hp.uniform('lr', 0, 2)}
+SPECIAL_SEARCH_SPACES: Dict[str, Dict[str, object]] = {
     'adafactor': {'lr': hp.uniform('lr', 0, 10)},
     'adams': {'lr': hp.uniform('lr', 0, 10)},
     'dadaptadagrad': {'lr': hp.uniform('lr', 0, 10)},
