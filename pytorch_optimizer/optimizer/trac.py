@@ -79,18 +79,16 @@ class TRAC(BaseOptimizer):
 
     Example:
     -------
-        Here's an example::
+        model = YourModel()
+        optimizer = TRAC(AdamW(model.parameters()))
 
-            model = YourModel()
-            optimizer = TRAC(AdamW(model.parameters()))
+        for input, output in data:
+            optimizer.zero_grad()
 
-            for input, output in data:
-                optimizer.zero_grad()
+            loss = loss_fn(model(input), output)
+            loss.backward()
 
-                loss = loss_fn(model(input), output)
-                loss.backward()
-
-                optimizer.step()
+            optimizer.step()
 
     :param optimizer: OPTIMIZER_INSTANCE_OR_CLASS. base optimizer.
     :param betas: List[float]. list of beta values.
