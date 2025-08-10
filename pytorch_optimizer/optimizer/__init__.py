@@ -111,112 +111,6 @@ HAS_BNB: bool = find_spec('bitsandbytes') is not None
 HAS_Q_GALORE: bool = find_spec('q-galore-torch') is not None
 HAS_TORCHAO: bool = find_spec('torchao') is not None
 
-
-def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover  # noqa: PLR0911
-    r"""Load bnb optimizer instance."""
-    from bitsandbytes import optim  # noqa: PLC0415
-
-    if 'sgd8bit' in optimizer:
-        return optim.SGD8bit
-    if 'adam8bit' in optimizer:
-        return optim.Adam8bit
-    if 'paged_adam8bit' in optimizer:
-        return optim.PagedAdam8bit
-    if 'adamw8bit' in optimizer:
-        return optim.AdamW8bit
-    if 'paged_adamw8bit' in optimizer:
-        return optim.PagedAdamW8bit
-    if 'lamb8bit' in optimizer:
-        return optim.LAMB8bit
-    if 'lars8bit' in optimizer:
-        return optim.LARS8bit
-    if 'lion8bit' in optimizer:
-        return optim.Lion8bit
-    if 'adagrad8bit' in optimizer:
-        return optim.Adagrad8bit
-    if 'rmsprop8bit' in optimizer:
-        return optim.RMSprop8bit
-    if 'adagrad32bit' in optimizer:
-        return optim.Adagrad32bit
-    if 'adam32bit' in optimizer:
-        return optim.Adam32bit
-    if 'paged_adam32bit' in optimizer:
-        return optim.PagedAdam32bit
-    if 'adamw32bit' in optimizer:
-        return optim.AdamW32bit
-    if 'lamb32bit' in optimizer:
-        return optim.LAMB32bit
-    if 'lars32bit' in optimizer:
-        return optim.LARS32bit
-    if 'lion32bit' in optimizer:
-        return optim.Lion32bit
-    if 'paged_lion32bit' in optimizer:
-        return optim.PagedLion32bit
-    if 'rmsprop32bit' in optimizer:
-        return optim.RMSprop32bit
-    if 'sgd32bit' in optimizer:
-        return optim.SGD32bit
-    if 'ademamix8bit' in optimizer:
-        return optim.AdEMAMix8bit
-    if 'ademamix32bit' in optimizer:
-        return optim.AdEMAMix32bit
-    if 'paged_ademamix8bit' in optimizer:
-        return optim.PagedAdEMAMix8bit
-    if 'paged_ademamix32bit' in optimizer:
-        return optim.PagedAdEMAMix32bit
-
-    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
-
-
-def load_q_galore_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
-    r"""Load Q-GaLore optimizer instance."""
-    import q_galore_torch  # noqa: PLC0415
-
-    if 'adamw8bit' in optimizer:
-        return q_galore_torch.QGaLoreAdamW8bit
-
-    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
-
-
-def load_ao_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
-    r"""Load TorchAO optimizer instance."""
-    from torchao.prototype import low_bit_optim  # noqa: PLC0415
-
-    if 'adamw8bit' in optimizer:
-        return low_bit_optim.AdamW8bit
-    if 'adamw4bit' in optimizer:
-        return low_bit_optim.AdamW4bit
-    if 'adamwfp8' in optimizer:
-        return low_bit_optim.AdamWFp8
-
-    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
-
-
-def load_optimizer(optimizer: str) -> OPTIMIZER:
-    r"""Load optimizers."""
-    optimizer: str = optimizer.lower()
-
-    if optimizer.startswith('bnb'):
-        if HAS_BNB and torch.cuda.is_available():
-            return load_bnb_optimizer(optimizer)  # pragma: no cover
-        raise ImportError(f'bitsandbytes and CUDA required for the optimizer {optimizer}')
-    if optimizer.startswith('q_galore'):
-        if HAS_Q_GALORE and torch.cuda.is_available():
-            return load_q_galore_optimizer(optimizer)  # pragma: no cover
-        raise ImportError(f'bitsandbytes, q-galore-torch, and CUDA required for the optimizer {optimizer}')
-    if optimizer.startswith('torchao'):
-        if HAS_TORCHAO and torch.cuda.is_available():
-            return load_ao_optimizer(optimizer)  # pragma: no cover
-        raise ImportError(
-            f'torchao required for the optimizer {optimizer}. '
-            'usage: https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim#usage'
-        )
-    if optimizer not in OPTIMIZERS:
-        raise NotImplementedError(f'not implemented optimizer : {optimizer}')
-
-    return OPTIMIZERS[optimizer]
-
-
 OPTIMIZER_LIST: List[OPTIMIZER] = [
     AdamW,
     Adam,
@@ -333,6 +227,111 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     EmoZeal,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
+
+
+def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover  # noqa: PLR0911
+    r"""Load bnb optimizer instance."""
+    from bitsandbytes import optim  # noqa: PLC0415
+
+    if 'sgd8bit' in optimizer:
+        return optim.SGD8bit
+    if 'adam8bit' in optimizer:
+        return optim.Adam8bit
+    if 'paged_adam8bit' in optimizer:
+        return optim.PagedAdam8bit
+    if 'adamw8bit' in optimizer:
+        return optim.AdamW8bit
+    if 'paged_adamw8bit' in optimizer:
+        return optim.PagedAdamW8bit
+    if 'lamb8bit' in optimizer:
+        return optim.LAMB8bit
+    if 'lars8bit' in optimizer:
+        return optim.LARS8bit
+    if 'lion8bit' in optimizer:
+        return optim.Lion8bit
+    if 'adagrad8bit' in optimizer:
+        return optim.Adagrad8bit
+    if 'rmsprop8bit' in optimizer:
+        return optim.RMSprop8bit
+    if 'adagrad32bit' in optimizer:
+        return optim.Adagrad32bit
+    if 'adam32bit' in optimizer:
+        return optim.Adam32bit
+    if 'paged_adam32bit' in optimizer:
+        return optim.PagedAdam32bit
+    if 'adamw32bit' in optimizer:
+        return optim.AdamW32bit
+    if 'lamb32bit' in optimizer:
+        return optim.LAMB32bit
+    if 'lars32bit' in optimizer:
+        return optim.LARS32bit
+    if 'lion32bit' in optimizer:
+        return optim.Lion32bit
+    if 'paged_lion32bit' in optimizer:
+        return optim.PagedLion32bit
+    if 'rmsprop32bit' in optimizer:
+        return optim.RMSprop32bit
+    if 'sgd32bit' in optimizer:
+        return optim.SGD32bit
+    if 'ademamix8bit' in optimizer:
+        return optim.AdEMAMix8bit
+    if 'ademamix32bit' in optimizer:
+        return optim.AdEMAMix32bit
+    if 'paged_ademamix8bit' in optimizer:
+        return optim.PagedAdEMAMix8bit
+    if 'paged_ademamix32bit' in optimizer:
+        return optim.PagedAdEMAMix32bit
+
+    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+
+
+def load_q_galore_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
+    r"""Load Q-GaLore optimizer instance."""
+    import q_galore_torch  # noqa: PLC0415
+
+    if 'adamw8bit' in optimizer:
+        return q_galore_torch.QGaLoreAdamW8bit
+
+    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+
+
+def load_ao_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
+    r"""Load TorchAO optimizer instance."""
+    from torchao.prototype import low_bit_optim  # noqa: PLC0415
+
+    if 'adamw8bit' in optimizer:
+        return low_bit_optim.AdamW8bit
+    if 'adamw4bit' in optimizer:
+        return low_bit_optim.AdamW4bit
+    if 'adamwfp8' in optimizer:
+        return low_bit_optim.AdamWFp8
+
+    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+
+
+def load_optimizer(optimizer: str) -> OPTIMIZER:
+    r"""Load optimizers."""
+    optimizer: str = optimizer.lower()
+
+    if optimizer.startswith('bnb'):
+        if HAS_BNB and torch.cuda.is_available():
+            return load_bnb_optimizer(optimizer)  # pragma: no cover
+        raise ImportError(f'bitsandbytes and CUDA required for the optimizer {optimizer}')
+    if optimizer.startswith('q_galore'):
+        if HAS_Q_GALORE and torch.cuda.is_available():
+            return load_q_galore_optimizer(optimizer)  # pragma: no cover
+        raise ImportError(f'bitsandbytes, q-galore-torch, and CUDA required for the optimizer {optimizer}')
+    if optimizer.startswith('torchao'):
+        if HAS_TORCHAO and torch.cuda.is_available():
+            return load_ao_optimizer(optimizer)  # pragma: no cover
+        raise ImportError(
+            f'torchao required for the optimizer {optimizer}. '
+            'usage: https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim#usage'
+        )
+    if optimizer not in OPTIMIZERS:
+        raise NotImplementedError(f'not implemented optimizer : {optimizer}')
+
+    return OPTIMIZERS[optimizer]
 
 
 def create_optimizer(
