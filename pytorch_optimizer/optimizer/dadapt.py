@@ -85,7 +85,7 @@ class DAdaptAdaGrad(BaseOptimizer):
                     state['weighted_sk'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:  # noqa: PLR0915
+    def step(self, closure: CLOSURE = None) -> LOSS:  # noqa: PLR0912, PLR0915
         loss: LOSS = None
         if closure is not None:
             with torch.enable_grad():

@@ -229,7 +229,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
 
-def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover  # noqa: PLR0911
+def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover  # noqa: PLR0911, PLR0912
     r"""Load bnb optimizer instance."""
     from bitsandbytes import optim  # noqa: PLC0415
 
