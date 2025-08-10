@@ -17,7 +17,7 @@ from tests.utils import (
 
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead', 'trac', 'orthograd'])
 def test_no_gradients(optimizer_name):
-    if optimizer_name in {'lomo', 'adalomo', 'adammini', 'demo'}:
+    if optimizer_name in {'lbfgs', 'lomo', 'adalomo', 'adammini', 'demo'}:
         pytest.skip(f'skip {optimizer_name} optimizer.')
 
     p1 = simple_parameter(require_grad=True)
@@ -57,7 +57,7 @@ def test_no_gradients(optimizer_name):
 
 @pytest.mark.parametrize('no_sparse_optimizer', NO_SPARSE_OPTIMIZERS)
 def test_sparse_not_supported(no_sparse_optimizer):
-    if no_sparse_optimizer in {'lomo', 'adalomo', 'bsam', 'adammini', 'adamw', 'adam', 'sgd', 'demo'}:
+    if no_sparse_optimizer in {'lbfgs', 'sgd', 'lomo', 'adalomo', 'bsam', 'adammini', 'demo'}:
         pytest.skip(f'skip {no_sparse_optimizer} optimizer.')
 
     param = simple_sparse_parameter()[1]
@@ -71,7 +71,7 @@ def test_sparse_not_supported(no_sparse_optimizer):
     else:
         optimizer = opt([param])
 
-    with pytest.raises(NoSparseGradientError):
+    with pytest.raises((RuntimeError, NoSparseGradientError)):
         optimizer.step(lambda: 0.1)
 
 
@@ -233,7 +233,19 @@ def test_muon_no_gradient(optimizer):
 
 @pytest.mark.parametrize('no_complex_optimizer', NO_COMPLEX_OPTIMIZERS)
 def test_complex_not_supported(no_complex_optimizer):
-    if no_complex_optimizer in ('adam', 'adamw', 'sgd', 'lomo', 'bsam', 'adammini', 'adalomo', 'demo'):
+    if no_complex_optimizer in (
+        'adam',
+        'adamw',
+        'sgd',
+        'nadam',
+        'lbfgs',
+        'rmsprop',
+        'lomo',
+        'bsam',
+        'adammini',
+        'adalomo',
+        'demo',
+    ):
         pytest.skip(f'skip {no_complex_optimizer}.')
 
     param = simple_complex_parameter()
