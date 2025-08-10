@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **113 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **126 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance

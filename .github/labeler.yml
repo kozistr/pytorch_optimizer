@@ -13,7 +13,17 @@ dependencies:
     - any-glob-to-any-file:
       - pyproject.toml
 
-bug:
-  include:
-    - '\b[bB]ug[s]?\b'
-    - '\b[fF]ix(es)?\b'
+optimizer:
+  - changed-files:
+      - any-glob-to-any-file:
+          - pytorch_optimizer/optimizer/**
+
+loss:
+  - changed-files:
+      - any-glob-to-any-file:
+          - pytorch_optimizer/loss/**
+
+lr_scheduler:
+  - changed-files:
+      - any-glob-to-any-file:
+          - pytorch_optimizer/lr_scheduler/**
