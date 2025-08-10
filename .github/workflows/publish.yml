@@ -46,8 +46,8 @@ jobs:
         with:
           commit_message: "docs: prepend ${{ env.TAG_NAME }} changelog to CHANGELOG.md"
           file_pattern: CHANGELOG.md
-          commit_user_name: "kozistr"
-          commit_user_email: "kozistr@gmail.com"
+          commit_user_name: "pytorch_optimizer-actions[bot]"
+          commit_user_email: "pytorch_optimizer-actions[bot]@users.noreply.github.com"
           push_options: "--force"
 
       - name: "Run if changes have been detected"
