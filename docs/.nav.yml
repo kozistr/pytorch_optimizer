@@ -1,0 +1,21 @@
+preserve_directory_names: true
+
+flatten_single_child_sections: false
+
+sort:
+  direction: asc
+  sections: last
+  type: alphabetical
+  ignore_case: false
+
+nav:
+  - Home: index.md
+  - Optimizer: optimizer.md
+  - LR Scheduler: lr_scheduler.md
+  - Loss Function: loss.md
+  - Utilization: util.md
+  - Base: base.md
+  - Visualization: visualization.md
+  - Change Logs:
+    - changelogs/*.md
+  - Q&A: qa.md

@@ -2,16 +2,6 @@ site_name: pytorch-optimizer
 site_description: 'optimizer & lr scheduler & loss function collections in PyTorch'
 repo_name: 'kozistr/pytorch-optimizer'
 repo_url: 'https://github.com/kozistr/pytorch_optimizer'
-nav:
-  - index.md
-  - base.md
-  - optimizer.md
-  - lr_scheduler.md
-  - loss.md
-  - util.md
-  - visualization.md
-  - ... | changelogs/*.md
-  - qa.md
 theme:
   name: material
   highlightjs: true
@@ -21,7 +11,7 @@ extra_javascript:
   - javascripts/tables.js
 plugins:
   - search
-  - awesome-pages
+  - awesome-nav
   - mkdocstrings:
       handlers:
         python:
