@@ -123,7 +123,7 @@ class Muon(BaseOptimizer):
 
             group['weight_decouple'] = group.get('weight_decouple', weight_decouple)
 
-        super().__init__(params, {})
+        super().__init__(params, kwargs)
 
     def __str__(self) -> str:
         return 'Muon'
@@ -191,6 +191,9 @@ class Muon(BaseOptimizer):
                         update = update.view(len(update), -1)
 
                     update = zero_power_via_newton_schulz_5(update, num_steps=group['ns_steps'])
+
+                    if group.get('cautious'):
+                        self.apply_cautious(update, grad)
 
                     lr: float = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
 
@@ -308,7 +311,7 @@ class AdaMuon(BaseOptimizer):
             group['weight_decouple'] = group.get('weight_decouple', weight_decouple)
             group['eps'] = group.get('eps', eps)
 
-        super().__init__(params, {})
+        super().__init__(params, kwargs)
 
     def __str__(self) -> str:
         return 'AdaMuon'
