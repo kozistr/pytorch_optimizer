@@ -16,7 +16,6 @@ from pytorch_optimizer.optimizer.alig import l2_projection
 
 filterwarnings('ignore', category=UserWarning)
 
-IMG_FORMAT: str = 'jpg'
 OPTIMIZERS_IGNORE: Tuple[str, ...] = (
     'lomo',
     'adalomo',
@@ -42,8 +41,8 @@ AVERAGE_LOSS_PENALTY_FACTOR: float = 0.4
 SEARCH_SEED: int = 42
 LOSS_MIN_THRESHOLD: float = 0.0
 
-DEFAULT_SEARCH_SPACES: Dict[str, object] = {'lr': hp.uniform('lr', 0, 2)}
-SPECIAL_SEARCH_SPACES: Dict[str, Dict[str, object]] = {
+DEFAULT_SEARCH_SPACES: Dict = {'lr': hp.uniform('lr', 0, 2)}
+SPECIAL_SEARCH_SPACES: Dict = {
     'adafactor': {'lr': hp.uniform('lr', 0, 10)},
     'adams': {'lr': hp.uniform('lr', 0, 10)},
     'dadaptadagrad': {'lr': hp.uniform('lr', 0, 10)},
@@ -407,7 +406,7 @@ def execute_experiments(
     """
     for i, (optimizer_class, search_space) in enumerate(optimizers, start=1):
         optimizer_name = optimizer_class.__name__
-        output_path = output_dir / f'{experiment_name}_{optimizer_name}.{IMG_FORMAT}'
+        output_path = output_dir / f'{experiment_name}_{optimizer_name}.jpg'
         if output_path.exists():
             continue
 
