@@ -5,7 +5,6 @@ from torch import nn
 
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from pytorch_optimizer.optimizer import DynamicLossScaler, load_optimizer
-from pytorch_optimizer.optimizer.alig import l2_projection
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
 from tests.constants import COMPLEX_OPTIMIZERS, OPTIMIZERS
@@ -13,6 +12,7 @@ from tests.utils import (
     Example,
     LogisticRegression,
     build_model,
+    build_optimizer_parameter,
     dummy_closure,
     ids,
     names,
@@ -22,29 +22,6 @@ from tests.utils import (
     sphere_loss,
     tensor_to_numpy,
 )
-
-
-def build_optimizer_parameter(parameters, optimizer_name, config):
-    if optimizer_name == 'AliG':
-        config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
-    elif optimizer_name in ('Muon', 'AdaMuon'):
-        hidden_weights = [p for p in parameters if p.ndim >= 2]
-        hidden_gains_biases = [p for p in parameters if p.ndim < 2]
-
-        parameters = [
-            {'params': hidden_weights, 'use_muon': True},
-            {'params': hidden_gains_biases, 'use_muon': False},
-        ]
-    elif optimizer_name == 'AdamWSN':
-        sn_params = [p for p in parameters if p.ndim == 2]
-        regular_params = [p for p in parameters if p.ndim != 2]
-        parameters = [{'params': sn_params, 'sn': True}, {'params': regular_params, 'sn': False}]
-    elif optimizer_name == 'AdamC':
-        norm_params = [p for i, p in enumerate(parameters) if i == 1]
-        regular_params = [p for i, p in enumerate(parameters) if i != 1]
-        parameters = [{'params': norm_params, 'normalized': True}, {'params': regular_params}]
-
-    return parameters, config
 
 
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)

@@ -721,6 +721,18 @@ COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], i
     (AdaShift, {'lr': 1e1, 'keep_num': 1}, 3),
     (MARS, {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3}, 3),
     (MARS, {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3, 'optimize_1d': True}, 3),
+    (
+        Muon,
+        {
+            'lr': 5e-1,
+            'weight_decay': 1e-3,
+            'use_adjusted_lr': True,
+            'adamw_lr': 5e-1,
+            'adamw_betas': (0.9, 0.98),
+            'adamw_wd': 1e-2,
+        },
+        7,
+    ),
 ]
 STABLE_ADAMW_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (ADOPT, {'lr': 1e0, 'weight_decay': 1e-3, 'stable_adamw': True}, 5),

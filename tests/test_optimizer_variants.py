@@ -8,7 +8,7 @@ from tests.constants import (
     COPT_SUPPORTED_OPTIMIZERS,
     STABLE_ADAMW_SUPPORTED_OPTIMIZERS,
 )
-from tests.utils import build_model, ids, simple_parameter, tensor_to_numpy
+from tests.utils import build_model, build_optimizer_parameter, ids, simple_parameter, tensor_to_numpy
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
@@ -80,11 +80,14 @@ def test_adamd_variant(optimizer_config, environment):
 @pytest.mark.parametrize('optimizer_config', COPT_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_cautious_variant(optimizer_config, environment):
     x_data, y_data = environment
+
     model, loss_fn = build_model()
 
     optimizer_class, config, num_iterations = optimizer_config
 
-    optimizer = optimizer_class(model.parameters(), **config, cautious=True)
+    parameters, config = build_optimizer_parameter(model.parameters(), optimizer_class.__name__, config)
+
+    optimizer = optimizer_class(parameters, **config, cautious=True)
 
     init_loss, loss = np.inf, np.inf
     for _ in range(num_iterations):
