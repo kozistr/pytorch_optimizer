@@ -12,6 +12,9 @@ dependencies:
   - changed-files:
     - any-glob-to-any-file:
       - pyproject.toml
+      - requirements.txt
+      - requirements-dev.txt
+      - requirements-docs.txt
 
 optimizer:
   - changed-files:
