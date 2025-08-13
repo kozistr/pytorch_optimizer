@@ -203,7 +203,7 @@ class StochasticAccumulator:
     def assign_hooks(model: nn.Module) -> List:
         return [
             p.register_post_accumulate_grad_hook(StochasticAccumulator.stochastic_grad_accum)
-            for n, p in model.named_parameters()
+            for _, p in model.named_parameters()
             if p.requires_grad
         ]
 
