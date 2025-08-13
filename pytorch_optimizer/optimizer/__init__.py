@@ -67,7 +67,7 @@ from pytorch_optimizer.optimizer.lookahead import Lookahead
 from pytorch_optimizer.optimizer.madgrad import MADGRAD
 from pytorch_optimizer.optimizer.mars import MARS
 from pytorch_optimizer.optimizer.msvag import MSVAG
-from pytorch_optimizer.optimizer.muon import AdaMuon, Muon, prepare_muon_parameters
+from pytorch_optimizer.optimizer.muon import AdaMuon, DistributedMuon, Muon, prepare_muon_parameters
 from pytorch_optimizer.optimizer.nero import Nero
 from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.orthograd import OrthoGrad
@@ -164,6 +164,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     DAdaptSGD,
     DeMo,
     DiffGrad,
+    DistributedMuon,
     EXAdam,
     EmoFact,
     EmoLynx,

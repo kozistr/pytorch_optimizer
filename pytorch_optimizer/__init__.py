@@ -116,6 +116,7 @@ from pytorch_optimizer.optimizer import (
     DAdaptSGD,
     DeMo,
     DiffGrad,
+    DistributedMuon,
     DynamicLossScaler,
     EmoFact,
     EmoLynx,
