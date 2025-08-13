@@ -23,7 +23,7 @@ jobs:
 
       - name: Prepend changelog to CHANGELOG.md
         run: |
-          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          VERSION="v3.8.0"
           CHANGELOG_FILE="docs/changelogs/$VERSION.md"
           MAIN_CHANGELOG="CHANGELOG.md"
 
