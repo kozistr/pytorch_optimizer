@@ -16,6 +16,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Get the version
         id: get_version
@@ -44,7 +47,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v6
         id: auto-commit-action
         with:
-          commit_message: "docs: prepend ${{ env.TAG_NAME }} changelog to CHANGELOG.md"
+          commit_message: "[skip ci] docs: prepend ${{ env.TAG_NAME }} changelog to CHANGELOG.md"
           file_pattern: CHANGELOG.md
           commit_user_name: "pytorch_optimizer-actions[bot]"
           commit_user_email: "pytorch_optimizer-actions[bot]@users.noreply.github.com"
