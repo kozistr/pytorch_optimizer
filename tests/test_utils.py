@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import torch
 from torch import nn
-from torch.nn.functional import mse_loss
+from torch.nn.functional import binary_cross_entropy_with_logits
 
 from pytorch_optimizer.optimizer import get_optimizer_parameters
 from pytorch_optimizer.optimizer.nero import neuron_mean, neuron_norm
@@ -385,7 +385,7 @@ def test_stochastic_accumulation_hook():
     optimizer = build_orthograd(model.parameters())
 
     for _ in range(2):
-        mse_loss(model(x), x).backward()
+        binary_cross_entropy_with_logits(model(x), x).backward()
 
     StochasticAccumulator.reassign_grad_buffer(model)
 
