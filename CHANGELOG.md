@@ -1,3 +1,39 @@
+# v3.8.0
+
+## Change Log
+
+### Feature
+
+* Implement `EmoNeco` and `EmoZeal` optimizers. (#407)
+* Implement `Refined Schedule-Free AdamW` optimizer. (#409, #414)
+    * [Through the River: Understanding the Benefit of Schedule-Free Methods for Language Model Training](https://arxiv.org/abs/2507.09846)
+    * You can use this variant by setting `decoupling_c` parameter in the `ScheduleFreeAdamW` optimizer.
+* Add more built-in optimizers, `NAdam`, `RMSProp`, and `LBFGS` optimizers. (#415)
+* Support `cautious` variant for `Muon` optimizer. (#417)
+* Separate distributed functionality from `Muon` to `DistribtuedMuon` optimizer. (#418)
+* Implement `StochasticAccumulator`, which is a gradient hook. (#418)
+    * [stochastic optimizer](https://github.com/lodestone-rock/torchastic/)
+
+### Update
+
+* Re-implement `Muon` and `AdaMuon` optimizers based on the recent official implementation. (#408, #410)
+    * Their definitions have changed from the previous version, so please check out the documentation!
+* Update the missing optimizers from `__init__.py`. (#415)
+* Add the HuggingFace Trainer example. (#415)
+* Optimize the visualization outputs and change the visualization document to a table layout. (#416)
+
+### Dependency
+
+* Update `mkdocs` dependencies. (#417)
+
+### CI
+
+* Add some GitHub actions to automate some processes. (#411, #412, #413)
+
+## Contributions
+
+thanks to @AidinHamedi
+
 # v3.7.0
 
 ## Change Log
