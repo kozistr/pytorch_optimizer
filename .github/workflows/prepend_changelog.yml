@@ -9,6 +9,7 @@ jobs:
 
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -35,6 +36,7 @@ jobs:
           TMP_FILE=$(mktemp)
 
           echo "# $VERSION" > "$TMP_FILE"
+          echo "" >> "$TMP_FILE"
           cat "$CHANGELOG_FILE" >> "$TMP_FILE"
           echo "" >> "$TMP_FILE"
           cat "$MAIN_CHANGELOG" >> "$TMP_FILE"
@@ -51,6 +53,7 @@ jobs:
           base: main
           delete-branch: true
           labels: automerge
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Automerge PR
         if: steps.cpr.outputs.pull-request-url
