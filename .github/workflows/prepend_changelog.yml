@@ -40,12 +40,20 @@ jobs:
           cat "$MAIN_CHANGELOG" >> "$TMP_FILE"
           mv "$TMP_FILE" "$MAIN_CHANGELOG"
 
-      - name: Commit updated CHANGELOG.md
-        uses: stefanzweifel/git-auto-commit-action@v6
-        id: auto-commit-action
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
         with:
-          commit_message: "[skip ci] docs: prepend ${{ env.TAG_NAME }} changelog to CHANGELOG.md"
-          file_pattern: CHANGELOG.md
-          commit_user_name: "pytorch_optimizer-actions[bot]"
-          commit_user_email: "pytorch_optimizer-actions[bot]@users.noreply.github.com"
-          push_options: "--force"
+          branch: "docs/changelog-update-v3.8.0"
+          commit-message: "[skip ci] docs: prepend changelog for v3.8.0"
+          title: "[Docs] Prepend changelog for v3.8.0"
+          body: "Automated changelog update for v3.8.0"
+          base: main
+          delete-branch: true
+          labels: automerge
+
+      - name: Automerge PR
+        if: steps.cpr.outputs.pull-request-url
+        uses: pascalgn/automerge-action@v0.16.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
