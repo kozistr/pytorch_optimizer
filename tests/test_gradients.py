@@ -17,7 +17,7 @@ from tests.utils import (
 
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead', 'trac', 'orthograd'])
 def test_no_gradients(optimizer_name):
-    if optimizer_name in {'lbfgs', 'lomo', 'adalomo', 'adammini', 'demo'}:
+    if optimizer_name in {'lbfgs', 'lomo', 'adalomo', 'adammini', 'demo', 'distributedmuon'}:
         pytest.skip(f'skip {optimizer_name} optimizer.')
 
     p1 = simple_parameter(require_grad=True)
@@ -57,7 +57,7 @@ def test_no_gradients(optimizer_name):
 
 @pytest.mark.parametrize('no_sparse_optimizer', NO_SPARSE_OPTIMIZERS)
 def test_sparse_not_supported(no_sparse_optimizer):
-    if no_sparse_optimizer in {'lbfgs', 'sgd', 'lomo', 'adalomo', 'bsam', 'adammini', 'demo'}:
+    if no_sparse_optimizer in {'lbfgs', 'sgd', 'lomo', 'adalomo', 'bsam', 'adammini', 'demo', 'distributedmuon'}:
         pytest.skip(f'skip {no_sparse_optimizer} optimizer.')
 
     param = simple_sparse_parameter()[1]
@@ -245,6 +245,7 @@ def test_complex_not_supported(no_complex_optimizer):
         'adammini',
         'adalomo',
         'demo',
+        'distributedmuon',
     ):
         pytest.skip(f'skip {no_complex_optimizer}.')
 
