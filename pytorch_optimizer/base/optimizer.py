@@ -64,7 +64,7 @@ class BaseOptimizer(ABC, Optimizer):
             for p in group['params']:
                 if p.size() != hessian[i].size():
                     raise ValueError(
-                        f'[-] the shape of parameter and hessian does not match. {p.size()} vs {hessian[i].size()}'
+                        f'the shape of parameter and hessian does not match. {p.size()} vs {hessian[i].size()}'
                     )
 
                 state[p]['hessian'] = hessian[i]
@@ -312,35 +312,35 @@ class BaseOptimizer(ABC, Optimizer):
     @staticmethod
     def validate_range(x: float, name: str, low: float, high: float, range_type: str = '[)') -> None:
         if range_type == '[)' and not low <= x < high:
-            raise ValueError(f'[-] {name} must be in the range [{low}, {high})')
+            raise ValueError(f'{name} must be in the range [{low}, {high})')
         if range_type == '[]' and not low <= x <= high:
-            raise ValueError(f'[-] {name} must be in the range [{low}, {high}]')
+            raise ValueError(f'{name} must be in the range [{low}, {high}]')
         if range_type == '(]' and not low < x <= high:
-            raise ValueError(f'[-] {name} must be in the range ({low}, {high}]')
+            raise ValueError(f'{name} must be in the range ({low}, {high}]')
         if range_type == '()' and not low < x < high:
-            raise ValueError(f'[-] {name} must be in the range ({low}, {high})')
+            raise ValueError(f'{name} must be in the range ({low}, {high})')
 
     @staticmethod
     def validate_non_negative(x: Optional[float], name: str) -> None:
         if x is not None and x < 0.0:
-            raise ValueError(f'[-] {name} must be non-negative')
+            raise ValueError(f'{name} must be non-negative')
 
     @staticmethod
     def validate_non_positive(x: Optional[float], name: str) -> None:
         if x is not None and x > 0.0:
-            raise ValueError(f'[-] {name} must be non-positive')
+            raise ValueError(f'{name} must be non-positive')
 
     @staticmethod
     def validate_positive(x: Union[float, int], name: str) -> None:
         if x <= 0:
-            raise ValueError(f'[-] {name} must be positive')
+            raise ValueError(f'{name} must be positive')
 
     @staticmethod
     def validate_boundary(constant: float, boundary: float, bound_type: str = 'upper') -> None:
         if bound_type == 'upper' and constant > boundary:
-            raise ValueError(f'[-] constant {constant} must be in a range of (-inf, {boundary}]')
+            raise ValueError(f'constant {constant} must be in a range of (-inf, {boundary}]')
         if bound_type == 'lower' and constant < boundary:
-            raise ValueError(f'[-] constant {constant} must be in a range of [{boundary}, inf)')
+            raise ValueError(f'constant {constant} must be in a range of [{boundary}, inf)')
 
     @staticmethod
     def validate_step(step: int, step_type: str) -> None:
@@ -351,7 +351,7 @@ class BaseOptimizer(ABC, Optimizer):
     def validate_options(x: str, name: str, options: List[str]) -> None:
         if x not in options:
             opts: str = ' or '.join([f"'{option}'" for option in options]).strip()
-            raise ValueError(f'[-] {name} {x} must be one of ({opts})')
+            raise ValueError(f'{name} {x} must be one of ({opts})')
 
     @staticmethod
     def validate_learning_rate(learning_rate: Optional[float]) -> None:
@@ -361,7 +361,7 @@ class BaseOptimizer(ABC, Optimizer):
     @staticmethod
     def validate_mod(x: int, y: int) -> None:
         if x % y != 0:
-            raise ValueError(f'[-] {x} must be divisible by {y}')
+            raise ValueError(f'{x} must be divisible by {y}')
 
     def validate_betas(self, betas: BETAS, beta_range_type: str = '[)', beta3_range_type: str = '[]') -> None:
         if betas[0] is not None:
