@@ -49,10 +49,3 @@ jobs:
           commit_user_name: "pytorch_optimizer-actions[bot]"
           commit_user_email: "pytorch_optimizer-actions[bot]@users.noreply.github.com"
           push_options: "--force"
-
-      - name: "Run if changes have been detected"
-        if: steps.auto-commit-action.outputs.changes_detected == 'true'
-        run: echo "Changes!"
-
-      - name: "Run if no changes have been detected"
-        if: steps.auto-commit-action.outputs.changes_det
