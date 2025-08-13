@@ -157,6 +157,57 @@ class CPUOffloadOptimizer:  # pragma: no cover
             optim.load_state_dict(optim_state_dict)
 
 
+class StochasticAccumulator:
+    r"""Stochastic accumulator.
+
+    Example:
+    -------
+        model = YourModel()
+
+        # apply stochastic grad accumulator hooks
+        StochasticAccumulator.assign_hooks(model)
+
+        while True:
+            loss = model.loss(*your_model_input)
+            for _ in range(grad_accum_length):
+                loss.backward()
+
+            StochasticAccumulator.reassign_grad_buffer(model)
+
+            optimizer.step()
+            optimizer.zero_grad()
+    """
+
+    @staticmethod
+    def stochastic_grad_accum(p: torch.Tensor) -> None:
+        if hasattr(p, 'acc_grad'):
+            acc_grad_fp32 = p.acc_grad.clone().to(torch.float32)
+            acc_grad_fp32.add_(p.grad.to(torch.float32))
+
+            copy_stochastic(p.acc_grad, acc_grad_fp32)
+
+            del acc_grad_fp32
+        else:
+            p.acc_grad = p.grad.clone().to(torch.bfloat16)
+
+        del p.grad
+
+    @staticmethod
+    def reassign_grad_buffer(model: nn.Module) -> None:
+        for _, p in model.named_parameters():
+            if p.requires_grad and hasattr(p, 'acc_grad'):
+                p.grad = p.acc_grad
+                del p.acc_grad
+
+    @staticmethod
+    def assign_hooks(model: nn.Module) -> List:
+        return [
+            p.register_post_accumulate_grad_hook(StochasticAccumulator.stochastic_grad_accum)
+            for _, p in model.named_parameters()
+            if p.requires_grad
+        ]
+
+
 def is_valid_parameters(parameters: PARAMETERS) -> bool:
     r"""Check where the parameters are valid."""
     return isinstance(parameters, (list, tuple)) and len(parameters) > 0 and isinstance(parameters[0], dict)

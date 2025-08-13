@@ -304,6 +304,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.DistributedMuon
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AdaMuon
     :docstring:
     :members:

@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import torch
 from torch import nn
+from torch.nn.functional import binary_cross_entropy_with_logits
 
 from pytorch_optimizer.optimizer import get_optimizer_parameters
 from pytorch_optimizer.optimizer.nero import neuron_mean, neuron_norm
@@ -27,6 +28,7 @@ from pytorch_optimizer.optimizer.sm3 import reduce_max_except_dim
 from pytorch_optimizer.optimizer.snsm import closest_smaller_divisor_of_n_to_k
 from pytorch_optimizer.optimizer.utils import (
     CPUOffloadOptimizer,
+    StochasticAccumulator,
     clip_grad_norm,
     compare_versions,
     copy_stochastic,
@@ -372,6 +374,23 @@ def test_copy_stochastic():
 
     copy_stochastic(result, added)
     np.testing.assert_almost_equal(1.0002, result.to(dtype=torch.float32).mean().item(), decimal=4)
+
+
+def test_stochastic_accumulation_hook():
+    model = Example().bfloat16()
+    x = torch.randn(1, 1, dtype=torch.bfloat16)
+
+    StochasticAccumulator.assign_hooks(model)
+
+    optimizer = build_orthograd(model.parameters())
+
+    for _ in range(2):
+        binary_cross_entropy_with_logits(model(x), x).backward()
+
+    StochasticAccumulator.reassign_grad_buffer(model)
+
+    optimizer.step()
+    optimizer.zero_grad()
 
 
 def test_csd():
