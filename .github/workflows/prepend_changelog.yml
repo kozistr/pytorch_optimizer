@@ -59,5 +59,7 @@ jobs:
         if: steps.cpr.outputs.pull-request-url
         uses: pascalgn/automerge-action@v0.16.4
         env:
+          MERGE_LABELS: automerge
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           MERGE_METHOD: "squash"
+          MERGE_DELETE_BRANCH: "true"

@@ -12,6 +12,7 @@ jobs:
 
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -38,28 +39,31 @@ jobs:
           TMP_FILE=$(mktemp)
 
           echo "# $VERSION" > "$TMP_FILE"
+          echo "" >> "$TMP_FILE"
           cat "$CHANGELOG_FILE" >> "$TMP_FILE"
           echo "" >> "$TMP_FILE"
           cat "$MAIN_CHANGELOG" >> "$TMP_FILE"
           mv "$TMP_FILE" "$MAIN_CHANGELOG"
 
-      - name: Commit updated CHANGELOG.md
-        uses: stefanzweifel/git-auto-commit-action@v6
-        id: auto-commit-action
+      - name: Create Pull Request
+        id: create_pull_request
+        uses: peter-evans/create-pull-request@v6
         with:
-          commit_message: "[skip ci] docs: prepend ${{ env.TAG_NAME }} changelog to CHANGELOG.md"
-          file_pattern: CHANGELOG.md
-          commit_user_name: "pytorch_optimizer-actions[bot]"
-          commit_user_email: "pytorch_optimizer-actions[bot]@users.noreply.github.com"
-          push_options: "--force"
+          branch: "docs/changelog-update-${{ steps.get_version.outputs.VERSION }}"
+          commit-message: "[skip ci] docs: prepend changelog for ${{ steps.get_version.outputs.VERSION }}"
+          title: "[Docs] Prepend changelog for ${{ steps.get_version.outputs.VERSION }}"
+          body: "Automated changelog update for ${{ steps.get_version.outputs.VERSION }}"
+          base: main
+          delete-branch: true
+          labels: automerge
+          token: ${{ secrets.GH_TOKEN }}
 
-      - name: "Run if changes have been detected"
-        if: steps.auto-commit-action.outputs.changes_detected == 'true'
-        run: echo "Changes!"
-
-      - name: "Run if no changes have been detected"
-        if: steps.auto-commit-action.outputs.changes_detected == 'false'
-        run: echo "No Changes!"
+      - name: Automerge PR
+        if: steps.create_pull_request.outputs.pull-request-url
+        uses: pascalgn/automerge-action@v0.16.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          MERGE_METHOD: "squash"
   release:
     name: Create Release
     runs-on: ubuntu-latest
