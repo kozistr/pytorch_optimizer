@@ -20,6 +20,7 @@ jobs:
 
     steps:
       - id: automerge
+        if: ${{ contains(github.event.pull_request.labels.*.name, 'automerge') }}
         name: automerge
         uses: pascalgn/automerge-action@v0.16.4
         env:
