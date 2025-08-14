@@ -2,22 +2,13 @@ name: "Automerge PR"
 
 on:
   pull_request:
+  pull_request_target:
     types:
-      - labeled
-      - unlabeled
-      - synchronize
       - opened
-      - edited
-      - ready_for_review
-      - reopened
-      - unlocked
-  pull_request_review:
-    types:
-      - submitted
+      - synchronize
   check_suite:
     types:
       - completed
-  status: {}
 
 jobs:
   automerge:

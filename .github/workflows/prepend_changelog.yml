@@ -1,4 +1,4 @@
-name: prepend changelog
+name: Prepend changelog
 
 on: workflow_dispatch
 
