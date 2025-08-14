@@ -17,13 +17,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
 
       - name: Get the version
         id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
 
       - name: Prepend changelog to CHANGELOG.md
         run: |
@@ -57,6 +54,7 @@ jobs:
           delete-branch: true
           labels: automerge
           token: ${{ secrets.GH_TOKEN }}
+
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -66,7 +64,7 @@ jobs:
 
       - name: Get the version
         id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
 
       - name: Create release
         id: create_release
@@ -79,6 +77,7 @@ jobs:
           body_path: docs/changelogs/${{ steps.get_version.outputs.VERSION }}.md
           draft: false
           prerelease: false
+
   deploy:
     name: Deploy
     needs: release
