@@ -7,7 +7,7 @@ on:
 
 jobs:
   prepend-changelog:
-    name: Append Change Log
+    name: Prepend Change Log
     runs-on: ubuntu-latest
 
     permissions:
@@ -57,19 +57,6 @@ jobs:
           delete-branch: true
           labels: automerge
           token: ${{ secrets.GH_TOKEN }}
-
-      - name: Automerge PR
-        if: steps.create_pull_request.outputs.pull-request-url
-        uses: pascalgn/automerge-action@v0.16.4
-        env:
-          MERGE_LABELS: ""
-          MERGE_METHOD_LABEL_REQUIRED: "false"
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          MERGE_METHOD: "squash"
-          MERGE_RETRIES: 12
-          MERGE_RETRY_SLEEP: 5000
-          MERGE_DELETE_BRANCH: "true"
-          MERGE_ERROR_FAIL: "true"
   release:
     name: Create Release
     runs-on: ubuntu-latest

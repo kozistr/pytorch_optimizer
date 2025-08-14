@@ -54,23 +54,3 @@ jobs:
           delete-branch: true
           labels: automerge
           token: ${{ secrets.GH_TOKEN }}
-
-      - name: Automerge PR
-        if: steps.cpr.outputs.pull-request-url
-        id: automerge
-        uses: pascalgn/automerge-action@v0.16.4
-        env:
-          MERGE_LABELS: "automerge"
-          MERGE_METHOD_LABEL_REQUIRED: "false"
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          MERGE_METHOD: "squash"
-          MERGE_RETRIES: "6"
-          MERGE_RETRY_SLEEP: "10000"
-          MERGE_REQUIRED_APPROVALS: "0"
-          MERGE_DELETE_BRANCH: "true"
-          MERGE_ERROR_FAIL: "true"
-          LOG: "TRACE"
-
-      - name: feedback
-        if: ${{ steps.automerge.outputs.mergeResult == 'merged' }}
-        run: echo "Pull request ${{ steps.automerge.outputs.pullRequestNumber }} merged!"
