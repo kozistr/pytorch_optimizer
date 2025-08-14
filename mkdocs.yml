@@ -2,15 +2,48 @@ site_name: pytorch-optimizer
 site_description: 'optimizer & lr scheduler & loss function collections in PyTorch'
 repo_name: 'kozistr/pytorch-optimizer'
 repo_url: 'https://github.com/kozistr/pytorch_optimizer'
+edit_uri: edit/main/docs/
+
 theme:
   name: material
   highlightjs: true
+  features:
+  - announce.dismiss
+  - content.action.edit
+  - content.action.view
+  - content.code.annotate
+  - content.code.copy
+  - content.tooltips
+  - navigation.footer
+  - navigation.instant.preview
+  - navigation.path
+  # - navigation.sections
+  # - navigation.tabs
+  - navigation.tabs.sticky
+  - navigation.top
+  - search.highlight
+  - search.suggest
+  - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
 extra_javascript:
   - 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'
   - https://cdnjs.cloudflare.com/ajax/libs/tablesort/5.2.1/tablesort.min.js
   - javascripts/tables.js
+
 plugins:
   - search
+  - autorefs
   - awesome-nav
   - mkdocstrings:
       handlers:
@@ -25,6 +58,11 @@ plugins:
             show_bases: true
             show_source: true
             docstring_style: sphinx
+  - git-revision-date-localized:
+      enabled: !ENV [ DEPLOY, false ]
+      enable_creation_date: true
+      type: timeago
+
 markdown_extensions:
   - admonition
   - pymdownx.arithmatex
