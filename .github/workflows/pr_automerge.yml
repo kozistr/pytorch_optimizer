@@ -31,7 +31,6 @@ jobs:
           MERGE_REQUIRED_APPROVALS: "0"
           MERGE_DELETE_BRANCH: "true"
           MERGE_ERROR_FAIL: "true"
-          LOG: "TRACE"
 
       - name: feedback
         if: ${{ steps.automerge.outputs.mergeResult == 'merged' }}
