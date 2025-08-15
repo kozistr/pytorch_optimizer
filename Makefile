@@ -1,11 +1,11 @@
 .PHONY: init format test check requirements visualize docs
 
 init:
-	python -m pip install -q -U poetry isort black ruff pytest pytest-cov
+	python -m pip install -q -U poetry black ruff pytest pytest-cov
 	python -m poetry install --dev
 
 format:
-	isort --profile black -l 119 pytorch_optimizer examples tests hubconf.py
+	ruff check --fix pytorch_optimizer examples tests hubconf.py
 	black -S -l 119 pytorch_optimizer examples tests hubconf.py
 
 check:
