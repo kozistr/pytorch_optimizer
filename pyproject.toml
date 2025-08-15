@@ -57,10 +57,6 @@ torch = [
 ]
 
 [tool.poetry.group.dev.dependencies]
-isort = [
-    { version = "<6", python = "<3.9" },
-    { version = "^6", python = ">=3.9" },
-]
 black = [
     { version = "<25", python = "<3.9" },
     { version = "^25", python = ">=3.9" },
