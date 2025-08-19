@@ -407,7 +407,9 @@ class StableSPAM(BaseOptimizer):
                 if mask.sum() > 0:
                     grad[mask].div_(max_grad).mul_(m_max_hat)
 
-                grad_norm = torch.norm(grad)
+                grad_norm = torch.linalg.norm(grad)
+                if grad_norm == 0:
+                    continue
 
                 m_norm_t, v_norm_t = state['m_norm_t'], state['v_norm_t']
                 m_norm_t.lerp_(grad_norm, weight=1.0 - self.gamma1 * scale)
