@@ -941,7 +941,7 @@ class FriendlySAM(BaseOptimizer):
                     momentum = state['momentum']
 
                     grad.sub_(momentum, alpha=group['sigma'])
-                    momentum.lerp_(grad, value=1.0 - group['lmbda'])
+                    momentum.lerp_(grad, weight=1.0 - group['lmbda'])
 
         device = self.param_groups[0]['params'][0].device
 
