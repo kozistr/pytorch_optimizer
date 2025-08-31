@@ -1,5 +1,5 @@
 from contextlib import ExitStack
-from typing import Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import torch
 from torch import nn
@@ -322,7 +322,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         return self.model.no_sync() if is_initialized() else ExitStack()
 
     @torch.no_grad()
-    def set_closure(self, loss_fn: nn.Module, inputs: torch.Tensor, targets: torch.Tensor, **kwargs):
+    def set_closure(self, loss_fn: nn.Module, inputs: torch.Tensor, targets: torch.Tensor, **kwargs) -> None:
         r"""Set closure.
 
             Create `self.forward_backward_func`, which is a function such that `self.forward_backward_func()`
@@ -334,8 +334,9 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         :param targets: torch.Tensor. targets.
         """
 
-        def get_grad():
+        def get_grad() -> Tuple[Any, torch.Tensor]:
             self.base_optimizer.zero_grad()
+
             with torch.enable_grad():
                 outputs = self.model(inputs)
                 loss = loss_fn(outputs, targets, **kwargs)
@@ -348,7 +349,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> Tuple[torch.Tensor, float]:
-        get_grad = closure if closure else self.forward_backward_func
+        get_grad: Callable = closure if closure is not None else self.forward_backward_func
 
         with self.maybe_no_sync():
             outputs, loss = get_grad()

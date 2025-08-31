@@ -127,8 +127,10 @@ class SOAP(BaseOptimizer):
     ) -> torch.Tensor:
         original_shape = grad.shape
 
+        do_permute: bool = self.data_format == 'channels_last' and len(original_shape) == 4
+
         if merge_dims:
-            if self.data_format == 'channels_last' and grad.dim() == 4:
+            if do_permute:
                 permuted_shape = grad.permute(0, 3, 1, 2).shape
 
             grad = grad.reshape(merge_small_dims(grad.size(), max_precondition_dim))
@@ -140,10 +142,7 @@ class SOAP(BaseOptimizer):
                 grad = grad.permute([*list(range(1, len(grad.shape))), 0])
 
         if merge_dims:
-            if self.data_format == 'channels_last' and len(original_shape) == 4:
-                grad = grad.reshape(permuted_shape).permute(0, 2, 3, 1)
-            else:
-                grad = grad.reshape(original_shape)
+            grad = grad.reshape(permuted_shape).permute(0, 2, 3, 1) if do_permute else grad.reshape(original_shape)
 
         return grad
 

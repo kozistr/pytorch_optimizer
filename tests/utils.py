@@ -4,9 +4,10 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn.functional import relu
+from torch.optim import AdamW
 
 from pytorch_optimizer.base.type import LOSS
-from pytorch_optimizer.optimizer import AdamW, Lookahead, OrthoGrad, ScheduleFreeWrapper
+from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, ScheduleFreeWrapper
 from pytorch_optimizer.optimizer.alig import l2_projection
 
 
