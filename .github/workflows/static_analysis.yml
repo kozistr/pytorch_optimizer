@@ -1,4 +1,4 @@
-name: static_analysis.yml
+name: Type Checker
 
 on:
   push:
