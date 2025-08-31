@@ -240,7 +240,7 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
 
 
 def clip_grad_norm(
-    parameters: PARAMETERS,
+    parameters: Union[PARAMETERS, torch.Tensor],
     max_norm: float = 0.0,
     sync: bool = False,
 ) -> Union[torch.Tensor, float]:
