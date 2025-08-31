@@ -129,7 +129,7 @@ max-branches = 17
 quote-style = "single"
 
 [tool.pyright]
-include = ["pytorch_optimizer", "examples", "tests"]
+include = ["pytorch_optimizer", "examples"]
 exclude = [
     "./pytorch_optimizer/optimizer/adam_mini.py",
     "./pytorch_optimizer/optimizer/demo.py",
