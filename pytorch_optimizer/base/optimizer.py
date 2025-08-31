@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 from torch.optim import Optimizer
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 from pytorch_optimizer.base.type import (
@@ -22,7 +23,7 @@ from pytorch_optimizer.base.type import (
 class BaseOptimizer(ABC, Optimizer):
     r"""Base optimizer class. Provides common functionalities for the optimizers."""
 
-    def __init__(self, params: PARAMETERS, defaults: DEFAULTS) -> None:
+    def __init__(self, params: Union[PARAMETERS, ParamsT], defaults: DEFAULTS) -> None:
         super().__init__(params, defaults)
 
     @staticmethod
@@ -44,16 +45,14 @@ class BaseOptimizer(ABC, Optimizer):
 
         Example:
         -------
-            Here's an example::
+            # Hutchinson's Estimator using HVP
+            noise = tree_map(lambda v: torch.randn_like(v), params)
+            loss_, hvp_est = jvp(grad(run_model_fn), (params,), (noise,))
+            hessian_diag_est  = tree_map(lambda a, b: a * b, hvp_est, noise)
 
-                # Hutchinson's Estimator using HVP
-                noise = tree_map(lambda v: torch.randn_like(v), params)
-                loss_, hvp_est = jvp(grad(run_model_fn), (params,), (noise,))
-                hessian_diag_est  = tree_map(lambda a, b: a * b, hvp_est, noise)
-
-                optimizer.set_hessian(hessian_diag_est)
-                # OR
-                optimizer.step(hessian=hessian_diag_est)
+            optimizer.set_hessian(hessian_diag_est)
+            # OR
+            optimizer.step(hessian=hessian_diag_est)
 
         :param param_groups: PARAMETERS. parameter groups.
         :param state: STATE. optimizer state.
@@ -273,7 +272,7 @@ class BaseOptimizer(ABC, Optimizer):
         return grad.mul(exp_grad_norm).div_(grad_norm) if exp_grad_norm > grad_norm else grad
 
     @staticmethod
-    def get_rms(x: torch.Tensor) -> float:
+    def get_rms(x: torch.Tensor) -> torch.Tensor:
         r"""Get RMS."""
         return x.norm(2) / math.sqrt(x.numel())
 

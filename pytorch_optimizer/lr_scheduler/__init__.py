@@ -69,13 +69,17 @@ LR_SCHEDULERS: Dict[str, SCHEDULER] = {
 }
 
 
-def load_lr_scheduler(lr_scheduler: str) -> SCHEDULER:
-    lr_scheduler: str = lr_scheduler.lower()
+def load_lr_scheduler(lr_scheduler_name: str) -> SCHEDULER:
+    r"""Load learning rate scheduler.
 
-    if lr_scheduler not in LR_SCHEDULERS:
-        raise NotImplementedError(f'[-] not implemented lr_scheduler : {lr_scheduler}')
+    :param lr_scheduler_name: learning rate scheduler name.
+    """
+    lr_scheduler_name: str = lr_scheduler_name.lower()
 
-    return LR_SCHEDULERS[lr_scheduler]
+    if lr_scheduler_name not in LR_SCHEDULERS:
+        raise NotImplementedError(f'not implemented lr_scheduler {lr_scheduler_name}')
+
+    return LR_SCHEDULERS[lr_scheduler_name]
 
 
 def get_supported_lr_schedulers(filters: Optional[Union[str, List[str]]] = None) -> List[str]:

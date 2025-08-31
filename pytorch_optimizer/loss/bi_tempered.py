@@ -71,7 +71,7 @@ class ComputeNormalization(torch.autograd.Function):
     r"""Custom backward pass for compute_normalization. See compute_normalization."""
 
     @staticmethod
-    def forward(ctx, activations, t, num_iters):
+    def forward(ctx, activations: torch.Tensor, t: float, num_iters: int) -> torch.Tensor:
         normalization_constants = (
             compute_normalization_binary_search(activations, t, num_iters)
             if t < 1.0
@@ -98,7 +98,7 @@ class ComputeNormalization(torch.autograd.Function):
 
 
 def compute_normalization(activations: torch.Tensor, t: float, num_iters: int = 5) -> torch.Tensor:
-    """Compute normalization value for each example.
+    r"""Compute normalization value for each example.
 
     :param activations: torch.Tensor. A multidimensional tensor with last dimension `num_classes`.
     :param t: float. Temperature (> 1.0 for tail heaviness).
@@ -108,7 +108,7 @@ def compute_normalization(activations: torch.Tensor, t: float, num_iters: int = 
 
 
 def tempered_softmax(activations: torch.Tensor, t: float, num_iters: int = 5) -> torch.Tensor:
-    """Tempered softmax function.
+    r"""Tempered softmax function.
 
     :param activations: torch.Tensor. A multidimensional tensor with last dimension `num_classes`.
     :param t: float. Temperature (> 1.0 for tail heaviness).
@@ -117,7 +117,7 @@ def tempered_softmax(activations: torch.Tensor, t: float, num_iters: int = 5) ->
     if t == 1.0:
         return activations.softmax(dim=-1)
 
-    normalization_constants = compute_normalization(activations, t, num_iters)
+    normalization_constants: torch.Tensor = compute_normalization(activations, t, num_iters)
 
     return exp_t(activations - normalization_constants, t)
 
@@ -131,7 +131,7 @@ def bi_tempered_logistic_loss(
     num_iters: int = 5,
     reduction: str = 'mean',
 ) -> torch.Tensor:
-    """Bi-Tempered Logistic Loss.
+    r"""Bi-Tempered Logistic Loss.
 
     :param activations: torch.Tensor. A multidimensional tensor with last dimension `num_classes`.
     :param labels: torch.Tensor. A tensor with shape and dtype as activations (onehot), or a long tensor of

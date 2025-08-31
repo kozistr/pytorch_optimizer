@@ -29,14 +29,14 @@ class Graft:
     def __init__(self, *args):
         pass
 
-    def add_statistics(self, grad: torch.Tensor, unused_beta2: float) -> None:
+    def add_statistics(self, grad: torch.Tensor, beta2: float) -> None:
         r"""Add the statistics."""
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         r"""Get preconditioned gradient."""
         return grad
 
-    def update_momentum(self, update: torch.Tensor, unused_beta1: float) -> torch.Tensor:
+    def update_momentum(self, update: torch.Tensor, beta1: float) -> torch.Tensor:
         r"""Update momentum."""
         return update
 
@@ -55,7 +55,7 @@ class SGDGraft(Graft):
 
 
 class SQRTNGraft(Graft):
-    r"""Graft using SQRTN."""
+    r"""Graft using SQRT-N."""
 
     def __init__(self, var: torch.Tensor):
         super().__init__(var)
@@ -449,7 +449,7 @@ def compute_power_schur_newton(
     :param max_error_ratio: float. Sometimes error increases after an iteration before decreasing and converging.
         1.2 factor is used to bound the maximal allowed increase.
     """
-    shape: List[int] = mat_g.shape
+    shape: torch.Size = mat_g.shape
     if len(shape) == 1:
         return torch.pow(mat_g + ridge_epsilon, -1.0 / p)
 

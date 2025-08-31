@@ -114,7 +114,7 @@ DECOUPLE_FLAGS: List[bool] = [True, False]
 ADAPTIVE_FLAGS: List[bool] = [True, False]
 PULLBACK_MOMENTUM: List[str] = ['none', 'reset', 'pullback']
 
-VALID_OPTIMIZER_NAMES: List[str] = list(OPTIMIZERS.keys())
+VALID_OPTIMIZER_NAMES: List[str] = list(OPTIMIZERS.keys())  # type: ignore
 INVALID_OPTIMIZER_NAMES: List[str] = [
     'asam',
     'sam',

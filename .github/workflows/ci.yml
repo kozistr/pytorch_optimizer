@@ -26,7 +26,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
 
-    - name: Install dependencies
+    - name: Install dev-dependencies
       run: pip --disable-pip-version-check install --no-compile -r requirements-dev.txt
 
     - name: Check lint
