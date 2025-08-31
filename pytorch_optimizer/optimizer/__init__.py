@@ -175,7 +175,6 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     FOCUS,
     FTRL,
     Fira,
-    FriendlySAM,
     Fromage,
     GaLore,
     Grams,
