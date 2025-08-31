@@ -129,6 +129,11 @@ quote-style = "single"
 
 [tool.pyright]
 include = ["pytorch_optimizer", "examples", "tests"]
+exclude = [
+    "./pytorch_optimizer/optimizer/adam_mini.py",
+    "./pytorch_optimizer/optimizer/demo.py",
+    "./pytorch_optimizer/optimizer/rotograd.py",
+]
 reportMissingImports = false
 reportMissingTypeStubs = false
 reportArgumentType = false
