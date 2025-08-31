@@ -127,6 +127,18 @@ max-branches = 17
 [tool.ruff.format]
 quote-style = "single"
 
+[tool.pyright]
+include = ["pytorch_optimizer", "examples", "tests"]
+reportMissingImports = false
+reportMissingTypeStubs = false
+reportArgumentType = false
+reportAttributeAccessIssue = false
+reportOptionalIterable = false
+reportOptionalMemberAccess = false
+reportOptionalSubscript = false
+pythonVersion = "3.12"
+pythonPlatform = "Linux"
+
 [tool.pytest.ini_options]
 testpaths = "tests"
 
