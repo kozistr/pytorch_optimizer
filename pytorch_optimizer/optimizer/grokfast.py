@@ -73,13 +73,11 @@ def gradfilter_ema(
 
     Example:
     -------
-        Here's an example::
+        loss.backwards()  # Calculate the gradients.
 
-            loss.backwards()  # Calculate the gradients.
+        grads = gradfilter_ema(model, grads=grads, alpha=alpha, lamb=lamb)
 
-            grads = gradfilter_ema(model, grads=grads, alpha=alpha, lamb=lamb)
-
-            optimizer.step()  # Call the optimizer.
+        optimizer.step()  # Call the optimizer.
 
     :param model: nn.Module. model that contains every trainable parameters.
     :param grads: Optional[Dict[str, deque]]. running memory (EMA). Initialize by setting it to None. Feed the output

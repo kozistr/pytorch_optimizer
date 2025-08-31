@@ -26,9 +26,7 @@ def parse_pytorch_version(version_string: str) -> List[int]:
 
 def compare_versions(v1: str, v2: str) -> bool:
     r"""Compare two Pytorch versions."""
-    v1_parts: List[int] = parse_pytorch_version(v1)
-    v2_parts: List[int] = parse_pytorch_version(v2)
-    return (v1_parts > v2_parts) - (v1_parts < v2_parts)
+    return parse_pytorch_version(v1) >= parse_pytorch_version(v2)
 
 
 HAS_TRANSFORMERS: bool = find_spec('transformers') is not None
@@ -112,6 +110,8 @@ class CPUOffloadOptimizer:  # pragma: no cover
 
         for param_group in param_groups:
             params = param_group.pop('params')
+            if params is None:
+                continue
 
             for p_cuda in params:
                 p_cpu = torch.empty_like(p_cuda, device='cpu', pin_memory=True)
@@ -243,7 +243,7 @@ def clip_grad_norm(
     parameters: PARAMETERS,
     max_norm: float = 0.0,
     sync: bool = False,
-) -> Union[torch.Tensor, float]:  # pragma: no cover
+) -> Union[torch.Tensor, float]:
     r"""Clip gradient norms.
 
         During combination with FSDP, will also ensure that grad norms are aggregated across all workers,
@@ -267,15 +267,16 @@ def clip_grad_norm(
         return clip_grad_norm_(parameters, max_norm)
 
     norm_sq = sum(p.grad.norm() ** 2 for p in parameters if p.grad is not None)
-    if sync:
+    if sync:  # pragma: no cover
         # also need to get the norms from all the other sharded works in FSDP
         all_reduce(norm_sq)
 
-    grad_norm = math.sqrt(norm_sq)
-    if max_norm > 0:
+    grad_norm: float = math.sqrt(norm_sq)
+    if max_norm > 0:  # pragma: no cover
         clip_coefficient = max_norm / (grad_norm + 1e-6)
         for p in parameters:
-            p.grad.detach().mul_(clip_coefficient)
+            if p.grad is not None:
+                p.grad.detach().mul_(clip_coefficient)
 
     return grad_norm
 
@@ -298,7 +299,7 @@ def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
     return x.norm(p=norm, dim=dim, keepdim=keep_dim)
 
 
-def disable_running_stats(model):
+def disable_running_stats(model: nn.Module):
     r"""Disable running stats (momentum) of BatchNorm."""
 
     def _disable(module):
@@ -309,7 +310,7 @@ def disable_running_stats(model):
     model.apply(_disable)
 
 
-def enable_running_stats(model):
+def enable_running_stats(model: nn.Module):
     r"""Enable running stats (momentum) of BatchNorm."""
 
     def _enable(module):
