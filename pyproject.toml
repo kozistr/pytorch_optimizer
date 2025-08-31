@@ -150,6 +150,7 @@ reportOptionalMemberAccess = false
 reportOptionalOperand = false
 reportOptionalSubscript = false
 reportPossiblyUnboundVariable = false
+reportPrivateImportUsage = false
 reportRedeclaration = false
 reportReturnType = false
 pythonVersion = "3.12"
