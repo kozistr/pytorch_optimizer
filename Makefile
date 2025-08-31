@@ -7,7 +7,7 @@ format:
 check:
 	black -S -l 119 --check pytorch_optimizer examples tests hubconf.py
 	ruff check pytorch_optimizer examples tests hubconf.py
-	pyright pytorch_optimizer
+	pyright pytorch_optimizer examples
 
 test:
 	python -m pytest -p no:pastebin -p no:nose -p no:doctest -sv -vv --cov=pytorch_optimizer --cov-report=xml ./tests
