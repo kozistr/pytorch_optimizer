@@ -1,0 +1,27 @@
+name: static_analysis.yml
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  type_checker:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.12
+        cache: 'pip'
+
+    - name: Install dev-dependencies
+      run: pip --disable-pip-version-check install --no-compile -r requirements-dev.txt
+
+    - uses: jakebailey/pyright-action@v2
+      with:
+        version: 1.1.404
