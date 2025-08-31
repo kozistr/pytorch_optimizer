@@ -272,7 +272,7 @@ class BaseOptimizer(ABC, Optimizer):
         return grad.mul(exp_grad_norm).div_(grad_norm) if exp_grad_norm > grad_norm else grad
 
     @staticmethod
-    def get_rms(x: torch.Tensor) -> float:
+    def get_rms(x: torch.Tensor) -> torch.Tensor:
         r"""Get RMS."""
         return x.norm(2) / math.sqrt(x.numel())
 

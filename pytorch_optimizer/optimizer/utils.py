@@ -11,6 +11,7 @@ from torch import nn
 from torch.distributed import all_reduce
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.utils import clip_grad_norm_
+from torch.optim.optimizer import Optimizer
 
 from pytorch_optimizer.base.type import CLOSURE, LOSS, PARAMETERS
 
@@ -69,7 +70,7 @@ class CPUOffloadOptimizer:  # pragma: no cover
     def __init__(
         self,
         params: PARAMETERS,
-        optimizer_class: Type[torch.optim.Optimizer] = torch.optim.AdamW,
+        optimizer_class: Type[Optimizer] = torch.optim.AdamW,
         *,
         offload_gradients: bool = False,
         **kwargs,
@@ -80,11 +81,12 @@ class CPUOffloadOptimizer:  # pragma: no cover
         param_groups = list(params)
         if len(param_groups) == 0:
             raise ValueError('optimizer got an empty parameter list')
+
         if not isinstance(param_groups[0], dict):
             param_groups = [{'params': param_groups}]
 
-        self.param_cuda2cpu_map = {}
-        self.optim_dict = {}
+        self.param_cuda2cpu_map: Dict[torch.Tensor, torch.Tensor] = {}
+        self.optim_dict: Dict[torch.Tensor, Optimizer] = {}
         self.stream = torch.cuda.Stream()
 
         self.queue = {}
@@ -121,7 +123,7 @@ class CPUOffloadOptimizer:  # pragma: no cover
                 self.param_cuda2cpu_map[p_cuda] = p_cpu
 
                 p_cuda.register_post_accumulate_grad_hook(backward_hook)
-                self.optim_dict[p_cuda] = optimizer_class([{'params': p_cpu, **param_group}], **kwargs)
+                self.optim_dict[p_cuda] = optimizer_class([{'params': p_cpu, **param_group}], **kwargs)  # type: ignore
 
     @torch.no_grad()
     def step(self, closure: CLOSURE = None) -> LOSS:

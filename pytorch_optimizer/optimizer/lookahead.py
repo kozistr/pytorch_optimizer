@@ -78,7 +78,7 @@ class Lookahead(BaseOptimizer):
     def init_group(self, group: GROUP, **kwargs) -> None:
         pass
 
-    def backup_and_load_cache(self):
+    def backup_and_load_cache(self) -> None:
         r"""Backup cache parameters."""
         for group in self.param_groups:
             for p in group['params']:
@@ -87,7 +87,7 @@ class Lookahead(BaseOptimizer):
                 state['backup_params'].copy_(p)
                 p.data.copy_(state['slow_params'])
 
-    def clear_and_load_backup(self):
+    def clear_and_load_backup(self) -> None:
         r"""Load backup parameters."""
         for group in self.param_groups:
             for p in group['params']:
