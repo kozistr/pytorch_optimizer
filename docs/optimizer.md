@@ -228,6 +228,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.FriendlySAM
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Fromage
     :docstring:
     :members:
