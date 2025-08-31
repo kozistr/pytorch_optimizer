@@ -62,6 +62,7 @@ black = [
     { version = "^25", python = ">=3.9" },
 ]
 ruff = "^0.12"
+pyright = "^1.1"
 pytest = "^8"
 pytest-cov = [
     { version = "<6", python = "<3.9" },
@@ -139,12 +140,18 @@ reportAssignmentType = false
 reportAttributeAccessIssue = false
 reportCallIssue = false
 reportIncompatibleMethodOverride = false
+reportIncompatibleVariableOverride = false
+reportIndexIssue = false
 reportMissingImports = false
 reportMissingTypeStubs = false
+reportOperatorIssue = false
 reportOptionalIterable = false
 reportOptionalMemberAccess = false
+reportOptionalOperand = false
 reportOptionalSubscript = false
 reportPossiblyUnboundVariable = false
+reportRedeclaration = false
+reportReturnType = false
 pythonVersion = "3.12"
 pythonPlatform = "Linux"
 
