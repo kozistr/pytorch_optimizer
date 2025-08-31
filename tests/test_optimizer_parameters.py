@@ -7,6 +7,7 @@ from pytorch_optimizer.optimizer import (
     BSAM,
     SAM,
     WSAM,
+    FriendlySAM,
     Lookahead,
     LookSAM,
     PCGrad,
@@ -88,7 +89,7 @@ def test_lookahead_parameters():
         Lookahead(optimizer, pullback_momentum='invalid')
 
 
-@pytest.mark.parametrize('optimizer', [SAM, WSAM, LookSAM, BSAM])
+@pytest.mark.parametrize('optimizer', [SAM, WSAM, LookSAM, BSAM, FriendlySAM])
 def test_sam_family_methods(optimizer):
     base_optimizer = load_optimizer('lion')
 
