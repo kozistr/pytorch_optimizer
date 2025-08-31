@@ -121,6 +121,7 @@ INVALID_OPTIMIZER_NAMES: List[str] = [
     'gsam',
     'wsam',
     'looksam',
+    'friendlysam',
     'pcgrad',
     'lookahead',
     'trac',

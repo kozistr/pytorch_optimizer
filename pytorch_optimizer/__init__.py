@@ -126,6 +126,7 @@ from pytorch_optimizer.optimizer import (
     EXAdam,
     FAdam,
     Fira,
+    FriendlySAM,
     Fromage,
     GaLore,
     Grams,
