@@ -885,10 +885,9 @@ class FriendlySAM(BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param base_optimizer: OPTIMIZER. base optimizer.
     :param rho: float. size of the neighborhood for computing the max loss.
-    :param sigma: float.
-    :param lmbda: float.
+    :param sigma: float. sigma of FriendlySAM.
+    :param lmbda: float. lambda for FriendlySAM.
     :param adaptive: bool. element-wise Adaptive SAM.
-    :param use_gc: bool. perform gradient centralization, GCSAM variant.
     :param perturb_eps: float. eps for perturbation.
     :param kwargs: Dict. parameters for optimizer.
     """
