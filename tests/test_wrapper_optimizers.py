@@ -10,6 +10,7 @@ from pytorch_optimizer import (
     TRAC,
     WSAM,
     CosineScheduler,
+    FriendlySAM,
     Lookahead,
     LookSAM,
     OrthoGrad,
@@ -48,11 +49,19 @@ def test_lookahead(pullback_momentum, environment):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_sam_optimizer(adaptive, environment):
+@pytest.mark.parametrize('optimizer_name', ['SAM', 'FriendlySAM'])
+def test_sam_optimizer(adaptive, optimizer_name, environment):
     x_data, y_data = environment
     model, loss_fn = build_model()
 
-    optimizer = SAM(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive, use_gc=True)
+    if optimizer_name == 'SAM':
+        wrapper = SAM
+    elif optimizer_name == 'FriendlySAM':
+        wrapper = FriendlySAM
+    else:
+        raise ValueError
+
+    optimizer = wrapper(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive, use_gc=True)
 
     init_loss, loss = np.inf, np.inf
     for _ in range(5):
@@ -70,11 +79,19 @@ def test_sam_optimizer(adaptive, environment):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-def test_sam_optimizer_with_closure(adaptive, environment):
+@pytest.mark.parametrize('optimizer_name', ['SAM', 'FriendlySAM'])
+def test_sam_optimizer_with_closure(adaptive, optimizer_name, environment):
     x_data, y_data = environment
     model, loss_fn = build_model()
 
-    optimizer = SAM(model.parameters(), load_optimizer('adamw'), lr=5e-1, adaptive=adaptive)
+    if optimizer_name == 'SAM':
+        wrapper = SAM
+    elif optimizer_name == 'FriendlySAM':
+        wrapper = FriendlySAM
+    else:
+        raise ValueError
+
+    optimizer = wrapper(model.parameters(), load_optimizer('adamw'), lr=5e-1, adaptive=adaptive)
 
     def closure():
         first_loss = loss_fn(y_data, model(x_data))

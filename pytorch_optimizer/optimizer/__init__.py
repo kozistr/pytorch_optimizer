@@ -84,7 +84,7 @@ from pytorch_optimizer.optimizer.radam import RAdam
 from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
 from pytorch_optimizer.optimizer.rotograd import RotoGrad
-from pytorch_optimizer.optimizer.sam import BSAM, GSAM, SAM, WSAM, LookSAM
+from pytorch_optimizer.optimizer.sam import BSAM, GSAM, SAM, WSAM, FriendlySAM, LookSAM
 from pytorch_optimizer.optimizer.schedulefree import (
     ScheduleFreeAdamW,
     ScheduleFreeRAdam,
@@ -448,8 +448,8 @@ def get_optimizer_parameters(
 def get_supported_optimizers(filters: Optional[Union[str, List[str]]] = None) -> List[str]:
     r"""Return list of available optimizer names, sorted alphabetically.
 
-    :param filters: Optional[Union[str, List[str]]]. wildcard filter string that works with fmatch. if None, it will
-        return the whole list.
+    :param filters: Optional[Union[str, List[str]]]. wildcard filter string that works with fmatch.
+        if None, it will return the whole list.
     """
     if filters is None:
         return sorted(OPTIMIZERS.keys())
