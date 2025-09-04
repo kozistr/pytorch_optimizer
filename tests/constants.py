@@ -33,6 +33,7 @@ from pytorch_optimizer.optimizer import (
     AdaDelta,
     AdaFactor,
     AdaGC,
+    AdaGO,
     AdaHessian,
     Adai,
     Adalite,
@@ -609,6 +610,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Muon, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_adjusted_lr': True, 'adamw_lr': 5e-1, 'adamw_wd': 1e-2}, 5),
     (AdaMuon, {'lr': 5e-1, 'weight_decay': 1e-3, 'adamw_lr': 5e-1, 'adamw_wd': 1e-2}, 5),
     (AdaMuon, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_adjusted_lr': True, 'adamw_lr': 5e-1, 'adamw_wd': 1e-2}, 5),
+    (AdaGO, {'lr': 5e-1, 'adamw_lr': 5e-1, 'adamw_wd': 1e-2, 'nesterov': True}, 5),
     (LaProp, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (LaProp, {'lr': 1e0, 'centered': True, 'weight_decay': 1e-3}, 11),
     (LaProp, {'lr': 1e0, 'ams_bound': True, 'weight_decay': 1e-3}, 5),
@@ -727,6 +729,17 @@ COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], i
         {
             'lr': 5e-1,
             'weight_decay': 1e-3,
+            'use_adjusted_lr': True,
+            'adamw_lr': 5e-1,
+            'adamw_betas': (0.9, 0.98),
+            'adamw_wd': 1e-2,
+        },
+        7,
+    ),
+    (
+        AdaGO,
+        {
+            'lr': 5e-1,
             'use_adjusted_lr': True,
             'adamw_lr': 5e-1,
             'adamw_betas': (0.9, 0.98),

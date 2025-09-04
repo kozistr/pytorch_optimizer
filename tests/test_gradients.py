@@ -50,7 +50,7 @@ def test_no_gradients(optimizer_name):
         optimizer = OrthoGrad(load_optimizer('adamw')(params))
     elif optimizer_name == 'alice':
         optimizer = load_optimizer('alice')(params, rank=2, leading_basis=1)
-    elif optimizer_name in ('muon', 'adamuon'):
+    elif optimizer_name in ('muon', 'adamuon', 'adago'):
         params = [{**param, 'use_muon': False} for param in params]
         optimizer = load_optimizer(optimizer_name)(params)
     else:
@@ -75,7 +75,7 @@ def test_sparse_not_supported(no_sparse_optimizer):
     opt = load_optimizer(optimizer=no_sparse_optimizer)
     if no_sparse_optimizer == 'ranger21':
         optimizer = opt([param], num_iterations=1)
-    elif no_sparse_optimizer in ('muon', 'adamuon'):
+    elif no_sparse_optimizer in ('muon', 'adamuon', 'adago'):
         params = [{'params': param, 'use_muon': False}]
         optimizer = load_optimizer(no_sparse_optimizer)(params)
     else:
@@ -226,7 +226,7 @@ def test_schedulefree_sparse_gradient():
         optimizer.step(lambda: 0.1)
 
 
-@pytest.mark.parametrize('optimizer', ['muon', 'adamuon'])
+@pytest.mark.parametrize('optimizer', ['muon', 'adamuon', 'adago'])
 def test_muon_no_gradient(optimizer):
     model = nn.Sequential(nn.Linear(1, 1))
     model[0].weight.grad = None
@@ -267,7 +267,7 @@ def test_complex_not_supported(no_complex_optimizer):
         optimizer = opt([param], num_iterations=1)
     elif no_complex_optimizer == 'adahessian':
         optimizer = opt([param], update_period=2)
-    elif no_complex_optimizer in ('muon', 'adamuon'):
+    elif no_complex_optimizer in ('muon', 'adamuon', 'adago'):
         optimizer = opt([{'params': param, 'use_muon': True}])
     else:
         optimizer = opt([param])
