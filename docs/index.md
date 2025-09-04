@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **127 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **128 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -221,6 +221,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | EmoNavi               | *An emotion-driven optimizer that feels loss and navigates accordingly*                                        | [github](https://github.com/muooon/EmoNavi)                                                                    |                                                                                                                      |                                                                                                                                     |
 | Refined Schedule-Free | *Through the River: Understanding the Benefit of Schedule-Free Methods for Language Model Training*            |                                                                                                                | <https://arxiv.org/abs/2507.09846>                                                                                   | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250709846S/exportcitation)                                                        |
 | FriendlySAM           | *Friendly Sharpness-Aware Minimization*                                                                        | [github](https://github.com/nblt/F-SAM)                                                                        | <https://openaccess.thecvf.com/content/CVPR2024/papers/Li_Friendly_Sharpness-Aware_Minimization_CVPR_2024_paper.pdf> | [cite](https://github.com/nblt/F-SAM?tab=readme-ov-file#citation)                                                                   |
+| AdaGO                 | *AdaGrad Meets Muon: Adaptive Stepsizes for Orthogonal Updates*                                                |                                                                                                                | <https://arxiv.org/abs/2509.02981>                                                                                   | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250902981Z/exportcitation)                                                        |
 
 ## Supported LR Scheduler
 
