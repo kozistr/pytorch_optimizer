@@ -80,6 +80,7 @@ from pytorch_optimizer.optimizer import (
     AdaDelta,
     AdaFactor,
     AdaGC,
+    AdaGO,
     AdaHessian,
     Adai,
     Adalite,
