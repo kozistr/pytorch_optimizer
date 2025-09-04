@@ -157,7 +157,7 @@ def test_init_group(optimizer_config):
     if optimizer_name.startswith('build'):
         pytest.skip(f'skip {optimizer_name}')
 
-    if optimizer_name in ('muon', 'adamuon'):
+    if optimizer_name in ('muon', 'adamuon', 'adago'):
         optimizer_class([{'params': simple_parameter(), 'use_muon': True}], num_iterations=1).init_group(
             {'params': []}
         )
@@ -174,7 +174,7 @@ def test_closure(optimizer):
 
     if optimizer_name == 'Ranger21':
         optimizer = optimizer([param], num_iterations=1)
-    elif optimizer_name in ('Muon', 'AdaMuon'):
+    elif optimizer_name in ('Muon', 'AdaMuon', 'AdaGO'):
         optimizer = optimizer([{'params': param, 'use_muon': False}])
     else:
         optimizer = optimizer([param])
@@ -464,7 +464,7 @@ def test_soap_merge_dims_channel_last(environment):
         optimizer.step()
 
 
-@pytest.mark.parametrize('optimizer_name', ['Muon', 'AdaMuon'])
+@pytest.mark.parametrize('optimizer_name', ['Muon', 'AdaMuon', 'AdaGO'])
 def test_muon_high_dimensions(optimizer_name):
     model = nn.Sequential(
         nn.Conv1d(1, 1, 1),

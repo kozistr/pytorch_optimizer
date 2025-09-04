@@ -736,6 +736,17 @@ COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], i
         },
         7,
     ),
+    (
+        AdaGO,
+        {
+            'lr': 5e-1,
+            'use_adjusted_lr': True,
+            'adamw_lr': 5e-1,
+            'adamw_betas': (0.9, 0.98),
+            'adamw_wd': 1e-2,
+        },
+        7,
+    ),
 ]
 STABLE_ADAMW_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (ADOPT, {'lr': 1e0, 'weight_decay': 1e-3, 'stable_adamw': True}, 5),
