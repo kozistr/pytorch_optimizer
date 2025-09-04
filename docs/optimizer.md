@@ -32,6 +32,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.AdaGO
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AdaHessian
     :docstring:
     :members:
