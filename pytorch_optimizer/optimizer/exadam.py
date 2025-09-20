@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
@@ -37,8 +36,6 @@ class EXAdam(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
-
-        self.sq2: float = np.sqrt(2)
 
         defaults: DEFAULTS = {
             'lr': lr,
@@ -88,8 +85,6 @@ class EXAdam(BaseOptimizer):
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2: float = self.debias(beta2, group['step'])
 
-            step_size: float = group['lr'] * np.log(np.sqrt(group['step'] + 1) * self.sq2)
-
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -128,6 +123,6 @@ class EXAdam(BaseOptimizer):
 
                 update = (m_tilde + g_tilde) / v_tilde.sqrt().add_(group['eps'])
 
-                p.add_(update, alpha=-step_size)
+                p.add_(update, alpha=-group['lr'])
 
         return loss
