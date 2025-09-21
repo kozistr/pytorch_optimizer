@@ -729,6 +729,8 @@ class EmoZeal(BaseOptimizer):
                     p.lerp_(shadow, weight=ratio)
                     shadow.lerp_(p, weight=group['shadow_weight'])
 
+                scalar = abs(scalar)
+
                 if grad.dim() >= 2:
                     exp_avg = state['exp_avg']
 
@@ -737,8 +739,6 @@ class EmoZeal(BaseOptimizer):
 
                     exp_avg.mul_(beta2).add_(grad, alpha=1.0 - beta2)
 
-                    scalar = abs(scalar)
-
                     if scalar > 0.1:
                         if scalar > 0.6:
                             direction = blended_grad.sign()
@@ -746,9 +746,8 @@ class EmoZeal(BaseOptimizer):
                             update = direction.clone()
                             update[direction != grad.sign()] = 1.0 - scalar
                         else:
-
                             update = softsign(blended_grad)
-                            update.mul_(grad_norm * (1.0 - abs(scalar)))
+                            update.mul_(grad_norm * (1.0 - scalar))
 
                         p.add_(update, alpha=-group['lr'])
 
@@ -776,6 +775,6 @@ class EmoZeal(BaseOptimizer):
 
                     update = exp_avg / de_nom
 
-                p.add_(update, alpha=-group['lr'] * (1.0 - abs(scalar)))
+                p.add_(update, alpha=-group['lr'] * (1.0 - scalar))
 
         return loss
