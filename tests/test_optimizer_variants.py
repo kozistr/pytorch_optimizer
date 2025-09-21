@@ -42,7 +42,7 @@ def test_adanorm_variant(optimizer_config):
     param = simple_parameter(True)
     param.grad = torch.ones(1, 1)
 
-    optimizer_class, config = optimizer_config[:2]
+    optimizer_class, _ = optimizer_config[:2]
 
     optimizer = optimizer_class([param], adanorm=True)
     optimizer.step()
