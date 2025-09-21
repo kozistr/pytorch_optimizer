@@ -23,7 +23,7 @@ class LitAutoEncoder(pl.LightningModule):
         opt = self.optimizers()
         opt.zero_grad()
 
-        x, y = batch
+        x, _ = batch
         x = x.view(x.size(0), -1)
 
         z = self.encoder(x)
