@@ -26,9 +26,12 @@ OPTIMIZERS_IGNORE: Tuple[str, ...] = (
     'adamc',
     'adamwsn',
     'adamuon',
+    'adago',
+    'distributedmuon',
     'splus',
+    'lbfgs',
 )
-OPTIMIZERS_MODEL_INPUT_NEEDED: Tuple[str, ...] = ('lomo', 'adalomo', 'adammini')
+OPTIMIZERS_MODEL_INPUT_NEEDED: Tuple[str, ...] = ('lomo', 'adalomo', 'adammini', 'adago')
 OPTIMIZERS_GRAPH_NEEDED: Tuple[str, ...] = ('adahessian', 'sophiah')
 OPTIMIZERS_CLOSURE_NEEDED: Tuple[str, ...] = ('alig', 'bsam')
 EVAL_PER_HYPERPARAM: int = 600
