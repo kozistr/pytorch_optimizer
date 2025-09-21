@@ -465,6 +465,7 @@ class EmoNeco(BaseOptimizer):
     :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
+    :param use_shadow: bool. whether to use shadow weights or not.
     :param shadow_weight: float. the weight of the shadow.
     :param weight_decay: float. weight decay (L2 penalty).
     :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
@@ -478,6 +479,7 @@ class EmoNeco(BaseOptimizer):
         params: PARAMETERS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.99),
+        use_shadow: bool = False,
         shadow_weight: float = 0.05,
         weight_decay: float = 1e-2,
         weight_decouple: bool = True,
@@ -497,6 +499,7 @@ class EmoNeco(BaseOptimizer):
         defaults: DEFAULTS = {
             'lr': lr,
             'betas': betas,
+            'use_shadow': use_shadow,
             'shadow_weight': shadow_weight,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
@@ -524,7 +527,8 @@ class EmoNeco(BaseOptimizer):
             state = self.state[p]
 
             if len(state) == 0:
-                state['shadow'] = p.clone()
+                if group['use_shadow']:
+                    state['shadow'] = p.clone()
                 state['exp_avg'] = torch.zeros_like(p)
 
     @torch.no_grad()
@@ -555,7 +559,7 @@ class EmoNeco(BaseOptimizer):
 
                 ema = update_ema(state, loss)
                 scalar = compute_scalar(ema)
-                ratio = get_scalar_ratio(scalar)
+                ratio = get_scalar_ratio(scalar, use_shadow=group['use_shadow'])
 
                 self.apply_weight_decay(
                     p=p,
@@ -566,7 +570,7 @@ class EmoNeco(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                if ratio > 0.0:
+                if group['use_shadow'] and ratio > 0.0:
                     shadow = state['shadow']
 
                     p.lerp_(shadow, weight=ratio)
@@ -579,15 +583,15 @@ class EmoNeco(BaseOptimizer):
 
                 exp_avg.mul_(beta2).add_(grad, alpha=1.0 - beta2)
 
-                if 0.3 < scalar <= 0.5:
-                    update = softsign(blended_grad).mul_(grad_norm)
-                elif scalar < -0.3:
-                    update = softsign(blended_grad)
+                scalar = abs(scalar)
+
+                if 0.2 < scalar <= 0.5:
+                    update = softsign(blended_grad).mul_(grad_norm * (1.0 - scalar))
                 else:
                     direction = blended_grad.sign()
 
                     update = direction.clone()
-                    update[direction != grad.sign()] = 0.0
+                    update[direction != grad.sign()] = 1.0 - scalar
 
                 p.add_(update, alpha=-group['lr'])
 
@@ -616,7 +620,7 @@ class EmoZeal(BaseOptimizer):
         params: PARAMETERS,
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
-        use_shadow: bool = True,
+        use_shadow: bool = False,
         shadow_weight: float = 0.05,
         weight_decay: float = 1e-2,
         weight_decouple: bool = True,
@@ -733,17 +737,20 @@ class EmoZeal(BaseOptimizer):
 
                     exp_avg.mul_(beta2).add_(grad, alpha=1.0 - beta2)
 
-                    if 0.3 < scalar <= 0.5:
-                        update = softsign(blended_grad).mul_(grad_norm)
-                    elif scalar < -0.3:
-                        update = softsign(blended_grad)
-                    else:
-                        direction = blended_grad.sign()
+                    scalar = abs(scalar)
 
-                        update = direction.clone()
-                        update[direction != grad.sign()] = 0.0
+                    if scalar > 0.1:
+                        if scalar > 0.6:
+                            direction = blended_grad.sign()
 
-                    p.add_(update, alpha=-group['lr'])
+                            update = direction.clone()
+                            update[direction != grad.sign()] = 1.0 - scalar
+                        else:
+
+                            update = softsign(blended_grad)
+                            update.mul_(grad_norm * (1.0 - abs(scalar)))
+
+                        p.add_(update, alpha=-group['lr'])
 
                     exp_avg_r, exp_avg_c = state['exp_avg_r'], state['exp_avg_c']
 
@@ -769,6 +776,6 @@ class EmoZeal(BaseOptimizer):
 
                     update = exp_avg / de_nom
 
-                p.add_(update, alpha=-group['lr'])
+                p.add_(update, alpha=-group['lr'] * (1.0 - abs(scalar)))
 
         return loss
