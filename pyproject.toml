@@ -13,7 +13,7 @@ keywords = [
     "pytorch", "deep-learning", "optimizer", "lr scheduler", "A2Grad", "Alice", "ASGD", "AccSGD", "AdaBelief",
     "AdaBound", "AdaDelta", "AdaFactor", "AdaGC", "AdaMax", "AdaMuon", "AdamG", "AdaMod", "AdaNorm", "AdaPNM",
     "AdaSmooth", "AdEMAMix", "Simplified-AdEMAMix", "ADOPT", "AdaHessian", "Adai", "Adalite", "AdaLomo", "AdamMini",
-    "AdamP", "AdamS", "Adan", "AggMo", "Aida", "AliG", "Amos", "Apollo", "APOLLO", "AvaGrad", "bSAM", "CAME",
+    "AdamP", "AdamS", "Adan", "AggMo", "Aida", "AliG", "Amos", "Apollo", "APOLLO", "AvaGrad", "bSAM", "CAME", "Conda",
     "DAdaptAdaGrad", "DAdaptAdam", "DAdaptAdan", "DAdaptSGD", "DAdaptLion", "DeMo", "DiffGrad", "EmoFact", "EmoLynx",
     "EmoNavi", "EmoNeco", "EmoZeal", "EXAdam", "FAdam", "Fira", "FOCUS", "FriendlySAM", "Fromage", "FTRL", "GaLore",
     "Grams", "Gravity", "GrokFast", "GSAM", "Kate", "Lamb", "LaProp", "LARS", "Lion", "LOMO", "Lookahead", "MADGRAD",
