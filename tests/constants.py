@@ -59,6 +59,7 @@ from pytorch_optimizer.optimizer import (
     Amos,
     ApolloDQN,
     AvaGrad,
+    Conda,
     DAdaptAdaGrad,
     DAdaptAdam,
     DAdaptAdan,
@@ -746,6 +747,11 @@ COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], i
             'adamw_wd': 1e-2,
         },
         7,
+    ),
+    (
+        Conda,
+        {'lr': 1e0, 'weight_decay': 1e-3, 'scale': 1.0, 'update_proj_gap': 1, 'projection_type': 'std'},
+        5,
     ),
 ]
 STABLE_ADAMW_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
