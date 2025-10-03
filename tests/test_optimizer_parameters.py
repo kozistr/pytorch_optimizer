@@ -248,7 +248,10 @@ def test_galore_methods():
     p = torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)
 
     with pytest.raises(NotImplementedError):
-        GaLoreProjector(projection_type='invalid').project(p, 1)
+        invalid_galore = GaLoreProjector(projection_type='invalid')
+        invalid_galore.ortho_matrix = p
+
+        invalid_galore.project(p, 1)
 
     with pytest.raises(NotImplementedError):
         GaLoreProjector(projection_type='invalid').project_back(p)
