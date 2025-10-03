@@ -254,6 +254,9 @@ def test_galore_methods():
         invalid_galore.project(p, 1)
 
     with pytest.raises(NotImplementedError):
+        GaLoreProjector(projection_type='invalid').project(p, 1)
+
+    with pytest.raises(NotImplementedError):
         GaLoreProjector(projection_type='invalid').project_back(p)
 
     _ = GaLoreProjector.get_orthogonal_matrix(p, 1, projection_type='left', from_random_matrix=True)
