@@ -244,16 +244,25 @@ def test_ranger_parameters():
         opt(None, k=-1)
 
 
-def test_galore_projection_type():
+def test_galore_methods():
     p = torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)
 
-    _ = GaLoreProjector.get_orthogonal_matrix(p, 1, projection_type='left', from_random_matrix=True)
+    with pytest.raises(NotImplementedError):
+        invalid_galore = GaLoreProjector(projection_type='invalid')
+        invalid_galore.ortho_matrix = p
+
+        invalid_galore.project(p, 1)
 
     with pytest.raises(NotImplementedError):
         GaLoreProjector(projection_type='invalid').project(p, 1)
 
     with pytest.raises(NotImplementedError):
         GaLoreProjector(projection_type='invalid').project_back(p)
+
+    _ = GaLoreProjector.get_orthogonal_matrix(p, 1, projection_type='left', from_random_matrix=True)
+
+    with pytest.raises(TypeError):
+        GaLoreProjector.get_orthogonal_matrix(p, None, projection_type='left', from_random_matrix=True)
 
     with pytest.raises(ValueError):
         GaLoreProjector.get_orthogonal_matrix(p, 1, projection_type='std')

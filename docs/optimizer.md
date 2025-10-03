@@ -160,6 +160,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Conda
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.DAdaptAdaGrad
     :docstring:
     :members:

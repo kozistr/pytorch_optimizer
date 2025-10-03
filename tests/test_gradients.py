@@ -61,7 +61,7 @@ def test_no_gradients(optimizer_name):
     loss = sphere_loss(p1 + p3)
     p1.grad, p3.grad = torch.autograd.grad(loss, [p1, p3], create_graph=True)
 
-    optimizer.step(lambda: 0.1)  # for AliG optimizer
+    optimizer.step(lambda: 0.1)
     optimizer.zero_grad(set_to_none=True)
 
 

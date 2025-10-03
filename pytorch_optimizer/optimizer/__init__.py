@@ -40,6 +40,7 @@ from pytorch_optimizer.optimizer.amos import Amos
 from pytorch_optimizer.optimizer.apollo import APOLLO, ApolloDQN
 from pytorch_optimizer.optimizer.avagrad import AvaGrad
 from pytorch_optimizer.optimizer.came import CAME
+from pytorch_optimizer.optimizer.conda import Conda
 from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptLion, DAdaptSGD
 from pytorch_optimizer.optimizer.demo import DeMo
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
@@ -158,6 +159,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     AvaGrad,
     BSAM,
     CAME,
+    Conda,
     DAdaptAdaGrad,
     DAdaptAdam,
     DAdaptAdan,
