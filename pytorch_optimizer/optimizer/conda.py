@@ -94,7 +94,7 @@ class Conda(BaseOptimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
 
-                if p.dim() == 2:
+                if 'update_proj_gap' in group and p.dim() == 2:
                     if 'projector' not in state:
                         state['projector'] = GaLoreProjector(
                             rank=None,
@@ -112,7 +112,7 @@ class Conda(BaseOptimizer):
 
                 norm_grad = exp_avg / de_nom
 
-                if p.dim() == 2:
+                if 'update_proj_gap' in group and p.dim() == 2:
                     norm_grad = state['projector'].project_back(norm_grad)
 
                 p.add_(norm_grad, alpha=-step_size)
