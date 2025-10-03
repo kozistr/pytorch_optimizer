@@ -83,6 +83,7 @@ from pytorch_optimizer.optimizer import (
     AdaGO,
     AdaHessian,
     Adai,
+    Conda,
     Adalite,
     AdaLOMO,
     Adam,
