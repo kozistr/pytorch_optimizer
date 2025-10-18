@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytorch_optimizer"
-version = "3.8.0"
+version = "3.8.1"
 description = "optimizer & lr scheduler & objective function collections in PyTorch"
 license = "Apache-2.0"
 authors = ["kozistr <kozistr@gmail.com>"]
@@ -61,7 +61,7 @@ black = [
     { version = "<25", python = "<3.9" },
     { version = "^25", python = ">=3.9" },
 ]
-ruff = "^0.12"
+ruff = "^0.14"
 pyright = "^1.1"
 pytest = "^8"
 pytest-cov = [
