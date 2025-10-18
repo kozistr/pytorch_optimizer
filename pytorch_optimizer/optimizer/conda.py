@@ -5,7 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
-from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
+from pytorch_optimizer.optimizer.galore_utils import PROJECTION_TYPE, GaLoreProjector
 
 
 class Conda(BaseOptimizer):
@@ -15,6 +15,9 @@ class Conda(BaseOptimizer):
     :param lr: float. learning rate.
     :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
     :param weight_decay: float. weight decay (L2 penalty).
+    :param update_proj_gap: int. update projection gap.
+    :param scale: float. galore projection scaling factor.
+    :param projection_type: PROJECTION_TYPE. the type of the projection.
     :param eps: float. term added to the denominator to improve numerical stability.
     :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
@@ -25,18 +28,31 @@ class Conda(BaseOptimizer):
         lr: float = 1e-3,
         betas: BETAS = (0.9, 0.999),
         weight_decay: float = 0.0,
+        update_proj_gap: int = 2000,
+        scale: float = 1.0,
+        projection_type: PROJECTION_TYPE = 'std',
         eps: float = 1e-8,
         maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
+        self.validate_positive(update_proj_gap, 'update_proj_gap')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps, **kwargs}
+        defaults: DEFAULTS = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'update_proj_gap': update_proj_gap,
+            'scale': scale,
+            'projection_type': projection_type,
+            'eps': eps,
+            **kwargs,
+        }
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
@@ -94,7 +110,7 @@ class Conda(BaseOptimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
 
-                if 'update_proj_gap' in group and p.dim() == 2:
+                if p.dim() == 2:
                     if 'projector' not in state:
                         state['projector'] = GaLoreProjector(
                             rank=None,
@@ -112,7 +128,7 @@ class Conda(BaseOptimizer):
 
                 norm_grad = exp_avg / de_nom
 
-                if 'update_proj_gap' in group and p.dim() == 2:
+                if p.dim() == 2:
                     norm_grad = state['projector'].project_back(norm_grad)
 
                 p.add_(norm_grad, alpha=-step_size)
