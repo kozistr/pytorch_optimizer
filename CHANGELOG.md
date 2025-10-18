@@ -1,3 +1,34 @@
+# v3.8.1
+
+## Change Log
+
+### Feature
+
+* Implement `FriendlySAM` optimizer. (#424, #434)
+    * [Friendly Sharpness-Aware Minimization](https://openaccess.thecvf.com/content/CVPR2024/papers/Li_Friendly_Sharpness-Aware_Minimization_CVPR_2024_paper.pdf) 
+* Implement `AdaGO` optimizer. (#436, #437)
+    * [AdaGrad Meets Muon: Adaptive Stepsizes for Orthogonal Updates](https://arxiv.org/abs/2509.02981) 
+* Update `EXAdam` optimizer to the latest version. (#438)
+* Update `EmoNavi` optimizer to the latest version. (#433, #439)
+* Implement `Conda` optimizer. (#440, #441)
+    * [Conda: Column-Normalized Adam for Training Large Language Models Faster](https://arxiv.org/abs/2509.24218)
+
+### Update
+
+* Accept the `GaloreProjector` parameters in the init params of the `Conda` optimizer. (#443, #444)
+
+### Bug
+
+* Fix NaN problem when grad norm is zero in StableSPAM optimizer. (#431)
+
+### Docs
+
+* Update the documentation page. (#428)
+
+## Contribution
+
+thanks to @liveck, @AhmedMostafa16
+
 # v3.8.0
 
 ## Change Log
