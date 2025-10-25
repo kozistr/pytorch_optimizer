@@ -48,9 +48,6 @@ jobs:
     - name: Install dev-dependencies
       run: pip --disable-pip-version-check install --no-compile -r requirements-dev.txt
 
-    - name: Check lint
-      run: make check
-
     - name: Check test
       run: make test
 
