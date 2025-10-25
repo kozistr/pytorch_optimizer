@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 
-from pytorch_optimizer.base.type import CLOSURE, PARAMETERS
+from pytorch_optimizer.base.type import Closure, Parameters
 from pytorch_optimizer.optimizer.utils import clip_grad_norm, has_overflow
 
 
@@ -131,7 +131,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
 
     @classmethod
     def build_fp32_params(
-        cls, parameters: PARAMETERS, flatten: bool = True
+        cls, parameters: Parameters, flatten: bool = True
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
         if flatten:
             total_param_size: int = sum(p.numel() for p in parameters)
@@ -252,7 +252,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
 
         return grad_norm
 
-    def step(self, closure: CLOSURE = None):
+    def step(self, closure: Closure = None):
         r"""Perform a single optimization step."""
         self.sync_fp16_grads_to_fp32()
         self.optimizer.step(closure)

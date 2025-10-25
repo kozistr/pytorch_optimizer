@@ -10,7 +10,7 @@ check:
 	pyright pytorch_optimizer examples
 
 test:
-	python -m pytest -p no:pastebin -p no:nose -p no:doctest -sv -vv --cov=pytorch_optimizer --cov-report=xml ./tests
+	python -m pytest -p no:pastebin -p no:nose -p no:doctest --disable-warnings -sv -vv --cov=pytorch_optimizer --cov-report=xml ./tests
 
 requirements:
 	poetry export -f requirements.txt --output requirements.txt --without-hashes

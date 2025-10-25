@@ -10,12 +10,12 @@ from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, OPTIMIZER, PARAMETERS
+from pytorch_optimizer.base.type import OPTIMIZER, Betas, Closure, Defaults, Parameters, ParamGroup
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_running_stats
 
 
-def get_global_gradient_norm(param_groups: PARAMETERS, device: torch.device) -> torch.Tensor:
+def get_global_gradient_norm(param_groups: Parameters, device: torch.device) -> torch.Tensor:
     r"""Get global gradient norm."""
     return torch.norm(
         torch.stack(
@@ -79,7 +79,7 @@ class SAM(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         base_optimizer: OPTIMIZER,
         rho: float = 0.05,
         adaptive: bool = False,
@@ -93,7 +93,7 @@ class SAM(BaseOptimizer):
         self.use_gc = use_gc
         self.perturb_eps = perturb_eps
 
-        defaults: DEFAULTS = {'rho': rho, 'adaptive': adaptive, **kwargs}
+        defaults: Defaults = {'rho': rho, 'adaptive': adaptive, **kwargs}
 
         super().__init__(params, defaults)
 
@@ -103,7 +103,7 @@ class SAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'SAM'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         pass
 
     @torch.no_grad()
@@ -147,7 +147,7 @@ class SAM(BaseOptimizer):
             self.zero_grad()
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None):
+    def step(self, closure: Closure = None):
         if closure is None:
             raise NoClosureError(str(self))
 
@@ -195,7 +195,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         base_optimizer: Optimizer,
         model: nn.Module,
         rho_scheduler,
@@ -225,7 +225,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         self.base_optimizer = base_optimizer
         self.param_groups = self.base_optimizer.param_groups
 
-        defaults: DEFAULTS = {'adaptive': adaptive, **kwargs}
+        defaults: Defaults = {'adaptive': adaptive, **kwargs}
 
         super().__init__(params, defaults)
 
@@ -234,7 +234,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
     def __str__(self) -> str:
         return 'GSAM'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         pass
 
     @torch.no_grad()
@@ -348,7 +348,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         self.forward_backward_func = get_grad
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> Tuple[torch.Tensor, float]:
+    def step(self, closure: Closure = None) -> Tuple[torch.Tensor, float]:
         get_grad: Callable = closure if closure is not None else self.forward_backward_func
 
         with self.maybe_no_sync():
@@ -396,7 +396,7 @@ class WSAM(BaseOptimizer):
     def __init__(
         self,
         model: Union[nn.Module, DistributedDataParallel],
-        params: PARAMETERS,
+        params: Parameters,
         base_optimizer: OPTIMIZER,
         rho: float = 0.05,
         gamma: float = 0.9,
@@ -414,7 +414,7 @@ class WSAM(BaseOptimizer):
 
         alpha: float = gamma / (1.0 - gamma)
 
-        defaults: DEFAULTS = {'rho': rho, 'alpha': alpha, 'adaptive': adaptive, 'sam_eps': eps, **kwargs}
+        defaults: Defaults = {'rho': rho, 'alpha': alpha, 'adaptive': adaptive, 'sam_eps': eps, **kwargs}
 
         super().__init__(params, defaults)
 
@@ -424,7 +424,7 @@ class WSAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'WSAM'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         pass
 
     @torch.no_grad()
@@ -499,7 +499,7 @@ class WSAM(BaseOptimizer):
             self.zero_grad()
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None):
+    def step(self, closure: Closure = None):
         if closure is None:
             raise NoClosureError(str(self))
 
@@ -555,10 +555,10 @@ class BSAM(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         num_data: int,
         lr: float = 5e-1,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         weight_decay: float = 1e-4,
         rho: float = 0.05,
         adaptive: bool = False,
@@ -575,7 +575,7 @@ class BSAM(BaseOptimizer):
         self.num_data = num_data
         self.damping = damping
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
@@ -589,7 +589,7 @@ class BSAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'bSAM'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -655,7 +655,7 @@ class BSAM(BaseOptimizer):
                 p.add_(momentum / s, alpha=-group['lr'])
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None):
+    def step(self, closure: Closure = None):
         if closure is None:
             raise NoClosureError(str(self))
 
@@ -725,7 +725,7 @@ class LookSAM(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         base_optimizer: OPTIMIZER,
         rho: float = 0.1,
         k: int = 10,
@@ -745,7 +745,7 @@ class LookSAM(BaseOptimizer):
         self.use_gc = use_gc
         self.perturb_eps = perturb_eps
 
-        defaults: DEFAULTS = {'rho': rho, 'adaptive': adaptive}
+        defaults: Defaults = {'rho': rho, 'adaptive': adaptive}
         defaults.update(kwargs)
 
         super().__init__(params, defaults)
@@ -756,7 +756,7 @@ class LookSAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'LookSAM'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         pass
 
     def get_step(self):
@@ -829,7 +829,7 @@ class LookSAM(BaseOptimizer):
             self.zero_grad()
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None):
+    def step(self, closure: Closure = None):
         if closure is None:
             raise NoClosureError(str(self))
 
@@ -895,7 +895,7 @@ class FriendlySAM(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         base_optimizer: OPTIMIZER,
         rho: float = 0.05,
         sigma: float = 1.0,
@@ -911,7 +911,7 @@ class FriendlySAM(BaseOptimizer):
 
         self.perturb_eps = perturb_eps
 
-        defaults: DEFAULTS = {'rho': rho, 'sigma': sigma, 'lmbda': lmbda, 'adaptive': adaptive}
+        defaults: Defaults = {'rho': rho, 'sigma': sigma, 'lmbda': lmbda, 'adaptive': adaptive}
         defaults.update(kwargs)
 
         super().__init__(params, defaults)
@@ -922,7 +922,7 @@ class FriendlySAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'FriendlySAM'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         pass
 
     @torch.no_grad()
@@ -981,7 +981,7 @@ class FriendlySAM(BaseOptimizer):
             self.zero_grad()
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None):
+    def step(self, closure: Closure = None):
         if closure is None:
             raise NoClosureError(str(self))
 

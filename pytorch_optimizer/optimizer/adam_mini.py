@@ -7,7 +7,7 @@ from torch import nn
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
 
 
 class AdamMini(BaseOptimizer):  # pragma: no cover
@@ -32,7 +32,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         self,
         model: nn.Module,
         lr: float = 1.0,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.1,
         model_sharding: bool = False,
         num_embeds: int = 2048,
@@ -66,7 +66,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
 
         groups = self.get_optimizer_groups(weight_decay)
 
-        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'eps': eps, **kwargs}
+        defaults: Defaults = {'lr': lr, 'betas': betas, 'eps': eps, **kwargs}
 
         super().__init__(groups, defaults)
 
@@ -96,7 +96,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
 
         return groups
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         pass
 
     @staticmethod
@@ -258,8 +258,8 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         p.add_(update, alpha=-lr)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

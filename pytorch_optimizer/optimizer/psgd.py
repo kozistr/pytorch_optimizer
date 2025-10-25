@@ -7,7 +7,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Closure, Loss, Parameters, ParamGroup
 from pytorch_optimizer.optimizer.psgd_utils import norm_lower_bound
 
 MEMORY_SAVE_MODE_TYPE = Literal['one_diag', 'smart_one_diag', 'all_diag']
@@ -61,7 +61,7 @@ class Kron(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
@@ -111,12 +111,12 @@ class Kron(BaseOptimizer):
     def __str__(self) -> str:
         return 'Kron'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         pass
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

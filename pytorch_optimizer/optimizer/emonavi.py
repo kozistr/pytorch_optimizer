@@ -6,7 +6,7 @@ from torch.nn.functional import softsign
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
 
 
 def update_ema(state: Dict, loss: Union[float, torch.Tensor]) -> Dict[str, float]:
@@ -56,9 +56,9 @@ class EmoNavi(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         shadow_weight: float = 0.05,
         weight_decay: float = 1e-2,
         weight_decouple: bool = True,
@@ -75,7 +75,7 @@ class EmoNavi(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'shadow_weight': shadow_weight,
@@ -90,7 +90,7 @@ class EmoNavi(BaseOptimizer):
     def __str__(self) -> str:
         return 'EmoNavi'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -110,7 +110,7 @@ class EmoNavi(BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: Closure = None) -> Loss:
         loss = 0.0
         if closure is not None:
             with torch.enable_grad():
@@ -186,9 +186,9 @@ class EmoLynx(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
-        betas: BETAS = (0.9, 0.99),
+        betas: Betas = (0.9, 0.99),
         use_shadow: bool = False,
         shadow_weight: float = 0.05,
         weight_decay: float = 1e-2,
@@ -206,7 +206,7 @@ class EmoLynx(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'use_shadow': use_shadow,
@@ -222,7 +222,7 @@ class EmoLynx(BaseOptimizer):
     def __str__(self) -> str:
         return 'EmoLynx'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -242,7 +242,7 @@ class EmoLynx(BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: Closure = None) -> Loss:
         loss = 0.0
         if closure is not None:
             with torch.enable_grad():
@@ -315,9 +315,9 @@ class EmoFact(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         use_shadow: bool = False,
         shadow_weight: float = 0.05,
         weight_decay: float = 1e-2,
@@ -335,7 +335,7 @@ class EmoFact(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'use_shadow': use_shadow,
@@ -351,7 +351,7 @@ class EmoFact(BaseOptimizer):
     def __str__(self) -> str:
         return 'EmoFact'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -382,7 +382,7 @@ class EmoFact(BaseOptimizer):
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: Closure = None) -> Loss:
         loss = 0.0
         if closure is not None:
             with torch.enable_grad():
@@ -476,9 +476,9 @@ class EmoNeco(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
-        betas: BETAS = (0.9, 0.99),
+        betas: Betas = (0.9, 0.99),
         use_shadow: bool = False,
         shadow_weight: float = 0.05,
         weight_decay: float = 1e-2,
@@ -496,7 +496,7 @@ class EmoNeco(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'use_shadow': use_shadow,
@@ -512,7 +512,7 @@ class EmoNeco(BaseOptimizer):
     def __str__(self) -> str:
         return 'EmoNeco'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -532,7 +532,7 @@ class EmoNeco(BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: Closure = None) -> Loss:
         loss = 0.0
         if closure is not None:
             with torch.enable_grad():
@@ -617,9 +617,9 @@ class EmoZeal(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         use_shadow: bool = False,
         shadow_weight: float = 0.05,
         weight_decay: float = 1e-2,
@@ -639,7 +639,7 @@ class EmoZeal(BaseOptimizer):
 
         self.alpha_prev: float = 1.0
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'use_shadow': use_shadow,
@@ -655,7 +655,7 @@ class EmoZeal(BaseOptimizer):
     def __str__(self) -> str:
         return 'EmoZeal'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -685,7 +685,7 @@ class EmoZeal(BaseOptimizer):
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: Closure = None) -> Loss:
         loss = 0.0
         if closure is not None:
             with torch.enable_grad():

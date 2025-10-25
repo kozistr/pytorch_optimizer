@@ -7,14 +7,14 @@ from torch.optim import Optimizer
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import (
-    BETAS,
-    CLOSURE,
-    DEFAULTS,
-    GROUP,
-    LOSS,
     OPTIMIZER_INSTANCE_OR_CLASS,
-    PARAMETERS,
-    STATE,
+    Betas,
+    Closure,
+    Defaults,
+    Loss,
+    Parameters,
+    ParamGroup,
+    State,
 )
 
 
@@ -35,7 +35,7 @@ class ScheduleFreeSGD(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1.0,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
@@ -53,7 +53,7 @@ class ScheduleFreeSGD(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'momentum': momentum,
             'weight_decay': weight_decay,
@@ -93,7 +93,7 @@ class ScheduleFreeSGD(BaseOptimizer):
                         p.data.lerp_(end=state['z'], weight=1.0 - momentum)
                 group['train_mode'] = True
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -108,8 +108,8 @@ class ScheduleFreeSGD(BaseOptimizer):
                 state['z'] = p.clone()
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -184,9 +184,9 @@ class ScheduleFreeAdamW(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 2.5e-3,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,
         r: float = 0.0,
         weight_lr_power: float = 2.0,
@@ -205,7 +205,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
@@ -248,7 +248,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
                         p.data.lerp_(end=state['z'], weight=1.0 - beta1)
                 group['train_mode'] = True
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -264,8 +264,8 @@ class ScheduleFreeAdamW(BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -357,9 +357,9 @@ class ScheduleFreeRAdam(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 2.5e-3,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,
         r: float = 0.0,
         weight_lr_power: float = 2.0,
@@ -375,7 +375,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
@@ -414,7 +414,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
                         p.data.lerp_(end=state['z'], weight=1.0 - beta1)
                 group['train_mode'] = True
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -430,8 +430,8 @@ class ScheduleFreeRAdam(BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -553,8 +553,8 @@ class ScheduleFreeWrapper(BaseOptimizer):
         self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
 
-        self.state: STATE = defaultdict(dict)
-        self.defaults: DEFAULTS = self.optimizer.defaults
+        self.state: State = defaultdict(dict)
+        self.defaults: Defaults = self.optimizer.defaults
 
     def __str__(self) -> str:
         return 'ScheduleFree'
@@ -569,10 +569,10 @@ class ScheduleFreeWrapper(BaseOptimizer):
     def add_param_group(self, param_group):
         return self.optimizer.add_param_group(param_group)
 
-    def state_dict(self) -> STATE:
+    def state_dict(self) -> State:
         return {'schedulefree_state': self.state, 'base_optimizer': self.optimizer.state_dict()}
 
-    def load_state_dict(self, state: STATE) -> None:
+    def load_state_dict(self, state: State) -> None:
         r"""Load state."""
         self.state = state['schedulefree_state']
         self.optimizer.load_state_dict(state['base_optimizer'])
@@ -606,7 +606,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
 
         self.train_mode = True
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -627,11 +627,11 @@ class ScheduleFreeWrapper(BaseOptimizer):
         x.view(torch.uint8).bitwise_xor_(y.view(torch.uint8))
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: Closure = None) -> Loss:
         if not self.train_mode:
             raise ValueError('optimizer was not in train mode when step is called. call .train() before training')
 
-        loss: LOSS = None
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

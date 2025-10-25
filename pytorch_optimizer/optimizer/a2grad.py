@@ -5,7 +5,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
 
 VARIANTS = Literal['uni', 'inc', 'exp']
 
@@ -24,7 +24,7 @@ class A2Grad(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: Optional[float] = None,
         beta: float = 10.0,
         lips: float = 10.0,
@@ -41,7 +41,7 @@ class A2Grad(BaseOptimizer):
         self.variant = variant
         self.maximize = maximize
 
-        defaults: DEFAULTS = {'beta': beta, 'lips': lips}
+        defaults: Defaults = {'beta': beta, 'lips': lips}
         if variant == 'exp':
             defaults.update({'rho': rho})
 
@@ -50,7 +50,7 @@ class A2Grad(BaseOptimizer):
     def __str__(self) -> str:
         return 'A2Grad'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -73,8 +73,8 @@ class A2Grad(BaseOptimizer):
                     state['v_kk'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

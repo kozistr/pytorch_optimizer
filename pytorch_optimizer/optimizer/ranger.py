@@ -2,7 +2,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 
 
@@ -25,9 +25,9 @@ class Ranger(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
-        betas: BETAS = (0.95, 0.999),
+        betas: Betas = (0.95, 0.999),
         alpha: float = 0.5,
         k: int = 6,
         n_sma_threshold: int = 5,
@@ -54,7 +54,7 @@ class Ranger(BaseOptimizer):
         self.gc_gradient_threshold: int = 3 if gc_conv_only else 1
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'alpha': alpha,
@@ -72,7 +72,7 @@ class Ranger(BaseOptimizer):
     def __str__(self) -> str:
         return 'Ranger'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -92,8 +92,8 @@ class Ranger(BaseOptimizer):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

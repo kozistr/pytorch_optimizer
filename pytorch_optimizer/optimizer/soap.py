@@ -6,7 +6,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DATA_FORMAT, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import DATA_FORMAT, Betas, Closure, Defaults, Loss, Parameters, ParamGroup
 from pytorch_optimizer.optimizer.shampoo_utils import merge_small_dims
 
 
@@ -32,9 +32,9 @@ class SOAP(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 3e-3,
-        betas: BETAS = (0.95, 0.95),
+        betas: Betas = (0.95, 0.95),
         shampoo_beta: Optional[float] = None,
         weight_decay: float = 1e-2,
         precondition_frequency: int = 10,
@@ -59,7 +59,7 @@ class SOAP(BaseOptimizer):
         self.data_format = data_format
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'shampoo_beta': shampoo_beta,
@@ -78,7 +78,7 @@ class SOAP(BaseOptimizer):
     def __str__(self) -> str:
         return 'SOAP'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         _, beta2 = group['betas']
 
         for p in group['params']:
@@ -278,8 +278,8 @@ class SOAP(BaseOptimizer):
             state['Q'] = self.get_orthogonal_matrix_qr(state, max_precondition_dim, merge_dims)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

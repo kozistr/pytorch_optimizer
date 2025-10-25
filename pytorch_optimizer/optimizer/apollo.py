@@ -6,7 +6,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
 from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
 
 SCALE_TYPE = Literal['channel', 'tensor']
@@ -29,7 +29,7 @@ class ApolloDQN(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-2,
         init_lr: Optional[float] = 1e-5,
         beta: float = 0.9,
@@ -53,7 +53,7 @@ class ApolloDQN(BaseOptimizer):
         self.init_lr: float = init_lr if init_lr is not None else lr / 1000.0
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'init_lr': self.init_lr,
             'beta': beta,
@@ -68,7 +68,7 @@ class ApolloDQN(BaseOptimizer):
     def __str__(self) -> str:
         return 'ApolloDQN'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -85,8 +85,8 @@ class ApolloDQN(BaseOptimizer):
                 state['update'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -176,9 +176,9 @@ class APOLLO(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-2,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         scale_type: SCALE_TYPE = 'tensor',
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -195,7 +195,7 @@ class APOLLO(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'scale_type': scale_type,
@@ -212,7 +212,7 @@ class APOLLO(BaseOptimizer):
     def __str__(self) -> str:
         return 'APOLLO'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -228,8 +228,8 @@ class APOLLO(BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

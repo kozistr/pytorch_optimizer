@@ -8,7 +8,7 @@ from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Betas, Closure, Loss, Parameters, ParamGroup
 from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 
 
@@ -79,7 +79,7 @@ class Muon(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 2e-2,
         momentum: float = 0.95,
         weight_decay: float = 0.0,
@@ -88,7 +88,7 @@ class Muon(BaseOptimizer):
         ns_steps: int = 5,
         use_adjusted_lr: bool = False,
         adamw_lr: float = 3e-4,
-        adamw_betas: BETAS = (0.9, 0.95),
+        adamw_betas: Betas = (0.9, 0.95),
         adamw_wd: float = 0.0,
         adamw_eps: float = 1e-10,
         maximize: bool = False,
@@ -129,7 +129,7 @@ class Muon(BaseOptimizer):
     def __str__(self) -> str:
         return 'Muon'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -151,8 +151,8 @@ class Muon(BaseOptimizer):
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -270,7 +270,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 2e-2,
         momentum: float = 0.95,
         weight_decay: float = 0.0,
@@ -279,7 +279,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
         ns_steps: int = 5,
         use_adjusted_lr: bool = False,
         adamw_lr: float = 3e-4,
-        adamw_betas: BETAS = (0.9, 0.95),
+        adamw_betas: Betas = (0.9, 0.95),
         adamw_wd: float = 0.0,
         adamw_eps: float = 1e-10,
         maximize: bool = False,
@@ -323,7 +323,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
     def __str__(self) -> str:
         return 'DistributedMuon'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 p.grad = torch.zeros_like(p)
@@ -342,8 +342,8 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -472,15 +472,15 @@ class AdaMuon(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 2e-2,
-        betas: BETAS = (0.9, 0.95),
+        betas: Betas = (0.9, 0.95),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
         ns_steps: int = 5,
         use_adjusted_lr: bool = False,
         adamw_lr: float = 3e-4,
-        adamw_betas: BETAS = (0.9, 0.999),
+        adamw_betas: Betas = (0.9, 0.999),
         adamw_wd: float = 0.0,
         eps: float = 1e-10,
         maximize: bool = False,
@@ -520,7 +520,7 @@ class AdaMuon(BaseOptimizer):
     def __str__(self) -> str:
         return 'AdaMuon'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -543,8 +543,8 @@ class AdaMuon(BaseOptimizer):
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -670,7 +670,7 @@ class AdaGO(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 5e-2,
         momentum: float = 0.95,
         weight_decay: float = 0.0,
@@ -682,7 +682,7 @@ class AdaGO(BaseOptimizer):
         ns_steps: int = 5,
         use_adjusted_lr: bool = False,
         adamw_lr: float = 3e-4,
-        adamw_betas: BETAS = (0.9, 0.95),
+        adamw_betas: Betas = (0.9, 0.95),
         adamw_wd: float = 0.0,
         adamw_eps: float = 1e-10,
         maximize: bool = False,
@@ -729,7 +729,7 @@ class AdaGO(BaseOptimizer):
     def __str__(self) -> str:
         return 'AdaGO'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -752,8 +752,8 @@ class AdaGO(BaseOptimizer):
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -852,7 +852,7 @@ def prepare_muon_parameters(
             else:
                 non_muon_params.append(param)
 
-    param_groups: PARAMETERS = [
+    param_groups: Parameters = [
         {'params': muon_parameters, 'lr': lr, 'weight_decay': weight_decay, 'use_muon': True},
         {'params': non_muon_params, 'lr': adamw_lr, 'weight_decay': adamw_wd, 'use_muon': False},
     ]

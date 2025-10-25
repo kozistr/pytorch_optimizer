@@ -5,7 +5,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
 
 
 class ADOPT(BaseOptimizer):
@@ -24,9 +24,9 @@ class ADOPT(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
-        betas: BETAS = (0.9, 0.9999),
+        betas: Betas = (0.9, 0.9999),
         clip_lambda: Callable[[float], float] = lambda step: math.pow(step, 0.25),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
@@ -43,7 +43,7 @@ class ADOPT(BaseOptimizer):
         self.clip_lambda = clip_lambda
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
@@ -58,7 +58,7 @@ class ADOPT(BaseOptimizer):
     def __str__(self) -> str:
         return 'ADOPT'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -74,8 +74,8 @@ class ADOPT(BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

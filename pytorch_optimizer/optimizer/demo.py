@@ -7,7 +7,7 @@ from torch.distributed import ProcessGroup, all_gather, get_world_size
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Closure, Loss, Parameters
 
 HAS_EINOPS: bool = find_spec('einops') is not None
 
@@ -294,7 +294,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
         compression_decay: float = 0.999,
         compression_top_k: int = 32,
@@ -387,7 +387,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
         pass
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: Closure = None) -> Loss:
         self.data_transmit = 0
         self.data_receive = 0
 
