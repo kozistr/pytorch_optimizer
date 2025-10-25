@@ -6,9 +6,21 @@ on:
       - 'v*'
 
 jobs:
+
+  get-version:
+    name: Get Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+    steps:
+      - name: Extract tag version
+        id: extract
+        run: echo "version=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
+
   prepend-changelog:
     name: Prepend Change Log
     runs-on: ubuntu-latest
+    needs: get-version
 
     permissions:
       contents: write
@@ -18,38 +30,37 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get the version
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
-
       - name: Prepend changelog to CHANGELOG.md
         run: |
-          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          VERSION="${{ needs.get-version.outputs.version }}"
           CHANGELOG_FILE="docs/changelogs/$VERSION.md"
-          MAIN_CHANGELOG="CHANGELOG.md"
 
           if [ ! -f "$CHANGELOG_FILE" ]; then
             echo "No changelog found for $VERSION"
             exit 1
           fi
 
+          MAIN_CHANGELOG="CHANGELOG.md"
           TMP_FILE=$(mktemp)
 
-          echo "# $VERSION" > "$TMP_FILE"
-          echo "" >> "$TMP_FILE"
-          cat "$CHANGELOG_FILE" >> "$TMP_FILE"
-          echo "" >> "$TMP_FILE"
-          cat "$MAIN_CHANGELOG" >> "$TMP_FILE"
+          {
+            echo "# $VERSION"
+            echo
+            cat "$CHANGELOG_FILE"
+            echo
+            cat "$MAIN_CHANGELOG"
+          } > "$TMP_FILE"
+
           mv "$TMP_FILE" "$MAIN_CHANGELOG"
 
       - name: Create Pull Request
         id: create_pull_request
         uses: peter-evans/create-pull-request@v6
         with:
-          branch: "docs/changelog-update-${{ steps.get_version.outputs.VERSION }}"
-          commit-message: "[skip ci] docs: prepend changelog for ${{ steps.get_version.outputs.VERSION }}"
-          title: "[Docs] Prepend changelog for ${{ steps.get_version.outputs.VERSION }}"
-          body: "Automated changelog update for ${{ steps.get_version.outputs.VERSION }}"
+          branch: "docs/changelog-update-${{ needs.get-version.outputs.version }}"
+          commit-message: "[skip ci] docs: prepend changelog for ${{ needs.get-version.outputs.version }}"
+          title: "[Docs] Prepend changelog for ${{ needs.get-version.outputs.version }}"
+          body: "Automated changelog update for ${{ needs.get-version.outputs.version }}"
           base: main
           delete-branch: true
           labels: automerge
@@ -58,13 +69,10 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+    needs: [get-version, prepend-changelog]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Get the version
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
 
       - name: Create release
         id: create_release
@@ -74,14 +82,14 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: pytorch-optimizer ${{ github.ref }}
-          body_path: docs/changelogs/${{ steps.get_version.outputs.VERSION }}.md
+          body_path: docs/changelogs/${{ needs.get-version.outputs.version }}.md
           draft: false
           prerelease: false
 
   deploy:
     name: Deploy
-    needs: release
     runs-on: ubuntu-latest
+    needs: release
     steps:
       - uses: actions/checkout@v4
 
