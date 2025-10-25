@@ -1,8 +1,9 @@
 class NoSparseGradientError(Exception):
-    """Raised when the gradient is sparse gradient.
+    r"""Raised when the gradient is sparse gradient.
 
-    :param optimizer_name: str. optimizer name.
-    :param note: str. special conditions to note (default '').
+    Args:
+        optimizer_name (str): The name of the optimizer where the error occurred.
+        note (str): Additional special conditions or notes (default is an empty string).
     """
 
     def __init__(self, optimizer_name: str, note: str = ''):
@@ -46,10 +47,11 @@ class NegativeStepError(Exception):
 
 
 class NoComplexParameterError(Exception):
-    """Raised when the dtype of the parameter is complex.
+    r"""Raised when the dtype of the parameter is complex.
 
-    :param optimizer_name: str. optimizer name.
-    :param note: str. special conditions to note (default '').
+    Args:
+        optimizer_name (str): The name of the optimizer where the error occurred.
+        note (str): Additional special conditions or notes (default is an empty string).
     """
 
     def __init__(self, optimizer_name: str, note: str = ''):

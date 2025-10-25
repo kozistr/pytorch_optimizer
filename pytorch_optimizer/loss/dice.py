@@ -14,13 +14,14 @@ def soft_dice_score(
     eps: float = 1e-6,
     dims: Optional[Tuple[int, ...]] = None,
 ) -> torch.Tensor:
-    r"""Get soft dice score.
+    """Get soft dice score.
 
-    :param output: torch.Tensor. predicted segments.
-    :param target. torch.Tensor. ground truth segments.
-    :param label_smooth: float. label smoothing factor.
-    :param eps: float. epsilon.
-    :param dims: Optional[Tuple[int, ...]]. target dimensions to reduce.
+    Args:
+        output (torch.Tensor): Predicted segmentation probabilities.
+        target (torch.Tensor): Ground truth segmentation masks.
+        label_smooth (float): Label smoothing factor to avoid zero denominators.
+        eps (float): Small epsilon for numerical stability.
+        dims (Optional[Tuple[int, ...]]): Dimensions over which to reduce when computing score.
     """
     if dims is not None:
         intersection = torch.sum(output * target, dim=dims)
@@ -33,18 +34,20 @@ def soft_dice_score(
 
 
 class DiceLoss(_Loss):
-    r"""Dice loss for image segmentation task. It supports binary, multiclass and multilabel cases.
+    """Dice loss for image segmentation task.
 
-    Reference : https://github.com/BloodAxe/pytorch-toolbelt
+    Reference:
+        https://github.com/BloodAxe/pytorch-toolbelt
 
-    :param mode: CLASS_MODE. loss mode 'binary', 'multiclass', or 'multilabel.
-    :param classes: Optional[List[int]]. List of classes that contribute in loss computation. By default,
-        all channels are included.
-    :param log_loss: bool. If True, loss computed as `-log(dice_coeff)`, otherwise `1 - dice_coeff`.
-    :param from_logits: bool. If True, assumes input is raw logits.
-    :param label_smooth: float. Smoothness constant for dice coefficient (a).
-    :param ignore_index: Optional[int]. Label that indicates ignored pixels (does not contribute to loss).
-    :param eps: float. epsilon.
+    Args:
+        mode (CLASS_MODE): Loss mode - 'binary', 'multiclass', or 'multilabel'.
+        classes (Optional[List[int]]): List of classes to include in loss computation.
+            Defaults to all classes.
+        log_loss (bool): If True, loss is computed as `-log(dice_coeff)`; otherwise `1 - dice_coeff`.
+        from_logits (bool): If True, assumes input is raw logits.
+        label_smooth (float): Smoothness constant for dice coefficient numerator and denominator.
+        ignore_index (Optional[int]): Label to ignore during loss computation.
+        eps (float): Small epsilon for numerical stability.
     """
 
     def __init__(
@@ -61,7 +64,7 @@ class DiceLoss(_Loss):
 
         if classes is not None:
             if mode == 'binary':
-                raise ValueError('[-] Masking classes is not supported with mode=binary')
+                raise ValueError('masking classes is not supported with mode=binary')
 
             classes = torch.LongTensor(classes)
 

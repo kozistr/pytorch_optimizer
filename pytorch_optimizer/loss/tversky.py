@@ -3,11 +3,12 @@ from torch import nn
 
 
 class TverskyLoss(nn.Module):
-    r"""Tversky Loss w/ logits input.
+    """Tversky Loss with logits input.
 
-    :param alpha: float. alpha.
-    :param beta: float. beta.
-    :param smooth: float. smooth factor.
+    Args:
+        alpha (float): Weight of false positives.
+        beta (float): Weight of false negatives.
+        smooth (float): Small constant to avoid division by zero.
     """
 
     def __init__(self, alpha: float = 0.5, beta: float = 0.5, smooth: float = 1e-6):

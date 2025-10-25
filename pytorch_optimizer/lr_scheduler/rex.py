@@ -5,12 +5,13 @@ from torch.optim.lr_scheduler import LRScheduler
 
 
 class REXScheduler(LRScheduler):
-    r"""Revisiting Budgeted Training with an Improved Schedule.
+    """Revisiting Budgeted Training with an Improved Schedule.
 
-    :param optimizer: Optimizer. wrapped optimizer instance.
-    :param total_steps: int. number of steps to optimize.
-    :param max_lr: float. max lr.
-    :param min_lr: float. min lr.
+    Args:
+        optimizer (Optimizer): Wrapped optimizer instance.
+        total_steps (int): Number of steps to optimize.
+        max_lr (float): Maximum learning rate.
+        min_lr (float): Minimum learning rate.
     """
 
     def __init__(
