@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Iterable, Literal, Optional, Tuple, Type, TypeAlias, Union
+from typing import Any, Callable, Dict, Iterable, Literal, Optional, Tuple, Type, Union
 
 import torch
 from torch.optim import Optimizer
@@ -7,7 +7,7 @@ from torch.optim.lr_scheduler import LRScheduler
 try:
     from torch.optim.optimizer import ParamsT
 except (ImportError, TypeError):
-    ParamsT: TypeAlias = Union[Iterable[torch.Tensor], Iterable[Dict[str, Any]]]
+    ParamsT = Union[Iterable[torch.Tensor], Iterable[Dict[str, Any]]]
 
 OPTIMIZER = Type[Optimizer]
 OPTIMIZER_INSTANCE_OR_CLASS = Union[OPTIMIZER, Optimizer]
