@@ -43,13 +43,12 @@ class SAM(BaseOptimizer):
         kwargs (Dict): parameters for optimizer.
 
     Example:
+        ```python
         model = YourModel()
         base_optimizer = Ranger21
         optimizer = SAM(model.parameters(), base_optimizer)
-
         for input, output in data:
             # first forward-backward pass
-
             loss = loss_function(output, model(input))
             loss.backward()
             optimizer.first_step(zero_grad=True)
@@ -75,6 +74,7 @@ class SAM(BaseOptimizer):
             loss.backward()
             optimizer.step(closure)
             optimizer.zero_grad()
+        ```
     """
 
     def __init__(
@@ -177,6 +177,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         kwargs (Dict): parameters for optimizer.
 
     Example:
+        ```python
         model = YourModel()
         base_optimizer = AdamP(model.parameters())
         lr_scheduler = LinearScheduler(base_optimizer, t_max=num_total_steps)
@@ -191,6 +192,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
             predictions, loss = optimizer.step()
             lr_scheduler.step()
             optimizer.update_rho_t()
+        ```
     """
 
     def __init__(
@@ -540,6 +542,7 @@ class BSAM(BaseOptimizer):
         kwargs (Dict): parameters for optimizer.
 
     Example:
+        ```python
         model = YourModel()
         optimizer = BSAM(model.parameters(), ...)
 
@@ -554,6 +557,7 @@ class BSAM(BaseOptimizer):
 
             optimizer.step(closure)
             optimizer.zero_grad()
+        ```
     """
 
     def __init__(
@@ -694,6 +698,7 @@ class LookSAM(BaseOptimizer):
         kwargs (Dict): Additional parameters for optimizer.
 
     Example:
+        ```python
         model = YourModel()
         base_optimizer = Ranger21
         optimizer = LookSAM(model.parameters(), base_optimizer)
@@ -726,6 +731,7 @@ class LookSAM(BaseOptimizer):
             loss.backward()
             optimizer.step(closure)
             optimizer.zero_grad()
+        ```
     """
 
     def __init__(
@@ -864,6 +870,7 @@ class FriendlySAM(BaseOptimizer):
         kwargs (Dict): parameters for optimizer.
 
     Example:
+        ```python
         model = YourModel()
         base_optimizer = Ranger21
         optimizer = FriendlySAM(model.parameters(), base_optimizer)
@@ -896,6 +903,7 @@ class FriendlySAM(BaseOptimizer):
             loss.backward()
             optimizer.step(closure)
             optimizer.zero_grad()
+        ```
     """
 
     def __init__(
