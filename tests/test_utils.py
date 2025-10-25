@@ -45,6 +45,20 @@ from pytorch_optimizer.optimizer.utils import (
 from tests.utils import Example, build_orthograd
 
 
+def test_version_utils():
+    with pytest.raises(ValueError):
+        parse_pytorch_version('a.s.d.f')
+
+    python_version = sys.version_info
+
+    if python_version.minor < 9:
+        assert parse_pytorch_version(torch.__version__) == [2, 4, 1]
+    else:
+        assert parse_pytorch_version(torch.__version__) == [2, 9, 0]
+
+    assert compare_versions('2.9.0', '2.4.0') >= 0
+
+
 def test_has_overflow():
     assert has_overflow(torch.tensor(torch.inf))
     assert has_overflow(torch.tensor(-torch.inf))
@@ -247,20 +261,6 @@ def test_emcmc():
 
     loss = reg_noise(network1, network2, int(5e4), 1e-1).detach().numpy()
     np.testing.assert_almost_equal(loss, 0.0011383)
-
-
-def test_version_utils():
-    with pytest.raises(ValueError):
-        parse_pytorch_version('a.s.d.f')
-
-    python_version = sys.version_info
-
-    if python_version.minor < 9:
-        assert parse_pytorch_version(torch.__version__) == [2, 4, 1]
-    else:
-        assert parse_pytorch_version(torch.__version__) == [2, 8, 0]
-
-    assert compare_versions('2.7.0', '2.4.0') >= 0
 
 
 def test_cpu_offload_optimizer():
