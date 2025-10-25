@@ -16,7 +16,7 @@ from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_runn
 
 
 def get_global_gradient_norm(param_groups: Parameters, device: torch.device) -> torch.Tensor:
-    r"""Get global gradient norm."""
+    """Get global gradient norm."""
     return torch.norm(
         torch.stack(
             [
@@ -31,10 +31,18 @@ def get_global_gradient_norm(param_groups: Parameters, device: torch.device) -> 
 
 
 class SAM(BaseOptimizer):
-    r"""Sharpness-Aware Minimization for Efficiently Improving Generalization.
+    """Sharpness-Aware Minimization for Efficiently Improving Generalization.
+
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        base_optimizer (Optimizer): base optimizer.
+        rho (float): size of the neighborhood for computing the max loss.
+        adaptive (bool): element-wise Adaptive SAM.
+        use_gc (bool): perform gradient centralization, GCSAM variant.
+        perturb_eps (float): eps for perturbation.
+        kwargs (Dict): parameters for optimizer.
 
     Example:
-    -------
         model = YourModel()
         base_optimizer = Ranger21
         optimizer = SAM(model.parameters(), base_optimizer)
@@ -67,14 +75,6 @@ class SAM(BaseOptimizer):
             loss.backward()
             optimizer.step(closure)
             optimizer.zero_grad()
-
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param base_optimizer: OPTIMIZER. base optimizer.
-    :param rho: float. size of the neighborhood for computing the max loss.
-    :param adaptive: bool. element-wise Adaptive SAM.
-    :param use_gc: bool. perform gradient centralization, GCSAM variant.
-    :param perturb_eps: float. eps for perturbation.
-    :param kwargs: Dict. parameters for optimizer.
     """
 
     def __init__(
@@ -164,10 +164,19 @@ class SAM(BaseOptimizer):
 
 
 class GSAM(BaseOptimizer):  # pragma: no cover
-    r"""Surrogate Gap Guided Sharpness-Aware Minimization.
+    """Surrogate Gap Guided Sharpness-Aware Minimization.
+
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        base_optimizer (Optimizer): base optimizer.
+        model (nn.Module): model.
+        alpha (float): rho alpha.
+        rho_scheduler (Scheduler): rho scheduler.
+        adaptive (bool): element-wise Adaptive SAM.
+        perturb_eps (float): epsilon for perturbation.
+        kwargs (Dict): parameters for optimizer.
 
     Example:
-    -------
         model = YourModel()
         base_optimizer = AdamP(model.parameters())
         lr_scheduler = LinearScheduler(base_optimizer, t_max=num_total_steps)
@@ -182,15 +191,6 @@ class GSAM(BaseOptimizer):  # pragma: no cover
             predictions, loss = optimizer.step()
             lr_scheduler.step()
             optimizer.update_rho_t()
-
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param base_optimizer: Optimizer. base optimizer.
-    :param model: nn.Module. model.
-    :param alpha: float. rho alpha.
-    :param rho_scheduler: rho scheduler.
-    :param adaptive: bool. element-wise Adaptive SAM.
-    :param perturb_eps: float. epsilon for perturbation.
-    :param kwargs: Dict. parameters for optimizer.
     """
 
     def __init__(
@@ -323,15 +323,17 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
     @torch.no_grad()
     def set_closure(self, loss_fn: nn.Module, inputs: torch.Tensor, targets: torch.Tensor, **kwargs) -> None:
-        r"""Set closure.
+        """Set closure.
 
-            Create `self.forward_backward_func`, which is a function such that `self.forward_backward_func()`
-            automatically performs forward and backward passes. This function does not take any arguments,
-            and the inputs and targets data should be pre-set in the definition of partial-function.
+        Create `self.forward_backward_func`, which is a function such that `self.forward_backward_func()`
+        automatically performs forward and backward passes. This function does not take any arguments,
+        and the inputs and targets data should be pre-set in the definition of partial-function.
 
-        :param loss_fn: nn.Module. loss function.
-        :param inputs: torch.Tensor. inputs.
-        :param targets: torch.Tensor. targets.
+        Args:
+            loss_fn (nn.Module): loss function.
+            inputs (torch.Tensor): inputs.
+            targets (torch.Tensor): targets.
+            **kwargs: keyword arguments.
         """
 
         def get_grad() -> Tuple[Any, torch.Tensor]:
@@ -378,19 +380,20 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
 
 class WSAM(BaseOptimizer):
-    r"""Sharpness-Aware Minimization Revisited: Weighted Sharpness as a Regularization Term.
+    """Sharpness-Aware Minimization Revisited: Weighted Sharpness as a Regularization Term.
 
-    :param model: Union[torch.nn.Module, torch.nn.DataParallel]. the model instance. DDP model is recommended to make
-        `model.no_sync` to work.
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param base_optimizer: Optimizer. base optimizer.
-    :param rho: float. size of the neighborhood for computing the max loss.
-    :param gamma: float. weighted factor gamma / (1 - gamma) of the sharpness term. 0.8 ~ 0.95 is the optimal.
-    :param adaptive: bool. element-wise adaptive SAM.
-    :param decouple: bool. whether to perform a decoupled sharpness regularization.
-    :param max_norm: Optional[float]. max norm of the gradients.
-    :param eps: float. term added to the denominator of WSAM to improve numerical stability.
-    :param kwargs: Dict. parameters for optimizer.
+    Args:
+        model (Union[torch.nn.Module, torch.nn.DataParallel]): the model instance. DDP model is recommended to make
+            `model.no_sync` to work.
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        base_optimizer (Optimizer): base optimizer.
+        rho (float): size of the neighborhood for computing the max loss.
+        gamma (float): weighted factor gamma / (1 - gamma) of the sharpness term. 0.8 ~ 0.95 is the optimal.
+        adaptive (bool): element-wise adaptive SAM.
+        decouple (bool): whether to perform a decoupled sharpness regularization.
+        max_norm (Optional[float]): max norm of the gradients.
+        eps (float): term added to the denominator of WSAM to improve numerical stability.
+        kwargs (Dict): parameters for optimizer.
     """
 
     def __init__(
@@ -523,10 +526,20 @@ class WSAM(BaseOptimizer):
 
 
 class BSAM(BaseOptimizer):
-    r"""SAM as an Optimal Relaxation of Bayes.
+    """SAM as an Optimal Relaxation of Bayes.
+
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        num_data (int): number of training data.
+        lr (float): learning rate.
+        betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
+        weight_decay (float): weight decay (L2 penalty).
+        rho (float): size of the neighborhood for computing the max loss.
+        adaptive (bool): element-wise Adaptive SAM.
+        damping (float): damping to stabilize the method.
+        kwargs (Dict): parameters for optimizer.
 
     Example:
-    -------
         model = YourModel()
         optimizer = BSAM(model.parameters(), ...)
 
@@ -541,16 +554,6 @@ class BSAM(BaseOptimizer):
 
             optimizer.step(closure)
             optimizer.zero_grad()
-
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param num_data: int. number of training data.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param rho: float. size of the neighborhood for computing the max loss.
-    :param adaptive: bool. element-wise Adaptive SAM.
-    :param damping: float. damping to stabilize the method.
-    :param kwargs: Dict. parameters for optimizer.
     """
 
     def __init__(
@@ -675,10 +678,28 @@ class BSAM(BaseOptimizer):
 
 
 class LookSAM(BaseOptimizer):
-    r"""Towards Efficient and Scalable Sharpness-Aware Minimization.
+    """An Expeditiously Adaptive Parameter-Free Learner.
+
+    Leave LR set to 1 unless you encounter instability.
+
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        betas (Betas): betas.
+        beta3 (float): coefficients for computing the Prodigy step-size using running averages.
+            If None, uses the value of square root of beta2.
+        d0 (float): initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
+        d_coef (float): Coefficient in the expression for the estimate of d.
+        growth_rate (float): prevent the D estimate from growing faster than this multiplicative rate.
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): use AdamW style weight decay.
+        fixed_decay (bool): fix weight decay.
+        bias_correction (bool): turn on Adam's bias correction.
+        safeguard_warmup (bool): remove lr from denominator of D estimate to avoid issues during warm-up.
+        eps (float): term added to denominator to improve numerical stability; if None uses atan2.
+        maximize (bool): maximize objective instead of minimizing.
 
     Example:
-    -------
         model = YourModel()
         base_optimizer = Ranger21
         optimizer = LookSAM(model.parameters(), base_optimizer)
@@ -711,16 +732,6 @@ class LookSAM(BaseOptimizer):
             loss.backward()
             optimizer.step(closure)
             optimizer.zero_grad()
-
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param base_optimizer: OPTIMIZER. base optimizer.
-    :param rho: float. size of the neighborhood for computing the max loss.
-    :param k: int. lookahead step.
-    :param alpha: float. lookahead blending alpha.
-    :param adaptive: bool. element-wise Adaptive SAM.
-    :param use_gc: bool. perform gradient centralization, GCSAM variant.
-    :param perturb_eps: float. eps for perturbation.
-    :param kwargs: Dict. parameters for optimizer.
     """
 
     def __init__(
@@ -846,10 +857,19 @@ class LookSAM(BaseOptimizer):
 
 
 class FriendlySAM(BaseOptimizer):
-    r"""Friendly Sharpness-Aware Minimization.
+    """Friendly Sharpness-Aware Minimization.
+
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        base_optimizer (Optimizer): base optimizer.
+        rho (float): size of the neighborhood for computing the max loss.
+        sigma (float): sigma of FriendlySAM.
+        lmbda (float): lambda for FriendlySAM.
+        adaptive (bool): element-wise Adaptive SAM.
+        perturb_eps (float): eps for perturbation.
+        kwargs (Dict): parameters for optimizer.
 
     Example:
-    -------
         model = YourModel()
         base_optimizer = Ranger21
         optimizer = FriendlySAM(model.parameters(), base_optimizer)
@@ -882,15 +902,6 @@ class FriendlySAM(BaseOptimizer):
             loss.backward()
             optimizer.step(closure)
             optimizer.zero_grad()
-
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param base_optimizer: OPTIMIZER. base optimizer.
-    :param rho: float. size of the neighborhood for computing the max loss.
-    :param sigma: float. sigma of FriendlySAM.
-    :param lmbda: float. lambda for FriendlySAM.
-    :param adaptive: bool. element-wise Adaptive SAM.
-    :param perturb_eps: float. eps for perturbation.
-    :param kwargs: Dict. parameters for optimizer.
     """
 
     def __init__(

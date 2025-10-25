@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 def closest_smaller_divisor_of_n_to_k(n: int, k: int) -> int:
-    r"""Get closest smaller divisor of n to k."""
+    """Get closest smaller divisor of n to k."""
     if n % k == 0:
         return k
 
@@ -22,28 +22,29 @@ def closest_smaller_divisor_of_n_to_k(n: int, k: int) -> int:
 
 
 class AdamWSN(BaseOptimizer):
-    r"""Lean and Mean Adaptive Optimization via Subset-Norm and Subspace-Momentum with Convergence Guarantees.
+    """Lean and Mean Adaptive Optimization via Subset-Norm and Subspace-Momentum with Convergence Guarantees.
 
-    .. code-block:: python
-
-        sn_params = [module.weight for module in model.modules() if isinstance(module, nn.Linear)]
-        sn_param_ids = [id(p) for p in sn_params]
-        regular_params = [p for p in model.parameters() if id(p) not in sn_param_ids]
-        param_groups = [{'params': regular_params, 'sn': False}, {'params': sn_params, 'sn': True}]
-        optimizer = AdamWSN(param_groups, lr=args.lr, weight_decay=args.weight_decay, subset_size=args.subset_size)
-
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param subset_size: int. If you do not know what subset_size to set, a good rule of thumb is to set it as d/2 where
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        subset_size (int): If you do not know what subset_size to set, a good rule of thumb is to set it as d/2 where
         d is the hidden dimension of your transformer model. For example, the hidden dimension is 4096 for Llama 7B and
         so a good subset_size could be 2048. You can leave the subset_size argument to its default value of -1 to use
         the recommended subset size as stated above.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
+    Example:
+        >>> sn_params = [module.weight for module in model.modules() if isinstance(module, nn.Linear)]
+        >>> sn_param_ids = [id(p) for p in sn_params]
+        >>> regular_params = [p for p in model.parameters() if id(p) not in sn_param_ids]
+        >>> param_groups = [{'params': regular_params, 'sn': False}, {'params': sn_params, 'sn': True}]
+        >>> optimizer = AdamWSN(param_groups, lr=args.lr, weight_decay=args.weight_decay, subset_size=args.subset_size)
+
     """
 
     def __init__(

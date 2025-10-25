@@ -11,7 +11,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schu
 
 
 class LMONorm(IntEnum):
-    r"""normalization types."""
+    """normalization types."""
 
     NONE = 0
     AUTO = 1
@@ -24,23 +24,24 @@ class LMONorm(IntEnum):
 
 
 class Norm:
-    r"""Base class to perform norm onto Scion. This class does no norm."""
+    """Base class to perform norm onto Scion. This class does no norm."""
 
     def init(self, x: torch.Tensor) -> torch.Tensor:
-        r"""Initialize parameter."""
+        """Initialize parameter."""
         return x
 
     def lmo(self, grad: torch.Tensor) -> torch.Tensor:
-        r"""Get LMO."""
+        """Get LMO."""
         return grad
 
 
 class Col(Norm):
-    r"""col-wise normalization.
+    """Col-wise normalization.
 
-    :param normalized: bool. normalize by the input dimension. use for non-input layers.
-    :param transpose: bool. transpose input before normalization. use for embedding layers which have a shape of
-        (vocab_size, embedding_dim)
+    Args:
+        normalized (bool): normalize by the input dimension; use for non-input layers.
+        transpose (bool): transpose input before normalization; use for embedding layers with shape
+            (vocab_size, embedding_dim).
     """
 
     def __init__(self, normalized: bool = False, transpose: bool = False) -> None:
@@ -83,11 +84,12 @@ class Col(Norm):
 
 
 class Row(Norm):
-    r"""row-wise normalization.
+    """Row-wise normalization.
 
-    :param normalized: bool. normalize by the input dimension. use for non-input layers.
-    :param transpose: bool. transpose input before normalization. use for embedding layers which have a shape of
-        (vocab_size, embedding_dim)
+    Args:
+        normalized (bool): normalize by the input dimension; use for non-input layers.
+        transpose (bool): transpose input before normalization; use for embedding layers with shape
+            (vocab_size, embedding_dim).
     """
 
     def __init__(self, normalized: bool = True, transpose: bool = False) -> None:
@@ -128,7 +130,7 @@ class Row(Norm):
 
 
 class BiasRMS(Norm):
-    r"""bias RMS."""
+    """bias RMS."""
 
     def init(self, x: torch.Tensor) -> torch.Tensor:
         return torch.nn.init.zeros_(x)
@@ -140,9 +142,10 @@ class BiasRMS(Norm):
 
 
 class SpectralConv(Norm):
-    r"""spectral-convolution normalization.
+    """Spectral-Convolution Normalization.
 
-    :param num_steps: int. number of steps of zero-power Newton-Schulz 5.
+    Args:
+        num_steps (int): number of steps of zero-power Newton-Schulz normalization, typically 5.
     """
 
     def __init__(self, num_steps: int = 5) -> None:
@@ -172,11 +175,12 @@ class SpectralConv(Norm):
 
 
 class Spectral(Norm):
-    r"""spectral normalization.
+    """Spectral normalization.
 
-    :param max_scale: bool. set upper bound (1.0) of the scale.
-    :param normalize: bool. normalize by the input dimension. use for non-input layers.
-    :param num_steps: int. number of steps of zero-power Newton-Schulz 5.
+    Args:
+        max_scale (bool): set upper bound (1.0) of the scale.
+        normalize (bool): normalize by the input dimension; use for non-input layers.
+        num_steps (int): number of zero-power Newton-Schulz normalization steps, typically 5.
     """
 
     def __init__(self, max_scale: bool = False, normalize: bool = True, num_steps: int = 5) -> None:
@@ -214,10 +218,11 @@ class Spectral(Norm):
 
 
 class Sign(Norm):
-    r"""sign normalization.
+    """Sign normalization.
 
-    :param zero_init: bool. initialize with zero.
-    :param normalize: bool. normalize by the input dimension. use for non-input layers.
+    Args:
+        zero_init (bool): initialize with zero.
+        normalize (bool): normalize by the input dimension; use for non-input layers.
     """
 
     def __init__(self, zero_init: bool = False, normalize: bool = True) -> None:
@@ -242,7 +247,7 @@ class Sign(Norm):
 
 
 class Auto(Norm):
-    r"""choose Norm type automatically."""
+    """choose Norm type automatically."""
 
     def init(self, x: torch.Tensor) -> torch.Tensor:
         ndim: int = x.ndim
@@ -266,7 +271,7 @@ class Auto(Norm):
 
 
 def build_lmo_norm(norm_type: int, **kwargs) -> Norm:  # noqa: PLR0911
-    r"""Build LMONorm by given norm_type."""
+    """Build LMONorm by given norm_type."""
     if norm_type == LMONorm.AUTO:
         return Auto()
     if norm_type == LMONorm.SPECTRAL:
@@ -285,7 +290,21 @@ def build_lmo_norm(norm_type: int, **kwargs) -> Norm:  # noqa: PLR0911
 
 
 class SCION(BaseOptimizer):
-    r"""Training Deep Learning Models with Norm-Constrained LMOs.
+    """Training Deep Learning Models with Norm-Constrained LMOs.
+
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        momentum (float): momentum factor. 1.0 - usual momentum.
+        constraint (bool): whether to use a constraint SCG or not.
+        norm_type (int): supported LMO norm types. 0 stands for no normalization and 1 stands for AUTO. 0 to 7.
+            Please check LMONorm Enum class for the details.
+        norm_kwargs (Optional[Dict]): arguments for the Norm.
+        scale (float): scale factor. For Transformer block typical value is 50.0, and 3000.0 for others
+            (e.g., Embeddings, LM head).
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
+        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
 
     Example:
         >>> radius = 50.0
@@ -303,19 +322,6 @@ class SCION(BaseOptimizer):
         >>> optimizer = SCION(parameter_groups)
 
         For more details, checkout here https://github.com/LIONS-EPFL/scion/tree/main?tab=readme-ov-file#examples
-
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param momentum: float. momentum factor. 1.0 - usual momentum.
-    :param constraint: bool. whether to use a constraint SCG or not.
-    :param norm_type: int. supported LMO norm types. 0 stands for no normalization and 1 stands for AUTO. 0 to 7.
-        please check LMONorm Enum class for the details.
-    :param norm_kwargs: Optional[Dict]. arguments for the Norm.
-    :param scale: float. based on the usage of the original intend, 50.0 is used for Transformer block, and 3000.0 is
-        used for others (e.g. Embedding, LM head)
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

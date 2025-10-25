@@ -283,6 +283,7 @@ class RotateOnly(nn.Module):
         Args:
             losses (Sequence[torch.Tensor]): losses.
             backbone_loss (Optional[torch.Tensor]): backbone loss.
+            **kwargs: a keyword arguments.
         """
         if not self.training:
             raise AssertionError('Backward should only be called when training')
@@ -339,7 +340,7 @@ class RotateOnly(nn.Module):
 
 
 class RotoGrad(RotateOnly):
-    """Implementation of RotoGrad as described in the original paper.
+    r"""Implementation of RotoGrad as described in the original paper.
 
     Args:
         backbone (nn.Module): shared module.
@@ -392,16 +393,17 @@ class RotoGrad(RotateOnly):
 
 
 class RotoGradNorm(RotoGrad):
-    """Implementation of RotoGrad as described in the original paper.
+    r"""Implementation of RotoGrad as described in the original paper.
 
     Args:
         backbone (nn.Module): shared module.
         heads (Sequence[nn.Module]): task-specific modules.
         latent_size (int): size of the shared representation, size of the output of the backbone.z.
-        alpha (float): \(\alpha\) hyper-parameter as described in GradNorm, used to compute the reference direction.
+        alpha (float): \\(\alpha\\) hyper-parameter as described in GradNorm, used to compute the reference direction.
         burn_in_period (int): When back-propagating towards the shared parameters, each task loss is normalized
-            dividing by its initial value, \(L_k(t) / L_k(t_0=0)\). This parameter sets a number of iterations
-            after which the denominator will be replaced by the value of the loss at that iteration, \(t_0 = burn\_in\_period\).
+            dividing by its initial value, \\(L_k(t) / L_k(t_0=0)\\). This parameter sets a number of iterations
+            after which the denominator will be replaced by the value of the loss at that iteration,
+            \\(t_0 = burn\\_in\\_period\\).
             This is done to overcome problems with losses quickly changing in the first iterations.
         normalize_losses (bool): Whether to use these normalized losses to back-propagate through the task-specific
             parameters as well.
