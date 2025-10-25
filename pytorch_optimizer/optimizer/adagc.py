@@ -9,20 +9,21 @@ from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
 class AdaGC(BaseOptimizer):
-    r"""Improving Training Stability for Large Language Model Pretraining.
+    """Improving Training Stability for Large Language Model Pretraining.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param beta: float. smoothing coefficient for EMA.
-    :param lambda_abs: float. absolute clipping threshold to prevent unstable updates from gradient explosions.
-    :param lambda_rel: float. relative clipping threshold to prevent unstable updates from gradient explosions.
-    :param warmup_steps: int. warmup steps.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        beta (float): Smoothing coefficient for the exponential moving average (EMA).
+        lambda_abs (float): Absolute clipping threshold to prevent unstable updates from gradient explosions.
+        lambda_rel (float): Relative clipping threshold to prevent unstable updates from gradient explosions.
+        warmup_steps (int): Number of warmup steps.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

@@ -15,18 +15,19 @@ from pytorch_optimizer.optimizer.utils import get_global_gradient_norm, to_real
 
 
 class DAdaptAdaGrad(BaseOptimizer):
-    r"""AdaGrad with D-Adaptation. Leave LR set to 1 unless you encounter instability.
+    """AdaGrad with D-Adaptation. Leave LR set to 1 unless you encounter instability.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param momentum: float. momentum.
-    :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-    :param growth_rate: float. prevent the D estimate from growing faster than this multiplicative rate.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        momentum (float): Momentum factor.
+        d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
+        growth_rate (float): Prevent the D estimate from growing faster than this multiplicative rate.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(
@@ -251,19 +252,20 @@ class DAdaptAdaGrad(BaseOptimizer):
 
 
 class DAdaptAdam(BaseOptimizer):
-    r"""Adam with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
+    """Adam with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. betas.
-    :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-    :param growth_rate: float. prevent the D estimate from growing faster than this multiplicative rate.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. use AdamW style weight decay.
-    :param fixed_decay: bool. fix weight decay.
-    :param bias_correction: bool. Turn on Adam's bias correction.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas: BETAS.
+        d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
+        growth_rate (float): Prevent the D estimate from growing faster than this multiplicative rate.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): Use AdamW style weight decay.
+        fixed_decay (bool): Fix weight decay.
+        bias_correction (bool): Turn on Adam's bias correction.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(
@@ -423,17 +425,18 @@ class DAdaptAdam(BaseOptimizer):
 
 
 class DAdaptSGD(BaseOptimizer):
-    r"""SGD with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
+    """SGD with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param momentum: float. momentum.
-    :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-    :param growth_rate: float. prevent the D estimate from growing faster than this multiplicative rate.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        momentum (float): Momentum.
+        d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
+        growth_rate (float): Prevent the D estimate from growing faster than this multiplicative rate.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(
@@ -569,18 +572,19 @@ class DAdaptSGD(BaseOptimizer):
 
 
 class DAdaptAdan(BaseOptimizer):
-    r"""Adan with D-Adaptation. Leave LR set to 1 unless you encounter instability.
+    """Adan with D-Adaptation. Leave LR set to 1 unless you encounter instability.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. decoupled weight decay.
-    :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-    :param growth_rate: float. prevent the D estimate from growing faster than this multiplicative rate.
-        Default is inf, for unrestricted.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas: BETAS. coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): Decoupled weight decay.
+        d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
+        growth_rate (float): Prevent the D estimate from growing faster than this multiplicative rate.
+            Default is inf, for unrestricted.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(
@@ -741,16 +745,17 @@ class DAdaptAdan(BaseOptimizer):
 
 
 class DAdaptLion(BaseOptimizer):
-    r"""Lion with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
+    """Lion with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param d0: float. initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas: BETAS. Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

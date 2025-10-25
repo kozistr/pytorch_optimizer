@@ -16,7 +16,7 @@ if HAS_EINOPS:  # pragma: ignore
 
 
 class TransformDCT:
-    r"""TransformDCT."""
+    """TransformDCT."""
 
     @torch.no_grad()
     def __init__(self, param_groups, target_chunk, norm: str = 'ortho'):
@@ -93,7 +93,7 @@ class TransformDCT:
 
 
 class CompressDCT:
-    r"""CompressDCT."""
+    """CompressDCT."""
 
     @torch.no_grad()
     def __init__(self):
@@ -141,14 +141,17 @@ class CompressDCT:
 
 
 def dct(x: torch.Tensor, norm: Optional[str] = None) -> torch.Tensor:
-    r"""Discrete Cosine Transform, Type II (a.k.a. the DCT).
+    """Discrete Cosine Transform, Type II (a.k.a. the DCT).
 
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
 
-    :param x: torch.Tensor. the input signal.
-    :param norm: Optional[str]. the normalization, None or 'ortho'.
-    :return: the DCT-II of the signal over the last dimension
+    Args:
+        x (torch.Tensor): The input signal.
+        norm (Optional[str]): The normalization, either None or 'ortho'.
+
+    Returns:
+        torch.Tensor: The DCT-II of the signal over the last dimension.
     """
     x_shape = x.shape
 
@@ -173,14 +176,17 @@ def dct(x: torch.Tensor, norm: Optional[str] = None) -> torch.Tensor:
 
 
 def inverse_dct(x: torch.Tensor, norm: Optional[str] = None) -> torch.Tensor:
-    r"""Get the inverse to DCT-II, which is a scaled Discrete Cosine Transform, Type III.
+    """Get the inverse to DCT-II, which is a scaled Discrete Cosine Transform, Type III.
 
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
 
-    :param x: torch.Tensor. the input signal.
-    :param norm: Optional[str]. the normalization, None or 'ortho'.
-    :return: the inverse DCT-II of the signal over the last dimension
+    Args:
+        x (torch.Tensor): The input signal.
+        norm (Optional[str]): The normalization, None or 'ortho'.
+
+    Returns:
+        torch.Tensor: The inverse DCT-II of the signal over the last dimension.
     """
     x_shape = x.shape
     n = x_shape[-1]
@@ -212,7 +218,7 @@ def inverse_dct(x: torch.Tensor, norm: Optional[str] = None) -> torch.Tensor:
 
 
 def get_prime_divisors(n: int) -> List[int]:
-    r"""Get prime divisors."""
+    """Get prime divisors."""
     divisors = []
 
     while n % 2 == 0:
@@ -238,7 +244,7 @@ def get_prime_divisors(n: int) -> List[int]:
 
 
 def get_divisors(n: int) -> List[int]:
-    r"""Get divisors."""
+    """Get divisors."""
     divisors = []
 
     if n == 1:
@@ -268,7 +274,7 @@ def get_divisors(n: int) -> List[int]:
 
 
 def get_smaller_split(n: int, close_to: int) -> int:
-    r"""Get smaller split."""
+    """Get smaller split."""
     all_divisors = get_divisors(n)
     for ix, val in enumerate(all_divisors):
         if val == close_to:
@@ -281,16 +287,17 @@ def get_smaller_split(n: int, close_to: int) -> int:
 
 
 class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
-    r"""Decoupled Momentum Optimization.
+    """Decoupled Momentum Optimization.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param compression_decay: float. compression_decay.
-    :param compression_top_k: int. compression_top_k.
-    :param compression_chunk: int. compression_chunk.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
-    """
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        compression_decay (float): Compression decay.
+        compression_top_k (int): Compression top-k.
+        compression_chunk (int): Compression chunk size.
+        weight_decay (float): Weight decay (L2 penalty).
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        """
 
     def __init__(
         self,

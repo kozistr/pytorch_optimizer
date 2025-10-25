@@ -9,19 +9,20 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 class CAME(BaseOptimizer):
-    r"""Confidence-guided Adaptive Memory Efficient Optimization.
+    """Confidence-guided Adaptive Memory Efficient Optimization.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param clip_threshold: float. threshold of root-mean-square of final gradient update.
-    :param ams_bound: bool. whether to use the AMSBound variant.
-    :param eps1: float. term added to the denominator to improve numerical stability.
-    :param eps2: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        clip_threshold (float): Threshold of root-mean-square of final gradient update.
+        ams_bound (bool): Whether to use the AMSBound variant.
+        eps1 (float): Term added to the denominator to improve numerical stability.
+        eps2 (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

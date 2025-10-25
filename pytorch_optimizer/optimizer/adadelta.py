@@ -6,16 +6,17 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 
 
 class AdaDelta(BaseOptimizer):
-    r"""An Adaptive Learning Rate Method.
+    """An Adaptive Learning Rate Method.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param rho: float. coefficient used for computing a running average of squared gradients.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        rho (float): Coefficient used for computing a running average of squared gradients.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

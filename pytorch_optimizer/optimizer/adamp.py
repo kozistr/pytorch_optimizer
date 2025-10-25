@@ -11,12 +11,12 @@ from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradi
 
 
 def channel_view(x: torch.Tensor) -> torch.Tensor:
-    r"""Do channel view."""
+    """Do channel view."""
     return x.view(x.size()[0], -1)
 
 
 def layer_view(x: torch.Tensor) -> torch.Tensor:
-    r"""Do layer view."""
+    """Do layer view."""
     return x.view(1, -1)
 
 
@@ -26,12 +26,13 @@ def cosine_similarity_by_view(
     eps: float,
     view_func: Callable[[torch.Tensor], torch.Tensor],
 ) -> torch.Tensor:
-    r"""Calculate cosine similarity by the view.
+    """Calculate cosine similarity by the view.
 
-    :param x: torch.Tensor. src.
-    :param y: torch.Tensor. dst.
-    :param eps: float. epsilon.
-    :param view_func: Callable. view (channel or layer) function.
+    Args:
+        x (torch.Tensor): Source tensor.
+        y (torch.Tensor): Destination tensor.
+        eps (float): Small constant epsilon added for numerical stability.
+        view_func (Callable): Function defining the view (e.g., per-channel or per-layer).
     """
     x = view_func(x)
     y = view_func(y)
@@ -46,7 +47,7 @@ def projection(
     wd_ratio: float,
     eps: float,
 ) -> Tuple[torch.Tensor, float]:
-    r"""Project to remove the radial component from the update vector."""
+    """Project to remove the radial component from the update vector."""
     wd: float = 1.0
     expand_size: List[int] = [-1] + [1] * (len(p.shape) - 1)
     for view_func in (channel_view, layer_view):
@@ -62,21 +63,22 @@ def projection(
 
 
 class SGDP(BaseOptimizer):
-    r"""SGD + Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights.
+    """SGD + Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param momentum: float. momentum factor.
-    :param dampening: float. dampening for momentum.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param delta: float. threshold that determines whether a set of parameters is scale invariant or not.
-    :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied on
-        scale-variant parameters.
-    :param nesterov: bool. enables nesterov momentum.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        momentum (float): Momentum factor.
+        dampening (float): Dampening for momentum.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
+        fixed_decay (bool): Apply fixed weight decay instead of adaptive.
+        delta (float): Threshold that determines whether a set of parameters is scale-invariant or not.
+        wd_ratio (float): Relative weight decay applied on scale-invariant parameters compared to that applied
+            on scale-variant parameters.
+        nesterov (bool): Enables Nesterov momentum.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
     """
 
     def __init__(
@@ -196,20 +198,21 @@ class SGDP(BaseOptimizer):
 
 
 class AdamP(BaseOptimizer):
-    r"""Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights.
+    """Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param delta: float. threshold that determines whether a set of parameters is scale invariant or not.
-    :param wd_ratio: float. relative weight decay applied on scale-invariant parameters compared to that applied
-        on scale-variant parameters.
-    :param nesterov: bool. enables Nesterov momentum.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
+        fixed_decay (bool): Apply fixed weight decay instead of adaptive.
+        delta (float): Threshold that determines whether a set of parameters is scale-invariant or not.
+        wd_ratio (float): Relative weight decay applied on scale-invariant parameters compared to that applied
+            on scale-variant parameters.
+        nesterov (bool): Enables Nesterov momentum.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

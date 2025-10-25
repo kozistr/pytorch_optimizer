@@ -13,18 +13,19 @@ SCALE_TYPE = Literal['channel', 'tensor']
 
 
 class ApolloDQN(BaseOptimizer):
-    r"""An Adaptive Parameter-wise Diagonal Quasi-Newton Method for Nonconvex Stochastic Optimization.
+    """An Adaptive Parameter-wise Diagonal Quasi-Newton Method for Nonconvex Stochastic Optimization.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param init_lr: Optional[float]. initial learning rate (default lr / 1000).
-    :param beta: float. coefficient used for computing running averages of gradient.
-    :param rebound: str. rectified bound for diagonal hessian. (constant, belief).
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decay_type: str. type of weight decay. (l2, decoupled, stable).
-    :param warmup_steps: int. number of warmup steps.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        init_lr (Optional[float]): Initial learning rate (default lr / 1000).
+        beta (float): Coefficient used for computing running averages of gradient.
+        rebound (str): Rectified bound for diagonal Hessian. Options: 'constant', 'belief'.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decay_type (str): Type of weight decay. Options: 'l2', 'decoupled', 'stable'.
+        warmup_steps (int): Number of warmup steps.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(
@@ -161,17 +162,18 @@ class ApolloDQN(BaseOptimizer):
 
 
 class APOLLO(BaseOptimizer):
-    r"""SGD-like Memory, AdamW-level Performance.
+    """SGD-like Memory, AdamW-level Performance.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param correct_bias: bool. Whether to correct bias in Adam.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
+        fixed_decay (bool): Apply fixed weight decay instead of adaptive.
+        correct_bias (bool): Whether to correct bias in Adam.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

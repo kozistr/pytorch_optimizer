@@ -9,18 +9,19 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 class AdEMAMix(BaseOptimizer):
-    r"""Better, Faster, Older.
+    """Better, Faster, Older.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param alpha: float. usually between 4 and 10 would work well.
-    :param t_alpha_beta3: Optional[float]. total number of iterations is preferred when needed.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
+        fixed_decay (bool): Apply fixed weight decay instead of adaptive.
+        alpha (float): Usually between 4 and 10 would work well.
+        t_alpha_beta3 (Optional[float]): Total number of iterations preferred when needed.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(
@@ -166,19 +167,20 @@ class AdEMAMix(BaseOptimizer):
 
 
 class SimplifiedAdEMAMix(BaseOptimizer):
-    r"""Connections between Schedule-Free Optimizers, AdEMAMix, and Accelerated SGD Variants.
+    """Connections between Schedule-Free Optimizers, AdEMAMix, and Accelerated SGD Variants.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param alpha: float. coefficient for mixing the current gradient and EMA.
-    :param beta1_warmup: Optional[int]. number of warmup steps used to increase beta1.
-    :param min_beta1: float. minimum value of beta1 to start from.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        alpha (float): Coefficient for mixing the current gradient and EMA.
+        beta1_warmup (Optional[int]): Number of warmup steps used to increase beta1.
+        min_beta1 (float): Minimum value of beta1 to start from.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
+        fixed_decay (bool): Apply fixed weight decay instead of adaptive.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(
