@@ -19,7 +19,7 @@ def test_cosine_annealing_warmup_restarts_params():
             warmup_steps=20,
         )
 
-    assert str(error_info.value) == '[-] warmup_steps must be smaller than first_cycle_steps. 20 < 10'
+    assert str(error_info.value) == 'warmup_steps must be smaller than first_cycle_steps. 20 < 10'
 
     min_lr: float = 1e-6
     first_cycle_steps: int = 5
@@ -43,7 +43,7 @@ def test_linear_warmup_lr_scheduler_params():
     with pytest.raises(ValueError) as error_info:
         PolyScheduler(poly_order=-1, optimizer=optimizer, t_max=1, max_lr=1)
 
-    assert str(error_info.value) == '[-] poly_order must be positive. -1'
+    assert str(error_info.value) == 'poly_order must be positive. -1'
 
     with pytest.raises(NegativeLRError):
         PolyScheduler(optimizer=optimizer, t_max=1, max_lr=-1)
