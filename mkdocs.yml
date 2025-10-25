@@ -57,7 +57,7 @@ plugins:
             allow_inspection: true
             show_bases: true
             show_source: true
-            docstring_style: sphinx
+            docstring_style: google
   - git-revision-date-localized:
       enabled: !ENV [ DEPLOY, false ]
       enable_creation_date: true
