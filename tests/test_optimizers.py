@@ -144,7 +144,7 @@ def test_complex_optimizers(optimizer_complex_config, environment):
         optimizer.train()
 
     def closure(x):
-        return make_closure(x) if optimizer_name in ('AliG',) or optimizer_name.startswith('Emo') else None
+        return make_closure(x) if optimizer_name in ('alig',) or optimizer_name.startswith('Emo') else None
 
     init_loss, loss = run_optimizer_steps(
         optimizer,
