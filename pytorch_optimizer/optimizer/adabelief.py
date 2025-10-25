@@ -4,7 +4,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
 
 
 class AdaBelief(BaseOptimizer):
@@ -26,9 +26,9 @@ class AdaBelief(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
@@ -49,7 +49,7 @@ class AdaBelief(BaseOptimizer):
         self.degenerated_to_sgd = degenerated_to_sgd
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
@@ -66,7 +66,7 @@ class AdaBelief(BaseOptimizer):
     def __str__(self) -> str:
         return 'AdaBelief'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -88,8 +88,8 @@ class AdaBelief(BaseOptimizer):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

@@ -7,7 +7,7 @@ from torch import nn
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
 
 FILTER_TYPE = Literal['mean', 'sum']
 
@@ -115,9 +115,9 @@ class GrokFastAdamW(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-4,
-        betas: BETAS = (0.9, 0.99),
+        betas: Betas = (0.9, 0.99),
         grokfast: bool = True,
         grokfast_alpha: float = 0.98,
         grokfast_lamb: float = 2.0,
@@ -141,7 +141,7 @@ class GrokFastAdamW(BaseOptimizer):
         if grokfast and normalize_lr:
             lr /= 1.0 + grokfast_lamb
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
@@ -158,7 +158,7 @@ class GrokFastAdamW(BaseOptimizer):
     def __str__(self) -> str:
         return 'GrokFastAdamW'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -176,8 +176,8 @@ class GrokFastAdamW(BaseOptimizer):
                     state['grok_exp_avg'] = grad.clone()
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

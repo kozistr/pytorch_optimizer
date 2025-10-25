@@ -4,7 +4,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
 
 
 class SRMM(BaseOptimizer):
@@ -19,7 +19,7 @@ class SRMM(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 0.01,
         beta: float = 0.5,
         memory_length: Optional[int] = 100,
@@ -31,7 +31,7 @@ class SRMM(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {'lr': lr, 'beta': beta, 'memory_length': memory_length}
+        defaults: Defaults = {'lr': lr, 'beta': beta, 'memory_length': memory_length}
 
         super().__init__(params, defaults)
 
@@ -40,7 +40,7 @@ class SRMM(BaseOptimizer):
     def __str__(self) -> str:
         return 'SRMM'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -59,8 +59,8 @@ class SRMM(BaseOptimizer):
                 state['mov_avg_param'] = torch.zeros_like(grad)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

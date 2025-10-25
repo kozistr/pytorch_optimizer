@@ -5,7 +5,7 @@ from torch import nn
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
+from pytorch_optimizer.base.type import OPTIMIZER_INSTANCE_OR_CLASS, Closure, Defaults, Loss, ParamGroup, State
 
 
 def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
@@ -122,7 +122,7 @@ class TRAC(BaseOptimizer):
         self.erf: nn.Module = ERF1994(num_coefs=num_coefs)
         self.f_term: torch.Tensor = self.s_prev / self.erf_imag(1.0 / torch.sqrt(torch.tensor(2.0)))
 
-        self.defaults: DEFAULTS = self.optimizer.defaults
+        self.defaults: Defaults = self.optimizer.defaults
 
     def __str__(self) -> str:
         return 'TRAC'
@@ -132,16 +132,16 @@ class TRAC(BaseOptimizer):
         return self.optimizer.param_groups
 
     @property
-    def state(self) -> STATE:
+    def state(self) -> State:
         return self.optimizer.state
 
-    def state_dict(self) -> STATE:
+    def state_dict(self) -> State:
         return self.optimizer.state_dict()
 
-    def load_state_dict(self, state_dict: STATE) -> None:
+    def load_state_dict(self, state_dict: State) -> None:
         self.optimizer.load_state_dict(state_dict)
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         updates = kwargs.get('updates')
         for p in group['params']:
             self.state['trac'][p] = updates[p].clone()
@@ -220,7 +220,7 @@ class TRAC(BaseOptimizer):
                 p.add_(deltas[p] * scale)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: Closure = None) -> Loss:
         # TODO: backup is first to get the delta of param and grad, but it does not work.
         with torch.enable_grad():
             loss = self.optimizer.step(closure)

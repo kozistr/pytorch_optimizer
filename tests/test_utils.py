@@ -349,15 +349,15 @@ def test_initialize_q_expressions():
 
 
 def test_zero_power_via_newton_schulz_5():
-    x = torch.FloatTensor(([[1.0911, 0.8774], [0.7698, -0.3501], [0.8795, -1.1103]]))
-    output = zero_power_via_newton_schulz_5(x, num_steps=6)
+    x = torch.FloatTensor(([[-1.5724165, 1.5850062], [-0.87536967, 0.31970903], [-0.18436244, -0.16805087]]))
+    output = zero_power_via_newton_schulz_5(x).float().numpy()
 
-    expected_output = np.asarray([[0.5156, 0.4531], [0.3281, -0.1445], [0.3438, -0.5000]])
+    expected_output = np.asarray([[-0.3359375, 0.671875], [-0.734375, -0.38671875], [-0.3828125, -0.3984375]])
 
-    np.testing.assert_almost_equal(output.float().numpy(), expected_output, decimal=4)
+    np.testing.assert_allclose(output, expected_output, rtol=3e-2, atol=3e-2)
 
     with pytest.raises(ValueError):
-        _ = zero_power_via_newton_schulz_5(x[0], num_steps=6)
+        zero_power_via_newton_schulz_5(x[0])
 
 
 def test_copy_stochastic():

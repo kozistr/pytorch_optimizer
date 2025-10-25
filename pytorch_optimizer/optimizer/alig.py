@@ -4,12 +4,12 @@ import torch
 
 from pytorch_optimizer.base.exception import NoClosureError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
 @torch.no_grad()
-def l2_projection(parameters: PARAMETERS, max_norm: float = 1e2):
+def l2_projection(parameters: Parameters, max_norm: float = 1e2):
     r"""Get l2 normalized parameter."""
     global_norm = torch.sqrt(sum(p.norm().pow(2) for p in parameters))
     if global_norm > max_norm:
@@ -31,7 +31,7 @@ class AliG(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         max_lr: Optional[float] = None,
         projection_fn: Optional[Callable] = None,
         momentum: float = 0.0,
@@ -45,7 +45,7 @@ class AliG(BaseOptimizer):
         self.projection_fn = projection_fn
         self.maximize = maximize
 
-        defaults: DEFAULTS = {'max_lr': max_lr, 'adjusted_momentum': adjusted_momentum, 'momentum': momentum}
+        defaults: Defaults = {'max_lr': max_lr, 'adjusted_momentum': adjusted_momentum, 'momentum': momentum}
 
         super().__init__(params, defaults)
 
@@ -55,7 +55,7 @@ class AliG(BaseOptimizer):
     def __str__(self) -> str:
         return 'AliG'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         momentum: float = kwargs.get('momentum')
 
         for p in group['params']:
@@ -80,7 +80,7 @@ class AliG(BaseOptimizer):
         return loss / global_grad_norm.item()
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: Closure = None) -> Loss:
         if closure is None:
             raise NoClosureError('AliG', '(e.g. `optimizer.step(lambda: float(loss))`).')
 

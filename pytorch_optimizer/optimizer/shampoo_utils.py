@@ -534,7 +534,11 @@ def merge_small_dims(shape_to_merge: Union[List[int], torch.Size], max_dim: int)
 
 
 def zero_power_via_newton_schulz_5(
-    g: torch.Tensor, num_steps: int = 5, eps: float = 1e-7, weights: Tuple[int, int, int] = (3.4445, -4.7750, 2.0315)
+    g: torch.Tensor,
+    num_steps: int = 5,
+    eps: float = 1e-7,
+    safety_factor: float = 1.0,
+    weights: Tuple[int, int, int] = (3.4445, -4.7750, 2.0315),
 ) -> torch.Tensor:
     r"""Compute the zeroth power / orthogonalization of G.
 
@@ -549,23 +553,32 @@ def zero_power_via_newton_schulz_5(
     :param num_steps: int. number of iterations.
     :param eps: float. add this times I to G, to make is positive definite. For scaling, we multiply it by the largest
         eigenvalue of G.
+    :param safety_factor: float. multiplicative safety factor for norm. 1.01 is common safety value in 'polar express'
+        variants.
     :param weights: Tuple[int, int, int]. weights.
     """
-    if len(g.shape) != 2:
-        raise ValueError('shape of g must be 2-dimensional')
+    if g.ndim < 2:
+        raise ValueError(f'input must be over 2-dimensional. got {g.ndim}D.')
 
     x = g.bfloat16()
-    x.div_(x.norm().add_(eps))
 
-    if g.size(0) > g.size(1):
-        x = x.T
+    transpose: bool = x.size(-2) > x.size(-1)
+    if transpose:
+        x = x.mT
+
+    x.div_(x.norm(2, dim=(-2, -1), keepdim=True).mul_(safety_factor).clamp_min_(eps))
+
+    mm_fn = torch.baddbmm if x.ndim > 2 else torch.addmm
+
+    x = x.contiguous()
+    a = torch.empty((*x.shape[:-1], x.size(-2)), device=x.device, dtype=x.dtype)
+    b = torch.empty_like(a)
+    c = torch.empty_like(x)
 
     for _ in range(num_steps):
-        a = x @ x.T
-        b = weights[1] * a + weights[2] * a @ a
-        x = weights[0] * x + b @ x
+        mm_fn(a, x, x.mT, beta=0.0, alpha=1.0, out=a)
+        mm_fn(a, a, a, beta=weights[1], alpha=weights[2], out=b)
+        mm_fn(x, b, x, beta=weights[0], alpha=1.0, out=c)
+        x, c = c, x
 
-    if g.size(0) > g.size(1):
-        x = x.T
-
-    return x
+    return x.mT if transpose else x

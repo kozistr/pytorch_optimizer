@@ -6,7 +6,7 @@ from torch import nn
 from torch.nn.functional import relu
 from torch.optim import AdamW
 
-from pytorch_optimizer.base.type import LOSS
+from pytorch_optimizer.base.type import Loss
 from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, ScheduleFreeWrapper
 from pytorch_optimizer.optimizer.alig import l2_projection
 
@@ -97,7 +97,7 @@ def simple_sparse_parameter(require_grad: bool = True) -> Tuple[torch.Tensor, to
     return weight, weight_sparse
 
 
-def dummy_closure() -> LOSS:
+def dummy_closure() -> Loss:
     return 1.0
 
 

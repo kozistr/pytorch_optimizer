@@ -2,7 +2,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
 
 
 @torch.no_grad()
@@ -39,7 +39,7 @@ class SM3(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-1,
         momentum: float = 0.0,
         beta: float = 0.0,
@@ -54,14 +54,14 @@ class SM3(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {'lr': lr, 'momentum': momentum, 'beta': beta, 'eps': eps}
+        defaults: Defaults = {'lr': lr, 'momentum': momentum, 'beta': beta, 'eps': eps}
 
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'SM3'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -96,8 +96,8 @@ class SM3(BaseOptimizer):
         return grad.new(grad._indices(), values, grad.size())
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

@@ -10,7 +10,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
 
 
 class Fromage(BaseOptimizer):
@@ -24,21 +24,21 @@ class Fromage(BaseOptimizer):
     """
 
     def __init__(
-        self, params: PARAMETERS, lr: float = 1e-2, p_bound: Optional[float] = None, maximize: bool = False, **kwargs
+        self, params: Parameters, lr: float = 1e-2, p_bound: Optional[float] = None, maximize: bool = False, **kwargs
     ):
         self.validate_learning_rate(lr)
 
         self.p_bound = p_bound
         self.maximize = maximize
 
-        defaults: DEFAULTS = {'lr': lr}
+        defaults: Defaults = {'lr': lr}
 
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Fromage'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -53,8 +53,8 @@ class Fromage(BaseOptimizer):
                 state['max'] = p.norm().mul_(self.p_bound)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

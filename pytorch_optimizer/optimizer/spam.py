@@ -8,7 +8,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, LRScheduler
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
 
 
 class CosineDecay:
@@ -65,9 +65,9 @@ class SPAM(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         density: float = 1.0,
         weight_decay: float = 0.0,
         warmup_epoch: int = 50,
@@ -95,7 +95,7 @@ class SPAM(BaseOptimizer):
         self.update_proj_gap = update_proj_gap
         self.maximize = maximize
 
-        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps, **kwargs}
+        defaults: Defaults = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps, **kwargs}
 
         super().__init__(params, defaults)
 
@@ -180,12 +180,12 @@ class SPAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'SPAM'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         pass
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -289,9 +289,9 @@ class StableSPAM(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         gamma1: float = 0.7,
         gamma2: float = 0.9,
         theta: float = 0.999,
@@ -319,14 +319,14 @@ class StableSPAM(BaseOptimizer):
 
         self.total_step: int = 0
 
-        defaults: DEFAULTS = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps, **kwargs}
+        defaults: Defaults = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps, **kwargs}
 
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'StableSPAM'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -348,8 +348,8 @@ class StableSPAM(BaseOptimizer):
                 state['m_max_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

@@ -10,7 +10,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm, to_real
 
 
@@ -31,7 +31,7 @@ class DAdaptAdaGrad(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1.0,
         momentum: float = 0.0,
         d0: float = 1e-6,
@@ -50,7 +50,7 @@ class DAdaptAdaGrad(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'momentum': momentum,
             'd': d0,
@@ -67,7 +67,7 @@ class DAdaptAdaGrad(BaseOptimizer):
     def __str__(self) -> str:
         return 'DAdaptAdaGrad'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -85,8 +85,8 @@ class DAdaptAdaGrad(BaseOptimizer):
                     state['weighted_sk'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:  # noqa: PLR0912, PLR0915
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:  # noqa: PLR0912, PLR0915
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -268,9 +268,9 @@ class DAdaptAdam(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1.0,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         d0: float = 1e-6,
         growth_rate: float = float('inf'),
         weight_decay: float = 0.0,
@@ -288,7 +288,7 @@ class DAdaptAdam(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'd': d0,
@@ -306,7 +306,7 @@ class DAdaptAdam(BaseOptimizer):
     def __str__(self) -> str:
         return 'DAdaptAdam'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -326,8 +326,8 @@ class DAdaptAdam(BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -438,7 +438,7 @@ class DAdaptSGD(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1.0,
         momentum: float = 0.9,
         d0: float = 1e-6,
@@ -455,7 +455,7 @@ class DAdaptSGD(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'momentum': momentum,
             'd': d0,
@@ -471,7 +471,7 @@ class DAdaptSGD(BaseOptimizer):
     def __str__(self) -> str:
         return 'DAdaptSGD'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -491,8 +491,8 @@ class DAdaptSGD(BaseOptimizer):
                 state['x0'] = p.clone()
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -585,9 +585,9 @@ class DAdaptAdan(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1.0,
-        betas: BETAS = (0.98, 0.92, 0.99),
+        betas: Betas = (0.98, 0.92, 0.99),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         d0: float = 1e-6,
@@ -603,7 +603,7 @@ class DAdaptAdan(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
@@ -619,7 +619,7 @@ class DAdaptAdan(BaseOptimizer):
     def __str__(self) -> str:
         return 'DAdaptAdan'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -641,8 +641,8 @@ class DAdaptAdan(BaseOptimizer):
                 state['previous_grad'] = -grad.clone()
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -755,9 +755,9 @@ class DAdaptLion(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1.0,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         d0: float = 1e-6,
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
@@ -771,7 +771,7 @@ class DAdaptLion(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'd': d0,
@@ -786,7 +786,7 @@ class DAdaptLion(BaseOptimizer):
     def __str__(self) -> str:
         return 'DAdaptLion'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -805,8 +805,8 @@ class DAdaptLion(BaseOptimizer):
                 state['s'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

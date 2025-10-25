@@ -5,7 +5,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
 
 
 class RACS(BaseOptimizer):
@@ -25,7 +25,7 @@ class RACS(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
         beta: float = 0.9,
         alpha: float = 0.05,
@@ -46,7 +46,7 @@ class RACS(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'beta': beta,
             'alpha': alpha,
@@ -62,12 +62,12 @@ class RACS(BaseOptimizer):
     def __str__(self) -> str:
         return 'RACS'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         pass
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -159,9 +159,9 @@ class Alice(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 0.02,
-        betas: BETAS = (0.9, 0.9, 0.999),
+        betas: Betas = (0.9, 0.9, 0.999),
         alpha: float = 0.3,
         alpha_c: float = 0.4,
         update_interval: int = 200,
@@ -189,7 +189,7 @@ class Alice(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'alpha': alpha,
@@ -209,7 +209,7 @@ class Alice(BaseOptimizer):
     def __str__(self) -> str:
         return 'Alice'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         pass
 
     @staticmethod
@@ -266,8 +266,8 @@ class Alice(BaseOptimizer):
         return c_t, phi
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

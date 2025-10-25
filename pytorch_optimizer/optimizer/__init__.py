@@ -7,7 +7,7 @@ import torch
 from torch import nn
 from torch.optim import LBFGS, SGD, Adam, AdamW, NAdam, Optimizer, RMSprop
 
-from pytorch_optimizer.base.type import OPTIMIZER, PARAMETERS
+from pytorch_optimizer.base.type import OPTIMIZER, Parameters
 from pytorch_optimizer.optimizer.a2grad import A2Grad
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adabound import AdaBound
@@ -402,7 +402,7 @@ def get_optimizer_parameters(
     model_or_parameter: Union[nn.Module, List],
     weight_decay: float,
     wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
-) -> PARAMETERS:
+) -> Parameters:
     r"""Get optimizer parameters while filtering specified modules.
 
     Notice that, You can also ban by a module name level (e.g. LayerNorm) if you pass nn.Module instance. You just only

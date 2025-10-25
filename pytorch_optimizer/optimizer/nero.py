@@ -4,7 +4,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
 
 
 def channel_view(x: torch.Tensor) -> torch.Tensor:
@@ -45,7 +45,7 @@ class Nero(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 0.01,
         beta: float = 0.999,
         constraints: bool = True,
@@ -59,14 +59,14 @@ class Nero(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {'lr': lr, 'beta': beta, 'constraints': constraints, 'eps': eps}
+        defaults: Defaults = {'lr': lr, 'beta': beta, 'constraints': constraints, 'eps': eps}
 
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'Nero'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -92,8 +92,8 @@ class Nero(BaseOptimizer):
                     state['scale'] = 0.01
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

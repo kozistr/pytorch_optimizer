@@ -5,7 +5,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
 
 
 class AdaFactor(BaseOptimizer):
@@ -35,9 +35,9 @@ class AdaFactor(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: Optional[float] = 1e-3,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         decay_rate: float = -0.8,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -66,7 +66,7 @@ class AdaFactor(BaseOptimizer):
         self.momentum_dtype = momentum_dtype
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
@@ -86,7 +86,7 @@ class AdaFactor(BaseOptimizer):
     def __str__(self) -> str:
         return 'AdaFactor'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         beta1: float = kwargs.get('beta1')
 
         for p in group['params']:
@@ -141,8 +141,8 @@ class AdaFactor(BaseOptimizer):
         return len(shape) >= 2
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

@@ -4,7 +4,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
 
 
 class Amos(BaseOptimizer):
@@ -24,7 +24,7 @@ class Amos(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
         beta: float = 0.999,
         momentum: float = 0.0,
@@ -45,7 +45,7 @@ class Amos(BaseOptimizer):
         self.d_coef = d_coef
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'beta': beta,
             'momentum': momentum,
@@ -58,7 +58,7 @@ class Amos(BaseOptimizer):
     def __str__(self) -> str:
         return 'Amos'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -85,8 +85,8 @@ class Amos(BaseOptimizer):
         return math.sqrt(1 / p.size(1))
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

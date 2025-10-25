@@ -5,7 +5,7 @@ import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
 
 
 class AccSGD(BaseOptimizer):
@@ -22,7 +22,7 @@ class AccSGD(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
         kappa: float = 1000.0,
         xi: float = 10.0,
@@ -39,7 +39,7 @@ class AccSGD(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'kappa': kappa,
             'xi': xi,
@@ -52,7 +52,7 @@ class AccSGD(BaseOptimizer):
     def __str__(self) -> str:
         return 'AccSGD'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -67,8 +67,8 @@ class AccSGD(BaseOptimizer):
                 state['momentum_buffer'] = p.clone()
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -127,7 +127,7 @@ class SGDW(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-4,
         momentum: float = 0.0,
         weight_decay: float = 0.0,
@@ -143,7 +143,7 @@ class SGDW(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'momentum': momentum,
             'weight_decay': weight_decay,
@@ -157,7 +157,7 @@ class SGDW(BaseOptimizer):
     def __str__(self) -> str:
         return 'SGDW'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -172,8 +172,8 @@ class SGDW(BaseOptimizer):
                 state['momentum_buffer'] = p.clone()
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -237,7 +237,7 @@ class ASGD(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-2,
         amplifier: float = 0.02,
         weight_decay: float = 0.0,
@@ -256,7 +256,7 @@ class ASGD(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'amplifier': amplifier,
             'weight_decay': weight_decay,
@@ -272,11 +272,11 @@ class ASGD(BaseOptimizer):
     def __str__(self) -> str:
         return 'ASGD'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         pass
 
     @staticmethod
-    def get_norms_by_group(group: GROUP, device: torch.device) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_norms_by_group(group: ParamGroup, device: torch.device) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""Get parameter & gradient norm by group."""
         p_norm = torch.zeros(1, dtype=torch.float32, device=device)
         g_norm = torch.zeros(1, dtype=torch.float32, device=device)
@@ -294,8 +294,8 @@ class ASGD(BaseOptimizer):
         return p_norm, g_norm
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -356,7 +356,7 @@ class SignSGD(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-3,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
@@ -370,7 +370,7 @@ class SignSGD(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'momentum': momentum,
             'weight_decay': weight_decay,
@@ -382,7 +382,7 @@ class SignSGD(BaseOptimizer):
     def __str__(self) -> str:
         return 'SignSGD'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -397,8 +397,8 @@ class SignSGD(BaseOptimizer):
                 state['momentum_buffer'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -447,7 +447,7 @@ class SGDSaI(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-2,
         momentum: float = 0.9,
         weight_decay: float = 1e-2,
@@ -464,7 +464,7 @@ class SGDSaI(BaseOptimizer):
         self.has_warmup: bool = False
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'momentum': momentum,
             'weight_decay': weight_decay,
@@ -477,7 +477,7 @@ class SGDSaI(BaseOptimizer):
     def __str__(self) -> str:
         return 'SGDSaI'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -492,8 +492,8 @@ class SGDSaI(BaseOptimizer):
                 state['momentum_buffer'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def warmup_step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def warmup_step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -523,11 +523,11 @@ class SGDSaI(BaseOptimizer):
         return loss
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
+    def step(self, closure: Closure = None) -> Loss:
         if not self.has_warmup:
             self.warmup_step(closure)
 
-        loss: LOSS = None
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
@@ -584,7 +584,7 @@ class VSGD(BaseOptimizer):
 
     def __init__(
         self,
-        params: PARAMETERS,
+        params: Parameters,
         lr: float = 1e-1,
         ghattg: float = 30.0,
         ps: float = 1e-8,
@@ -606,7 +606,7 @@ class VSGD(BaseOptimizer):
 
         self.maximize = maximize
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'tau1': tau1,
             'tau2': tau2,
@@ -623,7 +623,7 @@ class VSGD(BaseOptimizer):
     def __str__(self) -> str:
         return 'VSGD'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -640,8 +640,8 @@ class VSGD(BaseOptimizer):
                 state['bhg'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

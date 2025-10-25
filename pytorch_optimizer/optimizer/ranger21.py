@@ -6,7 +6,7 @@ from torch.nn.functional import softplus
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import BETAS, CLOSURE, DEFAULTS, GROUP, LOSS, PARAMETERS
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
 from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
@@ -59,11 +59,11 @@ class Ranger21(BaseOptimizer):
 
     def __init__(  # pylint: disable=R0913
         self,
-        params: PARAMETERS,
+        params: Parameters,
         num_iterations: int,
         lr: float = 1e-3,
         beta0: float = 0.9,
-        betas: BETAS = (0.9, 0.999),
+        betas: Betas = (0.9, 0.999),
         use_softplus: bool = True,
         beta_softplus: float = 50.0,
         disable_lr_scheduler: bool = False,
@@ -110,7 +110,7 @@ class Ranger21(BaseOptimizer):
         self.starting_lr: float = lr
         self.current_lr: float = lr
 
-        defaults: DEFAULTS = {
+        defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
@@ -138,7 +138,7 @@ class Ranger21(BaseOptimizer):
     def __str__(self) -> str:
         return 'Ranger21'
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -193,8 +193,8 @@ class Ranger21(BaseOptimizer):
         return self.current_lr
 
     @torch.no_grad()
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = None
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()

@@ -5,7 +5,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import CLOSURE, DEFAULTS, GROUP, LOSS, OPTIMIZER_INSTANCE_OR_CLASS, STATE
+from pytorch_optimizer.base.type import OPTIMIZER_INSTANCE_OR_CLASS, Closure, Defaults, Loss, ParamGroup, State
 
 
 class Lookahead(BaseOptimizer):
@@ -38,7 +38,7 @@ class Lookahead(BaseOptimizer):
         self.k = k
         self.pullback_momentum = pullback_momentum
 
-        self.state: STATE = defaultdict(dict)
+        self.state: State = defaultdict(dict)
 
         for group in self.param_groups:
             if 'counter' not in group:
@@ -51,7 +51,7 @@ class Lookahead(BaseOptimizer):
                 if self.pullback_momentum == 'pullback':
                     state['slow_momentum'] = torch.zeros_like(p)
 
-        self.defaults: DEFAULTS = {
+        self.defaults: Defaults = {
             'lookahead_alpha': alpha,
             'lookahead_k': k,
             'lookahead_pullback_momentum': pullback_momentum,
@@ -75,7 +75,7 @@ class Lookahead(BaseOptimizer):
     def zero_grad(self, set_to_none: bool = True) -> None:
         self.optimizer.zero_grad(set_to_none=set_to_none)
 
-    def init_group(self, group: GROUP, **kwargs) -> None:
+    def init_group(self, group: ParamGroup, **kwargs) -> None:
         pass
 
     def backup_and_load_cache(self) -> None:
@@ -95,10 +95,10 @@ class Lookahead(BaseOptimizer):
                 p.data.copy_(state['backup_params'])
                 del state['backup_params']
 
-    def state_dict(self) -> STATE:
+    def state_dict(self) -> State:
         return {'lookahead_state': self.state, 'base_optimizer': self.optimizer.state_dict()}
 
-    def load_state_dict(self, state: STATE) -> None:
+    def load_state_dict(self, state: State) -> None:
         r"""Load state."""
         self.state = state['lookahead_state']
         self.optimizer.load_state_dict(state['base_optimizer'])
@@ -128,8 +128,8 @@ class Lookahead(BaseOptimizer):
             elif self.pullback_momentum == 'reset':
                 self.optimizer.state[p]['momentum_buffer'] = torch.zeros_like(p)
 
-    def step(self, closure: CLOSURE = None) -> LOSS:
-        loss: LOSS = self.optimizer.step(closure)
+    def step(self, closure: Closure = None) -> Loss:
+        loss: Loss = self.optimizer.step(closure)
         for group in self.param_groups:
             group['counter'] += 1
             if group['counter'] >= self.k:

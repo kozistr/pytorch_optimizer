@@ -4,26 +4,25 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 from torch.optim import Optimizer
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 from pytorch_optimizer.base.type import (
-    BETAS,
-    CLOSURE,
-    DEFAULTS,
-    GROUP,
     HUTCHINSON_G,
-    LOSS,
     OPTIMIZER_INSTANCE_OR_CLASS,
-    PARAMETERS,
-    STATE,
+    Betas,
+    Closure,
+    Defaults,
+    Loss,
+    Parameters,
+    ParamGroup,
+    State,
 )
 
 
 class BaseOptimizer(ABC, Optimizer):
     r"""Base optimizer class. Provides common functionalities for the optimizers."""
 
-    def __init__(self, params: Union[PARAMETERS, ParamsT], defaults: DEFAULTS) -> None:
+    def __init__(self, params: Parameters, defaults: Defaults) -> None:
         super().__init__(params, defaults)
 
     @staticmethod
@@ -40,7 +39,7 @@ class BaseOptimizer(ABC, Optimizer):
 
     @staticmethod
     @torch.no_grad()
-    def set_hessian(param_groups: PARAMETERS, state: STATE, hessian: List[torch.Tensor]) -> None:
+    def set_hessian(param_groups: Parameters, state: State, hessian: List[torch.Tensor]) -> None:
         r"""Set hessian to state from external source. Generally useful when using functorch as a base.
 
         Example:
@@ -70,7 +69,7 @@ class BaseOptimizer(ABC, Optimizer):
                 i += 1
 
     @staticmethod
-    def zero_hessian(param_groups: PARAMETERS, state: STATE, pre_zero: bool = True) -> None:
+    def zero_hessian(param_groups: Parameters, state: State, pre_zero: bool = True) -> None:
         r"""Zero-out hessian.
 
         :param param_groups: PARAMETERS. parameter groups.
@@ -88,8 +87,8 @@ class BaseOptimizer(ABC, Optimizer):
     @staticmethod
     @torch.no_grad()
     def compute_hutchinson_hessian(
-        param_groups: PARAMETERS,
-        state: STATE,
+        param_groups: Parameters,
+        state: State,
         num_samples: int = 1,
         alpha: float = 1.0,
         distribution: HUTCHINSON_G = 'gaussian',
@@ -362,7 +361,7 @@ class BaseOptimizer(ABC, Optimizer):
         if x % y != 0:
             raise ValueError(f'{x} must be divisible by {y}')
 
-    def validate_betas(self, betas: BETAS, beta_range_type: str = '[)', beta3_range_type: str = '[]') -> None:
+    def validate_betas(self, betas: Betas, beta_range_type: str = '[)', beta3_range_type: str = '[]') -> None:
         if betas[0] is not None:
             self.validate_range(betas[0], 'beta1', 0.0, 1.0, range_type=beta_range_type)
 
@@ -382,7 +381,7 @@ class BaseOptimizer(ABC, Optimizer):
             self.validate_range(nus[1], 'nu2', 0.0, 1.0, range_type='[]')
 
     @abstractmethod
-    def init_group(self, group: GROUP, **kwargs) -> None:  # pragma: no cover
+    def init_group(self, group: ParamGroup, **kwargs) -> None:  # pragma: no cover
         r"""Initialize the group of the optimizer and return is_complex."""
         return
 
@@ -404,5 +403,5 @@ class BaseOptimizer(ABC, Optimizer):
         if maximize:
             grad.neg_()
 
-    def step(self, closure: CLOSURE = None) -> LOSS:  # pragma: no cover
+    def step(self, closure: Closure = None) -> Loss:  # pragma: no cover
         raise NotImplementedError
