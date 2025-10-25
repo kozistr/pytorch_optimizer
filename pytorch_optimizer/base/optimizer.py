@@ -49,13 +49,13 @@ class BaseOptimizer(ABC, Optimizer):
 
         Example:
             # Hutchinson's Estimator using Hessian-vector product (HVP)
-            noise = tree_map(lambda v: torch.randn_like(v), params)
-            loss_, hvp_est = jvp(grad(run_model_fn), (params,), (noise,))
-            hessian_diag_est = tree_map(lambda a, b: a * b, hvp_est, noise)
+            >>> noise = tree_map(lambda v: torch.randn_like(v), params)
+            >>> loss_, hvp_est = jvp(grad(run_model_fn), (params,), (noise,))
+            >>> hessian_diag_est = tree_map(lambda a, b: a * b, hvp_est, noise)
 
-            optimizer.set_hessian(hessian_diag_est)
+            >>> optimizer.set_hessian(hessian_diag_est)
             # OR
-            optimizer.step(hessian=hessian_diag_est)
+            >>> optimizer.step(hessian=hessian_diag_est)
         """
         i: int = 0
         for group in param_groups:
