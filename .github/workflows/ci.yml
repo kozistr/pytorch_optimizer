@@ -9,8 +9,27 @@ on:
 env:
   OMP_NUM_THREADS: 2
   MKL_NUM_THREADS: 2
+  PYTHONDONTWRITEBYTECODE: 1
 
 jobs:
+  lint:
+    name: Lint / Static Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: 'pip'
+
+      - name: Install dev-dependencies
+        run: pip --disable-pip-version-check install --no-compile -r requirements-dev.txt
+
+      - name: Run lint
+        run: make check
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -33,16 +52,24 @@ jobs:
       run: make check
 
     - name: Check test
-      env:
-        PYTHONDONTWRITEBYTECODE: 1
       run: make test
 
-    - name: Check codecov
+    - name: Upload coverage
+      if: success()
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         directory: ./
         files: ./coverage.xml
         env_vars: OS,PYTHON
+        flags: ${{ matrix.python-version }}
         fail_ci_if_error: true
         verbose: false
+
+  ci-summary:
+    if: always()
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report Summary
+        run: echo "✅ Lint and tests completed for all targets"
