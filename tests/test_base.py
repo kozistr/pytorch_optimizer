@@ -20,6 +20,7 @@ def test_compute_hutchinson_hessian():
     with pytest.raises(NotImplementedError):
         BaseOptimizer.compute_hutchinson_hessian({}, {}, distribution='dummy')
 
+
 @pytest.mark.parametrize('x,bound,bound_type', [(-1.0, -2.0, 'upper'), (-1.0, 1.0, 'lower')])
 def test_validate_boundary(x, bound, bound_type):
     with pytest.raises(ValueError):
