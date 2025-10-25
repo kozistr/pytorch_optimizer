@@ -26,7 +26,7 @@ class PolyScheduler(BaseLinearWarmupScheduler):
     """Poly LR Scheduler.
 
     Args:
-        poly_order (float). lr scheduler decreases with steps.
+        poly_order (float): lr scheduler decreases with steps.
     """
 
     def __init__(self, optimizer, poly_order: float = 0.5, **kwargs):

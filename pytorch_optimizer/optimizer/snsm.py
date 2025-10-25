@@ -32,9 +32,9 @@ class AdamWSN(BaseOptimizer):
         weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
         fixed_decay (bool): Fix weight decay.
         subset_size (int): If you do not know what subset_size to set, a good rule of thumb is to set it as d/2 where
-        d is the hidden dimension of your transformer model. For example, the hidden dimension is 4096 for Llama 7B and
-        so a good subset_size could be 2048. You can leave the subset_size argument to its default value of -1 to use
-        the recommended subset size as stated above.
+            d is the hidden dimension of your transformer model. For example, the hidden dimension is 4096 for Llama 7B
+            and so a good subset_size could be 2048. You can leave the subset_size argument to its default value of -1
+            to use the recommended subset size as stated above.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
 
@@ -44,7 +44,6 @@ class AdamWSN(BaseOptimizer):
         >>> regular_params = [p for p in model.parameters() if id(p) not in sn_param_ids]
         >>> param_groups = [{'params': regular_params, 'sn': False}, {'params': sn_params, 'sn': True}]
         >>> optimizer = AdamWSN(param_groups, lr=args.lr, weight_decay=args.weight_decay, subset_size=args.subset_size)
-
     """
 
     def __init__(

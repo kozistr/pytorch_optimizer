@@ -1,13 +1,15 @@
 from typing import List
 
+from torch.optim.lr_scheduler import LRScheduler
+
 
 class ProportionScheduler:
-    r"""ProportionScheduler (Rho Scheduler of GSAM).
+    """ProportionScheduler (Rho Scheduler of GSAM).
 
     This scheduler outputs a value that evolves proportionally to a given learning rate scheduler.
 
     Args:
-        lr_scheduler: Learning rate scheduler.
+        lr_scheduler (LRScheduler): Learning rate scheduler.
         max_lr (float): Maximum learning rate.
         min_lr (float): Minimum learning rate.
         max_value (float): Maximum value of rho.
@@ -15,7 +17,12 @@ class ProportionScheduler:
     """
 
     def __init__(
-        self, lr_scheduler, max_lr: float, min_lr: float = 0.0, max_value: float = 2.0, min_value: float = 2.0
+        self,
+        lr_scheduler: LRScheduler,
+        max_lr: float,
+        min_lr: float = 0.0,
+        max_value: float = 2.0,
+        min_value: float = 2.0,
     ):
         self.lr_scheduler = lr_scheduler
         self.max_lr = max_lr

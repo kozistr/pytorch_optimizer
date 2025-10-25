@@ -61,11 +61,11 @@ class CPUOffloadOptimizer:  # pragma: no cover
 
     Args:
         params (Parameters): A list of parameters or parameter groups.
-        optimizer_class (Type[torch.optim.Optimizer], optional): Constructor of the base optimizer.
+        optimizer_class (Type[torch.optim.Optimizer]): Constructor of the base optimizer.
             Defaults to :class:`torch.optim.AdamW`.
         offload_gradients (bool, optional): Free GPU gradients once they are moved to CPU.
             Not compatible with gradient accumulation. Defaults to False.
-        kwargs: Other keyword arguments to be passed to the base optimizer, e.g. `lr`, `weight_decay`.
+        kwargs (Dict): Other keyword arguments to be passed to the base optimizer, e.g. `lr`, `weight_decay`.
     """
 
     def __init__(

@@ -333,7 +333,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
             loss_fn (nn.Module): loss function.
             inputs (torch.Tensor): inputs.
             targets (torch.Tensor): targets.
-            **kwargs: keyword arguments.
+            kwargs (Dict): keyword arguments.
         """
 
         def get_grad() -> Tuple[Any, torch.Tensor]:
@@ -683,21 +683,15 @@ class LookSAM(BaseOptimizer):
     Leave LR set to 1 unless you encounter instability.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
-        betas (Betas): betas.
-        beta3 (float): coefficients for computing the Prodigy step-size using running averages.
-            If None, uses the value of square root of beta2.
-        d0 (float): initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-        d_coef (float): Coefficient in the expression for the estimate of d.
-        growth_rate (float): prevent the D estimate from growing faster than this multiplicative rate.
-        weight_decay (float): weight decay (L2 penalty).
-        weight_decouple (bool): use AdamW style weight decay.
-        fixed_decay (bool): fix weight decay.
-        bias_correction (bool): turn on Adam's bias correction.
-        safeguard_warmup (bool): remove lr from denominator of D estimate to avoid issues during warm-up.
-        eps (float): term added to denominator to improve numerical stability; if None uses atan2.
-        maximize (bool): maximize objective instead of minimizing.
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        base_optimizer (Optimizer): Base optimizer.
+        rho (float): Size of the neighborhood for computing the max loss.
+        k (int): Lookahead step.
+        alpha (float): Lookahead blending alpha.
+        adaptive (bool): Element-wise Adaptive SAM.
+        use_gc (bool): Perform gradient centralization, GCSAM variant.
+        perturb_eps (float): Epsilon for perturbation.
+        kwargs (Dict): Additional parameters for optimizer.
 
     Example:
         model = YourModel()

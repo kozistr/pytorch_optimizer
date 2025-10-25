@@ -22,7 +22,7 @@ class SOAP(BaseOptimizer):
         weight_decay (float): Weight decay (L2 penalty).
         precondition_frequency (int): How often to update the pre-conditioner.
         max_precondition_dim (int): Maximum dimension of the pre-conditioner. Set to 10000, so that we exclude most
-        common vocab sizes while including layers.
+            common vocab sizes while including layers.
         merge_dims (bool): Whether to merge dimensions of the pre-conditioner.
         precondition_1d (bool): Whether to precondition 1D gradients.
         correct_bias (bool): Whether to correct bias in Adam.

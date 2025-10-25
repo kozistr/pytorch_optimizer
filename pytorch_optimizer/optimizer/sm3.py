@@ -33,7 +33,7 @@ class SM3(BaseOptimizer):
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         momentum (float): Coefficient used to scale prior updates before adding. This drastically increases
-        memory usage if momentum > 0.0. This is ignored if the parameter's gradient is sparse.
+            memory usage if momentum > 0.0. This is ignored if the parameter's gradient is sparse.
         beta (float): Coefficient used for exponential moving averages.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
