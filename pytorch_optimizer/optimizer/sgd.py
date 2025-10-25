@@ -9,15 +9,16 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 
 
 class AccSGD(BaseOptimizer):
-    r"""Accelerating Stochastic Gradient Descent For Least Squares Regression.
+    """Accelerating Stochastic Gradient Descent For Least Squares Regression.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param kappa: float. ratio of long to short step.
-    :param xi: float. statistical advantage parameter.
-    :param constant: float. any small constant under 1.
-    :param weight_decay: float. weight decay.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        kappa (float): ratio of long to short step.
+        xi (float): statistical advantage parameter.
+        constant (float): any small constant under 1.
+        weight_decay (float): weight decay (L2 penalty).
+        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -113,16 +114,17 @@ class AccSGD(BaseOptimizer):
 
 
 class SGDW(BaseOptimizer):
-    r"""Decoupled Weight Decay Regularization.
+    """Decoupled Weight Decay Regularization.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param momentum: float. momentum factor.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param dampening: float. dampening for momentum.
-    :param nesterov: bool. enables Nesterov momentum.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        momentum (float): momentum factor.
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): optimizer uses decoupled weight decay as in AdamW.
+        dampening (float): dampening for momentum.
+        nesterov (bool): enables Nesterov momentum.
+        maximize (bool): maximize the objective instead of minimizing.
     """
 
     def __init__(
@@ -221,18 +223,19 @@ class SGDW(BaseOptimizer):
 
 
 class ASGD(BaseOptimizer):
-    r"""Adaptive SGD with estimation of the local smoothness (curvature).
+    """Adaptive SGD with estimation of the local smoothness (curvature).
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param amplifier: float. amplifier.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param theta: float. theta.
-    :param dampening: float. dampening for momentum.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        amplifier (float): amplifier.
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): fix weight decay.
+        theta (float): theta.
+        dampening (float): dampening for momentum.
+        eps (float): term added to denominator to improve numerical stability.
+        maximize (bool): maximize the objective instead of minimizing.
     """
 
     def __init__(
@@ -277,7 +280,7 @@ class ASGD(BaseOptimizer):
 
     @staticmethod
     def get_norms_by_group(group: ParamGroup, device: torch.device) -> Tuple[torch.Tensor, torch.Tensor]:
-        r"""Get parameter & gradient norm by group."""
+        """Get parameter & gradient norm by group."""
         p_norm = torch.zeros(1, dtype=torch.float32, device=device)
         g_norm = torch.zeros(1, dtype=torch.float32, device=device)
 
@@ -344,14 +347,15 @@ class ASGD(BaseOptimizer):
 
 
 class SignSGD(BaseOptimizer):
-    r"""Compressed Optimisation for Non-Convex Problems.
+    """Compressed Optimisation for Non-Convex Problems.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param momentum: float. momentum factor (0.0 = SignSGD, >0 = Signum).
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        momentum (float): momentum factor (0.0 = SignSGD, >0 = Signum).
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): optimizer uses decoupled weight decay as in AdamW.
+        maximize (bool): maximize the objective instead of minimizing.
     """
 
     def __init__(
@@ -434,15 +438,16 @@ class SignSGD(BaseOptimizer):
 
 
 class SGDSaI(BaseOptimizer):
-    r"""No More Adam: Learning Rate Scaling at Initialization is All You Need.
+    """No More Adam: Learning Rate Scaling at Initialization is All You Need.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param momentum: float. coefficients used for computing running averages of gradient.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        momentum (float): coefficients used for computing running averages of gradient.
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): optimizer uses decoupled weight decay as in AdamW.
+        eps (float): term added to denominator to improve numerical stability.
+        maximize (bool): maximize the objective instead of minimizing.
     """
 
     def __init__(
@@ -568,18 +573,19 @@ class SGDSaI(BaseOptimizer):
 
 
 class VSGD(BaseOptimizer):
-    r"""Variational Stochastic Gradient Descent for Deep Neural Networks.
+    """Variational Stochastic Gradient Descent for Deep Neural Networks.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param ghattg: float. prior variance ratio between ghat and g, Var(ghat_t-g_t)/Var(g_t-g_{t-1}).
-    :param ps: float. prior strength.
-    :param tau1: float. remember rate for the gamma parameters of g.
-    :param tau2: float. remember rate for the gamma parameter of ghat.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        ghattg (float): prior variance ratio between ghat and g, Var(ghat_t-g_t)/Var(g_t-g_{t-1}).
+        ps (float): prior strength.
+        tau1 (float): remember rate for the gamma parameters of g.
+        tau2 (float): remember rate for the gamma parameter of ghat.
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): optimizer uses decoupled weight decay as in AdamW.
+        eps (float): term added to denominator to improve numerical stability.
+        maximize (bool): maximize the objective instead of minimizing.
     """
 
     def __init__(

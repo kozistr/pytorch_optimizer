@@ -9,16 +9,17 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 class AdaShift(BaseOptimizer):
-    r"""Decorrelation and Convergence of Adaptive Learning Rate Methods.
+    """Decorrelation and Convergence of Adaptive Learning Rate Methods.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param keep_num: int. number of gradients used to compute first moment estimation.
-    :param reduce_func: Optional[Callable]. function applied to squared gradients to further reduce the correlation.
-        If None, no function is applied.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        keep_num (int): Number of gradients used to compute first moment estimation.
+        reduce_func (Optional[Callable]): Function applied to squared gradients to reduce correlation.
+            If None, no function is applied.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

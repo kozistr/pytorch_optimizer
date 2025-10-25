@@ -13,10 +13,11 @@ from pytorch_optimizer.loss.tversky import TverskyLoss
 
 
 class FocalLoss(nn.Module):
-    r"""Focal loss function w/ logit input.
+    """Focal Loss function with logits input.
 
-    :param alpha: float. alpha.
-    :param gamma: float. gamma.
+    Args:
+        alpha (float): Weighting factor for class imbalance.
+        gamma (float): Focusing parameter to down-weight easy examples and focus training on hard negatives.
     """
 
     def __init__(self, alpha: float = 1.0, gamma: float = 2.0):
@@ -32,12 +33,13 @@ class FocalLoss(nn.Module):
 
 
 class FocalCosineLoss(nn.Module):
-    r"""Focal Cosine loss function w/ logit input.
+    """Focal Cosine Loss function with logits input.
 
-    :param alpha: float. alpha.
-    :param gamma: float. gamma.
-    :param focal_weight: float. weight of focal loss.
-    :param reduction: str. type of reduction.
+    Args:
+        alpha (float): Weighting factor for class imbalance.
+        gamma (float): Focusing parameter to reduce loss contribution from easy examples.
+        focal_weight (float): Weight of the focal loss component in the combined loss.
+        reduction (str): Specifies the reduction to apply to the output: 'none', 'mean', or 'sum'.
     """
 
     def __init__(self, alpha: float = 1.0, gamma: float = 2.0, focal_weight: float = 0.1, reduction: str = 'mean'):
@@ -63,13 +65,14 @@ class FocalCosineLoss(nn.Module):
 
 
 class BCEFocalLoss(nn.Module):
-    r"""BCEFocal loss function w/ probability input.
+    """BCEFocal loss function with probability input.
 
-    :param alpha: float. alpha.
-    :param gamma: float. gamma.
-    :param label_smooth: float. Smoothness constant for dice coefficient (a).
-    :param eps: float. epsilon.
-    :param reduction: str. type of reduction.
+    Args:
+        alpha (float): Weighting factor for class imbalance, commonly set to 0.25.
+        gamma (float): Focusing parameter to reduce loss contribution of easy examples.
+        label_smooth (float): Smoothness constant to regularize target labels.
+        eps (float): Small epsilon to avoid numerical instability.
+        reduction (str): Specifies reduction type to apply to output: 'none', 'mean' or 'sum'.
     """
 
     def __init__(
@@ -98,12 +101,13 @@ class BCEFocalLoss(nn.Module):
 
 
 class FocalTverskyLoss(nn.Module):
-    r"""Focal Tversky Loss w/ logits input.
+    """Focal Tversky Loss with logits input.
 
-    :param alpha: float. alpha.
-    :param beta: float. beta.
-    :param gamma: float. gamma.
-    :param smooth: float. smooth factor.
+    Args:
+        alpha (float): Weight for false negatives in Tversky index.
+        beta (float): Weight for false positives in Tversky index.
+        gamma (float): Focusing parameter that shapes the loss to focus more on hard examples.
+        smooth (float): Smoothing factor to avoid division by zero.
     """
 
     def __init__(self, alpha: float = 0.5, beta: float = 0.5, gamma: float = 1.0, smooth: float = 1e-6):

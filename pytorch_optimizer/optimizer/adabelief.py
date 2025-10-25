@@ -8,20 +8,21 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 class AdaBelief(BaseOptimizer):
-    r"""Adapting Step-sizes by the Belief in Observed Gradients.
+    """Adapting Step-sizes by the Belief in Observed Gradients.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param rectify: bool. perform the rectified update similar to RAdam.
-    :param n_sma_threshold: number of SMA threshold (recommended is 5).
-    :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high.
-    :param ams_bound: bool. whether to use the AMSBound variant.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        rectify (bool): Perform the rectified update similar to RAdam.
+        n_sma_threshold: Number of SMA threshold (recommended is 5).
+        degenerated_to_sgd (bool): Perform SGD update when variance of gradient is high.
+        ams_bound (bool): Whether to use the AMSBound variant.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

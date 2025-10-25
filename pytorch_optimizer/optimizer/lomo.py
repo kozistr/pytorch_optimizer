@@ -13,16 +13,17 @@ from pytorch_optimizer.optimizer.utils import has_overflow, is_deepspeed_zero3_e
 
 
 class LOMO(BaseOptimizer):
-    r"""Full Parameter Fine-tuning for Large Language Models with Limited Resources.
+    """Full Parameter Fine-tuning for Large Language Models with Limited Resources.
 
-    Reference : https://github.com/OpenLMLab/LOMO/blob/main/src/lomo.py
-    Check the usage from here : https://github.com/OpenLMLab/LOMO/blob/main/lomo/src/lomo_trainer.py
+    Reference: https://github.com/OpenLMLab/LOMO/blob/main/src/lomo.py
+    Check usage: https://github.com/OpenLMLab/LOMO/blob/main/lomo/src/lomo_trainer.py
 
-    :param model: nn.Module. pytorch model.
-    :param lr: float. learning rate.
-    :param clip_grad_norm: Optional[float]. clip grad norm.
-    :param clip_grad_value: Optional[float]. clip grad value.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        model (nn.Module): PyTorch model.
+        lr (float): Learning rate.
+        clip_grad_norm (Optional[float]): Gradient norm clipping value.
+        clip_grad_value (Optional[float]): Gradient value clipping threshold.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -204,18 +205,19 @@ class LOMO(BaseOptimizer):
 
 
 class AdaLOMO(BaseOptimizer):
-    r"""Low-memory Optimization with Adaptive Learning Rate.
+    """Low-memory Optimization with Adaptive Learning Rate.
 
-    :param model: nn.Module. pytorch model.
-    :param lr: float. learning rate.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param loss_scale: float. loss scale.
-    :param clip_threshold: float. threshold of root-mean-square of final gradient update.
-    :param decay_rate: float. coefficient used to compute running averages of square gradient.
-    :param clip_grad_norm: Optional[float]. clip grad norm.
-    :param clip_grad_value: Optional[float]. clip grad value.
-    :param eps1: float. term added to the denominator to improve numerical stability.
-    :param eps2: float. term added to the denominator to improve numerical stability.
+    Args:
+        model (nn.Module): PyTorch model.
+        lr (float): Learning rate.
+        weight_decay (float): Weight decay (L2 penalty).
+        loss_scale (float): Loss scale.
+        clip_threshold (float): Threshold of root-mean-square of final gradient update.
+        decay_rate (float): Coefficient used to compute running averages of square gradient.
+        clip_grad_norm (Optional[float]): Clip gradient norm.
+        clip_grad_value (Optional[float]): Clip gradient value.
+        eps1 (float): Term added to the denominator to improve numerical stability.
+        eps2 (float): Term added to the denominator to improve numerical stability.
     """
 
     def __init__(

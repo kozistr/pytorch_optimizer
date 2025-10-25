@@ -12,24 +12,24 @@ MARS_TYPE = Literal['adamw', 'lion', 'shampoo']
 
 
 class MARS(BaseOptimizer):
-    r"""Unleashing the Power of Variance Reduction for Training Large Models.
+    """Unleashing the Power of Variance Reduction for Training Large Models.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param gamma: float. the scaling parameter that controls the strength of gradient correction.
-    :param mars_type: MARS TYPE. type of MARS. `adamw`, `lion`, `shampoo` are supported.
-    :param optimize_1d: bool. whether MARS should optimize 1D parameters.
-    :param lr_1d: float. learning rate for AdamW when optimize_1d is set to False.
-    :param betas_1d: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-        for 1d.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decay_1d: float. weight decay for 1d.
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param ams_bound: bool. whether to use the AMSBound variant.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        gamma (float): The scaling parameter that controls the strength of gradient correction.
+        mars_type (MARS_TYPE): Type of MARS. Supported types are `adamw`, `lion`, `shampoo`.
+        optimize_1d (bool): Whether MARS should optimize 1D parameters.
+        lr_1d (float): Learning rate for AdamW when optimize_1d is set to False.
+        betas_1d (Betas): Coefficients for running averages of gradient and squared Hessian for 1D.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decay_1d (float): Weight decay for 1D parameters.
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        ams_bound (bool): Whether to use the AMSBound variant.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

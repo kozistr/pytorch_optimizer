@@ -7,10 +7,11 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 
 @torch.no_grad()
 def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
-    r"""Perform reduce-max along all dimensions except the given dim.
+    """Perform reduce-max along all dimensions except the given dim.
 
-    :param x: torch.Tensor. tensor to reduce-max.
-    :param dim: int. dimension to exclude.
+    Args:
+        x (torch.Tensor): Tensor to reduce-max.
+        dim (int): Dimension to exclude.
     """
     rank: int = len(x.shape)
     if rank == 0:
@@ -28,13 +29,14 @@ def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
 class SM3(BaseOptimizer):
     r"""Memory-Efficient Adaptive Optimization.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param momentum: float. coefficient used to scale prior updates before adding. This drastically increases
-        memory usage if `momentum > 0.0`. This is ignored if the parameter's gradient is sparse.
-    :param beta: float. coefficient used for exponential moving averages.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        momentum (float): Coefficient used to scale prior updates before adding. This drastically increases
+            memory usage if momentum > 0.0. This is ignored if the parameter's gradient is sparse.
+        beta (float): Coefficient used for exponential moving averages.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

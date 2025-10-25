@@ -9,17 +9,18 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 class ADOPT(BaseOptimizer):
-    r"""Modified Adam Can Converge with Any β2 with the Optimal Rate.
+    """Modified Adam Can Converge with Any β2 with the Optimal Rate.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param clip_lambda: Callable[[float], float]. function to clip gradient. default is `step ** 0.25`
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        clip_lambda (Callable[[float], float]): Function to clip gradient. Default is `step ** 0.25`.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
+        fixed_decay (bool): Apply fixed weight decay instead of adaptive.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

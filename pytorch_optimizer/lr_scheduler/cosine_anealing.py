@@ -8,14 +8,15 @@ from torch.optim.lr_scheduler import LRScheduler
 class CosineAnnealingWarmupRestarts(LRScheduler):
     r"""CosineAnnealingWarmupRestarts.
 
-    :param optimizer: Optimizer. wrapped optimizer instance.
-    :param first_cycle_steps: int. first cycle step size.
-    :param cycle_mult: float. cycle steps magnification.
-    :param max_lr: float.
-    :param min_lr: float.
-    :param warmup_steps: int. number of warmup steps.
-    :param gamma: float. decrease rate of lr by cycle.
-    :param last_epoch: int. step size of the current cycle.
+    Args:
+        optimizer (Optimizer): Wrapped optimizer instance.
+        first_cycle_steps (int): Number of steps in the first cycle.
+        cycle_mult (float): Cycle steps magnification factor.
+        max_lr (float): Maximum learning rate.
+        min_lr (float): Minimum learning rate.
+        warmup_steps (int): Number of warmup steps.
+        gamma (float): Decrease rate of max learning rate by cycle.
+        last_epoch (int): The index of the last epoch for resuming training.
     """
 
     def __init__(
@@ -31,7 +32,7 @@ class CosineAnnealingWarmupRestarts(LRScheduler):
     ):
         if warmup_steps >= first_cycle_steps:
             raise ValueError(
-                f'[-] warmup_steps must be smaller than first_cycle_steps. {warmup_steps} < {first_cycle_steps}'
+                f'warmup_steps must be smaller than first_cycle_steps. {warmup_steps} < {first_cycle_steps}'
             )
 
         self.first_cycle_steps = first_cycle_steps

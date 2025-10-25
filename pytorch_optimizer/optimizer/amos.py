@@ -8,18 +8,19 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 
 
 class Amos(BaseOptimizer):
-    r"""An Adam-style Optimizer with Adaptive Weight Decay towards Model-Oriented Scale.
+    """An Adam-style Optimizer with Adaptive Weight Decay towards Model-Oriented Scale.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param beta: float. A float slightly < 1. We recommend setting `1 - beta` to the same order of magnitude as the
-        learning rate. similarity with beta2 in Adam.
-    :param momentum: float. Exponential decay rate for optional moving average of updates.
-    :param extra_l2: float. Additional L2 regularization.
-    :param c_coef: float. Coefficient for decay_factor_c.
-    :param d_coef: float. Coefficient for decay_factor_d.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        beta (float): A float slightly less than 1. Recommended to set `1 - beta` approximately the same magnitude
+            as the learning rate, similar to beta2 in Adam.
+        momentum (float): Exponential decay rate for optional moving average of updates.
+        extra_l2 (float): Additional L2 regularization.
+        c_coef (float): Coefficient for decay_factor_c.
+        d_coef (float): Coefficient for decay_factor_d.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

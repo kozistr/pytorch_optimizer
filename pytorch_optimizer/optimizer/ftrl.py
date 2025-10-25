@@ -6,16 +6,16 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 
 
 class FTRL(BaseOptimizer):
-    r"""Follow The Regularized Leader.
+    """Follow The Regularized Leader.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param lr_power: float. controls how the learning rate decreases during training. use zero for a fixed learning
-        rate.
-    :param beta: float. beta value in the paper.
-    :param lambda_1: float. L1 regularization parameter.
-    :param lambda_2: float. L2 regularization parameter.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        lr_power (float): Controls how the learning rate decreases during training. Use zero for a fixed learning rate.
+        beta (float): Beta value as described in the paper.
+        lambda_1 (float): L1 regularization parameter.
+        lambda_2 (float): L2 regularization parameter.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

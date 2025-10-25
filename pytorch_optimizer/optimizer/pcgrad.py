@@ -11,12 +11,12 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 
 
 def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:
-    r"""Flatten the gradient."""
+    """Flatten the gradient."""
     return torch.cat([grad.flatten() for grad in grads])
 
 
 def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor]:
-    r"""Unflatten the gradient."""
+    """Unflatten the gradient."""
     idx: int = 0
     un_flatten_grads: List[torch.Tensor] = []
     for shape in shapes:
@@ -27,10 +27,11 @@ def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor
 
 
 class PCGrad(BaseOptimizer):
-    r"""Gradient Surgery for Multi-Task Learning.
+    """Gradient Surgery for Multi-Task Learning.
 
-    :param optimizer: Optimizer: optimizer instance.
-    :param reduction: str. reduction method.
+    Args:
+        optimizer (Optimizer): Optimizer instance.
+        reduction (str): Reduction method for gradients.
     """
 
     def __init__(self, optimizer: Optimizer, reduction: str = 'mean'):
@@ -57,7 +58,7 @@ class PCGrad(BaseOptimizer):
                 idx += 1
 
     def retrieve_grad(self) -> Tuple[List[torch.Tensor], List[int], List[torch.Tensor]]:
-        r"""Get the gradient of the parameters of the network with specific objective."""
+        """Get the gradient of the parameters of the network with specific objective."""
         grad, shape, has_grad = [], [], []
         for group in self.optimizer.param_groups:
             for p in group['params']:
@@ -74,10 +75,10 @@ class PCGrad(BaseOptimizer):
         return grad, shape, has_grad
 
     def pack_grad(self, objectives: Iterable) -> Tuple[List[torch.Tensor], List[List[int]], List[torch.Tensor]]:
-        r"""Pack the gradient of the parameters of the network for each objective.
+        """Pack the gradient of the parameters of the network for each objective.
 
-        :param objectives: Iterable[nn.Module]. a list of objectives.
-        :return: torch.Tensor. packed gradients.
+        Args:
+            objectives (Iterable[nn.Module]): A list of objectives.
         """
         grads, shapes, has_grads = [], [], []
         for objective in objectives:
@@ -93,11 +94,11 @@ class PCGrad(BaseOptimizer):
         return grads, shapes, has_grads
 
     def project_conflicting(self, grads: List[torch.Tensor], has_grads: List[torch.Tensor]) -> torch.Tensor:
-        r"""Project conflicting.
+        """Project conflicting.
 
-        :param grads: a list of the gradient of the parameters.
-        :param has_grads: a list of mask represent whether the parameter has gradient.
-        :return: torch.Tensor. merged gradients.
+        Args:
+            grads (List[torch.Tensor]): A list of the gradient of the parameters.
+            has_grads (List[torch.Tensor]): A list of masks representing whether the parameter has gradient.
         """
         shared: torch.Tensor = torch.stack(has_grads).prod(0).bool()
 
@@ -122,9 +123,10 @@ class PCGrad(BaseOptimizer):
         return merged_grad
 
     def pc_backward(self, objectives: Iterable[nn.Module]) -> None:
-        r"""Calculate the gradient of the parameters.
+        """Calculate the gradient of the parameters.
 
-        :param objectives: Iterable[nn.Module]. a list of objectives.
+        Args:
+            objectives (Iterable[nn.Module]): A list of objectives.
         """
         grads, shapes, has_grads = self.pack_grad(objectives)
 

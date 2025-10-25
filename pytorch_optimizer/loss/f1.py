@@ -3,10 +3,11 @@ from torch import nn
 
 
 class SoftF1Loss(nn.Module):
-    r"""Soft-F1 loss.
+    """Soft-F1 loss.
 
-    :param beta: float. f-beta.
-    :param eps: float. epsilon.
+    Args:
+        beta (float): The beta parameter in the F-beta score, balancing precision vs recall.
+        eps (float): Small epsilon value to avoid division by zero during calculation.
     """
 
     def __init__(self, beta: float = 1.0, eps: float = 1e-6):

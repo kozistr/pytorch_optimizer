@@ -6,16 +6,17 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 
 
 class QHM(BaseOptimizer):
-    r"""Quasi-hyperbolic momentum (QHM) optimization algorithm.
+    """Quasi-hyperbolic momentum (QHM) optimization algorithm.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param momentum: float. momentum factor.
-    :param nu: float. immediate discount factor used to estimate the gradient and its square.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        momentum (float): momentum factor.
+        nu (float): immediate discount factor used to estimate the gradient and its square.
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): fix weight decay.
+        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

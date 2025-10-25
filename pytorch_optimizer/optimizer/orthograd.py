@@ -8,11 +8,12 @@ from pytorch_optimizer.base.type import OPTIMIZER_INSTANCE_OR_CLASS, Closure, De
 
 
 class OrthoGrad(BaseOptimizer):
-    r"""Grokking at the Edge of Numerical Stability.
+    """Grokking at the Edge of Numerical Stability.
 
     A wrapper optimizer that projects gradients to be orthogonal to the current parameters before performing an update.
 
-    :param optimizer: OPTIMIZER_INSTANCE_OR_CLASS. base optimizer.
+    Args:
+        optimizer (OPTIMIZER_INSTANCE_OR_CLASS): Base optimizer.
     """
 
     def __init__(self, optimizer: OPTIMIZER_INSTANCE_OR_CLASS, **kwargs) -> None:

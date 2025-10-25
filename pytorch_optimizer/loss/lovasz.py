@@ -4,7 +4,7 @@ from torch.nn.functional import relu
 
 
 def lovasz_grad(gt_sorted: torch.Tensor) -> torch.Tensor:
-    r"""Compute gradient of the Lovasz extension w.r.t sorted errors."""
+    """Compute gradient of the Lovasz extension w.r.t sorted errors."""
     p = len(gt_sorted)
     gts = gt_sorted.sum()
     intersection = gts - gt_sorted.float().cumsum(0)
@@ -16,10 +16,11 @@ def lovasz_grad(gt_sorted: torch.Tensor) -> torch.Tensor:
 
 
 def lovasz_hinge_flat(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
-    r"""Binary Lovasz hinge loss.
+    """Binary Lovasz hinge loss.
 
-    :param y_pred: torch.Tensor.
-    :param y_true: torch.Tensor.
+    Args:
+        y_pred (torch.Tensor): Predictions.
+        y_true (torch.Tensor): Ground truth.
     """
     y_pred = y_pred.view(-1)
     y_true = y_true.view(-1)
@@ -37,7 +38,8 @@ def lovasz_hinge_flat(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tenso
 class LovaszHingeLoss(nn.Module):
     r"""Binary Lovasz hinge loss.
 
-    :param per_image: bool. compute the loss per image instead of per batch.
+    Args:
+        per_image (bool): compute the loss per image instead of per batch.
     """
 
     def __init__(self, per_image: bool = True):

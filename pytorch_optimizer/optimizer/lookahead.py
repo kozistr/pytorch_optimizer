@@ -9,12 +9,13 @@ from pytorch_optimizer.base.type import OPTIMIZER_INSTANCE_OR_CLASS, Closure, De
 
 
 class Lookahead(BaseOptimizer):
-    r"""k steps forward, 1 step back.
+    """k steps forward, 1 step back.
 
-    :param optimizer: OPTIMIZER_INSTANCE_OR_CLASS. base optimizer.
-    :param k: int. number of lookahead steps.
-    :param alpha: float. linear interpolation factor.
-    :param pullback_momentum: str. change to inner optimizer momentum on interpolation update.
+    Args:
+        optimizer (OPTIMIZER_INSTANCE_OR_CLASS): Base optimizer.
+        k (int): Number of lookahead steps.
+        alpha (float): Linear interpolation factor.
+        pullback_momentum (str): Change to inner optimizer momentum on interpolation update.
     """
 
     def __init__(

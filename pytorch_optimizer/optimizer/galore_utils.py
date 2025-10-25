@@ -7,13 +7,14 @@ PROJECTION_TYPE = Literal['std', 'reverse_std', 'right', 'left', 'full', 'random
 
 
 class GaLoreProjector:
-    r"""Memory-Efficient LLM Training by Gradient Low-Rank Projection.
+    """Memory-Efficient LLM Training by Gradient Low-Rank Projection.
 
-    :param rank: Optional[int]. low rank to project. if rank is None, full matrix will be used.
-    :param update_proj_gap: int. num steps to update the projection.
-    :param scale: float. scale factor.
-    :param projection_type: PROJECTION_TYPE. type of projection. 'std', 'reverse_std', 'right', 'left', 'full' and
-        'random' are supported.
+    Args:
+        rank (Optional[int]): Low rank to project. If None, the full matrix is used.
+        update_proj_gap (int): Number of steps between projection updates.
+        scale (float): Scale factor applied during projection.
+        projection_type (PROJECTION_TYPE): Type of projection. Supported types include 'std', 'reverse_std',
+            'right', 'left', 'full', and 'random'.
     """
 
     def __init__(

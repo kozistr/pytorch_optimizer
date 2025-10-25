@@ -9,25 +9,26 @@ from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
 class Lamb(BaseOptimizer):
-    r"""Large Batch Optimization for Deep Learning.
+    """Large Batch Optimization for Deep Learning.
 
-        This Lamb implementation is based on the paper v3, which does not use de-biasing.
+    This Lamb implementation is based on the paper v3, which does not use de-biasing.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param rectify: bool. perform the rectified update similar to RAdam.
-    :param degenerated_to_sgd: bool. degenerated to SGD.
-    :param n_sma_threshold: int. (recommended is 5).
-    :param grad_averaging: bool. whether apply (1 - beta2) to gradient when calculating running averages of gradient.
-    :param max_grad_norm: float. max gradient norm to clip.
-    :param adam: bool. always use trust ratio = 1, which turns this into Adam. Useful for comparison purposes.
-    :param pre_norm: bool. perform pre-normalization of all gradients.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        rectify (bool): Perform the rectified update similar to RAdam.
+        degenerated_to_sgd (bool): Degenerate to SGD.
+        n_sma_threshold (int): Recommended is 5.
+        grad_averaging (bool): Whether to apply (1 - beta2) to gradient when calculating running averages of gradient.
+        max_grad_norm (float): Max gradient norm to clip.
+        adam (bool): Always use trust ratio = 1, which turns this into Adam. Useful for comparison purposes.
+        pre_norm (bool): Perform pre-normalization of all gradients.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     clamp: float = 10.0

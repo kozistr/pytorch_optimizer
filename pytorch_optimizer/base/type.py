@@ -10,7 +10,7 @@ SCHEDULER = Type[LRScheduler]
 
 Defaults = Dict[str, Any]
 ParamGroup = Dict[str, Any]
-State = Dict[str, Any]
+State = Dict
 Parameters = Optional[Union[Iterable[torch.Tensor], Iterable[ParamGroup]]]
 
 Closure = Optional[Callable[[], float]]

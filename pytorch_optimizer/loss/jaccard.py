@@ -14,13 +14,14 @@ def soft_jaccard_score(
     eps: float = 1e-6,
     dims: Optional[Tuple[int, ...]] = None,
 ) -> torch.Tensor:
-    r"""Get soft jaccard score.
+    r"""Get soft Jaccard score.
 
-    :param output: torch.Tensor. predicted segments.
-    :param target: torch.Tensor. ground truth segments.
-    :param label_smooth: float. label smoothing factor.
-    :param eps: float. epsilon.
-    :param dims: Optional[Tuple[int, ...]]. target dimensions to reduce.
+    Args:
+        output (torch.Tensor): Predicted segments (probabilities or logits).
+        target (torch.Tensor): Ground truth segments.
+        label_smooth (float): Label smoothing factor to avoid zero denominators.
+        eps (float): Small epsilon for numerical stability.
+        dims (Optional[Tuple[int, ...]]): Dimensions to reduce over when computing the score.
     """
     if dims is not None:
         intersection = torch.sum(output * target, dim=dims)
@@ -33,17 +34,19 @@ def soft_jaccard_score(
 
 
 class JaccardLoss(_Loss):
-    r"""Jaccard loss for image segmentation task. It supports binary, multiclass and multilabel cases.
+    r"""Jaccard loss for image segmentation.
 
-    Reference : https://github.com/BloodAxe/pytorch-toolbelt
+    Reference: https://github.com/BloodAxe/pytorch-toolbelt
 
-    :param mode: CLASS_MODE. loss mode 'binary', 'multiclass', or 'multilabel.
-    :param classes: Optional[List[int]]. List of classes that contribute in loss computation. By default,
-        all channels are included.
-    :param log_loss: If True, loss computed as `-log(jaccard)`; otherwise `1 - jaccard`
-    :param from_logits: bool. If True, assumes input is raw logits.
-    :param label_smooth: float. Smoothness constant for dice coefficient (a).
-    :param eps: float. epsilon.
+    Args:
+        mode (str): Loss mode, one of 'binary', 'multiclass', or 'multilabel'.
+        classes (Optional[List[int]]): List of classes to include in the loss computation,
+            defaults to all classes if None.
+        log_loss (bool): If True, loss is computed as -log(jaccard);
+            otherwise, 1 - jaccard.
+        from_logits (bool): If True, input is raw logits, which will be converted to probabilities.
+        label_smooth (float): Label smoothing constant.
+        eps (float): Small number to prevent division by zero.
     """
 
     def __init__(

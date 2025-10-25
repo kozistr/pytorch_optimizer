@@ -10,7 +10,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 def update_ema(state: Dict, loss: Union[float, torch.Tensor]) -> Dict[str, float]:
-    r"""Update the EMA dictionary for the `short` and `long` terms."""
+    """Update the EMA dictionary for the `short` and `long` terms."""
     if isinstance(loss, torch.Tensor):
         loss = loss.item()
 
@@ -22,13 +22,13 @@ def update_ema(state: Dict, loss: Union[float, torch.Tensor]) -> Dict[str, float
 
 
 def compute_scalar(ema: Dict[str, float]) -> float:
-    r"""Compute the difference scalar."""
+    """Compute the difference scalar."""
     diff: float = ema['short'] - ema['long']
     return math.tanh(5.0 * diff)
 
 
 def get_scalar_ratio(scalar: float, use_shadow: bool = True) -> float:
-    r"""Get the scalar ratio."""
+    """Get the scalar ratio."""
     if not use_shadow:
         return 0.0
 
@@ -41,17 +41,18 @@ def get_scalar_ratio(scalar: float, use_shadow: bool = True) -> float:
 
 
 class EmoNavi(BaseOptimizer):
-    r"""An emotion-driven optimizer that feels loss and navigates accordingly.
+    """An emotion-driven optimizer that feels loss and navigates accordingly.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param shadow_weight: float. the weight of the shadow.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        shadow_weight (float): The weight of the shadow.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(
@@ -167,21 +168,22 @@ class EmoNavi(BaseOptimizer):
 
 
 class EmoLynx(BaseOptimizer):
-    r"""EmoLynx optimizer.
+    """EmoLynx optimizer.
 
     Lynx was developed with inspiration from Lion and Tiger, which we deeply respect for their lightweight and
     intelligent design. It also integrates EmoNAVI to enhance its capabilities.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param use_shadow: bool. whether to use shadow feature.
-    :param shadow_weight: float. the weight of the shadow.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize, or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared hessian trace.
+        use_shadow (bool): Whether to use shadow feature.
+        shadow_weight (float): The weight of the shadow.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -297,20 +299,21 @@ class EmoLynx(BaseOptimizer):
 
 
 class EmoFact(BaseOptimizer):
-    r"""EmoFact optimizer.
+    """EmoFact optimizer.
 
     EmoFact is inspired by AdaFactor and its VRAM-friendly design is something everyone loves.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param use_shadow: bool. whether to use shadow weights or not.
-    :param shadow_weight: float. the weight of the shadow.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        use_shadow (bool): Whether to use shadow weights or not.
+        shadow_weight (float): The weight of the shadow.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(
@@ -457,21 +460,22 @@ class EmoFact(BaseOptimizer):
 
 
 class EmoNeco(BaseOptimizer):
-    r"""EmoNeco optimizer.
+    """EmoNeco optimizer.
 
     EmoNeco was developed with inspiration from Lion, Tiger, Cautious, softsign, and EmoLynx which we deeply respect
     for their lightweight and intelligent design.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param use_shadow: bool. whether to use shadow weights or not.
-    :param shadow_weight: float. the weight of the shadow.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        use_shadow (bool): Whether to use shadow weights or not.
+        shadow_weight (float): The weight of the shadow.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(
@@ -599,20 +603,21 @@ class EmoNeco(BaseOptimizer):
 
 
 class EmoZeal(BaseOptimizer):
-    r"""EmoZeal optimizer.
+    """EmoZeal optimizer.
 
     EmoZeal is inspired by Adafactor, and EmoFact, and its VRAM-friendly design is something everyone loves.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param use_shadow: bool. whether to use shadow feature.
-    :param shadow_weight: float. the weight of the shadow.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        use_shadow (bool): Whether to use shadow feature.
+        shadow_weight (float): The weight of the shadow.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

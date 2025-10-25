@@ -6,18 +6,19 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 
 
 class PID(BaseOptimizer):
-    r"""A PID Controller Approach for Stochastic Optimization of Deep Networks.
+    """A PID Controller Approach for Stochastic Optimization of Deep Networks.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param momentum: float. momentum factor.
-    :param dampening: float. dampening for momentum.
-    :param derivative: float. D part of the PID.
-    :param integral: float. I part of the PID.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        momentum (float): Momentum factor.
+        dampening (float): Dampening for momentum.
+        derivative (float): D part of the PID.
+        integral (float): I part of the PID.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

@@ -9,18 +9,19 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 class Adalite(BaseOptimizer):
     r"""Adalite optimizer.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param g_norm_min: float.
-    :param ratio_min: float.
-    :param tau: float.
-    :param eps1: float. term added to the denominator to improve numerical stability.
-    :param eps2: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        g_norm_min (float): Minimum gradient norm threshold.
+        ratio_min (float): Minimum ratio value for adaptive adjustment.
+        tau (float): Time constant controlling parameter smoothing or decay behavior.
+        eps1 (float): Term added to the denominator to improve numerical stability.
+        eps2 (float): Additional term added to the denominator for extra numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

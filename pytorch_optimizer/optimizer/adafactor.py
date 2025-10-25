@@ -9,28 +9,29 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 class AdaFactor(BaseOptimizer):
-    r"""Adaptive Learning Rates with Sublinear Memory Cost with some tweaks.
+    """Adaptive Learning Rates with Sublinear Memory Cost with some tweaks.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-        if beta1 is None, first momentum will be skipped.
-    :param decay_rate: float. coefficient used to compute running averages of square gradient.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param clip_threshold: float. threshold of root-mean-square of final gradient update.
-    :param ams_bound: bool. whether to use the AMSBound variant.
-    :param scale_parameter: bool. if true, learning rate is scaled by root-mean-square of parameter.
-    :param relative_step: bool. if true, time-dependent learning rate is computed instead of external learning rate.
-    :param warmup_init: bool. time-dependent learning rate computation depends on whether warm-up initialization is
-        being used.
-    :param eps1: float. term added to the denominator to improve numerical stability.
-    :param eps2: float. term added to the denominator to improve numerical stability.
-    :param momentum_dtype: torch.dtype. type of momentum variable. In VIT paper observed that storing momentum in
-        half-precision (bfloat16 type) does not affect training dynamics and has no effect on the outcome while
-        reducing optimize overhead from 2-fold to 1.5-fold.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+            If beta1 is None, first momentum will be skipped.
+        decay_rate (float): Coefficient used to compute running averages of squared gradient.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        clip_threshold (float): Threshold of root-mean-square of final gradient update.
+        ams_bound (bool): Whether to use the AMSBound variant.
+        scale_parameter (bool): If True, the learning rate is scaled by root-mean-square of parameter.
+        relative_step (bool): If True, time-dependent learning rate is computed instead of external learning rate.
+        warmup_init (bool): Time-dependent learning rate computation depends on whether warm-up initialization is
+            being used.
+        eps1 (float): Term added to the denominator to improve numerical stability.
+        eps2 (float): Term added to the denominator to improve numerical stability.
+        momentum_dtype (torch.dtype): Type of momentum variable. In the ViT paper, it was observed that storing
+            momentum in half-precision (bfloat16 type) does not affect training dynamics and reduces optimizer
+            overhead from 2-fold to 1.5-fold.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

@@ -27,7 +27,7 @@ def get_adjusted_lr(lr: float, param_shape: Tuple[float, ...], use_adjusted_lr: 
 
 
 class Muon(BaseOptimizer):
-    r"""Momentum Orthogonalized by Newton-schulz.
+    """Momentum Orthogonalized by Newton-schulz.
 
     Muon internally runs standard SGD-momentum, and then performs an orthogonalization post-processing step, in which
     each 2D parameter's update is replaced with the nearest orthogonal matrix. To efficiently orthogonalize each
@@ -40,8 +40,23 @@ class Muon(BaseOptimizer):
     - We believe this optimizer is unlikely to work well for training with small batch size.
     - We believe it may not work well for fine-tuning pretrained models, but we haven't tested this.
 
+    Args:
+        params (Parameters): The parameters to be optimized by Muon.
+        lr (float): Learning rate.
+        momentum (float): The momentum used by the internal SGD.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        nesterov (bool): Whether to use nesterov momentum.
+        ns_steps (int): The number of Newton-Schulz iterations to run. (5 is probably always enough)
+        use_adjusted_lr (bool): Whether to use adjusted learning rate, which is from the Moonlight.
+            Reference: https://github.com/MoonshotAI/Moonlight/blob/master/examples/toy_train.py
+        adamw_lr (float): The learning rate for the internal AdamW.
+        adamw_betas (tuple): The betas for the internal AdamW.
+        adamw_wd (float): The weight decay for the internal AdamW.
+        adamw_eps (float): The epsilon for the internal AdamW.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     Example:
-    -------
         from pytorch_optimizer import Muon
 
         hidden_weights = [p for p in model.body.parameters() if p.ndim >= 2]
@@ -60,21 +75,6 @@ class Muon(BaseOptimizer):
         ]
 
         optimizer = Muon(param_groups)
-
-    :param params: PARAMETERS. the parameters to be optimized by Muon.
-    :param lr: float. learning rate.
-    :param momentum: float. the momentum used by the internal SGD.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param nesterov: bool. whether to use nesterov momentum.
-    :param ns_steps: int. the number of Newton-Schulz iterations to run. (5 is probably always enough)
-    :param use_adjusted_lr: bool. whether to use adjusted learning rate, which is from the Moonlight.
-        reference: https://github.com/MoonshotAI/Moonlight/blob/master/examples/toy_train.py
-    :param adamw_lr: float. The learning rate for the internal AdamW.
-    :param adamw_betas: The betas for the internal AdamW.
-    :param adamw_wd: float. The weight decay for the internal AdamW.
-    :param adamw_eps: float. The epsilon for the internal AdamW.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -218,7 +218,7 @@ class Muon(BaseOptimizer):
 
 
 class DistributedMuon(BaseOptimizer):  # pragma: no cover
-    r"""Distributed Momentum Orthogonalized by Newton-schulz.
+    """Momentum Orthogonalized by Newton-schulz.
 
     Muon internally runs standard SGD-momentum, and then performs an orthogonalization post-processing step, in which
     each 2D parameter's update is replaced with the nearest orthogonal matrix. To efficiently orthogonalize each
@@ -231,8 +231,23 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
     - We believe this optimizer is unlikely to work well for training with small batch size.
     - We believe it may not work well for fine-tuning pretrained models, but we haven't tested this.
 
+    Args:
+        params (Parameters): The parameters to be optimized by Muon.
+        lr (float): Learning rate.
+        momentum (float): The momentum used by the internal SGD.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        nesterov (bool): Whether to use nesterov momentum.
+        ns_steps (int): The number of Newton-Schulz iterations to run. (5 is probably always enough)
+        use_adjusted_lr (bool): Whether to use adjusted learning rate, which is from the Moonlight.
+            Reference: https://github.com/MoonshotAI/Moonlight/blob/master/examples/toy_train.py
+        adamw_lr (float): The learning rate for the internal AdamW.
+        adamw_betas (tuple): The betas for the internal AdamW.
+        adamw_wd (float): The weight decay for the internal AdamW.
+        adamw_eps (float): The epsilon for the internal AdamW.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     Example:
-    -------
         from pytorch_optimizer import DistributedMuon
 
         hidden_weights = [p for p in model.body.parameters() if p.ndim >= 2]
@@ -250,22 +265,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
             ),
         ]
 
-        optimizer = Muon(param_groups)
-
-    :param params: PARAMETERS. the parameters to be optimized by Muon.
-    :param lr: float. learning rate.
-    :param momentum: float. the momentum used by the internal SGD.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param nesterov: bool. whether to use nesterov momentum.
-    :param ns_steps: int. the number of Newton-Schulz iterations to run. (5 is probably always enough)
-    :param use_adjusted_lr: bool. whether to use adjusted learning rate, which is from the Moonlight.
-        reference: https://github.com/MoonshotAI/Moonlight/blob/master/examples/toy_train.py
-    :param adamw_lr: float. The learning rate for the internal AdamW.
-    :param adamw_betas: The betas for the internal AdamW.
-    :param adamw_wd: float. The weight decay for the internal AdamW.
-    :param adamw_eps: float. The epsilon for the internal AdamW.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+        optimizer = DistributedMuon(param_groups)
     """
 
     def __init__(
@@ -421,7 +421,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
 
 
 class AdaMuon(BaseOptimizer):
-    r"""Adaptive Muon optimizer.
+    """Adaptive Muon optimizer.
 
     Muon internally runs standard SGD-momentum, and then performs an orthogonalization post-processing step, in which
     each 2D parameter's update is replaced with the nearest orthogonal matrix. To efficiently orthogonalize each
@@ -434,8 +434,22 @@ class AdaMuon(BaseOptimizer):
     - We believe this optimizer is unlikely to work well for training with small batch size.
     - We believe it may not work well for fine-tuning pretrained models, but we haven't tested this.
 
+    Args:
+        params (Parameters): The parameters to be optimized by Muon.
+        lr (float): Learning rate.
+        betas (tuple): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        ns_steps (int): The number of Newton-Schulz iterations to run. (5 is probably always enough)
+        use_adjusted_lr (bool): Whether to use adjusted learning rate, which is from the Moonlight.
+            Reference: https://github.com/MoonshotAI/Moonlight/blob/master/examples/toy_train.py
+        adamw_lr (float): The learning rate for the internal AdamW.
+        adamw_betas (tuple): The betas for the internal AdamW.
+        adamw_wd (float): The weight decay for the internal AdamW.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     Example:
-    -------
         from pytorch_optimizer import AdaMuon
 
         hidden_weights = [p for p in model.body.parameters() if p.ndim >= 2]
@@ -454,20 +468,6 @@ class AdaMuon(BaseOptimizer):
         ]
 
         optimizer = AdaMuon(param_groups)
-
-    :param params: PARAMETERS. the parameters to be optimized by Muon.
-    :param lr: float. learning rate.
-    :param betas: coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param ns_steps: int. the number of Newton-Schulz iterations to run. (5 is probably always enough)
-    :param use_adjusted_lr: bool. whether to use adjusted learning rate, which is from the Moonlight.
-        reference: https://github.com/MoonshotAI/Moonlight/blob/master/examples/toy_train.py
-    :param adamw_lr: float. The learning rate for the internal AdamW.
-    :param adamw_betas: The betas for the internal AdamW.
-    :param adamw_wd: float. The weight decay for the internal AdamW.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -616,21 +616,27 @@ class AdaMuon(BaseOptimizer):
 
 
 class AdaGO(BaseOptimizer):
-    r"""AdaGrad Meets Muon: Adaptive Stepsizes for Orthogonal Updates.
+    """AdaGrad Meets Muon: Adaptive Stepsizes for Orthogonal Updates.
 
-    Muon internally runs standard SGD-momentum, and then performs an orthogonalization post-processing step, in which
-    each 2D parameter's update is replaced with the nearest orthogonal matrix. To efficiently orthogonalize each
-    update, we use a Newton-Schulz iteration, which has the advantage that it can be stably run in bfloat16 on the GPU.
-
-    Muon is intended to optimize only the internal ≥2D parameters of a network. Embeddings, classifier heads, and
-    scalar or vector parameters should be optimized using AdamW.
-
-    Some warnings:
-    - We believe this optimizer is unlikely to work well for training with small batch size.
-    - We believe it may not work well for fine-tuning pretrained models, but we haven't tested this.
+    Args:
+        params (Parameters): The parameters to be optimized by Muon.
+        lr (float): Learning rate.
+        momentum (float): The momentum used by the internal SGD.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        nesterov (bool): Whether to use nesterov momentum.
+        gamma (float): Gamma factor. Empirically, AdaGO performs robustly across a wide range of gamma values.
+        eps (float): Epsilon value. Lower bound eps > 0 on the stepsizes.
+        ns_steps (int): The number of Newton-Schulz iterations to run. (5 is probably always enough)
+        use_adjusted_lr (bool): Whether to use adjusted learning rate, which is from the Moonlight.
+            Reference: https://github.com/MoonshotAI/Moonlight/blob/master/examples/toy_train.py
+        adamw_lr (float): The learning rate for the internal AdamW.
+        adamw_betas (tuple): The betas for the internal AdamW.
+        adamw_wd (float): The weight decay for the internal AdamW.
+        adamw_eps (float): The epsilon for the internal AdamW.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
 
     Example:
-    -------
         from pytorch_optimizer import AdaGO
 
         hidden_weights = [p for p in model.body.parameters() if p.ndim >= 2]
@@ -649,23 +655,6 @@ class AdaGO(BaseOptimizer):
         ]
 
         optimizer = AdaGO(param_groups)
-
-    :param params: PARAMETERS. the parameters to be optimized by Muon.
-    :param lr: float. learning rate.
-    :param momentum: float. the momentum used by the internal SGD.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param nesterov: bool. whether to use nesterov momentum.
-    :param gamma: float. gamma factor. Empirically, AdaGO performs robustly across a wide range of gamma values.
-    :param eps: float. epsilon value. lower bound eps > 0 on the stepsizes.
-    :param ns_steps: int. the number of Newton-Schulz iterations to run. (5 is probably always enough)
-    :param use_adjusted_lr: bool. whether to use adjusted learning rate, which is from the Moonlight.
-        reference: https://github.com/MoonshotAI/Moonlight/blob/master/examples/toy_train.py
-    :param adamw_lr: float. The learning rate for the internal AdamW.
-    :param adamw_betas: The betas for the internal AdamW.
-    :param adamw_wd: float. The weight decay for the internal AdamW.
-    :param adamw_eps: float. The epsilon for the internal AdamW.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -832,7 +821,7 @@ def prepare_muon_parameters(
     adamw_wd: float = 0.0,
     **kwargs,
 ) -> Optimizer:
-    r"""Prepare the parameters for Muon optimizer.
+    """Prepare the parameters for Muon optimizer.
 
     Be careful at using this function to prepare the parameters for Muon optimizer. It's not likely acting perfectly
     for all cases. So, highly recommend you to create the Muon optimizer manually following by the given example in the

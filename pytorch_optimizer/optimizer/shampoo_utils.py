@@ -7,7 +7,7 @@ import torch
 
 
 class LayerWiseGrafting(IntEnum):
-    r"""Layer-wise grafting.
+    """Layer-wise grafting.
 
     Grafting is a technique to fix the layer-wise scale of Shampoo optimizer.
     https://arxiv.org/pdf/2002.11803.pdf studies this in detail. This
@@ -24,52 +24,53 @@ class LayerWiseGrafting(IntEnum):
 
 
 class Graft:
-    r"""Base class to perform grafting onto Shampoo. This class does no grafting."""
+    """Base class to perform grafting onto Shampoo. This class does no grafting."""
 
     def __init__(self, *args):
         pass
 
     def add_statistics(self, grad: torch.Tensor, beta2: float) -> None:
-        r"""Add the statistics."""
+        """Add the statistics."""
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
-        r"""Get preconditioned gradient."""
+        """Get preconditioned gradient."""
         return grad
 
     def update_momentum(self, update: torch.Tensor, beta1: float) -> torch.Tensor:
-        r"""Update momentum."""
+        """Update momentum."""
         return update
 
 
 class SGDGraft(Graft):
-    r"""Graft using SGD + momentum. momentum maintains an exponentially weighted moving average of gradients."""
+    """Graft using SGD + momentum. momentum maintains an exponentially weighted moving average of gradients."""
 
     def __init__(self, var: torch.Tensor):
         super().__init__(var)
         self.momentum: torch.Tensor = torch.zeros_like(var)
 
     def update_momentum(self, update: torch.Tensor, beta1: float) -> torch.Tensor:
-        r"""Update momentum."""
+        """Update momentum."""
         self.momentum.mul_(beta1).add_(update)
         return self.momentum
 
 
 class SQRTNGraft(Graft):
-    r"""Graft using SQRT-N."""
+    """Graft using SQRT-N."""
 
     def __init__(self, var: torch.Tensor):
         super().__init__(var)
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
-        r"""Get preconditioned gradient."""
+        """Get preconditioned gradient."""
         return grad.sign()
 
 
 class AdaGradGraft(SGDGraft):
-    r"""Graft using AdaGrad. Essentially an implementation of AdaGrad with momentum.
+    """Graft using AdaGrad with momentum.
 
-    :param var: torch.Tensor. variable.
-    :param diagonal_eps: float. diagonal epsilon.
+    Args:
+        var (torch.Tensor): variable to be optimized.
+        diagonal_eps (float): small epsilon added to diagonal for numerical stability.
     """
 
     def __init__(self, var: torch.Tensor, diagonal_eps: float):
@@ -78,19 +79,20 @@ class AdaGradGraft(SGDGraft):
         self.statistics: torch.Tensor = torch.zeros_like(var)
 
     def add_statistics(self, grad: torch.Tensor, _) -> None:
-        r"""Add the statistics."""
+        """Add the statistics."""
         self.statistics.add_(grad.pow(2))
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
-        r"""Get preconditioned gradient."""
+        """Get preconditioned gradient."""
         return grad.div(self.statistics.sqrt().add_(self.diagonal_eps))
 
 
 class RMSPropGraft(SGDGraft):
-    r"""Graft using RMSProp. Essentially an implementation of RMSProp with momentum.
+    """Graft using RMSProp with momentum.
 
-    :param var: torch.Tensor. variable.
-    :param diagonal_eps: float. diagonal epsilon.
+    Args:
+        var (torch.Tensor): variable to optimize.
+        diagonal_eps (float): small epsilon added to diagonal for numerical stability.
     """
 
     def __init__(self, var: torch.Tensor, diagonal_eps: float):
@@ -99,24 +101,25 @@ class RMSPropGraft(SGDGraft):
         self.statistics: torch.Tensor = torch.zeros_like(var)
 
     def add_statistics(self, grad: torch.Tensor, beta2: float) -> None:
-        r"""Add the statistics."""
+        """Add the statistics."""
         self.statistics.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
-        r"""Get preconditioned gradient."""
+        """Get preconditioned gradient."""
         return grad.div(self.statistics.sqrt().add_(self.diagonal_eps))
 
 
 class BlockPartitioner:
-    r"""Partition a tensor into smaller tensors for preconditioning.
+    """Partition a tensor into smaller tensors for preconditioning.
 
-        For example, if a variable has shape (4096, 512), we might split the 4096 into 4 blocks,
-        so we effectively have 4 variables of size (1024, 512) each.
+    For example, if a variable has shape (4096, 512), splitting the 4096 dimension into 4 blocks,
+    results in 4 smaller tensors each of shape (1024, 512).
 
-    :param var: torch.Tensor. tensor variable.
-    :param rank: int. rank.
-    :param block_size: int. block size.
-    :param pre_conditioner_type: int type of pre-conditioner.
+    Args:
+        var (torch.Tensor): tensor variable.
+        rank (int): rank of the tensor.
+        block_size (int): size of each block to partition.
+        pre_conditioner_type (int): type of pre-conditioner used.
     """
 
     def __init__(self, var: torch.Tensor, rank: int, block_size: int, pre_conditioner_type: int):
@@ -153,7 +156,7 @@ class BlockPartitioner:
     def build_pre_conditioner_shapes(
         split_sizes: List[torch.Tensor], pre_conditioner_type: int, rank: int
     ) -> List[List[torch.Tensor]]:
-        r"""Build pre-conditioner shapes."""
+        """Build pre-conditioner shapes."""
         pre_conditioner_shapes: List[List[torch.Tensor]] = []
         for t in itertools.product(*split_sizes):
             t_shape: List[Optional[List[torch.Tensor]]] = [[d, d] for d in t]
@@ -165,12 +168,12 @@ class BlockPartitioner:
         return pre_conditioner_shapes
 
     def shapes_for_pre_conditioners(self) -> List[List[torch.Tensor]]:
-        r"""Get shapes of pre-conditioner."""
+        """Get shapes of pre-conditioner."""
         return self.pre_conditioner_shapes
 
     @torch.no_grad()
     def partition(self, x: torch.Tensor) -> List[torch.Tensor]:
-        r"""Partition tensor into blocks."""
+        """Partition tensor into blocks."""
         if x.shape != self.shape:
             raise ValueError(f'self.shape != x.shape ({self.shape} vs {x.shape})')
 
@@ -181,7 +184,7 @@ class BlockPartitioner:
         return tensors
 
     def merge_partitions(self, partitions: List[torch.Tensor]) -> torch.Tensor:
-        r"""Merge partitions back to original shape."""
+        """Merge partitions back to original shape."""
         for i, indices in reversed(self.splits):
             n: int = len(indices) + 1
 
@@ -195,7 +198,7 @@ class BlockPartitioner:
 
 
 class PreConditionerType(IntEnum):
-    r"""Type of PreConditioner.
+    """Type of PreConditioner.
 
     In default (ALL), computes pre-conditioner for each dim.
     INPUT/OUTPUT is one-sided Shampoo, in this case only on input/output dim.
@@ -208,18 +211,20 @@ class PreConditionerType(IntEnum):
 
 
 class PreConditioner:
-    r"""Compute statistics & shape from gradients for preconditioning.
+    """Compute statistics & shape from gradients for preconditioning.
 
-    :param var: torch.Tensor. variable.
-    :param beta2: float. beta2.
-    :param inverse_exponent_override: int. override inv exp.
-    :param block_size: int. size of block.
-    :param skip_preconditioning_rank_lt: int. skip low-rank parameter.
-    :param no_preconditioning_for_layers_with_dim_gt: int. skip large size of dim of parameter.
-    :param shape_interpretation: bool. reshaping parameter.
-    :param pre_conditioner_type: int. type of pre-conditioner.
-    :param matrix_eps: float. epsilon of matrix.
-    :param use_svd: bool. use SVD instead of Schur-Newton method to calculate M^{-1/p}.
+    Args:
+        var (torch.Tensor): tensor variable corresponding to model parameters.
+        beta2 (float): decay rate for second moment estimates.
+        inverse_exponent_override (int): override for inverse exponent used in preconditioning.
+        block_size (int): size of blocks for partitioning large tensors.
+        skip_preconditioning_rank_lt (int): skip preconditioning for tensors with rank less than this.
+        no_preconditioning_for_layers_with_dim_gt (int): skip preconditioning for layers with
+            dimension size greater than this.
+        shape_interpretation (bool): whether to apply automatic shape interpretation for tensor dimensions.
+        pre_conditioner_type (int): type of pre-conditioner to use.
+        matrix_eps (float): epsilon term added for numerical stability in matrix operations.
+        use_svd (bool): use SVD method instead of Schur-Newton method for matrix inverse powers calculation.
     """
 
     def __init__(
@@ -278,7 +283,7 @@ class PreConditioner:
             self.pre_conditioners = torch.stack(self.pre_conditioners, dim=0)
 
     def get_should_precondition_dims(self) -> List[bool]:
-        r"""Get pre-condition dimensions by the type of conditioner."""
+        """Get pre-condition dimensions by the type of conditioner."""
         if self.pre_conditioner_type == PreConditionerType.ALL or len(self.transformed_shape) <= 1:
             return [True] * len(self.transformed_shape)
         if self.pre_conditioner_type == PreConditionerType.INPUT:
@@ -293,9 +298,10 @@ class PreConditioner:
         )
 
     def add_statistics(self, grad: torch.Tensor) -> None:
-        r"""Compute statistics from gradients and add to the correct state entries.
+        """Compute statistics from gradients and add to state entries.
 
-        :param grad: torch.Tensor. gradient to compute statistics from.
+        Args:
+            grad (torch.Tensor): gradient tensor from which to compute statistics.
         """
         if len(self.statistics) == 0:
             return
@@ -310,7 +316,7 @@ class PreConditioner:
                 self.statistics[j * self.rank + i].mul_(self.beta2).add_(stat, alpha=self.w2)
 
     def compute_pre_conditioners(self) -> None:
-        r"""Compute L^{-1/exp} for each stats matrix L.
+        """Compute L^{-1/exp} for each stats matrix L.
 
         If `self.use_svd` is enabled and where all shapes of statistics & pre-conditioners are same, perform batch SVD.
         else, SVD one by one.
@@ -335,7 +341,7 @@ class PreConditioner:
         should_preconditioned_dims: List[bool],
         pre_conditioners_for_grad: Union[List[torch.Tensor], torch.Tensor],
     ) -> torch.Tensor:
-        r"""Perform a preconditioning operation on a single gradient block.
+        """Perform a preconditioning operation on a single gradient block.
 
         Loop invariant: the dimension to be preconditioned is first
         We keep all axes in the same cyclic order they were originally.
@@ -355,9 +361,10 @@ class PreConditioner:
         return partitioned_grad
 
     def preconditioned_grad(self, grad: torch.Tensor) -> torch.Tensor:
-        r"""Precondition the gradient.
+        """Precondition the gradient.
 
-        :param grad: torch.Tensor. a gradient tensor to precondition.
+        Args:
+            grad (torch.Tensor): gradient tensor to precondition.
         """
         if len(self.pre_conditioners) == 0:
             return grad
@@ -382,7 +389,7 @@ class PreConditioner:
 
 
 def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
-    r"""Build Graft by given graft_type."""
+    """Build Graft by given graft_type."""
     if graft_type == LayerWiseGrafting.ADAGRAD:
         return AdaGradGraft(p, diagonal_eps)
     if graft_type == LayerWiseGrafting.RMSPROP:
@@ -396,13 +403,14 @@ def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
 
 @torch.no_grad()
 def power_iteration(mat_g: torch.Tensor, num_iters: int = 100) -> torch.Tensor:
-    r"""Compute the maximum eigenvalue of matrix, for scaling.
+    """Compute the maximum eigenvalue of a symmetric PSD matrix using power iteration for scaling.
 
-        Mostly, power_iteration method is faster than torch.einval in case of the symmetric PSD matrix.
-        Also, I removed the validation, error of singular value every iteration, so that boosting the speed.
+    Mostly, the power_iteration method is faster than torch.eigvalsh for symmetric PSD matrices.
+    Validation and singular value error checks are removed each iteration to boost speed.
 
-    :param mat_g: torch.Tensor. the symmetric PSD matrix.
-    :param num_iters: int. Number of iterations.
+    Args:
+        mat_g (torch.Tensor): symmetric positive semi-definite matrix.
+        num_iters (int): number of power iteration steps.
     """
     v = torch.randn(mat_g.shape[0], dtype=mat_g.dtype, device=mat_g.device)
     mat_v = torch.empty_like(v)
@@ -440,14 +448,13 @@ def compute_power_schur_newton(
         If we want the method to always converge, use z = 1 / norm(mat_g) or z = 1 / tf.trace(mat_g),
         but these can result in many extra iterations.
 
-    :param mat_g: torch.Tensor. A square positive semi-definite matrix.
-    :param p: int. a positive integer.
-    :param max_iters: int. Stop iterating after this many rounds.
-    :param error_tolerance: float. Threshold for stopping iteration.
-    :param ridge_epsilon: float. We add this times I to G, to make is positive definite.
-        For scaling, we multiply it by the largest eigenvalue of G.
-    :param max_error_ratio: float. Sometimes error increases after an iteration before decreasing and converging.
-        1.2 factor is used to bound the maximal allowed increase.
+    Args:
+        mat_g (torch.Tensor): square positive semi-definite matrix.
+        p (int): positive integer for the root.
+        max_iters (int): maximum number of iterations to perform.
+        error_tolerance (float): threshold to stop iteration based on error.
+        ridge_epsilon (float): small value added times identity matrix for positive definiteness.
+        max_error_ratio (float): factor to limit allowed temporary increase in error.
     """
     shape: torch.Size = mat_g.shape
     if len(shape) == 1:
@@ -496,13 +503,14 @@ def compute_power_schur_newton(
 
 @torch.no_grad()
 def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
-    r"""Compute G^{-1/p} using SVD.
+    """Compute G^{-1/p} using Singular Value Decomposition (SVD).
 
-        Calculate SVD on the GPU. Sometimes, SVD on the CPU is faster than GPU, but based on the several experiments,
-        CUDA seems much faster than on CPU.
+    SVD is computed on the GPU which is usually faster than CPU for this operation,
+    though in some cases CPU may outperform for specific matrix shapes.
 
-    :param matrix: torch.Tensor. a square positive semi-definite matrix.
-    :param power: float. rank.
+    Args:
+        matrix (torch.Tensor): square positive semi-definite matrix.
+        power (float): exponent for the root computation.
     """
     u, s, vh = torch.linalg.svd(matrix.to(torch.float32), full_matrices=False)
     s.pow_(-1.0 / power)
@@ -510,14 +518,17 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
 
 
 def merge_small_dims(shape_to_merge: Union[List[int], torch.Size], max_dim: int) -> List[int]:
-    r"""Merge small dimensions.
+    """Merge small dimensions in a tensor shape.
 
-        If there are some small dimensions, we collapse them
-            e.g. [1, 2, 512, 1, 2048, 1, 3, 4] --> [1024, 2048, 12] if max_dim = 1024
-            [1, 2, 768, 1, 2048] --> [2, 768, 2048].
+    If a tensor shape has small dimensions, merge them into larger combined dimensions without exceeding max_dim.
 
-    :param shape_to_merge: Union[List[int], torch.Size]. Shape to merge small dimensions.
-    :param max_dim: int. Maximal dimension of output shape used in merging.
+    Example:
+        [1, 2, 512, 1, 2048, 1, 3, 4] with max_dim=1024 becomes [1024, 2048, 12],
+        and [1, 2, 768, 1, 2048] becomes [2, 768, 2048].
+
+    Args:
+        shape_to_merge (Union[List[int], torch.Size]): the original shape to merge.
+        max_dim (int): maximum allowed dimension for merging.
     """
     merged_shape: List[int] = []
 
@@ -549,13 +560,14 @@ def zero_power_via_newton_schulz_5(
     rather something like US'V^T where S' is diagonal with S_{ii}' ~ Uniform(0.5, 1.5), which turns out not to hurt
     model performance at all relative to UV^T, where USV^T = G is the SVD.
 
-    :param g: torch.Tensor. matrix.
-    :param num_steps: int. number of iterations.
-    :param eps: float. add this times I to G, to make is positive definite. For scaling, we multiply it by the largest
-        eigenvalue of G.
-    :param safety_factor: float. multiplicative safety factor for norm. 1.01 is common safety value in 'polar express'
-        variants.
-    :param weights: Tuple[int, int, int]. weights.
+    Args:
+        g (torch.Tensor): Matrix.
+        num_steps (int): Number of iterations.
+        eps (float): Add this times I to G, to make it positive definite. For scaling, we multiply it by the largest
+            eigenvalue of G.
+        safety_factor (float): Multiplicative safety factor for norm. 1.01 is common safety value in 'polar express'
+            variants.
+        weights (Tuple[int, int, int]): Weights.
     """
     if g.ndim < 2:
         raise ValueError(f'input must be over 2-dimensional. got {g.ndim}D.')

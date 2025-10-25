@@ -13,16 +13,17 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 
 
 class MADGRAD(BaseOptimizer):
-    r"""A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified).
+    """A Momentumized, Adaptive, Dual Averaged Gradient Method for Stochastic (slightly modified).
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param weight_decay: float. weight decay (L2 penalty).
-        MADGRAD optimizer requires less weight decay than other methods, often as little as zero.
-        On sparse problems both weight_decay and momentum should be set to 0.
-    :param weight_decouple: float. Apply AdamW style decoupled weight decay.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        eps (float): Term added to the denominator to improve numerical stability.
+        weight_decay (float): Weight decay (L2 penalty).
+            MADGRAD optimizer requires less weight decay than other methods, often as little as zero.
+            On sparse problems both weight_decay and momentum should be set to 0.
+        weight_decouple (float): Apply AdamW style decoupled weight decay.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

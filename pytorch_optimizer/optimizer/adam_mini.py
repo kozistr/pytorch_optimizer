@@ -11,21 +11,21 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class AdamMini(BaseOptimizer):  # pragma: no cover
-    r"""Use Fewer Learning Rates To Gain More.
+    """Use Fewer Learning Rates To Gain More.
 
-    :param model: nn.Module. model instance.
-    :param model_sharding: bool. set to True if you are using model parallelism with more than 1 GPU, including FSDP
-        and zero_1, 2, 3 in Deepspeed. Set to False if otherwise.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param num_embeds: int. number of embedding dimensions. could be unspecified if you are training non-transformer
-        models.
-    :param num_heads: int. number of attention heads. could be unspecified if you are training non-transformer models.
-    :param num_query_groups: Optional[int]. number of query groups in Group Query Attention (GQA). if not specified, it
-        will be equal to num_heads. could be unspecified if you are training non-transformer models.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        model (nn.Module): Model instance.
+        model_sharding (bool): Set to True if you are using model parallelism with more than 1 GPU, including FSDP
+            and zero_1, zero_2, zero_3 in DeepSpeed. Set to False otherwise.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        num_embeds (int): Number of embedding dimensions. Could be unspecified if training non-transformer models.
+        num_heads (int): Number of attention heads. Could be unspecified if training non-transformer models.
+        num_query_groups (Optional[int]): Number of query groups in Group Query Attention (GQA).
+            If not specified, defaults to num_heads. Could be unspecified for non-transformer models.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

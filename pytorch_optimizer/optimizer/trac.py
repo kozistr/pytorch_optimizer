@@ -11,10 +11,11 @@ from pytorch_optimizer.base.type import OPTIMIZER_INSTANCE_OR_CLASS, Closure, De
 def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
     r"""Implement of the Horner scheme to evaluate a polynomial.
 
-    taken from https://discuss.pytorch.org/t/polynomial-evaluation-by-horner-rule/67124
+    Taken from https://discuss.pytorch.org/t/polynomial-evaluation-by-horner-rule/67124
 
-    :param x: torch.Tensor. variable.
-    :param coef: torch.Tensor. coefficients of the polynomial.
+    Args:
+        x (torch.Tensor): Variable at which to evaluate the polynomial.
+        coef (torch.Tensor): Coefficients of the polynomial, ordered from highest degree to lowest.
     """
     result = coef[0].clone()
 
@@ -25,9 +26,10 @@ def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
 
 
 class ERF1994(nn.Module):
-    r"""Implementation of ERF1994.
+    """Implementation of ERF1994.
 
-    :param num_coefs: int. The number of polynomial coefficients to use in the approximation.
+    Args:
+        num_coefs (int): The number of polynomial coefficients to use in the approximation.
     """
 
     def __init__(self, num_coefs: int = 128) -> None:
@@ -49,7 +51,8 @@ class ERF1994(nn.Module):
     def w_algorithm(self, z: torch.Tensor) -> torch.Tensor:
         r"""Compute the Faddeeva function of a complex number.
 
-        :param z: torch.Tensor. A tensor of complex numbers.
+        Args:
+            z (torch.Tensor): A tensor of complex numbers.
         """
         self.l = self.l.to(z.device)
         self.i = self.i.to(z.device)
@@ -65,7 +68,8 @@ class ERF1994(nn.Module):
     def forward(self, z: torch.Tensor) -> torch.Tensor:
         r"""Compute the error function of a complex number.
 
-        :param z: torch.Tensor. A tensor of complex numbers.
+        Args:
+            z (torch.Tensor): A tensor of complex numbers.
         """
         sign_r = torch.sign(z.real)
         sign_i = torch.sign(z.imag)
@@ -75,26 +79,24 @@ class ERF1994(nn.Module):
 
 
 class TRAC(BaseOptimizer):
-    r"""A Parameter-Free Optimizer for Lifelong Reinforcement Learning.
+    """A Parameter-Free Optimizer for Lifelong Reinforcement Learning.
+
+    Args:
+        optimizer (OPTIMIZER_INSTANCE_OR_CLASS): Base optimizer.
+        betas (List[float]): List of beta values.
+        num_coefs (int): Number of polynomial coefficients to use in the approximation.
+        s_prev (float): Initial scale value.
+        eps (float): Term added to the denominator to improve numerical stability.
 
     Example:
-    -------
         model = YourModel()
         optimizer = TRAC(AdamW(model.parameters()))
 
         for input, output in data:
             optimizer.zero_grad()
-
             loss = loss_fn(model(input), output)
             loss.backward()
-
             optimizer.step()
-
-    :param optimizer: OPTIMIZER_INSTANCE_OR_CLASS. base optimizer.
-    :param betas: List[float]. list of beta values.
-    :param num_coefs: int. the number of polynomial coefficients to use in the approximation.
-    :param s_prev: float. initial scale value.
-    :param eps: float. term added to the denominator to improve numerical stability.
     """
 
     def __init__(

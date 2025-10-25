@@ -8,12 +8,12 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 
 
 def channel_view(x: torch.Tensor) -> torch.Tensor:
-    r"""Do channel view."""
+    """Do channel view."""
     return x.view(x.size()[0], -1)
 
 
 def neuron_norm(x: torch.Tensor) -> torch.Tensor:
-    r"""Get norm of the tensor."""
+    """Get norm of the tensor."""
     if x.dim() <= 1:
         return x.abs()
 
@@ -23,7 +23,7 @@ def neuron_norm(x: torch.Tensor) -> torch.Tensor:
 
 
 def neuron_mean(x: torch.Tensor) -> torch.Tensor:
-    r"""Get mean of the tensor."""
+    """Get mean of the tensor."""
     if x.dim() <= 1:
         raise ValueError('[-] neuron_mean not defined on 1D tensors.')
 
@@ -35,12 +35,13 @@ def neuron_mean(x: torch.Tensor) -> torch.Tensor:
 class Nero(BaseOptimizer):
     """Learning by Turning: Neural Architecture Aware Optimisation.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param beta: float. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param constraints: bool.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        beta (float): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        constraints (bool): Boolean flag indicating usage of constraints.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

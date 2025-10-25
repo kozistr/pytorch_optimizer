@@ -4,11 +4,12 @@ from torch.nn.functional import binary_cross_entropy
 
 
 class BCELoss(nn.Module):
-    r"""binary cross entropy with label smoothing + probability input.
+    """Binary Cross Entropy loss with label smoothing and probability input.
 
-    :param label_smooth: float. Smoothness constant for dice coefficient (a).
-    :param eps: float. epsilon.
-    :param reduction: str. type of reduction.
+    Args:
+        label_smooth (float): Smoothness constant to soften target labels.
+        eps (float): Small epsilon to avoid numerical instability.
+        reduction (str): Specifies the reduction to apply to the output; 'none' | 'mean' | 'sum'.
     """
 
     def __init__(self, label_smooth: float = 0.0, eps: float = 1e-6, reduction: str = 'mean'):

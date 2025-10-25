@@ -7,20 +7,21 @@ from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradi
 
 
 class Ranger(BaseOptimizer):
-    r"""a synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer.
+    """A synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param n_sma_threshold: int. (recommended is 5).
-    :param degenerated_to_sgd: bool. perform SGD update when variance of gradient is high.
-    :param use_gc: bool. use Gradient Centralization (both convolution & fc layers).
-    :param gc_conv_only: bool. use Gradient Centralization (only convolution layer).
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): fix weight decay.
+        n_sma_threshold (int): recommended is 5.
+        degenerated_to_sgd (bool): perform SGD update when variance of gradient is high.
+        use_gc (bool): use Gradient Centralization (both convolution & fc layers).
+        gc_conv_only (bool): use Gradient Centralization (only convolution layer).
+        eps (float): term added to the denominator to improve numerical stability.
+        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

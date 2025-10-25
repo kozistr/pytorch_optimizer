@@ -10,20 +10,21 @@ from pytorch_optimizer.base.type import HUTCHINSON_G, Betas, Closure, Defaults, 
 class SophiaH(BaseOptimizer):
     r"""Second-order Clipped Stochastic Optimization.
 
-        Requires `loss.backward(create_graph=True)` in order to calculate hessians.
+    Requires `loss.backward(create_graph=True)` in order to calculate hessians.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param p: float. clip effective (applied) gradient (p).
-    :param update_period: int. number of steps after which to apply hessian approximation.
-    :param num_samples: int. times to sample `z` for the approximation of the hessian trace.
-    :param hessian_distribution: HUTCHINSON_G. type of distribution to initialize hessian.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        p (float): Clip effective (applied) gradient (p).
+        update_period (int): Number of steps after which to apply Hessian approximation.
+        num_samples (int): Times to sample z for the approximation of the Hessian trace.
+        hessian_distribution: HUTCHINSON_G. Type of distribution to initialize Hessian.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

@@ -9,17 +9,18 @@ from pytorch_optimizer.optimizer.galore_utils import PROJECTION_TYPE, GaLoreProj
 
 
 class Conda(BaseOptimizer):
-    r"""Column-Normalized Adam for Training Large Language Models Faster.
+    """Column-Normalized Adam for Training Large Language Models Faster.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param update_proj_gap: int. update projection gap.
-    :param scale: float. galore projection scaling factor.
-    :param projection_type: PROJECTION_TYPE. the type of the projection.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        update_proj_gap (int): Update projection gap.
+        scale (float): Galore projection scaling factor.
+        projection_type (PROJECTION_TYPE): The type of the projection.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

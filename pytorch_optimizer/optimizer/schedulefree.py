@@ -19,18 +19,19 @@ from pytorch_optimizer.base.type import (
 
 
 class ScheduleFreeSGD(BaseOptimizer):
-    r"""Schedule-Free SGD.
+    """Schedule-Free SGD.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param momentum: float. momentum factor, must be between 0 and 1 exclusive.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param r: float. use polynomial weighting in the average with power r.
-    :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
-        set to 0 for no weighting.
-    :param warmup_steps: int. enables a linear learning rate warmup.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        momentum (float): momentum factor, must be between 0 and 1 exclusive.
+        weight_decay (float): weight decay (L2 penalty).
+        r (float): use polynomial weighting in the average with power r.
+        weight_lr_power (float): during warmup, weights in the average equal to lr raised to this power;
+            0 disables weighting.
+        warmup_steps (int): enables a linear learning rate warmup.
+        eps (float): term added to denominator to improve numerical stability.
+        maximize (bool): maximize the objective instead of minimizing.
     """
 
     def __init__(
@@ -166,20 +167,21 @@ class ScheduleFreeSGD(BaseOptimizer):
 
 
 class ScheduleFreeAdamW(BaseOptimizer):
-    r"""Schedule-Free AdamW.
+    """Schedule-Free AdamW.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param r: float. use polynomial weighting in the average with power r.
-    :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
-        set to 0 for no weighting.
-    :param warmup_steps: int. enables a linear learning rate warmup.
-    :param decoupling_c: int. proposed in Refined Schedule-Free AdamW optimizer. 200 would be good start value.
-    :param ams_bound: bool. whether to use the AMSBound variant.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
+        weight_decay (float): weight decay (L2 penalty).
+        r (float): use polynomial weighting in the average with power r.
+        weight_lr_power (float): during warmup, weights in the average equal to lr raised to this power;
+            0 disables weighting.
+        warmup_steps (int): enables a linear learning rate warmup.
+        decoupling_c (int): proposed coefficient in Refined Schedule-Free AdamW optimizer; default around 200.
+        ams_bound (bool): whether to use the AMSBound variant.
+        eps (float): term added to denominator for numerical stability.
+        maximize (bool): maximize the objective instead of minimizing.
     """
 
     def __init__(
@@ -338,21 +340,20 @@ class ScheduleFreeAdamW(BaseOptimizer):
 
 
 class ScheduleFreeRAdam(BaseOptimizer):
-    r"""Schedule-Free RAdam.
+    """Schedule-Free RAdam.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param r: float. use polynomial weighting in the average with power r.
-    :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
-        set to 0 for no weighting.
-    :param silent_sgd_phase: bool. the optimizer will not use the first SGD phase of RAdam. This means that the
-        optimizer will not update model parameters during the early training steps (e.g., < 5 when β_2 = 0.999), but
-        just update the momentum values of the optimizer. This helps stabilize training by ensuring smoother warmup
-        behavior and more reliable calculation of the moving average coefficient (`ckp1`). Recommended to set to True.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
+        weight_decay (float): weight decay (L2 penalty).
+        r (float): use polynomial weighting in the average with power r.
+        weight_lr_power (float): during warmup, weights in the average equal to lr raised to this power;
+            0 disables weighting.
+        silent_sgd_phase (bool): if True, disables updates in the early SGD phase, only updates momentum to
+            stabilize training.
+        eps (float): term added to denominator to improve numerical stability.
+        maximize (bool): maximize the objective instead of minimizing.
     """
 
     def __init__(
@@ -505,27 +506,27 @@ class ScheduleFreeRAdam(BaseOptimizer):
 
 
 class ScheduleFreeWrapper(BaseOptimizer):
-    r"""Wrap any optimizer to make it Schedule-Free.
+    r"""Schedule-Free Wrapper for any base optimizer.
 
-        This version uses a memory-efficient swap operation but may be slower than the reference version. In most cases
-        the performance difference is negligible. For the best possible performance and memory-usage, Schedule-Free
-        needs to be directly integrated with the base optimizer.
+    This version uses a memory-efficient swap operation but may be slower than the reference version. In most cases
+    the performance difference is negligible. For the best possible performance and memory-usage, Schedule-Free
+    needs to be directly integrated with the base optimizer.
 
-        When using this version, you can disable the base optimizer's momentum, as it's no longer necessary when using
-        our wrapper's momentum (although you can use both types of momentum if you want).
+    When using this version, you can disable the base optimizer's momentum, as it's no longer necessary when using
+    our wrapper's momentum (although you can use both types of momentum if you want).
 
-        If you set weight decay on the base optimizer, it computes weight decay at $z$. We offer the option to compute
-        weight decay at $y$, via the `weight_decay_at_y` parameter, which seems to give better results in our
-        experiments. This approach to decay only works correctly if the base optimizer uses group['lr'] as the current
-        learning rate.
+    If you set weight decay on the base optimizer, it computes weight decay at $z$. We offer the option to compute
+    weight decay at $y$, via the `weight_decay_at_y` parameter, which seems to give better results in our
+    experiments. This approach to decay only works correctly if the base optimizer uses group['lr'] as the current
+    learning rate.
 
-    :param optimizer: OPTIMIZER_INSTANCE_OR_CLASS. base optimizer.
-    :param momentum: float. momentum.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param r: float. use polynomial weighting in the average with power r.
-    :param weight_lr_power: float. during warmup, the weights in the average will be equal to lr raised to this power.
-        set to 0 for no weighting.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        optimizer (Optimizer): base optimizer instance or class to wrap.
+        momentum (float): momentum factor.
+        weight_decay (float): weight decay (L2 penalty).
+        r (float): use polynomial weighting in the average with power r.
+        weight_lr_power (float): during warmup, weights in average equal lr raised to this power; 0 disables weighting.
+        maximize (bool): maximize the objective instead of minimizing.
     """
 
     def __init__(

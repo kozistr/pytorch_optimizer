@@ -9,18 +9,19 @@ from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradi
 
 
 class Adai(BaseOptimizer):
-    r"""Disentangling the Effects of Adaptive Learning Rate and Momentum.
+    """Disentangling the Effects of Adaptive Learning Rate and Momentum.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param stable_weight_decay: bool. perform stable weight decay.
-    :param dampening: float. dampening for momentum. where dampening < 1, it will show some adaptive-moment behavior.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params: (Parameters). Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        stable_weight_decay (bool): Perform stable weight decay.
+        dampening (float): Dampening for momentum. When dampening < 1, it exhibits adaptive-moment behavior.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(

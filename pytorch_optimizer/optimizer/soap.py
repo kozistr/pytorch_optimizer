@@ -11,23 +11,24 @@ from pytorch_optimizer.optimizer.shampoo_utils import merge_small_dims
 
 
 class SOAP(BaseOptimizer):
-    r"""Improving and Stabilizing Shampoo using Adam.
+    """Improving and Stabilizing Shampoo using Adam.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace
-    :param shampoo_beta: Optional[float]. if not None, use this beta for the pre-conditioner (L and R in paper,
-        state['GG'] below) moving average instead of betas[1].
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param precondition_frequency: int. how often to update the pre-conditioner.
-    :param max_precondition_dim: int. maximum dimension of the pre-conditioner. Set to 10000, so that we exclude most
-        common vocab sizes while including layers.
-    :param merge_dims: bool. whether to merge dimensions of the pre-conditioner
-    :param precondition_1d: bool. whether to precondition 1D gradients.
-    :param correct_bias: bool. whether to correct bias in Adam.
-    :param normalize_gradient: bool. whether to normalize the gradients.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        shampoo_beta (Optional[float]): If not None, use this beta for the pre-conditioner
+            (L and R in paper, state['GG'] below) moving average instead of betas.
+        weight_decay (float): Weight decay (L2 penalty).
+        precondition_frequency (int): How often to update the pre-conditioner.
+        max_precondition_dim (int): Maximum dimension of the pre-conditioner. Set to 10000, so that we exclude most
+            common vocab sizes while including layers.
+        merge_dims (bool): Whether to merge dimensions of the pre-conditioner.
+        precondition_1d (bool): Whether to precondition 1D gradients.
+        correct_bias (bool): Whether to correct bias in Adam.
+        normalize_gradient (bool): Whether to normalize the gradients.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
 
     def __init__(
@@ -169,7 +170,7 @@ class SOAP(BaseOptimizer):
         return matrices
 
     def get_orthogonal_matrix_qr(self, state, max_precondition_dim: int = 10000, merge_dims: bool = False):
-        r"""Compute the eigen-bases of the pre-conditioner using one round of power iteration."""
+        """Compute the eigen-bases of the pre-conditioner using one round of power iteration."""
         orig_shape = state['exp_avg_sq'].shape
         if self.data_format == 'channels_last' and len(orig_shape) == 4:
             permuted_shape = state['exp_avg_sq'].permute(0, 3, 1, 2).shape
