@@ -10,11 +10,12 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 class SRMM(BaseOptimizer):
     """Stochastic regularized majorization-minimization with weakly convex and multi-convex surrogates.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param beta: float. adaptivity weight.
-    :param memory_length: Optional[int]. internal memory length for moving average. None for no refreshing.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        beta (float): Adaptivity weight.
+        memory_length (Optional[int]): Internal memory length for moving average. None for no refreshing.
+        maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
     """
 
     def __init__(

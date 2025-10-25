@@ -10,31 +10,32 @@ from pytorch_optimizer.optimizer.agc import agc
 
 
 class Ranger25(BaseOptimizer):
-    r"""Mixin' every fancy optimizer hacks.
+    """Mixin' every fancy optimizer hacks.
 
-        Here's the components
-            * ADOPT
-            * AdEMAMix
-            * Cautious
-            * StableAdamW or Adam-atan2
-            * OrthoGrad
-            * Adaptive gradient clipping
-            * Lookahead
+    Here's the components:
+        * ADOPT
+        * AdEMAMix
+        * Cautious
+        * StableAdamW or Adam-atan2
+        * OrthoGrad
+        * Adaptive gradient clipping
+        * Lookahead
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param alpha: float. usually between 4 and 10 would work well.
-    :param t_alpha_beta3: Optional[float]. total number of iterations is preferred when needed.
-    :param cautious: bool. whether to use the Cautious variant.
-    :param stable_adamw: bool. whether to use stable AdamW variant.
-    :param orthograd: bool. whether to use OrthoGrad variant.
-    :param eps: Optional[float]. term added to the denominator to improve numerical stability. when eps is None and
-        stable_adamw is False, adam-atan2 feature will be used.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): Whether the optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Whether to fix weight decay.
+        alpha (float): Usually between 4 and 10 works well.
+        t_alpha_beta3 (Optional[float]): Total number of iterations is preferred when needed.
+        cautious (bool): Whether to use the Cautious variant.
+        stable_adamw (bool): Whether to use stable AdamW variant.
+        orthograd (bool): Whether to use OrthoGrad variant.
+        eps (Optional[float]): Term added to the denominator to improve numerical stability.
+            When eps is None and stable_adamw is False, adam-atan2 feature will be used.
+        maximize (bool): Maximize the objective w.r.t the parameters instead of minimizing.
     """
 
     def __init__(

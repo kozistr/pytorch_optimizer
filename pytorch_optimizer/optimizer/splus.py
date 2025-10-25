@@ -15,20 +15,21 @@ from pytorch_optimizer.base.type import (
 
 
 class SPlus(BaseOptimizer):
-    r"""A Stable Whitening Optimizer for Efficient Neural Network Training.
+    """A Stable Whitening Optimizer for Efficient Neural Network Training.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param ema_rate: float. exponential moving average decay rate.
-    :param inverse_steps: int. the number of steps to perform inverse.
-    :param nonstandard_constant: float. scale factor for learning rate in case of non-linear layer.
-    :param max_dim: int. maximum number of dimensions to perform .
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): Whether the optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Whether to fix weight decay.
+        ema_rate (float): Exponential moving average decay rate.
+        inverse_steps (int): Number of steps to perform inverse.
+        nonstandard_constant (float): Scale factor for the learning rate in case of a non-linear layer.
+        max_dim (int): Maximum number of dimensions to perform the operation on.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
     """
 
     def __init__(

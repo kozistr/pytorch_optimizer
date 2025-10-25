@@ -8,18 +8,19 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 class SWATS(BaseOptimizer):
-    r"""Improving Generalization Performance by Switching from Adam to SGD.
+    """Improving Generalization Performance by Switching from Adam to SGD.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param ams_bound: bool. whether to use the ams_bound variant of this algorithm from the paper.
-    :param nesterov: bool. enables Nesterov momentum.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): Whether the optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Whether to fix weight decay.
+        ams_bound (bool): Whether to use the AMSBound variant of this algorithm from the paper.
+        nesterov (bool): Enables Nesterov momentum.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
     """
 
     def __init__(
