@@ -89,7 +89,7 @@ def test_epsilon(optimizer_name):
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
-    config = config_for_optimizer(optimizer_name, weight_decay=-1e-6)
+    config = config_for_optimizer(optimizer_name, eps=-1e-6)
 
     with pytest.raises(ValueError):
         optimizer(None, **config)
@@ -165,16 +165,15 @@ def test_reduction():
 def test_update_frequency(optimizer_name):
     optimizer = load_optimizer(optimizer_name)
 
-    for kwarg in (
-        {'start_preconditioning_step': -1},
-        {'statistics_compute_steps': -1} if optimizer_name == 'scalableshampoo' else {},
-        {'preconditioning_compute_steps': -1},
-    ):
-        if not kwarg:
-            continue
+    if optimizer_name == 'shampoo':
+        with pytest.raises(NegativeStepError):
+            optimizer(None, preconditioning_compute_steps=-1)
+    elif optimizer_name == 'scalableshampoo':
+        with pytest.raises(NegativeStepError):
+            optimizer(None, start_preconditioning_step=-1)
 
         with pytest.raises(NegativeStepError):
-            optimizer(None, **kwarg)
+            optimizer(None, statistics_compute_steps=-1)
 
 
 @pytest.mark.parametrize('optimizer_name', ['adan', 'lamb'])

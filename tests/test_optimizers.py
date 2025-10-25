@@ -24,14 +24,40 @@ from tests.utils import (
 )
 
 
+def make_closure(value):
+    def closure():
+        return value
+
+    return closure
+
+
+def should_use_create_graph(optimizer_name: str) -> bool:
+    return optimizer_name.lower() in ('adahessian', 'sophiah')
+
+
+def run_optimizer_steps(
+    optimizer,
+    model,
+    loss_fn,
+    x_data,
+    y_data,
+    closure_fn=None,
+    iterations: int = 2,
+    create_graph: bool = False,
+):
+    init_loss, loss = np.inf, np.inf
+    for _ in range(iterations):
+        optimizer.zero_grad()
+        loss = loss_fn(model(x_data), y_data)
+        if init_loss == np.inf:
+            init_loss = loss
+        loss.backward(create_graph=create_graph)
+        optimizer.step(closure_fn(loss) if closure_fn else None)
+    return init_loss, loss
+
+
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
 def test_f32_optimizers(optimizer_fp32_config, environment):
-    def closure(x):
-        def _closure() -> float:
-            return x
-
-        return _closure
-
     optimizer_class, config, iterations = optimizer_fp32_config
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name == 'Nero' and 'constraints' not in config:
@@ -39,38 +65,31 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
 
     x_data, y_data = environment
     model, loss_fn = build_model()
-
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
     optimizer = optimizer_class(parameters, **config)
-
     if optimizer_name.endswith('schedulefree'):
         optimizer.train()
 
-    init_loss, loss = np.inf, np.inf
-    for _ in range(iterations):
-        optimizer.zero_grad()
+    def closure(x):
+        return make_closure(x) if optimizer_name in ('AliG',) or optimizer_name.startswith('Emo') else None
 
-        loss = loss_fn(model(x_data), y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward(create_graph=optimizer_name in ('AdaHessian', 'SophiaH'))
-
-        optimizer.step(closure(loss) if optimizer_name == 'AliG' or optimizer_name.startswith('Emo') else None)
+    init_loss, loss = run_optimizer_steps(
+        optimizer,
+        model,
+        loss_fn,
+        x_data,
+        y_data,
+        closure_fn=closure,
+        iterations=iterations,
+        create_graph=should_use_create_graph(optimizer_name),
+    )
 
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_bf16_config', OPTIMIZERS, ids=ids)
 def test_bf16_optimizers(optimizer_bf16_config, environment):
-    def closure(x):
-        def _closure() -> float:
-            return x
-
-        return _closure
-
     optimizer_class, config, iterations = optimizer_bf16_config
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name in ('Adai', 'Prodigy', 'Nero'):
@@ -79,16 +98,17 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
     x_data, y_data = environment
     model, loss_fn = build_model()
     model = model.bfloat16()
-
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
     optimizer = optimizer_class(parameters, **config)
-
     if optimizer_name.endswith('schedulefree'):
         optimizer.train()
 
     context = torch.autocast('cpu', dtype=torch.bfloat16)
     scaler = torch.GradScaler(device='cpu', enabled=False)
+
+    def closure(x):
+        return make_closure(x) if optimizer_name in ('AliG',) or optimizer_name.startswith('Emo') else None
 
     init_loss, loss = np.inf, np.inf
     for _ in range(iterations):
@@ -102,49 +122,40 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
 
         scaler.scale(loss).backward(create_graph=optimizer_name in ('AdaHessian', 'SophiaH'))
 
-        optimizer.step(closure(loss) if optimizer_name == 'AliG' or optimizer_name.startswith('Emo') else None)
+        optimizer.step(closure(loss))
 
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_complex_config', OPTIMIZERS, ids=ids)
 def test_complex_optimizers(optimizer_complex_config, environment):
-    def closure(x):
-        def _closure() -> float:
-            return x
-
-        return _closure
-
     optimizer_class, config, iterations = optimizer_complex_config
     optimizer_name: str = optimizer_class.__name__.lower()
-
     if optimizer_name not in COMPLEX_OPTIMIZERS:
         pytest.skip(f'{optimizer_name} does not support')
 
     x_data, y_data = environment
     model, loss_fn = build_model(use_complex=True)
-
     x_data = x_data.to(torch.complex64)
-
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
     optimizer = optimizer_class(parameters, **config)
-
     if optimizer_name.endswith('schedulefree'):
         optimizer.train()
 
-    init_loss, loss = np.inf, np.inf
-    for _ in range(iterations):
-        optimizer.zero_grad()
+    def closure(x):
+        return make_closure(x) if optimizer_name in ('AliG',) or optimizer_name.startswith('Emo') else None
 
-        loss = loss_fn(model(x_data), y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward(create_graph=optimizer_name in ('adahessian', 'sophiah'))
-
-        optimizer.step(closure(loss) if optimizer_name == 'alig' or optimizer_name.startswith('emo') else None)
+    init_loss, loss = run_optimizer_steps(
+        optimizer,
+        model,
+        loss_fn,
+        x_data,
+        y_data,
+        closure_fn=closure,
+        iterations=iterations,
+        create_graph=should_use_create_graph(optimizer_name),
+    )
 
     assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
@@ -152,17 +163,18 @@ def test_complex_optimizers(optimizer_complex_config, environment):
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 def test_init_group(optimizer_config):
     optimizer_class, *_ = optimizer_config
-
     optimizer_name: str = optimizer_class.__name__.lower()
     if optimizer_name.startswith('build'):
         pytest.skip(f'skip {optimizer_name}')
 
-    if optimizer_name in ('muon', 'adamuon', 'adago'):
-        optimizer_class([{'params': simple_parameter(), 'use_muon': True}], num_iterations=1).init_group(
-            {'params': []}
-        )
+    param = simple_parameter()
+    common_config = {'num_iterations': 1}
+    group = {'params': []}
+
+    if optimizer_name in {'muon', 'adamuon', 'adago'}:
+        optimizer_class([{'params': param, 'use_muon': True}], **common_config).init_group(group)
     else:
-        optimizer_class([simple_parameter()], num_iterations=1).init_group({'params': [], 'betas': (0.0, 0.0)})
+        optimizer_class([param], **common_config).init_group({**group, 'betas': (0.0, 0.0)})
 
 
 @pytest.mark.parametrize('optimizer', {config[0] for config in OPTIMIZERS}, ids=names)
