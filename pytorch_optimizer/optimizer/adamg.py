@@ -13,7 +13,7 @@ class AdamG(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         p (float): The p value in the numerator function `s(x) = p * x^q`.
         q (float): The q value in the numerator function `s(x) = p * x^q`.
         weight_decay (float): Weight decay (L2 penalty).

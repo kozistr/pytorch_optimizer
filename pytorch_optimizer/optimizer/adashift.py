@@ -14,7 +14,7 @@ class AdaShift(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         keep_num (int): Number of gradients used to compute first moment estimation.
         reduce_func (Optional[Callable]): Function applied to squared gradients to reduce correlation.
             If None, no function is applied.

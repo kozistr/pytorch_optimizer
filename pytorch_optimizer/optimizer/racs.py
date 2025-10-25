@@ -9,18 +9,19 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 class RACS(BaseOptimizer):
-    r"""Row and Column Scaled SGD.
+    """Row and Column Scaled SGD.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param beta: float. momentum factor.
-    :param alpha: float. scaler.
-    :param gamma: float. limiter threshold.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        beta (float): momentum factor.
+        alpha (float): scaler.
+        gamma (float): limiter threshold.
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): fix weight decay.
+        eps (float): term added to the denominator to improve numerical stability.
+        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(
@@ -138,23 +139,24 @@ class RACS(BaseOptimizer):
 
 
 class Alice(BaseOptimizer):
-    r"""Adaptive low-dimensional subspace estimation.
+    """Adaptive low-dimensional subspace estimation.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-        beta3=0 for Alice-0 optimizer.
-    :param alpha: float. scaler.
-    :param alpha_c: float. compensation scaler.
-    :param update_interval: int. update interval.
-    :param rank: int. rank.
-    :param gamma: limiter threshold.
-    :param leading_basis: int. leading basis.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        betas (Betas): coefficients used for computing running averages of gradient and the squared Hessian trace.
+            beta3=0 for Alice-0 optimizer.
+        alpha (float): scaler.
+        alpha_c (float): compensation scaler.
+        update_interval (int): update interval.
+        rank (int): rank.
+        gamma (float): limiter threshold.
+        leading_basis (int): leading basis.
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): fix weight decay.
+        eps (float): term added to the denominator to improve numerical stability.
+        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

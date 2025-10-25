@@ -6,13 +6,14 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 
 
 class Gravity(BaseOptimizer):
-    r"""a Kinematic Approach on Optimization in Deep Learning.
+    """a Kinematic Approach on Optimization in Deep Learning.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param alpha: float. alpha controls the V initialization.
-    :param beta: float. beta will be used to compute running average of V.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        alpha (float): Alpha controls the V initialization.
+        beta (float): Beta will be used to compute running average of V.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

@@ -21,26 +21,25 @@ def gradfilter_ma(
     filter_type: FILTER_TYPE = 'mean',
     warmup: bool = True,
 ) -> Dict[str, deque]:
-    r"""Grokfast-MA.
+    """Grokfast-MA.
+
+    Args:
+        model (nn.Module): Model that contains every trainable parameters.
+        grads (Optional[Dict[str, deque]]): Running memory (queue for windowed moving average).
+            Initialize by setting  it to None.
+            Feed the output of the method recursively after one call.
+        window_size (int): The width of the filter window.
+            Additional memory requirements increase linearly with window size.
+        lamb (float): Amplifying factor hyperparameter of the filter.
+        filter_type (FILTER_TYPE): Aggregation method for the running queue.
+        warmup (bool): If true, the filter is not applied until the queue is filled.
 
     Example:
-    -------
-        Here's an example::
+        loss.backwards()  # Calculate the gradients.
 
-            loss.backwards()  # Calculate the gradients.
+        grads = gradfilter_ma(model, grads=grads, window_size=window_size, lamb=lamb)
 
-            grads = gradfilter_ma(model, grads=grads, window_size=window_size, lamb=lamb)
-
-            optimizer.step()  # Call the optimizer.
-
-    :param model: nn.Module. model that contains every trainable parameters.
-    :param grads: Optional[Dict[str, deque]]. running memory (Queue for windowed moving average). initialize by setting
-        it to None. feed the output of the method recursively after on.
-    :param window_size: int. the width of the filter window. additional memory requirements increases linearly with
-        respect to the windows size.
-    :param lamb: float. amplifying factor hyperparameter of the filter.
-    :param filter_type: FILTER_TYPE. aggregation method for the running queue.
-    :param warmup: bool. if true, filter is not applied until the queue is filled.
+        optimizer.step()  # Call the optimizer.
     """
     if grads is None:
         grads = {n: deque(maxlen=window_size) for n, p in model.named_parameters() if p.requires_grad}
@@ -69,21 +68,21 @@ def gradfilter_ema(
     alpha: float = 0.98,
     lamb: float = 2.0,
 ) -> Dict[str, torch.Tensor]:
-    r"""Grokfast.
+    """Grokfast.
+
+    Args:
+        model (nn.Module): Model that contains every trainable parameters.
+        grads (Optional[Dict[str, deque]]): Running memory (EMA). Initialize by setting it to None.
+            Feed the output of the method recursively after one call.
+        alpha (int): Momentum hyperparameter of the EMA.
+        lamb (float): Amplifying factor hyperparameter of the filter.
 
     Example:
-    -------
         loss.backwards()  # Calculate the gradients.
 
         grads = gradfilter_ema(model, grads=grads, alpha=alpha, lamb=lamb)
 
         optimizer.step()  # Call the optimizer.
-
-    :param model: nn.Module. model that contains every trainable parameters.
-    :param grads: Optional[Dict[str, deque]]. running memory (EMA). Initialize by setting it to None. Feed the output
-        of the method recursively after on.
-    :param alpha: int. momentum hyperparameter of the EMA.
-    :param lamb: float. amplifying factor hyperparameter of the filter.
     """
     if grads is None:
         grads = {n: p.grad for n, p in model.named_parameters() if p.requires_grad}
@@ -97,20 +96,21 @@ def gradfilter_ema(
 
 
 class GrokFastAdamW(BaseOptimizer):
-    r"""Accelerated Grokking by Amplifying Slow Gradients with AdamW.
+    """Accelerated Grokking by Amplifying Slow Gradients with AdamW.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param grokfast: bool. whether to use grokfast.
-    :param grokfast_alpha: float. momentum hyperparameter of the EMA.
-    :param grokfast_lamb: float. amplifying factor hyperparameter of the filter.
-    :param grokfast_after_step: int. warmup step for grokfast.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        grokfast (bool): Whether to use grokfast.
+        grokfast_alpha (float): Momentum hyperparameter of the EMA.
+        grokfast_lamb (float): Amplifying factor hyperparameter of the filter.
+        grokfast_after_step (int): Warmup step for grokfast.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

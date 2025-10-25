@@ -18,7 +18,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         model_sharding (bool): Set to True if you are using model parallelism with more than 1 GPU, including FSDP
             and zero_1, zero_2, zero_3 in DeepSpeed. Set to False otherwise.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
         num_embeds (int): Number of embedding dimensions. Could be unspecified if training non-transformer models.
         num_heads (int): Number of attention heads. Could be unspecified if training non-transformer models.

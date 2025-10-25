@@ -8,16 +8,17 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 class PNM(BaseOptimizer):
-    r"""Positive-Negative Momentum Optimizers.
+    """Positive-Negative Momentum.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. use weight_decouple.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of the parameters to optimize.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        weight_decouple (bool): Use weight decoupling, as in AdamW.
+        fixed_decay (bool): Fix weight decay.
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective instead of minimizing.
     """
 
     def __init__(

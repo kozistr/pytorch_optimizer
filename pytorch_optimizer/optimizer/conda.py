@@ -14,7 +14,7 @@ class Conda(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
         update_proj_gap (int): Update projection gap.
         scale (float): Galore projection scaling factor.

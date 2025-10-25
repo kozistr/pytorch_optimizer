@@ -6,12 +6,13 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 
 
 class MSVAG(BaseOptimizer):
-    r"""Dissecting Adam: The Sign, Magnitude and Variance of Stochastic Gradients.
+    """Dissecting Adam: The Sign, Magnitude and Variance of Stochastic Gradients.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param beta: float. Moving average (momentum) constant (scalar tensor or float value).
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        beta (float): Moving average (momentum) constant (scalar tensor or float value).
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

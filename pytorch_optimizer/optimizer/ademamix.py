@@ -14,7 +14,7 @@ class AdEMAMix(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
         fixed_decay (bool): Apply fixed weight decay instead of adaptive.
@@ -172,7 +172,7 @@ class SimplifiedAdEMAMix(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         alpha (float): Coefficient for mixing the current gradient and EMA.
         beta1_warmup (Optional[int]): Number of warmup steps used to increase beta1.
         min_beta1 (float): Minimum value of beta1 to start from.

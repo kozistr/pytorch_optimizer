@@ -6,16 +6,17 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, Par
 
 
 class LARS(BaseOptimizer):
-    r"""Layer-wise Adaptive Rate Scaling (no rate scaling or weight decay for parameters <= 1D).
+    """Layer-wise Adaptive Rate Scaling (no rate scaling or weight decay for parameters <= 1D).
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param momentum: float. momentum.
-    :param dampening: float. dampening for momentum.
-    :param trust_coefficient: float. trust_coefficient.
-    :param nesterov: bool. enables nesterov momentum.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        weight_decay (float): Weight decay (L2 penalty).
+        momentum (float): Momentum.
+        dampening (float): Dampening for momentum.
+        trust_coefficient (float): Trust coefficient.
+        nesterov (bool): Enables Nesterov momentum.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

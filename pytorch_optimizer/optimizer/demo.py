@@ -297,7 +297,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
         compression_chunk (int): Compression chunk size.
         weight_decay (float): Weight decay (L2 penalty).
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
-        """
+    """
 
     def __init__(
         self,

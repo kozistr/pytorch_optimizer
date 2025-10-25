@@ -15,7 +15,7 @@ class AdamC(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
         fixed_decay (bool): Apply fixed weight decay instead of adaptive.

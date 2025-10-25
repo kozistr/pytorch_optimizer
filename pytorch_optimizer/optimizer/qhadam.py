@@ -8,17 +8,18 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 class QHAdam(BaseOptimizer):
-    r"""Quasi-hyperbolic momentum and Adam for deep learning.
+    """Quasi-hyperbolic momentum and Adam for deep learning.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param nus: Tuple[float, float]. immediate discount factors used to estimate the gradient and its square.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): learning rate.
+        betas (Betas): coefficients used for computing running averages of gradient and the squared Hessian trace.
+        nus (Tuple[float, float]): immediate discount factors used to estimate the gradient and its square.
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): fix weight decay.
+        eps (float): term added to the denominator to improve numerical stability.
+        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

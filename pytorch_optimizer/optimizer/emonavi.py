@@ -46,7 +46,7 @@ class EmoNavi(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         shadow_weight (float): The weight of the shadow.
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
@@ -306,7 +306,7 @@ class EmoFact(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         use_shadow (bool): Whether to use shadow weights or not.
         shadow_weight (float): The weight of the shadow.
         weight_decay (float): Weight decay (L2 penalty).
@@ -468,7 +468,7 @@ class EmoNeco(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         use_shadow (bool): Whether to use shadow weights or not.
         shadow_weight (float): The weight of the shadow.
         weight_decay (float): Weight decay (L2 penalty).
@@ -610,7 +610,7 @@ class EmoZeal(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         use_shadow (bool): Whether to use shadow feature.
         shadow_weight (float): The weight of the shadow.
         weight_decay (float): Weight decay (L2 penalty).

@@ -14,7 +14,7 @@ class AdaFactor(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
             If beta1 is None, first momentum will be skipped.
         decay_rate (float): Coefficient used to compute running averages of squared gradient.
         weight_decay (float): Weight decay (L2 penalty).

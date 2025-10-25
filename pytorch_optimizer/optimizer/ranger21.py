@@ -13,48 +13,49 @@ from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
 
 
 class Ranger21(BaseOptimizer):
-    r"""Integrating the latest deep learning components into a single optimizer.
+    """Integrating the latest deep learning components into a single optimizer.
 
-        Here's the components
-            * uses the AdamW optimizer as its core (or, optionally, MadGrad)
-            * Adaptive gradient clipping
-            * Gradient centralization
-            * Positive-Negative momentum
-            * Norm loss
-            * Stable weight decay
-            * Linear learning rate warm-up
-            * Explore-exploit learning rate schedule
-            * Lookahead
-            * Softplus transformation
-            * Gradient Normalization
-            * Corrects the denominator (AdamD).
+    Here's the components
+        * uses the AdamW optimizer as its core (or, optionally, MadGrad)
+        * Adaptive gradient clipping
+        * Gradient centralization
+        * Positive-Negative momentum
+        * Norm loss
+        * Stable weight decay
+        * Linear learning rate warm-up
+        * Explore-exploit learning rate schedule
+        * Lookahead
+        * Softplus transformation
+        * Gradient Normalization
+        * Corrects the denominator (AdamD).
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param num_iterations: int. number of the total training steps. Ranger21 optimizer schedules the learning rate
-        with its own recipes.
-    :param lr: float. learning rate.
-    :param beta0: float. Manages the amplitude of the noise introduced by positive negative momentum
-        While 0.9 is a recommended default value, you can use -0.5 to minimize the noise.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param use_softplus: bool. use softplus to smooth.
-    :param beta_softplus: float. beta.
-    :param disable_lr_scheduler: bool. whether to disable learning rate schedule.
-    :param num_warm_up_iterations: Optional[int]. number of warm-up iterations. Ranger21 performs linear learning rate
-        warmup.
-    :param num_warm_down_iterations: Optional[int]. number of warm-down iterations. Ranger21 performs Explore-exploit
-        learning rate scheduling.
-    :param agc_clipping_value: float.
-    :param agc_eps: float. eps for AGC
-    :param centralize_gradients: bool. use GC both convolution & fc layers.
-    :param normalize_gradients: bool. use gradient normalization.
-    :param lookahead_merge_time: int. merge time.
-    :param lookahead_blending_alpha: float. blending alpha.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param norm_loss_factor: float. norm loss factor.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        num_iterations (int): number of the total training steps. Ranger21 optimizer schedules the learning rate
+            with its own recipes.
+        lr (float): learning rate.
+        beta0 (float): Manages the amplitude of the noise introduced by positive negative momentum
+            while 0.9 is a recommended default value, you can use -0.5 to minimize the noise.
+        betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
+        use_softplus (bool): use softplus to smooth.
+        beta_softplus (float): beta.
+        disable_lr_scheduler (bool): whether to disable learning rate schedule.
+        num_warm_up_iterations (Optional[int]): number of warm-up iterations. Ranger21 performs linear learning rate
+            warmup.
+        num_warm_down_iterations (Optional[int]): number of warm-down iterations. Ranger21 performs Explore-exploit
+            learning rate scheduling.
+        agc_clipping_value (float):
+        agc_eps (float): eps for AGC
+        centralize_gradients (bool): use GC both convolution & fc layers.
+        normalize_gradients (bool): use gradient normalization.
+        lookahead_merge_time (int): merge time.
+        lookahead_blending_alpha (float): blending alpha.
+        weight_decay (float): weight decay (L2 penalty).
+        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
+        fixed_decay (bool): fix weight decay.
+        norm_loss_factor (float): norm loss factor.
+        eps (float): term added to the denominator to improve numerical stability.
+        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(  # pylint: disable=R0913

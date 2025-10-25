@@ -9,14 +9,15 @@ from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
 
 
 class Fira(BaseOptimizer):
-    r"""Can We Achieve Full-rank Training of LLMs Under Low-rank Constraint? Fira with AdamW optimizer.
+    """Can We Achieve Full-rank Training of LLMs Under Low-rank Constraint? Fira with AdamW optimizer.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        eps (float): Term added to the denominator to improve numerical stability.
+        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
     def __init__(

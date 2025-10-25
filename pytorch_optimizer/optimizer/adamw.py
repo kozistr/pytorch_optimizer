@@ -13,7 +13,7 @@ class StableAdamW(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         kahan_sum (bool): Enables Kahan summation for more accurate parameter updates when training in low precision
             (float16 or bfloat16).
         weight_decay (float): Weight decay (L2 penalty).

@@ -11,7 +11,7 @@ class EXAdam(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
         fixed_decay (bool): Fix weight decay.

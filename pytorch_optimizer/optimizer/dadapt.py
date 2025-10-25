@@ -257,7 +257,7 @@ class DAdaptAdam(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: BETAS.
+        betas (Betas): Betas.
         d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
         growth_rate (float): Prevent the D estimate from growing faster than this multiplicative rate.
         weight_decay (float): Weight decay (L2 penalty).
@@ -577,7 +577,7 @@ class DAdaptAdan(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: BETAS. coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas: (Betas). coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): Decoupled weight decay.
         d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
@@ -750,7 +750,7 @@ class DAdaptLion(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: BETAS. Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas: (Betas). Coefficients used for computing running averages of gradient and the squared Hessian trace.
         d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.

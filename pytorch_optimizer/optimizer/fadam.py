@@ -6,18 +6,19 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Paramete
 
 
 class FAdam(BaseOptimizer):
-    r"""Adam is a natural gradient optimizer using diagonal empirical Fisher information.
+    """Adam is a natural gradient optimizer using diagonal empirical Fisher information.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param clip: float. maximum norm of the gradient.
-    :param p: float. momentum factor.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param momentum_dtype: torch.dtype. dtype of momentum.
-    :param fim_dtype: torch.dtype. dtype of fim.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params (Parameters): Parameters to optimize or dicts defining parameter groups.
+        lr (float): Learning rate.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        weight_decay (float): Weight decay (L2 penalty).
+        clip (float): Maximum norm of the gradient.
+        p (float): Momentum factor.
+        eps (float): Term added to the denominator to improve numerical stability.
+        momentum_dtype (torch.dtype): Dtype of momentum.
+        fim_dtype (torch.dtype): Dtype of Fisher information matrix.
+        maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
     """
 
     def __init__(

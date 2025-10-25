@@ -5,7 +5,7 @@ from torch.linalg import vector_norm
 
 
 def damped_pair_vg(g: torch.Tensor, damp: float = 2 ** -13) -> Tuple[torch.Tensor, torch.Tensor]:  # fmt: skip
-    r"""Get damped pair v and g.
+    """Get damped pair v and g.
 
     Instead of return (v, g), it returns pair (v, g + sqrt(eps)*mean(abs(g))*v)
     such that the covariance matrix of the modified g is lower bound by eps * (mean(abs(g)))**2 * I
@@ -24,7 +24,7 @@ def damped_pair_vg(g: torch.Tensor, damp: float = 2 ** -13) -> Tuple[torch.Tenso
 
 
 def norm_lower_bound(a: torch.Tensor) -> torch.Tensor:
-    r"""Get a cheap lower bound for the spectral norm of A.
+    """Get a cheap lower bound for the spectral norm of A.
 
     Numerical results on random matrices with a wide range of distributions and sizes suggest,
     norm(A) <= sqrt(2) * norm_lower_bound(A)
@@ -49,7 +49,7 @@ def norm_lower_bound(a: torch.Tensor) -> torch.Tensor:
 
 
 def woodbury_identity(inv_a: torch.Tensor, u: torch.Tensor, v: torch.Tensor) -> None:
-    r"""Get the Woodbury identity.
+    """Get the Woodbury identity.
 
     inv(A + U * V) = inv(A) - inv(A) * U * inv(I + V * inv(A) * U) * V * inv(A)
 
@@ -65,7 +65,7 @@ def woodbury_identity(inv_a: torch.Tensor, u: torch.Tensor, v: torch.Tensor) -> 
 
 
 def triu_with_diagonal_and_above(a: torch.Tensor) -> torch.Tensor:
-    r"""Get triu with diagonal and above.
+    """Get triu with diagonal and above.
 
     It is useful as for a small A, the R of QR decomposition qr(I + A) is about I + triu(A, 0) + triu(A, 1)
     """
@@ -75,13 +75,14 @@ def triu_with_diagonal_and_above(a: torch.Tensor) -> torch.Tensor:
 def update_precondition_dense(
     q: torch.Tensor, dxs: List[torch.Tensor], dgs: List[torch.Tensor], step: float = 0.01, eps: float = 1.2e-38
 ) -> torch.Tensor:
-    r"""Update dense pre-conditioner P = Q^T * Q.
+    """Update dense pre-conditioner P = Q^T * Q.
 
-    :param q: torch.Tensor. Cholesky factor of pre-conditioner with positive diagonal entries.
-    :param dxs: List[torch.Tensor]. list of perturbations of parameters.
-    :param dgs: List[torch.Tensor]. list of perturbations of gradients.
-    :param step: float. update step size normalized to range [0, 1].
-    :param eps: float. an offset to avoid division by zero.
+    Args:
+        q (torch.Tensor): Cholesky factor of pre-conditioner with positive diagonal entries.
+        dxs (List[torch.Tensor]): List of perturbations of parameters.
+        dgs (List[torch.Tensor]): List of perturbations of gradients.
+        step (float): Update step size normalized to range [0, 1].
+        eps (float): An offset to avoid division by zero.
     """
     dx = torch.cat([torch.reshape(x, [-1, 1]) for x in dxs])
     dg = torch.cat([torch.reshape(g, [-1, 1]) for g in dgs])

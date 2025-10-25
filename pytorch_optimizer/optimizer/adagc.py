@@ -14,7 +14,7 @@ class AdaGC(BaseOptimizer):
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
+        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         beta (float): Smoothing coefficient for the exponential moving average (EMA).
         lambda_abs (float): Absolute clipping threshold to prevent unstable updates from gradient explosions.
         lambda_rel (float): Relative clipping threshold to prevent unstable updates from gradient explosions.
