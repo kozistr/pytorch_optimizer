@@ -78,7 +78,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          body_path: docs/changelogs/${{ needs.get-version.outputs.version }}.
+          body_path: docs/changelogs/${{ needs.get-version.outputs.version }}.md
           draft: false
           prerelease: false
           name: pytorch-optimizer ${{ github.ref }}
