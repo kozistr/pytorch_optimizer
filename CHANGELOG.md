@@ -1,3 +1,23 @@
+# v3.8.2
+
+## Change Log
+
+### Feature
+
+* Speed-up `zeropower_via_newtonschulz` up to 20% by utilizing `torch.baddmm` and `torch.addmm` ops. (#448)
+
+### Update
+
+* Refactor the type hints. (#448)
+
+### Fix
+
+* Resolved compatibility issue with lower PyTorch versions where `torch.optim.optimizer.ParamT` could not be imported. (#448)
+
+### Docs
+
+* Convert the docstring style from reST to google-style docstring. (#449)
+
 # v3.8.1
 
 ## Change Log
