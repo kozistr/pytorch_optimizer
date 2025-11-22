@@ -1,4 +1,5 @@
 # reference: https://github.com/minpeter/krill
+from typing import List
 
 import torch
 from datasets import load_dataset
@@ -26,13 +27,9 @@ def preprocess_dataset(tokenizer):
 
     ds = load_dataset('HAERAE-HUB/KOREAN-WEBTEXT', split='train[:100]')
 
-    tokenized = ds.map(
-        tokenize_function,
-        batched=True,
-        remove_columns=ds.column_names,
-    )
+    tokenized = ds.map(tokenize_function, batched=True, remove_columns=ds.column_names)
 
-    lengths = (
+    lengths: List[int] = (
         tokenized['input_ids'].map(len)
         if hasattr(tokenized['input_ids'], 'map')
         else [len(x) for x in tokenized['input_ids']]

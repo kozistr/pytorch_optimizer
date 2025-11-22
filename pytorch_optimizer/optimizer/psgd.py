@@ -1,6 +1,6 @@
 import math
 from string import ascii_lowercase, ascii_uppercase
-from typing import Callable, List, Literal, Optional, Tuple, Union
+from typing import Callable, List, Literal, Optional, Tuple, Union, cast
 
 import numpy as np
 import torch
@@ -125,6 +125,8 @@ class Kron(BaseOptimizer):
         update_prob: Union[float, Callable] = self.param_groups[0]['pre_conditioner_update_probability']
         if callable(update_prob):
             update_prob = update_prob(self.prob_step)
+
+        update_prob = cast(float, update_prob)
 
         self.update_counter += 1
         do_update: bool = self.update_counter >= 1 / update_prob
