@@ -391,7 +391,7 @@ def test_grokfast_ma(filter_type):
 
 
 def test_grokfast_ma_invalid():
-    with pytest.raises(ValueError):
+    with pytest.raises(NotImplementedError):
         gradfilter_ma(LogisticRegression(), None, window_size=1, filter_type='asdf', warmup=False)
 
 
