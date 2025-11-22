@@ -145,8 +145,6 @@ class TRAC(BaseOptimizer):
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         updates: Dict[torch.Tensor, torch.Tensor] = kwargs.get('updates')
-        if updates is None:
-            raise ValueError('updates are required to initialize TRAC group state')
 
         for p in group['params']:
             self.state['trac'][p] = updates[p].clone()

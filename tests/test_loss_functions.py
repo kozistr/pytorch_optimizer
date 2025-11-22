@@ -133,7 +133,7 @@ class TestDiceAndJaccard:
     @pytest.mark.parametrize(
         'criterion',
         [
-            DiceLoss(mode='binary', from_logits=False, label_smooth=0.01),
+            DiceLoss(mode='binary', from_logits=False, label_smooth=0.01, ignore_index=-100),
             JaccardLoss(mode='binary', from_logits=False, label_smooth=0.01),
         ],
     )
@@ -171,10 +171,6 @@ class TestDiceAndJaccard:
         loss = criterion(y_pred, y_true)
         assert float(loss) == pytest.approx(0.215321, abs=self.eps)
 
-    def test_jaccard_invalid(self):
-        with pytest.raises(ValueError):
-            JaccardLoss(mode='binary', classes=[0])
-
     @torch.no_grad()
     def test_multiclass_jaccard_loss(self):
         y_pred = torch.tensor([[0.0, 0.1, 0.4], [0.8, 0.3, 0.5], [0.7, 0.9, 0.8]]).view(3, 3, -1)
@@ -193,6 +189,11 @@ class TestDiceAndJaccard:
         criterion = JaccardLoss(mode='multilabel', classes=[0])
         loss = criterion(y_pred, y_true)
         assert float(loss) == pytest.approx(0.68503928, abs=self.eps)
+
+    @pytest.mark.parametrize('criterion', [DiceLoss, JaccardLoss])
+    def test_binary_not_supported(self, criterion):
+        with pytest.raises(ValueError):
+            criterion(mode='binary', classes=[0])
 
 
 @torch.no_grad()
