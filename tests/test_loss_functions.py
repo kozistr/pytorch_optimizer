@@ -21,251 +21,178 @@ from pytorch_optimizer.loss import (
 from pytorch_optimizer.loss.bi_tempered import bi_tempered_logistic_loss
 from tests.utils import MultiClassExample
 
-
-@torch.no_grad()
-@pytest.mark.parametrize('recipe', [('train', 0.37069410), ('eval', 0.30851572)])
-def test_bce_loss(recipe):
-    mode, expected_loss = recipe
-
-    criterion = BCELoss(label_smooth=0.1, eps=1e-6)
-    criterion.train(mode == 'train')
-
-    y_pred = torch.arange(0.0, 1.0, 0.1)
-    y_true = torch.FloatTensor([0.0] * 5 + [1.0] * 5)
-    loss = criterion(y_pred, y_true)
-
-    assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
+BINARY_DICE_RECIPES = [
+    ([1.0, 1.0, 1.0], [1, 1, 1], (1, 1, 1, -1), 0.0),
+    ([1.0, 0.0, 1.0], [1, 0, 1], (1, 1, 1, -1), 0.0),
+    ([0.0, 0.0, 0.0], [0, 0, 0], (1, 1, 1, -1), 0.0),
+    ([1.0, 1.0, 1.0], [0, 0, 0], (1, 1, -1), 0.0),
+    ([1.0, 0.0, 1.0], [0, 1, 0], (1, 1, -1), 0.996677),
+    ([0.0, 0.0, 0.0], [1, 1, 1], (1, 1, -1), 0.996677),
+]
 
 
-@torch.no_grad()
-@pytest.mark.parametrize(
-    'recipe',
-    [
-        ('train', 'mean', 0.16992925),
-        ('eval', 'mean', 0.14931047),
-        ('train', 'sum', 1.699292540),
-        ('eval', 'sum', 1.49310469),
-    ],
-)
-def test_bce_focal_loss(recipe):
-    mode, reduction, expected_loss = recipe
-
-    criterion = BCEFocalLoss(alpha=1.0, gamma=2.0, label_smooth=0.1, eps=1e-6, reduction=reduction)
-    criterion.train(mode == 'train')
-
-    y_pred = torch.arange(0.0, 1.0, 0.1)
-    y_true = torch.FloatTensor([0.0] * 5 + [1.0] * 5)
-    loss = criterion(y_pred, y_true)
-
-    assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
+@pytest.fixture
+def binary_predictions():
+    return torch.arange(0.0, 1.0, 0.1), torch.FloatTensor([0.0] * 5 + [1.0] * 5)
 
 
-@torch.no_grad()
-def test_focal_loss():
-    criterion = FocalLoss(alpha=1.0, gamma=2.0)
+class TestBinaryCE:
 
-    y_pred = torch.arange(-1.0, 1.0, 0.2)
-    y_true = torch.FloatTensor([0.0] * 5 + [1.0] * 5)
-    loss = criterion(y_pred, y_true)
+    @torch.no_grad()
+    @pytest.mark.parametrize('recipe', [('train', 0.37069410), ('eval', 0.30851572)])
+    def test_bce_loss(self, recipe, binary_predictions):
+        mode, expected_loss = recipe
 
-    assert float(loss) == pytest.approx(0.07848126, abs=1e-6)
+        criterion = BCELoss(label_smooth=0.1, eps=1e-6)
+        criterion.train(mode == 'train')
+
+        y_pred, y_true = binary_predictions
+        loss = criterion(y_pred, y_true)
+
+        assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
+
+    @torch.no_grad()
+    @pytest.mark.parametrize(
+        'recipe',
+        [
+            ('train', 'mean', 0.16992925),
+            ('eval', 'mean', 0.14931047),
+            ('train', 'sum', 1.699292540),
+            ('eval', 'sum', 1.49310469),
+        ],
+    )
+    def test_bce_focal_loss(self, recipe, binary_predictions):
+        mode, reduction, expected_loss = recipe
+
+        criterion = BCEFocalLoss(alpha=1.0, gamma=2.0, label_smooth=0.1, eps=1e-6, reduction=reduction)
+        criterion.train(mode == 'train')
+
+        y_pred, y_true = binary_predictions
+        loss = criterion(y_pred, y_true)
+
+        assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
+
+    @torch.no_grad()
+    def test_focal_loss(self, binary_predictions):
+        criterion = FocalLoss(alpha=1.0, gamma=2.0)
+
+        y_pred = torch.arange(-1.0, 1.0, 0.2)
+        _, y_true = binary_predictions
+        loss = criterion(y_pred, y_true)
+
+        assert float(loss) == pytest.approx(0.07848126, abs=1e-6)
+
+    @torch.no_grad()
+    def test_focal_cosine_loss(self):
+        criterion = FocalCosineLoss(alpha=1.0, gamma=2.0, focal_weight=0.1)
+
+        y_pred = torch.FloatTensor([[0.9, 0.1, 0.1], [0.2, 0.9, 0.1], [0.2, 0.1, 0.1]])
+        y_true = torch.LongTensor([0, 1, 2])
+        loss = criterion(y_pred, y_true)
+
+        assert float(loss) == pytest.approx(0.2413520, abs=1e-6)
+
+    @torch.no_grad()
+    def test_soft_f1_loss(self, binary_predictions):
+        criterion = SoftF1Loss()
+
+        y_pred = torch.sigmoid(torch.arange(-1.0, 1.0, 0.2))
+        _, y_true = binary_predictions
+        loss = criterion(y_pred, y_true)
+
+        assert float(loss) == pytest.approx(0.38905364, abs=1e-6)
 
 
-@torch.no_grad()
-def test_focal_cosine_loss():
-    criterion = FocalCosineLoss(alpha=1.0, gamma=2.0, focal_weight=0.1)
-
-    y_pred = torch.FloatTensor([[0.9, 0.1, 0.1], [0.2, 0.9, 0.1], [0.2, 0.1, 0.1]])
-    y_true = torch.LongTensor([0, 1, 2])
-    loss = criterion(y_pred, y_true)
-
-    assert float(loss) == pytest.approx(0.2413520, abs=1e-6)
-
-
-@torch.no_grad()
-def test_soft_f1_loss():
-    criterion = SoftF1Loss()
-
-    y_pred = torch.sigmoid(torch.arange(-1.0, 1.0, 0.2))
-    y_true = torch.FloatTensor([0.0] * 5 + [1.0] * 5)
-    loss = criterion(y_pred, y_true)
-
-    assert float(loss) == pytest.approx(0.38905364, abs=1e-6)
-
-
-@torch.no_grad()
-def test_soft_dice_score():
+class TestDiceAndJaccard:
     eps: float = 1e-6
 
-    y_pred = torch.tensor([1.0, 1.0, 1.0]).view(1, 1, 1, -1)
-    y_true = torch.tensor(([1, 0, 1])).view(1, 1, 1, -1)
+    @torch.no_grad()
+    def test_soft_dice_score(self):
+        y_pred = torch.tensor([1.0, 1.0, 1.0]).view(1, 1, 1, -1)
+        y_true = torch.tensor(([1, 0, 1])).view(1, 1, 1, -1)
 
-    dice_score = soft_dice_score(y_pred, y_true, dims=None)
-    assert float(dice_score) == pytest.approx(0.8, abs=eps)
+        dice_score = soft_dice_score(y_pred, y_true, dims=None)
+        assert float(dice_score) == pytest.approx(0.8, abs=self.eps)
 
-    dice_score = soft_dice_score(y_pred, y_true, dims=(1, 2)).mean()
-    assert float(dice_score) == pytest.approx(0.666666, abs=eps)
+        dice_score = soft_dice_score(y_pred, y_true, dims=(1, 2)).mean()
+        assert float(dice_score) == pytest.approx(0.666666, abs=self.eps)
 
+    @torch.no_grad()
+    def test_soft_jaccard_score(self):
+        y_pred = torch.tensor([1.0, 1.0, 1.0]).view(1, 1, 1, -1)
+        y_true = torch.tensor(([1, 0, 1])).view(1, 1, 1, -1)
 
-@torch.no_grad()
-def test_soft_jaccard_score():
-    eps: float = 1e-6
+        jaccard_score = soft_jaccard_score(y_pred, y_true, dims=None)
+        assert float(jaccard_score) == pytest.approx(0.666666, abs=self.eps)
 
-    y_pred = torch.tensor([1.0, 1.0, 1.0]).view(1, 1, 1, -1)
-    y_true = torch.tensor(([1, 0, 1])).view(1, 1, 1, -1)
+        jaccard_score = soft_jaccard_score(y_pred, y_true, dims=(1, 2)).mean()
+        assert float(jaccard_score) == pytest.approx(0.666666, abs=self.eps)
 
-    jaccard_score = soft_jaccard_score(y_pred, y_true, dims=None)
-    assert float(jaccard_score) == pytest.approx(0.666666, abs=eps)
+    @torch.no_grad()
+    @pytest.mark.parametrize('y_pred,y_true,pred_view,expected_loss', BINARY_DICE_RECIPES)
+    @pytest.mark.parametrize(
+        'criterion',
+        [
+            DiceLoss(mode='binary', from_logits=False, label_smooth=0.01),
+            JaccardLoss(mode='binary', from_logits=False, label_smooth=0.01),
+        ],
+    )
+    def test_binary_dice_loss(self, y_pred, y_true, pred_view, expected_loss, criterion):
+        # brought from https://github.com/BloodAxe/pytorch-toolbelt/blob/develop/tests/test_losses.py#L84
+        y_pred = torch.tensor(y_pred).view(*pred_view)
+        y_true = torch.tensor(y_true).view(1, 1, 1, -1)
+        loss = criterion(y_pred, y_true)
 
-    jaccard_score = soft_jaccard_score(y_pred, y_true, dims=(1, 2)).mean()
-    assert float(jaccard_score) == pytest.approx(0.666666, abs=eps)
+        assert float(loss) == pytest.approx(expected_loss, abs=self.eps)
 
+    @torch.no_grad()
+    def test_multiclass_dice_loss(self):
+        y_pred = torch.tensor([[0.0, 0.1, 0.4], [0.8, 0.3, 0.5], [0.7, 0.9, 0.8]]).view(3, 3, -1)
+        y_true = torch.tensor([[1], [0], [2]]).view(3, -1)
 
-@torch.no_grad()
-def test_binary_dice_loss():
-    # brought from https://github.com/BloodAxe/pytorch-toolbelt/blob/develop/tests/test_losses.py#L84
+        criterion = DiceLoss(mode='multiclass', classes=[0])
+        loss = criterion(y_pred, y_true)
+        assert float(loss) == pytest.approx(0.5749718, abs=self.eps)
 
-    eps: float = 1e-6
-    criterion = DiceLoss(mode='binary', from_logits=False, label_smooth=0.01)
+        criterion = DiceLoss(mode='multiclass', classes=[0], ignore_index=1)
+        loss = criterion(y_pred, y_true)
+        assert float(loss) == pytest.approx(0.506536, abs=self.eps)
 
-    # Ideal case
-    y_pred = torch.tensor([1.0, 1.0, 1.0]).view(1, 1, 1, -1)
-    y_true = torch.tensor(([1, 1, 1])).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.0, abs=eps)
+    @torch.no_grad()
+    def test_multilabel_dice_loss(self):
+        y_pred = torch.tensor([[0.6, 0.6, 0.6], [0.1, 0.1, 0.1], [0.1, 0.9, 0.1]]).view(3, 3, -1)
+        y_true = torch.tensor([[1, 1, 1], [0, 0, 0], [0, 0, 1]]).view(3, 3, -1)
 
-    y_pred = torch.tensor([1.0, 0.0, 1.0]).view(1, 1, 1, -1)
-    y_true = torch.tensor(([1, 0, 1])).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.0, abs=eps)
+        criterion = DiceLoss(mode='multilabel', classes=[0])
+        loss = criterion(y_pred, y_true)
+        assert float(loss) == pytest.approx(0.520958, abs=self.eps)
 
-    y_pred = torch.tensor([0.0, 0.0, 0.0]).view(1, 1, 1, -1)
-    y_true = torch.tensor(([0, 0, 0])).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.0, abs=eps)
+        criterion = DiceLoss(mode='multilabel', classes=[0], ignore_index=0)
+        loss = criterion(y_pred, y_true)
+        assert float(loss) == pytest.approx(0.215321, abs=self.eps)
 
-    # Worst case
-    y_pred = torch.tensor([1.0, 1.0, 1.0]).view(1, 1, -1)
-    y_true = torch.tensor([0, 0, 0]).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.0, abs=eps)
+    def test_jaccard_invalid(self):
+        with pytest.raises(ValueError):
+            JaccardLoss(mode='binary', classes=[0])
 
-    y_pred = torch.tensor([1.0, 0.0, 1.0]).view(1, 1, -1)
-    y_true = torch.tensor([0, 1, 0]).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.996677, abs=eps)
+    @torch.no_grad()
+    def test_multiclass_jaccard_loss(self):
+        y_pred = torch.tensor([[0.0, 0.1, 0.4], [0.8, 0.3, 0.5], [0.7, 0.9, 0.8]]).view(3, 3, -1)
+        y_true = torch.tensor([[1], [0], [2]]).view(3, -1)
 
-    y_pred = torch.tensor([0.0, 0.0, 0.0]).view(1, 1, -1)
-    y_true = torch.tensor([1, 1, 1]).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.996677, abs=eps)
+        criterion = JaccardLoss(mode='multiclass', classes=[0])
+        loss = criterion(y_pred, y_true)
 
-    criterion = DiceLoss(mode='binary', ignore_index=1)
+        assert float(loss) == pytest.approx(0.730136, abs=self.eps)
 
-    y_pred = torch.tensor([0.0, 0.0, 0.0]).view(1, 1, -1)
-    y_true = torch.tensor([1, 1, 1]).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.0, abs=eps)
+    @torch.no_grad()
+    def test_multilabel_jaccard_loss(self):
+        y_pred = torch.tensor([[0.6, 0.6, 0.6], [0.1, 0.1, 0.1], [0.1, 0.9, 0.1]]).view(3, 3, -1)
+        y_true = torch.tensor([[1, 1, 1], [0, 0, 0], [0, 0, 1]]).view(3, 3, -1)
 
-    with pytest.raises(ValueError):
-        DiceLoss(mode='binary', classes=[0])
-
-
-@torch.no_grad()
-def test_multiclass_dice_loss():
-    eps: float = 1e-6
-
-    y_pred = torch.tensor([[0.0, 0.1, 0.4], [0.8, 0.3, 0.5], [0.7, 0.9, 0.8]]).view(3, 3, -1)
-    y_true = torch.tensor([[1], [0], [2]]).view(3, -1)
-
-    criterion = DiceLoss(mode='multiclass', classes=[0])
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.5749718, abs=eps)
-
-    criterion = DiceLoss(mode='multiclass', classes=[0], ignore_index=1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.506536, abs=eps)
-
-
-@torch.no_grad()
-def test_multilabel_dice_loss():
-    eps: float = 1e-6
-
-    y_pred = torch.tensor([[0.6, 0.6, 0.6], [0.1, 0.1, 0.1], [0.1, 0.9, 0.1]]).view(3, 3, -1)
-    y_true = torch.tensor([[1, 1, 1], [0, 0, 0], [0, 0, 1]]).view(3, 3, -1)
-
-    criterion = DiceLoss(mode='multilabel', classes=[0])
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.520958, abs=eps)
-
-    criterion = DiceLoss(mode='multilabel', classes=[0], ignore_index=0)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.215321, abs=eps)
-
-
-@torch.no_grad()
-def test_binary_jaccard_loss():
-    eps: float = 1e-6
-    criterion = JaccardLoss(mode='binary', from_logits=False, label_smooth=0.01)
-
-    # Ideal case
-    y_pred = torch.tensor([1.0, 1.0, 1.0]).view(1, 1, 1, -1)
-    y_true = torch.tensor(([1, 1, 1])).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.0, abs=eps)
-
-    y_pred = torch.tensor([1.0, 0.0, 1.0]).view(1, 1, 1, -1)
-    y_true = torch.tensor(([1, 0, 1])).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.0, abs=eps)
-
-    y_pred = torch.tensor([0.0, 0.0, 0.0]).view(1, 1, 1, -1)
-    y_true = torch.tensor(([0, 0, 0])).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.0, abs=eps)
-
-    # Worst case
-    y_pred = torch.tensor([1.0, 1.0, 1.0]).view(1, 1, -1)
-    y_true = torch.tensor([0, 0, 0]).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.0, abs=eps)
-
-    y_pred = torch.tensor([1.0, 0.0, 1.0]).view(1, 1, -1)
-    y_true = torch.tensor([0, 1, 0]).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.996677, abs=eps)
-
-    y_pred = torch.tensor([0.0, 0.0, 0.0]).view(1, 1, -1)
-    y_true = torch.tensor([1, 1, 1]).view(1, 1, 1, -1)
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.996677, abs=eps)
-
-    with pytest.raises(ValueError):
-        JaccardLoss(mode='binary', classes=[0])
-
-
-@torch.no_grad()
-def test_multiclass_jaccard_loss():
-    eps: float = 1e-6
-
-    y_pred = torch.tensor([[0.0, 0.1, 0.4], [0.8, 0.3, 0.5], [0.7, 0.9, 0.8]]).view(3, 3, -1)
-    y_true = torch.tensor([[1], [0], [2]]).view(3, -1)
-
-    criterion = JaccardLoss(mode='multiclass', classes=[0])
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.730136, abs=eps)
-
-
-@torch.no_grad()
-def test_multilabel_jaccard_loss():
-    eps: float = 1e-6
-
-    y_pred = torch.tensor([[0.6, 0.6, 0.6], [0.1, 0.1, 0.1], [0.1, 0.9, 0.1]]).view(3, 3, -1)
-    y_true = torch.tensor([[1, 1, 1], [0, 0, 0], [0, 0, 1]]).view(3, 3, -1)
-
-    criterion = JaccardLoss(mode='multilabel', classes=[0])
-    loss = criterion(y_pred, y_true)
-    assert float(loss) == pytest.approx(0.68503928, abs=eps)
+        criterion = JaccardLoss(mode='multilabel', classes=[0])
+        loss = criterion(y_pred, y_true)
+        assert float(loss) == pytest.approx(0.68503928, abs=self.eps)
 
 
 @torch.no_grad()
