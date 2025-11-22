@@ -24,7 +24,7 @@ class GaLoreProjector:
         scale: float = 1.0,
         projection_type: PROJECTION_TYPE = 'std',
         **kwargs,
-    ):
+    ) -> None:
         self.rank = rank
         self.update_proj_gap = update_proj_gap
         self.scale = scale
