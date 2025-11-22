@@ -42,7 +42,9 @@ def gradfilter_ma(
         optimizer.step()  # Call the optimizer.
     """
     if grads is None:
-        grads = {n: deque(maxlen=window_size) for n, p in model.named_parameters() if p.requires_grad}
+        grads: Dict[str, deque] = {
+            n: deque(maxlen=window_size) for n, p in model.named_parameters() if p.requires_grad
+        }
 
     for n, p in model.named_parameters():
         if p.requires_grad:
@@ -85,7 +87,7 @@ def gradfilter_ema(
         optimizer.step()  # Call the optimizer.
     """
     if grads is None:
-        grads = {n: p.grad for n, p in model.named_parameters() if p.requires_grad}
+        grads: Dict[str, torch.Tensor] = {n: p.grad for n, p in model.named_parameters() if p.requires_grad}
 
     for n, p in model.named_parameters():
         if p.requires_grad:

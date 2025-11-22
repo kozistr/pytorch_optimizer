@@ -385,11 +385,12 @@ class BaseOptimizer(ABC, Optimizer):
             self.validate_range(betas[2], 'beta3', 0.0, 1.0, range_type=beta3_range_type)
 
     def validate_nus(self, nus: Union[float, Tuple[float, float]]) -> None:
-        if isinstance(nus, float):
-            self.validate_range(nus, 'nu', 0.0, 1.0, range_type='[]')
+        if isinstance(nus, tuple):
+            nu1, nu2 = nus
+            self.validate_range(nu1, 'nu1', 0.0, 1.0, range_type='[]')
+            self.validate_range(nu2, 'nu2', 0.0, 1.0, range_type='[]')
         else:
-            self.validate_range(nus[0], 'nu1', 0.0, 1.0, range_type='[]')
-            self.validate_range(nus[1], 'nu2', 0.0, 1.0, range_type='[]')
+            self.validate_range(nus, 'nu', 0.0, 1.0, range_type='[]')
 
     @abstractmethod
     def init_group(self, group: ParamGroup, **kwargs) -> None:  # pragma: no cover

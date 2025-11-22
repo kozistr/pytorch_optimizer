@@ -2,14 +2,10 @@
 
 import torch
 from datasets import load_dataset
-from transformers import (
-    AutoTokenizer,
-    DataCollatorForLanguageModeling,
-    LlamaConfig,
-    LlamaForCausalLM,
-    Trainer,
-    TrainingArguments,
-)
+from transformers import AutoTokenizer, LlamaConfig, LlamaForCausalLM
+from transformers.data.data_collator import DataCollatorForLanguageModeling
+from transformers.trainer import Trainer
+from transformers.training_args import TrainingArguments
 from trl import pack_dataset
 
 from pytorch_optimizer import Muon

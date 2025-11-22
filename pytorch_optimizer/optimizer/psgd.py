@@ -220,10 +220,10 @@ def initialize_q_expressions(
     """
     letters: str = ascii_lowercase + ascii_uppercase
 
-    dtype: torch.dtype = dtype if dtype is not None else t.dtype
+    t_dtype: torch.dtype = dtype if dtype is not None else t.dtype
     shape = t.shape
     if len(shape) == 0:
-        qs: List[torch.Tensor] = [scale * torch.ones_like(t, dtype=dtype)]
+        qs: List[torch.Tensor] = [scale * torch.ones_like(t, dtype=t_dtype)]
         expressions_a: str = ',->'
         expression_gr: List[str] = [',->']
         expression_r: str = ',,->'
@@ -259,7 +259,7 @@ def initialize_q_expressions(
     piece_1p, piece_2p, piece_3p, piece_4p = [], [], '', ''
     for i, (size, dim_d) in enumerate(zip(shape, dim_diag)):
         if size == 1 or size > max_size or len(shape) < min_ndim_triangular or dim_d:
-            qs.append(scale * torch.ones(size, dtype=dtype, device=t.device))
+            qs.append(scale * torch.ones(size, dtype=t_dtype, device=t.device))
 
             piece_1a.append(letters[i])
             piece_2a += letters[i]
@@ -273,7 +273,7 @@ def initialize_q_expressions(
             piece_3p += letters[i + 13]
             piece_4p += letters[i + 13]
         else:
-            qs.append(scale * torch.eye(size, dtype=dtype, device=t.device))
+            qs.append(scale * torch.eye(size, dtype=t_dtype, device=t.device))
 
             piece_1a.append(letters[i] + letters[i + 13])
             piece_2a += letters[i + 13]

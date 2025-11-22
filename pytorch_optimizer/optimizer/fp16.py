@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, cast
 
 import torch
 from torch import nn
@@ -106,7 +106,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
         optimizer: Optimizer,
         aggregate_g_norms: bool = False,
         min_loss_scale: float = 2 ** -5,
-    ):  # fmt: skip
+    ) -> None:  # fmt: skip
         self.optimizer = optimizer
         self.aggregate_g_norms = aggregate_g_norms
         self.min_loss_scale = min_loss_scale
@@ -136,6 +136,8 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
     def build_fp32_params(
         cls, parameters: Parameters, flatten: bool = True
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
+        parameters = cast(List[torch.Tensor], parameters)
+
         if flatten:
             total_param_size: int = sum(p.numel() for p in parameters)
             fp32_params = torch.zeros(total_param_size, dtype=torch.float, device=parameters[0].device)

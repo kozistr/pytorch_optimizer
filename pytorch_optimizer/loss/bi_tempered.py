@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, cast
 
 import torch
 from torch import nn
@@ -107,7 +107,7 @@ def compute_normalization(activations: torch.Tensor, t: float, num_iters: int = 
         t (float): Temperature parameter (> 1.0 for tail heaviness).
         num_iters (int): Number of iterations to run the method.
     """
-    return ComputeNormalization.apply(activations, t, num_iters)
+    return cast(torch.Tensor, ComputeNormalization.apply(activations, t, num_iters))
 
 
 def tempered_softmax(activations: torch.Tensor, t: float, num_iters: int = 5) -> torch.Tensor:

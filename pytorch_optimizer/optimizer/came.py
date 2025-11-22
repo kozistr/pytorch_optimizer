@@ -110,7 +110,7 @@ class CAME(BaseOptimizer):
         return len(shape) >= 2
 
     @staticmethod
-    def get_rms(x: torch.Tensor) -> float:
+    def get_rms(x: torch.Tensor) -> torch.Tensor:
         r"""Get RMS."""
         return x.norm(2) / math.sqrt(x.numel())
 

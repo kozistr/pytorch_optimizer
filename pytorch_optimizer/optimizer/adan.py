@@ -61,7 +61,7 @@ class Adan(BaseOptimizer):
         return 'Adan'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        clip_global_grad_norm = kwargs.get('clip_global_grad_norm')
+        clip_global_grad_norm: float = kwargs.get('clip_global_grad_norm')
 
         for p in group['params']:
             if p.grad is None:

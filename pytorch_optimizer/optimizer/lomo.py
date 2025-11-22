@@ -379,6 +379,8 @@ class AdaLOMO(BaseOptimizer):
                 if self.loss_scale:
                     grad_fp32.div_(self.loss_scale)
 
+                start: int = 0
+                end: int = grad_fp32.numel()
                 if self.gather_norm:
                     self.grad_norms.append(torch.norm(grad_fp32, 2.0))
                 else:
