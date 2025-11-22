@@ -2,7 +2,6 @@ import itertools
 from enum import IntEnum
 from typing import List, Optional, Tuple, Union
 
-import numpy as np
 import torch
 
 
@@ -185,16 +184,17 @@ class BlockPartitioner:
 
     def merge_partitions(self, partitions: List[torch.Tensor]) -> torch.Tensor:
         """Merge partitions back to original shape."""
+        merged_partitions = partitions
         for i, indices in reversed(self.splits):
             n: int = len(indices) + 1
 
             # fmt: off
-            partitions: List[torch.Tensor] = [
-                torch.cat(partitions[idx:idx + n], dim=i) for idx in range(0, len(partitions), n)
+            merged_partitions: List[torch.Tensor] = [
+                torch.cat(merged_partitions[idx:idx + n], dim=i) for idx in range(0, len(merged_partitions), n)
             ]
             # fmt: on
 
-        return partitions[0]
+        return merged_partitions[0]
 
 
 class PreConditionerType(IntEnum):
@@ -276,7 +276,9 @@ class PreConditioner:
             shapes: List[Optional[List[torch.Tensor]]] = self.partitioner.shapes_for_pre_conditioners()
             self.statistics = [self.matrix_eps * torch.eye(shape[0], device=var.device) for shape in shapes if shape]
             self.pre_conditioners = [torch.eye(shape[0], device=var.device) for shape in shapes if shape]
-            self.is_same_shapes = None not in shapes and len(np.unique(shapes)) == 1
+
+            filtered_shape: List[Tuple] = [tuple(shape) for shape in shapes if shape is not None]
+            self.is_same_shapes = bool(filtered_shape) and len(set(filtered_shape)) == 1
 
         if self.is_same_shapes:
             self.statistics = torch.stack(self.statistics, dim=0)
