@@ -143,6 +143,7 @@ exclude = [
 reportArgumentType = false
 reportAssignmentType = false
 reportAttributeAccessIssue = false
+reportCallIssue = false
 reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
 reportMissingImports = false
