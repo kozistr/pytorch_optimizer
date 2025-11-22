@@ -196,12 +196,10 @@ class Visualizer:
             if output_path.exists():
                 continue
 
+            params: str = ', '.join(search_space.keys())
             print(  # noqa: T201
-                f'({i}/{len(self.optimizers)}) Processing {optimizer_name}... '
-                f'(Params to tune: {", ".join(search_space.keys())})'
+                f'({i}/{len(self.optimizers)}) Processing {optimizer_name}... (Params to tune: {params})'
             )
-
-            max_evals: int = SETTINGS.evals_per_param * len(search_space)
 
             objective_fn = partial(
                 objective,
@@ -213,6 +211,8 @@ class Visualizer:
                 y_bounds=experiment.y_range,
                 num_iters=SETTINGS.opt_steps,
             )
+
+            max_evals: int = SETTINGS.evals_per_param * len(search_space)
 
             try:
                 best_params = fmin(

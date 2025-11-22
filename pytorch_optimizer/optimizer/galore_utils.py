@@ -33,9 +33,8 @@ class GaLoreProjector:
         self.ortho_matrix: Optional[Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]] = None
         self.last_svd_step: int = -1
 
-    @staticmethod
     def get_orthogonal_matrix(
-        weights: torch.Tensor, rank: Optional[int], projection_type: str, from_random_matrix: bool = False
+        self, weights: torch.Tensor, projection_type: str, from_random_matrix: bool = False
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         if projection_type not in ('right', 'left', 'full'):
             raise ValueError('`projection_type` should be one of left, right or full')
@@ -46,21 +45,22 @@ class GaLoreProjector:
 
         if not from_random_matrix:
             u, _, vh = torch.linalg.svd(weights if is_float else weights.float(), full_matrices=False)
-        elif isinstance(rank, int):
-            u = torch.randn((weights.size(0), rank), device=original_device, dtype=original_type) / math.sqrt(rank)
-            vh = torch.randn((rank, weights.size(1)), device=original_device, dtype=original_type) / math.sqrt(rank)
+        elif isinstance(self.rank, int):
+            rank_sq: float = math.sqrt(self.rank)
+            u = torch.randn((weights.size(0), self.rank), device=original_device, dtype=original_type) / rank_sq
+            vh = torch.randn((self.rank, weights.size(1)), device=original_device, dtype=original_type) / rank_sq
         else:
             raise TypeError('`rank` should be int when `from_random_matrix` is True')
 
         if projection_type == 'right':
-            b = vh[:rank, :] if isinstance(rank, int) else vh
+            b = vh[:self.rank, :] if isinstance(self.rank, int) else vh  # fmt: skip
             return b if is_float else b.to(original_device).type(original_type)
         if projection_type == 'left':
-            a = u[:, :rank] if isinstance(rank, int) else u
+            a = u[:, :self.rank] if isinstance(self.rank, int) else u  # fmt: skip
             return a if is_float else a.to(original_device).type(original_type)
 
-        a = u[:, :rank] if isinstance(rank, int) else u
-        b = vh[:rank, :] if isinstance(rank, int) else vh
+        a = u[:, :self.rank] if isinstance(self.rank, int) else u  # fmt: skip
+        b = vh[:self.rank, :] if isinstance(self.rank, int) else vh  # fmt: skip
 
         return (
             (a, b)
@@ -85,6 +85,8 @@ class GaLoreProjector:
         return torch.matmul(self.ortho_matrix.t(), grad)
 
     def get_low_rank_grad_full(self, grad: torch.Tensor) -> torch.Tensor:
+        if not isinstance(self.ortho_matrix, tuple):
+            raise ValueError('self.ortho_matrix is not tuple')
         return torch.matmul(self.ortho_matrix[0].t(), grad) @ self.ortho_matrix[1].t()
 
     def get_low_rank_grad_random(self, grad: torch.Tensor) -> torch.Tensor:
@@ -96,28 +98,27 @@ class GaLoreProjector:
 
         if self.projection_type == 'std':
             self.ortho_matrix = self.get_orthogonal_matrix(
-                x, self.rank, projection_type='right' if is_right else 'left', from_random_matrix=from_random_matrix
+                x, projection_type='right' if is_right else 'left', from_random_matrix=from_random_matrix
             )
         elif self.projection_type == 'reverse_std':
             self.ortho_matrix = self.get_orthogonal_matrix(
-                x, self.rank, projection_type='left' if is_right else 'right', from_random_matrix=from_random_matrix
+                x, projection_type='left' if is_right else 'right', from_random_matrix=from_random_matrix
             )
         elif self.projection_type == 'right':
             self.ortho_matrix = self.get_orthogonal_matrix(
-                x, self.rank, projection_type='right', from_random_matrix=from_random_matrix
+                x, projection_type='right', from_random_matrix=from_random_matrix
             )
         elif self.projection_type == 'left':
             self.ortho_matrix = self.get_orthogonal_matrix(
-                x, self.rank, projection_type='left', from_random_matrix=from_random_matrix
+                x, projection_type='left', from_random_matrix=from_random_matrix
             )
         elif self.projection_type == 'full':
             self.ortho_matrix = self.get_orthogonal_matrix(
-                x, self.rank, projection_type='full', from_random_matrix=from_random_matrix
+                x, projection_type='full', from_random_matrix=from_random_matrix
             )
         elif self.projection_type == 'random':
             self.ortho_matrix = self.get_orthogonal_matrix(
                 x,
-                self.rank,
                 projection_type='right' if is_right else 'left',
                 from_random_matrix=from_random_matrix,
             )
@@ -174,6 +175,8 @@ class GaLoreProjector:
         if self.projection_type == 'left':
             return torch.matmul(self.ortho_matrix, low_rank_grad) * self.scale
         if self.projection_type == 'full':
+            if not isinstance(self.ortho_matrix, tuple):
+                raise ValueError('self.ortho_matrix is not tuple')
             return torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1] * self.scale
         if self.projection_type == 'random':
             return (
