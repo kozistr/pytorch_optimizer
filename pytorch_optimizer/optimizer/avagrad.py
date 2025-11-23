@@ -91,6 +91,7 @@ class AvaGrad(BaseOptimizer):
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
             prev_bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step'] - 1))
 
+            step_size: float = group['lr']
             if group['step'] > 1:
                 step_size: float = self.apply_adam_debias(
                     adam_debias=group.get('adam_debias', False),

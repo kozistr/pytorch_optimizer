@@ -318,27 +318,27 @@ def load_ao_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
 
 def load_optimizer(optimizer: str) -> OPTIMIZER:
     r"""Load optimizers."""
-    optimizer: str = optimizer.lower()
+    optimizer_name: str = optimizer.lower()
 
-    if optimizer.startswith('bnb'):
+    if optimizer_name.startswith('bnb'):
         if HAS_BNB and torch.cuda.is_available():
-            return load_bnb_optimizer(optimizer)  # pragma: no cover
-        raise ImportError(f'bitsandbytes and CUDA required for the optimizer {optimizer}')
-    if optimizer.startswith('q_galore'):
+            return load_bnb_optimizer(optimizer_name)  # pragma: no cover
+        raise ImportError(f'bitsandbytes and CUDA required for the optimizer {optimizer_name}')
+    if optimizer_name.startswith('q_galore'):
         if HAS_Q_GALORE and torch.cuda.is_available():
-            return load_q_galore_optimizer(optimizer)  # pragma: no cover
-        raise ImportError(f'bitsandbytes, q-galore-torch, and CUDA required for the optimizer {optimizer}')
-    if optimizer.startswith('torchao'):
+            return load_q_galore_optimizer(optimizer_name)  # pragma: no cover
+        raise ImportError(f'bitsandbytes, q-galore-torch, and CUDA required for the optimizer {optimizer_name}')
+    if optimizer_name.startswith('torchao'):
         if HAS_TORCHAO and torch.cuda.is_available():
-            return load_ao_optimizer(optimizer)  # pragma: no cover
+            return load_ao_optimizer(optimizer_name)  # pragma: no cover
         raise ImportError(
-            f'torchao required for the optimizer {optimizer}. '
+            f'torchao required for the optimizer {optimizer_name}. '
             'usage: https://github.com/pytorch/ao/tree/main/torchao/prototype/low_bit_optim#usage'
         )
-    if optimizer not in OPTIMIZERS:
-        raise NotImplementedError(f'not implemented optimizer : {optimizer}')
+    if optimizer_name not in OPTIMIZERS:
+        raise NotImplementedError(f'not implemented optimizer : {optimizer_name}')
 
-    return OPTIMIZERS[optimizer]
+    return OPTIMIZERS[optimizer_name]
 
 
 def create_optimizer(

@@ -321,7 +321,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         )
 
     def maybe_no_sync(self):
-        return self.model.no_sync() if is_initialized() else ExitStack()
+        return self.model.no_sync() if is_initialized() and hasattr(self.model, 'no_sync') else ExitStack()
 
     @torch.no_grad()
     def set_closure(self, loss_fn: nn.Module, inputs: torch.Tensor, targets: torch.Tensor, **kwargs) -> None:

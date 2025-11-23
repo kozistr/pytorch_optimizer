@@ -1,6 +1,6 @@
 import math
 from collections import deque
-from typing import Dict, Literal, Optional
+from typing import Dict, Literal, Optional, cast
 
 import torch
 from torch import nn
@@ -54,7 +54,7 @@ def gradfilter_ma(
                 elif filter_type == 'sum':
                     avg = sum(grads[n])
                 else:
-                    raise ValueError(f'not supported filter_type {filter_type}')
+                    raise NotImplementedError(f'not supported filter_type {filter_type}')
 
                 p.grad.add_(avg, alpha=lamb)
 
@@ -86,6 +86,8 @@ def gradfilter_ema(
     """
     if grads is None:
         grads = {n: p.grad for n, p in model.named_parameters() if p.requires_grad}
+
+    grads = cast(Dict[str, torch.Tensor], grads)
 
     for n, p in model.named_parameters():
         if p.requires_grad:

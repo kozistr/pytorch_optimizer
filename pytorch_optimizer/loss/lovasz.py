@@ -49,4 +49,6 @@ class LovaszHingeLoss(nn.Module):
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         if not self.per_image:
             return lovasz_hinge_flat(y_pred, y_true)
-        return sum(lovasz_hinge_flat(y_p, y_t) for y_p, y_t in zip(y_pred, y_true)) / y_pred.size()[0]
+
+        losses = torch.stack([lovasz_hinge_flat(y_p, y_t) for y_p, y_t in zip(y_pred, y_true)])
+        return losses.mean()

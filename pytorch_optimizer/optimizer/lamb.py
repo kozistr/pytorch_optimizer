@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 
 import torch
 
@@ -110,6 +110,82 @@ class Lamb(BaseOptimizer):
 
         return torch.clamp(self.defaults['max_grad_norm'] / global_grad_norm, max=1.0)
 
+    def update(
+        self,
+        p: torch.Tensor,
+        group: ParamGroup,
+        grad_norm: Union[torch.Tensor, float],
+        n_sma: float,
+        step_size: float,
+        beta1: float,
+        beta2: float,
+        beta3: float,
+    ) -> None:
+        grad = p.grad
+        if grad is None:
+            return
+
+        if self.pre_norm:
+            grad.div_(grad_norm)
+
+        self.maximize_gradient(grad, maximize=self.maximize)
+
+        state = self.state[p]
+
+        exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
+        p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
+
+        s_grad = self.get_adanorm_gradient(
+            grad=grad,
+            adanorm=group.get('adanorm', False),
+            exp_grad_norm=state.get('exp_grad_adanorm', None),
+            r=group.get('adanorm_r', None),
+        )
+
+        exp_avg.mul_(beta1).add_(s_grad, alpha=beta3)
+        exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+
+        self.apply_weight_decay(
+            p=p,
+            grad=None,
+            lr=group['lr'],
+            weight_decay=group['weight_decay'],
+            weight_decouple=group['weight_decouple'],
+            fixed_decay=group['fixed_decay'],
+        )
+
+        de_nom: Optional[torch.Tensor] = None
+
+        if group['rectify']:
+            update = p.clone()
+            if n_sma >= self.n_sma_threshold:
+                de_nom = exp_avg_sq.sqrt().add_(group['eps'])
+                update.addcdiv_(exp_avg, de_nom, value=-step_size)
+            else:
+                update.add_(exp_avg, alpha=-step_size)
+        else:
+            update = exp_avg / exp_avg_sq.sqrt().add_(group['eps'])
+
+        weight_norm = torch.linalg.norm(p).clamp_(min=0, max=self.clamp)
+        p_norm = torch.linalg.norm(update)
+        trust_ratio: float = 1.0 if weight_norm == 0 or p_norm == 0 else weight_norm / (p_norm + group['eps'])
+
+        state['weight_norm'] = weight_norm
+        state['adam_norm'] = p_norm
+        state['trust_ratio'] = trust_ratio
+
+        if group['adam']:
+            trust_ratio = 1.0
+
+        if group['rectify']:
+            if n_sma >= self.n_sma_threshold:
+                p.addcdiv_(exp_avg, de_nom, value=-step_size * trust_ratio)
+            else:
+                p.add_(exp_avg, alpha=-step_size * trust_ratio)
+        else:
+            p.add_(update, alpha=-step_size * trust_ratio)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -149,68 +225,6 @@ class Lamb(BaseOptimizer):
             )
 
             for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                grad = p.grad
-
-                if self.pre_norm:
-                    grad.div_(grad_norm)
-
-                self.maximize_gradient(grad, maximize=self.maximize)
-
-                state = self.state[p]
-
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
-                p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
-
-                s_grad = self.get_adanorm_gradient(
-                    grad=grad,
-                    adanorm=group.get('adanorm', False),
-                    exp_grad_norm=state.get('exp_grad_adanorm', None),
-                    r=group.get('adanorm_r', None),
-                )
-
-                exp_avg.mul_(beta1).add_(s_grad, alpha=beta3)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
-
-                self.apply_weight_decay(
-                    p=p,
-                    grad=None,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
-
-                if group['rectify']:
-                    update = p.clone()
-                    if n_sma >= self.n_sma_threshold:
-                        de_nom = exp_avg_sq.sqrt().add_(group['eps'])
-                        update.addcdiv_(exp_avg, de_nom, value=-step_size)
-                    else:
-                        update.add_(exp_avg, alpha=-step_size)
-                else:
-                    update = exp_avg / exp_avg_sq.sqrt().add_(group['eps'])
-
-                weight_norm = torch.linalg.norm(p).clamp_(min=0, max=self.clamp)
-                p_norm = torch.linalg.norm(update)
-                trust_ratio: float = 1.0 if weight_norm == 0 or p_norm == 0 else weight_norm / (p_norm + group['eps'])
-
-                state['weight_norm'] = weight_norm
-                state['adam_norm'] = p_norm
-                state['trust_ratio'] = trust_ratio
-
-                if group['adam']:
-                    trust_ratio = 1.0
-
-                if group['rectify']:
-                    if n_sma >= self.n_sma_threshold:
-                        p.addcdiv_(exp_avg, de_nom, value=-step_size * trust_ratio)
-                    else:
-                        p.add_(exp_avg, alpha=-step_size * trust_ratio)
-                else:
-                    p.add_(update, alpha=-step_size * trust_ratio)
+                self.update(p, group, grad_norm, n_sma, step_size, beta1, beta2, beta3)
 
         return loss

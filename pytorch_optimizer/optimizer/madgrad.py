@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+from typing import Optional
 
 import torch
 
@@ -153,6 +154,7 @@ class MADGRAD(BaseOptimizer):
 
                     s.add_(grad, alpha=_lambda)
 
+                    p_old: Optional[torch.Tensor] = None
                     if weight_decay > 0.0 and group['weight_decouple']:
                         p_old = p.clone()
 

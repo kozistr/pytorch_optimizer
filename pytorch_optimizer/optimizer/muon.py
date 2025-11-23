@@ -403,6 +403,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
                 for p in group['params']:
                     grad = p.grad
 
+                    state = self.state[p]
                     exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
                     beta1, beta2 = group['betas']

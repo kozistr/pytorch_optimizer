@@ -259,13 +259,26 @@ def test_galore_methods():
     with pytest.raises(NotImplementedError):
         GaLoreProjector(projection_type='invalid').project_back(p)
 
-    _ = GaLoreProjector.get_orthogonal_matrix(p, 1, projection_type='left', from_random_matrix=True)
-
-    with pytest.raises(TypeError):
-        GaLoreProjector.get_orthogonal_matrix(p, None, projection_type='left', from_random_matrix=True)
+    with pytest.raises(ValueError):
+        full_projector = GaLoreProjector(projection_type='full')
+        full_projector.ortho_matrix = p
+        full_projector.project(p, 1)
 
     with pytest.raises(ValueError):
-        GaLoreProjector.get_orthogonal_matrix(p, 1, projection_type='std')
+        full_projector = GaLoreProjector(projection_type='full')
+        full_projector.ortho_matrix = p
+        full_projector.project_back(p)
+
+    projector = GaLoreProjector(projection_type='left', rank=1)
+    projector.get_orthogonal_matrix(p, projection_type='left', from_random_matrix=True)
+
+    with pytest.raises(TypeError):
+        projector = GaLoreProjector(projection_type='left', rank=None)
+        projector.get_orthogonal_matrix(p, projection_type='left', from_random_matrix=True)
+
+    with pytest.raises(ValueError):
+        projector = GaLoreProjector(projection_type='std', rank=1)
+        projector.get_orthogonal_matrix(p, projection_type='std')
 
 
 @pytest.mark.parametrize('optimizer_name', ['Muon', 'AdaMuon', 'AdaGO'])

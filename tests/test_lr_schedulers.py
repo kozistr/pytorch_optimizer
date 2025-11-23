@@ -121,11 +121,22 @@ LWP_RECIPE = [
 PROPORTION_LEARNING_RATES = [(1e-1, 1e-1, 2.0), (1e-1, 1e-3, 1.090909)]
 
 
-@pytest.mark.parametrize('cosine_annealing_warmup_restart_param', CAWR_RECIPES)
-def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param):
-    model = Example()
-    optimizer = AdamW(model.parameters())
+class LRSchedulerAssertions:
 
+    @staticmethod
+    def assert_lr_sequence(scheduler, expected_lrs, decimals: int = 7) -> None:
+        for expected_lr in expected_lrs:
+            scheduler.step()
+            np.testing.assert_almost_equal(expected_lr, scheduler.get_lr(), decimals)
+
+
+@pytest.fixture
+def optimizer_factory():
+    return AdamW(Example().parameters())
+
+
+@pytest.mark.parametrize('cosine_annealing_warmup_restart_param', CAWR_RECIPES)
+def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param, optimizer_factory):
     (
         first_cycle_steps,
         cycle_mult,
@@ -138,7 +149,7 @@ def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param)
     ) = cosine_annealing_warmup_restart_param
 
     lr_scheduler = CosineAnnealingWarmupRestarts(
-        optimizer=optimizer,
+        optimizer=optimizer_factory,
         first_cycle_steps=first_cycle_steps,
         cycle_mult=cycle_mult,
         max_lr=max_lr,
@@ -158,7 +169,6 @@ def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param)
 
 
 def test_get_chebyshev_scheduler():
-    # test the first nontrivial permutations sigma_{T}
     recipes = {
         2: np.asarray([0, 1]),
         4: np.asarray([0, 3, 1, 2]),
@@ -216,40 +226,52 @@ def test_get_chebyshev_lr():
         np.testing.assert_almost_equal(lr_scheduler.get_last_lr(), expected_lr)
 
 
-def test_linear_warmup_linear_scheduler():
-    optimizer = AdamW(Example().parameters())
+class TestWarmupSchedulers:
 
-    lr_scheduler = LinearScheduler(optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
+    def test_linear_warmup_linear_scheduler(self, optimizer_factory):
+        lr_scheduler = LinearScheduler(
+            optimizer_factory,
+            t_max=10,
+            max_lr=1e-2,
+            min_lr=1e-4,
+            init_lr=1e-3,
+            warmup_steps=5,
+        )
+        LRSchedulerAssertions.assert_lr_sequence(lr_scheduler, LWL_RECIPE)
 
-    for expected_lr in LWL_RECIPE:
-        lr_scheduler.step()
-        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr())
+    def test_linear_warmup_cosine_scheduler(self, optimizer_factory):
+        lr_scheduler = CosineScheduler(
+            optimizer_factory,
+            t_max=10,
+            max_lr=1e-2,
+            min_lr=1e-4,
+            init_lr=1e-3,
+            warmup_steps=5,
+        )
+        LRSchedulerAssertions.assert_lr_sequence(lr_scheduler, LWC_RECIPE, decimals=5)
 
-
-def test_linear_warmup_cosine_scheduler():
-    optimizer = AdamW(Example().parameters())
-    lr_scheduler = CosineScheduler(optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
-
-    for expected_lr in LWC_RECIPE:
-        lr_scheduler.step()
-        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr(), 5)
-
-
-def test_linear_warmup_poly_scheduler():
-    optimizer = AdamW(Example().parameters())
-    lr_scheduler = PolyScheduler(optimizer=optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5)
-
-    for expected_lr in LWP_RECIPE:
-        lr_scheduler.step()
-        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr(), 6)
+    def test_linear_warmup_poly_scheduler(self, optimizer_factory):
+        lr_scheduler = PolyScheduler(
+            optimizer_factory,
+            t_max=10,
+            max_lr=1e-2,
+            min_lr=1e-4,
+            init_lr=1e-3,
+            warmup_steps=5,
+        )
+        LRSchedulerAssertions.assert_lr_sequence(lr_scheduler, LWP_RECIPE, decimals=6)
 
 
 @pytest.mark.parametrize('proportion_learning_rate', PROPORTION_LEARNING_RATES)
-def test_proportion_scheduler(proportion_learning_rate: Tuple[float, float, float]):
-    base_optimizer = AdamW(Example().parameters())
+def test_proportion_scheduler(proportion_learning_rate: Tuple[float, float, float], optimizer_factory):
     lr_scheduler = CosineScheduler(
-        base_optimizer, t_max=10, max_lr=proportion_learning_rate[0], min_lr=proportion_learning_rate[1], init_lr=1e-2
+        optimizer_factory,
+        t_max=10,
+        max_lr=proportion_learning_rate[0],
+        min_lr=proportion_learning_rate[1],
+        init_lr=1e-2,
     )
+
     rho_scheduler = ProportionScheduler(
         lr_scheduler,
         max_lr=proportion_learning_rate[0],
@@ -258,19 +280,17 @@ def test_proportion_scheduler(proportion_learning_rate: Tuple[float, float, floa
         min_value=1.0,
     )
 
-    for _ in range(10):
-        _ = rho_scheduler.step()
-        np.testing.assert_almost_equal(proportion_learning_rate[2], rho_scheduler.get_lr(), 6)
+    LRSchedulerAssertions.assert_lr_sequence(rho_scheduler, [proportion_learning_rate[2]] * 10, decimals=6)
 
 
-def test_proportion_no_last_lr_scheduler():
-    base_optimizer = AdamW(Example().parameters())
+def test_proportion_no_last_lr_scheduler(optimizer_factory):
     lr_scheduler = CosineAnnealingWarmupRestarts(
-        base_optimizer,
+        optimizer_factory,
         first_cycle_steps=10,
         max_lr=1e-2,
         min_lr=1e-2,
     )
+
     rho_scheduler = ProportionScheduler(
         lr_scheduler,
         max_lr=1e-2,
@@ -279,12 +299,10 @@ def test_proportion_no_last_lr_scheduler():
         min_value=1.0,
     )
 
-    for _ in range(10):
-        _ = rho_scheduler.step()
-        np.testing.assert_almost_equal(2.0, rho_scheduler.get_lr(), 6)
+    LRSchedulerAssertions.assert_lr_sequence(rho_scheduler, [2.0] * 10, decimals=6)
 
 
-def test_rex_lr_scheduler():
+def test_rex_lr_scheduler(optimizer_factory):
     lrs = [
         0.888888,
         0.749999,
@@ -293,18 +311,9 @@ def test_rex_lr_scheduler():
         0.0,
     ]
 
-    base_optimizer = AdamW(Example().parameters())
+    lr_scheduler = REXScheduler(optimizer_factory, total_steps=5, max_lr=1.0, min_lr=0.0)
 
-    lr_scheduler = REXScheduler(
-        base_optimizer,
-        total_steps=5,
-        max_lr=1.0,
-        min_lr=0.0,
-    )
-
-    for expected_lr in lrs:
-        _ = lr_scheduler.step()
-        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_lr(), 6)
+    LRSchedulerAssertions.assert_lr_sequence(lr_scheduler, lrs, decimals=6)
 
 
 @pytest.mark.parametrize(
@@ -316,17 +325,21 @@ def test_rex_lr_scheduler():
         ('linear', [0.0005, 0.001, 0.001, 0.001, 0.0006666, 0.0003333, 0.0001, 0.0001, 0.0001]),
     ],
 )
-def test_wsd_lr_scheduler(recipe):
-    optimizer = AdamW(Example().parameters())
-    optimizer.step()
+def test_wsd_lr_scheduler(recipe, optimizer_factory):
+    optimizer_factory.step()
 
     cooldown_type, expected_lrs = recipe
 
-    lr_scheduler = get_wsd_schedule(optimizer, 2, 2, 3, min_lr_ratio=0.1, cooldown_type=cooldown_type)
+    lr_scheduler = get_wsd_schedule(
+        optimizer_factory,
+        num_warmup_steps=2,
+        num_stable_steps=2,
+        num_decay_steps=3,
+        min_lr_ratio=0.1,
+        cooldown_type=cooldown_type,
+    )
 
-    for expected_lr in expected_lrs:
-        lr_scheduler.step()
-        np.testing.assert_almost_equal(expected_lr, lr_scheduler.get_last_lr()[0], 7)
+    LRSchedulerAssertions.assert_lr_sequence(lr_scheduler, expected_lrs, decimals=7)
 
 
 def test_deberta_v3_large_lr_scheduler():

@@ -127,6 +127,7 @@ class SOAP(BaseOptimizer):
         project_type: str = 'forward',
     ) -> torch.Tensor:
         original_shape = grad.shape
+        permuted_shape = original_shape
 
         do_permute: bool = self.data_format == 'channels_last' and len(original_shape) == 4
 
@@ -171,8 +172,9 @@ class SOAP(BaseOptimizer):
 
     def get_orthogonal_matrix_qr(self, state, max_precondition_dim: int = 10000, merge_dims: bool = False):
         """Compute the eigen-bases of the pre-conditioner using one round of power iteration."""
-        orig_shape = state['exp_avg_sq'].shape
-        if self.data_format == 'channels_last' and len(orig_shape) == 4:
+        original_shape = state['exp_avg_sq'].shape
+        permuted_shape = original_shape
+        if self.data_format == 'channels_last' and len(original_shape) == 4:
             permuted_shape = state['exp_avg_sq'].permute(0, 3, 1, 2).shape
 
         exp_avg_sq = state['exp_avg_sq']
@@ -202,10 +204,10 @@ class SOAP(BaseOptimizer):
             matrices.append(q)
 
         if merge_dims:
-            if self.data_format == 'channels_last' and len(orig_shape) == 4:
+            if self.data_format == 'channels_last' and len(original_shape) == 4:
                 exp_avg_sq = exp_avg_sq.reshape(permuted_shape).permute(0, 2, 3, 1)
             else:
-                exp_avg_sq = exp_avg_sq.reshape(orig_shape)
+                exp_avg_sq = exp_avg_sq.reshape(original_shape)
 
         state['exp_avg_sq'] = exp_avg_sq
 

@@ -1,7 +1,8 @@
 import math
+from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
-from typing import Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 from warnings import filterwarnings
 
 import numpy as np
@@ -10,6 +11,7 @@ from hyperopt import fmin, hp, tpe
 from hyperopt.exceptions import AllTrialsFailed
 from matplotlib import pyplot as plt
 from torch import nn
+from torch.optim import Optimizer
 
 from pytorch_optimizer.optimizer import OPTIMIZERS
 from pytorch_optimizer.optimizer.alig import l2_projection
@@ -34,15 +36,6 @@ OPTIMIZERS_IGNORE: Tuple[str, ...] = (
 OPTIMIZERS_MODEL_INPUT_NEEDED: Tuple[str, ...] = ('lomo', 'adalomo', 'adammini', 'adago')
 OPTIMIZERS_GRAPH_NEEDED: Tuple[str, ...] = ('adahessian', 'sophiah')
 OPTIMIZERS_CLOSURE_NEEDED: Tuple[str, ...] = ('alig', 'bsam')
-EVAL_PER_HYPERPARAM: int = 600
-OPTIMIZATION_STEPS: int = 200
-TESTING_OPTIMIZATION_STEPS: Dict[str, int] = {'rastrigin': 150, 'rosenbrock': 400}
-DIFFICULT_RASTRIGIN: bool = False
-CONVERGENCE_LOSS_PENALTY_FACTOR: float = 0.2
-OSCILLATIONS_LOSS_PENALTY_FACTOR: float = 0.1
-AVERAGE_LOSS_PENALTY_FACTOR: float = 0.4
-SEARCH_SEED: int = 42
-LOSS_MIN_THRESHOLD: float = 0.0
 
 DEFAULT_SEARCH_SPACES: Dict = {'lr': hp.uniform('lr', 0, 2)}
 SPECIAL_SEARCH_SPACES: Dict = {
@@ -119,6 +112,144 @@ SPECIAL_SEARCH_SPACES: Dict = {
 }
 
 
+@dataclass(frozen=True)
+class Settings:
+    evals_per_param: int = 600
+    opt_steps: int = 200
+    test_steps: Dict[str, int] = field(default_factory=lambda: {'rastrigin': 150, 'rosenbrock': 400})
+    difficult_rastrigin: bool = False
+    penalties: Dict[str, float] = field(
+        default_factory=lambda: {'convergence': 0.2, 'oscillations': 0.1, 'average': 0.4},
+    )
+    loss_min_threshold: float = 0.0
+    fig_size: Tuple[int, int] = (6, 6)
+    grid_points: int = 150
+    savefig_kwargs: Dict[str, Any] = field(
+        default_factory=lambda: {
+            'dpi': 120,
+            'bbox_inches': 'tight',
+            'pad_inches': 0.05,
+            'pil_kwargs': {'quality': 75, 'optimize': True, 'subsampling': 2},
+        }
+    )
+    seed: int = 42
+
+
+SETTINGS = Settings()
+
+
+@dataclass(frozen=True)
+class ExperimentConfig:
+    name: str
+    func: Callable
+    initial_state: Tuple[float, float]
+    x_range: Tuple[float, float]
+    y_range: Tuple[float, float]
+    minimum: Tuple[float, float]
+    steps: int
+
+
+class Model(nn.Module):
+    """
+    Simple 2D optimization model maintaining state for parameters being optimized.
+    """
+
+    def __init__(self, func: Callable, initial_state: Tuple[float, float]) -> None:
+        """
+        Args:
+            func: Objective function to optimize.
+            initial_state: Starting point for optimization (x, y).
+        """
+        super().__init__()
+        self.func = func
+        self.x: torch.Tensor = nn.Parameter(torch.tensor(initial_state, dtype=torch.float32, requires_grad=True))
+
+    def forward(self) -> torch.Tensor:
+        """
+        Compute objective function value at current parameters.
+
+        Returns:
+            torch.Tensor: Computed function value.
+        """
+        return self.func(self.x)
+
+
+class Visualizer:
+    """Orchestrates hyperparameter tuning and plotting for multiple optimizers."""
+
+    def __init__(
+        self,
+        optimizers: Tuple[Tuple[Optimizer, Dict[str, Any]], ...],
+        output_dir: Path,
+        seed: int = SETTINGS.seed,
+    ) -> None:
+        self.optimizers = optimizers
+        self.output_dir = output_dir
+        self.seed = seed
+
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def run_experiment(self, experiment: ExperimentConfig) -> None:
+        for i, (optimizer_class, search_space) in enumerate(self.optimizers, start=1):
+            optimizer_name: str = optimizer_class.__name__
+            output_path: Path = self.output_dir / f'{experiment.name}_{optimizer_name}.jpg'
+            if output_path.exists():
+                continue
+
+            params: str = ', '.join(search_space.keys())
+            print(  # noqa: T201
+                f'({i}/{len(self.optimizers)}) Processing {optimizer_name}... (Params to tune: {params})'
+            )
+
+            objective_fn = partial(
+                objective,
+                criterion=experiment.func,
+                optimizer_class=optimizer_class,
+                initial_state=experiment.initial_state,
+                minimum=experiment.minimum,
+                x_bounds=experiment.x_range,
+                y_bounds=experiment.y_range,
+                num_iters=SETTINGS.opt_steps,
+            )
+
+            max_evals: int = SETTINGS.evals_per_param * len(search_space)
+
+            try:
+                best_params = fmin(
+                    fn=objective_fn,
+                    space=search_space,
+                    algo=tpe.suggest,
+                    max_evals=max_evals,
+                    loss_threshold=SETTINGS.loss_min_threshold,
+                    rstate=np.random.default_rng(self.seed),
+                    catch_eval_exceptions=True,
+                )
+            except AllTrialsFailed:
+                print(f'{optimizer_name} failed to optimize {experiment.func.__name__}')  # noqa: T201
+                continue
+
+            steps, _ = execute_steps(
+                experiment.func, experiment.initial_state, optimizer_class, best_params.copy(), experiment.steps
+            )
+
+            plot_function(
+                experiment.func,
+                steps,
+                output_path,
+                optimizer_name,
+                best_params,
+                experiment.x_range,
+                experiment.y_range,
+                experiment.minimum,
+                experiment.steps,
+            )
+
+    def run_experiments(self, experiments: List[ExperimentConfig]) -> None:
+        for experiment in experiments:
+            print(f'Running {experiment.name} experiment')  # noqa: T201
+            self.run_experiment(experiment)
+
+
 def ackley(
     x: Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor], a: float = 20.0, b: float = 0.2, c: float = 2.0 * np.pi
 ) -> torch.Tensor:
@@ -155,7 +286,7 @@ def rosenbrock(x: Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]) -> tor
 def rastrigin(
     x: Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor],
     a: float = 10.0,
-    add_noise: bool = DIFFICULT_RASTRIGIN,
+    add_noise: bool = SETTINGS.difficult_rastrigin,
     noise_scale: float = 0.1,
 ) -> torch.Tensor:
     """
@@ -170,10 +301,8 @@ def rastrigin(
     Returns:
         torch.Tensor: Computed function value.
     """
-    # Compute the Rastrigin function value
     result = a * 2 + (x[0] ** 2 - a * torch.cos(x[0] * math.pi * 2)) + (x[1] ** 2 - a * torch.cos(x[1] * math.pi * 2))
 
-    # Add noise if the flag is True
     if add_noise:
         noise = torch.randn_like(result) * noise_scale
         result += noise
@@ -181,40 +310,14 @@ def rastrigin(
     return result
 
 
-class Model(nn.Module):
-    """
-    Simple 2D optimization model maintaining state for parameters being optimized.
-    """
-
-    def __init__(self, func: Callable, initial_state: Tuple[float, float]) -> None:
-        """
-        Args:
-            func: Objective function to optimize.
-            initial_state: Starting point for optimization (x, y).
-        """
-        super().__init__()
-        self.func = func
-        self.x: torch.Tensor = nn.Parameter(torch.tensor(initial_state, dtype=torch.float32, requires_grad=True))
-
-    def forward(self) -> torch.Tensor:
-        """
-        Compute objective function value at current parameters.
-
-        Returns:
-            torch.Tensor: Computed function value.
-        """
-        return self.func(self.x)
-
-
 def execute_steps(
     func: Callable,
     initial_state: Tuple[float, float],
-    optimizer_class: torch.optim.Optimizer,
-    optimizer_config: Dict,
+    optimizer_class: Optimizer,
+    optimizer_config: Dict[str, Any],
     num_iters: int = 500,
 ) -> Tuple[torch.Tensor, List[float]]:
-    """
-    Execute optimization steps for a given configuration.
+    """Execute optimization steps for a given configuration.
 
     Args:
         func: Objective function to minimize.
@@ -285,9 +388,9 @@ def execute_steps(
 
 
 def objective(
-    params: Dict,
+    params: Dict[str, Any],
     criterion: Callable,
-    optimizer_class: torch.optim.Optimizer,
+    optimizer_class: Optimizer,
     initial_state: Tuple[float, float],
     minimum: Tuple[float, float],
     x_bounds: Tuple[float, float],
@@ -330,9 +433,9 @@ def objective(
 
     return distance + (
         100 * violations.item()
-        + AVERAGE_LOSS_PENALTY_FACTOR * avg_loss
-        + OSCILLATIONS_LOSS_PENALTY_FACTOR * torch.mean(torch.abs(steps[:, 1:] - steps[:, :-1])).item()
-        + CONVERGENCE_LOSS_PENALTY_FACTOR * (avg_loss - min_loss)
+        + SETTINGS.penalties['average'] * avg_loss
+        + SETTINGS.penalties['oscillations'] * torch.mean(torch.abs(steps[:, 1:] - steps[:, :-1])).item()
+        + SETTINGS.penalties['convergence'] * (avg_loss - min_loss)
     )
 
 
@@ -345,6 +448,7 @@ def plot_function(
     x_range: Tuple[float, float],
     y_range: Tuple[float, float],
     minimum: Tuple[float, float],
+    iterations: int,
 ) -> None:
     """
     Generate a contour plot of the function with the optimization path.
@@ -358,13 +462,14 @@ def plot_function(
         x_range: X-axis range for plotting.
         y_range: Y-axis range for plotting.
         minimum: Known global minimum coordinates.
+        iterations: the number of iterations.
     """
-    x = torch.linspace(x_range[0], x_range[1], 200)
-    y = torch.linspace(y_range[0], y_range[1], 200)
+    x = torch.linspace(x_range[0], x_range[1], SETTINGS.grid_points)
+    y = torch.linspace(y_range[0], y_range[1], SETTINGS.grid_points)
     x_grid, y_grid = torch.meshgrid(x, y, indexing='ij')
     z = func([x_grid, y_grid])
 
-    fig = plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=SETTINGS.fig_size)
     ax = fig.add_subplot(1, 1, 1)
 
     ax.contour(x_grid.numpy(), y_grid.numpy(), z.numpy(), 20, cmap='jet')
@@ -374,122 +479,48 @@ def plot_function(
     plt.plot(optimization_steps[0, -1], optimization_steps[1, -1], 'bD', label='Final Position')
 
     config: str = ', '.join(f'{k}={round(v, 4)}' for k, v in params.items())
-    ax.set_title(
-        f'{func.__name__} func: {optimizer_name} with {TESTING_OPTIMIZATION_STEPS[func.__name__]} iterations\n{config}'
-    )
+    ax.set_title(f'{func.__name__} func: {optimizer_name} with {iterations} iterations\n{config}')
+
     plt.legend()
-    plt.savefig(str(output_path))
+    plt.savefig(str(output_path), **SETTINGS.savefig_kwargs)
     plt.close()
 
 
-def execute_experiments(
-    optimizers: List,
-    func: Callable,
-    initial_state: Tuple[float, float],
-    output_dir: Path,
-    experiment_name: str,
-    x_range: Tuple[float, float],
-    y_range: Tuple[float, float],
-    minimum: Tuple[float, float],
-    seed: int = SEARCH_SEED,
-) -> None:
-    """
-    Run optimization experiments for multiple optimizers.
-
-    Args:
-        optimizers: List of optimizer classes and their search spaces.
-        func: Objective function to optimize.
-        initial_state: Starting coordinates for optimization.
-        output_dir: Directory to save visualizations.
-        experiment_name: Base name for output files.
-        x_range: X-axis range for plotting.
-        y_range: Y-axis range for plotting.
-        minimum: Known global minimum coordinates.
-        seed: Random seed for reproducibility.
-    """
-    for i, (optimizer_class, search_space) in enumerate(optimizers, start=1):
-        optimizer_name = optimizer_class.__name__
-        output_path = output_dir / f'{experiment_name}_{optimizer_name}.jpg'
-        if output_path.exists():
-            continue
-
-        print(  # noqa: T201
-            f'({i}/{len(optimizers)}) Processing {optimizer_name}... (Params to tune: {", ".join(search_space.keys())})'  # noqa: E501
-        )
-
-        num_hyperparams: int = len(search_space)
-        max_evals: int = EVAL_PER_HYPERPARAM * num_hyperparams
-
-        objective_fn = partial(
-            objective,
-            criterion=func,
-            optimizer_class=optimizer_class,
-            initial_state=initial_state,
-            minimum=minimum,
-            x_bounds=x_range,
-            y_bounds=y_range,
-            num_iters=OPTIMIZATION_STEPS,
-        )
-
-        try:
-            best_params = fmin(
-                fn=objective_fn,
-                space=search_space,
-                algo=tpe.suggest,
-                max_evals=max_evals,
-                loss_threshold=LOSS_MIN_THRESHOLD,
-                rstate=np.random.default_rng(seed),
-                catch_eval_exceptions=True,
-            )
-        except AllTrialsFailed:
-            print(f'{optimizer_name} failed to optimize {func.__name__}')  # noqa: T201
-            continue
-
-        steps, _ = execute_steps(
-            func, initial_state, optimizer_class, best_params.copy(), TESTING_OPTIMIZATION_STEPS[experiment_name]
-        )
-
-        plot_function(func, steps, output_path, optimizer_name, best_params, x_range, y_range, minimum)
-
-
 def main():
-    np.random.seed(SEARCH_SEED)
-    torch.manual_seed(SEARCH_SEED)
+    np.random.seed(SETTINGS.seed)
+    torch.manual_seed(SETTINGS.seed)
 
     output_dir = Path('.') / 'docs' / 'visualizations'
-    output_dir.mkdir(parents=True, exist_ok=True)
 
-    optimizers = [
+    optimizers: Tuple[Tuple[Optimizer, Dict[str, Any]], ...] = tuple(
         (optimizer, SPECIAL_SEARCH_SPACES.get(optimizer_name, DEFAULT_SEARCH_SPACES))
         for optimizer_name, optimizer in OPTIMIZERS.items()
         if optimizer_name not in OPTIMIZERS_IGNORE
+    )
+
+    experiments: List[ExperimentConfig] = [
+        ExperimentConfig(
+            name='rastrigin',
+            func=rastrigin,
+            initial_state=(-1.9, 3.35) if SETTINGS.difficult_rastrigin else (-2.0, 3.5),
+            x_range=(-3.6, 3.6),
+            y_range=(-3.6, 3.6),
+            minimum=(0.0, 0.0),
+            steps=SETTINGS.test_steps['rastrigin'],
+        ),
+        ExperimentConfig(
+            name='rosenbrock',
+            func=rosenbrock,
+            initial_state=(-2.0, 2.0),
+            x_range=(-2, 2),
+            y_range=(-1, 3),
+            minimum=(1.0, 1.0),
+            steps=SETTINGS.test_steps['rosenbrock'],
+        ),
     ]
 
-    print('Executing Rastrigin experiments...')  # noqa: T201
-    execute_experiments(
-        optimizers,
-        rastrigin,
-        initial_state=(-1.9, 3.35) if DIFFICULT_RASTRIGIN else (-2.0, 3.5),
-        output_dir=output_dir,
-        experiment_name='rastrigin',
-        x_range=(-3.6, 3.6),
-        y_range=(-3.6, 3.6),
-        minimum=(0.0, 0.0),
-        seed=SEARCH_SEED,
-    )
-
-    print('Executing Rosenbrock experiments...')  # noqa: T201
-    execute_experiments(
-        optimizers,
-        rosenbrock,
-        initial_state=(-2.0, 2.0),
-        output_dir=output_dir,
-        experiment_name='rosenbrock',
-        x_range=(-2, 2),
-        y_range=(-1, 3),
-        minimum=(1.0, 1.0),
-        seed=SEARCH_SEED,
-    )
+    visualizer = Visualizer(optimizers, output_dir, SETTINGS.seed)
+    visualizer.run_experiments(experiments)
 
 
 if __name__ == '__main__':

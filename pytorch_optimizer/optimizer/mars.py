@@ -1,5 +1,5 @@
 import math
-from typing import Literal, Optional
+from typing import Literal, Optional, Tuple
 
 import torch
 
@@ -113,7 +113,7 @@ class MARS(BaseOptimizer):
         exp_avg: torch.Tensor,
         exp_avg_sq: torch.Tensor,
         max_exp_avg_sq: Optional[torch.Tensor],
-        betas: Betas,
+        betas: Tuple[int, int],
         gamma: float,
         mars_type: MARS_TYPE,
         is_grad_2d: bool,
@@ -161,7 +161,7 @@ class MARS(BaseOptimizer):
         exp_avg: torch.Tensor,
         exp_avg_sq: torch.Tensor,
         max_exp_avg_sq: Optional[torch.Tensor],
-        betas: Betas,
+        betas: Tuple[int, int],
         step: int,
         ams_bound: bool,
         cautious: bool,

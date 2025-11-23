@@ -74,12 +74,12 @@ def load_lr_scheduler(lr_scheduler_name: str) -> SCHEDULER:
 
     :param lr_scheduler_name: learning rate scheduler name.
     """
-    lr_scheduler_name: str = lr_scheduler_name.lower()
+    lrs_name: str = lr_scheduler_name.lower()
 
-    if lr_scheduler_name not in LR_SCHEDULERS:
-        raise NotImplementedError(f'not implemented lr_scheduler {lr_scheduler_name}')
+    if lrs_name not in LR_SCHEDULERS:
+        raise NotImplementedError(f'not implemented lr_scheduler {lrs_name}')
 
-    return LR_SCHEDULERS[lr_scheduler_name]
+    return LR_SCHEDULERS[lrs_name]
 
 
 def get_supported_lr_schedulers(filters: Optional[Union[str, List[str]]] = None) -> List[str]:

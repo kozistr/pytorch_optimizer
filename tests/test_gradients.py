@@ -1,3 +1,5 @@
+from typing import List
+
 import pytest
 import torch
 from torch import nn
@@ -25,6 +27,45 @@ from tests.utils import (
 )
 
 
+class OptimizerBuilder:
+
+    @staticmethod
+    def with_muon(params, use_muon: bool):
+        def with_flag(group):
+            if isinstance(group, dict):
+                return group if 'use_muon' in group else {**group, 'use_muon': use_muon}
+            return {'params': group, 'use_muon': use_muon}
+
+        return [with_flag(group) for group in params] if isinstance(params, list) else [with_flag(params)]
+
+    @classmethod
+    def create(cls, name: str, params: List, **overrides):
+        optimizer_name: str = name.lower()
+
+        if optimizer_name == 'lookahead':
+            return Lookahead(load_optimizer('adamw')(params), k=1)
+        if optimizer_name == 'trac':
+            return TRAC(load_optimizer('adamw')(params))
+        if optimizer_name == 'orthograd':
+            return OrthoGrad(load_optimizer('adamw')(params))
+
+        if optimizer_name == 'ranger21':
+            overrides.update({'num_iterations': 1, 'lookahead_merge_time': 1})
+        elif optimizer_name == 'bsam':
+            overrides.update({'num_data': 1})
+        elif optimizer_name in ('lamb', 'ralamb'):
+            overrides.update({'pre_norm': True})
+        elif optimizer_name == 'alice':
+            overrides.update({'rank': 2, 'leading_basis': 1})
+        elif optimizer_name == 'adahessian':
+            overrides.update({'update_period': 2})
+
+        if optimizer_name in ('muon', 'adamuon', 'adago'):
+            params = cls.with_muon(params, use_muon=overrides.pop('use_muon', False))
+
+        return load_optimizer(optimizer_name)(params, **overrides)
+
+
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead', 'trac', 'orthograd'])
 def test_no_gradients(optimizer_name):
     if optimizer_name in {'lbfgs', 'lomo', 'adalomo', 'adammini', 'demo', 'distributedmuon'}:
@@ -36,26 +77,7 @@ def test_no_gradients(optimizer_name):
     p4 = simple_parameter(require_grad=False)
     params = [{'params': [p1, p2]}, {'params': [p3]}, {'params': [p4]}]
 
-    if optimizer_name == 'ranger21':
-        optimizer = load_optimizer(optimizer_name)(params, num_iterations=1, lookahead_merge_time=1)
-    elif optimizer_name == 'bsam':
-        optimizer = load_optimizer(optimizer_name)(params, num_data=1)
-    elif optimizer_name in ('lamb', 'ralamb'):
-        optimizer = load_optimizer(optimizer_name)(params, pre_norm=True)
-    elif optimizer_name == 'lookahead':
-        optimizer = Lookahead(load_optimizer('adamw')(params), k=1)
-    elif optimizer_name == 'trac':
-        optimizer = TRAC(load_optimizer('adamw')(params))
-    elif optimizer_name == 'orthograd':
-        optimizer = OrthoGrad(load_optimizer('adamw')(params))
-    elif optimizer_name == 'alice':
-        optimizer = load_optimizer('alice')(params, rank=2, leading_basis=1)
-    elif optimizer_name in ('muon', 'adamuon', 'adago'):
-        params = [{**param, 'use_muon': False} for param in params]
-        optimizer = load_optimizer(optimizer_name)(params)
-    else:
-        optimizer = load_optimizer(optimizer_name)(params)
-
+    optimizer = OptimizerBuilder.create(optimizer_name, params)
     optimizer.zero_grad()
 
     loss = sphere_loss(p1 + p3)
@@ -72,14 +94,7 @@ def test_sparse_not_supported(no_sparse_optimizer):
 
     param = simple_sparse_parameter()[1]
 
-    opt = load_optimizer(optimizer=no_sparse_optimizer)
-    if no_sparse_optimizer == 'ranger21':
-        optimizer = opt([param], num_iterations=1)
-    elif no_sparse_optimizer in ('muon', 'adamuon', 'adago'):
-        params = [{'params': param, 'use_muon': False}]
-        optimizer = load_optimizer(no_sparse_optimizer)(params)
-    else:
-        optimizer = opt([param])
+    optimizer = OptimizerBuilder.create(no_sparse_optimizer, [param])
 
     with pytest.raises((RuntimeError, NoSparseGradientError)):
         optimizer.step(lambda: 0.1)
@@ -261,16 +276,16 @@ def test_complex_not_supported(no_complex_optimizer):
 
     param = simple_complex_parameter()
 
-    opt = load_optimizer(optimizer=no_complex_optimizer)
-
-    if no_complex_optimizer == 'ranger21':
-        optimizer = opt([param], num_iterations=1)
-    elif no_complex_optimizer == 'adahessian':
-        optimizer = opt([param], update_period=2)
-    elif no_complex_optimizer in ('muon', 'adamuon', 'adago'):
-        optimizer = opt([{'params': param, 'use_muon': True}])
-    else:
-        optimizer = opt([param])
+    use_muon: bool = no_complex_optimizer in ('muon', 'adamuon', 'adago')
+    optimizer = OptimizerBuilder.create(no_complex_optimizer, [param], use_muon=use_muon)
 
     with pytest.raises(NoComplexParameterError):
         optimizer.step(lambda: 0.1)
+
+
+def test_orthograd_skip_conditions():
+    param = simple_parameter(require_grad=True)
+    param.grad = None
+
+    optimizer = OrthoGrad(load_optimizer('adamw')([param]))
+    optimizer.apply_orthogonal_gradients([param])

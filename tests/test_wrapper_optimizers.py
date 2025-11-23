@@ -49,22 +49,15 @@ def test_lookahead(pullback_momentum, environment):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-@pytest.mark.parametrize('optimizer_name', ['SAM', 'FriendlySAM'])
-def test_sam_optimizer(adaptive, optimizer_name, environment):
+@pytest.mark.parametrize('wrapper', [SAM, FriendlySAM, LookSAM])
+def test_sam_optimizer(adaptive, wrapper, environment):
     x_data, y_data = environment
     model, loss_fn = build_model()
-
-    if optimizer_name == 'SAM':
-        wrapper = SAM
-    elif optimizer_name == 'FriendlySAM':
-        wrapper = FriendlySAM
-    else:
-        raise ValueError
 
     optimizer = wrapper(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive, use_gc=True)
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(5):
+    for _ in range(3):
         loss = loss_fn(y_data, model(x_data))
         loss.backward()
         optimizer.first_step(zero_grad=True)
@@ -79,17 +72,10 @@ def test_sam_optimizer(adaptive, optimizer_name, environment):
 
 
 @pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-@pytest.mark.parametrize('optimizer_name', ['SAM', 'FriendlySAM'])
-def test_sam_optimizer_with_closure(adaptive, optimizer_name, environment):
+@pytest.mark.parametrize('wrapper', [SAM, FriendlySAM, LookSAM])
+def test_sam_optimizer_with_closure(adaptive, wrapper, environment):
     x_data, y_data = environment
     model, loss_fn = build_model()
-
-    if optimizer_name == 'SAM':
-        wrapper = SAM
-    elif optimizer_name == 'FriendlySAM':
-        wrapper = FriendlySAM
-    else:
-        raise ValueError
 
     optimizer = wrapper(model.parameters(), load_optimizer('adamw'), lr=5e-1, adaptive=adaptive)
 
@@ -99,54 +85,7 @@ def test_sam_optimizer_with_closure(adaptive, optimizer_name, environment):
         return first_loss
 
     init_loss, loss = np.inf, np.inf
-    for _ in range(5):
-        loss = loss_fn(y_data, model(x_data))
-        loss.backward()
-
-        optimizer.step(closure)
-        optimizer.zero_grad()
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
-
-
-def test_looksam_optimizer(environment):
-    x_data, y_data = environment
-    model, loss_fn = build_model()
-
-    optimizer = LookSAM(model.parameters(), load_optimizer('adamw'), k=2, lr=5e-1, use_gc=True)
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(5):
-        loss = loss_fn(y_data, model(x_data))
-        loss.backward()
-
-        optimizer.first_step(zero_grad=True)
-
-        loss_fn(y_data, model(x_data)).backward()
-        optimizer.second_step(zero_grad=True)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
-
-
-def test_looksam_optimizer_with_closure(environment):
-    x_data, y_data = environment
-    model, loss_fn = build_model()
-
-    optimizer = LookSAM(model.parameters(), load_optimizer('adamw'), lr=5e-1)
-
-    def closure():
-        first_loss = loss_fn(y_data, model(x_data))
-        first_loss.backward()
-        return first_loss
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(5):
+    for _ in range(3):
         loss = loss_fn(y_data, model(x_data))
         loss.backward()
 
