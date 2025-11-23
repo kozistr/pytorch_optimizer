@@ -17,6 +17,7 @@ from pytorch_optimizer.optimizer.psgd_utils import (
     update_precondition_dense,
     woodbury_identity,
 )
+from pytorch_optimizer.optimizer.sam import get_global_gradient_norm
 from pytorch_optimizer.optimizer.shampoo_utils import (
     BlockPartitioner,
     PreConditioner,
@@ -100,6 +101,13 @@ def test_clip_grad_norm():
 
     np.testing.assert_approx_equal(clip_grad_norm(x), 16.88194, significant=6)
     np.testing.assert_approx_equal(clip_grad_norm(x, max_norm=2), 16.88194, significant=6)
+
+    with pytest.raises(ValueError):
+        clip_grad_norm(None)
+
+
+def test_get_global_gradient_norm():
+    np.testing.assert_approx_equal(get_global_gradient_norm(None, torch.device('cpu')).item(), 0.0)
 
 
 def test_unit_norm():

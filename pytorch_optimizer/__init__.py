@@ -45,6 +45,7 @@ from pytorch_optimizer.optimizer import (
     APOLLO,
     ASGD,
     BSAM,
+    BCOS,
     CAME,
     FOCUS,
     FTRL,

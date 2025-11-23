@@ -11,10 +11,10 @@ from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 @torch.no_grad()
 def l2_projection(parameters: Parameters, max_norm: float = 1e2) -> None:
     r"""Get l2 normalized parameter."""
-    global_norm = torch.sqrt(sum(p.norm().pow(2) for p in parameters))
+    global_norm = torch.sqrt(sum(p.norm().pow(2) for p in parameters or []))
     if global_norm > max_norm:
         ratio = max_norm / global_norm
-        for param in parameters:
+        for param in parameters or []:
             param.mul_(ratio)
 
 
