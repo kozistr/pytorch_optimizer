@@ -147,7 +147,6 @@ reportCallIssue = false
 reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
 reportMissingImports = false
-reportOptionalIterable = false
 reportOptionalMemberAccess = false
 pythonVersion = "3.12"
 pythonPlatform = "Linux"
