@@ -4,7 +4,7 @@ import operator
 import re
 import warnings
 from importlib.util import find_spec
-from typing import Dict, List, Optional, Tuple, Type, Union
+from typing import Dict, List, Optional, Tuple, Type, Union, cast
 
 import torch
 from torch import nn
@@ -262,11 +262,14 @@ def clip_grad_norm(
     Returns:
         float: The gradient norm across all parameters, before clipping.
     """
+    if parameters is None:
+        raise ValueError('Parameters cannot be None.')
+
     if isinstance(parameters, torch.Tensor):
         parameters = [parameters]
 
     # make sure any generators are expanded
-    parameters = list(parameters)
+    parameters = cast(List, list(parameters))
 
     # if syncing we need to manually perform the clipping so that we aggregate properly
     if max_norm > 0 and not sync:

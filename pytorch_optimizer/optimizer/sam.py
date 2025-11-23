@@ -1,5 +1,5 @@
 from contextlib import ExitStack
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
@@ -17,17 +17,19 @@ from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_runn
 
 def get_global_gradient_norm(param_groups: Parameters, device: torch.device) -> torch.Tensor:
     """Get global gradient norm."""
-    return torch.norm(
-        torch.stack(
-            [
-                ((torch.abs(p) if group['adaptive'] else 1.0) * p.grad).norm(p=2).to(device)
-                for group in param_groups
-                for p in group['params']
-                if p.grad is not None
-            ]
-        ),
-        p=2,
-    )
+    norms: List[torch.Tensor] = []
+    for group in param_groups or []:
+        params: List[torch.Tensor] = group.get('params', []) or []
+        adaptive: bool = group.get('adaptive', False)
+        for p in params:
+            if p.grad is not None:
+                norm = ((torch.abs(p) if adaptive else 1.0) * p.grad).norm(p=2).to(device)
+                norms.append(norm)
+
+    if not norms:
+        return torch.tensor(0.0, device=device)
+
+    return torch.norm(torch.stack(norms), p=2)
 
 
 class SAM(BaseOptimizer):

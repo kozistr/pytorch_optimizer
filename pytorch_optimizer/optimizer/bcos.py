@@ -134,13 +134,10 @@ class BCOS(BaseOptimizer):
                     fixed_decay=False,
                 )
 
-                v: Optional[torch.Tensor] = None
+                old_m: Optional[torch.Tensor] = state.get('m', None)
 
                 if self.mode in ('m', 'c'):
                     m = state['m']
-                    if self.mode == 'c':
-                        v: torch.Tensor = self.compute_v(grad, m, beta, beta2)
-
                     m.mul_(beta).add_(grad, alpha=1.0 - beta)
                     d = m
                 else:
@@ -151,9 +148,9 @@ class BCOS(BaseOptimizer):
 
                     v = state['v']
                     v.mul_(beta_v).add_(d.square(), alpha=1.0 - beta_v)
+                else:
+                    v: torch.Tensor = self.compute_v(grad, old_m, beta, beta2)
 
-                update = v.sqrt().add_(group['eps'])
-
-                p.addcdiv_(d, update, alpha=-group['lr'])
+                p.addcdiv_(d, v.sqrt().add_(group['eps']), value=-group['lr'])
 
         return loss
