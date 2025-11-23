@@ -156,6 +156,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.BOCS
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.CAME
     :docstring:
     :members:
