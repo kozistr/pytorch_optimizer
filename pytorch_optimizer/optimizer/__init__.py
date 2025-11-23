@@ -39,6 +39,7 @@ from pytorch_optimizer.optimizer.alig import AliG
 from pytorch_optimizer.optimizer.amos import Amos
 from pytorch_optimizer.optimizer.apollo import APOLLO, ApolloDQN
 from pytorch_optimizer.optimizer.avagrad import AvaGrad
+from pytorch_optimizer.optimizer.bcos import BCOS
 from pytorch_optimizer.optimizer.came import CAME
 from pytorch_optimizer.optimizer.conda import Conda
 from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptLion, DAdaptSGD
@@ -154,6 +155,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Aida,
     AliG,
     Alice,
+    BCOS,
     Amos,
     ApolloDQN,
     AvaGrad,

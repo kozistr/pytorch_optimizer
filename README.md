@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **129 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **130 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -223,6 +223,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | FriendlySAM           | *Friendly Sharpness-Aware Minimization*                                                                        | [github](https://github.com/nblt/F-SAM)                                                                        | <https://openaccess.thecvf.com/content/CVPR2024/papers/Li_Friendly_Sharpness-Aware_Minimization_CVPR_2024_paper.pdf> | [cite](https://github.com/nblt/F-SAM?tab=readme-ov-file#citation)                                                                   |
 | AdaGO                 | *AdaGrad Meets Muon: Adaptive Stepsizes for Orthogonal Updates*                                                |                                                                                                                | <https://arxiv.org/abs/2509.02981>                                                                                   | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250902981Z/exportcitation)                                                        |
 | Conda                 | *Column-Normalized Adam for Training Large Language Models Faster*                                             | [github](https://github.com/jie040109/Conda)                                                                   | <https://arxiv.org/abs/2509.24218>                                                                                   | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250924218W/exportcitation)                                                        |
+| BCOS                  | *Stochastic Approximation with Block Coordinate Optimal Stepsizes*                                             | [github](https://github.com/facebookresearch/bcos)                                                             | <https://arxiv.org/abs/2507.08963>                                                                                   | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250708963J/exportcitation)                                                        |
 
 ## Supported LR Scheduler
 

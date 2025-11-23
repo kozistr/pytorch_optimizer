@@ -101,6 +101,9 @@ def test_clip_grad_norm():
     np.testing.assert_approx_equal(clip_grad_norm(x), 16.88194, significant=6)
     np.testing.assert_approx_equal(clip_grad_norm(x, max_norm=2), 16.88194, significant=6)
 
+    with pytest.raises(ValueError):
+        clip_grad_norm(None)
+
 
 def test_unit_norm():
     x = torch.arange(0, 10, dtype=torch.float32)

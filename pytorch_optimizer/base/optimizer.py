@@ -58,7 +58,7 @@ class BaseOptimizer(ABC, Optimizer):
             >>> optimizer.step(hessian=hessian_diag_est)
         """
         i: int = 0
-        for group in param_groups:
+        for group in param_groups or []:
             for p in group['params']:
                 if p.size() != hessian[i].size():
                     raise ValueError(
@@ -77,7 +77,7 @@ class BaseOptimizer(ABC, Optimizer):
             state (State): Optimizer state dictionary.
             pre_zero (bool): If True, zero-out the Hessian before computing/updating it.
         """
-        for group in param_groups:
+        for group in param_groups or []:
             for p in group['params']:
                 if p.requires_grad and p.grad is not None and not p.grad.is_sparse:
                     if 'hessian' not in state[p]:
@@ -108,7 +108,7 @@ class BaseOptimizer(ABC, Optimizer):
 
         params: List[torch.Tensor] = [
             p
-            for group in param_groups
+            for group in param_groups or []
             for p in group['params']
             if p.requires_grad and p.grad is not None and not p.grad.is_sparse
         ]
