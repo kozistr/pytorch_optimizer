@@ -1,12 +1,17 @@
-.PHONY: format test check requirements visualize docs
+.PHONY: format lint test check requirements visualize docs
+
+FILES := pytorch_optimizer examples tests hubconf.py
+BLACK_FLAGS := -S -l 119
 
 format:
-	ruff check --fix pytorch_optimizer examples tests hubconf.py
-	black -S -l 119 pytorch_optimizer examples tests hubconf.py
+	ruff check --fix $(FILES)
+	black $(BLACK_FLAGS) $(FILES)
 
-check:
-	black -S -l 119 --check pytorch_optimizer examples tests hubconf.py
-	ruff check pytorch_optimizer examples tests hubconf.py
+lint:
+	black $(BLACK_FLAGS) --check $(FILES)
+	ruff check $(FILES)
+
+check: lint
 	pyright pytorch_optimizer examples
 
 test:

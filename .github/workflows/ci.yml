@@ -28,7 +28,7 @@ jobs:
         run: pip --disable-pip-version-check install --no-compile -r requirements-dev.txt
 
       - name: Run lint
-        run: make check
+        run: make lint
 
   test:
     runs-on: ubuntu-latest
