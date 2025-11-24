@@ -20,14 +20,13 @@ class Ranger25(BaseOptimizer):
         * OrthoGrad
         * Adaptive gradient clipping
         * Lookahead
+        * Cautious Weight Decay
 
     Args:
         params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): Whether the optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Whether to fix weight decay.
         alpha (float): Usually between 4 and 10 works well.
         t_alpha_beta3 (Optional[float]): Total number of iterations is preferred when needed.
         cautious (bool): Whether to use the Cautious variant.
@@ -44,8 +43,6 @@ class Ranger25(BaseOptimizer):
         lr: float = 1e-3,
         betas: Betas = (0.9, 0.98, 0.9999),
         weight_decay: float = 1e-3,
-        weight_decouple: bool = True,
-        fixed_decay: bool = False,
         alpha: float = 5.0,
         t_alpha_beta3: Optional[float] = None,
         lookahead_merge_time: int = 5,
@@ -77,8 +74,6 @@ class Ranger25(BaseOptimizer):
             'lr': lr,
             'betas': betas,
             'weight_decay': weight_decay,
-            'weight_decouple': weight_decouple,
-            'fixed_decay': fixed_decay,
             'alpha': alpha,
             't_alpha_beta3': t_alpha_beta3,
             'eps': eps if (eps is not None) or (eps is None and not stable_adamw) else 1e-8,
@@ -181,15 +176,6 @@ class Ranger25(BaseOptimizer):
 
                 state = self.state[p]
 
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
-
                 grad.copy_(agc(p, grad))
 
                 exp_avg, exp_avg_sq, exp_avg_slow = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_slow']
@@ -203,6 +189,9 @@ class Ranger25(BaseOptimizer):
                 exp_avg_slow.mul_(beta3_t).add_(normed_grad, alpha=1.0 - beta3_t)
 
                 update = exp_avg.clone()
+
+                self.apply_cautious_weight_decay(p, update, group['lr'], group['weight_decay'])
+
                 if self.cautious:
                     self.apply_cautious(update, grad)
 
