@@ -674,10 +674,6 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (EmoNeco, {'lr': 5e-1, 'use_shadow': True}, 5),
     (EmoZeal, {'lr': 1e-1}, 5),
     (EmoZeal, {'lr': 2e-1, 'use_shadow': True}, 10),
-    (BCOS, {'lr': 1e0, 'mode': 'm'}, 5),
-    (BCOS, {'lr': 1e0, 'mode': 'g'}, 5),
-    (BCOS, {'lr': 1e0, 'mode': 'c'}, 5),
-    (BCOS, {'lr': 1e0, 'mode': 'c', 'simple_cond': True}, 5),
     (Ranger25, {'lr': 1e-1}, 3),
     (Ranger25, {'lr': 1e-1, 't_alpha_beta3': 5}, 3),
     (Ranger25, {'lr': 5e-2, 'stable_adamw': False, 'orthograd': False, 'eps': None, 'lookahead_merge_time': 2}, 3),
@@ -686,6 +682,10 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
         {'lr': 1e0, 'weight_decay': 1e-3, 'scale': 1.0, 'update_proj_gap': 1, 'projection_type': 'std'},
         5,
     ),
+    (BCOS, {'lr': 1e0, 'mode': 'm'}, 5),
+    (BCOS, {'lr': 1e0, 'mode': 'g'}, 5),
+    (BCOS, {'lr': 1e0, 'mode': 'c'}, 5),
+    (BCOS, {'lr': 1e0, 'mode': 'c', 'simple_cond': True}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),

@@ -137,7 +137,7 @@ class BaseOptimizer(ABC, Optimizer):
         fixed_decay: bool,
         ratio: Optional[float] = None,
     ) -> None:
-        """Apply weight decay.
+        """Apply weight decay in an in-place manner.
 
         Args:
             p (torch.Tensor): Parameter tensor to apply weight decay to.
@@ -152,6 +152,23 @@ class BaseOptimizer(ABC, Optimizer):
             p.mul_(1.0 - weight_decay * (1.0 if fixed_decay else lr) * (ratio if ratio is not None else 1.0))
         elif weight_decay > 0.0 and grad is not None:
             grad.add_(p, alpha=weight_decay)
+
+    @staticmethod
+    def apply_cautious_weight_decay(
+        p: torch.Tensor,
+        update: torch.Tensor,
+        lr: float,
+        weight_decay: float,
+    ) -> None:
+        """Apply cautious weight decay (CWD) in an in-place manner.
+
+        Args:
+            p (torch.Tensor): Parameter tensor to apply weight decay to.
+            update (torch.Tensor): update tensor.
+            lr (float): Learning rate to scale the update.
+            weight_decay (float): Weight decay coefficient (L2 penalty).
+        """
+        p.copy_(torch.where(update * p >= 0, p * (1.0 - weight_decay * lr), p))
 
     @staticmethod
     def apply_ams_bound(
