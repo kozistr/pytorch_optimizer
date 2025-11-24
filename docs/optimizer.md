@@ -156,7 +156,7 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.BOCS
+::: pytorch_optimizer.BCOS
     :docstring:
     :members:
 
