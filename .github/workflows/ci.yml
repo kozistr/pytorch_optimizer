@@ -30,6 +30,25 @@ jobs:
       - name: Run lint
         run: make lint
 
+  type_check:
+    name: Static Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: 'pip'
+
+      - name: Install dev-dependencies
+        run: pip --disable-pip-version-check install --no-compile -r requirements-dev.txt
+
+      - uses: jakebailey/pyright-action@v2
+        with:
+          version: 1.1.407
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -65,7 +84,7 @@ jobs:
 
   ci-summary:
     if: always()
-    needs: [lint, test]
+    needs: [lint, type_check, test]
     runs-on: ubuntu-latest
     steps:
       - name: Report Summary
