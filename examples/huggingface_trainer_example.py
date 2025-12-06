@@ -1,5 +1,5 @@
 # reference: https://github.com/minpeter/krill
-from typing import List
+from typing import List, cast
 
 import torch
 from datasets import load_dataset
@@ -30,7 +30,7 @@ def preprocess_dataset(tokenizer):
     tokenized = ds.map(tokenize_function, batched=True, remove_columns=ds.column_names)
 
     lengths: List[int] = (
-        tokenized['input_ids'].map(len)
+        cast(List[int], tokenized['input_ids'].map(len))
         if hasattr(tokenized['input_ids'], 'map')
         else [len(x) for x in tokenized['input_ids']]
     )

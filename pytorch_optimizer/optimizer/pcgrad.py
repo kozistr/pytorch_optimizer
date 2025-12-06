@@ -22,7 +22,7 @@ def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor
     for shape in shapes:
         length = np.prod(shape)
         un_flatten_grads.append(grads[idx:idx + length].view(shape).clone())  # fmt: skip
-        idx += length
+        idx += int(length)
     return un_flatten_grads
 
 

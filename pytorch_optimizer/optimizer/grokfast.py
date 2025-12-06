@@ -85,12 +85,12 @@ def gradfilter_ema(
         optimizer.step()  # Call the optimizer.
     """
     if grads is None:
-        grads = {n: p.grad for n, p in model.named_parameters() if p.requires_grad}
+        grads = {n: p.grad for n, p in model.named_parameters() if p.requires_grad and p.grad is not None}
 
     grads = cast(Dict[str, torch.Tensor], grads)
 
     for n, p in model.named_parameters():
-        if p.requires_grad:
+        if p.requires_grad and p.grad is not None:
             grads[n].mul_(alpha).add_(p.grad, alpha=1.0 - alpha)
             p.grad.add_(grads[n], alpha=lamb)
 

@@ -57,7 +57,7 @@ class AliG(BaseOptimizer):
         return 'AliG'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        momentum: float = kwargs.get('momentum')
+        momentum: float = kwargs.get('momentum', 0.9)
 
         for p in group['params']:
             if p.grad is None:

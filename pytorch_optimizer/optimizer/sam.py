@@ -1,5 +1,5 @@
 from contextlib import ExitStack
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import torch
 from torch import nn
@@ -354,8 +354,8 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         self.forward_backward_func = get_grad
 
     @torch.no_grad()
-    def step(self, closure: Closure = None) -> Tuple[torch.Tensor, float]:
-        get_grad: Callable = closure if closure is not None else self.forward_backward_func
+    def step(self, closure: Closure = None) -> Tuple[Any, torch.Tensor]:
+        get_grad = cast(Callable[[], Tuple[Any, torch.Tensor]], closure or self.forward_backward_func)
 
         with self.maybe_no_sync():
             outputs, loss = get_grad()

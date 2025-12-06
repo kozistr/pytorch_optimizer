@@ -88,7 +88,7 @@ class AdaFactor(BaseOptimizer):
         return 'AdaFactor'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        beta1: float = kwargs.get('beta1')
+        beta1: float = kwargs.get('beta1', 0.9)
 
         for p in group['params']:
             if p.grad is None:

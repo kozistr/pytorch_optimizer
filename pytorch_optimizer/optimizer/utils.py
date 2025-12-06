@@ -112,7 +112,7 @@ class CPUOffloadOptimizer:  # pragma: no cover
                 p_cuda.grad = None
 
         for param_group in param_groups:
-            params = param_group.pop('params')
+            params = param_group.get('params', None)
             if params is None:
                 continue
 
