@@ -64,7 +64,7 @@ class JaccardLoss(_Loss):
             raise ValueError('masking classes is not supported with mode=binary')
 
         self.mode = mode
-        self.classes = torch.LongTensor(classes)
+        self.classes = classes
         self.log_loss = log_loss
         self.from_logits = from_logits
         self.label_smooth = label_smooth
