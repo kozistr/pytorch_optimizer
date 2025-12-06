@@ -140,7 +140,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
 
         if flatten:
             total_param_size: int = sum(p.numel() for p in parameters)
-            fp32_params = nn.Parameter(torch.zeros(total_param_size, dtype=torch.float, device=parameters[0].device))
+            fp32_params = torch.zeros(total_param_size, dtype=torch.float, device=parameters[0].device)  # type: ignore
 
             offset: int = 0
             for p in parameters:
@@ -148,6 +148,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
                 fp32_params[offset:offset + p_num_el].copy_(p.view(-1))  # fmt: skip
                 offset += p_num_el
 
+            fp32_params = nn.Parameter(fp32_params)  # type: ignore
             fp32_params.grad = fp32_params.new(total_param_size)
 
             return fp32_params
