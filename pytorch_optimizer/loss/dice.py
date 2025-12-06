@@ -41,8 +41,7 @@ class DiceLoss(_Loss):
 
     Args:
         mode (CLASS_MODE): Loss mode - 'binary', 'multiclass', or 'multilabel'.
-        classes (Optional[List[int]]): List of classes to include in loss computation.
-            Defaults to all classes.
+        classes (Optional[List[int]]): List of classes to include in loss computation. Defaults to all classes.
         log_loss (bool): If True, loss is computed as `-log(dice_coeff)`; otherwise `1 - dice_coeff`.
         from_logits (bool): If True, assumes input is raw logits.
         label_smooth (float): Smoothness constant for dice coefficient numerator and denominator.
@@ -62,11 +61,8 @@ class DiceLoss(_Loss):
     ):
         super().__init__()
 
-        if classes is not None:
-            if mode == 'binary':
-                raise ValueError('masking classes is not supported with mode=binary')
-
-            classes = torch.LongTensor(classes)
+        if classes is not None and mode == 'binary':
+            raise ValueError('masking classes is not supported with mode=binary')
 
         self.mode = mode
         self.classes = classes

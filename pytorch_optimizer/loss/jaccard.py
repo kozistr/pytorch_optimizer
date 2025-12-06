@@ -60,11 +60,8 @@ class JaccardLoss(_Loss):
     ):
         super().__init__()
 
-        if classes is not None:
-            if mode == 'binary':
-                raise ValueError('masking classes is not supported with mode=binary')
-
-            classes = torch.LongTensor(classes)
+        if classes is not None and mode == 'binary':
+            raise ValueError('masking classes is not supported with mode=binary')
 
         self.mode = mode
         self.classes = classes

@@ -28,8 +28,7 @@ def precondition_update_prob_schedule(
 
     def _schedule(n: int) -> torch.Tensor:
         """Exponential anneal with flat start."""
-        n = torch.tensor(n, dtype=torch.float32)
-        prob = max_prob * torch.exp(-decay * (n - flat_start))
+        prob = max_prob * torch.exp(-decay * (torch.tensor(n, dtype=torch.float32) - flat_start))
         prob.clamp_(min=min_prob, max=max_prob)
         return prob
 
@@ -67,7 +66,7 @@ class Kron(BaseOptimizer):
         momentum: float = 0.9,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
-        pre_conditioner_update_probability: Optional[Tuple[Callable, float]] = None,
+        pre_conditioner_update_probability: Optional[Callable[[int], torch.Tensor]] = None,
         max_size_triangular: int = 8192,
         min_ndim_triangular: int = 2,
         memory_save_mode: Optional[MEMORY_SAVE_MODE_TYPE] = None,

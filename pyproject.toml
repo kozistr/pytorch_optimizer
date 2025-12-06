@@ -141,7 +141,6 @@ exclude = [
     "./pytorch_optimizer/optimizer/rotograd.py",
 ]
 reportArgumentType = false
-reportAssignmentType = false
 reportAttributeAccessIssue = false
 reportCallIssue = false
 reportIncompatibleMethodOverride = false

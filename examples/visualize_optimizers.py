@@ -492,7 +492,7 @@ def main():
 
     output_dir = Path('.') / 'docs' / 'visualizations'
 
-    optimizers: Tuple[Tuple[Optimizer, Dict[str, Any]], ...] = tuple(
+    optimizers = tuple(
         (optimizer, SPECIAL_SEARCH_SPACES.get(optimizer_name, DEFAULT_SEARCH_SPACES))
         for optimizer_name, optimizer in OPTIMIZERS.items()
         if optimizer_name not in OPTIMIZERS_IGNORE

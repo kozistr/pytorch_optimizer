@@ -1,6 +1,6 @@
 import itertools
 from enum import IntEnum
-from typing import List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 
 import torch
 
@@ -158,7 +158,7 @@ class BlockPartitioner:
         """Build pre-conditioner shapes."""
         pre_conditioner_shapes: List[List[torch.Tensor]] = []
         for t in itertools.product(*split_sizes):
-            t_shape: List[Optional[List[torch.Tensor]]] = [[d, d] for d in t]
+            t_shape: List[Union[List[torch.Tensor], None]] = [[d, d] for d in t]
             if pre_conditioner_type == PreConditionerType.INPUT:
                 t_shape[-1] = None
             elif pre_conditioner_type == PreConditionerType.OUTPUT:
@@ -273,7 +273,7 @@ class PreConditioner:
                 pre_conditioner_type=self.pre_conditioner_type,
             )
 
-            shapes: List[Optional[List[torch.Tensor]]] = self.partitioner.shapes_for_pre_conditioners()
+            shapes = self.partitioner.shapes_for_pre_conditioners()
             self.statistics = [self.matrix_eps * torch.eye(shape[0], device=var.device) for shape in shapes if shape]
             self.pre_conditioners = [torch.eye(shape[0], device=var.device) for shape in shapes if shape]
 
