@@ -654,6 +654,10 @@ class EmoNeco(BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
+            ema = update_ema(self.state, loss)
+            scalar = compute_scalar(ema)
+            ratio = get_scalar_ratio(scalar, use_shadow=group['use_shadow'])
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -663,10 +667,6 @@ class EmoNeco(BaseOptimizer):
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                ema = update_ema(state, loss)
-                scalar = compute_scalar(ema)
-                ratio = get_scalar_ratio(scalar, use_shadow=group['use_shadow'])
 
                 self.apply_weight_decay(
                     p=p,
@@ -808,6 +808,10 @@ class EmoZeal(BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
+            ema = update_ema(self.state, loss)
+            scalar = compute_scalar(ema)
+            ratio = get_scalar_ratio(scalar, use_shadow=group['use_shadow'])
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -817,10 +821,6 @@ class EmoZeal(BaseOptimizer):
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-
-                ema = update_ema(state, loss)
-                scalar = compute_scalar(ema)
-                ratio = get_scalar_ratio(scalar, use_shadow=group['use_shadow'])
 
                 self.apply_weight_decay(
                     p=p,
