@@ -1,6 +1,6 @@
-.PHONY: format lint test check requirements visualize docs
+.PHONY: format lint test check requirements visualize docs update-docs
 
-FILES := pytorch_optimizer examples tests hubconf.py
+FILES := pytorch_optimizer examples tests scripts hubconf.py
 BLACK_FLAGS := -S -l 119
 
 format:
@@ -26,3 +26,6 @@ visualize:
 
 docs:
 	mkdocs serve
+
+update-docs:
+	python scripts/update_docs.py

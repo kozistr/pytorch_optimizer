@@ -12,6 +12,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.AccSGD
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AdaBelief
     :docstring:
     :members:
@@ -40,10 +44,6 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.AdaLOMO
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.Adai
     :docstring:
     :members:
@@ -52,7 +52,7 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.AdamMini
+::: pytorch_optimizer.AdaLOMO
     :docstring:
     :members:
 
@@ -68,6 +68,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.AdamMini
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.AdaMod
     :docstring:
     :members:
@@ -77,6 +81,10 @@
     :members:
 
 ::: pytorch_optimizer.AdamS
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.AdaMuon
     :docstring:
     :members:
 
@@ -104,11 +112,11 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.AdEMAMix
+::: pytorch_optimizer.AdaTAM
     :docstring:
     :members:
 
-::: pytorch_optimizer.SimplifiedAdEMAMix
+::: pytorch_optimizer.AdEMAMix
     :docstring:
     :members:
 
@@ -148,11 +156,11 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.AvaGrad
+::: pytorch_optimizer.ASGD
     :docstring:
     :members:
 
-::: pytorch_optimizer.BSAM
+::: pytorch_optimizer.AvaGrad
     :docstring:
     :members:
 
@@ -160,7 +168,15 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.BSAM
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.CAME
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.centralize_gradient
     :docstring:
     :members:
 
@@ -176,10 +192,6 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.DAdaptSGD
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.DAdaptAdan
     :docstring:
     :members:
@@ -188,11 +200,23 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.DAdaptSGD
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.DeMo
     :docstring:
     :members:
 
 ::: pytorch_optimizer.DiffGrad
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.DistributedMuon
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.DynamicLossScaler
     :docstring:
     :members:
 
@@ -220,14 +244,6 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.DynamicLossScaler
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.SafeFP16Optimizer
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.FAdam
     :docstring:
     :members:
@@ -252,7 +268,11 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.centralize_gradient
+::: pytorch_optimizer.GaLore
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.get_supported_optimizers
     :docstring:
     :members:
 
@@ -276,6 +296,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Kron
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Lamb
     :docstring:
     :members:
@@ -289,6 +313,22 @@
     :members:
 
 ::: pytorch_optimizer.Lion
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.load_ao_optimizer
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.load_bnb_optimizer
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.load_optimizer
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.load_q_galore_optimizer
     :docstring:
     :members:
 
@@ -317,14 +357,6 @@
     :members:
 
 ::: pytorch_optimizer.Muon
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.DistributedMuon
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.AdaMuon
     :docstring:
     :members:
 
@@ -360,10 +392,6 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.Kron
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.QHAdam
     :docstring:
     :members:
@@ -388,7 +416,15 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Ranger25
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.RotoGrad
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.SafeFP16Optimizer
     :docstring:
     :members:
 
@@ -396,7 +432,7 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.ScheduleFreeSGD
+::: pytorch_optimizer.ScalableShampoo
     :docstring:
     :members:
 
@@ -408,6 +444,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.ScheduleFreeSGD
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.ScheduleFreeWrapper
     :docstring:
     :members:
@@ -416,27 +456,7 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.StableAdamW
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.AccSGD
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.SGDW
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.ASGD
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.SignSGD
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.SGDSaI
+::: pytorch_optimizer.SCIONLight
     :docstring:
     :members:
 
@@ -444,11 +464,23 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.SGDSaI
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.SGDW
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Shampoo
     :docstring:
     :members:
 
-::: pytorch_optimizer.ScalableShampoo
+::: pytorch_optimizer.SignSGD
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.SimplifiedAdEMAMix
     :docstring:
     :members:
 
@@ -468,10 +500,6 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.StableSPAM
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.SPlus
     :docstring:
     :members:
@@ -480,15 +508,19 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.StableAdamW
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.StableSPAM
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.SWATS
     :docstring:
     :members:
 
 ::: pytorch_optimizer.TAM
-    :docstring:
-    :members:
-
-::: pytorch_optimizer.AdaTAM
     :docstring:
     :members:
 

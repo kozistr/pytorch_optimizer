@@ -16,11 +16,19 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.CosineScheduler
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.get_supported_lr_schedulers
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.LinearScheduler
     :docstring:
     :members:
 
-::: pytorch_optimizer.CosineScheduler
+::: pytorch_optimizer.load_lr_scheduler
     :docstring:
     :members:
 
