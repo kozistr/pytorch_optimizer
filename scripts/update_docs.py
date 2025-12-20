@@ -49,7 +49,7 @@ def parse_init_imports(init_content: str) -> dict[str, list[str]]:
 def generate_docs(title: str, header: list[str], items: list[str], excludes: set[str]) -> str:
     """Generate markdown documentation content."""
     header_names = {h.split('.')[-1] for h in header}
-    body_items = sorted(i.lower() for i in items if i not in excludes and i not in header_names)
+    body_items = sorted((i for i in items if i not in excludes and i not in header_names), key=str.lower)
 
     lines = [f'# {title}', '']
     for item in header:
