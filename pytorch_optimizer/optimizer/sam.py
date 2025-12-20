@@ -789,10 +789,10 @@ class LookSAM(BaseOptimizer):
 
         grad_norm = get_global_gradient_norm(self.param_groups, device).add_(self.perturb_eps)
 
-        for group in self.param_groups:
+        for i, group in enumerate(self.param_groups):
             scale = group['rho'] / grad_norm
 
-            for i, p in enumerate(group['params']):
+            for j, p in enumerate(group['params']):
                 if p.grad is None:
                     continue
 
@@ -801,7 +801,7 @@ class LookSAM(BaseOptimizer):
                     centralize_gradient(grad, gc_conv_only=False)
 
                 self.state[p]['old_p'] = p.clone()
-                self.state[f'old_grad_p_{i}']['old_grad_p'] = grad.clone()
+                self.state[f'old_grad_p_{i}{j}']['old_grad_p'] = grad.clone()
 
                 e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * grad * scale.to(p)
 
@@ -814,8 +814,8 @@ class LookSAM(BaseOptimizer):
     def second_step(self, zero_grad: bool = False):
         step = self.get_step()
 
-        for group in self.param_groups:
-            for i, p in enumerate(group['params']):
+        for i, group in enumerate(self.param_groups):
+            for j, p in enumerate(group['params']):
                 if p.grad is None:
                     continue
 
@@ -823,16 +823,16 @@ class LookSAM(BaseOptimizer):
                 grad_norm = grad.norm(p=2)
 
                 if step % self.k == 0:
-                    old_grad_p = self.state[f'old_grad_p_{i}']['old_grad_p']
+                    old_grad_p = self.state[f'old_grad_p_{i}{j}']['old_grad_p']
 
                     g_grad_norm = old_grad_p / old_grad_p.norm(p=2)
                     g_s_grad_norm = grad / grad_norm
 
-                    self.state[f'gv_{i}']['gv'] = torch.sub(
+                    self.state[f'gv_{i}{j}']['gv'] = torch.sub(
                         grad, grad_norm * torch.sum(g_grad_norm * g_s_grad_norm) * g_grad_norm
                     )
                 else:
-                    gv = self.state[f'gv_{i}']['gv']
+                    gv = self.state[f'gv_{i}{j}']['gv']
                     grad.add_(grad_norm / (gv.norm(p=2) + 1e-8) * gv, alpha=self.alpha)
 
                 p.data = self.state[p]['old_p']
