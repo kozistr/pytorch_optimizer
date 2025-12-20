@@ -76,7 +76,8 @@ class LOMO(BaseOptimizer):
         return 'LOMO'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        pass
+        if 'step' not in group:
+            group['step'] = 0
 
     def fuse_update(self) -> Callable[[Any], Any]:
         @torch.no_grad()
@@ -302,7 +303,8 @@ class AdaLOMO(BaseOptimizer):
                 p.register_hook(self.grad_func)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        pass
+        if 'step' not in group:
+            group['step'] = 0
 
     def fuse_update(self) -> Callable[[Any], Any]:
         @torch.no_grad()

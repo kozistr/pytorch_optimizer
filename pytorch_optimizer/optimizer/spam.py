@@ -185,7 +185,8 @@ class SPAM(BaseOptimizer):
         return 'SPAM'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        pass
+        if 'step' not in group:
+            group['step'] = 0
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -197,11 +198,8 @@ class SPAM(BaseOptimizer):
         scale_factor: float = 1.0 - self.warmup.get_death_rate(self.state['current_step'])
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -332,6 +330,9 @@ class StableSPAM(BaseOptimizer):
         return 'StableSPAM'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -364,11 +365,8 @@ class StableSPAM(BaseOptimizer):
         scale: float = self.warmup.get_death_rate(self.total_step) if self.warmup is not None else 1.0
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             beta1, beta2 = group['betas']
             beta1 *= scale

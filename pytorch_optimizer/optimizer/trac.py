@@ -144,6 +144,9 @@ class TRAC(BaseOptimizer):
         self.optimizer.load_state_dict(state_dict)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         updates: Dict[torch.Tensor, torch.Tensor] = kwargs.get('updates', {})
 
         for p in group['params']:

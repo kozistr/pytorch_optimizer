@@ -42,6 +42,9 @@ class SRMM(BaseOptimizer):
         return 'SRMM'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -67,11 +70,8 @@ class SRMM(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             w_t: float = (
                 (group['step'] % (group['memory_length'] if group['memory_length'] is not None else 1)) + 1

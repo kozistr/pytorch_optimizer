@@ -95,6 +95,9 @@ class ScheduleFreeSGD(BaseOptimizer):
                 group['train_mode'] = True
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -116,11 +119,8 @@ class ScheduleFreeSGD(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             warmup_steps: int = group['warmup_steps']
             schedule: float = group['step'] / warmup_steps if group['step'] < warmup_steps else 1.0
@@ -251,6 +251,9 @@ class ScheduleFreeAdamW(BaseOptimizer):
                 group['train_mode'] = True
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -273,11 +276,8 @@ class ScheduleFreeAdamW(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             warmup_steps: int = group['warmup_steps']
             schedule: float = group['step'] / warmup_steps if group['step'] < warmup_steps else 1.0
@@ -416,6 +416,9 @@ class ScheduleFreeRAdam(BaseOptimizer):
                 group['train_mode'] = True
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -438,11 +441,8 @@ class ScheduleFreeRAdam(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -608,6 +608,9 @@ class ScheduleFreeWrapper(BaseOptimizer):
         self.train_mode = True
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -638,11 +641,8 @@ class ScheduleFreeWrapper(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             for p in group['params']:
                 if p.grad is None:

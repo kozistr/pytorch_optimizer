@@ -364,6 +364,9 @@ class SCION(BaseOptimizer):
         return 'SCION'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -393,11 +396,8 @@ class SCION(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             norm = build_lmo_norm(group['norm_type'], **group['norm_kwargs'])
 
@@ -508,7 +508,8 @@ class SCIONLight(BaseOptimizer):
         return 'SCIONLight'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        pass
+        if 'step' not in group:
+            group['step'] = 0
 
     @torch.no_grad()
     def init(self):
@@ -526,11 +527,8 @@ class SCIONLight(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             norm = build_lmo_norm(group['norm_type'], **group['norm_kwargs'])
 

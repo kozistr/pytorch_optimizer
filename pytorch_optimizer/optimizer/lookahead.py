@@ -77,7 +77,8 @@ class Lookahead(BaseOptimizer):
         self.optimizer.zero_grad(set_to_none=set_to_none)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        pass
+        if 'step' not in group:
+            group['step'] = 0
 
     def backup_and_load_cache(self) -> None:
         r"""Backup cache parameters."""

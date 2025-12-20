@@ -57,6 +57,9 @@ class AliG(BaseOptimizer):
         return 'AliG'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         momentum: float = kwargs.get('momentum', 0.9)
 
         for p in group['params']:
@@ -92,11 +95,8 @@ class AliG(BaseOptimizer):
         for group in self.param_groups:
             momentum = group['momentum']
 
-            if 'step' not in group:
-                self.init_group(group, momentum=momentum)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group, momentum=momentum)
+            group['step'] += 1
 
             step_size = group['step_size'] = (
                 min(un_clipped_step_size, group['max_lr']) if group['max_lr'] is not None else un_clipped_step_size

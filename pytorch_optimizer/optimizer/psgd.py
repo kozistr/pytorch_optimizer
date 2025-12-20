@@ -112,7 +112,8 @@ class Kron(BaseOptimizer):
         return 'Kron'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        pass
+        if 'step' not in group:
+            group['step'] = 0
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
