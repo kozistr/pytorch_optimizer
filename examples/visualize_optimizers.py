@@ -197,9 +197,7 @@ class Visualizer:
                 continue
 
             params: str = ', '.join(search_space.keys())
-            print(  # noqa: T201
-                f'({i}/{len(self.optimizers)}) Processing {optimizer_name}... (Params to tune: {params})'
-            )
+            print(f'({i}/{len(self.optimizers)}) Processing {optimizer_name}... (Params to tune: {params})')
 
             objective_fn = partial(
                 objective,
@@ -225,7 +223,7 @@ class Visualizer:
                     catch_eval_exceptions=True,
                 )
             except AllTrialsFailed:
-                print(f'{optimizer_name} failed to optimize {experiment.func.__name__}')  # noqa: T201
+                print(f'{optimizer_name} failed to optimize {experiment.func.__name__}')
                 continue
 
             steps, _ = execute_steps(
@@ -246,7 +244,7 @@ class Visualizer:
 
     def run_experiments(self, experiments: List[ExperimentConfig]) -> None:
         for experiment in experiments:
-            print(f'Running {experiment.name} experiment')  # noqa: T201
+            print(f'Running {experiment.name} experiment')
             self.run_experiment(experiment)
 
 
