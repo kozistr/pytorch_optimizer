@@ -110,6 +110,7 @@ from pytorch_optimizer.optimizer import (
     Alice,
     AliG,
     Amos,
+    Ano,
     ApolloDQN,
     AvaGrad,
     DAdaptAdaGrad,
