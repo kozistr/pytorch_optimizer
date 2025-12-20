@@ -116,7 +116,7 @@ flake8-quotes.inline-quotes = "single"
 
 [tool.ruff.lint.extend-per-file-ignores]
 "examples/visualize_optimizers.py" = ["D103", "D400", "D415"]
-"{tests,examples,scripts}/*.py" = ["D", "S101", "T201", "INP001"]
+"{tests,examples,scripts}/*.py" = ["D", "S101", "T201"]
 "{examples,scripts}/*.py" = ["INP001"]
 "**/__init__.py" = ["F401"]
 "hubconf.py" = ["D", "INP001"]
