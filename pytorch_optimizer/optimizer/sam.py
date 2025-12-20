@@ -106,7 +106,8 @@ class SAM(BaseOptimizer):
         return 'SAM'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        pass
+        if 'step' not in group:
+            group['step'] = 0
 
     @torch.no_grad()
     def first_step(self, zero_grad: bool = False):
@@ -599,6 +600,9 @@ class BSAM(BaseOptimizer):
         return 'bSAM'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -613,11 +617,8 @@ class BSAM(BaseOptimizer):
     @torch.no_grad()
     def first_step(self):
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             for p in group['params']:
                 if p.grad is None:

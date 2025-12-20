@@ -81,6 +81,9 @@ class Prodigy(BaseOptimizer):
         return 'Prodigy'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue

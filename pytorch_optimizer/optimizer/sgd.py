@@ -54,6 +54,9 @@ class AccSGD(BaseOptimizer):
         return 'AccSGD'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -75,11 +78,8 @@ class AccSGD(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             large_lr: float = group['lr'] * group['kappa'] / group['constant']
             alpha: float = 1.0 - (group['xi'] * (group['constant'] ** 2) / group['kappa'])
@@ -160,6 +160,9 @@ class SGDW(BaseOptimizer):
         return 'SGDW'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -181,11 +184,8 @@ class SGDW(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             momentum = group['momentum']
 
@@ -387,6 +387,9 @@ class SignSGD(BaseOptimizer):
         return 'SignSGD'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -408,11 +411,8 @@ class SignSGD(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             momentum = group['momentum']
 
@@ -483,6 +483,9 @@ class SGDSaI(BaseOptimizer):
         return 'SGDSaI'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -504,9 +507,8 @@ class SGDSaI(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
+            self.init_group(group)
+            group['step'] += 1
 
             for p in group['params']:
                 if p.grad is None:
@@ -630,6 +632,9 @@ class VSGD(BaseOptimizer):
         return 'VSGD'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -653,11 +658,8 @@ class VSGD(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             pa2, pbg2, pbhg2 = group['pa2'], group['pbg2'], group['pbhg2']
 

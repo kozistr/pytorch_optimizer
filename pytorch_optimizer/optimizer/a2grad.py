@@ -52,6 +52,9 @@ class A2Grad(BaseOptimizer):
         return 'A2Grad'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -81,11 +84,8 @@ class A2Grad(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             gamma_k: float = 2.0 * group['lips'] / (group['step'] + 1)
             alpha_k_1: float = 2.0 / (group['step'] + 3)

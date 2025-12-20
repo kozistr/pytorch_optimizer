@@ -47,7 +47,8 @@ class OrthoGrad(BaseOptimizer):
         self.optimizer.zero_grad(set_to_none=set_to_none)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        pass
+        if 'step' not in group:
+            group['step'] = 0
 
     @torch.no_grad()
     def apply_orthogonal_gradients(self, params) -> None:

@@ -88,6 +88,9 @@ class AdaFactor(BaseOptimizer):
         return 'AdaFactor'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         beta1: float = kwargs.get('beta1', 0.9)
 
         for p in group['params']:
@@ -151,11 +154,8 @@ class AdaFactor(BaseOptimizer):
         for group in self.param_groups:
             beta1, beta2 = group['betas']
 
-            if 'step' not in group:
-                self.init_group(group, beta1=beta1)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group, beta1=beta1)
+            group['step'] += 1
 
             beta2_t: float = 1.0 - math.pow(group['step'], self.decay_rate)
 

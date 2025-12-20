@@ -130,6 +130,9 @@ class Muon(BaseOptimizer):
         return 'Muon'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -158,11 +161,8 @@ class Muon(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             for p in group['params']:
                 if p.grad is None:
@@ -324,6 +324,9 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
         return 'DistributedMuon'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 p.grad = torch.zeros_like(p)
@@ -349,11 +352,8 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             if group['use_muon']:
                 params = group['params']
@@ -522,6 +522,9 @@ class AdaMuon(BaseOptimizer):
         return 'AdaMuon'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -551,11 +554,8 @@ class AdaMuon(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             beta1, beta2 = group['betas']
 
@@ -720,6 +720,9 @@ class AdaGO(BaseOptimizer):
         return 'AdaGO'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -749,11 +752,8 @@ class AdaGO(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group)
+            group['step'] += 1
 
             for p in group['params']:
                 if p.grad is None:

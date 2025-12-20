@@ -112,7 +112,8 @@ class Kron(BaseOptimizer):
         return 'Kron'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        pass
+        if 'step' not in group:
+            group['step'] = 0
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -251,7 +252,7 @@ def initialize_q_expressions(
     else:
         raise NotImplementedError(
             f'invalid memory_save_mode {memory_save_mode}. '
-            'it must be one of [None, \'one_diag\', \'smart_one_diag\', \'all_diag\']'
+            'it must be one of [None, `one_diag`, `smart_one_diag`, `all_diag`]'
         )
 
     qs: List[torch.Tensor] = []

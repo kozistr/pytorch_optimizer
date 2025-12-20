@@ -61,6 +61,9 @@ class Adan(BaseOptimizer):
         return 'Adan'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         clip_global_grad_norm: float = kwargs.get('clip_global_grad_norm', 0.0)
 
         for p in group['params']:
@@ -102,11 +105,8 @@ class Adan(BaseOptimizer):
         clip_global_grad_norm = self.get_global_gradient_norm()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group, clip_global_grad_norm=clip_global_grad_norm)
-                group['step'] = 1
-            else:
-                group['step'] += 1
+            self.init_group(group, clip_global_grad_norm=clip_global_grad_norm)
+            group['step'] += 1
 
             beta1, beta2, beta3 = group['betas']
 

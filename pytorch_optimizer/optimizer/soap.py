@@ -80,6 +80,9 @@ class SOAP(BaseOptimizer):
         return 'SOAP'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         _, beta2 = group['betas']
 
         for p in group['params']:
@@ -288,12 +291,11 @@ class SOAP(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            if 'step' not in group:
-                group['step'] = 1
-                self.init_group(group)
-                continue
-
+            self.init_group(group)
             group['step'] += 1
+
+            if group['step'] == 1:
+                continue
 
             beta1, beta2 = group['betas']
 
