@@ -148,6 +148,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Ano
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.APOLLO
     :docstring:
     :members:

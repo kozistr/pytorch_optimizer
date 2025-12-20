@@ -1,8 +1,7 @@
 name: Update Documentation
 
 on:
-  push:
-    branches: [main]
+  pull_request:
     paths:
       - 'pytorch_optimizer/__init__.py'
       - 'pytorch_optimizer/optimizer/__init__.py'
