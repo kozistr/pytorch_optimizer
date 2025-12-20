@@ -239,7 +239,7 @@ OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer f
 
 
 def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover  # noqa: PLR0911, PLR0912
-    r"""Load bnb optimizer instance."""
+    """Load bnb optimizer instance."""
     from bitsandbytes import optim  # noqa: PLC0415
 
     if 'sgd8bit' in optimizer:
@@ -291,21 +291,21 @@ def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover  # noqa
     if 'paged_ademamix32bit' in optimizer:
         return optim.PagedAdEMAMix32bit
 
-    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+    raise NotImplementedError(f'not implemented optimizer : {optimizer}')
 
 
 def load_q_galore_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
-    r"""Load Q-GaLore optimizer instance."""
+    """Load Q-GaLore optimizer instance."""
     import q_galore_torch  # noqa: PLC0415
 
     if 'adamw8bit' in optimizer:
         return q_galore_torch.QGaLoreAdamW8bit
 
-    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+    raise NotImplementedError(f'not implemented optimizer : {optimizer}')
 
 
 def load_ao_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
-    r"""Load TorchAO optimizer instance."""
+    """Load TorchAO optimizer instance."""
     from torchao.prototype import low_bit_optim  # noqa: PLC0415
 
     if 'adamw8bit' in optimizer:
@@ -315,11 +315,11 @@ def load_ao_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
     if 'adamwfp8' in optimizer:
         return low_bit_optim.AdamWFp8
 
-    raise NotImplementedError(f'[-] not implemented optimizer : {optimizer}')
+    raise NotImplementedError(f'not implemented optimizer : {optimizer}')
 
 
 def load_optimizer(optimizer: str) -> OPTIMIZER:
-    r"""Load optimizers."""
+    """Load optimizers."""
     optimizer_name: str = optimizer.lower()
 
     if optimizer_name.startswith('bnb'):
