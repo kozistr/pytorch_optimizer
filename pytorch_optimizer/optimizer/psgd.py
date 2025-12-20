@@ -252,7 +252,7 @@ def initialize_q_expressions(
     else:
         raise NotImplementedError(
             f'invalid memory_save_mode {memory_save_mode}. '
-            'it must be one of [None, \'one_diag\', \'smart_one_diag\', \'all_diag\']'
+            'it must be one of [None, `one_diag`, `smart_one_diag`, `all_diag`]'
         )
 
     qs: List[torch.Tensor] = []

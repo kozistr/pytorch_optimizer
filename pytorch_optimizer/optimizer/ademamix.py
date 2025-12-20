@@ -250,7 +250,6 @@ class SimplifiedAdEMAMix(BaseOptimizer):
 
     @staticmethod
     def linear_hl_warmup_scheduler(step: int, beta_end: float, beta_start: float = 0.0, warmup: int = 1) -> float:
-
         def f(beta: float, eps: float = 1e-8) -> float:
             return math.log(0.5) / math.log(beta + eps) - 1.0
 

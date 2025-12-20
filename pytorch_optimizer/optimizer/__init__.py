@@ -376,7 +376,7 @@ def create_optimizer(
     elif optimizer_name in ('lomo', 'adalomo', 'adammini'):
         optimizer = optimizer_class(model, lr=lr, **kwargs)
     elif optimizer_name in ('muon', 'adamuon', 'adago'):
-        warn(f'highly recommend you to manually create the {optimizer_name} manually.', UserWarning, 1)
+        warn(f'highly recommend you to manually create the {optimizer_name} manually.', UserWarning, stacklevel=1)
 
         optimizer = prepare_muon_parameters(model, optimizer_name, lr=lr, weight_decay=weight_decay, **kwargs)
     else:
@@ -387,7 +387,7 @@ def create_optimizer(
 
     if use_lookahead:
         if optimizer_name in ('ranger', 'ranger21', 'ranger25'):
-            warn(f'{optimizer} already has a Lookahead variant.', UserWarning, 1)
+            warn(f'{optimizer} already has a Lookahead variant.', UserWarning, stacklevel=1)
             return optimizer
 
         optimizer = Lookahead(
