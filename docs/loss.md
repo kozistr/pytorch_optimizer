@@ -2,12 +2,9 @@
 
 ::: pytorch_optimizer.bi_tempered_logistic_loss
     :docstring:
-
-::: pytorch_optimizer.BiTemperedLogisticLoss
-    :docstring:
     :members:
 
-::: pytorch_optimizer.BinaryBiTemperedLogisticLoss
+::: pytorch_optimizer.BCEFocalLoss
     :docstring:
     :members:
 
@@ -15,11 +12,15 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.SoftF1Loss
+::: pytorch_optimizer.BinaryBiTemperedLogisticLoss
     :docstring:
     :members:
 
-::: pytorch_optimizer.FocalLoss
+::: pytorch_optimizer.BiTemperedLogisticLoss
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.DiceLoss
     :docstring:
     :members:
 
@@ -27,7 +28,7 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.BCEFocalLoss
+::: pytorch_optimizer.FocalLoss
     :docstring:
     :members:
 
@@ -35,8 +36,9 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.soft_jaccard_score
+::: pytorch_optimizer.get_supported_loss_functions
     :docstring:
+    :members:
 
 ::: pytorch_optimizer.JaccardLoss
     :docstring:
@@ -47,6 +49,18 @@
     :members:
 
 ::: pytorch_optimizer.LovaszHingeLoss
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.soft_dice_score
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.soft_jaccard_score
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.SoftF1Loss
     :docstring:
     :members:
 
