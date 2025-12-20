@@ -58,6 +58,7 @@ from pytorch_optimizer.optimizer import (
     Alice,
     AliG,
     Amos,
+    Ano,
     ApolloDQN,
     AvaGrad,
     Conda,
@@ -151,6 +152,7 @@ COMPLEX_OPTIMIZERS: List[str] = [
     'aggmo',
     'alig',
     'amos',
+    'ano',
     'apollodqn',
     'apollo',
     'avagrad',
@@ -686,6 +688,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (BCOS, {'lr': 1e0, 'mode': 'g'}, 5),
     (BCOS, {'lr': 1e0, 'mode': 'c'}, 5),
     (BCOS, {'lr': 1e0, 'mode': 'c', 'simple_cond': True}, 5),
+    (Ano, {'lr': 1e0, 'weight_decay': 1e-3, 'logarithmic_schedule': True}, 5),
 ]
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
