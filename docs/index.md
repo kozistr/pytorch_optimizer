@@ -10,7 +10,7 @@
 
 ## The reasons why you use `pytorch-optimizer`.
 
-* Wide range of supported optimizers. Currently, **130 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
+* Wide range of supported optimizers. Currently, **131 optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **16 lr schedulers**, and **13 loss functions** are supported!
 * Including many variants such as `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
 * Easy to use, clean, and tested codes
 * Active maintenance
@@ -225,6 +225,7 @@ get_supported_optimizers(['adam*', 'ranger*'])
 | Conda                 | *Column-Normalized Adam for Training Large Language Models Faster*                                             | [github](https://github.com/jie040109/Conda)                                                                   | <https://arxiv.org/abs/2509.24218>                                                                                   | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250924218W/exportcitation)                                                        |
 | BCOS                  | *Stochastic Approximation with Block Coordinate Optimal Stepsizes*                                             | [github](https://github.com/facebookresearch/bcos)                                                             | <https://arxiv.org/abs/2507.08963>                                                                                   | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv250708963J/exportcitation)                                                        |
 | Cautious WD           | *Cautious Weight Decay*                                                                                        |                                                                                                                | <https://arxiv.org/abs/2510.12402>                                                                                   | [cite](https://ui.adsabs.harvard.edu/abs/2025arXiv251012402C/exportcitation)                                                        |
+| Ano                   | *Ano optimizer with adaptive momentum and sign-based updates*                                                  | [github](https://github.com/Adrienkgz/ano-optimizer)                                                           |                                                                                                                      | [cite](https://github.com/Adrienkgz/ano-optimizer?tab=readme-ov-file#citation)                                                      |
 
 ## Supported LR Scheduler
 
