@@ -81,7 +81,7 @@ jobs:
           body_path: docs/changelogs/${{ needs.get-version.outputs.version }}.md
           draft: false
           prerelease: false
-          name: pytorch-optimizer ${{ github.ref }}
+          name: pytorch-optimizer ${{ needs.get-version.outputs.version }}
           tag_name: ${{ github.ref }}
           token: ${{ secrets.GH_TOKEN }}
 
