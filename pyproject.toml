@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytorch_optimizer"
-version = "3.8.2"
+version = "3.9.0"
 description = "optimizer & lr scheduler & objective function collections in PyTorch"
 license = "Apache-2.0"
 authors = ["kozistr <kozistr@gmail.com>"]
@@ -106,7 +106,7 @@ ignore = [
     "B905",
     "D100", "D102", "D104", "D105", "D107", "D203", "D213", "D413",
     "PLR0913", "PLR2004", "PLW2901",
-    "Q003", "ARG002",
+    "Q003", "ARG002", "RUF100",
 ]
 fixable = ["ALL"]
 unfixable = ["F401"]
