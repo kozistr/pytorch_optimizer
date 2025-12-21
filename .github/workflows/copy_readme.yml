@@ -18,7 +18,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v6
         id: auto-commit-action
         with:
-          commit_message: "[skip ci] docs: update index.md"
+          commit_message: "docs: update index.md"
           file_pattern: docs/index.md
           commit_user_name: "pytorch_optimizer-actions[bot]"
           commit_user_email: "pytorch_optimizer-actions[bot]@users.noreply.github.com"
