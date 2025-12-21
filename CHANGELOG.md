@@ -1,3 +1,28 @@
+# v3.9.0
+
+## Change Log
+
+### Feature
+
+* Implement BCOS optimizer. (#455, #458)
+    * [Stochastic Approximation with Block Coordinate Optimal Stepsizes](https://arxiv.org/abs/2507.08963) 
+* Implement CWD (Cautious Weight Decay) feature. (#453, #460)
+    * [Cautious Weight Decay](https://arxiv.org/abs/2510.12402)
+* Implement Ano optimizer. (#432, #466)
+    * [Faster is Better in Noisy Landscape](https://arxiv.org/abs/2508.18258)
+
+### Update
+
+* Enable more Pyright rules. (#457)
+* Reduce the visualization image size to load fast. (#457)
+* Update the EmoNavi, EmoLynx, EmoFact optimizers to the latest version. (#454, #461)
+* Add a `CLAUDE.md`. (#467)
+
+### Fix
+
+* LoRA training failed when Dropout module is enabled in `Kohya_ss`. (#462, #463)
+* Fix potential LookSAM optimizer bug when there are multiple parameter groups. (#442, #465)
+
 # v3.8.2
 
 ## Change Log
