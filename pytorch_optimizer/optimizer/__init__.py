@@ -239,61 +239,43 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
+BNB_OPTIMIZERS = (
+    ('paged_ademamix8bit', 'PagedAdEMAMix8bit'),
+    ('paged_ademamix32bit', 'PagedAdEMAMix32bit'),
+    ('paged_adam8bit', 'PagedAdam8bit'),
+    ('paged_adam32bit', 'PagedAdam32bit'),
+    ('paged_adamw8bit', 'PagedAdamW8bit'),
+    ('paged_lion32bit', 'PagedLion32bit'),
+    ('ademamix8bit', 'AdEMAMix8bit'),
+    ('ademamix32bit', 'AdEMAMix32bit'),
+    ('adam8bit', 'Adam8bit'),
+    ('adam32bit', 'Adam32bit'),
+    ('adamw8bit', 'AdamW8bit'),
+    ('adamw32bit', 'AdamW32bit'),
+    ('adagrad8bit', 'Adagrad8bit'),
+    ('adagrad32bit', 'Adagrad32bit'),
+    ('lamb8bit', 'LAMB8bit'),
+    ('lamb32bit', 'LAMB32bit'),
+    ('lars8bit', 'LARS8bit'),
+    ('lars32bit', 'LARS32bit'),
+    ('lion8bit', 'Lion8bit'),
+    ('lion32bit', 'Lion32bit'),
+    ('rmsprop8bit', 'RMSprop8bit'),
+    ('rmsprop32bit', 'RMSprop32bit'),
+    ('sgd8bit', 'SGD8bit'),
+    ('sgd32bit', 'SGD32bit'),
+)
 
-def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover  # noqa: PLR0911, PLR0912
+
+def load_bnb_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
     """Load bnb optimizer instance."""
     from bitsandbytes import optim  # noqa: PLC0415
 
-    if 'sgd8bit' in optimizer:
-        return optim.SGD8bit
-    if 'adam8bit' in optimizer:
-        return optim.Adam8bit
-    if 'paged_adam8bit' in optimizer:
-        return optim.PagedAdam8bit
-    if 'adamw8bit' in optimizer:
-        return optim.AdamW8bit
-    if 'paged_adamw8bit' in optimizer:
-        return optim.PagedAdamW8bit
-    if 'lamb8bit' in optimizer:
-        return optim.LAMB8bit
-    if 'lars8bit' in optimizer:
-        return optim.LARS8bit
-    if 'lion8bit' in optimizer:
-        return optim.Lion8bit
-    if 'adagrad8bit' in optimizer:
-        return optim.Adagrad8bit
-    if 'rmsprop8bit' in optimizer:
-        return optim.RMSprop8bit
-    if 'adagrad32bit' in optimizer:
-        return optim.Adagrad32bit
-    if 'adam32bit' in optimizer:
-        return optim.Adam32bit
-    if 'paged_adam32bit' in optimizer:
-        return optim.PagedAdam32bit
-    if 'adamw32bit' in optimizer:
-        return optim.AdamW32bit
-    if 'lamb32bit' in optimizer:
-        return optim.LAMB32bit
-    if 'lars32bit' in optimizer:
-        return optim.LARS32bit
-    if 'lion32bit' in optimizer:
-        return optim.Lion32bit
-    if 'paged_lion32bit' in optimizer:
-        return optim.PagedLion32bit
-    if 'rmsprop32bit' in optimizer:
-        return optim.RMSprop32bit
-    if 'sgd32bit' in optimizer:
-        return optim.SGD32bit
-    if 'ademamix8bit' in optimizer:
-        return optim.AdEMAMix8bit
-    if 'ademamix32bit' in optimizer:
-        return optim.AdEMAMix32bit
-    if 'paged_ademamix8bit' in optimizer:
-        return optim.PagedAdEMAMix8bit
-    if 'paged_ademamix32bit' in optimizer:
-        return optim.PagedAdEMAMix32bit
+    for name, cls_name in BNB_OPTIMIZERS:
+        if name in optimizer:
+            return getattr(optim, cls_name)
 
-    raise NotImplementedError(f'not implemented optimizer : {optimizer}')
+    raise NotImplementedError(f'not implemented optimizer {optimizer}')
 
 
 def load_q_galore_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
@@ -303,7 +285,7 @@ def load_q_galore_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
     if 'adamw8bit' in optimizer:
         return q_galore_torch.QGaLoreAdamW8bit
 
-    raise NotImplementedError(f'not implemented optimizer : {optimizer}')
+    raise NotImplementedError(f'not implemented optimizer {optimizer}')
 
 
 def load_ao_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
@@ -317,7 +299,7 @@ def load_ao_optimizer(optimizer: str) -> OPTIMIZER:  # pragma: no cover
     if 'adamwfp8' in optimizer:
         return low_bit_optim.AdamWFp8
 
-    raise NotImplementedError(f'not implemented optimizer : {optimizer}')
+    raise NotImplementedError(f'not implemented optimizer {optimizer}')
 
 
 def load_optimizer(optimizer: str) -> OPTIMIZER:
