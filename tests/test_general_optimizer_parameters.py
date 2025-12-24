@@ -2,64 +2,14 @@ import pytest
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError, ZeroParameterSizeError
 from pytorch_optimizer.optimizer import PCGrad, load_optimizer
-from tests.constants import BETA_OPTIMIZER_NAMES, VALID_OPTIMIZER_NAMES
+from tests.constants import (
+    BETA_OPTIMIZER_NAMES,
+    SKIP_EPSILON,
+    SKIP_LEARNING_RATE,
+    SKIP_WEIGHT_DECAY,
+    VALID_OPTIMIZER_NAMES,
+)
 from tests.utils import Example, simple_parameter
-
-SKIP_LR = {'alig', 'a2grad', 'adamw', 'adam', 'sgd', 'nadam', 'lbfgs', 'rmsprop'}
-SKIP_EPS = {
-    'shampoo',
-    'scalableshampoo',
-    'dadaptsgd',
-    'dadaptlion',
-    'adafactor',
-    'lion',
-    'a2grad',
-    'accsgd',
-    'sgdw',
-    'fromage',
-    'msvag',
-    'aggmo',
-    'qhm',
-    'pid',
-    'lars',
-    'alig',
-    'gravity',
-    'srmm',
-    'signsgd',
-    'lomo',
-    'tiger',
-    'came',
-    'adalite',
-    'bsam',
-    'adalomo',
-    'ftrl',
-    'demo',
-    'muon',
-    'focus',
-    'kron',
-    'sgd',
-    'scion',
-    'scionlight',
-    'lbfgs',
-}
-SKIP_WD = {
-    'nero',
-    'alig',
-    'sm3',
-    'a2grad',
-    'fromage',
-    'msvag',
-    'gravity',
-    'srmm',
-    'adashift',
-    'amos',
-    'lomo',
-    'ftrl',
-    'muon',
-    'scion',
-    'scionlight',
-    'lbfgs',
-}
 
 
 def config_for_optimizer(optimizer_name: str, **config):
@@ -73,7 +23,7 @@ def config_for_optimizer(optimizer_name: str, **config):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_learning_rate(optimizer_name):
-    if optimizer_name in SKIP_LR:
+    if optimizer_name in SKIP_LEARNING_RATE:
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -85,7 +35,7 @@ def test_learning_rate(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_epsilon(optimizer_name):
-    if optimizer_name in SKIP_EPS:
+    if optimizer_name in SKIP_EPSILON:
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)
@@ -97,7 +47,7 @@ def test_epsilon(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 def test_weight_decay(optimizer_name):
-    if optimizer_name in SKIP_WD:
+    if optimizer_name in SKIP_WEIGHT_DECAY:
         pytest.skip(f'skip {optimizer_name} optimizer')
 
     optimizer = load_optimizer(optimizer_name)

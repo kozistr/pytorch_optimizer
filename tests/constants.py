@@ -275,6 +275,99 @@ VALID_LR_SCHEDULER_NAMES: List[str] = [
 ]
 INVALID_LR_SCHEDULER_NAMES: List[str] = ['dummy']
 
+# Consolidated skip lists for parameter validation tests
+SKIP_LEARNING_RATE: set = {'alig', 'a2grad', 'adamw', 'adam', 'sgd', 'nadam', 'lbfgs', 'rmsprop'}
+SKIP_EPSILON: set = {
+    'shampoo',
+    'scalableshampoo',
+    'dadaptsgd',
+    'dadaptlion',
+    'adafactor',
+    'lion',
+    'a2grad',
+    'accsgd',
+    'sgdw',
+    'fromage',
+    'msvag',
+    'aggmo',
+    'qhm',
+    'pid',
+    'lars',
+    'alig',
+    'gravity',
+    'srmm',
+    'signsgd',
+    'lomo',
+    'tiger',
+    'came',
+    'adalite',
+    'bsam',
+    'adalomo',
+    'ftrl',
+    'demo',
+    'muon',
+    'focus',
+    'kron',
+    'sgd',
+    'scion',
+    'scionlight',
+    'lbfgs',
+}
+SKIP_WEIGHT_DECAY: set = {
+    'nero',
+    'alig',
+    'sm3',
+    'a2grad',
+    'fromage',
+    'msvag',
+    'gravity',
+    'srmm',
+    'adashift',
+    'amos',
+    'lomo',
+    'ftrl',
+    'muon',
+    'scion',
+    'scionlight',
+    'lbfgs',
+}
+
+# Skip conditions for gradient tests
+SKIP_GRADIENT_TESTS: set = {
+    'lbfgs',
+    'lomo',
+    'adalomo',
+    'adahessian',
+    'sophiah',
+    'shampoo',
+    'scalableshampoo',
+    'adammini',
+}
+
+# Skip conditions for create optimizer tests
+SKIP_CREATE_OPTIMIZER: set = {'adamw', 'adam', 'sgd', 'nadam', 'lbfgs', 'rmsprop', 'asgd', 'adagrad'}
+
+# Skip conditions for gradient tests
+SKIP_NO_GRADIENT_TEST: set = {'lbfgs', 'lomo', 'adalomo', 'adammini', 'demo', 'distributedmuon'}
+SKIP_SPARSE_NOT_SUPPORTED: set = {'lbfgs', 'sgd', 'lomo', 'adalomo', 'bsam', 'adammini', 'demo', 'distributedmuon'}
+SKIP_COMPLEX_NOT_SUPPORTED: set = {
+    'adam',
+    'adamw',
+    'sgd',
+    'nadam',
+    'lbfgs',
+    'rmsprop',
+    'lomo',
+    'bsam',
+    'adammini',
+    'adalomo',
+    'demo',
+    'distributedmuon',
+}
+
+# Skip conditions for bf16 optimizer tests
+SKIP_BF16_OPTIMIZERS: set = {'adai', 'prodigy', 'nero'}
+
 OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (build_orthograd, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),

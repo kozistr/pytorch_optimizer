@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 import torch
@@ -7,7 +7,7 @@ from torch.nn.functional import relu
 from torch.optim import AdamW
 
 from pytorch_optimizer.base.type import Loss
-from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, ScheduleFreeWrapper
+from pytorch_optimizer.optimizer import TRAC, Lookahead, OrthoGrad, ScheduleFreeWrapper, load_optimizer
 from pytorch_optimizer.optimizer.alig import l2_projection
 
 
@@ -155,3 +155,309 @@ def build_optimizer_parameter(parameters, optimizer_name, config):
         parameters = [{'params': norm_params, 'normalized': True}, {'params': regular_params}]
 
     return parameters, config
+
+
+def make_closure(value):
+    """Create a closure that returns the given value."""
+
+    def closure():
+        return value
+
+    return closure
+
+
+def should_use_create_graph(optimizer_name: str) -> bool:
+    """Check if optimizer requires create_graph=True for backward."""
+    return optimizer_name.lower() in ('adahessian', 'sophiah')
+
+
+class OptimizerBuilder:
+    """Builder class for creating optimizers with special configurations."""
+
+    @staticmethod
+    def with_muon(params, use_muon: bool):
+        """Wrap parameters with use_muon flag for Muon-based optimizers."""
+
+        def with_flag(group):
+            if isinstance(group, dict):
+                return group if 'use_muon' in group else {**group, 'use_muon': use_muon}
+            return {'params': group, 'use_muon': use_muon}
+
+        return [with_flag(group) for group in params] if isinstance(params, list) else [with_flag(params)]
+
+    @classmethod
+    def create(cls, name: str, params: List, **overrides):
+        """Create an optimizer by name with optional overrides."""
+        optimizer_name: str = name.lower()
+
+        if optimizer_name == 'lookahead':
+            return Lookahead(load_optimizer('adamw')(params), k=1)
+        if optimizer_name == 'trac':
+            return TRAC(load_optimizer('adamw')(params))
+        if optimizer_name == 'orthograd':
+            return OrthoGrad(load_optimizer('adamw')(params))
+
+        if optimizer_name == 'ranger21':
+            overrides.update({'num_iterations': 1, 'lookahead_merge_time': 1})
+        elif optimizer_name == 'bsam':
+            overrides.update({'num_data': 1})
+        elif optimizer_name in ('lamb', 'ralamb'):
+            overrides.update({'pre_norm': True})
+        elif optimizer_name == 'alice':
+            overrides.update({'rank': 2, 'leading_basis': 1})
+        elif optimizer_name == 'adahessian':
+            overrides.update({'update_period': 2})
+
+        if optimizer_name in ('muon', 'adamuon', 'adago'):
+            params = cls.with_muon(params, use_muon=overrides.pop('use_muon', False))
+
+        return load_optimizer(optimizer_name)(params, **overrides)
+
+
+class TrainingRunner:
+    """A utility class for running training loops in tests.
+
+    This class encapsulates the common training loop pattern used across
+    multiple test files to reduce code duplication.
+    """
+
+    def __init__(
+        self,
+        model: nn.Module,
+        loss_fn: nn.Module,
+        optimizer,
+        x_data: torch.Tensor,
+        y_data: torch.Tensor,
+    ):
+        self.model = model
+        self.loss_fn = loss_fn
+        self.optimizer = optimizer
+        self.x_data = x_data
+        self.y_data = y_data
+
+    def run(
+        self,
+        iterations: int = 5,
+        create_graph: bool = False,
+        closure_fn=None,
+        threshold: float = 1.5,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Run standard training loop and assert loss reduction.
+
+        Args:
+            iterations: Number of training iterations.
+            create_graph: Whether to create graph during backward.
+            closure_fn: Optional closure function for optimizers that require it.
+            threshold: Loss reduction threshold (init_loss > threshold * final_loss).
+
+        Returns:
+            Tuple of (init_loss, final_loss) as numpy arrays.
+        """
+        init_loss, loss = np.inf, np.inf
+        for _ in range(iterations):
+            self.optimizer.zero_grad()
+
+            y_pred = self.model(self.x_data)
+            loss = self.loss_fn(y_pred, self.y_data)
+
+            if init_loss == np.inf:
+                init_loss = loss
+
+            loss.backward(create_graph=create_graph)
+
+            if closure_fn is not None:
+                self.optimizer.step(closure_fn(loss))
+            else:
+                self.optimizer.step()
+
+        init_loss_np = tensor_to_numpy(init_loss)
+        final_loss_np = tensor_to_numpy(loss)
+
+        assert (
+            init_loss_np > threshold * final_loss_np
+        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
+
+        return init_loss_np, final_loss_np
+
+    def run_sam_style(
+        self,
+        iterations: int = 3,
+        threshold: float = 2.0,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Run SAM-style two-step training loop.
+
+        Args:
+            iterations: Number of training iterations.
+            threshold: Loss reduction threshold.
+
+        Returns:
+            Tuple of (init_loss, final_loss) as numpy arrays.
+        """
+        init_loss, loss = np.inf, np.inf
+        for _ in range(iterations):
+            loss = self.loss_fn(self.y_data, self.model(self.x_data))
+            loss.backward()
+            self.optimizer.first_step(zero_grad=True)
+
+            self.loss_fn(self.y_data, self.model(self.x_data)).backward()
+            self.optimizer.second_step(zero_grad=True)
+
+            if init_loss == np.inf:
+                init_loss = loss
+
+        init_loss_np = tensor_to_numpy(init_loss)
+        final_loss_np = tensor_to_numpy(loss)
+
+        assert (
+            init_loss_np > threshold * final_loss_np
+        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
+
+        return init_loss_np, final_loss_np
+
+    def run_with_closure(
+        self,
+        iterations: int = 3,
+        threshold: float = 2.0,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Run training loop with closure-based step.
+
+        Args:
+            iterations: Number of training iterations.
+            threshold: Loss reduction threshold.
+
+        Returns:
+            Tuple of (init_loss, final_loss) as numpy arrays.
+        """
+
+        def closure():
+            first_loss = self.loss_fn(self.y_data, self.model(self.x_data))
+            first_loss.backward()
+            return first_loss
+
+        init_loss, loss = np.inf, np.inf
+        for _ in range(iterations):
+            loss = self.loss_fn(self.y_data, self.model(self.x_data))
+            loss.backward()
+
+            self.optimizer.step(closure)
+            self.optimizer.zero_grad()
+
+            if init_loss == np.inf:
+                init_loss = loss
+
+        init_loss_np = tensor_to_numpy(init_loss)
+        final_loss_np = tensor_to_numpy(loss)
+
+        assert (
+            init_loss_np > threshold * final_loss_np
+        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
+
+        return init_loss_np, final_loss_np
+
+    def run_wsam_style(
+        self,
+        iterations: int = 10,
+        threshold: float = 1.5,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Run WSAM-style training loop.
+
+        Args:
+            iterations: Number of training iterations.
+            threshold: Loss reduction threshold.
+
+        Returns:
+            Tuple of (init_loss, final_loss) as numpy arrays.
+        """
+        init_loss, loss = np.inf, np.inf
+        for _ in range(iterations):
+            loss = self.loss_fn(self.y_data, self.model(self.x_data))
+            loss.backward()
+            self.optimizer.first_step(zero_grad=True)
+
+            self.loss_fn(self.y_data, self.model(self.x_data)).backward()
+            self.optimizer.second_step(zero_grad=True)
+
+            if init_loss == np.inf:
+                init_loss = loss
+
+        init_loss_np = tensor_to_numpy(init_loss)
+        final_loss_np = tensor_to_numpy(loss)
+
+        assert (
+            init_loss_np > threshold * final_loss_np
+        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
+
+        return init_loss_np, final_loss_np
+
+    def run_wsam_with_closure(
+        self,
+        iterations: int = 10,
+        threshold: float = 1.5,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Run WSAM with closure-based training loop.
+
+        Args:
+            iterations: Number of training iterations.
+            threshold: Loss reduction threshold.
+
+        Returns:
+            Tuple of (init_loss, final_loss) as numpy arrays.
+        """
+
+        def closure():
+            output = self.model(self.x_data)
+            _loss = self.loss_fn(output, self.y_data)
+            _loss.backward()
+            return _loss
+
+        init_loss, loss = np.inf, np.inf
+        for _ in range(iterations):
+            loss = self.optimizer.step(closure)
+            self.optimizer.zero_grad()
+
+            if init_loss == np.inf:
+                init_loss = loss
+
+        init_loss_np = tensor_to_numpy(init_loss)
+        final_loss_np = tensor_to_numpy(loss)
+
+        assert (
+            init_loss_np > threshold * final_loss_np
+        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
+
+        return init_loss_np, final_loss_np
+
+    def run_trac_style(
+        self,
+        iterations: int = 3,
+        threshold: float = 2.0,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Run TRAC-style training loop.
+
+        Args:
+            iterations: Number of training iterations.
+            threshold: Loss reduction threshold.
+
+        Returns:
+            Tuple of (init_loss, final_loss) as numpy arrays.
+        """
+        init_loss, loss = np.inf, np.inf
+        for _ in range(iterations):
+            loss = self.loss_fn(self.model(self.x_data), self.y_data)
+
+            if init_loss == np.inf:
+                init_loss = loss
+
+            loss.backward()
+
+            self.optimizer.step()
+            self.optimizer.zero_grad()
+
+        init_loss_np = tensor_to_numpy(init_loss)
+        final_loss_np = tensor_to_numpy(loss)
+
+        assert (
+            init_loss_np > threshold * final_loss_np
+        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
+
+        return init_loss_np, final_loss_np
