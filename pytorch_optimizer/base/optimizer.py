@@ -1,6 +1,6 @@
 import math
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from torch.optim import Optimizer
@@ -16,6 +16,11 @@ from pytorch_optimizer.base.type import (
     Parameters,
     ParamGroup,
     State,
+)
+from pytorch_optimizer.optimizer.foreach_utils import (
+    foreach_add_,
+    foreach_mul_,
+    has_foreach_support,
 )
 
 
@@ -323,6 +328,97 @@ class BaseOptimizer(ABC, Optimizer):
         mask = (update * grad > 0).to(grad.dtype)
         mask.mul_(mask.numel() / (mask.sum() + 1))
         update.mul_(mask)
+
+    @staticmethod
+    def can_use_foreach(group: ParamGroup, foreach: Optional[bool]) -> bool:
+        """Check if foreach operations can be used for this parameter group.
+
+        Args:
+            group: Parameter group dictionary.
+            foreach: User-specified foreach preference (None for auto-detect).
+
+        Returns:
+            True if foreach operations should be used, False otherwise.
+        """
+        if foreach is False:
+            return False
+
+        params = [p for p in group['params'] if p.grad is not None and not p.grad.is_sparse]
+        if len(params) == 0:
+            return False
+
+        return has_foreach_support(params)
+
+    @staticmethod
+    def collect_trainable_params(
+        group: ParamGroup,
+        state: State,
+        state_keys: Optional[List[str]] = None,
+    ) -> Tuple[List[torch.Tensor], List[torch.Tensor], Dict[str, List[torch.Tensor]]]:
+        """Collect trainable parameters, gradients, and state tensors from a group.
+
+        Args:
+            group: Parameter group dictionary.
+            state: Optimizer state dictionary.
+            state_keys: List of state keys to collect (e.g., ['exp_avg', 'exp_avg_sq']).
+
+        Returns:
+            Tuple containing:
+            - params: List of parameter tensors with gradients
+            - grads: List of corresponding gradient tensors
+            - state_dict: Dictionary mapping state keys to lists of state tensors
+        """
+        if state_keys is None:
+            state_keys = []
+
+        params: List[torch.Tensor] = []
+        grads: List[torch.Tensor] = []
+        state_dict: Dict[str, List[torch.Tensor]] = {key: [] for key in state_keys}
+
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            params.append(p)
+            grads.append(p.grad)
+
+            if state_keys:
+                p_state = state[p]
+                for key in state_keys:
+                    if key in p_state:
+                        state_dict[key].append(p_state[key])
+
+        return params, grads, state_dict
+
+    @staticmethod
+    def apply_weight_decay_foreach(
+        params: List[torch.Tensor],
+        grads: List[torch.Tensor],
+        lr: float,
+        weight_decay: float,
+        weight_decouple: bool,
+        fixed_decay: bool,
+        foreach: bool = True,
+    ) -> None:
+        """Apply weight decay to a list of parameters.
+
+        Args:
+            params: List of parameter tensors.
+            grads: List of gradient tensors.
+            lr: Learning rate.
+            weight_decay: Weight decay coefficient.
+            weight_decouple: If True, applies decoupled weight decay as in AdamW.
+            fixed_decay: If True, fixes weight decay to not depend on learning rate.
+            foreach: Whether to use foreach operations.
+        """
+        if weight_decay == 0.0:
+            return
+
+        if weight_decouple:
+            decay = weight_decay * (1.0 if fixed_decay else lr)
+            foreach_mul_(params, 1.0 - decay, foreach=foreach)
+        else:
+            foreach_add_(grads, params, alpha=weight_decay, foreach=foreach)
 
     @staticmethod
     def get_stable_adamw_rms(grad: torch.Tensor, exp_avg_sq: torch.Tensor, eps: float = 1e-16) -> float:
