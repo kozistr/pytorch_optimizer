@@ -461,3 +461,14 @@ class TrainingRunner:
         ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
 
         return init_loss_np, final_loss_np
+
+
+class LRSchedulerAssertions:
+    """Utility class for LR scheduler testing assertions."""
+
+    @staticmethod
+    def assert_lr_sequence(scheduler, expected_lrs, decimals: int = 7) -> None:
+        """Assert that the scheduler produces the expected learning rate sequence."""
+        for expected_lr in expected_lrs:
+            scheduler.step()
+            np.testing.assert_almost_equal(expected_lr, scheduler.get_lr(), decimals)

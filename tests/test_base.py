@@ -2,12 +2,6 @@ import pytest
 import torch
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from tests.utils import simple_parameter
-
-
-@pytest.fixture
-def param_groups():
-    return [{'params': simple_parameter()}]
 
 
 def test_set_hessian(param_groups):

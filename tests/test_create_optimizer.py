@@ -1,17 +1,15 @@
 import pytest
 
 from pytorch_optimizer.optimizer import create_optimizer, load_optimizer
-from tests.constants import VALID_OPTIMIZER_NAMES
+from tests.constants import SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
 from tests.utils import Example
-
-SKIPPED_OPTIMIZERS = {'adamw', 'adam', 'sgd', 'lbfgs', 'nadam', 'rmsprop', 'demo', 'distributedmuon'}
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
 @pytest.mark.parametrize('use_lookahead', [True, False])
 @pytest.mark.parametrize('use_orthograd', [True, False])
 def test_create_optimizer(optimizer_name, use_lookahead, use_orthograd):
-    if optimizer_name in SKIPPED_OPTIMIZERS or (use_lookahead and use_orthograd):
+    if optimizer_name in SKIP_CREATE_OPTIMIZER or (use_lookahead and use_orthograd):
         pytest.skip(f'skip {optimizer_name} ({use_lookahead}, {use_orthograd})')
 
     kwargs = {'eps': 1e-8, 'k': 7}

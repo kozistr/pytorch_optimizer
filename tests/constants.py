@@ -345,7 +345,18 @@ SKIP_GRADIENT_TESTS: set = {
 }
 
 # Skip conditions for create optimizer tests
-SKIP_CREATE_OPTIMIZER: set = {'adamw', 'adam', 'sgd', 'nadam', 'lbfgs', 'rmsprop', 'asgd', 'adagrad'}
+SKIP_CREATE_OPTIMIZER: set = {
+    'adamw',
+    'adam',
+    'sgd',
+    'nadam',
+    'lbfgs',
+    'rmsprop',
+    'asgd',
+    'adagrad',
+    'demo',
+    'distributedmuon',
+}
 
 # Skip conditions for gradient tests
 SKIP_NO_GRADIENT_TEST: set = {'lbfgs', 'lomo', 'adalomo', 'adammini', 'demo', 'distributedmuon'}
@@ -367,6 +378,86 @@ SKIP_COMPLEX_NOT_SUPPORTED: set = {
 
 # Skip conditions for bf16 optimizer tests
 SKIP_BF16_OPTIMIZERS: set = {'adai', 'prodigy', 'nero'}
+
+# LR Scheduler test recipes
+CAWR_RECIPES = [
+    (
+        10,
+        1.0,
+        1e-3,
+        1e-6,
+        5,
+        1.0,
+        20,
+        [
+            1e-06,
+            0.000201,
+            0.000401,
+            0.0006,
+            0.0008,
+            0.001,
+            0.000905,
+            0.000655,
+            0.000346,
+            9.6e-05,
+            1e-06,
+            0.000201,
+            0.000401,
+            0.0006,
+            0.0008,
+            0.001,
+            0.000905,
+            0.000655,
+            0.000346,
+            9.6e-05,
+        ],
+    ),
+    (
+        10,
+        0.9,
+        1e-3,
+        1e-6,
+        5,
+        0.5,
+        20,
+        [
+            1e-06,
+            0.000201,
+            0.000401,
+            0.0006,
+            0.0008,
+            0.001,
+            0.000905,
+            0.000655,
+            0.000346,
+            9.6e-05,
+            1e-6,
+            0.000101,
+            0.000201,
+            0.0003,
+            0.0004,
+            0.0005,
+            0.000427,
+            0.000251,
+            7.4e-05,
+            1e-06,
+        ],
+    ),
+]
+LWL_RECIPE = [0.001, 0.0028, 0.0046, 0.0064, 0.0082, 0.01, 0.00802, 0.00604, 0.00406, 0.00208]
+LWC_RECIPE = [0.001, 0.00280, 0.00460, 0.00640, 0.00820, 0.01000, 0.00905, 0.00658, 0.00352, 0.00105]
+LWP_RECIPE = [0.001, 0.002800, 0.004600, 0.006400, 0.008200, 0.010000, 0.010000, 0.014101, 0.017247, 0.019900]
+PROPORTION_LEARNING_RATES = [(1e-1, 1e-1, 2.0), (1e-1, 1e-3, 1.090909)]
+
+# Loss function test recipes
+BINARY_DICE_RECIPES = [
+    ([1.0, 1.0, 1.0], [1, 1, 1], (1, 1, 1, -1), 0.0),
+    ([1.0, 0.0, 1.0], [1, 0, 1], (1, 1, 1, -1), 0.0),
+    ([0.0, 0.0, 0.0], [0, 0, 0], (1, 1, 1, -1), 0.0),
+    ([1.0, 1.0, 1.0], [0, 0, 0], (1, 1, -1), 0.0),
+    ([1.0, 0.0, 1.0], [0, 1, 0], (1, 1, -1), 0.996677),
+    ([0.0, 0.0, 0.0], [1, 1, 1], (1, 1, -1), 0.996677),
+]
 
 OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),

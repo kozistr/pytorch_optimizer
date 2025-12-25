@@ -19,21 +19,8 @@ from pytorch_optimizer.loss import (
     soft_jaccard_score,
 )
 from pytorch_optimizer.loss.bi_tempered import bi_tempered_logistic_loss
+from tests.constants import BINARY_DICE_RECIPES
 from tests.utils import MultiClassExample
-
-BINARY_DICE_RECIPES = [
-    ([1.0, 1.0, 1.0], [1, 1, 1], (1, 1, 1, -1), 0.0),
-    ([1.0, 0.0, 1.0], [1, 0, 1], (1, 1, 1, -1), 0.0),
-    ([0.0, 0.0, 0.0], [0, 0, 0], (1, 1, 1, -1), 0.0),
-    ([1.0, 1.0, 1.0], [0, 0, 0], (1, 1, -1), 0.0),
-    ([1.0, 0.0, 1.0], [0, 1, 0], (1, 1, -1), 0.996677),
-    ([0.0, 0.0, 0.0], [1, 1, 1], (1, 1, -1), 0.996677),
-]
-
-
-@pytest.fixture
-def binary_predictions():
-    return torch.arange(0.0, 1.0, 0.1), torch.FloatTensor([0.0] * 5 + [1.0] * 5)
 
 
 class TestBinaryCE:
