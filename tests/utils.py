@@ -279,6 +279,53 @@ class TrainingRunner:
 
         return init_loss_np, final_loss_np
 
+    def run_bf16(
+        self,
+        iterations: int = 5,
+        create_graph: bool = False,
+        closure_fn=None,
+        threshold: float = 1.5,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Run bf16 training loop with autocast.
+
+        Args:
+            iterations: Number of training iterations.
+            create_graph: Whether to create graph during backward.
+            closure_fn: Optional closure function for optimizers that require it.
+            threshold: Loss reduction threshold (init_loss > threshold * final_loss).
+
+        Returns:
+            Tuple of (init_loss, final_loss) as numpy arrays.
+        """
+        context = torch.autocast('cpu', dtype=torch.bfloat16)
+        scaler = torch.GradScaler(device='cpu', enabled=False)
+
+        init_loss, loss = np.inf, np.inf
+        for _ in range(iterations):
+            self.optimizer.zero_grad()
+
+            with context:
+                loss = self.loss_fn(self.model(self.x_data), self.y_data)
+
+            if init_loss == np.inf:
+                init_loss = loss
+
+            scaler.scale(loss).backward(create_graph=create_graph)
+
+            if closure_fn is not None:
+                self.optimizer.step(closure_fn(loss))
+            else:
+                self.optimizer.step()
+
+        init_loss_np = tensor_to_numpy(init_loss)
+        final_loss_np = tensor_to_numpy(loss)
+
+        assert (
+            init_loss_np > threshold * final_loss_np
+        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
+
+        return init_loss_np, final_loss_np
+
     def run_sam_style(
         self,
         iterations: int = 3,

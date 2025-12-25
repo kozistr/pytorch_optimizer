@@ -275,7 +275,6 @@ VALID_LR_SCHEDULER_NAMES: List[str] = [
 ]
 INVALID_LR_SCHEDULER_NAMES: List[str] = ['dummy']
 
-# Consolidated skip lists for parameter validation tests
 SKIP_LEARNING_RATE: set = {'alig', 'a2grad', 'adamw', 'adam', 'sgd', 'nadam', 'lbfgs', 'rmsprop'}
 SKIP_EPSILON: set = {
     'shampoo',
@@ -332,7 +331,6 @@ SKIP_WEIGHT_DECAY: set = {
     'lbfgs',
 }
 
-# Skip conditions for gradient tests
 SKIP_GRADIENT_TESTS: set = {
     'lbfgs',
     'lomo',
@@ -344,7 +342,6 @@ SKIP_GRADIENT_TESTS: set = {
     'adammini',
 }
 
-# Skip conditions for create optimizer tests
 SKIP_CREATE_OPTIMIZER: set = {
     'adamw',
     'adam',
@@ -358,7 +355,6 @@ SKIP_CREATE_OPTIMIZER: set = {
     'distributedmuon',
 }
 
-# Skip conditions for gradient tests
 SKIP_NO_GRADIENT_TEST: set = {'lbfgs', 'lomo', 'adalomo', 'adammini', 'demo', 'distributedmuon'}
 SKIP_SPARSE_NOT_SUPPORTED: set = {'lbfgs', 'sgd', 'lomo', 'adalomo', 'bsam', 'adammini', 'demo', 'distributedmuon'}
 SKIP_COMPLEX_NOT_SUPPORTED: set = {
@@ -376,10 +372,44 @@ SKIP_COMPLEX_NOT_SUPPORTED: set = {
     'distributedmuon',
 }
 
-# Skip conditions for bf16 optimizer tests
 SKIP_BF16_OPTIMIZERS: set = {'adai', 'prodigy', 'nero'}
-
-# LR Scheduler test recipes
+BF16_TEST_OPTIMIZER_NAMES: set = {
+    'AdaBelief',
+    'AdamP',
+    'Lamb',
+    'LARS',
+    'RAdam',
+    'Ranger',
+    'Ranger21',
+    'Lion',
+    'Adan',
+    'AdaFactor',
+    'CAME',
+    'Shampoo',
+    'ScalableShampoo',
+    'DAdaptAdam',
+    'ScheduleFreeAdamW',
+    'GaLore',
+    'SOAP',
+    'MARS',
+    'Muon',
+    'StableAdamW',
+}
+COMPLEX_TEST_OPTIMIZER_NAMES: set = {
+    'AdaBelief',
+    'AdamP',
+    'Lamb',
+    'LARS',
+    'RAdam',
+    'Ranger',
+    'Lion',
+    'Adan',
+    'AdaFactor',
+    'SGDW',
+    'QHAdam',
+    'MARS',
+    'SCION',
+}
 CAWR_RECIPES = [
     (
         10,
@@ -449,7 +479,6 @@ LWC_RECIPE = [0.001, 0.00280, 0.00460, 0.00640, 0.00820, 0.01000, 0.00905, 0.006
 LWP_RECIPE = [0.001, 0.002800, 0.004600, 0.006400, 0.008200, 0.010000, 0.010000, 0.014101, 0.017247, 0.019900]
 PROPORTION_LEARNING_RATES = [(1e-1, 1e-1, 2.0), (1e-1, 1e-3, 1.090909)]
 
-# Loss function test recipes
 BINARY_DICE_RECIPES = [
     ([1.0, 1.0, 1.0], [1, 1, 1], (1, 1, 1, -1), 0.0),
     ([1.0, 0.0, 1.0], [1, 0, 1], (1, 1, 1, -1), 0.0),
