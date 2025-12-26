@@ -24,15 +24,6 @@ jobs:
           python-version: 3.12
           enable-cache: true
 
-      - name: Restore uv cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: uv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('uv.lock') }}
-          restore-keys: |
-            uv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('uv.lock') }}
-            uv-${{ runner.os }}-${{ matrix.python-version }}
-
       - name: Install dependencies
         run: uv sync --frozen --no-editable
 
@@ -40,7 +31,6 @@ jobs:
         run: |
           uv run ruff check pytorch_optimizer examples tests scripts hubconf.py
           uv run black -S -l 119 --check pytorch_optimizer examples tests scripts hubconf.py
-
 
   type_check:
     name: Static Type Check
@@ -53,15 +43,6 @@ jobs:
         with:
           python-version: 3.12
           enable-cache: true
-
-      - name: Restore uv cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: uv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('uv.lock') }}
-          restore-keys: |
-            uv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('uv.lock') }}
-            uv-${{ runner.os }}-${{ matrix.python-version }}
 
       - name: Install dependencies
         run: uv sync --frozen --no-editable
@@ -84,15 +65,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
-
-    - name: Restore uv cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/uv
-        key: uv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('uv.lock') }}
-        restore-keys: |
-            uv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('uv.lock') }}
-            uv-${{ runner.os }}-${{ matrix.python-version }}
 
     - name: Install dependencies
       run: uv sync --frozen --no-editable
