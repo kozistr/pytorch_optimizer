@@ -43,6 +43,7 @@ make docs
 - Formatter: **black** with `-S -l 119` flags
 - Linter: **ruff**
 - Docstring style: **Google style**, not reST or NumPy style
+- Do **not** add meaningless or redundant comments or docstrings
 
 ## Architecture Overview
 

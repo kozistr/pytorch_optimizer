@@ -7,7 +7,7 @@ from tests.constants import (
     COPT_SUPPORTED_OPTIMIZERS,
     STABLE_ADAMW_SUPPORTED_OPTIMIZERS,
 )
-from tests.utils import TrainingRunner, build_model, build_optimizer_parameter, ids, simple_parameter
+from tests.utils import Trainer, build_model, build_optimizer_parameter, ids, simple_parameter
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
@@ -18,8 +18,8 @@ def test_adanorm_optimizer(optimizer_config, environment):
     optimizer_class, config, num_iterations = optimizer_config
     optimizer = optimizer_class(model.parameters(), **config, adanorm=True)
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run(iterations=num_iterations, threshold=1.75)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(iterations=num_iterations, threshold=1.75)
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
@@ -45,8 +45,8 @@ def test_adamd_variant(optimizer_config, environment):
     optimizer = optimizer_class(model.parameters(), **config, adam_debias=True)
 
     create_graph = optimizer_class.__name__ in ('AdaHessian',)
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run(iterations=num_iterations, create_graph=create_graph, threshold=2.0)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(iterations=num_iterations, create_graph=create_graph, threshold=2.0)
 
 
 @pytest.mark.parametrize('optimizer_config', COPT_SUPPORTED_OPTIMIZERS, ids=ids)
@@ -58,8 +58,8 @@ def test_cautious_variant(optimizer_config, environment):
     parameters, config = build_optimizer_parameter(model.parameters(), optimizer_class.__name__, config)
     optimizer = optimizer_class(parameters, **config, cautious=True)
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run(iterations=num_iterations, threshold=1.5)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(iterations=num_iterations, threshold=1.5)
 
 
 @pytest.mark.parametrize('optimizer_config', STABLE_ADAMW_SUPPORTED_OPTIMIZERS, ids=ids)
@@ -70,5 +70,5 @@ def test_stable_adamw_variant(optimizer_config, environment):
     optimizer_class, config, num_iterations = optimizer_config
     optimizer = optimizer_class(model.parameters(), **config)
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run(iterations=num_iterations, threshold=1.5)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(iterations=num_iterations, threshold=1.5)

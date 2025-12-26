@@ -16,7 +16,7 @@ from tests.constants import (
 from tests.utils import (
     Example,
     LogisticRegression,
-    TrainingRunner,
+    Trainer,
     build_model,
     build_optimizer_parameter,
     dummy_closure,
@@ -49,8 +49,8 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
     def closure_fn(x):
         return make_closure(x) if optimizer_name in ('AliG',) or optimizer_name.startswith('Emo') else None
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run(
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(
         iterations=iterations,
         create_graph=should_use_create_graph(optimizer_name),
         closure_fn=closure_fn,
@@ -79,8 +79,8 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
     def closure_fn(x):
         return make_closure(x) if optimizer_name in ('AliG',) or optimizer_name.startswith('Emo') else None
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run_bf16(
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run_bf16(
         iterations=iterations,
         create_graph=should_use_create_graph(optimizer_name),
         closure_fn=closure_fn,
@@ -110,8 +110,8 @@ def test_complex_optimizers(optimizer_complex_config, environment):
     def closure_fn(x):
         return make_closure(x) if optimizer_name_lower in ('alig',) or optimizer_name_lower.startswith('emo') else None
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run(
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(
         iterations=iterations,
         create_graph=should_use_create_graph(optimizer_name_lower),
         closure_fn=closure_fn,
