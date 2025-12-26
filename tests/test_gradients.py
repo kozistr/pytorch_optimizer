@@ -13,8 +13,7 @@ from pytorch_optimizer.optimizer import (
     load_optimizer,
 )
 from tests.constants import (
-    NO_COMPLEX_OPTIMIZERS,
-    NO_SPARSE_OPTIMIZERS,
+    COMPLEX_OPTIMIZERS,
     SKIP_COMPLEX_NOT_SUPPORTED,
     SKIP_NO_GRADIENT_TEST,
     SKIP_SPARSE_NOT_SUPPORTED,
@@ -30,6 +29,9 @@ from tests.utils import (
     simple_sparse_parameter,
     sphere_loss,
 )
+
+NO_SPARSE_OPTIMIZERS = [opt for opt in VALID_OPTIMIZER_NAMES if opt not in SPARSE_OPTIMIZERS]
+NO_COMPLEX_OPTIMIZERS = [opt for opt in VALID_OPTIMIZER_NAMES if opt not in COMPLEX_OPTIMIZERS]
 
 
 @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead', 'trac', 'orthograd'])

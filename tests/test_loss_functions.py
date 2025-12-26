@@ -125,7 +125,6 @@ class TestDiceAndJaccard:
         ],
     )
     def test_binary_dice_loss(self, y_pred, y_true, pred_view, expected_loss, criterion):
-        # brought from https://github.com/BloodAxe/pytorch-toolbelt/blob/develop/tests/test_losses.py#L84
         y_pred = torch.tensor(y_pred).view(*pred_view)
         y_true = torch.tensor(y_true).view(1, 1, 1, -1)
         loss = criterion(y_pred, y_true)

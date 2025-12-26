@@ -114,12 +114,9 @@ from pytorch_optimizer.optimizer import (
 )
 from tests.utils import build_lookahead, build_orthograd, build_schedulefree
 
-DECOUPLE_FLAGS: List[bool] = [True, False]
-ADAPTIVE_FLAGS: List[bool] = [True, False]
-PULLBACK_MOMENTUM: List[str] = ['none', 'reset', 'pullback']
+VALID_OPTIMIZER_NAMES: List[str] = list(OPTIMIZERS.keys())
 
-VALID_OPTIMIZER_NAMES: List[str] = list(OPTIMIZERS.keys())  # type: ignore
-INVALID_OPTIMIZER_NAMES: List[str] = [
+INVALID_OPTIMIZER_NAMES: Tuple[str, ...] = (
     'asam',
     'sam',
     'gsam',
@@ -129,288 +126,318 @@ INVALID_OPTIMIZER_NAMES: List[str] = [
     'pcgrad',
     'lookahead',
     'trac',
-]
+)
 
-SPARSE_OPTIMIZERS: List[str] = ['madgrad', 'dadaptadagrad', 'sm3']
-NO_SPARSE_OPTIMIZERS: List[str] = [
-    optimizer for optimizer in VALID_OPTIMIZER_NAMES if optimizer not in SPARSE_OPTIMIZERS
-]
+SPARSE_OPTIMIZERS: frozenset = frozenset({'madgrad', 'dadaptadagrad', 'sm3'})
 
-COMPLEX_OPTIMIZERS: List[str] = [
-    'adabelief',
-    'adabound',
-    'adadelta',
-    'adamax',
-    'adamg',
-    'adamod',
-    'adamp',
-    'stableadamw',
-    'adan',
-    'adapnm',
-    'adasmooth',
-    'adopt',
-    'aggmo',
-    'alig',
-    'amos',
-    'ano',
-    'apollodqn',
-    'apollo',
-    'avagrad',
-    'diffgrad',
-    'exadam',
-    'focus',
-    'fromage',
-    'ftrl',
-    'grams',
-    'gravity',
-    'grokfastadamw',
-    'kate',
-    'lamb',
-    'laprop',
-    'lars',
-    'lion',
-    'mars',
-    'msvag',
-    'padam',
-    'pid',
-    'pnm',
-    'qhadam',
-    'qhm',
-    'radam',
-    'ranger',
-    'schedulefreesgd',
-    'schedulefreeadamw',
-    'schedulefreeradam',
-    'scion',
-    'scionlight',
-    'accsgd',
-    'sgdw',
-    'asgd',
-    'signsgd',
-    'sgdsai',
-    'vsgd',
-    'sgdp',
-    'tam',
-    'adatam',
-    'tiger',
-    'yogi',
-]
-NO_COMPLEX_OPTIMIZERS: List[str] = [
-    optimizer for optimizer in VALID_OPTIMIZER_NAMES if optimizer not in COMPLEX_OPTIMIZERS
-]
+COMPLEX_OPTIMIZERS: frozenset = frozenset(
+    {
+        'adabelief',
+        'adabound',
+        'adadelta',
+        'adamax',
+        'adamg',
+        'adamod',
+        'adamp',
+        'stableadamw',
+        'adan',
+        'adapnm',
+        'adasmooth',
+        'adopt',
+        'aggmo',
+        'alig',
+        'amos',
+        'ano',
+        'apollodqn',
+        'apollo',
+        'avagrad',
+        'diffgrad',
+        'exadam',
+        'focus',
+        'fromage',
+        'ftrl',
+        'grams',
+        'gravity',
+        'grokfastadamw',
+        'kate',
+        'lamb',
+        'laprop',
+        'lars',
+        'lion',
+        'mars',
+        'msvag',
+        'padam',
+        'pid',
+        'pnm',
+        'qhadam',
+        'qhm',
+        'radam',
+        'ranger',
+        'schedulefreesgd',
+        'schedulefreeadamw',
+        'schedulefreeradam',
+        'scion',
+        'scionlight',
+        'accsgd',
+        'sgdw',
+        'asgd',
+        'signsgd',
+        'sgdsai',
+        'vsgd',
+        'sgdp',
+        'tam',
+        'adatam',
+        'tiger',
+        'yogi',
+    }
+)
 
-BETA_OPTIMIZER_NAMES: List[str] = [
-    'adabelief',
-    'adabound',
-    'adamp',
-    'diffgrad',
-    'lamb',
-    'radam',
-    'ranger',
-    'ranger21',
-    'ranger25',
-    'pnm',
-    'adapnm',
-    'adan',
-    'adai',
-    'scalableshampoo',
-    'dadaptadam',
-    'dadaptadan',
-    'dadaptlion',
-    'adams',
-    'adafactor',
-    'novograd',
-    'lion',
-    'adanorm',
-    'yogi',
-    'swats',
-    'adamod',
-    'aggmo',
-    'qhadam',
-    'adamax',
-    'adasmooth',
-    'adashift',
-    'sophiah',
-    'prodigy',
-    'padam',
-    'came',
-    'aida',
-    'galore',
-    'adalite',
-    'bsam',
-    'schedulefreeadamw',
-    'fadam',
-    'grokfastadamw',
-    'stableadamw',
-    'adammini',
-    'adamg',
-    'ademamix',
-    'soap',
-    'adamuon',
-    'laprop',
-    'apollo',
-    'mars',
-    'adatam',
-    'focus',
-    'exadam',
-]
+BETA_OPTIMIZER_NAMES: frozenset = frozenset(
+    {
+        'adabelief',
+        'adabound',
+        'adamp',
+        'diffgrad',
+        'lamb',
+        'radam',
+        'ranger',
+        'ranger21',
+        'ranger25',
+        'pnm',
+        'adapnm',
+        'adan',
+        'adai',
+        'scalableshampoo',
+        'dadaptadam',
+        'dadaptadan',
+        'dadaptlion',
+        'adams',
+        'adafactor',
+        'novograd',
+        'lion',
+        'adanorm',
+        'yogi',
+        'swats',
+        'adamod',
+        'aggmo',
+        'qhadam',
+        'adamax',
+        'adasmooth',
+        'adashift',
+        'sophiah',
+        'prodigy',
+        'padam',
+        'came',
+        'aida',
+        'galore',
+        'adalite',
+        'bsam',
+        'schedulefreeadamw',
+        'fadam',
+        'grokfastadamw',
+        'stableadamw',
+        'adammini',
+        'adamg',
+        'ademamix',
+        'soap',
+        'adamuon',
+        'laprop',
+        'apollo',
+        'mars',
+        'adatam',
+        'focus',
+        'exadam',
+    }
+)
 
-VALID_LR_SCHEDULER_NAMES: List[str] = [
-    'constant',
-    'linear',
-    'proportion',
-    'step',
-    'multi_step',
-    'multiplicative',
-    'cyclic',
-    'one_cycle',
-    'cosine',
-    'poly',
-    'cosine_annealing',
-    'cosine_annealing_with_warm_restart',
-    'cosine_annealing_with_warmup',
-    'chebyshev',
-    'rex',
-    'warmup_stable_decay',
-]
-INVALID_LR_SCHEDULER_NAMES: List[str] = ['dummy']
+SKIP_LEARNING_RATE: frozenset = frozenset(
+    {
+        'alig',
+        'a2grad',
+        'adamw',
+        'adam',
+        'sgd',
+        'nadam',
+        'lbfgs',
+        'rmsprop',
+    }
+)
 
-SKIP_LEARNING_RATE: set = {'alig', 'a2grad', 'adamw', 'adam', 'sgd', 'nadam', 'lbfgs', 'rmsprop'}
-SKIP_EPSILON: set = {
-    'shampoo',
-    'scalableshampoo',
-    'dadaptsgd',
-    'dadaptlion',
-    'adafactor',
-    'lion',
-    'a2grad',
-    'accsgd',
-    'sgdw',
-    'fromage',
-    'msvag',
-    'aggmo',
-    'qhm',
-    'pid',
-    'lars',
-    'alig',
-    'gravity',
-    'srmm',
-    'signsgd',
-    'lomo',
-    'tiger',
-    'came',
-    'adalite',
-    'bsam',
-    'adalomo',
-    'ftrl',
-    'demo',
-    'muon',
-    'focus',
-    'kron',
-    'sgd',
-    'scion',
-    'scionlight',
-    'lbfgs',
-}
-SKIP_WEIGHT_DECAY: set = {
-    'nero',
-    'alig',
-    'sm3',
-    'a2grad',
-    'fromage',
-    'msvag',
-    'gravity',
-    'srmm',
-    'adashift',
-    'amos',
-    'lomo',
-    'ftrl',
-    'muon',
-    'scion',
-    'scionlight',
-    'lbfgs',
-}
+SKIP_EPSILON: frozenset = frozenset(
+    {
+        'shampoo',
+        'scalableshampoo',
+        'dadaptsgd',
+        'dadaptlion',
+        'adafactor',
+        'lion',
+        'a2grad',
+        'accsgd',
+        'sgdw',
+        'fromage',
+        'msvag',
+        'aggmo',
+        'qhm',
+        'pid',
+        'lars',
+        'alig',
+        'gravity',
+        'srmm',
+        'signsgd',
+        'lomo',
+        'tiger',
+        'came',
+        'adalite',
+        'bsam',
+        'adalomo',
+        'ftrl',
+        'demo',
+        'muon',
+        'focus',
+        'kron',
+        'sgd',
+        'scion',
+        'scionlight',
+        'lbfgs',
+    }
+)
 
-SKIP_GRADIENT_TESTS: set = {
-    'lbfgs',
-    'lomo',
-    'adalomo',
-    'adahessian',
-    'sophiah',
-    'shampoo',
-    'scalableshampoo',
-    'adammini',
-}
+SKIP_WEIGHT_DECAY: frozenset = frozenset(
+    {
+        'nero',
+        'alig',
+        'sm3',
+        'a2grad',
+        'fromage',
+        'msvag',
+        'gravity',
+        'srmm',
+        'adashift',
+        'amos',
+        'lomo',
+        'ftrl',
+        'muon',
+        'scion',
+        'scionlight',
+        'lbfgs',
+    }
+)
 
-SKIP_CREATE_OPTIMIZER: set = {
-    'adamw',
-    'adam',
-    'sgd',
-    'nadam',
-    'lbfgs',
-    'rmsprop',
-    'asgd',
-    'adagrad',
-    'demo',
-    'distributedmuon',
-}
+SKIP_GRADIENT_TESTS: frozenset = frozenset(
+    {
+        'lbfgs',
+        'lomo',
+        'adalomo',
+        'adahessian',
+        'sophiah',
+        'shampoo',
+        'scalableshampoo',
+        'adammini',
+    }
+)
 
-SKIP_NO_GRADIENT_TEST: set = {'lbfgs', 'lomo', 'adalomo', 'adammini', 'demo', 'distributedmuon'}
-SKIP_SPARSE_NOT_SUPPORTED: set = {'lbfgs', 'sgd', 'lomo', 'adalomo', 'bsam', 'adammini', 'demo', 'distributedmuon'}
-SKIP_COMPLEX_NOT_SUPPORTED: set = {
-    'adam',
-    'adamw',
-    'sgd',
-    'nadam',
-    'lbfgs',
-    'rmsprop',
-    'lomo',
-    'bsam',
-    'adammini',
-    'adalomo',
-    'demo',
-    'distributedmuon',
-}
+SKIP_CREATE_OPTIMIZER: frozenset = frozenset(
+    {
+        'adamw',
+        'adam',
+        'sgd',
+        'nadam',
+        'lbfgs',
+        'rmsprop',
+        'asgd',
+        'adagrad',
+        'demo',
+        'distributedmuon',
+    }
+)
 
-SKIP_BF16_OPTIMIZERS: set = {'adai', 'prodigy', 'nero'}
-BF16_TEST_OPTIMIZER_NAMES: set = {
-    'AdaBelief',
-    'AdamP',
-    'Lamb',
-    'LARS',
-    'RAdam',
-    'Ranger',
-    'Ranger21',
-    'Lion',
-    'Adan',
-    'AdaFactor',
-    'CAME',
-    'Shampoo',
-    'ScalableShampoo',
-    'DAdaptAdam',
-    'ScheduleFreeAdamW',
-    'GaLore',
-    'SOAP',
-    'MARS',
-    'Muon',
-    'StableAdamW',
-}
-COMPLEX_TEST_OPTIMIZER_NAMES: set = {
-    'AdaBelief',
-    'AdamP',
-    'Lamb',
-    'LARS',
-    'RAdam',
-    'Ranger',
-    'Lion',
-    'Adan',
-    'AdaFactor',
-    'SGDW',
-    'QHAdam',
-    'MARS',
-    'SCION',
-}
-CAWR_RECIPES = [
+SKIP_NO_GRADIENT_TEST: frozenset = frozenset(
+    {
+        'lbfgs',
+        'lomo',
+        'adalomo',
+        'adammini',
+        'demo',
+        'distributedmuon',
+    }
+)
+
+SKIP_SPARSE_NOT_SUPPORTED: frozenset = frozenset(
+    {
+        'lbfgs',
+        'sgd',
+        'lomo',
+        'adalomo',
+        'bsam',
+        'adammini',
+        'demo',
+        'distributedmuon',
+    }
+)
+
+SKIP_COMPLEX_NOT_SUPPORTED: frozenset = frozenset(
+    {
+        'adam',
+        'adamw',
+        'sgd',
+        'nadam',
+        'lbfgs',
+        'rmsprop',
+        'lomo',
+        'bsam',
+        'adammini',
+        'adalomo',
+        'demo',
+        'distributedmuon',
+    }
+)
+
+SKIP_BF16_OPTIMIZERS: frozenset = frozenset({'adai', 'prodigy', 'nero'})
+
+BF16_TEST_OPTIMIZER_NAMES: frozenset = frozenset(
+    {
+        'AdaBelief',
+        'AdamP',
+        'Lamb',
+        'LARS',
+        'RAdam',
+        'Ranger',
+        'Ranger21',
+        'Lion',
+        'Adan',
+        'AdaFactor',
+        'CAME',
+        'Shampoo',
+        'ScalableShampoo',
+        'DAdaptAdam',
+        'ScheduleFreeAdamW',
+        'GaLore',
+        'SOAP',
+        'MARS',
+        'Muon',
+        'StableAdamW',
+    }
+)
+
+COMPLEX_TEST_OPTIMIZER_NAMES: frozenset = frozenset(
+    {
+        'AdaBelief',
+        'AdamP',
+        'Lamb',
+        'LARS',
+        'RAdam',
+        'Ranger',
+        'Lion',
+        'Adan',
+        'AdaFactor',
+        'SGDW',
+        'QHAdam',
+        'MARS',
+        'SCION',
+    }
+)
+
+CAWR_RECIPES: Tuple[Tuple, ...] = (
     (
         10,
         1.0,
@@ -473,20 +500,59 @@ CAWR_RECIPES = [
             1e-06,
         ],
     ),
-]
-LWL_RECIPE = [0.001, 0.0028, 0.0046, 0.0064, 0.0082, 0.01, 0.00802, 0.00604, 0.00406, 0.00208]
-LWC_RECIPE = [0.001, 0.00280, 0.00460, 0.00640, 0.00820, 0.01000, 0.00905, 0.00658, 0.00352, 0.00105]
-LWP_RECIPE = [0.001, 0.002800, 0.004600, 0.006400, 0.008200, 0.010000, 0.010000, 0.014101, 0.017247, 0.019900]
-PROPORTION_LEARNING_RATES = [(1e-1, 1e-1, 2.0), (1e-1, 1e-3, 1.090909)]
+)
 
-BINARY_DICE_RECIPES = [
+LWL_RECIPE: Tuple[float, ...] = (
+    0.001,
+    0.0028,
+    0.0046,
+    0.0064,
+    0.0082,
+    0.01,
+    0.00802,
+    0.00604,
+    0.00406,
+    0.00208,
+)
+LWC_RECIPE: Tuple[float, ...] = (
+    0.001,
+    0.00280,
+    0.00460,
+    0.00640,
+    0.00820,
+    0.01000,
+    0.00905,
+    0.00658,
+    0.00352,
+    0.00105,
+)
+LWP_RECIPE: Tuple[float, ...] = (
+    0.001,
+    0.002800,
+    0.004600,
+    0.006400,
+    0.008200,
+    0.010000,
+    0.010000,
+    0.014101,
+    0.017247,
+    0.019900,
+)
+PROPORTION_LEARNING_RATES: Tuple[Tuple[float, float, float], ...] = (
+    (1e-1, 1e-1, 2.0),
+    (1e-1, 1e-3, 1.090909),
+)
+
+BINARY_DICE_RECIPES: Tuple[Tuple, ...] = (
     ([1.0, 1.0, 1.0], [1, 1, 1], (1, 1, 1, -1), 0.0),
     ([1.0, 0.0, 1.0], [1, 0, 1], (1, 1, 1, -1), 0.0),
     ([0.0, 0.0, 0.0], [0, 0, 0], (1, 1, 1, -1), 0.0),
     ([1.0, 1.0, 1.0], [0, 0, 0], (1, 1, -1), 0.0),
     ([1.0, 0.0, 1.0], [0, 1, 0], (1, 1, -1), 0.996677),
     ([0.0, 0.0, 0.0], [1, 1, 1], (1, 1, -1), 0.996677),
-]
+)
+
+PULLBACK_MOMENTUM: Tuple[str, ...] = ('none', 'reset', 'pullback')
 
 OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
@@ -892,17 +958,14 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Ranger25, {'lr': 1e-1}, 3),
     (Ranger25, {'lr': 1e-1, 't_alpha_beta3': 5}, 3),
     (Ranger25, {'lr': 5e-2, 'stable_adamw': False, 'orthograd': False, 'eps': None, 'lookahead_merge_time': 2}, 3),
-    (
-        Conda,
-        {'lr': 1e0, 'weight_decay': 1e-3, 'scale': 1.0, 'update_proj_gap': 1, 'projection_type': 'std'},
-        5,
-    ),
+    (Conda, {'lr': 1e0, 'weight_decay': 1e-3, 'scale': 1.0, 'update_proj_gap': 1, 'projection_type': 'std'}, 5),
     (BCOS, {'lr': 1e0, 'mode': 'm'}, 5),
     (BCOS, {'lr': 1e0, 'mode': 'g'}, 5),
     (BCOS, {'lr': 1e0, 'mode': 'c'}, 5),
     (BCOS, {'lr': 1e0, 'mode': 'c', 'simple_cond': True}, 5),
     (Ano, {'lr': 1e0, 'weight_decay': 1e-3, 'logarithmic_schedule': True}, 5),
 ]
+
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
@@ -917,6 +980,7 @@ ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]]
     (AdaMax, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (Aida, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
 ]
+
 ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaBelief, {'lr': 1e1, 'weight_decay': 1e-3}, 5),
     (AdaBound, {'lr': 1e0, 'gamma': 0.1, 'weight_decay': 1e-3}, 35),
@@ -926,11 +990,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (Lamb, {'lr': 1e0, 'weight_decay': 1e-3, 'rectify': True}, 30),
     (RAdam, {'lr': 1e0, 'weight_decay': 1e-3}, 25),
     (Ranger, {'lr': 5e0, 'weight_decay': 1e-3}, 50),
-    (
-        Ranger21,
-        {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 125, 'disable_lr_scheduler': True},
-        125,
-    ),
+    (Ranger21, {'lr': 5e-1, 'weight_decay': 1e-3, 'num_iterations': 125, 'disable_lr_scheduler': True}, 125),
     (AdaPNM, {'lr': 1e0, 'weight_decay': 1e-3}, 10),
     (NovoGrad, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (AdaNorm, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
@@ -941,6 +1001,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (AdaHessian, {'lr': 5e0, 'weight_decay': 1e-3}, 5),
     (Aida, {'lr': 1e1, 'weight_decay': 1e-3, 'rectify': True}, 10),
 ]
+
 COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (AdaFactor, {'lr': 1e1, 'weight_decay': 1e-3}, 70),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
@@ -963,18 +1024,9 @@ COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], i
         },
         7,
     ),
-    (
-        AdaGO,
-        {
-            'lr': 5e-1,
-            'use_adjusted_lr': True,
-            'adamw_lr': 5e-1,
-            'adamw_betas': (0.9, 0.98),
-            'adamw_wd': 1e-2,
-        },
-        7,
-    ),
+    (AdaGO, {'lr': 5e-1, 'use_adjusted_lr': True, 'adamw_lr': 5e-1, 'adamw_betas': (0.9, 0.98), 'adamw_wd': 1e-2}, 7),
 ]
+
 STABLE_ADAMW_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (ADOPT, {'lr': 1e0, 'weight_decay': 1e-3, 'stable_adamw': True}, 5),
     (AdEMAMix, {'lr': 1e0, 'weight_decay': 1e-3, 'stable_adamw': True}, 10),
