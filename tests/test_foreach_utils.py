@@ -1,6 +1,9 @@
+import copy
+
 import pytest
 import torch
 
+from pytorch_optimizer.optimizer.adamw import StableAdamW
 from pytorch_optimizer.optimizer.foreach_utils import (
     foreach_add_,
     foreach_addcdiv_,
@@ -20,6 +23,9 @@ from pytorch_optimizer.optimizer.foreach_utils import (
     group_tensors_by_device_and_dtype,
     has_foreach_support,
 )
+from pytorch_optimizer.optimizer.lamb import Lamb
+from pytorch_optimizer.optimizer.lars import LARS
+from pytorch_optimizer.optimizer.lion import Lion
 
 
 class TestHasForeachSupport:
@@ -479,13 +485,9 @@ class TestForeachOptimizerConvergence:
 
     @staticmethod
     def clone_model(model):
-        import copy
-
         return copy.deepcopy(model)
 
     def test_lion_foreach_convergence(self):
-        from pytorch_optimizer.optimizer.lion import Lion
-
         model, x, y = self.create_model_and_data()
         model_clone = self.clone_model(model)
 
@@ -502,8 +504,6 @@ class TestForeachOptimizerConvergence:
             torch.testing.assert_close(p1, p2, rtol=1e-5, atol=1e-5)
 
     def test_stableadamw_foreach_convergence(self):
-        from pytorch_optimizer.optimizer.adamw import StableAdamW
-
         model, x, y = self.create_model_and_data()
         model_clone = self.clone_model(model)
 
@@ -520,8 +520,6 @@ class TestForeachOptimizerConvergence:
             torch.testing.assert_close(p1, p2, rtol=1e-5, atol=1e-5)
 
     def test_lamb_foreach_convergence(self):
-        from pytorch_optimizer.optimizer.lamb import Lamb
-
         model, x, y = self.create_model_and_data()
         model_clone = self.clone_model(model)
 
@@ -538,8 +536,6 @@ class TestForeachOptimizerConvergence:
             torch.testing.assert_close(p1, p2, rtol=1e-5, atol=1e-5)
 
     def test_lars_foreach_convergence(self):
-        from pytorch_optimizer.optimizer.lars import LARS
-
         model, x, y = self.create_model_and_data()
         model_clone = self.clone_model(model)
 
@@ -556,8 +552,6 @@ class TestForeachOptimizerConvergence:
             torch.testing.assert_close(p1, p2, rtol=1e-5, atol=1e-5)
 
     def test_lion_loss_decreases(self):
-        from pytorch_optimizer.optimizer.lion import Lion
-
         model, x, y = self.create_model_and_data()
         opt = Lion(model.parameters(), lr=1e-4, foreach=False)
         losses = self.train_steps(opt, model, x, y, steps=50)
@@ -565,8 +559,6 @@ class TestForeachOptimizerConvergence:
         assert losses[-1] < losses[0], f'Loss should decrease: {losses[0]} -> {losses[-1]}'
 
     def test_stableadamw_loss_decreases(self):
-        from pytorch_optimizer.optimizer.adamw import StableAdamW
-
         model, x, y = self.create_model_and_data()
         opt = StableAdamW(model.parameters(), lr=1e-3, kahan_sum=False, foreach=False)
         losses = self.train_steps(opt, model, x, y, steps=50)
@@ -574,8 +566,6 @@ class TestForeachOptimizerConvergence:
         assert losses[-1] < losses[0], f'Loss should decrease: {losses[0]} -> {losses[-1]}'
 
     def test_lamb_loss_decreases(self):
-        from pytorch_optimizer.optimizer.lamb import Lamb
-
         model, x, y = self.create_model_and_data()
         opt = Lamb(model.parameters(), lr=1e-3, foreach=False)
         losses = self.train_steps(opt, model, x, y, steps=50)
@@ -583,8 +573,6 @@ class TestForeachOptimizerConvergence:
         assert losses[-1] < losses[0], f'Loss should decrease: {losses[0]} -> {losses[-1]}'
 
     def test_lars_loss_decreases(self):
-        from pytorch_optimizer.optimizer.lars import LARS
-
         model, x, y = self.create_model_and_data()
         opt = LARS(model.parameters(), lr=1e-3, foreach=False)
         losses = self.train_steps(opt, model, x, y, steps=50)
@@ -593,8 +581,6 @@ class TestForeachOptimizerConvergence:
 
     @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
     def test_lion_foreach_vs_no_foreach_cuda(self):
-        from pytorch_optimizer.optimizer.lion import Lion
-
         model, x, y = self.create_model_and_data(device='cuda')
         model_clone = self.clone_model(model)
 
@@ -612,8 +598,6 @@ class TestForeachOptimizerConvergence:
 
     @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
     def test_stableadamw_foreach_vs_no_foreach_cuda(self):
-        from pytorch_optimizer.optimizer.adamw import StableAdamW
-
         model, x, y = self.create_model_and_data(device='cuda')
         model_clone = self.clone_model(model)
 
@@ -629,8 +613,6 @@ class TestForeachOptimizerConvergence:
 
     @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
     def test_lamb_foreach_vs_no_foreach_cuda(self):
-        from pytorch_optimizer.optimizer.lamb import Lamb
-
         model, x, y = self.create_model_and_data(device='cuda')
         model_clone = self.clone_model(model)
 
@@ -648,8 +630,6 @@ class TestForeachOptimizerConvergence:
 
     @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
     def test_lars_foreach_vs_no_foreach_cuda(self):
-        from pytorch_optimizer.optimizer.lars import LARS
-
         model, x, y = self.create_model_and_data(device='cuda')
         model_clone = self.clone_model(model)
 
