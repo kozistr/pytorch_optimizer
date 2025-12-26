@@ -111,7 +111,7 @@ jobs:
             uv-${{ runner.os }}-${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --frozen --no-dev
+        run: uv pip install --system --frozen -r requirements.txt
 
       - name: Publish package to PyPI
         env:
