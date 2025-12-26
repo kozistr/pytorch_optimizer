@@ -34,7 +34,7 @@ jobs:
             uv-${{ runner.os }}-${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --frozen --no-group dev
+        run: uv sync --system --frozen --no-group dev
 
       - name: Run lint
         run: make lint
@@ -61,7 +61,7 @@ jobs:
             uv-${{ runner.os }}-${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --frozen --no-group dev
+        run: uv sync --system --frozen --no-group dev
 
       - uses: jakebailey/pyright-action@v2
         with:
@@ -92,7 +92,7 @@ jobs:
           uv-${{ runner.os }}-${{ matrix.python-version }}
 
     - name: Install dependencies
-      run: uv sync --frozen --no-group dev
+      run: uv sync --system --frozen --no-group dev
 
     - name: Check test
       run: uv run --forzen pytest
