@@ -13,7 +13,7 @@ class TestValidationMethods:
             BaseOptimizer.validate_range(-1.0, 'x', 0.0, 1.0, range_type)
 
     @pytest.mark.parametrize(
-        'x,bound,bound_type',
+        ('x', 'bound', 'bound_type'),
         [
             (-1.0, -2.0, 'upper'),
             (-1.0, 1.0, 'lower'),

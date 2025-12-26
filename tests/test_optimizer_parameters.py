@@ -24,7 +24,7 @@ class TestEpsilonParameters:
     """Tests for epsilon-related parameter validation."""
 
     @pytest.mark.parametrize(
-        'optimizer_name,param_name',
+        ('optimizer_name', 'param_name'),
         [
             ('Shampoo', 'matrix_eps'),
             ('ScalableShampoo', 'diagonal_eps'),
@@ -159,7 +159,7 @@ class TestA2GradParameters:
     """Tests for A2Grad optimizer parameter validation."""
 
     @pytest.mark.parametrize(
-        'param_name,param_value',
+        ('param_name', 'param_value'),
         [
             ('lips', -1.0),
             ('rho', -0.1),
@@ -197,7 +197,7 @@ class TestNegativeParameterValidation:
     """Tests for negative parameter value validation."""
 
     @pytest.mark.parametrize(
-        'optimizer_name,param_name,param_value',
+        ('optimizer_name', 'param_name', 'param_value'),
         [
             ('accsgd', 'xi', -0.1),
             ('accsgd', 'kappa', -0.1),
@@ -224,7 +224,7 @@ class TestInvalidOptionParameters:
     """Tests for invalid option/enum parameter validation."""
 
     @pytest.mark.parametrize(
-        'optimizer_name,param_name,invalid_value',
+        ('optimizer_name', 'param_name', 'invalid_value'),
         [
             ('apollodqn', 'rebound', 'dummy'),
             ('apollodqn', 'weight_decay_type', 'dummy'),
@@ -257,28 +257,30 @@ class TestGaLoreProjector:
         with pytest.raises(NotImplementedError):
             GaLoreProjector(projection_type='invalid').project_back(sample_tensor)
 
-    @pytest.mark.parametrize('method', ['project', 'project_back'])
-    def test_full_projection_validation(self, sample_tensor, method):
+    def test_full_projection_project_validation(self, sample_tensor):
         full_projector = GaLoreProjector(projection_type='full')
         full_projector.ortho_matrix = sample_tensor
         with pytest.raises(ValueError):
-            if method == 'project':
-                full_projector.project(sample_tensor, 1)
-            else:
-                full_projector.project_back(sample_tensor)
+            full_projector.project(sample_tensor, 1)
+
+    def test_full_projection_project_back_validation(self, sample_tensor):
+        full_projector = GaLoreProjector(projection_type='full')
+        full_projector.ortho_matrix = sample_tensor
+        with pytest.raises(ValueError):
+            full_projector.project_back(sample_tensor)
 
     def test_left_projection_with_random_matrix(self, sample_tensor):
         projector = GaLoreProjector(projection_type='left', rank=1)
         projector.get_orthogonal_matrix(sample_tensor, projection_type='left', from_random_matrix=True)
 
     def test_left_projection_without_rank(self, sample_tensor):
+        projector = GaLoreProjector(projection_type='left', rank=None)
         with pytest.raises(TypeError):
-            projector = GaLoreProjector(projection_type='left', rank=None)
             projector.get_orthogonal_matrix(sample_tensor, projection_type='left', from_random_matrix=True)
 
     def test_std_projection_invalid(self, sample_tensor):
+        projector = GaLoreProjector(projection_type='std', rank=1)
         with pytest.raises(ValueError):
-            projector = GaLoreProjector(projection_type='std', rank=1)
             projector.get_orthogonal_matrix(sample_tensor, projection_type='std')
 
 

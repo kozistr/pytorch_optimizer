@@ -14,7 +14,7 @@ jobs:
       - name: Copy README.md to docs/index.md
         run: cp README.md docs/index.md
 
-      - name: Commit updated CHANGELOG.md
+      - name: Commit updated index.md
         uses: stefanzweifel/git-auto-commit-action@v6
         id: auto-commit-action
         with:
