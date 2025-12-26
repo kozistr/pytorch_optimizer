@@ -127,7 +127,7 @@ class Kron(BaseOptimizer):
             update_prob = update_prob(self.prob_step)  # pyright: ignore[reportAssignmentType]
 
         self.update_counter += 1
-        do_update: bool = self.update_counter >= 1 / update_prob
+        do_update: bool = self.update_counter >= 1 / update_prob  # pyright: ignore[reportOperatorIssue]
         if do_update:
             self.update_counter = 0
         self.prob_step += 1
