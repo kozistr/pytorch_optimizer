@@ -23,6 +23,7 @@ jobs:
         with:
           python-version: 3.12
           enable-cache: true
+          prune-cache: false
 
       - name: Install dependencies
         run: uv sync --frozen --no-editable
@@ -43,6 +44,7 @@ jobs:
         with:
           python-version: 3.12
           enable-cache: true
+          prune-cache: false
 
       - name: Install dependencies
         run: uv sync --frozen --no-editable
@@ -65,6 +67,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
+        prune-cache: false
 
     - name: Install dependencies
       run: uv sync --frozen --no-editable
