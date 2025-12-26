@@ -37,7 +37,9 @@ jobs:
         run: uv sync --frozen --no-group dev
 
       - name: Run lint
-        run: make lint
+        run: |
+          uv run ruff check pytorch_optimizer examples tests scripts hubconf.py
+          uv run black -S -l 119 -check pytorch_optimizer examples tests scripts hubconf.py
 
   type_check:
     name: Static Type Check
