@@ -3,7 +3,10 @@ import copy
 import pytest
 import torch
 
+from pytorch_optimizer.optimizer.adabelief import AdaBelief
 from pytorch_optimizer.optimizer.adamw import StableAdamW
+from pytorch_optimizer.optimizer.adan import Adan
+from pytorch_optimizer.optimizer.adopt import ADOPT
 from pytorch_optimizer.optimizer.foreach_utils import (
     foreach_add_,
     foreach_addcdiv_,
@@ -26,6 +29,8 @@ from pytorch_optimizer.optimizer.foreach_utils import (
 from pytorch_optimizer.optimizer.lamb import Lamb
 from pytorch_optimizer.optimizer.lars import LARS
 from pytorch_optimizer.optimizer.lion import Lion
+from pytorch_optimizer.optimizer.sgd import SGDW, SignSGD
+from pytorch_optimizer.optimizer.tiger import Tiger
 
 
 class TestHasForeachSupport:
@@ -644,3 +649,383 @@ class TestForeachOptimizerConvergence:
 
         for p1, p2 in zip(model.parameters(), model_clone.parameters()):
             torch.testing.assert_close(p1, p2, rtol=1e-4, atol=1e-4)
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
+    def test_adabelief_foreach_vs_no_foreach_cuda(self):
+        model, x, y = self.create_model_and_data(device='cuda')
+        model_clone = self.clone_model(model)
+
+        opt_foreach = AdaBelief(model.parameters(), lr=1e-3, foreach=True)
+        opt_no_foreach = AdaBelief(model_clone.parameters(), lr=1e-3, foreach=False)
+
+        losses_foreach = self.train_steps(opt_foreach, model, x, y, steps=20)
+        losses_no_foreach = self.train_steps(opt_no_foreach, model_clone, x, y, steps=20)
+
+        assert losses_foreach[-1] < losses_foreach[0]
+        assert losses_no_foreach[-1] < losses_no_foreach[0]
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
+    def test_adan_foreach_vs_no_foreach_cuda(self):
+        model, x, y = self.create_model_and_data(device='cuda')
+        model_clone = self.clone_model(model)
+
+        opt_foreach = Adan(model.parameters(), lr=1e-3, foreach=True)
+        opt_no_foreach = Adan(model_clone.parameters(), lr=1e-3, foreach=False)
+
+        losses_foreach = self.train_steps(opt_foreach, model, x, y, steps=20)
+        losses_no_foreach = self.train_steps(opt_no_foreach, model_clone, x, y, steps=20)
+
+        assert losses_foreach[-1] < losses_foreach[0]
+        assert losses_no_foreach[-1] < losses_no_foreach[0]
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
+    def test_adan_foreach_with_weight_decouple_cuda(self):
+        model, x, y = self.create_model_and_data(device='cuda')
+        model_clone = self.clone_model(model)
+
+        opt_foreach = Adan(model.parameters(), lr=1e-3, weight_decay=0.01, weight_decouple=True, foreach=True)
+        opt_no_foreach = Adan(
+            model_clone.parameters(), lr=1e-3, weight_decay=0.01, weight_decouple=True, foreach=False
+        )
+
+        losses_foreach = self.train_steps(opt_foreach, model, x, y, steps=20)
+        losses_no_foreach = self.train_steps(opt_no_foreach, model_clone, x, y, steps=20)
+
+        assert losses_foreach[-1] < losses_foreach[0]
+        assert losses_no_foreach[-1] < losses_no_foreach[0]
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
+    def test_adan_foreach_without_weight_decouple_cuda(self):
+        model, x, y = self.create_model_and_data(device='cuda')
+
+        opt = Adan(model.parameters(), lr=1e-3, weight_decay=0.01, weight_decouple=False, foreach=True)
+        losses = self.train_steps(opt, model, x, y, steps=20)
+
+        assert losses[-1] < losses[0]
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
+    def test_adan_foreach_with_grad_norm_cuda(self):
+        model, x, y = self.create_model_and_data(device='cuda')
+
+        opt = Adan(model.parameters(), lr=1e-3, max_grad_norm=1.0, foreach=True)
+        losses = self.train_steps(opt, model, x, y, steps=20)
+
+        assert losses[-1] < losses[0]
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
+    def test_adopt_foreach_vs_no_foreach_cuda(self):
+        model, x, y = self.create_model_and_data(device='cuda')
+        model_clone = self.clone_model(model)
+
+        opt_foreach = ADOPT(model.parameters(), lr=1e-3, foreach=True)
+        opt_no_foreach = ADOPT(model_clone.parameters(), lr=1e-3, foreach=False)
+
+        losses_foreach = self.train_steps(opt_foreach, model, x, y, steps=20)
+        losses_no_foreach = self.train_steps(opt_no_foreach, model_clone, x, y, steps=20)
+
+        assert losses_foreach[-1] < losses_foreach[0]
+        assert losses_no_foreach[-1] < losses_no_foreach[0]
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
+    def test_adopt_foreach_decoupled_cuda(self):
+        model, x, y = self.create_model_and_data(device='cuda')
+
+        opt = ADOPT(model.parameters(), lr=1e-3, weight_decay=0.01, decouple=True, foreach=True)
+        losses = self.train_steps(opt, model, x, y, steps=20)
+
+        assert losses[-1] < losses[0]
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
+    def test_tiger_foreach_vs_no_foreach_cuda(self):
+        model, x, y = self.create_model_and_data(device='cuda')
+        model_clone = self.clone_model(model)
+
+        opt_foreach = Tiger(model.parameters(), lr=1e-3, foreach=True)
+        opt_no_foreach = Tiger(model_clone.parameters(), lr=1e-3, foreach=False)
+
+        losses_foreach = self.train_steps(opt_foreach, model, x, y, steps=20)
+        losses_no_foreach = self.train_steps(opt_no_foreach, model_clone, x, y, steps=20)
+
+        for l1, l2 in zip(losses_foreach, losses_no_foreach):
+            assert abs(l1 - l2) < 1e-4, f'Loss mismatch: {l1} vs {l2}'
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
+    def test_sgdw_foreach_vs_no_foreach_cuda(self):
+        model, x, y = self.create_model_and_data(device='cuda')
+        model_clone = self.clone_model(model)
+
+        opt_foreach = SGDW(model.parameters(), lr=1e-2, momentum=0.9, foreach=True)
+        opt_no_foreach = SGDW(model_clone.parameters(), lr=1e-2, momentum=0.9, foreach=False)
+
+        losses_foreach = self.train_steps(opt_foreach, model, x, y, steps=20)
+        losses_no_foreach = self.train_steps(opt_no_foreach, model_clone, x, y, steps=20)
+
+        assert losses_foreach[-1] < losses_foreach[0]
+        assert losses_no_foreach[-1] < losses_no_foreach[0]
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
+    def test_signsgd_foreach_vs_no_foreach_cuda(self):
+        model, x, y = self.create_model_and_data(device='cuda')
+        model_clone = self.clone_model(model)
+
+        opt_foreach = SignSGD(model.parameters(), lr=1e-2, momentum=0.9, foreach=True)
+        opt_no_foreach = SignSGD(model_clone.parameters(), lr=1e-2, momentum=0.9, foreach=False)
+
+        losses_foreach = self.train_steps(opt_foreach, model, x, y, steps=20)
+        losses_no_foreach = self.train_steps(opt_no_foreach, model_clone, x, y, steps=20)
+
+        assert losses_foreach[-1] < losses_foreach[0]
+        assert losses_no_foreach[-1] < losses_no_foreach[0]
+
+
+class TestForeachCanUseChecks:
+    """Test _can_use_foreach method conditions."""
+
+    @staticmethod
+    def create_model(device='cpu'):
+        torch.manual_seed(42)
+        return torch.nn.Linear(10, 1).to(device)
+
+    def test_lion_foreach_disabled_with_maximize(self):
+        model = self.create_model()
+        opt = Lion(model.parameters(), lr=1e-4, maximize=True, foreach=True)
+
+        x = torch.randn(4, 10)
+        y = torch.randn(4, 1)
+
+        opt.zero_grad()
+        loss = torch.nn.functional.mse_loss(model(x), y)
+        loss.backward()
+        opt.step()
+
+    def test_tiger_foreach_disabled_with_maximize(self):
+        model = self.create_model()
+        opt = Tiger(model.parameters(), lr=1e-3, maximize=True, foreach=True)
+
+        x = torch.randn(4, 10)
+        y = torch.randn(4, 1)
+
+        opt.zero_grad()
+        loss = torch.nn.functional.mse_loss(model(x), y)
+        loss.backward()
+        opt.step()
+
+    def test_adabelief_foreach_disabled_with_rectify(self):
+        model = self.create_model()
+        opt = AdaBelief(model.parameters(), lr=1e-3, rectify=True, foreach=True)
+
+        x = torch.randn(4, 10)
+        y = torch.randn(4, 1)
+
+        opt.zero_grad()
+        loss = torch.nn.functional.mse_loss(model(x), y)
+        loss.backward()
+        opt.step()
+
+    def test_adabelief_foreach_disabled_with_ams_bound(self):
+        model = self.create_model()
+        opt = AdaBelief(model.parameters(), lr=1e-3, ams_bound=True, foreach=True)
+
+        x = torch.randn(4, 10)
+        y = torch.randn(4, 1)
+
+        opt.zero_grad()
+        loss = torch.nn.functional.mse_loss(model(x), y)
+        loss.backward()
+        opt.step()
+
+    def test_adabelief_foreach_disabled_with_maximize(self):
+        model = self.create_model()
+        opt = AdaBelief(model.parameters(), lr=1e-3, maximize=True, foreach=True)
+
+        x = torch.randn(4, 10)
+        y = torch.randn(4, 1)
+
+        opt.zero_grad()
+        loss = torch.nn.functional.mse_loss(model(x), y)
+        loss.backward()
+        opt.step()
+
+    def test_adan_foreach_disabled_with_maximize(self):
+        model = self.create_model()
+        opt = Adan(model.parameters(), lr=1e-3, maximize=True, foreach=True)
+
+        x = torch.randn(4, 10)
+        y = torch.randn(4, 1)
+
+        opt.zero_grad()
+        loss = torch.nn.functional.mse_loss(model(x), y)
+        loss.backward()
+        opt.step()
+
+    def test_adopt_foreach_disabled_with_maximize(self):
+        model = self.create_model()
+        opt = ADOPT(model.parameters(), lr=1e-3, maximize=True, foreach=True)
+
+        x = torch.randn(4, 10)
+        y = torch.randn(4, 1)
+
+        opt.zero_grad()
+        loss = torch.nn.functional.mse_loss(model(x), y)
+        loss.backward()
+        opt.step()
+
+    def test_foreach_explicit_false(self):
+        model = self.create_model()
+        opt = Lion(model.parameters(), lr=1e-4, foreach=False)
+
+        x = torch.randn(4, 10)
+        y = torch.randn(4, 1)
+
+        opt.zero_grad()
+        loss = torch.nn.functional.mse_loss(model(x), y)
+        loss.backward()
+        opt.step()
+
+    def test_foreach_with_no_grad_params(self):
+        model = self.create_model()
+        for p in model.parameters():
+            p.requires_grad = False
+
+        opt = Lion(model.parameters(), lr=1e-4, foreach=True)
+        opt.step()
+
+    def test_tiger_foreach_disabled_with_complex_tensor(self):
+        model = torch.nn.Linear(10, 1, dtype=torch.complex64)
+        opt = Tiger(model.parameters(), lr=1e-3, foreach=True)
+
+        x = torch.randn(4, 10, dtype=torch.complex64)
+        y = torch.randn(4, 1, dtype=torch.complex64)
+
+        opt.zero_grad()
+        loss = (model(x) - y).abs().mean()
+        loss.backward()
+        opt.step()
+
+    def test_tiger_foreach_disabled_with_sparse_grad(self):
+        from pytorch_optimizer.base.exception import NoSparseGradientError
+
+        embedding = torch.nn.Embedding(100, 10, sparse=True)
+        opt = Tiger(embedding.parameters(), lr=1e-3, foreach=True)
+
+        indices = torch.randint(0, 100, (4,))
+        opt.zero_grad()
+        output = embedding(indices).sum()
+        output.backward()
+        with pytest.raises(NoSparseGradientError):
+            opt.step()
+
+    def test_lion_foreach_disabled_with_sparse_grad(self):
+        from pytorch_optimizer.base.exception import NoSparseGradientError
+
+        embedding = torch.nn.Embedding(100, 10, sparse=True)
+        opt = Lion(embedding.parameters(), lr=1e-4, foreach=True)
+
+        indices = torch.randint(0, 100, (4,))
+        opt.zero_grad()
+        output = embedding(indices).sum()
+        output.backward()
+        with pytest.raises(NoSparseGradientError):
+            opt.step()
+
+    def test_lamb_foreach_disabled_with_maximize(self):
+        model = self.create_model()
+        opt = Lamb(model.parameters(), lr=1e-3, maximize=True, foreach=True)
+
+        x = torch.randn(4, 10)
+        y = torch.randn(4, 1)
+
+        opt.zero_grad()
+        loss = torch.nn.functional.mse_loss(model(x), y)
+        loss.backward()
+        opt.step()
+
+    def test_lamb_foreach_disabled_with_sparse_grad(self):
+        embedding = torch.nn.Embedding(100, 10, sparse=True)
+        opt = Lamb(embedding.parameters(), lr=1e-3, foreach=True)
+
+        indices = torch.randint(0, 100, (4,))
+        opt.zero_grad()
+        output = embedding(indices).sum()
+        output.backward()
+        opt.step()
+
+    def test_lars_foreach_disabled_with_maximize(self):
+        model = self.create_model()
+        opt = LARS(model.parameters(), lr=1e-3, maximize=True, foreach=True)
+
+        x = torch.randn(4, 10)
+        y = torch.randn(4, 1)
+
+        opt.zero_grad()
+        loss = torch.nn.functional.mse_loss(model(x), y)
+        loss.backward()
+        opt.step()
+
+    def test_lars_foreach_disabled_with_sparse_grad(self):
+        embedding = torch.nn.Embedding(100, 10, sparse=True)
+        opt = LARS(embedding.parameters(), lr=1e-3, foreach=True)
+
+        indices = torch.randint(0, 100, (4,))
+        opt.zero_grad()
+        output = embedding(indices).sum()
+        output.backward()
+        opt.step()
+
+    def test_sgdw_foreach_disabled_with_maximize(self):
+        model = self.create_model()
+        opt = SGDW(model.parameters(), lr=1e-2, momentum=0.9, maximize=True, foreach=True)
+
+        x = torch.randn(4, 10)
+        y = torch.randn(4, 1)
+
+        opt.zero_grad()
+        loss = torch.nn.functional.mse_loss(model(x), y)
+        loss.backward()
+        opt.step()
+
+    def test_sgdw_foreach_disabled_with_no_momentum(self):
+        model = self.create_model()
+        opt = SGDW(model.parameters(), lr=1e-2, momentum=0.0, foreach=True)
+
+        x = torch.randn(4, 10)
+        y = torch.randn(4, 1)
+
+        opt.zero_grad()
+        loss = torch.nn.functional.mse_loss(model(x), y)
+        loss.backward()
+        opt.step()
+
+    def test_sgdw_foreach_disabled_with_sparse_grad(self):
+        embedding = torch.nn.Embedding(100, 10, sparse=True)
+        opt = SGDW(embedding.parameters(), lr=1e-2, momentum=0.9, foreach=True)
+
+        indices = torch.randint(0, 100, (4,))
+        opt.zero_grad()
+        output = embedding(indices).sum()
+        output.backward()
+        opt.step()
+
+    def test_sgdw_foreach_disabled_with_no_params(self):
+        model = self.create_model()
+        for p in model.parameters():
+            p.requires_grad = False
+
+        opt = SGDW(model.parameters(), lr=1e-2, momentum=0.9, foreach=True)
+        opt.step()
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
+    def test_adan_foreach_with_grad_clipping_cuda(self):
+        """Test that grad clipping code path is covered when gradients exceed norm."""
+        torch.manual_seed(42)
+        model = torch.nn.Linear(10, 100, device='cuda')
+        opt = Adan(model.parameters(), lr=1e-3, max_grad_norm=0.01, foreach=True)
+
+        x = torch.randn(32, 10, device='cuda') * 100
+        y = torch.randn(32, 100, device='cuda')
+
+        for _ in range(3):
+            opt.zero_grad()
+            loss = torch.nn.functional.mse_loss(model(x), y)
+            loss.backward()
+            opt.step()
