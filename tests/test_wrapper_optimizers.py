@@ -23,7 +23,7 @@ from tests.constants import PULLBACK_MOMENTUM
 from tests.utils import (
     Example,
     MultiHeadLogisticRegression,
-    TrainingRunner,
+    Trainer,
     build_model,
     simple_parameter,
     tensor_to_numpy,
@@ -38,8 +38,8 @@ def test_lookahead(pullback_momentum, environment):
     optimizer = Lookahead(load_optimizer('adamw')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
     optimizer.init_group({})
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run(iterations=5, threshold=2.0)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(iterations=5, threshold=2.0)
 
 
 @pytest.mark.parametrize('adaptive', [True, False])
@@ -50,8 +50,8 @@ def test_sam_optimizer(adaptive, wrapper, environment):
 
     optimizer = wrapper(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive, use_gc=True)
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run_sam_style(iterations=3, threshold=2.0)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run_sam_style(iterations=3, threshold=2.0)
 
 
 @pytest.mark.parametrize('adaptive', [True, False])
@@ -62,8 +62,8 @@ def test_sam_optimizer_with_closure(adaptive, wrapper, environment):
 
     optimizer = wrapper(model.parameters(), load_optimizer('adamw'), lr=5e-1, adaptive=adaptive)
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run_with_closure(iterations=3, threshold=2.0)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run_with_closure(iterations=3, threshold=2.0)
 
 
 @pytest.mark.parametrize('adaptive', [True, False])
@@ -82,8 +82,8 @@ def test_wsam_optimizer(adaptive, decouple, environment):
         max_norm=100.0,
     )
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run_wsam_style(iterations=10, threshold=1.5)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run_sam_style(iterations=10, threshold=1.5)
 
 
 @pytest.mark.parametrize('adaptive', [True, False])
@@ -93,8 +93,8 @@ def test_wsam_optimizer_with_closure(adaptive, environment):
 
     optimizer = WSAM(model, model.parameters(), load_optimizer('adamp'), lr=5e-2, adaptive=adaptive, max_norm=100.0)
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run_wsam_with_closure(iterations=10, threshold=1.5)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run_wsam_with_closure(iterations=10, threshold=1.5)
 
 
 @pytest.mark.parametrize('adaptive', [True, False])
@@ -135,8 +135,8 @@ def test_bsam_optimizer(adaptive, environment):
 
     optimizer = BSAM(model.parameters(), lr=2e-3, num_data=len(x_data), rho=1e-5, adaptive=adaptive)
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run_with_closure(iterations=20, threshold=1.0)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run_with_closure(iterations=20, threshold=1.0)
 
 
 def test_schedulefree_wrapper():
@@ -213,8 +213,8 @@ def test_trac_optimizer(environment):
 
     optimizer = TRAC(load_optimizer('adamw')(model.parameters(), lr=1e0))
 
-    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
-    runner.run_trac_style(iterations=3, threshold=2.0)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run_trac_style(iterations=3, threshold=2.0)
 
 
 def test_trac_optimizer_erf_imag():

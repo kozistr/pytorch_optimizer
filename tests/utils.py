@@ -126,7 +126,7 @@ def tensor_to_numpy(x: torch.Tensor) -> np.ndarray:
 
 
 def sphere_loss(x: torch.Tensor) -> torch.Tensor:
-    return (x**2).sum()
+    return x.pow(2).sum()
 
 
 def build_model(use_complex: bool = False):
@@ -206,7 +206,7 @@ class OptimizerBuilder:
         return load_optimizer(optimizer_name)(params, **overrides)
 
 
-class TrainingRunner:
+class Trainer:
     def __init__(
         self,
         model: nn.Module,
@@ -221,6 +221,27 @@ class TrainingRunner:
         self.x_data = x_data
         self.y_data = y_data
 
+    def compute_loss(self, swap_args: bool = False) -> torch.Tensor:
+        y_pred = self.model(self.x_data)
+        if swap_args:
+            return self.loss_fn(self.y_data, y_pred)
+        return self.loss_fn(y_pred, self.y_data)
+
+    @staticmethod
+    def assert_loss_decreased(
+        init_loss: torch.Tensor,
+        final_loss: torch.Tensor,
+        threshold: float,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        init_loss_np = tensor_to_numpy(init_loss)
+        final_loss_np = tensor_to_numpy(final_loss)
+
+        assert (
+            init_loss_np > threshold * final_loss_np
+        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
+
+        return init_loss_np, final_loss_np
+
     def run(
         self,
         iterations: int = 5,
@@ -228,15 +249,12 @@ class TrainingRunner:
         closure_fn=None,
         threshold: float = 1.5,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        init_loss, loss = np.inf, np.inf
+        init_loss, loss = None, None
         for _ in range(iterations):
             self.optimizer.zero_grad()
 
-            y_pred = self.model(self.x_data)
-            loss = self.loss_fn(y_pred, self.y_data)
-
-            if init_loss == np.inf:
-                init_loss = loss
+            loss = self.compute_loss()
+            init_loss = init_loss or loss
 
             loss.backward(create_graph=create_graph)
 
@@ -245,14 +263,7 @@ class TrainingRunner:
             else:
                 self.optimizer.step()
 
-        init_loss_np = tensor_to_numpy(init_loss)
-        final_loss_np = tensor_to_numpy(loss)
-
-        assert (
-            init_loss_np > threshold * final_loss_np
-        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
-
-        return init_loss_np, final_loss_np
+        return self.assert_loss_decreased(init_loss, loss, threshold)
 
     def run_bf16(
         self,
@@ -264,15 +275,14 @@ class TrainingRunner:
         context = torch.autocast('cpu', dtype=torch.bfloat16)
         scaler = torch.GradScaler(device='cpu', enabled=False)
 
-        init_loss, loss = np.inf, np.inf
+        init_loss, loss = None, None
         for _ in range(iterations):
             self.optimizer.zero_grad()
 
             with context:
-                loss = self.loss_fn(self.model(self.x_data), self.y_data)
+                loss = self.compute_loss()
 
-            if init_loss == np.inf:
-                init_loss = loss
+            init_loss = init_loss or loss
 
             scaler.scale(loss).backward(create_graph=create_graph)
 
@@ -281,150 +291,67 @@ class TrainingRunner:
             else:
                 self.optimizer.step()
 
-        init_loss_np = tensor_to_numpy(init_loss)
-        final_loss_np = tensor_to_numpy(loss)
+        return self.assert_loss_decreased(init_loss, loss, threshold)
 
-        assert (
-            init_loss_np > threshold * final_loss_np
-        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
-
-        return init_loss_np, final_loss_np
-
-    def run_sam_style(
-        self,
-        iterations: int = 3,
-        threshold: float = 2.0,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        init_loss, loss = np.inf, np.inf
+    def run_sam_style(self, iterations: int = 3, threshold: float = 2.0) -> Tuple[np.ndarray, np.ndarray]:
+        init_loss, loss = None, None
         for _ in range(iterations):
-            loss = self.loss_fn(self.y_data, self.model(self.x_data))
+            loss = self.compute_loss(swap_args=True)
             loss.backward()
             self.optimizer.first_step(zero_grad=True)
 
-            self.loss_fn(self.y_data, self.model(self.x_data)).backward()
+            self.compute_loss(swap_args=True).backward()
             self.optimizer.second_step(zero_grad=True)
 
-            if init_loss == np.inf:
-                init_loss = loss
+            init_loss = init_loss or loss
 
-        init_loss_np = tensor_to_numpy(init_loss)
-        final_loss_np = tensor_to_numpy(loss)
+        return self.assert_loss_decreased(init_loss, loss, threshold)
 
-        assert (
-            init_loss_np > threshold * final_loss_np
-        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
-
-        return init_loss_np, final_loss_np
-
-    def run_with_closure(
-        self,
-        iterations: int = 3,
-        threshold: float = 2.0,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def run_with_closure(self, iterations: int = 3, threshold: float = 2.0) -> Tuple[np.ndarray, np.ndarray]:
         def closure():
-            first_loss = self.loss_fn(self.y_data, self.model(self.x_data))
+            first_loss = self.compute_loss(swap_args=True)
             first_loss.backward()
             return first_loss
 
-        init_loss, loss = np.inf, np.inf
+        init_loss, loss = None, None
         for _ in range(iterations):
-            loss = self.loss_fn(self.y_data, self.model(self.x_data))
+            loss = self.compute_loss(swap_args=True)
             loss.backward()
 
             self.optimizer.step(closure)
             self.optimizer.zero_grad()
 
-            if init_loss == np.inf:
-                init_loss = loss
+            init_loss = init_loss or loss
 
-        init_loss_np = tensor_to_numpy(init_loss)
-        final_loss_np = tensor_to_numpy(loss)
+        return self.assert_loss_decreased(init_loss, loss, threshold)
 
-        assert (
-            init_loss_np > threshold * final_loss_np
-        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
-
-        return init_loss_np, final_loss_np
-
-    def run_wsam_style(
-        self,
-        iterations: int = 10,
-        threshold: float = 1.5,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        init_loss, loss = np.inf, np.inf
-        for _ in range(iterations):
-            loss = self.loss_fn(self.y_data, self.model(self.x_data))
-            loss.backward()
-            self.optimizer.first_step(zero_grad=True)
-
-            self.loss_fn(self.y_data, self.model(self.x_data)).backward()
-            self.optimizer.second_step(zero_grad=True)
-
-            if init_loss == np.inf:
-                init_loss = loss
-
-        init_loss_np = tensor_to_numpy(init_loss)
-        final_loss_np = tensor_to_numpy(loss)
-
-        assert (
-            init_loss_np > threshold * final_loss_np
-        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
-
-        return init_loss_np, final_loss_np
-
-    def run_wsam_with_closure(
-        self,
-        iterations: int = 10,
-        threshold: float = 1.5,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def run_wsam_with_closure(self, iterations: int = 10, threshold: float = 1.5) -> Tuple[np.ndarray, np.ndarray]:
         def closure():
-            output = self.model(self.x_data)
-            _loss = self.loss_fn(output, self.y_data)
+            _loss = self.compute_loss()
             _loss.backward()
             return _loss
 
-        init_loss, loss = np.inf, np.inf
+        init_loss, loss = None, None
         for _ in range(iterations):
             loss = self.optimizer.step(closure)
             self.optimizer.zero_grad()
 
-            if init_loss == np.inf:
-                init_loss = loss
+            init_loss = init_loss or loss
 
-        init_loss_np = tensor_to_numpy(init_loss)
-        final_loss_np = tensor_to_numpy(loss)
+        return self.assert_loss_decreased(init_loss, loss, threshold)
 
-        assert (
-            init_loss_np > threshold * final_loss_np
-        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
-
-        return init_loss_np, final_loss_np
-
-    def run_trac_style(
-        self,
-        iterations: int = 3,
-        threshold: float = 2.0,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        init_loss, loss = np.inf, np.inf
+    def run_trac_style(self, iterations: int = 3, threshold: float = 2.0) -> Tuple[np.ndarray, np.ndarray]:
+        init_loss, loss = None, None
         for _ in range(iterations):
-            loss = self.loss_fn(self.model(self.x_data), self.y_data)
-
-            if init_loss == np.inf:
-                init_loss = loss
+            loss = self.compute_loss()
+            init_loss = init_loss or loss
 
             loss.backward()
 
             self.optimizer.step()
             self.optimizer.zero_grad()
 
-        init_loss_np = tensor_to_numpy(init_loss)
-        final_loss_np = tensor_to_numpy(loss)
-
-        assert (
-            init_loss_np > threshold * final_loss_np
-        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
-
-        return init_loss_np, final_loss_np
+        return self.assert_loss_decreased(init_loss, loss, threshold)
 
 
 class LRSchedulerAssertions:
