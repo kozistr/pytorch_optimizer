@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  UV_SYSTEM_PYTHON: true
+
 jobs:
 
   get-version:
@@ -108,7 +111,7 @@ jobs:
             uv-${{ runner.os }}-${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --system --frozen --no-group dev
+        run: uv sync --frozen --no-dev
 
       - name: Publish package to PyPI
         env:
