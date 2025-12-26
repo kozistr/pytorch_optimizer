@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 env:
-  OMP_NUM_THREADS: 2
-  MKL_NUM_THREADS: 2
+  OMP_NUM_THREADS: 8
+  MKL_NUM_THREADS: 8
   PYTHONDONTWRITEBYTECODE: 1
 
 jobs:
