@@ -7,7 +7,7 @@ Contributions to `pytorch-optimizer` for code, documentation, and tests are alwa
 Currently, `black` and `ruff` are used to format & lint the code. Here are the [lint options](https://github.com/kozistr/pytorch_optimizer/blob/main/pyproject.toml#L69)
 Or you just simply run `make format` and `make check` on the project root.
 
-You can create the environment with `make init` or just install the pip packages to your computer.
+You can just install the pip packages to your computer or use `uv` to create an `venv`.
 
 A few differences from the default `black` (or another style guide) are
 
@@ -18,7 +18,7 @@ But, maybe, if you feel or think that it's too much or takes much time, then fee
 
 # Documentation
 
-Docstring style is `reST` (which is not Google and Numpydoc styles), and documentation will be built & deployed automatically via `readthedocs`. You can find an example from [here](https://github.com/kozistr/pytorch_optimizer/blob/main/pytorch_optimizer/optimizer/adamp.py#L14).
+Docstring style is `Google`, and documentation will be built & deployed automatically via `readthedocs`. You can find an example from [here](https://github.com/kozistr/pytorch_optimizer/blob/main/pytorch_optimizer/optimizer/adamp.py#L14).
 
 # Test
 
