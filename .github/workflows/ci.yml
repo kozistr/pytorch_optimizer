@@ -34,12 +34,12 @@ jobs:
             uv-${{ runner.os }}-${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --frozen --no-group dev
+        run: uv sync --frozen
 
       - name: Run lint
         run: |
           uv run ruff check pytorch_optimizer examples tests scripts hubconf.py
-          uv run black -S -l 119 -check pytorch_optimizer examples tests scripts hubconf.py
+          uv run black -S -l 119 --check pytorch_optimizer examples tests scripts hubconf.py
 
   type_check:
     name: Static Type Check
@@ -63,7 +63,7 @@ jobs:
             uv-${{ runner.os }}-${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --frozen --no-group dev
+        run: uv sync --frozen
 
       - uses: jakebailey/pyright-action@v2
         with:
@@ -94,7 +94,7 @@ jobs:
           uv-${{ runner.os }}-${{ matrix.python-version }}
 
     - name: Install dependencies
-      run: uv sync --frozen --no-group dev
+      run: uv sync --frozen
 
     - name: Check test
       run: uv run --forzen pytest
