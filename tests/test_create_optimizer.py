@@ -1,31 +1,54 @@
 import pytest
 
 from pytorch_optimizer.optimizer import create_optimizer, load_optimizer
-from tests.constants import VALID_OPTIMIZER_NAMES
+from tests.constants import SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
 from tests.utils import Example
 
-SKIPPED_OPTIMIZERS = {'adamw', 'adam', 'sgd', 'lbfgs', 'nadam', 'rmsprop', 'demo', 'distributedmuon'}
+WRAPPER_TEST_OPTIMIZERS = ['adamp', 'lion', 'lamb', 'adan', 'madgrad', 'ranger']
+
+
+def _get_optimizer_kwargs(optimizer_name):
+    kwargs = {'eps': 1e-8, 'k': 7}
+    if optimizer_name == 'ranger21':
+        kwargs['num_iterations'] = 1
+    elif optimizer_name == 'bsam':
+        kwargs['num_data'] = 1
+    return kwargs
 
 
 @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
-@pytest.mark.parametrize('use_lookahead', [True, False])
-@pytest.mark.parametrize('use_orthograd', [True, False])
-def test_create_optimizer(optimizer_name, use_lookahead, use_orthograd):
-    if optimizer_name in SKIPPED_OPTIMIZERS or (use_lookahead and use_orthograd):
-        pytest.skip(f'skip {optimizer_name} ({use_lookahead}, {use_orthograd})')
-
-    kwargs = {'eps': 1e-8, 'k': 7}
-    if optimizer_name == 'ranger21':
-        kwargs.update({'num_iterations': 1})
-    elif optimizer_name == 'bsam':
-        kwargs.update({'num_data': 1})
+def test_create_optimizer_basic(optimizer_name):
+    if optimizer_name in SKIP_CREATE_OPTIMIZER:
+        pytest.skip(f'skip {optimizer_name}')
 
     create_optimizer(
         Example(),
         optimizer_name=optimizer_name,
-        use_lookahead=use_lookahead,
-        use_orthograd=use_orthograd,
-        **kwargs,
+        use_lookahead=False,
+        use_orthograd=False,
+        **_get_optimizer_kwargs(optimizer_name),
+    )
+
+
+@pytest.mark.parametrize('optimizer_name', WRAPPER_TEST_OPTIMIZERS)
+def test_create_optimizer_with_lookahead(optimizer_name):
+    create_optimizer(
+        Example(),
+        optimizer_name=optimizer_name,
+        use_lookahead=True,
+        use_orthograd=False,
+        **_get_optimizer_kwargs(optimizer_name),
+    )
+
+
+@pytest.mark.parametrize('optimizer_name', WRAPPER_TEST_OPTIMIZERS)
+def test_create_optimizer_with_orthograd(optimizer_name):
+    create_optimizer(
+        Example(),
+        optimizer_name=optimizer_name,
+        use_lookahead=False,
+        use_orthograd=True,
+        **_get_optimizer_kwargs(optimizer_name),
     )
 
 

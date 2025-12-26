@@ -46,370 +46,363 @@ from pytorch_optimizer.optimizer.utils import (
 from tests.utils import Example, build_orthograd
 
 
-def test_version_utils():
-    with pytest.raises(ValueError):
-        parse_pytorch_version('a.s.d.f')
-
-    python_version = sys.version_info
-
-    pytorch_version: List[int] = parse_pytorch_version(torch.__version__)
-
-    assert len(pytorch_version) == 3
-
-    if python_version.minor < 9:
-        assert pytorch_version == [2, 4, 1]
-    elif python_version.minor < 10:
-        assert pytorch_version == [2, 8, 0]
-    else:
-        assert pytorch_version == [2, 9, 1]
-
-    assert compare_versions('2.9.1', '2.4.0') >= 0
-
-
-def test_has_overflow():
-    assert has_overflow(torch.tensor(torch.inf))
-    assert has_overflow(torch.tensor(-torch.inf))
-    assert has_overflow(torch.tensor(torch.nan))
-    assert not has_overflow(torch.Tensor([1]))
-
-
-def test_normalized_gradient():
-    x = torch.arange(0, 10, dtype=torch.float32)
-    normalize_gradient(x)
-
-    np.testing.assert_allclose(
-        x.numpy(),
-        np.asarray([0.0000, 0.3303, 0.6606, 0.9909, 1.3212, 1.6514, 1.9817, 2.3120, 2.6423, 2.9726]),
-        rtol=1e-4,
-        atol=1e-4,
-    )
-
-    x = torch.arange(0, 10, dtype=torch.float32)
-    normalize_gradient(x.view(1, 10), use_channels=True)
-
-    np.testing.assert_allclose(
-        x.numpy(),
-        np.asarray([0.0000, 0.3303, 0.6606, 0.9909, 1.3212, 1.6514, 1.9817, 2.3120, 2.6423, 2.9726]),
-        rtol=1e-4,
-        atol=1e-4,
-    )
-
-
-def test_clip_grad_norm():
-    x = torch.arange(0, 10, dtype=torch.float32, requires_grad=True)
-    x.grad = torch.arange(0, 10, dtype=torch.float32)
-
-    np.testing.assert_approx_equal(clip_grad_norm(x), 16.88194, significant=6)
-    np.testing.assert_approx_equal(clip_grad_norm(x, max_norm=2), 16.88194, significant=6)
-
-    with pytest.raises(ValueError):
-        clip_grad_norm(None)
-
-
-def test_get_global_gradient_norm():
-    np.testing.assert_approx_equal(get_global_gradient_norm(None, torch.device('cpu')).item(), 0.0)
-
-
-def test_unit_norm():
-    x = torch.arange(0, 10, dtype=torch.float32)
-
-    np.testing.assert_approx_equal(unit_norm(x).numpy(), 16.8819, significant=5)
-    np.testing.assert_approx_equal(unit_norm(x.view(1, 10)).numpy().reshape(-1)[0], 16.8819, significant=5)
-    np.testing.assert_approx_equal(unit_norm(x.view(1, 10, 1, 1)).numpy().reshape(-1)[0], 16.8819, significant=5)
-    np.testing.assert_approx_equal(unit_norm(x.view(1, 10, 1, 1, 1, 1)).numpy().reshape(-1)[0], 16.8819, significant=5)
-
-
-def test_neuron_mean_norm():
-    x = torch.arange(-5, 5, dtype=torch.float32)
-
-    with pytest.raises(ValueError) as error_info:
-        neuron_mean(x)
-
-    assert str(error_info.value) == '[-] neuron_mean not defined on 1D tensors.'
-
-    np.testing.assert_array_equal(
-        neuron_mean(x.view(-1, 1)).numpy(),
-        np.asarray([[-5.0], [-4.0], [-3.0], [-2.0], [-1.0], [0.0], [1.0], [2.0], [3.0], [4.0]]),
-    )
-    np.testing.assert_array_equal(
-        neuron_norm(x).numpy(), np.asarray([5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 1.0, 2.0, 3.0, 4.0])
-    )
-    np.testing.assert_array_equal(
-        neuron_norm(x.view(-1, 1)).numpy(),
-        np.asarray([[5.0], [4.0], [3.0], [2.0], [1.0], [0.0], [1.0], [2.0], [3.0], [4.0]]),
-    )
-
-
-def test_get_optimizer_parameters():
-    model: nn.Module = Example()
-    wd_ban_list: List[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight', 'LayerNorm']
-
-    before_parameters = list(model.named_parameters())
-
-    _ = get_optimizer_parameters(before_parameters, weight_decay=1e-3, wd_ban_list=wd_ban_list)
-    after_parameters = get_optimizer_parameters(model, weight_decay=1e-3, wd_ban_list=wd_ban_list)
-
-    for before, after in zip(before_parameters, after_parameters):
-        layer_name: str = before[0]
-        if layer_name.find('bias') != -1 or layer_name.find('LayerNorm') != -1:
-            assert after['weight_decay'] == 0.0
-
-
-def test_is_valid_parameters():
-    model: nn.Module = Example()
-    wd_ban_list: List[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-
-    after_parameters = get_optimizer_parameters(model, weight_decay=1e-3, wd_ban_list=wd_ban_list)
-
-    assert is_valid_parameters(after_parameters)
-
-
-def test_running_stats():
-    model = nn.Sequential(
-        nn.Linear(1, 1),
-        nn.BatchNorm2d(1),
-    )
-    model[1].momentum = 0.1
-
-    disable_running_stats(model)
-
-    assert model[1].momentum == 0
-    assert model[1].backup_momentum == 0.1
-
-    enable_running_stats(model)
-
-    assert model[1].momentum == 0.1
-
-
-def test_compute_power():
-    x = compute_power_schur_newton(torch.zeros((1,)), p=1)
-    assert torch.tensor([1000000.0]) == x
-
-    x = compute_power_schur_newton(torch.zeros((1, 2)), p=1)
-    assert torch.tensor([1.0]) == x
-
-    _ = compute_power_schur_newton(torch.ones((2, 2)), p=3)
-
-    x = compute_power_schur_newton(torch.ones((2, 2)), p=1)
-    assert np.sum(x.numpy() - np.asarray([[252206.4062, -252205.8750], [-252205.8750, 252206.4062]])) < 200
-
-    _ = compute_power_schur_newton(torch.ones((2, 2)), p=8)
-
-    _ = compute_power_schur_newton(torch.ones((2, 2)), p=16)
-
-    x = compute_power_schur_newton(torch.ones((2, 2)), p=16, max_error_ratio=0.0)
-    np.testing.assert_array_almost_equal(
-        np.asarray([[1.0946, 0.0000], [0.0000, 1.0946]]),
-        x.numpy(),
-        decimal=2,
-    )
-
-    x = compute_power_schur_newton(torch.ones((2, 2)), p=2)
-    assert np.sum(x.numpy() - np.asarray([[359.1108, -358.4036], [-358.4036, 359.1108]])) < 50
-
-
-def test_merge_small_dims():
-    case1 = [1, 2, 512, 1, 2048, 1, 3, 4]
-    expected_case1 = [1024, 2048, 12]
-    assert expected_case1 == merge_small_dims(case1, max_dim=1024)
-
-    case2 = [1, 2, 768, 1, 2048]
-    expected_case2 = [2, 768, 2048]
-    assert expected_case2 == merge_small_dims(case2, max_dim=1024)
-
-    case3 = [1, 1, 1]
-    expected_case3 = [1]
-    assert expected_case3 == merge_small_dims(case3, max_dim=1)
-
-
-def test_to_real():
-    complex_tensor = torch.tensor(1.0j + 2.0, dtype=torch.complex64)
-    assert to_real(complex_tensor) == 2.0
-
-    real_tensor = torch.tensor(1.0, dtype=torch.float32)
-    assert to_real(real_tensor) == 1.0
-
-
-def test_block_partitioner():
-    var = torch.zeros((2, 2))
-    target_var = torch.zeros((1, 1))
-
-    partitioner = BlockPartitioner(var, block_size=2, rank=2, pre_conditioner_type=0)
-    with pytest.raises(ValueError):
-        partitioner.partition(target_var)
-
-
-def test_pre_conditioner():
-    var = torch.zeros((1024, 128))
-    grad = torch.zeros((1024, 128))
-
-    pre_conditioner = PreConditioner(var, 0.9, 0, 128, 1, 8192, True, 0)
-    pre_conditioner.add_statistics(grad)
-    pre_conditioner.compute_pre_conditioners()
-
-
-@pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2, 3])
-def test_pre_conditioner_type(pre_conditioner_type):
-    var = torch.zeros((4, 4, 32))
-    if pre_conditioner_type in (0, 1, 2):
-        PreConditioner(var, 0.9, 0, 128, 1, 8192, True, pre_conditioner_type=pre_conditioner_type)
-    else:
+class TestVersionUtils:
+    def test_parse_version_invalid(self):
         with pytest.raises(ValueError):
+            parse_pytorch_version('a.s.d.f')
+
+    def test_parse_version(self):
+        python_version = sys.version_info
+        pytorch_version: List[int] = parse_pytorch_version(torch.__version__)
+
+        assert len(pytorch_version) == 3
+
+        if python_version.minor < 9:
+            assert pytorch_version == [2, 4, 1]
+        elif python_version.minor < 10:
+            assert pytorch_version == [2, 8, 0]
+        else:
+            assert pytorch_version == [2, 9, 1]
+
+    def test_compare_versions(self):
+        assert compare_versions('2.9.1', '2.4.0') >= 0
+
+
+class TestOverflowUtils:
+    def test_has_overflow(self):
+        assert has_overflow(torch.tensor(torch.inf))
+        assert has_overflow(torch.tensor(-torch.inf))
+        assert has_overflow(torch.tensor(torch.nan))
+        assert not has_overflow(torch.Tensor([1]))
+
+
+class TestGradientUtils:
+    def test_normalized_gradient(self):
+        x = torch.arange(0, 10, dtype=torch.float32)
+        normalize_gradient(x)
+
+        np.testing.assert_allclose(
+            x.numpy(),
+            np.asarray([0.0000, 0.3303, 0.6606, 0.9909, 1.3212, 1.6514, 1.9817, 2.3120, 2.6423, 2.9726]),
+            rtol=1e-4,
+            atol=1e-4,
+        )
+
+        x = torch.arange(0, 10, dtype=torch.float32)
+        normalize_gradient(x.view(1, 10), use_channels=True)
+
+        np.testing.assert_allclose(
+            x.numpy(),
+            np.asarray([0.0000, 0.3303, 0.6606, 0.9909, 1.3212, 1.6514, 1.9817, 2.3120, 2.6423, 2.9726]),
+            rtol=1e-4,
+            atol=1e-4,
+        )
+
+    def test_clip_grad_norm(self):
+        x = torch.arange(0, 10, dtype=torch.float32, requires_grad=True)
+        x.grad = torch.arange(0, 10, dtype=torch.float32)
+
+        np.testing.assert_approx_equal(clip_grad_norm(x), 16.88194, significant=6)
+        np.testing.assert_approx_equal(clip_grad_norm(x, max_norm=2), 16.88194, significant=6)
+
+        with pytest.raises(ValueError):
+            clip_grad_norm(None)
+
+    def test_get_global_gradient_norm(self):
+        np.testing.assert_approx_equal(get_global_gradient_norm(None, torch.device('cpu')).item(), 0.0)
+
+
+class TestNormUtils:
+    def test_unit_norm(self):
+        x = torch.arange(0, 10, dtype=torch.float32)
+
+        np.testing.assert_approx_equal(unit_norm(x).numpy(), 16.8819, significant=5)
+        np.testing.assert_approx_equal(unit_norm(x.view(1, 10)).numpy().reshape(-1)[0], 16.8819, significant=5)
+        np.testing.assert_approx_equal(unit_norm(x.view(1, 10, 1, 1)).numpy().reshape(-1)[0], 16.8819, significant=5)
+        np.testing.assert_approx_equal(
+            unit_norm(x.view(1, 10, 1, 1, 1, 1)).numpy().reshape(-1)[0], 16.8819, significant=5
+        )
+
+    def test_neuron_mean_norm(self):
+        x = torch.arange(-5, 5, dtype=torch.float32)
+
+        with pytest.raises(ValueError) as error_info:
+            neuron_mean(x)
+
+        assert str(error_info.value) == '[-] neuron_mean not defined on 1D tensors.'
+
+        np.testing.assert_array_equal(
+            neuron_mean(x.view(-1, 1)).numpy(),
+            np.asarray([[-5.0], [-4.0], [-3.0], [-2.0], [-1.0], [0.0], [1.0], [2.0], [3.0], [4.0]]),
+        )
+        np.testing.assert_array_equal(
+            neuron_norm(x).numpy(), np.asarray([5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 1.0, 2.0, 3.0, 4.0])
+        )
+        np.testing.assert_array_equal(
+            neuron_norm(x.view(-1, 1)).numpy(),
+            np.asarray([[5.0], [4.0], [3.0], [2.0], [1.0], [0.0], [1.0], [2.0], [3.0], [4.0]]),
+        )
+
+
+class TestParameterUtils:
+    def test_get_optimizer_parameters(self):
+        model: nn.Module = Example()
+        wd_ban_list: List[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight', 'LayerNorm']
+
+        before_parameters = list(model.named_parameters())
+
+        _ = get_optimizer_parameters(before_parameters, weight_decay=1e-3, wd_ban_list=wd_ban_list)
+        after_parameters = get_optimizer_parameters(model, weight_decay=1e-3, wd_ban_list=wd_ban_list)
+
+        for before, after in zip(before_parameters, after_parameters):
+            layer_name: str = before[0]
+            if layer_name.find('bias') != -1 or layer_name.find('LayerNorm') != -1:
+                assert after['weight_decay'] == 0.0
+
+    def test_is_valid_parameters(self):
+        model: nn.Module = Example()
+        wd_ban_list: List[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+
+        after_parameters = get_optimizer_parameters(model, weight_decay=1e-3, wd_ban_list=wd_ban_list)
+
+        assert is_valid_parameters(after_parameters)
+
+
+class TestRunningStats:
+    def test_running_stats(self):
+        model = nn.Sequential(
+            nn.Linear(1, 1),
+            nn.BatchNorm2d(1),
+        )
+        model[1].momentum = 0.1
+
+        disable_running_stats(model)
+
+        assert model[1].momentum == 0
+        assert model[1].backup_momentum == 0.1
+
+        enable_running_stats(model)
+
+        assert model[1].momentum == 0.1
+
+
+class TestShampooUtils:
+    def test_compute_power(self):
+        x = compute_power_schur_newton(torch.zeros((1,)), p=1)
+        assert torch.tensor([1000000.0]) == x
+
+        x = compute_power_schur_newton(torch.zeros((1, 2)), p=1)
+        assert torch.tensor([1.0]) == x
+
+        _ = compute_power_schur_newton(torch.ones((2, 2)), p=3)
+
+        x = compute_power_schur_newton(torch.ones((2, 2)), p=1)
+        assert np.sum(x.numpy() - np.asarray([[252206.4062, -252205.8750], [-252205.8750, 252206.4062]])) < 200
+
+        _ = compute_power_schur_newton(torch.ones((2, 2)), p=8)
+
+        _ = compute_power_schur_newton(torch.ones((2, 2)), p=16)
+
+        x = compute_power_schur_newton(torch.ones((2, 2)), p=16, max_error_ratio=0.0)
+        np.testing.assert_array_almost_equal(
+            np.asarray([[1.0946, 0.0000], [0.0000, 1.0946]]),
+            x.numpy(),
+            decimal=2,
+        )
+
+        x = compute_power_schur_newton(torch.ones((2, 2)), p=2)
+        assert np.sum(x.numpy() - np.asarray([[359.1108, -358.4036], [-358.4036, 359.1108]])) < 50
+
+    def test_merge_small_dims(self):
+        case1 = [1, 2, 512, 1, 2048, 1, 3, 4]
+        expected_case1 = [1024, 2048, 12]
+        assert expected_case1 == merge_small_dims(case1, max_dim=1024)
+
+        case2 = [1, 2, 768, 1, 2048]
+        expected_case2 = [2, 768, 2048]
+        assert expected_case2 == merge_small_dims(case2, max_dim=1024)
+
+        case3 = [1, 1, 1]
+        expected_case3 = [1]
+        assert expected_case3 == merge_small_dims(case3, max_dim=1)
+
+    def test_to_real(self):
+        complex_tensor = torch.tensor(1.0j + 2.0, dtype=torch.complex64)
+        assert to_real(complex_tensor) == 2.0
+
+        real_tensor = torch.tensor(1.0, dtype=torch.float32)
+        assert to_real(real_tensor) == 1.0
+
+    def test_block_partitioner(self):
+        var = torch.zeros((2, 2))
+        target_var = torch.zeros((1, 1))
+
+        partitioner = BlockPartitioner(var, block_size=2, rank=2, pre_conditioner_type=0)
+        with pytest.raises(ValueError):
+            partitioner.partition(target_var)
+
+    def test_pre_conditioner(self):
+        var = torch.zeros((1024, 128))
+        grad = torch.zeros((1024, 128))
+
+        pre_conditioner = PreConditioner(var, 0.9, 0, 128, 1, 8192, True, 0)
+        pre_conditioner.add_statistics(grad)
+        pre_conditioner.compute_pre_conditioners()
+
+    @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2, 3])
+    def test_pre_conditioner_type(self, pre_conditioner_type):
+        var = torch.zeros((4, 4, 32))
+        if pre_conditioner_type in (0, 1, 2):
             PreConditioner(var, 0.9, 0, 128, 1, 8192, True, pre_conditioner_type=pre_conditioner_type)
+        else:
+            with pytest.raises(ValueError):
+                PreConditioner(var, 0.9, 0, 128, 1, 8192, True, pre_conditioner_type=pre_conditioner_type)
+
+    def test_zero_power_via_newton_schulz_5(self):
+        x = torch.FloatTensor(([[-1.5724165, 1.5850062], [-0.87536967, 0.31970903], [-0.18436244, -0.16805087]]))
+        output = zero_power_via_newton_schulz_5(x).float().numpy()
+
+        expected_output = np.asarray([[-0.3359375, 0.671875], [-0.734375, -0.38671875], [-0.3828125, -0.3984375]])
+
+        np.testing.assert_allclose(output, expected_output, rtol=3e-2, atol=3e-2)
+
+        with pytest.raises(ValueError):
+            zero_power_via_newton_schulz_5(x[0])
 
 
-def test_max_reduce_except_dim():
-    x = torch.tensor(1.0)
-    assert reduce_max_except_dim(x, 0) == x
+class TestSM3Utils:
+    def test_max_reduce_except_dim(self):
+        x = torch.tensor(1.0)
+        assert reduce_max_except_dim(x, 0) == x
 
-    x = torch.zeros((1, 1))
-    with pytest.raises(ValueError):
-        reduce_max_except_dim(x, 3)
-
-
-def test_emcmc():
-    torch.random.manual_seed(42)
-
-    network1 = Example()
-    network2 = Example()
-
-    loss = reg_noise(network1, network2, int(5e4), 1e-1).detach().numpy()
-    np.testing.assert_almost_equal(loss, 0.0011383)
+        x = torch.zeros((1, 1))
+        with pytest.raises(ValueError):
+            reduce_max_except_dim(x, 3)
 
 
-def test_cpu_offload_optimizer():
-    if not torch.cuda.is_available():
-        pytest.skip('need GPU to run a test')
+class TestPSGDUtils:
+    def test_damped_pair_vg(self):
+        x = torch.zeros(2)
+        y = damped_pair_vg(x)[1]
 
-    params = Example().parameters()
+        torch.testing.assert_close(x, y)
 
-    opt = CPUOffloadOptimizer(params, torch.optim.AdamW, fused=False, offload_gradients=True)
+    def test_norm_lower_bound(self):
+        x = torch.zeros(1)
+        y = norm_lower_bound(x)
+        torch.testing.assert_close(y, x.squeeze())
 
-    with pytest.raises(ValueError):
-        CPUOffloadOptimizer([], torch.optim.AdamW)
+        x = torch.FloatTensor([[1, 1]])
+        y = norm_lower_bound(x)
+        torch.testing.assert_close(y, torch.tensor(1.4142135))
 
-    opt.zero_grad()
+        x = torch.FloatTensor([[2, 1], [2, 1]])
+        y = norm_lower_bound(x)
+        torch.testing.assert_close(y, torch.tensor(3.16227769))
 
-    _ = opt.param_groups
+    def test_woodbury_identity(self):
+        x = torch.FloatTensor([[1]])
+        woodbury_identity(x, x, x)
 
-    state_dict = opt.state_dict()
-    opt.load_state_dict(state_dict)
+    def test_triu_with_diagonal_and_above(self):
+        x = torch.FloatTensor([[1, 2], [3, 4]])
+        y = triu_with_diagonal_and_above(x)
+        torch.testing.assert_close(y, torch.FloatTensor([[1, 4], [0, 4]]))
 
+    def test_update_precondition_dense(self):
+        q = torch.FloatTensor([[1]])
+        dxs = [q] * 1
+        dgs = [q] * 1
 
-def test_orthograd_name():
-    optimizer = build_orthograd(Example().parameters())
-    optimizer.zero_grad()
+        y = update_precondition_dense(q, dxs, dgs)
 
-    _ = optimizer.param_groups
-    _ = optimizer.state
+        torch.testing.assert_close(y, q)
 
-    assert str(optimizer).lower() == 'orthograd'
+    def test_initialize_q_expressions(self):
+        x = torch.zeros(1)
+        _ = initialize_q_expressions(x.squeeze(), 0.0, 0, 0, None)
 
+        with pytest.raises(ValueError):
+            initialize_q_expressions(x.expand(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1), 0.0, 0, 0, None)
 
-def test_damped_pair_vg():
-    x = torch.zeros(2)
-    y = damped_pair_vg(x)[1]
+        with pytest.raises(NotImplementedError):
+            initialize_q_expressions(x, 0.0, 0, 0, 'invalid')
 
-    torch.testing.assert_close(x, y)
-
-
-def test_norm_lower_bound():
-    x = torch.zeros(1)
-    y = norm_lower_bound(x)
-    torch.testing.assert_close(y, x.squeeze())
-
-    x = torch.FloatTensor([[1, 1]])
-    y = norm_lower_bound(x)
-    torch.testing.assert_close(y, torch.tensor(1.4142135))
-
-    x = torch.FloatTensor([[2, 1], [2, 1]])
-    y = norm_lower_bound(x)
-    torch.testing.assert_close(y, torch.tensor(3.16227769))
-
-
-def test_woodbury_identity():
-    x = torch.FloatTensor([[1]])
-    woodbury_identity(x, x, x)
+        for memory_save_mode in ('one_diag', 'all_diag', 'smart_one_diag'):
+            initialize_q_expressions(torch.FloatTensor([[1], [2]]), 0.0, 0, 0, memory_save_mode)
 
 
-def test_triu_with_diagonal_and_above():
-    x = torch.FloatTensor([[1, 2], [3, 4]])
-    y = triu_with_diagonal_and_above(x)
-    torch.testing.assert_close(y, torch.FloatTensor([[1, 4], [0, 4]]))
+class TestMiscUtils:
+    def test_emcmc(self):
+        torch.random.manual_seed(42)
 
+        network1 = Example()
+        network2 = Example()
 
-def test_update_precondition_dense():
-    q = torch.FloatTensor([[1]])
-    dxs = [q] * 1
-    dgs = [q] * 1
+        loss = reg_noise(network1, network2, int(5e4), 1e-1).detach().numpy()
+        np.testing.assert_almost_equal(loss, 0.0011383)
 
-    y = update_precondition_dense(q, dxs, dgs)
+    def test_cpu_offload_optimizer(self):
+        if not torch.cuda.is_available():
+            pytest.skip('need GPU to run a test')
 
-    torch.testing.assert_close(y, q)
+        params = Example().parameters()
 
+        opt = CPUOffloadOptimizer(params, torch.optim.AdamW, fused=False, offload_gradients=True)
 
-def test_initialize_q_expressions():
-    x = torch.zeros(1)
-    _ = initialize_q_expressions(x.squeeze(), 0.0, 0, 0, None)
+        with pytest.raises(ValueError):
+            CPUOffloadOptimizer([], torch.optim.AdamW)
 
-    with pytest.raises(ValueError):
-        initialize_q_expressions(x.expand(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1), 0.0, 0, 0, None)
+        opt.zero_grad()
 
-    with pytest.raises(NotImplementedError):
-        initialize_q_expressions(x, 0.0, 0, 0, 'invalid')
+        _ = opt.param_groups
 
-    for memory_save_mode in ('one_diag', 'all_diag', 'smart_one_diag'):
-        initialize_q_expressions(torch.FloatTensor([[1], [2]]), 0.0, 0, 0, memory_save_mode)
+        state_dict = opt.state_dict()
+        opt.load_state_dict(state_dict)
 
+    def test_orthograd_name(self):
+        optimizer = build_orthograd(Example().parameters())
+        optimizer.zero_grad()
 
-def test_zero_power_via_newton_schulz_5():
-    x = torch.FloatTensor(([[-1.5724165, 1.5850062], [-0.87536967, 0.31970903], [-0.18436244, -0.16805087]]))
-    output = zero_power_via_newton_schulz_5(x).float().numpy()
+        _ = optimizer.param_groups
+        _ = optimizer.state
 
-    expected_output = np.asarray([[-0.3359375, 0.671875], [-0.734375, -0.38671875], [-0.3828125, -0.3984375]])
+        assert str(optimizer).lower() == 'orthograd'
 
-    np.testing.assert_allclose(output, expected_output, rtol=3e-2, atol=3e-2)
+    def test_copy_stochastic(self):
+        n: int = 512
 
-    with pytest.raises(ValueError):
-        zero_power_via_newton_schulz_5(x[0])
+        a = torch.full((n,), 1.0, dtype=torch.bfloat16)
+        b = torch.full((n,), 0.0002, dtype=torch.bfloat16)
+        result = torch.full((n,), 0.0, dtype=torch.bfloat16)
 
+        added = a.to(dtype=torch.float32) + b
 
-def test_copy_stochastic():
-    n: int = 512
+        result.copy_(added)
+        np.testing.assert_almost_equal(1.0000, result.to(dtype=torch.float32).mean().item(), decimal=4)
 
-    a = torch.full((n,), 1.0, dtype=torch.bfloat16)
-    b = torch.full((n,), 0.0002, dtype=torch.bfloat16)
-    result = torch.full((n,), 0.0, dtype=torch.bfloat16)
+        copy_stochastic(result, added)
+        np.testing.assert_almost_equal(1.0002, result.to(dtype=torch.float32).mean().item(), decimal=4)
 
-    added = a.to(dtype=torch.float32) + b
+    def test_stochastic_accumulation_hook(self):
+        model = Example().bfloat16()
+        x = torch.randn(1, 1, dtype=torch.bfloat16)
 
-    result.copy_(added)
-    np.testing.assert_almost_equal(1.0000, result.to(dtype=torch.float32).mean().item(), decimal=4)
+        StochasticAccumulator.assign_hooks(model)
 
-    copy_stochastic(result, added)
-    np.testing.assert_almost_equal(1.0002, result.to(dtype=torch.float32).mean().item(), decimal=4)
+        optimizer = build_orthograd(model.parameters())
 
+        for _ in range(2):
+            binary_cross_entropy_with_logits(model(x), x).backward()
 
-def test_stochastic_accumulation_hook():
-    model = Example().bfloat16()
-    x = torch.randn(1, 1, dtype=torch.bfloat16)
+        StochasticAccumulator.reassign_grad_buffer(model)
 
-    StochasticAccumulator.assign_hooks(model)
+        optimizer.step()
+        optimizer.zero_grad()
 
-    optimizer = build_orthograd(model.parameters())
+    def test_csd(self):
+        assert closest_smaller_divisor_of_n_to_k(2, 2) == 2
+        assert closest_smaller_divisor_of_n_to_k(5, 3) == 1
 
-    for _ in range(2):
-        binary_cross_entropy_with_logits(model(x), x).backward()
-
-    StochasticAccumulator.reassign_grad_buffer(model)
-
-    optimizer.step()
-    optimizer.zero_grad()
-
-
-def test_csd():
-    assert closest_smaller_divisor_of_n_to_k(2, 2) == 2
-    assert closest_smaller_divisor_of_n_to_k(5, 3) == 1
-
-    with pytest.raises(ValueError):
-        closest_smaller_divisor_of_n_to_k(1, 2)
+        with pytest.raises(ValueError):
+            closest_smaller_divisor_of_n_to_k(1, 2)

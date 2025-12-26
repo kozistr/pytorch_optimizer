@@ -19,8 +19,15 @@ from pytorch_optimizer import (
     ScheduleFreeWrapper,
     load_optimizer,
 )
-from tests.constants import ADAPTIVE_FLAGS, DECOUPLE_FLAGS, PULLBACK_MOMENTUM
-from tests.utils import Example, MultiHeadLogisticRegression, build_model, simple_parameter, tensor_to_numpy
+from tests.constants import PULLBACK_MOMENTUM
+from tests.utils import (
+    Example,
+    MultiHeadLogisticRegression,
+    TrainingRunner,
+    build_model,
+    simple_parameter,
+    tensor_to_numpy,
+)
 
 
 @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
@@ -31,24 +38,11 @@ def test_lookahead(pullback_momentum, environment):
     optimizer = Lookahead(load_optimizer('adamw')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
     optimizer.init_group({})
 
-    init_loss, loss = np.inf, np.inf
-    for _ in range(5):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
+    runner.run(iterations=5, threshold=2.0)
 
 
-@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
+@pytest.mark.parametrize('adaptive', [True, False])
 @pytest.mark.parametrize('wrapper', [SAM, FriendlySAM, LookSAM])
 def test_sam_optimizer(adaptive, wrapper, environment):
     x_data, y_data = environment
@@ -56,22 +50,11 @@ def test_sam_optimizer(adaptive, wrapper, environment):
 
     optimizer = wrapper(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive, use_gc=True)
 
-    init_loss, loss = np.inf, np.inf
-    for _ in range(3):
-        loss = loss_fn(y_data, model(x_data))
-        loss.backward()
-        optimizer.first_step(zero_grad=True)
-
-        loss_fn(y_data, model(x_data)).backward()
-        optimizer.second_step(zero_grad=True)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
+    runner.run_sam_style(iterations=3, threshold=2.0)
 
 
-@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
+@pytest.mark.parametrize('adaptive', [True, False])
 @pytest.mark.parametrize('wrapper', [SAM, FriendlySAM, LookSAM])
 def test_sam_optimizer_with_closure(adaptive, wrapper, environment):
     x_data, y_data = environment
@@ -79,27 +62,12 @@ def test_sam_optimizer_with_closure(adaptive, wrapper, environment):
 
     optimizer = wrapper(model.parameters(), load_optimizer('adamw'), lr=5e-1, adaptive=adaptive)
 
-    def closure():
-        first_loss = loss_fn(y_data, model(x_data))
-        first_loss.backward()
-        return first_loss
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(3):
-        loss = loss_fn(y_data, model(x_data))
-        loss.backward()
-
-        optimizer.step(closure)
-        optimizer.zero_grad()
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
+    runner.run_with_closure(iterations=3, threshold=2.0)
 
 
-@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
-@pytest.mark.parametrize('decouple', DECOUPLE_FLAGS)
+@pytest.mark.parametrize('adaptive', [True, False])
+@pytest.mark.parametrize('decouple', [True, False])
 def test_wsam_optimizer(adaptive, decouple, environment):
     x_data, y_data = environment
     model, loss_fn = build_model()
@@ -114,46 +82,22 @@ def test_wsam_optimizer(adaptive, decouple, environment):
         max_norm=100.0,
     )
 
-    init_loss, loss = np.inf, np.inf
-    for _ in range(10):
-        loss = loss_fn(y_data, model(x_data))
-        loss.backward()
-        optimizer.first_step(zero_grad=True)
-
-        loss_fn(y_data, model(x_data)).backward()
-        optimizer.second_step(zero_grad=True)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
+    runner.run_wsam_style(iterations=10, threshold=1.5)
 
 
-@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
+@pytest.mark.parametrize('adaptive', [True, False])
 def test_wsam_optimizer_with_closure(adaptive, environment):
     x_data, y_data = environment
     model, loss_fn = build_model()
 
     optimizer = WSAM(model, model.parameters(), load_optimizer('adamp'), lr=5e-2, adaptive=adaptive, max_norm=100.0)
 
-    def closure():
-        output = model(x_data)
-        loss = loss_fn(output, y_data)
-        loss.backward()
-        return loss
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(10):
-        loss = optimizer.step(closure)
-        optimizer.zero_grad()
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
+    runner.run_wsam_with_closure(iterations=10, threshold=1.5)
 
 
-@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
+@pytest.mark.parametrize('adaptive', [True, False])
 def test_gsam_optimizer(adaptive, environment):
     pytest.skip('skip GSAM optimizer')
 
@@ -184,30 +128,15 @@ def test_gsam_optimizer(adaptive, environment):
     assert tensor_to_numpy(init_loss) > 1.2 * tensor_to_numpy(loss)
 
 
-@pytest.mark.parametrize('adaptive', ADAPTIVE_FLAGS)
+@pytest.mark.parametrize('adaptive', [True, False])
 def test_bsam_optimizer(adaptive, environment):
     x_data, y_data = environment
     model, loss_fn = build_model()
 
     optimizer = BSAM(model.parameters(), lr=2e-3, num_data=len(x_data), rho=1e-5, adaptive=adaptive)
 
-    def closure():
-        first_loss = loss_fn(y_data, model(x_data))
-        first_loss.backward()
-        return first_loss
-
-    init_loss, loss = np.inf, np.inf
-    for _ in range(20):
-        loss = loss_fn(y_data, model(x_data))
-        loss.backward()
-
-        optimizer.step(closure)
-        optimizer.zero_grad()
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-    assert tensor_to_numpy(init_loss) > tensor_to_numpy(loss)
+    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
+    runner.run_with_closure(iterations=20, threshold=1.0)
 
 
 def test_schedulefree_wrapper():
@@ -284,19 +213,8 @@ def test_trac_optimizer(environment):
 
     optimizer = TRAC(load_optimizer('adamw')(model.parameters(), lr=1e0))
 
-    init_loss, loss = np.inf, np.inf
-    for _ in range(3):
-        loss = loss_fn(model(x_data), y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-        optimizer.zero_grad()
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
+    runner.run_trac_style(iterations=3, threshold=2.0)
 
 
 def test_trac_optimizer_erf_imag():

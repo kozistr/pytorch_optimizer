@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 import torch
 
@@ -8,7 +7,7 @@ from tests.constants import (
     COPT_SUPPORTED_OPTIMIZERS,
     STABLE_ADAMW_SUPPORTED_OPTIMIZERS,
 )
-from tests.utils import build_model, build_optimizer_parameter, ids, simple_parameter, tensor_to_numpy
+from tests.utils import TrainingRunner, build_model, build_optimizer_parameter, ids, simple_parameter
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
@@ -17,24 +16,10 @@ def test_adanorm_optimizer(optimizer_config, environment):
     model, loss_fn = build_model()
 
     optimizer_class, config, num_iterations = optimizer_config
-
     optimizer = optimizer_class(model.parameters(), **config, adanorm=True)
 
-    init_loss, loss = np.inf, np.inf
-    for _ in range(num_iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 1.75 * tensor_to_numpy(loss)
+    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
+    runner.run(iterations=num_iterations, threshold=1.75)
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
@@ -57,53 +42,24 @@ def test_adamd_variant(optimizer_config, environment):
     model, loss_fn = build_model()
 
     optimizer_class, config, num_iterations = optimizer_config
-
     optimizer = optimizer_class(model.parameters(), **config, adam_debias=True)
 
-    init_loss, loss = np.inf, np.inf
-    for _ in range(num_iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward(create_graph=optimizer_class.__name__ in ('AdaHessian',))
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 2.0 * tensor_to_numpy(loss)
+    create_graph = optimizer_class.__name__ in ('AdaHessian',)
+    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
+    runner.run(iterations=num_iterations, create_graph=create_graph, threshold=2.0)
 
 
 @pytest.mark.parametrize('optimizer_config', COPT_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_cautious_variant(optimizer_config, environment):
     x_data, y_data = environment
-
     model, loss_fn = build_model()
 
     optimizer_class, config, num_iterations = optimizer_config
-
     parameters, config = build_optimizer_parameter(model.parameters(), optimizer_class.__name__, config)
-
     optimizer = optimizer_class(parameters, **config, cautious=True)
 
-    init_loss, loss = np.inf, np.inf
-    for _ in range(num_iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
+    runner.run(iterations=num_iterations, threshold=1.5)
 
 
 @pytest.mark.parametrize('optimizer_config', STABLE_ADAMW_SUPPORTED_OPTIMIZERS, ids=ids)
@@ -112,21 +68,7 @@ def test_stable_adamw_variant(optimizer_config, environment):
     model, loss_fn = build_model()
 
     optimizer_class, config, num_iterations = optimizer_config
-
     optimizer = optimizer_class(model.parameters(), **config)
 
-    init_loss, loss = np.inf, np.inf
-    for _ in range(num_iterations):
-        optimizer.zero_grad()
-
-        y_pred = model(x_data)
-        loss = loss_fn(y_pred, y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        loss.backward()
-
-        optimizer.step()
-
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+    runner = TrainingRunner(model, loss_fn, optimizer, x_data, y_data)
+    runner.run(iterations=num_iterations, threshold=1.5)

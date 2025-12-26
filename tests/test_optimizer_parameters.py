@@ -20,39 +20,28 @@ from tests.constants import PULLBACK_MOMENTUM
 from tests.utils import Example, simple_parameter
 
 
-def test_shampoo_parameters():
-    with pytest.raises(ValueError):
-        load_optimizer('Shampoo')(None, matrix_eps=-1e-6)
+class TestEpsilonParameters:
+    """Tests for epsilon-related parameter validation."""
 
+    @pytest.mark.parametrize(
+        'optimizer_name,param_name',
+        [
+            ('Shampoo', 'matrix_eps'),
+            ('ScalableShampoo', 'diagonal_eps'),
+            ('ScalableShampoo', 'matrix_eps'),
+        ],
+    )
+    def test_shampoo_epsilon_parameters(self, optimizer_name, param_name):
+        opt = load_optimizer(optimizer_name)
+        with pytest.raises(ValueError):
+            opt(None, **{param_name: -1e-6})
 
-def test_scalable_shampoo_parameters():
-    opt = load_optimizer('ScalableShampoo')
-
-    with pytest.raises(ValueError):
-        opt(None, diagonal_eps=-1e-6)
-
-    with pytest.raises(ValueError):
-        opt(None, matrix_eps=-1e-6)
-
-
-def test_adafactor_parameters():
-    opt = load_optimizer('adafactor')
-
-    with pytest.raises(ValueError):
-        opt(None, eps1=-1e-6)
-
-    with pytest.raises(ValueError):
-        opt(None, eps2=-1e-6)
-
-
-def test_came_parameters():
-    opt = load_optimizer('came')
-
-    with pytest.raises(ValueError):
-        opt(None, eps1=-1e-6)
-
-    with pytest.raises(ValueError):
-        opt(None, eps2=-1e-6)
+    @pytest.mark.parametrize('optimizer_name', ['adafactor', 'came'])
+    @pytest.mark.parametrize('param_name', ['eps1', 'eps2'])
+    def test_multi_epsilon_parameters(self, optimizer_name, param_name):
+        opt = load_optimizer(optimizer_name)
+        with pytest.raises(ValueError):
+            opt(None, **{param_name: -1e-6})
 
 
 def test_pcgrad_parameters():
@@ -124,35 +113,36 @@ def test_safe_fp16_methods():
     assert optimizer.loss_scale == 2.0 ** (15 - 1)
 
 
-def test_ranger21_warm_iterations():
-    assert Ranger21.build_warm_up_iterations(1000, 0.999) == 220
-    assert Ranger21.build_warm_up_iterations(4500, 0.999) == 2000
-    assert Ranger21.build_warm_down_iterations(1000) == 280
+class TestRanger21:
+    """Tests for Ranger21 optimizer specific functionality."""
 
+    def test_warm_iterations(self):
+        assert Ranger21.build_warm_up_iterations(1000, 0.999) == 220
+        assert Ranger21.build_warm_up_iterations(4500, 0.999) == 2000
+        assert Ranger21.build_warm_down_iterations(1000) == 280
 
-def test_ranger21_warm_up_and_down():
-    lr: float = 1e-1
-    opt = Ranger21([simple_parameter(require_grad=False)], num_iterations=500, lr=lr, warm_down_min_lr=3e-5)
+    def test_warm_up_and_down(self):
+        lr: float = 1e-1
+        opt = Ranger21([simple_parameter(require_grad=False)], num_iterations=500, lr=lr, warm_down_min_lr=3e-5)
 
-    assert opt.warm_up_dampening(lr, 100) == 0.09090909090909091
-    assert opt.warm_up_dampening(lr, 200) == 0.1
-    assert opt.warm_up_dampening(lr, 300) == 0.1
-    assert opt.warm_down(lr, 300) == 0.1
-    assert opt.warm_down(lr, 400) == 0.07093070921985817
+        assert opt.warm_up_dampening(lr, 100) == 0.09090909090909091
+        assert opt.warm_up_dampening(lr, 200) == 0.1
+        assert opt.warm_up_dampening(lr, 300) == 0.1
+        assert opt.warm_down(lr, 300) == 0.1
+        assert opt.warm_down(lr, 400) == 0.07093070921985817
 
+    def test_closure(self):
+        model: nn.Module = Example()
+        optimizer = load_optimizer('ranger21')(model.parameters(), num_iterations=100, betas=(0.9, 1e-9))
 
-def test_ranger21_closure():
-    model: nn.Module = Example()
-    optimizer = load_optimizer('ranger21')(model.parameters(), num_iterations=100, betas=(0.9, 1e-9))
+        loss_fn = nn.BCEWithLogitsLoss()
 
-    loss_fn = nn.BCEWithLogitsLoss()
+        def closure():
+            loss = loss_fn(torch.ones((1, 1)), model(torch.ones((1, 1))))
+            loss.backward()
+            return loss
 
-    def closure():
-        loss = loss_fn(torch.ones((1, 1)), model(torch.ones((1, 1))))
-        loss.backward()
-        return loss
-
-    optimizer.step(closure)
+        optimizer.step(closure)
 
 
 def test_adafactor_get_lr():
@@ -165,24 +155,34 @@ def test_adafactor_get_lr():
         assert opt.get_lr(1.0, 1, 1.0, True, warmup_init, True) == expected_lr
 
 
-def test_a2grad_parameters():
-    param = [simple_parameter(require_grad=False)]
-    opt = load_optimizer('a2grad')
+class TestA2GradParameters:
+    """Tests for A2Grad optimizer parameter validation."""
 
-    # test lipschitz constant
-    with pytest.raises(ValueError):
-        opt(param, lips=-1.0)
+    @pytest.mark.parametrize(
+        'param_name,param_value',
+        [
+            ('lips', -1.0),
+            ('rho', -0.1),
+        ],
+    )
+    def test_negative_parameters(self, param_name, param_value):
+        param = [simple_parameter(require_grad=False)]
+        opt = load_optimizer('a2grad')
+        params = param if param_name == 'lips' else None
+        with pytest.raises(ValueError):
+            opt(params, **{param_name: param_value})
 
-    # test rho
-    with pytest.raises(ValueError):
-        opt(None, rho=-0.1)
-
-    # test variants
-    for variant in ['uni', 'inc', 'exp']:
+    @pytest.mark.parametrize('variant', ['uni', 'inc', 'exp'])
+    def test_valid_variants(self, variant):
+        param = [simple_parameter(require_grad=False)]
+        opt = load_optimizer('a2grad')
         opt(param, variant=variant)
 
-    with pytest.raises(ValueError):
-        opt(param, variant='dummy')
+    def test_invalid_variant(self):
+        param = [simple_parameter(require_grad=False)]
+        opt = load_optimizer('a2grad')
+        with pytest.raises(ValueError):
+            opt(param, variant='dummy')
 
 
 def test_amos_get_scale():
@@ -193,92 +193,93 @@ def test_amos_get_scale():
     assert opt.get_scale(torch.zeros((1, 16, 2, 2))) == 0.25
 
 
-def test_accsgd_parameters():
-    param = [simple_parameter(False)]
-    opt = load_optimizer('accsgd')
+class TestNegativeParameterValidation:
+    """Tests for negative parameter value validation."""
 
-    with pytest.raises(ValueError):
-        opt(param, xi=-0.1)
+    @pytest.mark.parametrize(
+        'optimizer_name,param_name,param_value',
+        [
+            ('accsgd', 'xi', -0.1),
+            ('accsgd', 'kappa', -0.1),
+            ('asgd', 'amplifier', -1.0),
+            ('lars', 'dampening', -0.1),
+            ('lars', 'trust_coefficient', -1e-3),
+            ('ranger', 'alpha', -0.1),
+            ('ranger', 'k', -1),
+        ],
+    )
+    def test_negative_parameter_raises_error(self, optimizer_name, param_name, param_value):
+        opt = load_optimizer(optimizer_name)
+        params = [simple_parameter(False)] if optimizer_name in ('accsgd', 'asgd') else None
+        with pytest.raises(ValueError):
+            opt(params, **{param_name: param_value})
 
-    with pytest.raises(ValueError):
-        opt(param, kappa=-0.1)
-
-    with pytest.raises(ValueError):
-        opt(param, constant=42)
-
-
-def test_asgd_parameters():
-    opt = load_optimizer('asgd')
-
-    with pytest.raises(ValueError):
-        opt([simple_parameter(False)], amplifier=-1.0)
-
-
-def test_lars_parameters():
-    opt = load_optimizer('lars')
-
-    with pytest.raises(ValueError):
-        opt(None, dampening=-0.1)
-
-    with pytest.raises(ValueError):
-        opt(None, trust_coefficient=-1e-3)
+    def test_accsgd_constant_validation(self):
+        opt = load_optimizer('accsgd')
+        with pytest.raises(ValueError):
+            opt([simple_parameter(False)], constant=42)
 
 
-def test_apollo_parameters():
-    opt = load_optimizer('apollodqn')
+class TestInvalidOptionParameters:
+    """Tests for invalid option/enum parameter validation."""
 
-    with pytest.raises(ValueError):
-        opt(None, rebound='dummy')
-
-    with pytest.raises(ValueError):
-        opt(None, weight_decay_type='dummy')
-
-
-def test_ranger_parameters():
-    opt = load_optimizer('ranger')
-
-    with pytest.raises(ValueError):
-        opt(None, alpha=-0.1)
-
-    with pytest.raises(ValueError):
-        opt(None, k=-1)
+    @pytest.mark.parametrize(
+        'optimizer_name,param_name,invalid_value',
+        [
+            ('apollodqn', 'rebound', 'dummy'),
+            ('apollodqn', 'weight_decay_type', 'dummy'),
+        ],
+    )
+    def test_invalid_option_raises_error(self, optimizer_name, param_name, invalid_value):
+        opt = load_optimizer(optimizer_name)
+        with pytest.raises(ValueError):
+            opt(None, **{param_name: invalid_value})
 
 
-def test_galore_methods():
-    p = torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)
+class TestGaLoreProjector:
+    """Tests for GaLore projector methods."""
 
-    with pytest.raises(NotImplementedError):
+    @pytest.fixture
+    def sample_tensor(self):
+        return torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)
+
+    def test_invalid_projection_type_project_with_ortho(self, sample_tensor):
         invalid_galore = GaLoreProjector(projection_type='invalid')
-        invalid_galore.ortho_matrix = p
+        invalid_galore.ortho_matrix = sample_tensor
+        with pytest.raises(NotImplementedError):
+            invalid_galore.project(sample_tensor, 1)
 
-        invalid_galore.project(p, 1)
+    def test_invalid_projection_type_project(self, sample_tensor):
+        with pytest.raises(NotImplementedError):
+            GaLoreProjector(projection_type='invalid').project(sample_tensor, 1)
 
-    with pytest.raises(NotImplementedError):
-        GaLoreProjector(projection_type='invalid').project(p, 1)
+    def test_invalid_projection_type_project_back(self, sample_tensor):
+        with pytest.raises(NotImplementedError):
+            GaLoreProjector(projection_type='invalid').project_back(sample_tensor)
 
-    with pytest.raises(NotImplementedError):
-        GaLoreProjector(projection_type='invalid').project_back(p)
-
-    with pytest.raises(ValueError):
+    @pytest.mark.parametrize('method', ['project', 'project_back'])
+    def test_full_projection_validation(self, sample_tensor, method):
         full_projector = GaLoreProjector(projection_type='full')
-        full_projector.ortho_matrix = p
-        full_projector.project(p, 1)
+        full_projector.ortho_matrix = sample_tensor
+        with pytest.raises(ValueError):
+            if method == 'project':
+                full_projector.project(sample_tensor, 1)
+            else:
+                full_projector.project_back(sample_tensor)
 
-    with pytest.raises(ValueError):
-        full_projector = GaLoreProjector(projection_type='full')
-        full_projector.ortho_matrix = p
-        full_projector.project_back(p)
+    def test_left_projection_with_random_matrix(self, sample_tensor):
+        projector = GaLoreProjector(projection_type='left', rank=1)
+        projector.get_orthogonal_matrix(sample_tensor, projection_type='left', from_random_matrix=True)
 
-    projector = GaLoreProjector(projection_type='left', rank=1)
-    projector.get_orthogonal_matrix(p, projection_type='left', from_random_matrix=True)
+    def test_left_projection_without_rank(self, sample_tensor):
+        with pytest.raises(TypeError):
+            projector = GaLoreProjector(projection_type='left', rank=None)
+            projector.get_orthogonal_matrix(sample_tensor, projection_type='left', from_random_matrix=True)
 
-    with pytest.raises(TypeError):
-        projector = GaLoreProjector(projection_type='left', rank=None)
-        projector.get_orthogonal_matrix(p, projection_type='left', from_random_matrix=True)
-
-    with pytest.raises(ValueError):
-        projector = GaLoreProjector(projection_type='std', rank=1)
-        projector.get_orthogonal_matrix(p, projection_type='std')
+    def test_std_projection_invalid(self, sample_tensor):
+        with pytest.raises(ValueError):
+            projector = GaLoreProjector(projection_type='std', rank=1)
+            projector.get_orthogonal_matrix(sample_tensor, projection_type='std')
 
 
 @pytest.mark.parametrize('optimizer_name', ['Muon', 'AdaMuon', 'AdaGO'])
