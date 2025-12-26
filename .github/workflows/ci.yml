@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 env:
-  OMP_NUM_THREADS: 2
-  MKL_NUM_THREADS: 2
+  OMP_NUM_THREADS: 8
+  MKL_NUM_THREADS: 8
   PYTHONDONTWRITEBYTECODE: 1
 
 jobs:
@@ -18,17 +18,20 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: 3.12
-          cache: 'pip'
+          enable-cache: true
+          prune-cache: false
 
-      - name: Install dev-dependencies
-        run: pip --disable-pip-version-check install --no-compile -r requirements-dev.txt
+      - name: Install dependencies
+        run: uv sync --frozen --no-editable
 
       - name: Run lint
-        run: make lint
+        run: |
+          uv run ruff check pytorch_optimizer examples tests scripts hubconf.py
+          uv run black -S -l 119 --check pytorch_optimizer examples tests scripts hubconf.py
 
   type_check:
     name: Static Type Check
@@ -36,14 +39,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: 3.12
-          cache: 'pip'
+          enable-cache: true
+          prune-cache: false
 
-      - name: Install dev-dependencies
-        run: pip --disable-pip-version-check install --no-compile -r requirements-dev.txt
+      - name: Install dependencies
+        run: uv sync --frozen --no-editable
 
       - uses: jakebailey/pyright-action@v2
         with:
@@ -58,17 +62,18 @@ jobs:
     steps:
     - uses: actions/checkout@v5
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: ${{ matrix.python-version }}
-        cache: 'pip'
+        enable-cache: true
+        prune-cache: false
 
-    - name: Install dev-dependencies
-      run: pip --disable-pip-version-check install --no-compile -r requirements-dev.txt
+    - name: Install dependencies
+      run: uv sync --frozen --no-editable
 
     - name: Check test
-      run: make test
+      run: uv run --frozen pytest
 
     - name: Upload coverage
       if: success()

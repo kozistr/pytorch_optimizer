@@ -92,20 +92,19 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Setup Python 3.12
-        uses: actions/setup-python@v5
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: 3.12
-          cache: 'pip'
+          enable-cache: true
+          prune-cache: false
 
       - name: Install dependencies
-        run: |
-          pip --disable-pip-version-check install --no-compile poetry
-          pip --disable-pip-version-check install --no-compile -r requirements.txt
+        run: uv sync --frozen --no-dev
 
       - name: Publish package to PyPI
         env:
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
-          poetry config pypi-token.pypi $PYPI_TOKEN
-          poetry publish --build
+          uv build
+          uv publish
