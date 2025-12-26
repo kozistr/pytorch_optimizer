@@ -227,7 +227,7 @@ class TRAC(BaseOptimizer):
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
-        # TODO: backup is first to get the delta of param and grad, but it does not work.
+        # TODO(kozistr): backup is first to get the delta of param and grad, but it does not work.
         with torch.enable_grad():
             loss = self.optimizer.step(closure)
 
