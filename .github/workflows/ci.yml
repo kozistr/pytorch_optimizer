@@ -97,7 +97,7 @@ jobs:
       run: uv sync --frozen
 
     - name: Check test
-      run: uv run --forzen pytest
+      run: uv run --frozen pytest
 
     - name: Upload coverage
       if: success()
