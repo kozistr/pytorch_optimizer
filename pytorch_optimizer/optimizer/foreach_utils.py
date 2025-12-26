@@ -1,11 +1,4 @@
-"""Utility functions for foreach (multi-tensor) operations.
-
-This module provides helper functions to enable vectorized operations across
-multiple tensors, which can significantly speed up optimizer computations
-by reducing Python overhead and leveraging better kernel fusion on GPUs.
-"""
-
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 
@@ -90,12 +83,9 @@ def group_tensors_by_device_and_dtype(
     return list(groups.values())
 
 
-# Foreach operation wrappers with automatic fallback
-
-
 def foreach_add_(
     tensors: List[torch.Tensor],
-    other: torch.Tensor | List[torch.Tensor] | float,
+    other: Union[torch.Tensor, List[torch.Tensor], float],
     *,
     alpha: float = 1.0,
     foreach: bool = True,
@@ -123,7 +113,7 @@ def foreach_add_(
 
 def foreach_mul_(
     tensors: List[torch.Tensor],
-    scalar: float | List[torch.Tensor],
+    scalar: Union[float, List[torch.Tensor]],
     foreach: bool = True,
 ) -> None:
     """Apply in-place multiplication to a list of tensors.
@@ -307,7 +297,7 @@ def foreach_neg_(
 
 def foreach_sub_(
     tensors: List[torch.Tensor],
-    other: torch.Tensor | List[torch.Tensor] | float,
+    other: Union[torch.Tensor, List[torch.Tensor], float],
     *,
     alpha: float = 1.0,
     foreach: bool = True,
@@ -335,7 +325,7 @@ def foreach_sub_(
 
 def foreach_div_(
     tensors: List[torch.Tensor],
-    other: float | List[torch.Tensor],
+    other: Union[float, List[torch.Tensor]],
     foreach: bool = True,
 ) -> None:
     """Apply in-place division to a list of tensors.
