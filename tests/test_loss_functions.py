@@ -116,7 +116,7 @@ class TestDiceAndJaccard:
         assert float(jaccard_score) == pytest.approx(0.666666, abs=self.eps)
 
     @torch.no_grad()
-    @pytest.mark.parametrize('y_pred,y_true,pred_view,expected_loss', BINARY_DICE_RECIPES)
+    @pytest.mark.parametrize(('y_pred', 'y_true', 'pred_view', 'expected_loss'), BINARY_DICE_RECIPES)
     @pytest.mark.parametrize(
         'criterion',
         [
