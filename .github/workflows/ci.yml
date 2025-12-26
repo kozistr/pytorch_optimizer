@@ -92,5 +92,9 @@ jobs:
     needs: [lint, type_check, test]
     runs-on: ubuntu-latest
     steps:
+      - name: Check results
+        if: needs.lint.result == 'failure' || needs.type_check.result == 'failure' || needs.test.result == 'failure'
+        run: exit 1
+
       - name: Report Summary
         run: echo "✅ Lint and tests completed for all targets"
