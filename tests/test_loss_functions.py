@@ -19,21 +19,8 @@ from pytorch_optimizer.loss import (
     soft_jaccard_score,
 )
 from pytorch_optimizer.loss.bi_tempered import bi_tempered_logistic_loss
+from tests.constants import BINARY_DICE_RECIPES
 from tests.utils import MultiClassExample
-
-BINARY_DICE_RECIPES = [
-    ([1.0, 1.0, 1.0], [1, 1, 1], (1, 1, 1, -1), 0.0),
-    ([1.0, 0.0, 1.0], [1, 0, 1], (1, 1, 1, -1), 0.0),
-    ([0.0, 0.0, 0.0], [0, 0, 0], (1, 1, 1, -1), 0.0),
-    ([1.0, 1.0, 1.0], [0, 0, 0], (1, 1, -1), 0.0),
-    ([1.0, 0.0, 1.0], [0, 1, 0], (1, 1, -1), 0.996677),
-    ([0.0, 0.0, 0.0], [1, 1, 1], (1, 1, -1), 0.996677),
-]
-
-
-@pytest.fixture
-def binary_predictions():
-    return torch.arange(0.0, 1.0, 0.1), torch.FloatTensor([0.0] * 5 + [1.0] * 5)
 
 
 class TestBinaryCE:
@@ -129,7 +116,7 @@ class TestDiceAndJaccard:
         assert float(jaccard_score) == pytest.approx(0.666666, abs=self.eps)
 
     @torch.no_grad()
-    @pytest.mark.parametrize('y_pred,y_true,pred_view,expected_loss', BINARY_DICE_RECIPES)
+    @pytest.mark.parametrize(('y_pred', 'y_true', 'pred_view', 'expected_loss'), BINARY_DICE_RECIPES)
     @pytest.mark.parametrize(
         'criterion',
         [
@@ -138,7 +125,6 @@ class TestDiceAndJaccard:
         ],
     )
     def test_binary_dice_loss(self, y_pred, y_true, pred_view, expected_loss, criterion):
-        # brought from https://github.com/BloodAxe/pytorch-toolbelt/blob/develop/tests/test_losses.py#L84
         y_pred = torch.tensor(y_pred).view(*pred_view)
         y_true = torch.tensor(y_true).view(1, 1, 1, -1)
         loss = criterion(y_pred, y_true)

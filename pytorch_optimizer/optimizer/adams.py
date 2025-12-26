@@ -136,7 +136,7 @@ class AdamS(BaseOptimizer):
                 exp_avg_sq_hat_sum += exp_avg_sq_hat.sum() / bias_correction2
 
         if param_size == 0:
-            raise ZeroParameterSizeError()
+            raise ZeroParameterSizeError
 
         exp_avg_sq_hat_mean: float = math.sqrt(exp_avg_sq_hat_sum / param_size) + self.defaults['eps']
 

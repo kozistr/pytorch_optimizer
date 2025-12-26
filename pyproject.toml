@@ -1,11 +1,11 @@
-[tool.poetry]
+[project]
 name = "pytorch_optimizer"
 version = "3.9.0"
 description = "optimizer & lr scheduler & objective function collections in PyTorch"
-license = "Apache-2.0"
-authors = ["kozistr <kozistr@gmail.com>"]
-maintainers = ["kozistr <kozistr@gmail.com>"]
+license = { text = "Apache-2.0" }
 readme = "README.md"
+authors = [{ name = "kozistr", email = "kozistr@gmail.com" }]
+maintainers = [{ name = "kozistr", email = "kozistr@gmail.com" }]
 homepage = "https://github.com/kozistr/pytorch_optimizer"
 repository = "https://github.com/kozistr/pytorch_optimizer"
 documentation = "https://pytorch-optimizers.readthedocs.io/en/latest"
@@ -46,38 +46,36 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-[tool.poetry.dependencies]
-python = ">=3.8"
-numpy = [
-    { version = ">1.24.4", python = ">=3.9" },
-    { version = "<=1.24.4", python = "<3.9" },
+requires-python = ">=3.8"
+dependencies = [
+    'numpy>1.24.4; python_version >= "3.9"',
+    'numpy<=1.24.4; python_version < "3.9"',
+    'torch>=1.10,<2.5; python_version < "3.9"',
+    'torch>=1.10,<2.9; python_version >= "3.9" and python_version < "3.10"',
+    'torch>=1.10; python_version >= "3.10"',
 ]
+
+[dependency-groups]
+dev = [
+    'black<25; python_version < "3.9"',
+    'black>=25,<26; python_version >= "3.9"',
+    'ruff>=0.14,<0.15',
+    'pyright==1.1.407',
+    'pytest<9; python_version < "3.10"',
+    'pytest>=9,<10; python_version >= "3.10"',
+    'pytest-cov<6; python_version < "3.9"',
+    'pytest-cov>=6,<7; python_version >= "3.9"',
+]
+
+[tool.uv.sources]
 torch = [
-    { version = ">=1.10,<2.5", python = "<3.9", source = "torch" },
-    { version = ">=1.10,<2.9", python = ">=3.9,<3.10", source = "torch" },
-    { version = ">=1.10", python = ">=3.10", source = "torch" },
+    { index = "pytorch-cpu" },
 ]
 
-[tool.poetry.group.dev.dependencies]
-black = [
-    { version = "<25", python = "<3.9" },
-    { version = "^25", python = ">=3.9" },
-]
-ruff = "^0.14"
-pyright = "^1.1"
-pytest = [
-    { version = "<9", python = "<3.10" },
-    { version = "^9", python = ">=3.10" },
-]
-pytest-cov = [
-    { version = "<6", python = "<3.9" },
-    { version = "^6", python = ">=3.9" },
-]
-
-[[tool.poetry.source]]
-name = "torch"
+[[tool.uv.index]]
+name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
-priority = "explicit"
+explicit = true
 
 [tool.ruff]
 src = ["pytorch_optimizer", "tests", "examples"]
@@ -100,13 +98,14 @@ exclude = [
 [tool.ruff.lint]
 select = [
     "A", "B", "C4", "D", "E", "F", "G", "I", "N", "S", "T", "ISC", "ICN", "W", "INP", "PIE", "T20", "RET", "SIM",
-    "TID", "ARG", "ERA", "RUF", "YTT", "PL", "Q"
+    "TID", "ARG", "ERA", "RUF", "YTT", "PL", "Q", "TD", "TC", "SLOT", "RSE", "PT",
 ]
 ignore = [
     "B905",
     "D100", "D102", "D104", "D105", "D107", "D203", "D213", "D413",
     "PLR0913", "PLR2004", "PLW2901",
     "Q003", "ARG002", "RUF100",
+    "TD003", "TC002", "TC006", "PT011",
 ]
 fixable = ["ALL"]
 unfixable = ["F401"]
@@ -153,6 +152,7 @@ pythonPlatform = "Linux"
 
 [tool.pytest.ini_options]
 testpaths = "tests"
+addopts = "-p no:pastebin -p no:nose -p no:doctest --disable-warnings --cov=pytorch_optimizer --cov-report=xml"
 
 [tool.coverage.run]
 omit = [
@@ -162,5 +162,5 @@ omit = [
 ]
 
 [build-system]
-requires = ["poetry-core>=2.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

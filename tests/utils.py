@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 import torch
@@ -7,7 +7,7 @@ from torch.nn.functional import relu
 from torch.optim import AdamW
 
 from pytorch_optimizer.base.type import Loss
-from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, ScheduleFreeWrapper
+from pytorch_optimizer.optimizer import TRAC, Lookahead, OrthoGrad, ScheduleFreeWrapper, load_optimizer
 from pytorch_optimizer.optimizer.alig import l2_projection
 
 
@@ -126,7 +126,7 @@ def tensor_to_numpy(x: torch.Tensor) -> np.ndarray:
 
 
 def sphere_loss(x: torch.Tensor) -> torch.Tensor:
-    return (x ** 2).sum()  # fmt: skip
+    return x.pow(2).sum()
 
 
 def build_model(use_complex: bool = False):
@@ -155,3 +155,208 @@ def build_optimizer_parameter(parameters, optimizer_name, config):
         parameters = [{'params': norm_params, 'normalized': True}, {'params': regular_params}]
 
     return parameters, config
+
+
+def make_closure(value):
+    def closure():
+        return value
+
+    return closure
+
+
+def should_use_create_graph(optimizer_name: str) -> bool:
+    return optimizer_name.lower() in ('adahessian', 'sophiah')
+
+
+class OptimizerBuilder:
+    @staticmethod
+    def with_muon(params, use_muon: bool):
+        def with_flag(group):
+            if isinstance(group, dict):
+                return group if 'use_muon' in group else {**group, 'use_muon': use_muon}
+            return {'params': group, 'use_muon': use_muon}
+
+        return [with_flag(group) for group in params] if isinstance(params, list) else [with_flag(params)]
+
+    @classmethod
+    def create(cls, name: str, params: List, **overrides):
+        optimizer_name: str = name.lower()
+
+        if optimizer_name == 'lookahead':
+            return Lookahead(load_optimizer('adamw')(params), k=1)
+        if optimizer_name == 'trac':
+            return TRAC(load_optimizer('adamw')(params))
+        if optimizer_name == 'orthograd':
+            return OrthoGrad(load_optimizer('adamw')(params))
+
+        if optimizer_name == 'ranger21':
+            overrides.update({'num_iterations': 1, 'lookahead_merge_time': 1})
+        elif optimizer_name == 'bsam':
+            overrides.update({'num_data': 1})
+        elif optimizer_name in ('lamb', 'ralamb'):
+            overrides.update({'pre_norm': True})
+        elif optimizer_name == 'alice':
+            overrides.update({'rank': 2, 'leading_basis': 1})
+        elif optimizer_name == 'adahessian':
+            overrides.update({'update_period': 2})
+
+        if optimizer_name in ('muon', 'adamuon', 'adago'):
+            params = cls.with_muon(params, use_muon=overrides.pop('use_muon', False))
+
+        return load_optimizer(optimizer_name)(params, **overrides)
+
+
+class Trainer:
+    def __init__(
+        self,
+        model: nn.Module,
+        loss_fn: nn.Module,
+        optimizer,
+        x_data: torch.Tensor,
+        y_data: torch.Tensor,
+    ):
+        self.model = model
+        self.loss_fn = loss_fn
+        self.optimizer = optimizer
+        self.x_data = x_data
+        self.y_data = y_data
+
+    def compute_loss(self, swap_args: bool = False) -> torch.Tensor:
+        y_pred = self.model(self.x_data)
+        if swap_args:
+            return self.loss_fn(self.y_data, y_pred)
+        return self.loss_fn(y_pred, self.y_data)
+
+    @staticmethod
+    def assert_loss_decreased(
+        init_loss: torch.Tensor,
+        final_loss: torch.Tensor,
+        threshold: float,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        init_loss_np = tensor_to_numpy(init_loss)
+        final_loss_np = tensor_to_numpy(final_loss)
+
+        assert (
+            init_loss_np > threshold * final_loss_np
+        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
+
+        return init_loss_np, final_loss_np
+
+    def run(
+        self,
+        iterations: int = 5,
+        create_graph: bool = False,
+        closure_fn=None,
+        threshold: float = 1.5,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        init_loss, loss = None, None
+        for _ in range(iterations):
+            self.optimizer.zero_grad()
+
+            loss = self.compute_loss()
+            init_loss = init_loss or loss
+
+            loss.backward(create_graph=create_graph)
+
+            if closure_fn is not None:
+                self.optimizer.step(closure_fn(loss))
+            else:
+                self.optimizer.step()
+
+        return self.assert_loss_decreased(init_loss, loss, threshold)
+
+    def run_bf16(
+        self,
+        iterations: int = 5,
+        create_graph: bool = False,
+        closure_fn=None,
+        threshold: float = 1.5,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        context = torch.autocast('cpu', dtype=torch.bfloat16)
+        scaler = torch.GradScaler(device='cpu', enabled=False)
+
+        init_loss, loss = None, None
+        for _ in range(iterations):
+            self.optimizer.zero_grad()
+
+            with context:
+                loss = self.compute_loss()
+
+            init_loss = init_loss or loss
+
+            scaler.scale(loss).backward(create_graph=create_graph)
+
+            if closure_fn is not None:
+                self.optimizer.step(closure_fn(loss))
+            else:
+                self.optimizer.step()
+
+        return self.assert_loss_decreased(init_loss, loss, threshold)
+
+    def run_sam_style(self, iterations: int = 3, threshold: float = 2.0) -> Tuple[np.ndarray, np.ndarray]:
+        init_loss, loss = None, None
+        for _ in range(iterations):
+            loss = self.compute_loss(swap_args=True)
+            loss.backward()
+            self.optimizer.first_step(zero_grad=True)
+
+            self.compute_loss(swap_args=True).backward()
+            self.optimizer.second_step(zero_grad=True)
+
+            init_loss = init_loss or loss
+
+        return self.assert_loss_decreased(init_loss, loss, threshold)
+
+    def run_with_closure(self, iterations: int = 3, threshold: float = 2.0) -> Tuple[np.ndarray, np.ndarray]:
+        def closure():
+            first_loss = self.compute_loss(swap_args=True)
+            first_loss.backward()
+            return first_loss
+
+        init_loss, loss = None, None
+        for _ in range(iterations):
+            loss = self.compute_loss(swap_args=True)
+            loss.backward()
+
+            self.optimizer.step(closure)
+            self.optimizer.zero_grad()
+
+            init_loss = init_loss or loss
+
+        return self.assert_loss_decreased(init_loss, loss, threshold)
+
+    def run_wsam_with_closure(self, iterations: int = 10, threshold: float = 1.5) -> Tuple[np.ndarray, np.ndarray]:
+        def closure():
+            _loss = self.compute_loss()
+            _loss.backward()
+            return _loss
+
+        init_loss, loss = None, None
+        for _ in range(iterations):
+            loss = self.optimizer.step(closure)
+            self.optimizer.zero_grad()
+
+            init_loss = init_loss or loss
+
+        return self.assert_loss_decreased(init_loss, loss, threshold)
+
+    def run_trac_style(self, iterations: int = 3, threshold: float = 2.0) -> Tuple[np.ndarray, np.ndarray]:
+        init_loss, loss = None, None
+        for _ in range(iterations):
+            loss = self.compute_loss()
+            init_loss = init_loss or loss
+
+            loss.backward()
+
+            self.optimizer.step()
+            self.optimizer.zero_grad()
+
+        return self.assert_loss_decreased(init_loss, loss, threshold)
+
+
+class LRSchedulerAssertions:
+    @staticmethod
+    def assert_lr_sequence(scheduler, expected_lrs, decimals: int = 7) -> None:
+        for expected_lr in expected_lrs:
+            scheduler.step()
+            np.testing.assert_almost_equal(expected_lr, scheduler.get_lr(), decimals)

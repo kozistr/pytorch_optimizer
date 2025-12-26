@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 import torch
 from torch import nn
@@ -7,53 +6,29 @@ from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeEr
 from pytorch_optimizer.optimizer import DynamicLossScaler, load_optimizer
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
-from tests.constants import COMPLEX_OPTIMIZERS, OPTIMIZERS
+from tests.constants import (
+    BF16_TEST_OPTIMIZER_NAMES,
+    COMPLEX_OPTIMIZERS,
+    COMPLEX_TEST_OPTIMIZER_NAMES,
+    OPTIMIZERS,
+    SKIP_BF16_OPTIMIZERS,
+)
 from tests.utils import (
     Example,
     LogisticRegression,
+    Trainer,
     build_model,
     build_optimizer_parameter,
     dummy_closure,
     ids,
+    make_closure,
     names,
+    should_use_create_graph,
     simple_parameter,
     simple_sparse_parameter,
     simple_zero_rank_parameter,
     sphere_loss,
-    tensor_to_numpy,
 )
-
-
-def make_closure(value):
-    def closure():
-        return value
-
-    return closure
-
-
-def should_use_create_graph(optimizer_name: str) -> bool:
-    return optimizer_name.lower() in ('adahessian', 'sophiah')
-
-
-def run_optimizer_steps(
-    optimizer,
-    model,
-    loss_fn,
-    x_data,
-    y_data,
-    closure_fn=None,
-    iterations: int = 2,
-    create_graph: bool = False,
-):
-    init_loss, loss = np.inf, np.inf
-    for _ in range(iterations):
-        optimizer.zero_grad()
-        loss = loss_fn(model(x_data), y_data)
-        if init_loss == np.inf:
-            init_loss = loss
-        loss.backward(create_graph=create_graph)
-        optimizer.step(closure_fn(loss) if closure_fn else None)
-    return init_loss, loss
 
 
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
@@ -71,29 +46,26 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
     if optimizer_name.endswith('schedulefree'):
         optimizer.train()
 
-    def closure(x):
+    def closure_fn(x):
         return make_closure(x) if optimizer_name in ('AliG',) or optimizer_name.startswith('Emo') else None
 
-    init_loss, loss = run_optimizer_steps(
-        optimizer,
-        model,
-        loss_fn,
-        x_data,
-        y_data,
-        closure_fn=closure,
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(
         iterations=iterations,
         create_graph=should_use_create_graph(optimizer_name),
+        closure_fn=closure_fn,
+        threshold=1.5,
     )
-
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_bf16_config', OPTIMIZERS, ids=ids)
 def test_bf16_optimizers(optimizer_bf16_config, environment):
     optimizer_class, config, iterations = optimizer_bf16_config
     optimizer_name: str = optimizer_class.__name__
-    if optimizer_name in ('Adai', 'Prodigy', 'Nero'):
+    if optimizer_name.lower() in SKIP_BF16_OPTIMIZERS:
         pytest.skip(f'skip {optimizer_name}')
+    if optimizer_name not in BF16_TEST_OPTIMIZER_NAMES:
+        pytest.skip(f'skip {optimizer_name} (covered by f32 tests)')
 
     x_data, y_data = environment
     model, loss_fn = build_model()
@@ -104,35 +76,26 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
     if optimizer_name.endswith('schedulefree'):
         optimizer.train()
 
-    context = torch.autocast('cpu', dtype=torch.bfloat16)
-    scaler = torch.GradScaler(device='cpu', enabled=False)
-
-    def closure(x):
+    def closure_fn(x):
         return make_closure(x) if optimizer_name in ('AliG',) or optimizer_name.startswith('Emo') else None
 
-    init_loss, loss = np.inf, np.inf
-    for _ in range(iterations):
-        optimizer.zero_grad()
-
-        with context:
-            loss = loss_fn(model(x_data), y_data)
-
-        if init_loss == np.inf:
-            init_loss = loss
-
-        scaler.scale(loss).backward(create_graph=optimizer_name in ('AdaHessian', 'SophiaH'))
-
-        optimizer.step(closure(loss))
-
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run_bf16(
+        iterations=iterations,
+        create_graph=should_use_create_graph(optimizer_name),
+        closure_fn=closure_fn,
+        threshold=1.5,
+    )
 
 
 @pytest.mark.parametrize('optimizer_complex_config', OPTIMIZERS, ids=ids)
 def test_complex_optimizers(optimizer_complex_config, environment):
     optimizer_class, config, iterations = optimizer_complex_config
-    optimizer_name: str = optimizer_class.__name__.lower()
-    if optimizer_name not in COMPLEX_OPTIMIZERS:
-        pytest.skip(f'{optimizer_name} does not support')
+    optimizer_name: str = optimizer_class.__name__
+    if optimizer_name.lower() not in COMPLEX_OPTIMIZERS:
+        pytest.skip(f'{optimizer_name} does not support complex')
+    if optimizer_name not in COMPLEX_TEST_OPTIMIZER_NAMES:
+        pytest.skip(f'skip {optimizer_name} (covered by f32 tests)')
 
     x_data, y_data = environment
     model, loss_fn = build_model(use_complex=True)
@@ -140,24 +103,20 @@ def test_complex_optimizers(optimizer_complex_config, environment):
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
     optimizer = optimizer_class(parameters, **config)
-    if optimizer_name.endswith('schedulefree'):
+    optimizer_name_lower = optimizer_name.lower()
+    if optimizer_name_lower.endswith('schedulefree'):
         optimizer.train()
 
-    def closure(x):
-        return make_closure(x) if optimizer_name in ('alig',) or optimizer_name.startswith('Emo') else None
+    def closure_fn(x):
+        return make_closure(x) if optimizer_name_lower in ('alig',) or optimizer_name_lower.startswith('emo') else None
 
-    init_loss, loss = run_optimizer_steps(
-        optimizer,
-        model,
-        loss_fn,
-        x_data,
-        y_data,
-        closure_fn=closure,
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(
         iterations=iterations,
-        create_graph=should_use_create_graph(optimizer_name),
+        create_graph=should_use_create_graph(optimizer_name_lower),
+        closure_fn=closure_fn,
+        threshold=1.5,
     )
-
-    assert tensor_to_numpy(init_loss) > 1.5 * tensor_to_numpy(loss)
 
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)

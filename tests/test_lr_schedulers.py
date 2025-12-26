@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from torch import nn
 
+from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 from pytorch_optimizer.lr_scheduler.chebyshev import (
     get_chebyshev_perm_steps,
     get_chebyshev_permutation,
@@ -16,123 +17,8 @@ from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from pytorch_optimizer.lr_scheduler.rex import REXScheduler
 from pytorch_optimizer.lr_scheduler.wsd import get_wsd_schedule
 from pytorch_optimizer.optimizer import AdamW
-from tests.utils import Example
-
-CAWR_RECIPES = [
-    (
-        10,
-        1.0,
-        1e-3,
-        1e-6,
-        5,
-        1.0,
-        20,
-        [
-            1e-06,
-            0.000201,
-            0.000401,
-            0.0006,
-            0.0008,
-            0.001,
-            0.000905,
-            0.000655,
-            0.000346,
-            9.6e-05,
-            1e-06,
-            0.000201,
-            0.000401,
-            0.0006,
-            0.0008,
-            0.001,
-            0.000905,
-            0.000655,
-            0.000346,
-            9.6e-05,
-        ],
-    ),
-    (
-        10,
-        0.9,
-        1e-3,
-        1e-6,
-        5,
-        0.5,
-        20,
-        [
-            1e-06,
-            0.000201,
-            0.000401,
-            0.0006,
-            0.0008,
-            0.001,
-            0.000905,
-            0.000655,
-            0.000346,
-            9.6e-05,
-            1e-6,
-            0.000101,
-            0.000201,
-            0.0003,
-            0.0004,
-            0.0005,
-            0.000427,
-            0.000251,
-            7.4e-05,
-            1e-06,
-        ],
-    ),
-]
-LWL_RECIPE = [
-    0.001,
-    0.0028,
-    0.0046,
-    0.0064,
-    0.0082,
-    0.01,
-    0.00802,
-    0.00604,
-    0.00406,
-    0.00208,
-]
-LWC_RECIPE = [
-    0.001,
-    0.00280,
-    0.00460,
-    0.00640,
-    0.00820,
-    0.01000,
-    0.00905,
-    0.00658,
-    0.00352,
-    0.00105,
-]
-LWP_RECIPE = [
-    0.001,
-    0.002800,
-    0.004600,
-    0.006400,
-    0.008200,
-    0.010000,
-    0.010000,
-    0.014101,
-    0.017247,
-    0.019900,
-]
-PROPORTION_LEARNING_RATES = [(1e-1, 1e-1, 2.0), (1e-1, 1e-3, 1.090909)]
-
-
-class LRSchedulerAssertions:
-
-    @staticmethod
-    def assert_lr_sequence(scheduler, expected_lrs, decimals: int = 7) -> None:
-        for expected_lr in expected_lrs:
-            scheduler.step()
-            np.testing.assert_almost_equal(expected_lr, scheduler.get_lr(), decimals)
-
-
-@pytest.fixture
-def optimizer_factory():
-    return AdamW(Example().parameters())
+from tests.constants import CAWR_RECIPES, LWC_RECIPE, LWL_RECIPE, LWP_RECIPE, PROPORTION_LEARNING_RATES
+from tests.utils import Example, LRSchedulerAssertions
 
 
 @pytest.mark.parametrize('cosine_annealing_warmup_restart_param', CAWR_RECIPES)
@@ -345,3 +231,56 @@ def test_wsd_lr_scheduler(recipe, optimizer_factory):
 def test_deberta_v3_large_lr_scheduler():
     model = nn.Sequential(*[nn.Linear(1, 1, bias=False) for _ in range(400)])
     deberta_v3_large_lr_scheduler(model)
+
+
+class TestLRSchedulerParameters:
+
+    def test_cosine_annealing_warmup_restarts_params(self, optimizer_factory):
+        with pytest.raises(ValueError) as error_info:
+            CosineAnnealingWarmupRestarts(
+                optimizer=optimizer_factory,
+                first_cycle_steps=10,
+                warmup_steps=20,
+            )
+
+        assert str(error_info.value) == 'warmup_steps must be smaller than first_cycle_steps. 20 < 10'
+
+        min_lr: float = 1e-6
+        first_cycle_steps: int = 5
+        lr_scheduler = CosineAnnealingWarmupRestarts(
+            optimizer=optimizer_factory,
+            min_lr=min_lr,
+            first_cycle_steps=first_cycle_steps,
+            warmup_steps=0,
+        )
+        lr_scheduler.step_in_cycle = -1
+        expected_max_lr: float = round(lr_scheduler.get_lr()[0], 6)
+        np.testing.assert_almost_equal(min_lr, expected_max_lr)
+
+        for _ in range(first_cycle_steps + 1):
+            lr_scheduler.step(epoch=None)
+
+    def test_linear_warmup_lr_scheduler_params(self, optimizer_factory):
+        with pytest.raises(ValueError) as error_info:
+            PolyScheduler(poly_order=-1, optimizer=optimizer_factory, t_max=1, max_lr=1)
+
+        assert str(error_info.value) == 'poly_order must be positive. -1'
+
+        with pytest.raises(NegativeLRError):
+            PolyScheduler(optimizer=optimizer_factory, t_max=1, max_lr=-1)
+
+        with pytest.raises(NegativeLRError):
+            PolyScheduler(optimizer=optimizer_factory, t_max=1, max_lr=1, min_lr=-1)
+
+        with pytest.raises(NegativeLRError):
+            PolyScheduler(optimizer=optimizer_factory, t_max=1, max_lr=1, min_lr=1, init_lr=-1)
+
+        with pytest.raises(NegativeStepError):
+            PolyScheduler(optimizer=optimizer_factory, t_max=-1, max_lr=1, min_lr=1, init_lr=1)
+
+        with pytest.raises(NegativeStepError):
+            PolyScheduler(optimizer=optimizer_factory, t_max=1, max_lr=1, min_lr=1, init_lr=1, warmup_steps=-1)
+
+    def test_chebyshev_params(self):
+        with pytest.raises(IndexError):
+            get_chebyshev_perm_steps(0)

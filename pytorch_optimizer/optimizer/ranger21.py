@@ -236,7 +236,7 @@ class Ranger21(BaseOptimizer):
                 variance_ma_sum += (variance_ma / bias_correction2).sum()
 
         if param_size == 0:
-            raise ZeroParameterSizeError()
+            raise ZeroParameterSizeError
 
         variance_normalized = math.sqrt(variance_ma_sum / param_size)
 
