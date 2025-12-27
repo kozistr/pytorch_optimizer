@@ -105,7 +105,7 @@ def test_complex_optimizers(optimizer_config, environment):
     x_data = x_data.to(torch.complex64)
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
-    optimizer = optimizer_class(parameters, **config)
+    optimizer = optimizer_class(parameters, **config, foreach=False)
     optimizer_name_lower = optimizer_name.lower()
     if optimizer_name_lower.endswith('schedulefree'):
         optimizer.train()
