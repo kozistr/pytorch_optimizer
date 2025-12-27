@@ -81,7 +81,7 @@ class Lion(BaseOptimizer):
                 if group.get('adanorm'):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
-    def _can_use_foreach(self, group: ParamGroup) -> bool:  # noqa: PLR0911
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
         """Check if foreach can be used for this group.
 
         Foreach is disabled when using features that require per-parameter handling:
@@ -89,25 +89,11 @@ class Lion(BaseOptimizer):
         - Gradient centralization
         - AdaNorm
         - Cautious updates
-        - Maximize
         """
         if group.get('foreach') is False:
             return False
 
-        if self.maximize:
-            return False
-
         if group.get('use_gc') or group.get('adanorm') or group.get('cautious'):
-            return False
-
-        params = [p for p in group['params'] if p.grad is not None]
-        if len(params) == 0:
-            return False
-
-        if any(torch.is_complex(p) for p in params):
-            return False
-
-        if any(p.grad.is_sparse for p in params):
             return False
 
         return self.can_use_foreach(group, group.get('foreach'))
@@ -122,6 +108,9 @@ class Lion(BaseOptimizer):
         """Foreach-optimized step for a parameter group."""
         beta1, beta2 = group['betas']
         lr = group['lr']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
 
         self.apply_weight_decay_foreach(
             params=params,

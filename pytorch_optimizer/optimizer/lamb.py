@@ -113,36 +113,19 @@ class Lamb(BaseOptimizer):
                 if group.get('adanorm'):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
-    def _can_use_foreach(self, group: ParamGroup) -> bool:  # noqa: PLR0911
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
         """Check if foreach can be used for this group.
 
         Foreach is disabled when using features that require per-parameter handling:
         - Complex tensors (view_as_real)
         - AdaNorm
         - Rectify (has conditional logic per parameter)
-        - Maximize
         - Pre-norm (requires gradient normalization)
         """
         if group.get('foreach') is False:
             return False
 
-        if self.maximize:
-            return False
-
-        if self.pre_norm:
-            return False
-
-        if group.get('adanorm') or group.get('rectify'):
-            return False
-
-        params = [p for p in group['params'] if p.grad is not None]
-        if len(params) == 0:
-            return False
-
-        if any(torch.is_complex(p) for p in params):
-            return False
-
-        if any(p.grad.is_sparse for p in params):
+        if self.pre_norm or (group.get('adanorm') or group.get('rectify')):
             return False
 
         return self.can_use_foreach(group, group.get('foreach'))
@@ -160,6 +143,9 @@ class Lamb(BaseOptimizer):
         beta1, beta2 = group['betas']
         eps = group['eps']
         beta3: float = 1.0 - beta1 if group['grad_averaging'] else 1.0
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
 
         self.apply_weight_decay_foreach(
             params=params,

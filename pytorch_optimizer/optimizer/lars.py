@@ -87,23 +87,12 @@ class LARS(BaseOptimizer):
         """Check if foreach can be used for this group.
 
         Foreach is disabled when using features that require per-parameter handling:
-        - Maximize
         - Nesterov momentum (requires per-parameter gradient modification)
         """
         if group.get('foreach') is False:
             return False
 
-        if self.maximize:
-            return False
-
         if group.get('nesterov'):
-            return False
-
-        params = [p for p in group['params'] if p.grad is not None]
-        if len(params) == 0:
-            return False
-
-        if any(p.grad.is_sparse for p in params):
             return False
 
         return self.can_use_foreach(group, group.get('foreach'))
@@ -121,6 +110,9 @@ class LARS(BaseOptimizer):
         weight_decay = group['weight_decay']
         trust_coeff = group['trust_coefficient']
         lr = group['lr']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
 
         scaled_grads = []
         for p, grad in zip(params, grads):

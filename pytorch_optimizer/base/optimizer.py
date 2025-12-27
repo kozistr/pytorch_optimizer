@@ -17,11 +17,7 @@ from pytorch_optimizer.base.type import (
     ParamGroup,
     State,
 )
-from pytorch_optimizer.optimizer.foreach_utils import (
-    foreach_add_,
-    foreach_mul_,
-    has_foreach_support,
-)
+from pytorch_optimizer.optimizer.foreach_utils import foreach_add_, foreach_mul_
 
 
 class BaseOptimizer(ABC, Optimizer):
@@ -334,8 +330,8 @@ class BaseOptimizer(ABC, Optimizer):
         """Check if foreach operations can be used for this parameter group.
 
         Args:
-            group: Parameter group dictionary.
-            foreach: User-specified foreach preference (None for auto-detect).
+            group (ParamGroup): Parameter group dictionary.
+            foreach (Optional[bool]): User-specified foreach preference (None for auto-detect).
 
         Returns:
             True if foreach operations should be used, False otherwise.
@@ -343,11 +339,17 @@ class BaseOptimizer(ABC, Optimizer):
         if foreach is False:
             return False
 
-        params = [p for p in group['params'] if p.grad is not None and not p.grad.is_sparse]
-        if len(params) == 0:
-            return False
+        has_param: bool = False
+        for p in group['params']:
+            g = p.grad
+            if g is None:
+                continue
 
-        return has_foreach_support(params)
+            has_param = True
+            if g.is_sparse or torch.is_complex(p):
+                return False
+
+        return has_param
 
     @staticmethod
     def collect_trainable_params(

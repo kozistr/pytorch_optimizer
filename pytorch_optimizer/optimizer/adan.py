@@ -108,15 +108,11 @@ class Adan(BaseOptimizer):
 
         return torch.clamp(self.defaults['max_grad_norm'] / global_grad_norm, max=1.0)
 
-    def _can_use_foreach(self, group: ParamGroup) -> bool:  # noqa: PLR0911
-        if group.get('foreach') is False or self.maximize:
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
+        if group.get('foreach') is False:
             return False
 
         if group.get('use_gc') or group.get('adanorm'):
-            return False
-
-        params = [p for p in group['params'] if p.grad is not None]
-        if not params or any(torch.is_complex(p) or p.grad.is_sparse for p in params):
             return False
 
         return self.can_use_foreach(group, group.get('foreach'))
@@ -139,6 +135,9 @@ class Adan(BaseOptimizer):
         bias_correction1: float = self.debias(beta1, group['step'])
         bias_correction2: float = self.debias(beta2, group['step'])
         bias_correction3_sq: float = math.sqrt(self.debias(beta3, group['step']))
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
 
         if clip_global_grad_norm != 1.0:
             foreach_mul_(grads, clip_global_grad_norm, foreach=True)

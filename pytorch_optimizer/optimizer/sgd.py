@@ -186,17 +186,7 @@ class SGDW(BaseOptimizer):
         if group.get('foreach') is False:
             return False
 
-        if self.maximize:
-            return False
-
         if group['nesterov'] or group['momentum'] == 0.0:
-            return False
-
-        params = [p for p in group['params'] if p.grad is not None]
-        if len(params) == 0:
-            return False
-
-        if any(p.grad.is_sparse for p in params):
             return False
 
         return self.can_use_foreach(group, group.get('foreach'))
@@ -210,6 +200,9 @@ class SGDW(BaseOptimizer):
     ) -> None:
         lr = group['lr']
         dampening = group['dampening']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
 
         self.apply_weight_decay_foreach(
             params=params,
@@ -467,12 +460,8 @@ class SignSGD(BaseOptimizer):
             if group['momentum'] > 0.0:
                 state['momentum_buffer'] = torch.zeros_like(p)
 
-    def _can_use_foreach(self, group: ParamGroup) -> bool:  # noqa: PLR0911
-        if group.get('foreach') is False or self.maximize or group['momentum'] == 0.0:
-            return False
-
-        params = [p for p in group['params'] if p.grad is not None]
-        if not params or any(torch.is_complex(p) or p.grad.is_sparse for p in params):
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
+        if group.get('foreach') is False or group['momentum'] == 0.0:
             return False
 
         return self.can_use_foreach(group, group.get('foreach'))
@@ -485,6 +474,9 @@ class SignSGD(BaseOptimizer):
         momentum_buffers: List[torch.Tensor],
     ) -> None:
         lr = group['lr']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
 
         foreach_lerp_(momentum_buffers, grads, weight=1.0 - group['momentum'], foreach=True)
 

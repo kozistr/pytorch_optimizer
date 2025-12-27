@@ -105,15 +105,11 @@ class AdaBelief(BaseOptimizer):
                 if group.get('adanorm'):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
-    def _can_use_foreach(self, group: ParamGroup) -> bool:  # noqa: PLR0911
-        if group.get('foreach') is False or self.maximize:
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
+        if group.get('foreach') is False:
             return False
 
         if group.get('adanorm') or group['rectify'] or group['ams_bound']:
-            return False
-
-        params = [p for p in group['params'] if p.grad is not None]
-        if not params or any(torch.is_complex(p) or p.grad.is_sparse for p in params):
             return False
 
         return self.can_use_foreach(group, group.get('foreach'))
@@ -131,6 +127,9 @@ class AdaBelief(BaseOptimizer):
         eps = group['eps']
 
         bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
 
         self.apply_weight_decay_foreach(
             params=params,

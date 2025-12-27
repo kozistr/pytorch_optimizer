@@ -93,31 +93,17 @@ class StableAdamW(BaseOptimizer):
                     else None
                 )
 
-    def _can_use_foreach(self, group: ParamGroup) -> bool:  # noqa: PLR0911
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
         """Check if foreach can be used for this group.
 
         Foreach is disabled when using features that require per-parameter handling:
         - Complex tensors (view_as_real)
         - Kahan summation (requires per-parameter precision handling)
-        - Maximize
         """
         if group.get('foreach') is False:
             return False
 
-        if self.maximize:
-            return False
-
         if group.get('kahan_sum'):
-            return False
-
-        params = [p for p in group['params'] if p.grad is not None]
-        if len(params) == 0:
-            return False
-
-        if any(torch.is_complex(p) for p in params):
-            return False
-
-        if any(p.grad.is_sparse for p in params):
             return False
 
         return self.can_use_foreach(group, group.get('foreach'))
@@ -140,10 +126,12 @@ class StableAdamW(BaseOptimizer):
 
         eps_p2: float = math.pow(eps, 2)
 
-        rms_values = []
-        for grad, exp_avg_sq in zip(grads, exp_avg_sqs):
-            rms = self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
-            rms_values.append(rms)
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        rms_values: List[float] = [
+            self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2) for grad, exp_avg_sq in zip(grads, exp_avg_sqs)
+        ]
 
         if group['weight_decay'] != 0.0:
             for p, rms in zip(params, rms_values):
@@ -160,8 +148,7 @@ class StableAdamW(BaseOptimizer):
         foreach_add_(de_noms, eps, foreach=True)
 
         for p, exp_avg, de_nom, rms in zip(params, exp_avgs, de_noms, rms_values):
-            adj_lr = lr / rms
-            p.addcdiv_(exp_avg, de_nom, value=-adj_lr)
+            p.addcdiv_(exp_avg, de_nom, value=-lr / rms)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         """Per-parameter step (original implementation)."""
