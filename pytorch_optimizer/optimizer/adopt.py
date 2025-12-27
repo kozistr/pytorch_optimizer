@@ -116,7 +116,7 @@ class ADOPT(BaseOptimizer):
         )
 
         if group['step'] == 1:
-            torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0)
+            torch._foreach_addcmul_(exp_avg_sqs, grads, grads)
             return
 
         de_noms = torch._foreach_sqrt(exp_avg_sqs)

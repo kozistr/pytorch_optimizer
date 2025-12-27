@@ -414,8 +414,7 @@ class BaseOptimizer(ABC, Optimizer):
             return
 
         if weight_decouple:
-            decay = weight_decay * (1.0 if fixed_decay else lr)
-            torch._foreach_mul_(params, 1.0 - decay)
+            torch._foreach_mul_(params, 1.0 - weight_decay * (1.0 if fixed_decay else lr))
         else:
             torch._foreach_add_(grads, params, alpha=weight_decay)
 
