@@ -139,7 +139,7 @@ class StableAdamW(BaseOptimizer):
 
         step_sizes = [-step_size for step_size in step_sizes]
 
-        if group['kahan_sum'] and p.dtype in {torch.float16, torch.bfloat16}:
+        if group['kahan_sum'] and params[0].dtype in {torch.float16, torch.bfloat16}:
             de_noms = torch._foreach_sqrt(exp_avg_sqs)
             torch._foreach_add_(de_noms, group['eps'])
 
