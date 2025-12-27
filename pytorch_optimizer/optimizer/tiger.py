@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
@@ -15,6 +17,8 @@ class Tiger(BaseOptimizer):
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): Whether the optimizer uses decoupled weight decay as in AdamW.
         fixed_decay (bool): Whether to fix weight decay.
+        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+            None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
     """
 
@@ -26,6 +30,7 @@ class Tiger(BaseOptimizer):
         weight_decay: float = 0.01,
         weight_decouple: bool = True,
         fixed_decay: bool = False,
+        foreach: Optional[bool] = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -34,6 +39,7 @@ class Tiger(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
@@ -41,6 +47,7 @@ class Tiger(BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
+            'foreach': foreach,
         }
 
         super().__init__(params, defaults)
@@ -65,6 +72,66 @@ class Tiger(BaseOptimizer):
             if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(grad)
 
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
+        if group.get('foreach') is False:
+            return False
+
+        return self.can_use_foreach(group, group.get('foreach'))
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: List[torch.Tensor],
+        grads: List[torch.Tensor],
+        exp_avgs: List[torch.Tensor],
+    ) -> None:
+        beta = group['beta']
+        lr = group['lr']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(
+            params=params,
+            grads=grads,
+            lr=lr,
+            weight_decay=group['weight_decay'],
+            weight_decouple=group['weight_decouple'],
+            fixed_decay=group['fixed_decay'],
+        )
+
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta)
+
+        updates = [exp_avg.sign() for exp_avg in exp_avgs]
+        torch._foreach_add_(params, updates, alpha=-lr)
+
+    def _step_per_param(self, group: ParamGroup) -> None:
+        beta = group['beta']
+
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+
+            self.maximize_gradient(grad, maximize=self.maximize)
+
+            state = self.state[p]
+
+            self.apply_weight_decay(
+                p=p,
+                grad=grad,
+                lr=group['lr'],
+                weight_decay=group['weight_decay'],
+                weight_decouple=group['weight_decouple'],
+                fixed_decay=group['fixed_decay'],
+            )
+
+            exp_avg = state['exp_avg']
+            exp_avg.mul_(beta).add_(grad, alpha=1.0 - beta)
+
+            p.add_(torch.sign(exp_avg) if not torch.is_complex(exp_avg) else torch.sgn(exp_avg), alpha=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -76,32 +143,11 @@ class Tiger(BaseOptimizer):
             self.init_group(group)
             group['step'] += 1
 
-            beta = group['beta']
-
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                grad = p.grad
-
-                self.maximize_gradient(grad, maximize=self.maximize)
-
-                state = self.state[p]
-
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
-
-                exp_avg = state['exp_avg']
-                exp_avg.mul_(beta).add_(grad, alpha=1.0 - beta)
-
-                p.add_(
-                    torch.sign(exp_avg) if not torch.is_complex(exp_avg) else torch.sgn(exp_avg), alpha=-group['lr']
-                )
+            if self._can_use_foreach(group):
+                params, grads, state_dict = self.collect_trainable_params(group, self.state, state_keys=['exp_avg'])
+                if params:
+                    self._step_foreach(group, params, grads, state_dict['exp_avg'])
+            else:
+                self._step_per_param(group)
 
         return loss

@@ -4,18 +4,18 @@ FILES := pytorch_optimizer examples tests scripts hubconf.py
 BLACK_FLAGS := -S -l 119
 
 format:
-	python -m ruff check --fix $(FILES)
-	python -m black $(BLACK_FLAGS) $(FILES)
+	ruff check --fix $(FILES)
+	black $(BLACK_FLAGS) $(FILES)
 
 lint:
-	python -m black $(BLACK_FLAGS) --check $(FILES)
-	python -m ruff check $(FILES)
+	black $(BLACK_FLAGS) --check $(FILES)
+	ruff check $(FILES)
 
 check: lint
-	python -m pyright pytorch_optimizer examples
+	pyright pytorch_optimizer examples
 
 test:
-	python -m pytest -p no:pastebin -p no:nose -p no:doctest --disable-warnings -sv -vv --cov=pytorch_optimizer --cov-report=xml ./tests
+	pytest -p no:pastebin -p no:nose -p no:doctest --disable-warnings -sv -vv --cov=pytorch_optimizer --cov-report=xml ./tests
 
 requirements:
 	uv export --no-dev > requirements.txt
