@@ -99,39 +99,38 @@ class LARS(BaseOptimizer):
         grads: List[torch.Tensor],
         momentum_buffers: List[torch.Tensor],
     ) -> None:
-        """Foreach-optimized step for a parameter group."""
-        momentum = group['momentum']
-        dampening = group['dampening']
-        weight_decay = group['weight_decay']
-        trust_coeff = group['trust_coefficient']
-        lr = group['lr']
-
         if self.maximize:
             torch._foreach_neg_(grads)
 
-        scaled_grads = []
-        for p, grad in zip(params, grads):
-            if p.ndim > 1:
-                param_norm = torch.linalg.norm(p)
-                update_norm = torch.linalg.norm(grad)
+        masks = [p.ndim > 1 for p in params]
+        masked_params = [p for p, m in zip(params, masks) if m]
+        masked_grads = [g for g, m in zip(grads, masks) if m]
 
-                trust_ratio = trust_coeff * param_norm / update_norm if param_norm > 0.0 and update_norm > 0.0 else 1.0
+        if masked_params:
+            param_norms = torch._foreach_norm(masked_params)
+            grad_norms = torch._foreach_norm(masked_grads)
 
-                scaled_grad = grad.add(p, alpha=weight_decay).mul_(trust_ratio)
-            else:
-                scaled_grad = grad.clone()
+            trust_ratios = []
+            for pn, gn in zip(param_norms, grad_norms):
+                one = torch.ones_like(pn)
+                trust_ratio = torch.where(
+                    pn > 0.0,
+                    torch.where(gn > 0.0, (group['trust_coefficient'] * pn / gn), one),
+                    one,
+                )
+                trust_ratios.append(trust_ratio)
 
-            scaled_grads.append(scaled_grad)
+            torch._foreach_add_(masked_grads, masked_params, alpha=group['weight_decay'])
+            torch._foreach_mul_(masked_grads, trust_ratios)
 
-        if momentum > 0.0:
-            torch._foreach_mul_(momentum_buffers, momentum)
-            torch._foreach_add_(momentum_buffers, scaled_grads, alpha=1.0 - dampening)
-            torch._foreach_copy_(scaled_grads, momentum_buffers)
+        if group['momentum'] > 0.0:
+            torch._foreach_mul_(momentum_buffers, group['momentum'])
+            torch._foreach_add_(momentum_buffers, grads, alpha=1.0 - group['dampening'])
+            torch._foreach_copy_(grads, momentum_buffers)
 
-        torch._foreach_add_(params, scaled_grads, alpha=-lr)
+        torch._foreach_add_(params, grads, alpha=-group['lr'])
 
     def _step_per_param(self, group: ParamGroup) -> None:
-        """Per-parameter step (original implementation)."""
         for p in group['params']:
             if p.grad is None:
                 continue
