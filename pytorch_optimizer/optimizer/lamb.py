@@ -141,6 +141,9 @@ class Lamb(BaseOptimizer):
             torch._foreach_neg_(grads)
 
         if self.pre_norm:
+            if isinstance(grad_norm, torch.Tensor):
+                grad_norm = grad_norm.item()
+
             torch._foreach_div_(grads, grad_norm)
 
         self.apply_weight_decay_foreach(
