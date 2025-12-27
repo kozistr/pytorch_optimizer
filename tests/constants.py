@@ -204,6 +204,7 @@ FOREACH_OPTIMIZERS: frozenset = frozenset(
         'sgdw',
         'signsgd',
         'tiger',
+        'amos',
     }
 )
 

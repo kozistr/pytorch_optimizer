@@ -34,6 +34,7 @@ from pytorch_optimizer import (
     SGDW,
     AdaBelief,
     Adan,
+    Amos,
     Lamb,
     Lion,
     SignSGD,
@@ -361,6 +362,7 @@ def run_benchmarks(
     comparisons = []
 
     optimizers_config = [
+        (Amos, {'lr': 1e-3}),
         (Lion, {'lr': 1e-4}),
         (Tiger, {'lr': 1e-3}),
         (Adan, {'lr': 1e-3}),
