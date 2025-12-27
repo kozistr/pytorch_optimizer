@@ -120,8 +120,7 @@ class ADOPT(BaseOptimizer):
             return
 
         de_noms = torch._foreach_sqrt(exp_avg_sqs)
-        for d in de_noms:
-            d.clamp_(min=eps)
+        torch._foreach_clamp_min_(de_noms, eps)
 
         normed_grads = [g.div(d) for g, d in zip(grads, de_noms)]
         if self.clip_lambda is not None:
