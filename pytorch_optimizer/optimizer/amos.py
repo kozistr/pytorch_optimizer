@@ -161,6 +161,7 @@ class Amos(BaseOptimizer):
         momentum, beta = group['momentum'], group['beta']
 
         lr_sq: float = math.sqrt(group['lr'])
+        lr_p2: float = math.pow(group['lr'], 2)
         bias_correction: float = self.debias(beta, group['step'])
 
         for p in group['params']:
@@ -181,18 +182,18 @@ class Amos(BaseOptimizer):
 
             r_v_hat = bias_correction / (exp_avg_sq + group['eps'])
 
-            b = state['decay']
-            decay_factor_c = torch.rsqrt(1.0 + self.c_coef * lr_sq * b)
-            decay_factor_d = torch.reciprocal(1.0 + self.d_coef * math.sqrt(init_lr) * b)
+            decay = state['decay']
+            decay_factor_c = torch.rsqrt(1.0 + self.c_coef * lr_sq * decay)
+            decay_factor_d = torch.reciprocal(1.0 + self.d_coef * math.sqrt(init_lr) * decay)
 
-            gamma = decay_factor_c * (group['lr'] ** 2) * r_v_hat * g2
+            gamma = decay_factor_c * lr_p2 * r_v_hat * g2
 
             update = p.clone()
             update.mul_((gamma - group['extra_l2']) / 2.0)
             update.add_(r_v_hat.sqrt() * grad, alpha=init_lr)
             update.mul_(decay_factor_d)
 
-            b.mul_(1.0 + gamma).add_(gamma)
+            decay.mul_(1.0 + gamma).add_(gamma)
 
             if momentum > 0.0:
                 exp_avg = state['exp_avg']
