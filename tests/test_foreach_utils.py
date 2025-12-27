@@ -1,6 +1,3 @@
-from unittest.mock import patch
-
-import pytest
 import torch
 
 from pytorch_optimizer.optimizer.foreach_utils import (
