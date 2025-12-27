@@ -1,6 +1,13 @@
+from unittest.mock import patch
+
+import pytest
 import torch
 
-from pytorch_optimizer.optimizer.foreach_utils import group_tensors_by_device_and_dtype, has_foreach_support
+from pytorch_optimizer.optimizer.foreach_utils import (
+    foreach_rsqrt_,
+    group_tensors_by_device_and_dtype,
+    has_foreach_support,
+)
 
 
 class TestHasForeachSupport:
@@ -65,3 +72,13 @@ class TestGroupTensorsByDeviceAndDtype:
         groups = group_tensors_by_device_and_dtype(params, grads, None)
 
         assert len(groups) == 1
+
+
+class TestForeachOperations:
+    @pytest.mark.parametrize('value', [False, True])
+    def test_rsqrt_by_version(self, value: bool):
+        tensors = [torch.empty((1,)).fill_(4.0)]
+        with patch(target='pytorch_optimizer.optimizer.foreach_utils.TORCH_VERSION_AT_LEAST_2_8', new=value):
+            foreach_rsqrt_(tensors)
+
+        assert tensors[0].item() == 0.5

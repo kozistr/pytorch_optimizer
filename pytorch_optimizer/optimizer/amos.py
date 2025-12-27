@@ -6,6 +6,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.optimizer.foreach_utils import foreach_rsqrt_
 
 
 class Amos(BaseOptimizer):
@@ -129,7 +130,7 @@ class Amos(BaseOptimizer):
 
         df_c = torch._foreach_mul(decays, self.c_coef * lr_sq)
         torch._foreach_add_(df_c, 1.0)
-        torch._foreach_rsqrt_(df_c)
+        foreach_rsqrt_(df_c)
 
         d_step_sizes = [self.d_coef * math.sqrt(step_size) for step_size in init_lrs]
         df_d = torch._foreach_mul(decays, d_step_sizes)

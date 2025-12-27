@@ -1,6 +1,8 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+
+from pytorch_optimizer.optimizer.utils import TORCH_VERSION_AT_LEAST_2_8
 
 
 def has_foreach_support(tensors: List[torch.Tensor]) -> bool:
@@ -80,3 +82,15 @@ def group_tensors_by_device_and_dtype(
             groups[key][name].append(state_list[idx])
 
     return list(groups.values())
+
+
+def foreach_rsqrt_(tensors: Union[List[torch.Tensor], Tuple[torch.Tensor, ...]]) -> None:
+    """foreach_rsqrt_ implementation by Pytorch version.
+
+    `torch._foreach_rsqrt_` is introduced since Pytorch 2.8.0, So, previous versions do not use this.
+    """
+    if TORCH_VERSION_AT_LEAST_2_8:
+        torch._foreach_rsqrt_(tensors)
+    else:
+        torch._foreach_sqrt_(tensors)
+        torch._foreach_reciprocal_(tensors)
