@@ -81,7 +81,6 @@ class Lion(BaseOptimizer):
         """Check if foreach can be used for this group.
 
         Foreach is disabled when using features that require per-parameter handling:
-        - Complex tensors (view_as_real)
         - Gradient centralization
         - AdaNorm
         - Cautious updates
