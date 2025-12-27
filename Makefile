@@ -15,7 +15,7 @@ check: lint
 	pyright pytorch_optimizer examples
 
 test:
-	pytest -p no:pastebin -p no:nose -p no:doctest --disable-warnings -sv -vv --cov=pytorch_optimizer --cov-report=xml ./tests
+	pytest -p no:pastebin -p no:nose -p no:doctest --disable-warnings --cov=pytorch_optimizer --cov-report=xml ./tests
 
 requirements:
 	uv export --no-dev > requirements.txt
