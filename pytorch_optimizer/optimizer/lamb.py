@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import torch
 
@@ -28,6 +28,8 @@ class Lamb(BaseOptimizer):
         adam (bool): Always use trust ratio = 1, which turns this into Adam. Useful for comparison purposes.
         pre_norm (bool): Perform pre-normalization of all gradients.
         eps (float): Term added to the denominator to improve numerical stability.
+        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+            None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
@@ -49,6 +51,7 @@ class Lamb(BaseOptimizer):
         adam: bool = False,
         pre_norm: bool = False,
         eps: float = 1e-6,
+        foreach: Optional[bool] = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -61,6 +64,7 @@ class Lamb(BaseOptimizer):
         self.degenerated_to_sgd = degenerated_to_sgd
         self.n_sma_threshold = n_sma_threshold
         self.pre_norm = pre_norm
+        self.foreach = foreach
         self.maximize = maximize
 
         defaults: Defaults = {
@@ -74,6 +78,7 @@ class Lamb(BaseOptimizer):
             'max_grad_norm': max_grad_norm,
             'adam': adam,
             'eps': eps,
+            'foreach': foreach,
             **kwargs,
         }
 
@@ -102,6 +107,84 @@ class Lamb(BaseOptimizer):
 
                 if group.get('adanorm'):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
+
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
+        """Check if foreach can be used for this group.
+
+        Foreach is disabled when using features that require per-parameter handling:
+        - AdaNorm
+        - Rectify (has conditional logic per parameter)
+        """
+        if group.get('foreach') is False:
+            return False
+
+        if group.get('adanorm') or group.get('rectify'):
+            return False
+
+        return self.can_use_foreach(group, group.get('foreach'))
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: List[torch.Tensor],
+        grads: List[torch.Tensor],
+        grad_norm: Union[torch.Tensor, float],
+        exp_avgs: List[torch.Tensor],
+        exp_avg_sqs: List[torch.Tensor],
+        step_size: float,
+    ) -> None:
+        beta1, beta2 = group['betas']
+        eps = group['eps']
+        beta3: float = 1.0 - beta1 if group['grad_averaging'] else 1.0
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        if self.pre_norm:
+            if isinstance(grad_norm, torch.Tensor):
+                grad_norm = grad_norm.item()
+
+            torch._foreach_div_(grads, grad_norm)
+
+        self.apply_weight_decay_foreach(
+            params=params,
+            grads=grads,
+            lr=group['lr'],
+            weight_decay=group['weight_decay'],
+            weight_decouple=group['weight_decouple'],
+            fixed_decay=group['fixed_decay'],
+        )
+
+        torch._foreach_mul_(exp_avgs, beta1)
+        torch._foreach_add_(exp_avgs, grads, alpha=beta3)
+
+        torch._foreach_mul_(exp_avg_sqs, beta2)
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
+
+        updates = torch._foreach_sqrt(exp_avg_sqs)
+        torch._foreach_add_(updates, eps)
+        torch._foreach_reciprocal_(updates)
+        torch._foreach_mul_(updates, exp_avgs)
+
+        weight_norms = torch._foreach_norm(params)
+        torch._foreach_clamp_max_(weight_norms, self.clamp)
+
+        p_norms = torch._foreach_norm(updates)
+
+        for p, update, wn, pn in zip(params, updates, weight_norms, p_norms):
+            trust_ratio: float = 1.0
+            if wn != 0 and pn != 0:
+                trust_ratio = (wn / (pn + eps)).item()
+
+            state = self.state[p]
+            state['weight_norm'] = wn
+            state['adam_norm'] = pn
+            state['trust_ratio'] = trust_ratio
+
+            if group['adam']:
+                trust_ratio = 1.0
+
+            p.add_(update, alpha=-step_size * trust_ratio)
 
     @torch.no_grad()
     def get_global_gradient_norm(self) -> Union[torch.Tensor, float]:
@@ -224,7 +307,16 @@ class Lamb(BaseOptimizer):
                 bias_correction1=bias_correction1,
             )
 
-            for p in group['params']:
-                self.update(p, group, grad_norm, n_sma, step_size, beta1, beta2, beta3)
+            if self._can_use_foreach(group):
+                params, grads, state_dict = self.collect_trainable_params(
+                    group, self.state, state_keys=['exp_avg', 'exp_avg_sq']
+                )
+                if params:
+                    self._step_foreach(
+                        group, params, grads, grad_norm, state_dict['exp_avg'], state_dict['exp_avg_sq'], step_size
+                    )
+            else:
+                for p in group['params']:
+                    self.update(p, group, grad_norm, n_sma, step_size, beta1, beta2, beta3)
 
         return loss

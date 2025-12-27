@@ -7,9 +7,8 @@ from pytorch_optimizer.optimizer import DynamicLossScaler, load_optimizer
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
 from tests.constants import (
-    BF16_TEST_OPTIMIZER_NAMES,
     COMPLEX_OPTIMIZERS,
-    COMPLEX_TEST_OPTIMIZER_NAMES,
+    FOREACH_OPTIMIZERS,
     OPTIMIZERS,
     SKIP_BF16_OPTIMIZERS,
 )
@@ -31,18 +30,23 @@ from tests.utils import (
 )
 
 
-@pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
-def test_f32_optimizers(optimizer_fp32_config, environment):
-    optimizer_class, config, iterations = optimizer_fp32_config
+@pytest.mark.parametrize('foreach', [False, True])
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_f32_optimizers(foreach, optimizer_config, environment):
+    optimizer_class, config, iterations = optimizer_config
     optimizer_name: str = optimizer_class.__name__
+
     if optimizer_name == 'Nero' and 'constraints' not in config:
         pytest.skip(f'skip {optimizer_name} w/o {config}')
+
+    if foreach and optimizer_name.lower() not in FOREACH_OPTIMIZERS:
+        pytest.skip(f'skip {optimizer_name} w/ foreach')
 
     x_data, y_data = environment
     model, loss_fn = build_model()
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
-    optimizer = optimizer_class(parameters, **config)
+    optimizer = optimizer_class(parameters, **config, foreach=foreach)
     if optimizer_name.endswith('schedulefree'):
         optimizer.train()
 
@@ -58,21 +62,21 @@ def test_f32_optimizers(optimizer_fp32_config, environment):
     )
 
 
-@pytest.mark.parametrize('optimizer_bf16_config', OPTIMIZERS, ids=ids)
-def test_bf16_optimizers(optimizer_bf16_config, environment):
-    optimizer_class, config, iterations = optimizer_bf16_config
+@pytest.mark.parametrize('foreach', [False, True])
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_bf16_optimizers(foreach, optimizer_config, environment):
+    optimizer_class, config, iterations = optimizer_config
     optimizer_name: str = optimizer_class.__name__
+
     if optimizer_name.lower() in SKIP_BF16_OPTIMIZERS:
         pytest.skip(f'skip {optimizer_name}')
-    if optimizer_name not in BF16_TEST_OPTIMIZER_NAMES:
-        pytest.skip(f'skip {optimizer_name} (covered by f32 tests)')
 
     x_data, y_data = environment
     model, loss_fn = build_model()
     model = model.bfloat16()
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
-    optimizer = optimizer_class(parameters, **config)
+    optimizer = optimizer_class(parameters, **config, foreach=foreach)
     if optimizer_name.endswith('schedulefree'):
         optimizer.train()
 
@@ -88,21 +92,20 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
     )
 
 
-@pytest.mark.parametrize('optimizer_complex_config', OPTIMIZERS, ids=ids)
-def test_complex_optimizers(optimizer_complex_config, environment):
-    optimizer_class, config, iterations = optimizer_complex_config
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_complex_optimizers(optimizer_config, environment):
+    optimizer_class, config, iterations = optimizer_config
     optimizer_name: str = optimizer_class.__name__
+
     if optimizer_name.lower() not in COMPLEX_OPTIMIZERS:
         pytest.skip(f'{optimizer_name} does not support complex')
-    if optimizer_name not in COMPLEX_TEST_OPTIMIZER_NAMES:
-        pytest.skip(f'skip {optimizer_name} (covered by f32 tests)')
 
     x_data, y_data = environment
     model, loss_fn = build_model(use_complex=True)
     x_data = x_data.to(torch.complex64)
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
-    optimizer = optimizer_class(parameters, **config)
+    optimizer = optimizer_class(parameters, **config, foreach=False)
     optimizer_name_lower = optimizer_name.lower()
     if optimizer_name_lower.endswith('schedulefree'):
         optimizer.train()

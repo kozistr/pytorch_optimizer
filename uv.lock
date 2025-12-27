@@ -1442,7 +1442,7 @@ requires-dist = [
 dev = [
     { name = "black", marker = "python_full_version < '3.9'", specifier = "<25" },
     { name = "black", marker = "python_full_version >= '3.9'", specifier = ">=25,<26" },
-    { name = "pyright", specifier = ">=1.1" },
+    { name = "pyright", specifier = "==1.1.407" },
     { name = "pytest", marker = "python_full_version < '3.10'", specifier = "<9" },
     { name = "pytest", marker = "python_full_version >= '3.10'", specifier = ">=9,<10" },
     { name = "pytest-cov", marker = "python_full_version < '3.9'", specifier = "<6" },
