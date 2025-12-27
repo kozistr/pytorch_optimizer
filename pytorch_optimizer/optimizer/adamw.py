@@ -87,11 +87,6 @@ class StableAdamW(BaseOptimizer):
                 )
 
     def _can_use_foreach(self, group: ParamGroup) -> bool:
-        """Check if foreach can be used for this group.
-
-        Foreach is disabled when using features that require per-parameter handling:
-        - Complex tensors (view_as_real)
-        """
         if group.get('foreach') is False:
             return False
 

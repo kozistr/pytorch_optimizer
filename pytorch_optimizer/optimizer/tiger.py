@@ -85,9 +85,6 @@ class Tiger(BaseOptimizer):
         grads: List[torch.Tensor],
         exp_avgs: List[torch.Tensor],
     ) -> None:
-        beta = group['beta']
-        lr = group['lr']
-
         if self.maximize:
             torch._foreach_neg_(grads)
 
@@ -100,10 +97,11 @@ class Tiger(BaseOptimizer):
             fixed_decay=group['fixed_decay'],
         )
 
-        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta)
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - group['beta'])
 
-        updates = [exp_avg.sign() for exp_avg in exp_avgs]
-        torch._foreach_add_(params, updates, alpha=-lr)
+        updates = torch._foreach_sign(exp_avgs)
+
+        torch._foreach_add_(params, updates, alpha=-group['lr'])
 
     def _step_per_param(self, group: ParamGroup) -> None:
         beta = group['beta']
