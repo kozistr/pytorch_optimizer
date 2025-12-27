@@ -192,6 +192,21 @@ COMPLEX_OPTIMIZERS: frozenset = frozenset(
     }
 )
 
+FOREACH_OPTIMIZERS: frozenset = frozenset(
+    {
+        'adabelief',
+        'stableadamw',
+        'adan',
+        'adopt',
+        'lamb',
+        'lars',
+        'lion',
+        'sgdw',
+        'signsgd',
+        'tiger',
+    }
+)
+
 BETA_OPTIMIZER_NAMES: frozenset = frozenset(
     {
         'adabelief',

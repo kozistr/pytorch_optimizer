@@ -10,7 +10,6 @@ def has_foreach_support(tensors: List[torch.Tensor]) -> bool:
     - All tensors on the same device
     - All tensors have the same dtype
     - No sparse tensors
-    - CUDA tensors (CPU falls back to for-loop)
 
     Args:
         tensors: List of tensors to check.
@@ -32,7 +31,7 @@ def has_foreach_support(tensors: List[torch.Tensor]) -> bool:
         if t.is_sparse:
             return False
 
-    return first_device.type == 'cuda'
+    return True
 
 
 def group_tensors_by_device_and_dtype(
@@ -141,8 +140,7 @@ def foreach_lerp_(
 ) -> None:
     """Apply in-place linear interpolation to a list of tensors.
 
-    Computes: tensors = tensors + weight * (other - tensors)
-            = (1 - weight) * tensors + weight * other
+    Computes: tensors = tensors + weight * (other - tensors) = (1 - weight) * tensors + weight * other
 
     Args:
         tensors: List of tensors to interpolate.
