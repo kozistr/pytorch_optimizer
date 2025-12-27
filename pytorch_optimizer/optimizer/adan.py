@@ -131,8 +131,7 @@ class Adan(BaseOptimizer):
         if self.maximize:
             torch._foreach_neg_(grads)
 
-        if clip_global_grad_norm != 1.0:
-            torch._foreach_mul_(grads, clip_global_grad_norm)
+        torch._foreach_mul_(grads, clip_global_grad_norm)
 
         grad_diffs = [pg.add(g) for pg, g in zip(prev_grads, grads)]
 
