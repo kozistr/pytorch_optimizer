@@ -185,9 +185,9 @@ class ConvNet(nn.Module):
 class TransformerBlock(nn.Module):
     """Simple Transformer block for benchmarking."""
 
-    def __init__(self, d_model: int = 512, nhead: int = 8, dim_feedforward: int = 2048):
+    def __init__(self, d_model: int = 512, num_heads: int = 8, dim_feedforward: int = 2048):
         super().__init__()
-        self.self_attn = nn.MultiheadAttention(d_model, nhead, batch_first=True)
+        self.self_attn = nn.MultiheadAttention(d_model, num_heads, batch_first=True)
         self.linear1 = nn.Linear(d_model, dim_feedforward)
         self.linear2 = nn.Linear(dim_feedforward, d_model)
         self.norm1 = nn.LayerNorm(d_model)
@@ -207,15 +207,15 @@ class SimpleTransformer(nn.Module):
     def __init__(
         self,
         d_model: int = 512,
-        nhead: int = 8,
+        num_heads: int = 8,
         num_layers: int = 6,
         dim_feedforward: int = 2048,
-        seq_len: int = 128,
     ):
         super().__init__()
         self.embedding = nn.Linear(d_model, d_model)
-        self.layers = nn.ModuleList([TransformerBlock(d_model, nhead, dim_feedforward) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([TransformerBlock(d_model, num_heads, dim_feedforward) for _ in range(num_layers)])
         self.head = nn.Linear(d_model, d_model)
+
         self._num_params = sum(p.numel() for p in self.parameters())
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -283,7 +283,6 @@ def benchmark_optimizer(
             return None
         raise
 
-    # Warmup phase
     for _ in range(warmup_steps):
         optimizer.zero_grad()
         output = model(data)
@@ -296,7 +295,6 @@ def benchmark_optimizer(
 
     reset_memory_stats(device)
 
-    # Benchmark phase
     step_times = []
     final_loss = 0.0
 
@@ -362,7 +360,6 @@ def run_benchmarks(
     results = []
     comparisons = []
 
-    # Optimizer configurations: (class, kwargs)
     optimizers_config = [
         (Lion, {'lr': 1e-4}),
         (Tiger, {'lr': 1e-3}),
@@ -376,14 +373,13 @@ def run_benchmarks(
         (SGDW, {'lr': 1e-2, 'momentum': 0.9}),
     ]
 
-    # Create data once
     base_model, data, target, criterion = create_model_and_data(model_type, batch_size, device)
     num_params = base_model.num_params
     del base_model
     reset_memory_stats(device)
 
     def model_factory():
-        model, _, _, _ = create_model_and_data(model_type, batch_size, device)
+        model, *_ = create_model_and_data(model_type, batch_size, device)
         return model
 
     if verbose:
@@ -424,7 +420,6 @@ def run_benchmarks(
                         f'{result.final_loss:>12.6f}'
                     )
 
-        # Create comparison if both variants were benchmarked
         if True in opt_results and False in opt_results:
             r_foreach = opt_results[True]
             r_no_foreach = opt_results[False]
@@ -453,7 +448,6 @@ def run_benchmarks(
 
 
 def print_summary(comparisons: List[ComparisonResult], device_name: str) -> None:
-    """Print summary comparison table."""
     if not comparisons:
         print('No comparison results available.')
         return
@@ -488,7 +482,6 @@ def print_summary(comparisons: List[ComparisonResult], device_name: str) -> None
     print(f'{"Average":15} {avg_speedup:.2f}x')
     print('=' * 100)
 
-    # Interpretation
     print('\nInterpretation:')
     print('  - Speedup > 1.0x means foreach is faster')
     print('  - Memory diff shows additional memory used by foreach (usually minimal)')
@@ -513,13 +506,11 @@ def main():
     parser.add_argument('--all-models', action='store_true', help='Run benchmarks on all model types')
     args = parser.parse_args()
 
-    # Determine device
     if args.device == 'auto':
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     else:
         device = torch.device(args.device)
 
-    # Print header
     print('=' * 100)
     print('PyTorch Optimizer Foreach Benchmark')
     print('=' * 100)
@@ -556,7 +547,6 @@ def main():
         all_comparisons[model_type] = comparisons
         print_summary(comparisons, str(device))
 
-    # Final summary across all models
     if len(model_types) > 1:
         print('\n' + '=' * 100)
         print('OVERALL SUMMARY ACROSS ALL MODELS')

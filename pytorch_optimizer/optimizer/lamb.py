@@ -112,15 +112,13 @@ class Lamb(BaseOptimizer):
         """Check if foreach can be used for this group.
 
         Foreach is disabled when using features that require per-parameter handling:
-        - Complex tensors (view_as_real)
         - AdaNorm
         - Rectify (has conditional logic per parameter)
-        - Pre-norm (requires gradient normalization)
         """
         if group.get('foreach') is False:
             return False
 
-        if self.pre_norm or (group.get('adanorm') or group.get('rectify')):
+        if group.get('adanorm') or group.get('rectify'):
             return False
 
         return self.can_use_foreach(group, group.get('foreach'))
@@ -130,17 +128,20 @@ class Lamb(BaseOptimizer):
         group: ParamGroup,
         params: List[torch.Tensor],
         grads: List[torch.Tensor],
+        grad_norm: Union[torch.Tensor, float],
         exp_avgs: List[torch.Tensor],
         exp_avg_sqs: List[torch.Tensor],
         step_size: float,
     ) -> None:
-        """Foreach-optimized step for a parameter group."""
         beta1, beta2 = group['betas']
         eps = group['eps']
         beta3: float = 1.0 - beta1 if group['grad_averaging'] else 1.0
 
         if self.maximize:
             torch._foreach_neg_(grads)
+
+        if self.pre_norm:
+            torch._foreach_div_(grads, grad_norm)
 
         self.apply_weight_decay_foreach(
             params=params,
@@ -157,19 +158,24 @@ class Lamb(BaseOptimizer):
         torch._foreach_mul_(exp_avg_sqs, beta2)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
 
-        for p, exp_avg, exp_avg_sq in zip(params, exp_avgs, exp_avg_sqs):
-            update = exp_avg / exp_avg_sq.sqrt().add_(eps)
+        updates = torch._foreach_sqrt(exp_avg_sqs)
+        torch._foreach_add_(updates, eps)
+        torch._foreach_reciprocal_(updates)
+        torch._foreach_mul_(updates, exp_avgs)
 
-            weight_norm = torch.linalg.norm(p).clamp_(min=0, max=self.clamp)
-            p_norm = torch.linalg.norm(update)
+        weight_norms = torch._foreach_norm(params)
+        torch._foreach_clamp_max_(weight_norms, self.clamp)
 
+        p_norms = torch._foreach_norm(updates)
+
+        for p, update, wn, pn in zip(params, updates, weight_norms, p_norms):
             trust_ratio: float = 1.0
-            if weight_norm != 0 and p_norm != 0:
-                trust_ratio = (weight_norm / (p_norm + eps)).item()
+            if wn != 0 and pn != 0:
+                trust_ratio = (wn / (pn + eps)).item()
 
             state = self.state[p]
-            state['weight_norm'] = weight_norm
-            state['adam_norm'] = p_norm
+            state['weight_norm'] = wn
+            state['adam_norm'] = pn
             state['trust_ratio'] = trust_ratio
 
             if group['adam']:
@@ -304,7 +310,7 @@ class Lamb(BaseOptimizer):
                 )
                 if params:
                     self._step_foreach(
-                        group, params, grads, state_dict['exp_avg'], state_dict['exp_avg_sq'], step_size
+                        group, params, grads, grad_norm, state_dict['exp_avg'], state_dict['exp_avg_sq'], step_size
                     )
             else:
                 for p in group['params']:

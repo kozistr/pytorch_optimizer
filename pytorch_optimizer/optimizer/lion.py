@@ -101,7 +101,6 @@ class Lion(BaseOptimizer):
         grads: List[torch.Tensor],
         exp_avgs: List[torch.Tensor],
     ) -> None:
-        """Foreach-optimized step for a parameter group."""
         beta1, beta2 = group['betas']
         lr = group['lr']
 
@@ -117,8 +116,7 @@ class Lion(BaseOptimizer):
             fixed_decay=group['fixed_decay'],
         )
 
-        updates = [exp_avg.clone() for exp_avg in exp_avgs]
-        torch._foreach_mul_(updates, beta1)
+        updates = torch._foreach_mul(exp_avgs, beta1)
         torch._foreach_add_(updates, grads, alpha=1.0 - beta1)
         torch._foreach_sign_(updates)
 
@@ -128,7 +126,6 @@ class Lion(BaseOptimizer):
         torch._foreach_add_(params, updates, alpha=-lr)
 
     def _step_per_param(self, group: ParamGroup) -> None:
-        """Per-parameter step (original implementation)."""
         beta1, beta2 = group['betas']
 
         for p in group['params']:
