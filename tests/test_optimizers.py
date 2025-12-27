@@ -63,19 +63,24 @@ def test_f32_optimizers(foreach, optimizer_config, environment):
     )
 
 
+@pytest.mark.parametrize('foreach', [False, True])
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
-def test_bf16_optimizers(optimizer_config, environment):
+def test_bf16_optimizers(foreach, optimizer_config, environment):
     optimizer_class, config, iterations = optimizer_config
     optimizer_name: str = optimizer_class.__name__
+
     if optimizer_name.lower() in SKIP_BF16_OPTIMIZERS:
         pytest.skip(f'skip {optimizer_name}')
+
+    if foreach and not optimizer_name.lower() not in FOREACH_OPTIMIZERS:
+        pytest.skip(f'skip {optimizer_name} w/ foreach')
 
     x_data, y_data = environment
     model, loss_fn = build_model()
     model = model.bfloat16()
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
-    optimizer = optimizer_class(parameters, **config)
+    optimizer = optimizer_class(parameters, **config, foreach=foreach)
     if optimizer_name.endswith('schedulefree'):
         optimizer.train()
 
