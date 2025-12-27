@@ -122,11 +122,11 @@ class ADOPT(BaseOptimizer):
         de_noms = torch._foreach_sqrt(exp_avg_sqs)
         torch._foreach_clamp_min_(de_noms, eps)
 
-        normed_grads = [g.div(d) for g, d in zip(grads, de_noms)]
+        normed_grads = torch._foreach_div(grads, de_noms)
         if self.clip_lambda is not None:
-            clip = self.clip_lambda(group['step'])
-            for ng in normed_grads:
-                ng.clamp_(-clip, clip)
+            clip: float = self.clip_lambda(group['step'])
+            torch._foreach_clamp_min_(normed_grads, -clip)
+            torch._foreach_clamp_max_(normed_grads, clip)
 
         torch._foreach_lerp_(exp_avgs, normed_grads, weight=1.0 - beta1)
 

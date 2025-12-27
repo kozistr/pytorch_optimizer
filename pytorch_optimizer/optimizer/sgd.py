@@ -185,9 +185,6 @@ class SGDW(BaseOptimizer):
         if group.get('foreach') is False:
             return False
 
-        if group['nesterov'] or group['momentum'] == 0.0:
-            return False
-
         return self.can_use_foreach(group, group.get('foreach'))
 
     def _step_foreach(
@@ -213,6 +210,8 @@ class SGDW(BaseOptimizer):
         )
 
         torch._foreach_lerp_(momentum_buffers, grads, weight=1.0 - dampening)
+        if group['nesterov']:
+            torch._foreach_add_(grads, momentum_buffers, alpha=group['momentum'])
 
         torch._foreach_add_(params, momentum_buffers, alpha=-lr)
 
