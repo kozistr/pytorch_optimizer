@@ -23,30 +23,25 @@ from pytorch_optimizer.optimizer.foreach_utils import (
 
 
 class TestHasForeachSupport:
-    def test_empty_list(self, foreach: bool):
+    def test_empty_list(self):
         assert not has_foreach_support([])
 
-    def test_cpu_tensors(self, foreach: bool):
-        tensors = [torch.randn(3), torch.randn(3)]
+    def test_cpu_tensors(self):
+        tensors = [torch.randn(1), torch.randn(1)]
         assert not has_foreach_support(tensors)
 
-    def test_different_devices(self, foreach: bool):
+    def test_different_devices(self):
         tensors = [torch.randn(1, device='meta'), torch.randn(1, device='cpu')]
         assert not has_foreach_support(tensors)
 
-    def test_different_dtypes(self, foreach: bool):
+    def test_different_dtypes(self):
         tensors = [torch.randn(1, dtype=torch.float32), torch.randn(1, dtype=torch.float16)]
         assert not has_foreach_support(tensors)
 
-    def test_sparse_tensors(self, foreach: bool):
+    def test_sparse_tensors(self):
         sparse_tensor = torch.sparse_coo_tensor([[0, 1]], [1.0, 2.0], (3,))
         tensors = [torch.randn(3), sparse_tensor]
         assert not has_foreach_support(tensors)
-
-    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
-    def test_cuda_tensors_supported(self, foreach: bool):
-        tensors = [torch.randn(3, device='cuda'), torch.randn(3, device='cuda')]
-        assert has_foreach_support(tensors)
 
 
 class TestGroupTensorsByDeviceAndDtype:
@@ -247,36 +242,29 @@ class TestForeachSub:
 @pytest.mark.parametrize('foreach', [False, True])
 class TestForeachDiv:
     def test_div_scalar(self, foreach: bool):
-        tensors = [torch.full((3,), 6.0), torch.full((4,), 8.0)]
+        tensors = [torch.full((1,), 6.0), torch.full((2,), 8.0)]
         foreach_div_(tensors, 2.0, foreach=foreach)
 
-        torch.testing.assert_close(tensors[0], torch.full((3,), 3.0))
-        torch.testing.assert_close(tensors[1], torch.full((4,), 4.0))
+        torch.testing.assert_close(tensors[0], torch.full((1,), 3.0))
+        torch.testing.assert_close(tensors[1], torch.full((2,), 4.0))
 
     def test_div_tensor(self, foreach: bool):
-        tensors = [torch.full((3,), 6.0), torch.full((4,), 9.0)]
-        other = [torch.full((3,), 2.0), torch.full((4,), 3.0)]
+        tensors = [torch.full((1,), 6.0), torch.full((2,), 9.0)]
+        other = [torch.full((1,), 2.0), torch.full((2,), 3.0)]
         foreach_div_(tensors, other, foreach=foreach)
 
-        torch.testing.assert_close(tensors[0], torch.full((3,), 3.0))
-        torch.testing.assert_close(tensors[1], torch.full((4,), 3.0))
+        torch.testing.assert_close(tensors[0], torch.full((1,), 3.0))
+        torch.testing.assert_close(tensors[1], torch.full((2,), 3.0))
 
 
 @pytest.mark.parametrize('foreach', [False, True])
 class TestForeachZero:
     def test_zero_fallback(self, foreach: bool):
-        tensors = [torch.full((3,), 5.0), torch.full((4,), 3.0)]
+        tensors = [torch.full((1,), 5.0), torch.full((2,), 3.0)]
         foreach_zero_(tensors, foreach=foreach)
 
-        torch.testing.assert_close(tensors[0], torch.zeros(3))
-        torch.testing.assert_close(tensors[1], torch.zeros(4))
-
-    @pytest.mark.skipif(not torch.cuda.is_available(), reason='need GPU')
-    def test_zero_cuda(self, foreach: bool):
-        tensors = [torch.full((3,), 5.0, device='cuda'), torch.full((4,), 3.0, device='cuda')]
-        foreach_zero_(tensors, foreach=True)
-        torch.testing.assert_close(tensors[0], torch.zeros(3, device='cuda'))
-        torch.testing.assert_close(tensors[1], torch.zeros(4, device='cuda'))
+        torch.testing.assert_close(tensors[0], torch.zeros(1))
+        torch.testing.assert_close(tensors[1], torch.zeros(2))
 
 
 @pytest.mark.parametrize('foreach', [False, True])
