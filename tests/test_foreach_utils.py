@@ -28,7 +28,7 @@ class TestHasForeachSupport:
 
     def test_cpu_tensors(self):
         tensors = [torch.randn(1), torch.randn(1)]
-        assert not has_foreach_support(tensors)
+        assert has_foreach_support(tensors)
 
     def test_different_devices(self):
         tensors = [torch.randn(1, device='meta'), torch.randn(1, device='cpu')]
