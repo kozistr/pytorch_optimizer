@@ -131,8 +131,8 @@ class Adan(BaseOptimizer):
         if self.maximize:
             torch._foreach_neg_(grads)
 
-        if isinstance(clip_global_grad_norm, torch.Tensor) and clip_global_grad_norm.ndim > 0:
-            clip_global_grad_norm = clip_global_grad_norm[0]
+        if isinstance(clip_global_grad_norm, torch.Tensor):
+            clip_global_grad_norm = clip_global_grad_norm.item()
 
         torch._foreach_mul_(grads, clip_global_grad_norm)
 
