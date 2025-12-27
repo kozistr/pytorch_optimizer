@@ -32,7 +32,7 @@ def compare_versions(v1: str, v2: str) -> bool:
 
 HAS_TRANSFORMERS: bool = find_spec('transformers') is not None
 TORCH_VERSION_AT_LEAST_2_4: bool = compare_versions(torch.__version__, '2.4.0')
-TORCH_VERSION_AT_LEAST_2_6: bool = compare_versions(torch.__version__, '2.6.0')
+TORCH_VERSION_AT_LEAST_2_5: bool = compare_versions(torch.__version__, '2.5.0')
 
 if HAS_TRANSFORMERS:  # pragma: no cover
     try:

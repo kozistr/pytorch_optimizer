@@ -78,7 +78,7 @@ class TestForeachOperations:
     @pytest.mark.parametrize('value', [False, True])
     def test_rsqrt_by_version(self, value: bool):
         tensors = [torch.empty((1,)).fill_(4.0)]
-        with patch(target='pytorch_optimizer.optimizer.foreach_utils.TORCH_VERSION_AT_LEAST_2_6', new=value):
+        with patch(target='pytorch_optimizer.optimizer.foreach_utils.TORCH_VERSION_AT_LEAST_2_5', new=value):
             foreach_rsqrt_(tensors)
 
         assert tensors[0].item() == 0.5

@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 
-from pytorch_optimizer.optimizer.utils import TORCH_VERSION_AT_LEAST_2_6
+from pytorch_optimizer.optimizer.utils import TORCH_VERSION_AT_LEAST_2_5
 
 
 def has_foreach_support(tensors: List[torch.Tensor]) -> bool:
@@ -89,7 +89,7 @@ def foreach_rsqrt_(tensors: Union[List[torch.Tensor], Tuple[torch.Tensor, ...]])
 
     `torch._foreach_rsqrt_` is introduced since Pytorch 2.8.0, So, previous versions do not use this.
     """
-    if TORCH_VERSION_AT_LEAST_2_6:
+    if TORCH_VERSION_AT_LEAST_2_5:
         torch._foreach_rsqrt_(tensors)
     else:
         torch._foreach_sqrt_(tensors)
