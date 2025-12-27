@@ -411,24 +411,6 @@ SKIP_COMPLEX_NOT_SUPPORTED: frozenset = frozenset(
 
 SKIP_BF16_OPTIMIZERS: frozenset = frozenset({'adai', 'prodigy', 'nero'})
 
-COMPLEX_TEST_OPTIMIZER_NAMES: frozenset = frozenset(
-    {
-        'AdaBelief',
-        'AdamP',
-        'Lamb',
-        'LARS',
-        'RAdam',
-        'Ranger',
-        'Lion',
-        'Adan',
-        'AdaFactor',
-        'SGDW',
-        'QHAdam',
-        'MARS',
-        'SCION',
-    }
-)
-
 CAWR_RECIPES: Tuple[Tuple, ...] = (
     (
         10,

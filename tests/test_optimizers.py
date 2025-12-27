@@ -8,7 +8,6 @@ from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
 from tests.constants import (
     COMPLEX_OPTIMIZERS,
-    COMPLEX_TEST_OPTIMIZER_NAMES,
     FOREACH_OPTIMIZERS,
     OPTIMIZERS,
     SKIP_BF16_OPTIMIZERS,
@@ -93,14 +92,11 @@ def test_bf16_optimizers(foreach, optimizer_config, environment):
     )
 
 
-@pytest.mark.parametrize(
-    'optimizer_config',
-    [optimizer for optimizer in OPTIMIZERS if optimizer[0].__name__ in COMPLEX_TEST_OPTIMIZER_NAMES],
-    ids=ids,
-)
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 def test_complex_optimizers(optimizer_config, environment):
     optimizer_class, config, iterations = optimizer_config
     optimizer_name: str = optimizer_class.__name__
+
     if optimizer_name.lower() not in COMPLEX_OPTIMIZERS:
         pytest.skip(f'{optimizer_name} does not support complex')
 
