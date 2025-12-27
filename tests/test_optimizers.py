@@ -42,13 +42,11 @@ def test_f32_optimizers(foreach, optimizer_config, environment):
     if foreach and optimizer_name.lower() not in FOREACH_OPTIMIZERS:
         pytest.skip(f'skip {optimizer_name} w/ foreach')
 
-    config['foreach'] = foreach
-
     x_data, y_data = environment
     model, loss_fn = build_model()
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
-    optimizer = optimizer_class(parameters, **config)
+    optimizer = optimizer_class(parameters, **config, foreach=foreach)
     if optimizer_name.endswith('schedulefree'):
         optimizer.train()
 
@@ -73,14 +71,12 @@ def test_bf16_optimizers(foreach, optimizer_config, environment):
     if optimizer_name.lower() in SKIP_BF16_OPTIMIZERS:
         pytest.skip(f'skip {optimizer_name}')
 
-    config['foreach'] = foreach
-
     x_data, y_data = environment
     model, loss_fn = build_model()
     model = model.bfloat16()
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
-    optimizer = optimizer_class(parameters, **config)
+    optimizer = optimizer_class(parameters, **config, foreach=foreach)
     if optimizer_name.endswith('schedulefree'):
         optimizer.train()
 
@@ -104,14 +100,12 @@ def test_complex_optimizers(optimizer_config, environment):
     if optimizer_name.lower() not in COMPLEX_OPTIMIZERS:
         pytest.skip(f'{optimizer_name} does not support complex')
 
-    config['foreach'] = False
-
     x_data, y_data = environment
     model, loss_fn = build_model(use_complex=True)
     x_data = x_data.to(torch.complex64)
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
-    optimizer = optimizer_class(parameters, **config)
+    optimizer = optimizer_class(parameters, **config, foreach=False)
     optimizer_name_lower = optimizer_name.lower()
     if optimizer_name_lower.endswith('schedulefree'):
         optimizer.train()

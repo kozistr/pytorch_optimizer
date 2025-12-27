@@ -57,6 +57,7 @@ class Amos(BaseOptimizer):
             'beta': beta,
             'momentum': momentum,
             'extra_l2': extra_l2,
+            'foreach': foreach,
             'eps': eps,
         }
 
