@@ -6,7 +6,6 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
-from pytorch_optimizer.optimizer.foreach_utils import foreach_add_, foreach_lerp_
 
 
 class AccSGD(BaseOptimizer):
@@ -211,12 +210,11 @@ class SGDW(BaseOptimizer):
             weight_decay=group['weight_decay'],
             weight_decouple=group['weight_decouple'],
             fixed_decay=False,
-            foreach=True,
         )
 
-        foreach_lerp_(momentum_buffers, grads, weight=1.0 - dampening, foreach=True)
+        torch._foreach_lerp_(momentum_buffers, grads, weight=1.0 - dampening)
 
-        foreach_add_(params, momentum_buffers, alpha=-lr, foreach=True)
+        torch._foreach_add_(params, momentum_buffers, alpha=-lr)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         momentum = group['momentum']
@@ -478,10 +476,10 @@ class SignSGD(BaseOptimizer):
         if self.maximize:
             torch._foreach_neg_(grads)
 
-        foreach_lerp_(momentum_buffers, grads, weight=1.0 - group['momentum'], foreach=True)
+        torch._foreach_lerp_(momentum_buffers, grads, weight=1.0 - group['momentum'])
 
         updates = [buf.sign() for buf in momentum_buffers]
-        foreach_add_(params, updates, alpha=-lr, foreach=True)
+        torch._foreach_add_(params, updates, alpha=-lr)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         momentum = group['momentum']

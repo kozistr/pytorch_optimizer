@@ -5,10 +5,6 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
-from pytorch_optimizer.optimizer.foreach_utils import (
-    foreach_add_,
-    foreach_mul_,
-)
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 
 
@@ -119,20 +115,17 @@ class Lion(BaseOptimizer):
             weight_decay=group['weight_decay'],
             weight_decouple=group['weight_decouple'],
             fixed_decay=group['fixed_decay'],
-            foreach=True,
         )
 
         updates = [exp_avg.clone() for exp_avg in exp_avgs]
-        foreach_mul_(updates, beta1, foreach=True)
-        foreach_add_(updates, grads, alpha=1.0 - beta1, foreach=True)
+        torch._foreach_mul_(updates, beta1)
+        torch._foreach_add_(updates, grads, alpha=1.0 - beta1)
+        torch._foreach_sign_(updates)
 
-        for u in updates:
-            u.sign_()
+        torch._foreach_mul_(exp_avgs, beta2)
+        torch._foreach_add_(exp_avgs, grads, alpha=1.0 - beta2)
 
-        foreach_mul_(exp_avgs, beta2, foreach=True)
-        foreach_add_(exp_avgs, grads, alpha=1.0 - beta2, foreach=True)
-
-        foreach_add_(params, updates, alpha=-lr, foreach=True)
+        torch._foreach_add_(params, updates, alpha=-lr)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         """Per-parameter step (original implementation)."""

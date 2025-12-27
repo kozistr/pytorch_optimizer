@@ -6,13 +6,6 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
-from pytorch_optimizer.optimizer.foreach_utils import (
-    foreach_add_,
-    foreach_addcmul_,
-    foreach_lerp_,
-    foreach_mul_,
-    foreach_sqrt,
-)
 
 
 class ADOPT(BaseOptimizer):
@@ -120,14 +113,13 @@ class ADOPT(BaseOptimizer):
             weight_decay=group['weight_decay'],
             weight_decouple=group['weight_decouple'],
             fixed_decay=group['fixed_decay'],
-            foreach=True,
         )
 
         if group['step'] == 1:
-            foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0, foreach=True)
+            torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0)
             return
 
-        de_noms = foreach_sqrt(exp_avg_sqs, foreach=True)
+        de_noms = torch._foreach_sqrt(exp_avg_sqs)
         for d in de_noms:
             d.clamp_(min=eps)
 
@@ -137,12 +129,12 @@ class ADOPT(BaseOptimizer):
             for ng in normed_grads:
                 ng.clamp_(-clip, clip)
 
-        foreach_lerp_(exp_avgs, normed_grads, weight=1.0 - beta1, foreach=True)
+        torch._foreach_lerp_(exp_avgs, normed_grads, weight=1.0 - beta1)
 
-        foreach_add_(params, exp_avgs, alpha=-lr, foreach=True)
+        torch._foreach_add_(params, exp_avgs, alpha=-lr)
 
-        foreach_mul_(exp_avg_sqs, beta2, foreach=True)
-        foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2, foreach=True)
+        torch._foreach_mul_(exp_avg_sqs, beta2)
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         beta1, beta2 = group['betas']

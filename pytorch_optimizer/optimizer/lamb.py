@@ -5,11 +5,6 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
-from pytorch_optimizer.optimizer.foreach_utils import (
-    foreach_add_,
-    foreach_addcmul_,
-    foreach_mul_,
-)
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
@@ -154,14 +149,13 @@ class Lamb(BaseOptimizer):
             weight_decay=group['weight_decay'],
             weight_decouple=group['weight_decouple'],
             fixed_decay=group['fixed_decay'],
-            foreach=True,
         )
 
-        foreach_mul_(exp_avgs, beta1, foreach=True)
-        foreach_add_(exp_avgs, grads, alpha=beta3, foreach=True)
+        torch._foreach_mul_(exp_avgs, beta1)
+        torch._foreach_add_(exp_avgs, grads, alpha=beta3)
 
-        foreach_mul_(exp_avg_sqs, beta2, foreach=True)
-        foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2, foreach=True)
+        torch._foreach_mul_(exp_avg_sqs, beta2)
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
 
         for p, exp_avg, exp_avg_sq in zip(params, exp_avgs, exp_avg_sqs):
             update = exp_avg / exp_avg_sq.sqrt().add_(eps)

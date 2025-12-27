@@ -6,14 +6,6 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
-from pytorch_optimizer.optimizer.foreach_utils import (
-    foreach_add_,
-    foreach_addcdiv_,
-    foreach_addcmul_,
-    foreach_lerp_,
-    foreach_mul_,
-    foreach_sqrt,
-)
 
 
 class AdaBelief(BaseOptimizer):
@@ -138,22 +130,20 @@ class AdaBelief(BaseOptimizer):
             weight_decay=group['weight_decay'],
             weight_decouple=group['weight_decouple'],
             fixed_decay=group['fixed_decay'],
-            foreach=True,
         )
 
-        foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1, foreach=True)
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
 
         grad_residuals = [g.sub(ea) for g, ea in zip(grads, exp_avgs)]
 
-        foreach_mul_(exp_avg_vars, beta2, foreach=True)
-        foreach_addcmul_(exp_avg_vars, grad_residuals, grad_residuals, value=1.0 - beta2, foreach=True)
-        foreach_add_(exp_avg_vars, eps, foreach=True)
+        torch._foreach_mul_(exp_avg_vars, beta2)
+        torch._foreach_addcmul_(exp_avg_vars, grad_residuals, grad_residuals, value=1.0 - beta2)
+        torch._foreach_add_(exp_avg_vars, eps)
 
-        de_noms = foreach_sqrt(exp_avg_vars, foreach=True)
-        for d in de_noms:
-            d.div_(bias_correction2_sq)
+        de_noms = torch._foreach_sqrt(exp_avg_vars)
+        torch._foreach_div_(de_noms, bias_correction2_sq)
 
-        foreach_addcdiv_(params, exp_avgs, de_noms, value=-lr, foreach=True)
+        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-lr)
 
     def _step_per_param(self, group: ParamGroup, step_size: float, n_sma: float) -> None:
         beta1, beta2 = group['betas']

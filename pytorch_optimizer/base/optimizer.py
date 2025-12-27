@@ -17,7 +17,6 @@ from pytorch_optimizer.base.type import (
     ParamGroup,
     State,
 )
-from pytorch_optimizer.optimizer.foreach_utils import foreach_add_, foreach_mul_
 
 
 class BaseOptimizer(ABC, Optimizer):
@@ -400,7 +399,6 @@ class BaseOptimizer(ABC, Optimizer):
         weight_decay: float,
         weight_decouple: bool,
         fixed_decay: bool,
-        foreach: bool = True,
     ) -> None:
         """Apply weight decay to a list of parameters.
 
@@ -411,16 +409,15 @@ class BaseOptimizer(ABC, Optimizer):
             weight_decay: Weight decay coefficient.
             weight_decouple: If True, applies decoupled weight decay as in AdamW.
             fixed_decay: If True, fixes weight decay to not depend on learning rate.
-            foreach: Whether to use foreach operations.
         """
         if weight_decay == 0.0:
             return
 
         if weight_decouple:
             decay = weight_decay * (1.0 if fixed_decay else lr)
-            foreach_mul_(params, 1.0 - decay, foreach=foreach)
+            torch._foreach_mul_(params, 1.0 - decay)
         else:
-            foreach_add_(grads, params, alpha=weight_decay, foreach=foreach)
+            torch._foreach_add_(grads, params, alpha=weight_decay)
 
     @staticmethod
     def get_stable_adamw_rms(grad: torch.Tensor, exp_avg_sq: torch.Tensor, eps: float = 1e-16) -> float:

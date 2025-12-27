@@ -5,11 +5,6 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
-from pytorch_optimizer.optimizer.foreach_utils import (
-    foreach_add_,
-    foreach_copy_,
-    foreach_mul_,
-)
 
 
 class LARS(BaseOptimizer):
@@ -129,11 +124,11 @@ class LARS(BaseOptimizer):
             scaled_grads.append(scaled_grad)
 
         if momentum > 0.0:
-            foreach_mul_(momentum_buffers, momentum, foreach=True)
-            foreach_add_(momentum_buffers, scaled_grads, alpha=1.0 - dampening, foreach=True)
-            foreach_copy_(scaled_grads, momentum_buffers, foreach=True)
+            torch._foreach_mul_(momentum_buffers, momentum)
+            torch._foreach_add_(momentum_buffers, scaled_grads, alpha=1.0 - dampening)
+            torch._foreach_copy_(scaled_grads, momentum_buffers)
 
-        foreach_add_(params, scaled_grads, alpha=-lr, foreach=True)
+        torch._foreach_add_(params, scaled_grads, alpha=-lr)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         """Per-parameter step (original implementation)."""

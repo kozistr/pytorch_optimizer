@@ -6,13 +6,6 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
-from pytorch_optimizer.optimizer.foreach_utils import (
-    foreach_add_,
-    foreach_addcmul_,
-    foreach_lerp_,
-    foreach_mul_,
-    foreach_sqrt,
-)
 
 
 class StableAdamW(BaseOptimizer):
@@ -129,26 +122,26 @@ class StableAdamW(BaseOptimizer):
         if self.maximize:
             torch._foreach_neg_(grads)
 
-        rms_values: List[float] = [
-            self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2) for grad, exp_avg_sq in zip(grads, exp_avg_sqs)
+        step_sizes: List[float] = [
+            lr / self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
+            for grad, exp_avg_sq in zip(grads, exp_avg_sqs)
         ]
 
         if group['weight_decay'] != 0.0:
-            for p, rms in zip(params, rms_values):
-                adj_lr = lr / rms
+            for p, step_size in zip(params, step_sizes):
                 if group['weight_decouple']:
-                    p.mul_(1.0 - group['weight_decay'] * adj_lr)
+                    p.mul_(1.0 - group['weight_decay'] * step_size)
 
-        foreach_lerp_(exp_avgs, grads, weight=beta1_comp, foreach=True)
+        torch._foreach_lerp_(exp_avgs, grads, weight=beta1_comp)
 
-        foreach_mul_(exp_avg_sqs, beta2_hat, foreach=True)
-        foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2_hat, foreach=True)
+        torch._foreach_mul_(exp_avg_sqs, beta2_hat)
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2_hat)
 
-        de_noms = foreach_sqrt(exp_avg_sqs, foreach=True)
-        foreach_add_(de_noms, eps, foreach=True)
+        de_noms = torch._foreach_sqrt(exp_avg_sqs)
+        torch._foreach_add_(de_noms, eps)
 
-        for p, exp_avg, de_nom, rms in zip(params, exp_avgs, de_noms, rms_values):
-            p.addcdiv_(exp_avg, de_nom, value=-lr / rms)
+        step_sizes = [-step_size for step_size in step_sizes]
+        torch._foreach_addcdiv_(params, exp_avgs, de_noms, step_sizes)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         """Per-parameter step (original implementation)."""
