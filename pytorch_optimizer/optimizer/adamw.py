@@ -91,12 +91,8 @@ class StableAdamW(BaseOptimizer):
 
         Foreach is disabled when using features that require per-parameter handling:
         - Complex tensors (view_as_real)
-        - Kahan summation (requires per-parameter precision handling)
         """
         if group.get('foreach') is False:
-            return False
-
-        if group.get('kahan_sum'):
             return False
 
         return self.can_use_foreach(group, group.get('foreach'))
@@ -108,6 +104,7 @@ class StableAdamW(BaseOptimizer):
         grads: List[torch.Tensor],
         exp_avgs: List[torch.Tensor],
         exp_avg_sqs: List[torch.Tensor],
+        kahan_comps: List[torch.Tensor],
     ) -> None:
         """Foreach-optimized step for a parameter group."""
         beta1, beta2 = group['betas']
@@ -141,7 +138,22 @@ class StableAdamW(BaseOptimizer):
         torch._foreach_add_(de_noms, eps)
 
         step_sizes = [-step_size for step_size in step_sizes]
-        torch._foreach_addcdiv_(params, exp_avgs, de_noms, step_sizes)
+
+        if group['kahan_sum'] and p.dtype in {torch.float16, torch.bfloat16}:
+            de_noms = torch._foreach_sqrt(exp_avg_sqs)
+            torch._foreach_add_(de_noms, group['eps'])
+
+            torch._foreach_addcdiv_(kahan_comps, exp_avgs, de_noms, step_sizes)
+
+            with torch.no_grad():
+                torch._foreach_copy_(grads, params)
+
+            torch._foreach_add_(params, kahan_comps)
+
+            torch._foreach_sub_(grads, params)
+            torch._foreach_add_(kahan_comps, grads)
+        else:
+            torch._foreach_addcdiv_(params, exp_avgs, de_noms, step_sizes)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         """Per-parameter step (original implementation)."""
@@ -202,10 +214,17 @@ class StableAdamW(BaseOptimizer):
 
             if self._can_use_foreach(group):
                 params, grads, state_dict = self.collect_trainable_params(
-                    group, self.state, state_keys=['exp_avg', 'exp_avg_sq']
+                    group, self.state, state_keys=['exp_avg', 'exp_avg_sq', 'kahan_comp']
                 )
                 if params:
-                    self._step_foreach(group, params, grads, state_dict['exp_avg'], state_dict['exp_avg_sq'])
+                    self._step_foreach(
+                        group,
+                        params,
+                        grads,
+                        state_dict['exp_avg'],
+                        state_dict['exp_avg_sq'],
+                        state_dict['kahan_comp'],
+                    )
             else:
                 self._step_per_param(group)
 

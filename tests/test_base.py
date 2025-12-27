@@ -61,7 +61,7 @@ def test_can_use_foreach():
     expected = BaseOptimizer.can_use_foreach({}, foreach=False)
     assert expected is False
 
-    params, grads, state_dict = BaseOptimizer.collect_trainable_params({'params': []}, {}, [])
+    params, grads, state_dict = BaseOptimizer.collect_trainable_params({'params': []}, {}, None)
     assert len(params) == 0
     assert len(grads) == 0
     assert len(state_dict) == 0

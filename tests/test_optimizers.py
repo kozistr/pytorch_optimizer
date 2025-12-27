@@ -63,9 +63,9 @@ def test_f32_optimizers(foreach, optimizer_fp32_config, environment):
     )
 
 
-@pytest.mark.parametrize('optimizer_bf16_config', OPTIMIZERS, ids=ids)
-def test_bf16_optimizers(optimizer_bf16_config, environment):
-    optimizer_class, config, iterations = optimizer_bf16_config
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_bf16_optimizers(optimizer_config, environment):
+    optimizer_class, config, iterations = optimizer_config
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name.lower() in SKIP_BF16_OPTIMIZERS:
         pytest.skip(f'skip {optimizer_name}')
@@ -91,14 +91,16 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
     )
 
 
-@pytest.mark.parametrize('optimizer_complex_config', OPTIMIZERS, ids=ids)
-def test_complex_optimizers(optimizer_complex_config, environment):
-    optimizer_class, config, iterations = optimizer_complex_config
+@pytest.mark.parametrize(
+    'optimizer_config',
+    [optimizer for optimizer in OPTIMIZERS if optimizer[0].__name__ in COMPLEX_TEST_OPTIMIZER_NAMES],
+    ids=ids,
+)
+def test_complex_optimizers(optimizer_config, environment):
+    optimizer_class, config, iterations = optimizer_config
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name.lower() not in COMPLEX_OPTIMIZERS:
         pytest.skip(f'{optimizer_name} does not support complex')
-    if optimizer_name not in COMPLEX_TEST_OPTIMIZER_NAMES:
-        pytest.skip(f'skip {optimizer_name} (covered by f32 tests)')
 
     x_data, y_data = environment
     model, loss_fn = build_model(use_complex=True)
