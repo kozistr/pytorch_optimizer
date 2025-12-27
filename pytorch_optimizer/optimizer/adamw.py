@@ -124,10 +124,9 @@ class StableAdamW(BaseOptimizer):
             for grad, exp_avg_sq in zip(grads, exp_avg_sqs)
         ]
 
-        if group['weight_decay'] != 0.0:
-            for p, step_size in zip(params, step_sizes):
-                if group['weight_decouple']:
-                    p.mul_(1.0 - group['weight_decay'] * step_size)
+        if group['weight_decay'] != 0.0 and group['weight_decouple']:
+            wd_step_sizes = [1.0 - group['weight_decay'] * step_size for step_size in step_sizes]
+            torch._foreach_mul_(params, wd_step_sizes)
 
         torch._foreach_lerp_(exp_avgs, grads, weight=beta1_comp)
 
