@@ -122,7 +122,6 @@ class Adan(BaseOptimizer):
     ) -> None:
         beta1, beta2, beta3 = group['betas']
         lr = group['lr']
-        eps = group['eps']
 
         bias_correction1: float = self.debias(beta1, group['step'])
         bias_correction2: float = self.debias(beta2, group['step'])
@@ -152,7 +151,7 @@ class Adan(BaseOptimizer):
 
         de_noms = torch._foreach_sqrt(exp_avg_sqs)
         torch._foreach_div_(de_noms, bias_correction3_sq)
-        torch._foreach_add_(de_noms, eps)
+        torch._foreach_add_(de_noms, group['eps'])
 
         if group['weight_decouple']:
             torch._foreach_mul_(params, 1.0 - lr * group['weight_decay'])
@@ -163,8 +162,7 @@ class Adan(BaseOptimizer):
         if not group['weight_decouple']:
             torch._foreach_div_(params, 1.0 + lr * group['weight_decay'])
 
-        for pg, g in zip(prev_grads, grads):
-            pg.copy_(g.neg())
+        torch._foreach_copy_(prev_grads, torch._foreach_neg(grads))
 
     def _step_per_param(self, group: ParamGroup, clip_global_grad_norm: Union[torch.Tensor, float]) -> None:
         beta1, beta2, beta3 = group['betas']

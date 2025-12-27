@@ -116,7 +116,6 @@ class AdaBelief(BaseOptimizer):
     ) -> None:
         beta1, beta2 = group['betas']
         lr = group['lr']
-        eps = group['eps']
 
         bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
@@ -138,7 +137,7 @@ class AdaBelief(BaseOptimizer):
 
         torch._foreach_mul_(exp_avg_vars, beta2)
         torch._foreach_addcmul_(exp_avg_vars, grad_residuals, grad_residuals, value=1.0 - beta2)
-        torch._foreach_add_(exp_avg_vars, eps)
+        torch._foreach_add_(exp_avg_vars, group['eps'])
 
         de_noms = torch._foreach_sqrt(exp_avg_vars)
         torch._foreach_div_(de_noms, bias_correction2_sq)

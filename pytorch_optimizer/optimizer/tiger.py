@@ -91,7 +91,7 @@ class Tiger(BaseOptimizer):
         self.apply_weight_decay_foreach(
             params=params,
             grads=grads,
-            lr=lr,
+            lr=group['lr'],
             weight_decay=group['weight_decay'],
             weight_decouple=group['weight_decouple'],
             fixed_decay=group['fixed_decay'],

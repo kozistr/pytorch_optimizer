@@ -147,7 +147,6 @@ class StableAdamW(BaseOptimizer):
             torch._foreach_addcdiv_(params, exp_avgs, de_noms, step_sizes)
 
     def _step_per_param(self, group: ParamGroup) -> None:
-        """Per-parameter step (original implementation)."""
         beta1, beta2 = group['betas']
 
         beta1_comp: float = 1.0 - self.debias_beta(beta1, group['step'])
