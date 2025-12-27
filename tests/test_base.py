@@ -55,3 +55,8 @@ class TestGradientMethods:
         BaseOptimizer.maximize_gradient(grad, maximize)
 
         torch.testing.assert_close(grad, expected)
+
+
+def test_can_use_foreach():
+    expected = BaseOptimizer.can_use_foreach({}, foreach=False)
+    assert expected is False
