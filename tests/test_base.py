@@ -49,8 +49,9 @@ class TestGradientMethods:
     """Tests for gradient-related methods."""
 
     @pytest.mark.parametrize('maximize', [True, False])
-    def test_maximize_gradient(self, maximize):
+    def test_maximize_gradient(self, maximize: bool):
         grad = torch.ones(1)
         expected = -grad if maximize else grad
         BaseOptimizer.maximize_gradient(grad, maximize)
+
         torch.testing.assert_close(grad, expected)

@@ -32,18 +32,23 @@ from tests.utils import (
 )
 
 
+@pytest.mark.parametrize('foreach', [False, True])
 @pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
-def test_f32_optimizers(optimizer_fp32_config, environment):
+def test_f32_optimizers(foreach, optimizer_fp32_config, environment):
     optimizer_class, config, iterations = optimizer_fp32_config
     optimizer_name: str = optimizer_class.__name__
+
     if optimizer_name == 'Nero' and 'constraints' not in config:
         pytest.skip(f'skip {optimizer_name} w/o {config}')
+
+    if foreach and not optimizer_name.lower() not in FOREACH_OPTIMIZERS:
+        pytest.skip(f'skip {optimizer_name} w/ foreach')
 
     x_data, y_data = environment
     model, loss_fn = build_model()
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
-    optimizer = optimizer_class(parameters, **config)
+    optimizer = optimizer_class(parameters, **config, foreach=foreach)
     if optimizer_name.endswith('schedulefree'):
         optimizer.train()
 
@@ -115,33 +120,6 @@ def test_complex_optimizers(optimizer_complex_config, environment):
     trainer.run(
         iterations=iterations,
         create_graph=should_use_create_graph(optimizer_name_lower),
-        closure_fn=closure_fn,
-        threshold=1.5,
-    )
-
-
-@pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
-def test_f32_foreach_optimizers(optimizer_fp32_config, environment):
-    optimizer_class, config, iterations = optimizer_fp32_config
-    optimizer_name: str = optimizer_class.__name__.lower()
-    if optimizer_name not in FOREACH_OPTIMIZERS:
-        pytest.skip(f'skip non-foreach optimizer {optimizer_name}')
-
-    x_data, y_data = environment
-    model, loss_fn = build_model()
-    parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
-
-    optimizer = optimizer_class(parameters, **config, foreach=True)
-    if optimizer_name.endswith('schedulefree'):
-        optimizer.train()
-
-    def closure_fn(x):
-        return make_closure(x) if optimizer_name in ('AliG',) or optimizer_name.startswith('Emo') else None
-
-    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
-    trainer.run(
-        iterations=iterations,
-        create_graph=should_use_create_graph(optimizer_name),
         closure_fn=closure_fn,
         threshold=1.5,
     )
