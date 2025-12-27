@@ -133,7 +133,7 @@ class AdaBelief(BaseOptimizer):
 
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
 
-        grad_residuals = [g.sub(ea) for g, ea in zip(grads, exp_avgs)]
+        grad_residuals = torch._foreach_sub(grads, exp_avgs)
 
         torch._foreach_mul_(exp_avg_vars, beta2)
         torch._foreach_addcmul_(exp_avg_vars, grad_residuals, grad_residuals, value=1.0 - beta2)
