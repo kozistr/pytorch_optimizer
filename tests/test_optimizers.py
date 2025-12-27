@@ -32,9 +32,9 @@ from tests.utils import (
 
 
 @pytest.mark.parametrize('foreach', [False, True])
-@pytest.mark.parametrize('optimizer_fp32_config', OPTIMIZERS, ids=ids)
-def test_f32_optimizers(foreach, optimizer_fp32_config, environment):
-    optimizer_class, config, iterations = optimizer_fp32_config
+@pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
+def test_f32_optimizers(foreach, optimizer_config, environment):
+    optimizer_class, config, iterations = optimizer_config
     optimizer_name: str = optimizer_class.__name__
 
     if optimizer_name == 'Nero' and 'constraints' not in config:
