@@ -40,8 +40,11 @@ def test_f32_optimizers(foreach, optimizer_config, environment):
     if optimizer_name == 'Nero' and 'constraints' not in config:
         pytest.skip(f'skip {optimizer_name} w/o {config}')
 
-    if foreach and not optimizer_name.lower() not in FOREACH_OPTIMIZERS:
+    if foreach and optimizer_name.lower() not in FOREACH_OPTIMIZERS:
         pytest.skip(f'skip {optimizer_name} w/ foreach')
+
+    if optimizer_name.lower() == 'amos':
+        print(optimizer_name, foreach)
 
     x_data, y_data = environment
     model, loss_fn = build_model()
