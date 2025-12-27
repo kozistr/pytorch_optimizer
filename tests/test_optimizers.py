@@ -72,9 +72,6 @@ def test_bf16_optimizers(foreach, optimizer_config, environment):
     if optimizer_name.lower() in SKIP_BF16_OPTIMIZERS:
         pytest.skip(f'skip {optimizer_name}')
 
-    if foreach and not optimizer_name.lower() not in FOREACH_OPTIMIZERS:
-        pytest.skip(f'skip {optimizer_name} w/ foreach')
-
     x_data, y_data = environment
     model, loss_fn = build_model()
     model = model.bfloat16()
