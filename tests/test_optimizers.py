@@ -7,7 +7,6 @@ from pytorch_optimizer.optimizer import DynamicLossScaler, load_optimizer
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
 from tests.constants import (
-    BF16_TEST_OPTIMIZER_NAMES,
     COMPLEX_OPTIMIZERS,
     COMPLEX_TEST_OPTIMIZER_NAMES,
     FOREACH_OPTIMIZERS,
@@ -70,8 +69,6 @@ def test_bf16_optimizers(optimizer_bf16_config, environment):
     optimizer_name: str = optimizer_class.__name__
     if optimizer_name.lower() in SKIP_BF16_OPTIMIZERS:
         pytest.skip(f'skip {optimizer_name}')
-    if optimizer_name not in BF16_TEST_OPTIMIZER_NAMES:
-        pytest.skip(f'skip {optimizer_name} (covered by f32 tests)')
 
     x_data, y_data = environment
     model, loss_fn = build_model()

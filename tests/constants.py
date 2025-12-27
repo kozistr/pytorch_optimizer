@@ -409,31 +409,6 @@ SKIP_COMPLEX_NOT_SUPPORTED: frozenset = frozenset(
 
 SKIP_BF16_OPTIMIZERS: frozenset = frozenset({'adai', 'prodigy', 'nero'})
 
-BF16_TEST_OPTIMIZER_NAMES: frozenset = frozenset(
-    {
-        'AdaBelief',
-        'AdamP',
-        'Lamb',
-        'LARS',
-        'RAdam',
-        'Ranger',
-        'Ranger21',
-        'Lion',
-        'Adan',
-        'AdaFactor',
-        'CAME',
-        'Shampoo',
-        'ScalableShampoo',
-        'DAdaptAdam',
-        'ScheduleFreeAdamW',
-        'GaLore',
-        'SOAP',
-        'MARS',
-        'Muon',
-        'StableAdamW',
-    }
-)
-
 COMPLEX_TEST_OPTIMIZER_NAMES: frozenset = frozenset(
     {
         'AdaBelief',
