@@ -304,6 +304,8 @@ class SCION(BaseOptimizer):
             (e.g., Embeddings, LM head).
         weight_decay (float): weight decay (L2 penalty).
         weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
+        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+            None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): maximize the objective with respect to the params, instead of minimizing.
 
     Example:
@@ -335,6 +337,7 @@ class SCION(BaseOptimizer):
         scale: float = 1.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
+        foreach: Optional[bool] = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -342,6 +345,7 @@ class SCION(BaseOptimizer):
         self.validate_range(momentum, 'momentum', 0.0, 1.0, '(]')
         self.validate_positive(scale, 'scale')
 
+        self.foreach = foreach
         self.maximize = maximize
 
         if norm_kwargs is None:
@@ -356,6 +360,7 @@ class SCION(BaseOptimizer):
             'scale': scale,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
+            'foreach': foreach,
         }
 
         super().__init__(params, defaults)
@@ -388,6 +393,75 @@ class SCION(BaseOptimizer):
                 norm.init(p)
                 p.mul_(group['scale'])
 
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
+        if group.get('foreach') is False:
+            return False
+
+        return self.can_use_foreach(group, group.get('foreach'))
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: List[torch.Tensor],
+        grads: List[torch.Tensor],
+        norm: Norm,
+        ds: List[torch.Tensor],
+    ) -> None:
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        torch._foreach_lerp_(ds, grads, group['momentum'])
+
+        updates = [norm.lmo(d) for d in ds]
+        torch._foreach_mul_(updates, group['scale'])
+
+        if group['constraint']:
+            torch._foreach_mul_(params, 1.0 - group['lr'])
+
+        if not group['constraint'] and group['weight_decay'] > 0.0:
+            self.apply_weight_decay_foreach(
+                params,
+                grads=grads,
+                lr=group['lr'],
+                weight_decay=group['weight_decay'],
+                weight_decouple=group['weight_decouple'],
+                fixed_decay=False,
+            )
+
+        torch._foreach_add_(params, updates, alpha=-group['lr'])
+
+    def _step_per_param(self, group: ParamGroup, norm: Norm) -> None:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+
+            self.maximize_gradient(grad, maximize=self.maximize)
+
+            state = self.state[p]
+
+            d = state['d']
+
+            d.mul_(1.0 - group['momentum']).add_(grad, alpha=group['momentum'])
+
+            update = norm.lmo(d).mul_(group['scale'])
+
+            if group['constraint']:
+                p.mul_(1.0 - group['lr'])
+
+            if not group['constraint'] and group['weight_decay'] > 0.0:
+                self.apply_weight_decay(
+                    p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=False,
+                )
+
+            p.add_(update, alpha=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -401,36 +475,12 @@ class SCION(BaseOptimizer):
 
             norm = build_lmo_norm(group['norm_type'], **group['norm_kwargs'])
 
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                grad = p.grad
-
-                self.maximize_gradient(grad, maximize=self.maximize)
-
-                state = self.state[p]
-
-                d = state['d']
-
-                d.mul_(1.0 - group['momentum']).add_(grad, alpha=group['momentum'])
-
-                update = norm.lmo(d).mul_(group['scale'])
-
-                if group['constraint']:
-                    p.mul_(1.0 - group['lr'])
-
-                if not group['constraint'] and group['weight_decay'] > 0.0:
-                    self.apply_weight_decay(
-                        p,
-                        grad=grad,
-                        lr=group['lr'],
-                        weight_decay=group['weight_decay'],
-                        weight_decouple=group['weight_decouple'],
-                        fixed_decay=False,
-                    )
-
-                p.add_(update, alpha=-group['lr'])
+            if self._can_use_foreach(group):
+                params, grads, ds = self.collect_trainable_params(group, self.state, state_keys=['d'])
+                if params:
+                    self._step_foreach(group, params, grads, norm, ds)
+            else:
+                self._step_per_param(group, norm)
 
         return loss
 
