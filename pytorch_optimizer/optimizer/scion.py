@@ -476,9 +476,9 @@ class SCION(BaseOptimizer):
             norm = build_lmo_norm(group['norm_type'], **group['norm_kwargs'])
 
             if self._can_use_foreach(group):
-                params, grads, ds = self.collect_trainable_params(group, self.state, state_keys=['d'])
+                params, grads, state_dict = self.collect_trainable_params(group, self.state, state_keys=['d'])
                 if params:
-                    self._step_foreach(group, params, grads, norm, ds)
+                    self._step_foreach(group, params, grads, norm, state_dict['d'])
             else:
                 self._step_per_param(group, norm)
 

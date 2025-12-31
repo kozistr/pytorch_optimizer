@@ -207,6 +207,7 @@ FOREACH_OPTIMIZERS: frozenset = frozenset(
         'amos',
         'scion',
         'scionlight',
+        'grokfastadamw',
     }
 )
 
