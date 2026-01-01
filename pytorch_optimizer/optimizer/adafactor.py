@@ -223,7 +223,7 @@ class AdaFactor(BaseOptimizer):
 
             non_factored_updates = foreach_rsqrt(exp_avg_sqs)
 
-        updates: List[Optional[torch.Tensor]] = [None] * len(grads)
+        updates = [None] * len(grads)
 
         for offset, update in zip(factored_offsets, factored_updates, strict=True):
             updates[offset] = update
