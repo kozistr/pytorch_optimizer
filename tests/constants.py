@@ -205,7 +205,10 @@ FOREACH_OPTIMIZERS: frozenset = frozenset(
         'signsgd',
         'tiger',
         'amos',
+        'scion',
         'scionlight',
+        'grokfastadamw',
+        'adafactor',
     }
 )
 
@@ -736,9 +739,9 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (DAdaptLion, {'lr': 3e0, 'weight_decay': 1e-3}, 20),
     (AdamS, {'lr': 1e0, 'weight_decay': 1e-3}, 10),
     (AdamS, {'lr': 1e0, 'weight_decay': 1e-3, 'ams_bound': True}, 20),
-    (AdaFactor, {'lr': 1e1, 'weight_decay': 1e-3, 'scale_parameter': False}, 100),
-    (AdaFactor, {'lr': 1e1, 'weight_decay': 1e-3, 'ams_bound': True}, 120),
-    (AdaFactor, {'lr': 1e1, 'betas': (None, 0.999), 'weight_decay': 1e-3}, 40),
+    (AdaFactor, {'lr': 1e0, 'weight_decay': 1e-3, 'scale_parameter': False}, 40),
+    (AdaFactor, {'lr': 5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 80),
+    (AdaFactor, {'lr': 5e-1, 'betas': (None, 0.999), 'weight_decay': 1e-3}, 70),
     (ApolloDQN, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (ApolloDQN, {'lr': 5e-1, 'weight_decay': 1e-3, 'rebound': 'belief'}, 10),
     (ApolloDQN, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decay_type': 'stable', 'warmup_steps': 0}, 50),
@@ -977,7 +980,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
 ]
 
 COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
-    (AdaFactor, {'lr': 1e1, 'weight_decay': 1e-3}, 70),
+    (AdaFactor, {'lr': 1e0, 'weight_decay': 1e-3, 'scale_parameter': False}, 60),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (AdEMAMix, {'lr': 1e0}, 2),
     (LaProp, {'lr': 1e0}, 2),

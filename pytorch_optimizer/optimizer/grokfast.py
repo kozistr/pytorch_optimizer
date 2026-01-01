@@ -1,6 +1,6 @@
 import math
 from collections import deque
-from typing import Dict, Literal, Optional, cast
+from typing import Dict, List, Literal, Optional, cast
 
 import torch
 from torch import nn
@@ -112,6 +112,8 @@ class GrokFastAdamW(BaseOptimizer):
         weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
         fixed_decay (bool): Fix weight decay.
         eps (float): Term added to the denominator to improve numerical stability.
+        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+            None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
     """
 
@@ -129,6 +131,7 @@ class GrokFastAdamW(BaseOptimizer):
         fixed_decay: bool = False,
         normalize_lr: bool = True,
         eps: float = 1e-8,
+        foreach: Optional[bool] = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -138,6 +141,7 @@ class GrokFastAdamW(BaseOptimizer):
         self.validate_range(grokfast_alpha, 'grokfast_alpha', 0.0, 1.0)
         self.validate_non_negative(eps, 'eps')
 
+        self.foreach = foreach
         self.maximize = maximize
 
         if grokfast and normalize_lr:
@@ -153,6 +157,7 @@ class GrokFastAdamW(BaseOptimizer):
             'grokfast_alpha': grokfast_alpha,
             'grokfast_lamb': grokfast_lamb,
             'grokfast_after_step': grokfast_after_step,
+            'foreach': foreach,
             'eps': eps,
         }
         super().__init__(params, defaults)
@@ -180,6 +185,102 @@ class GrokFastAdamW(BaseOptimizer):
                 if group['grokfast'] and group['grokfast_lamb'] > 0.0:
                     state['grok_exp_avg'] = grad.clone()
 
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
+        if group.get('foreach') is False:
+            return False
+
+        return self.can_use_foreach(group, group.get('foreach'))
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: List[torch.Tensor],
+        grads: List[torch.Tensor],
+        exp_avgs: List[torch.Tensor],
+        exp_avg_sqs: List[torch.Tensor],
+        grok_exp_avgs: List[torch.Tensor],
+        should_grokfast: bool,
+    ) -> None:
+        beta1, beta2 = group['betas']
+
+        bias_correction1: float = self.debias(beta1, group['step'])
+        bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(
+            params=params,
+            grads=grads,
+            lr=group['lr'],
+            weight_decay=group['weight_decay'],
+            weight_decouple=group['weight_decouple'],
+            fixed_decay=group['fixed_decay'],
+        )
+
+        if should_grokfast:
+            torch._foreach_lerp_(grok_exp_avgs, grads, weight=1.0 - group['grokfast_alpha'])
+            torch._foreach_add_(grads, grok_exp_avgs, alpha=group['grokfast_lamb'])
+
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+        torch._foreach_mul_(exp_avg_sqs, beta2)
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
+
+        de_noms = torch._foreach_sqrt(exp_avg_sqs)
+        torch._foreach_div_(de_noms, bias_correction2_sq)
+        torch._foreach_clamp_min_(de_noms, group['eps'])
+
+        updates = torch._foreach_div(exp_avgs, bias_correction1)
+        torch._foreach_div_(updates, de_noms)
+
+        torch._foreach_add_(params, updates, alpha=-group['lr'])
+
+    def _step_per_param(self, group: ParamGroup, should_grokfast: bool) -> None:
+        beta1, beta2 = group['betas']
+
+        bias_correction1: float = self.debias(beta1, group['step'])
+        bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
+
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+
+            self.maximize_gradient(grad, maximize=self.maximize)
+
+            state = self.state[p]
+
+            exp_avg, exp_avg_sq, grok_exp_avg = (
+                state['exp_avg'],
+                state['exp_avg_sq'],
+                state.get('grok_exp_avg', None),
+            )
+
+            p, grad, exp_avg, exp_avg_sq, grok_exp_avg = self.view_as_real(p, grad, exp_avg, exp_avg_sq, grok_exp_avg)
+
+            self.apply_weight_decay(
+                p=p,
+                grad=grad,
+                lr=group['lr'],
+                weight_decay=group['weight_decay'],
+                weight_decouple=group['weight_decouple'],
+                fixed_decay=group['fixed_decay'],
+            )
+
+            if should_grokfast:
+                grok_exp_avg.lerp_(grad, weight=1.0 - group['grokfast_alpha'])
+                grad.add_(grok_exp_avg, alpha=group['grokfast_lamb'])
+
+            exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+            exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+
+            de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).clamp_(min=group['eps'])
+
+            update = exp_avg.div(bias_correction1).div_(de_nom)
+
+            p.add_(update, alpha=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -191,55 +292,27 @@ class GrokFastAdamW(BaseOptimizer):
             self.init_group(group)
             group['step'] += 1
 
-            beta1, beta2 = group['betas']
-
-            bias_correction1: float = self.debias(beta1, group['step'])
-            bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
-
             should_grokfast: bool = (
                 group['grokfast'] and group['step'] > group['grokfast_after_step'] and group['grokfast_lamb'] > 0.0
             )
 
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                grad = p.grad
-
-                self.maximize_gradient(grad, maximize=self.maximize)
-
-                state = self.state[p]
-
-                exp_avg, exp_avg_sq, grok_exp_avg = (
-                    state['exp_avg'],
-                    state['exp_avg_sq'],
-                    state.get('grok_exp_avg', None),
+            if self._can_use_foreach(group):
+                params, grads, state_dict = self.collect_trainable_params(
+                    group,
+                    self.state,
+                    state_keys=['exp_avg', 'exp_avg_sq', 'grok_exp_avg'],
                 )
-
-                p, grad, exp_avg, exp_avg_sq, grok_exp_avg = self.view_as_real(
-                    p, grad, exp_avg, exp_avg_sq, grok_exp_avg
-                )
-
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
-
-                if should_grokfast:
-                    grok_exp_avg.lerp_(grad, weight=1.0 - group['grokfast_alpha'])
-                    grad.add_(grok_exp_avg, alpha=group['grokfast_lamb'])
-
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
-
-                de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).clamp_(min=group['eps'])
-
-                update = exp_avg.div(bias_correction1).div_(de_nom)
-
-                p.add_(update, alpha=-group['lr'])
+                if params:
+                    self._step_foreach(
+                        group,
+                        params,
+                        grads,
+                        state_dict['exp_avg'],
+                        state_dict['exp_avg_sq'],
+                        state_dict['grok_exp_avg'],
+                        should_grokfast,
+                    )
+            else:
+                self._step_per_param(group, should_grokfast)
 
         return loss

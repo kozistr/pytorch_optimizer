@@ -1,6 +1,6 @@
 import math
 import os
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, cast
 
 import torch
 from torch import nn
@@ -343,7 +343,8 @@ class AdaLOMO(BaseOptimizer):
                         self.exp_avg_sq[n].mul_(beta2_t).add_(update, alpha=1.0 - beta2_t)
                         update = self.exp_avg_sq[n].rsqrt().mul_(grad_fp32)
 
-                    update.div_((self.get_rms(update) / self.clip_threshold).clamp_(min=1.0))
+                    factor = cast(torch.Tensor, self.get_rms(update)).div_(self.clip_threshold).clamp_min_(1.0)
+                    update.div_(factor)
 
                     p_fp32 = p.to(torch.float32)
                     p_rms = torch.norm(p_fp32, 2.0) / math.sqrt(p.numel())
@@ -411,7 +412,8 @@ class AdaLOMO(BaseOptimizer):
                     self.exp_avg_sq[n].mul_(beta2_t).add_(update, alpha=1.0 - beta2_t)
                     update = self.exp_avg_sq[n].rsqrt().mul_(grad_fp32)
 
-                update.div_((self.get_rms(update) / self.clip_threshold).clamp_(min=1.0))
+                factor = cast(torch.Tensor, self.get_rms(update)).div_(self.clip_threshold).clamp_min_(1.0)
+                update.div_(factor)
 
                 one_dim_update = update.view(-1)
                 partitioned_update = one_dim_update.narrow(0, start, end - start)

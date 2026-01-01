@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -82,6 +82,19 @@ def group_tensors_by_device_and_dtype(
             groups[key][name].append(state_list[idx])
 
     return list(groups.values())
+
+
+def foreach_rsqrt(
+    tensors: Union[List[torch.Tensor], Tuple[torch.Tensor, ...]],
+) -> Sequence[torch.Tensor]:  # pragma: no cover
+    """foreach_rsqrt implementation by Pytorch version.
+
+    `torch._foreach_rsqrt` is introduced since Pytorch 2.8.0, So, previous versions do not use this.
+    """
+    if TORCH_VERSION_AT_LEAST_2_8:
+        return torch._foreach_rsqrt(tensors)
+
+    return torch._foreach_reciprocal(torch._foreach_sqrt(tensors))
 
 
 def foreach_rsqrt_(tensors: Union[List[torch.Tensor], Tuple[torch.Tensor, ...]]) -> None:  # pragma: no cover

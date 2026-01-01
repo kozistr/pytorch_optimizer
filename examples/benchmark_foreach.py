@@ -33,14 +33,32 @@ from pytorch_optimizer import (
     LARS,
     SGDW,
     AdaBelief,
+    AdaFactor,
     Adan,
     Amos,
+    GrokFastAdamW,
     Lamb,
     Lion,
     SignSGD,
     StableAdamW,
     Tiger,
 )
+
+OPTIMIZERS_CONFIG = [
+    (AdaFactor, {'lr': 1e-3}),
+    (GrokFastAdamW, {'lr': 1e-4, 'grokfast_after_step': 1}),
+    (Amos, {'lr': 1e-3}),
+    (Lion, {'lr': 1e-4}),
+    (Tiger, {'lr': 1e-3}),
+    (Adan, {'lr': 1e-3}),
+    (ADOPT, {'lr': 1e-3}),
+    (AdaBelief, {'lr': 1e-3}),
+    (StableAdamW, {'lr': 1e-3}),
+    (Lamb, {'lr': 1e-3}),
+    (LARS, {'lr': 1e-2}),
+    (SignSGD, {'lr': 1e-2, 'momentum': 0.9}),
+    (SGDW, {'lr': 1e-2, 'momentum': 0.9}),
+]
 
 
 @dataclass
@@ -361,20 +379,6 @@ def run_benchmarks(
     results = []
     comparisons = []
 
-    optimizers_config = [
-        (Amos, {'lr': 1e-3}),
-        (Lion, {'lr': 1e-4}),
-        (Tiger, {'lr': 1e-3}),
-        (Adan, {'lr': 1e-3}),
-        (ADOPT, {'lr': 1e-3}),
-        (AdaBelief, {'lr': 1e-3}),
-        (StableAdamW, {'lr': 1e-3}),
-        (Lamb, {'lr': 1e-3}),
-        (LARS, {'lr': 1e-2}),
-        (SignSGD, {'lr': 1e-2, 'momentum': 0.9}),
-        (SGDW, {'lr': 1e-2, 'momentum': 0.9}),
-    ]
-
     base_model, data, target, criterion = create_model_and_data(model_type, batch_size, device)
     num_params = base_model.num_params
     del base_model
@@ -391,7 +395,7 @@ def run_benchmarks(
         print(header)
         print('-' * 100)
 
-    for opt_cls, opt_kwargs in optimizers_config:
+    for opt_cls, opt_kwargs in OPTIMIZERS_CONFIG:
         opt_results = {}
 
         for foreach in [False, True]:
@@ -504,7 +508,7 @@ def main():
     parser.add_argument('--model-type', type=str, default='mlp', choices=['mlp', 'mlp_large', 'conv', 'transformer'])
     parser.add_argument('--num-steps', type=int, default=100, help='Number of benchmark steps')
     parser.add_argument('--warmup-steps', type=int, default=10, help='Number of warmup steps')
-    parser.add_argument('--batch-size', type=int, default=32, help='Batch size')
+    parser.add_argument('--batch-size', type=int, default=64, help='Batch size')
     parser.add_argument('--all-models', action='store_true', help='Run benchmarks on all model types')
     args = parser.parse_args()
 
