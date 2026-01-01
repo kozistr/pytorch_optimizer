@@ -46,7 +46,7 @@ from pytorch_optimizer.optimizer.conda import Conda
 from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptLion, DAdaptSGD
 from pytorch_optimizer.optimizer.demo import DeMo
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
-from pytorch_optimizer.optimizer.emonavi import EmoFact, EmoLynx, EmoNavi, EmoNeco, EmoZeal
+from pytorch_optimizer.optimizer.emonavi import EmoFact, EmoLynx, EmoNavi
 from pytorch_optimizer.optimizer.exadam import EXAdam
 from pytorch_optimizer.optimizer.experimental.ranger25 import Ranger25
 from pytorch_optimizer.optimizer.fadam import FAdam
@@ -176,8 +176,6 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     EmoFact,
     EmoLynx,
     EmoNavi,
-    EmoNeco,
-    EmoZeal,
     FAdam,
     FOCUS,
     FTRL,
