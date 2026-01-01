@@ -571,12 +571,11 @@ def test_splus_methods():
     optimizer.train()
 
 
-@pytest.mark.parametrize('optimizer_name', ['emonavi', 'emolynx'])
+@pytest.mark.parametrize('optimizer_name', ['emonavi', 'emolynx', 'emofact'])
 def test_emo_optimizers(optimizer_name):
-    p = simple_parameter(True)
-    optimizer = load_optimizer(optimizer_name)([p], use_shadow=True)
+    optimizer = load_optimizer(optimizer_name)([simple_parameter(True)], use_shadow=True)
 
     optimizer.init_group(optimizer.param_groups[0])
-    optimizer.state['ema'] = {'short': 0.0847 / 0.7, 'long': 0.0}
+    optimizer.state['ema'] = {'short': 0.266, 'long': 1.0}
 
     optimizer.step()
