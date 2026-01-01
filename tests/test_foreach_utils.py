@@ -1,6 +1,7 @@
 import torch
 
 from pytorch_optimizer.optimizer.foreach_utils import (
+    foreach_rsqrt,
     foreach_rsqrt_,
     group_tensors_by_device_and_dtype,
     has_foreach_support,
@@ -72,7 +73,12 @@ class TestGroupTensorsByDeviceAndDtype:
 
 
 class TestForeachOperations:
-    def test_rsqrt_by_version(self):
+    def test_outplace_rsqrt_by_version(self):
+        tensors = [torch.empty((1,)).fill_(4.0)]
+        tensors = foreach_rsqrt(tensors)
+        assert tensors[0].item() == 0.5
+
+    def test_inplace_rsqrt_by_version(self):
         tensors = [torch.empty((1,)).fill_(4.0)]
         foreach_rsqrt_(tensors)
         assert tensors[0].item() == 0.5

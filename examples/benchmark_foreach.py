@@ -33,6 +33,7 @@ from pytorch_optimizer import (
     LARS,
     SGDW,
     AdaBelief,
+    AdaFactor,
     Adan,
     Amos,
     GrokFastAdamW,
@@ -44,6 +45,7 @@ from pytorch_optimizer import (
 )
 
 OPTIMIZERS_CONFIG = [
+    (AdaFactor, {'lr': 1e-3}),
     (GrokFastAdamW, {'lr': 1e-4, 'grokfast_after_step': 1}),
     (Amos, {'lr': 1e-3}),
     (Lion, {'lr': 1e-4}),
