@@ -146,13 +146,12 @@ class TestRanger21:
 
 
 def test_adafactor_get_lr():
-    model: nn.Module = Example()
-    opt = load_optimizer('adafactor')(model.parameters())
+    opt = load_optimizer('adafactor')(Example().parameters())
 
     recipes = [(True, 1e-6), (False, 1e-2)]
 
     for warmup_init, expected_lr in recipes:
-        assert opt.get_lr(1.0, 1, 1.0, True, warmup_init, True) == expected_lr
+        assert opt.get_lr(expected_lr, 1.0, True) == expected_lr
 
 
 class TestA2GradParameters:
