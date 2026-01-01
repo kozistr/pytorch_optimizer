@@ -980,7 +980,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
 ]
 
 COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
-    (AdaFactor, {'lr': 1e0, 'weight_decay': 1e-3}, 75),
+    (AdaFactor, {'lr': 1e0, 'weight_decay': 1e-3, 'scale_parameter': False}, 60),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (AdEMAMix, {'lr': 1e0}, 2),
     (LaProp, {'lr': 1e0}, 2),
