@@ -576,7 +576,7 @@ def test_emo_optimizers(optimizer_name):
     optimizer = load_optimizer(optimizer_name)([simple_parameter(True)], use_shadow=True)
 
     optimizer.init_group(optimizer.param_groups[0])
-    # short < 0.027⋅long or short > 1.973⋅long to hit abs(scalar) > 0.75 and ratio > 0.0
+    # short < 0.027 * long or short > 1.973 * long to hit abs(scalar) > 0.75 and ratio > 0.0
     optimizer.state['ema'] = {'short': 0.026, 'long': 1.0}
 
     optimizer.step()
