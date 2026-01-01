@@ -1,6 +1,6 @@
 import math
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch.optim import Optimizer
@@ -17,6 +17,7 @@ from pytorch_optimizer.base.type import (
     ParamGroup,
     State,
 )
+from pytorch_optimizer.optimizer.foreach_utils import foreach_rsqrt_
 
 
 class BaseOptimizer(ABC, Optimizer):
@@ -297,20 +298,42 @@ class BaseOptimizer(ABC, Optimizer):
         return grad.mul(exp_grad_norm).div_(grad_norm) if exp_grad_norm > grad_norm else grad
 
     @staticmethod
-    def get_rms(x: torch.Tensor) -> torch.Tensor:
+    def get_rms(x: Union[List[torch.Tensor], torch.Tensor]) -> Union[List[torch.Tensor], torch.Tensor]:
         """Get RMS."""
-        return x.norm(2) / math.sqrt(x.numel())
+        if isinstance(x, torch.Tensor):
+            return x.norm(2).div_(math.sqrt(x.numel()))
+
+        factors: List[float] = [math.sqrt(p.numel()) for p in x]
+        norms = torch._foreach_norm(x, ord=2)
+        torch._foreach_div_(norms, factors)
+
+        return norms  # pyright: ignore[reportReturnType]
 
     @staticmethod
     def approximate_sq_grad(
-        exp_avg_sq_row: torch.Tensor,
-        exp_avg_sq_col: torch.Tensor,
-        output: torch.Tensor,
+        exp_avg_sq_row: Union[List[torch.Tensor], torch.Tensor],
+        exp_avg_sq_col: Union[List[torch.Tensor], torch.Tensor],
+        output: Union[List[torch.Tensor], torch.Tensor],
     ) -> None:
         """Get approximation of EMA of squared gradient."""
-        r_factor: torch.Tensor = (exp_avg_sq_row / exp_avg_sq_row.mean(dim=-1, keepdim=True)).rsqrt_().unsqueeze(-1)
-        c_factor: torch.Tensor = exp_avg_sq_col.unsqueeze(-2).rsqrt()
-        torch.mul(r_factor, c_factor, out=output)
+        if isinstance(exp_avg_sq_row, torch.Tensor):
+            r_factor: torch.Tensor = (
+                (exp_avg_sq_row / exp_avg_sq_row.mean(dim=-1, keepdim=True)).rsqrt_().unsqueeze(-1)
+            )
+            c_factor: torch.Tensor = exp_avg_sq_col.unsqueeze(-2).rsqrt()
+            torch.mul(r_factor, c_factor, out=output)
+            return
+
+        row_means = [r.mean(dim=-1, keepdim=True) for r in exp_avg_sq_row]
+
+        r_factors = torch._foreach_div(exp_avg_sq_row, row_means)
+        foreach_rsqrt_(r_factors)
+        r_factors = [r_factor.unsqueeze(-1) for r_factor in r_factors]
+
+        c_factors = [c_factor.unsqueeze(-2) for c_factor in exp_avg_sq_col]
+        foreach_rsqrt_(c_factors)
+
+        torch._foreach_copy_(output, torch._foreach_mul(r_factors, c_factors))
 
     @staticmethod
     def apply_cautious(update: torch.Tensor, grad: torch.Tensor) -> None:
@@ -395,7 +418,7 @@ class BaseOptimizer(ABC, Optimizer):
     def apply_weight_decay_foreach(
         params: List[torch.Tensor],
         grads: List[torch.Tensor],
-        lr: float,
+        lr: Union[List[float], List[torch.Tensor], float, torch.Tensor],
         weight_decay: float,
         weight_decouple: bool,
         fixed_decay: bool,
@@ -413,10 +436,19 @@ class BaseOptimizer(ABC, Optimizer):
         if weight_decay == 0.0:
             return
 
-        if weight_decouple:
-            torch._foreach_mul_(params, 1.0 - weight_decay * (1.0 if fixed_decay else lr))
-        else:
+        if not weight_decouple:
             torch._foreach_add_(grads, params, alpha=weight_decay)
+            return
+
+        if fixed_decay:
+            factor = 1.0 - weight_decay
+        elif isinstance(lr, Sequence):
+            factor = torch._foreach_mul(lr, -weight_decay)
+            torch._foreach_add_(factor, 1.0)
+        else:
+            factor = 1.0 - weight_decay * lr
+
+        torch._foreach_mul_(params, factor)
 
     @staticmethod
     def get_stable_adamw_rms(grad: torch.Tensor, exp_avg_sq: torch.Tensor, eps: float = 1e-16) -> float:
