@@ -188,6 +188,8 @@ class AdaFactor(BaseOptimizer):
         beta2_t: float,
         relative_step_size: float,
     ) -> None:
+        bias_correction2: float = 1.0 - beta2_t
+
         if self.maximize:
             torch._foreach_neg_(grads)
 
@@ -213,13 +215,13 @@ class AdaFactor(BaseOptimizer):
                 row_means.append(factored_update.mean(dim=-1))
                 col_means.append(factored_update.mean(dim=-2))
 
-            torch._foreach_lerp_(exp_avg_sq_rows, row_means, weight=1.0 - beta2_t)
-            torch._foreach_lerp_(exp_avg_sq_cols, col_means, weight=1.0 - beta2_t)
+            torch._foreach_lerp_(exp_avg_sq_rows, row_means, weight=bias_correction2)
+            torch._foreach_lerp_(exp_avg_sq_cols, col_means, weight=bias_correction2)
 
             self.approximate_sq_grad(exp_avg_sq_rows, exp_avg_sq_cols, factored_updates)
 
         if non_factored_updates:
-            torch._foreach_lerp_(exp_avg_sqs, non_factored_updates, weight=1.0 - beta2_t)
+            torch._foreach_lerp_(exp_avg_sqs, non_factored_updates, weight=bias_correction2)
 
             non_factored_updates = foreach_rsqrt(exp_avg_sqs)
 
@@ -235,7 +237,7 @@ class AdaFactor(BaseOptimizer):
             inv_updates = torch._foreach_reciprocal(updates)
             torch._foreach_maximum_(exp_avg_sq_hats, inv_updates)
 
-            updates = foreach_rsqrt(torch._foreach_div(exp_avg_sq_hats, beta2_t))
+            updates = foreach_rsqrt(torch._foreach_div(exp_avg_sq_hats, bias_correction2))
 
         torch._foreach_mul_(updates, grads)
 
@@ -270,6 +272,7 @@ class AdaFactor(BaseOptimizer):
         torch._foreach_sub_(params, updates)
 
     def _step_per_param(self, group: ParamGroup, beta1: float, beta2_t: float, relative_step_size: float) -> None:
+        bias_correction2: float = 1.0 - beta2_t
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -292,19 +295,19 @@ class AdaFactor(BaseOptimizer):
             if factored:
                 exp_avg_sq_row, exp_avg_sq_col = state['exp_avg_sq_row'], state['exp_avg_sq_col']
 
-                exp_avg_sq_row.lerp_(update.mean(dim=-1), weight=1.0 - beta2_t)
-                exp_avg_sq_col.lerp_(update.mean(dim=-2), weight=1.0 - beta2_t)
+                exp_avg_sq_row.lerp_(update.mean(dim=-1), weight=bias_correction2)
+                exp_avg_sq_col.lerp_(update.mean(dim=-2), weight=bias_correction2)
 
                 self.approximate_sq_grad(exp_avg_sq_row, exp_avg_sq_col, update)
             else:
                 exp_avg_sq = state['exp_avg_sq']
-                exp_avg_sq.lerp_(update, weight=1.0 - beta2_t)
+                exp_avg_sq.lerp_(update, weight=bias_correction2)
                 torch.rsqrt(exp_avg_sq, out=update)
 
             if group['ams_bound']:
                 exp_avg_sq_hat = state['exp_avg_sq_hat']
-                torch.max(exp_avg_sq_hat, 1 / update, out=exp_avg_sq_hat)
-                torch.rsqrt(exp_avg_sq_hat / beta2_t, out=update)
+                torch.max(exp_avg_sq_hat, 1.0 / update, out=exp_avg_sq_hat)
+                torch.rsqrt(exp_avg_sq_hat / bias_correction2, out=update)
 
             update.mul_(grad)
 
