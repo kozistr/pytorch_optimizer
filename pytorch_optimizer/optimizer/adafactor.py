@@ -227,10 +227,10 @@ class AdaFactor(BaseOptimizer):
 
         updates = [None] * len(grads)
 
-        for offset, update in zip(factored_offsets, factored_updates, strict=True):
+        for offset, update in zip(factored_offsets, factored_updates):
             updates[offset] = update
 
-        for offset, update in zip(non_factored_offsets, non_factored_updates, strict=True):
+        for offset, update in zip(non_factored_offsets, non_factored_updates):
             updates[offset] = update
 
         if group['ams_bound']:
