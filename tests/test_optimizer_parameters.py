@@ -145,13 +145,22 @@ class TestRanger21:
         optimizer.step(closure)
 
 
-def test_adafactor_get_lr():
-    opt = load_optimizer('adafactor')(Example().parameters())
+class TestAdaFactorParameters:
+    @pytest.mark.parametrize('recipe', [(1.0, 1, True, True, 1e-6), (1.0, 1, False, True, 1.0)])
+    def test_get_relative_step_size(self, recipe):
+        opt = load_optimizer('adafactor')([simple_parameter(True)])
 
-    recipes = [(True, 1e-6), (False, 1e-2)]
+        expected = opt.get_relative_step_size(*recipe[:-1])
 
-    for warmup_init, expected_lr in recipes:
-        assert opt.get_lr(expected_lr, 1.0, True) == expected_lr
+        assert expected == recipe[-1]
+
+    @pytest.mark.parametrize('recipe', [(1.0, 1.0, True, 1.0), (2.0, 1.0, False, 2.0)])
+    def test_get_lr(self, recipe):
+        opt = load_optimizer('adafactor')([simple_parameter(True)])
+
+        expected = opt.get_lr(*recipe[:-1])
+
+        assert expected == recipe[-1]
 
 
 class TestA2GradParameters:
