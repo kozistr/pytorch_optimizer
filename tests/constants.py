@@ -208,6 +208,7 @@ FOREACH_OPTIMIZERS: frozenset = frozenset(
         'scion',
         'scionlight',
         'grokfastadamw',
+        'adafactor',
     }
 )
 
