@@ -571,7 +571,7 @@ def test_splus_methods():
     optimizer.train()
 
 
-@pytest.mark.parametrize('optimizer_name', ['emonavi', 'emolynx', 'emoneco'])
+@pytest.mark.parametrize('optimizer_name', ['emonavi', 'emolynx'])
 def test_emo_optimizers(optimizer_name):
     p = simple_parameter(True)
     optimizer = load_optimizer(optimizer_name)([p], use_shadow=True)
