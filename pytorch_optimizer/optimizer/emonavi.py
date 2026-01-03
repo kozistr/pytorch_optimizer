@@ -494,6 +494,8 @@ class EmoFact(BaseOptimizer):
 
                     update = exp_avg / de_nom
 
+                update.sign_()
+
                 p.add_(update, alpha=-group['lr'] * emo_drive)
 
         self.prev_loss = loss
