@@ -326,7 +326,7 @@ class AdamP(BaseOptimizer):
                 exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                inv_de_nom = exp_avg_sq.rsqrt().add_(group['eps']).mul_(bias_correction2_sq)
+                inv_de_nom = exp_avg_sq.sqrt().add_(group['eps']).reciprocal_().mul_(bias_correction2_sq)
 
                 perturb = exp_avg.clone()
 
@@ -351,7 +351,7 @@ class AdamP(BaseOptimizer):
 
                 self.apply_weight_decay(
                     p=p,
-                    grad=None,
+                    grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],
