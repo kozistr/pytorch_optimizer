@@ -496,6 +496,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.SpectralSphere
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.SPlus
     :docstring:
     :members:

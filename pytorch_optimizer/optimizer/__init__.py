@@ -104,6 +104,7 @@ from pytorch_optimizer.optimizer.sophia import SophiaH
 from pytorch_optimizer.optimizer.spam import SPAM, StableSPAM
 from pytorch_optimizer.optimizer.splus import SPlus
 from pytorch_optimizer.optimizer.srmm import SRMM
+from pytorch_optimizer.optimizer.sso import SpectralSphere
 from pytorch_optimizer.optimizer.swats import SWATS
 from pytorch_optimizer.optimizer.tam import TAM, AdaTAM
 from pytorch_optimizer.optimizer.tiger import Tiger
@@ -234,6 +235,7 @@ OPTIMIZER_LIST: List[OPTIMIZER] = [
     Tiger,
     VSGD,
     Yogi,
+    SpectralSphere,
 ]
 OPTIMIZERS: Dict[str, OPTIMIZER] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
