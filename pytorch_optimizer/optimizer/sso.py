@@ -107,8 +107,8 @@ def compute_f_tensor(
     msign_steps: int = 8,
 ) -> torch.Tensor:
     """f(lambda) = <Θ, msign(G + lambdaΘ)>. Returns 0-d tensor (no GPU sync)."""
-    z = x + lambda_value * theta
-    phi = msign(z, steps=msign_steps)
+    z: torch.Tensor = x + lambda_value * theta
+    phi: torch.Tensor = msign(z, steps=msign_steps)
     return (theta * phi).sum()
 
 
@@ -121,7 +121,7 @@ def find_bracket(
     max_expansions: int = 10,
     msign_steps: int = 8,
     tolerance_f: float = 1e-8,
-) -> Tuple[Optional[float], Optional[float], Union[torch.Tensor, float], Union[torch.Tensor, float]]:
+) -> Tuple[Optional[float], Optional[float], torch.Tensor, torch.Tensor]:
     """Find lambda_l < lambda_r such that: f(lambda_l) <= 0 <= f(lambda_r) with f monotone increasing.
 
     If f(initial_guess) is already near zero, returns a degenerate bracket.
@@ -181,9 +181,6 @@ def solve_lambda_with_bisection(
     """Solve lambda such that f(lambda) = <Θ, msign(G + lambdaΘ)> = 0 using bisection.
 
     Assumes f is strictly monotone increasing.
-
-    Returns:
-        lambda_star
     """
     lambda_l, lambda_r, f_l, f_r = find_bracket(
         x,
@@ -194,8 +191,7 @@ def solve_lambda_with_bisection(
         msign_steps=msign_steps,
         tolerance_f=tolerance_f,
     )
-
-    if lambda_l is None:
+    if lambda_l is None or lambda_r is None:
         return 0.0
 
     if abs(f_l) < abs(f_r):
@@ -209,7 +205,7 @@ def solve_lambda_with_bisection(
     for _ in range(1, max_iterations + 1):
         lambda_mid = 0.5 * (lambda_l + lambda_r)
 
-        f_mid = compute_f_tensor(x, theta, lambda_mid, msign_steps)
+        f_mid: torch.Tensor = compute_f_tensor(x, theta, lambda_mid, msign_steps)
 
         if abs(f_mid) < abs(best_f):
             best_lambda, best_f = lambda_mid, f_mid
