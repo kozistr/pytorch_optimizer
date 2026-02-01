@@ -90,11 +90,11 @@ def msign(x: torch.Tensor, steps: int) -> torch.Tensor:
     ]
 
     for i in range(steps):
-        a, b, c = coefficients[i] if i < 8 else coefficients[-1]
+        coef_a, coef_b, coef_c = coefficients[i] if i < 8 else coefficients[-1]
 
         a = x @ x.mT
-        b = torch.addmm(a, a, a, alpha=c, beta=b)
-        x = torch.addmm(x, b, x, alpha=1.0, beta=a)
+        b = torch.addmm(a, a, a, alpha=coef_c, beta=coef_b)
+        x = torch.addmm(x, b, x, alpha=1.0, beta=coef_a)
 
     return x.mT if transpose else x
 
