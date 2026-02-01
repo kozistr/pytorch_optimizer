@@ -265,6 +265,8 @@ class SpectralSphere(BaseOptimizer):
         nesterov (bool): Whether to use nesterov momentum.
         power_iteration_steps (int): Number of power iteration steps for spectral norm computation.
         msign_steps (int): Number of Newton-Schulz iterations for msign (uses Polar-Express).
+        solver_tolerance_f (float): Function value tolerance for solver.
+        solver_max_iterations (int): Maximum iterations for solver.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
 
     Example:
