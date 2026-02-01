@@ -24,52 +24,10 @@ def power_iteration(w: torch.Tensor, steps: int = 50) -> Tuple[torch.Tensor, tor
 
 
 @torch.no_grad()
-def apply_retract(
-    x: torch.Tensor,
-    sigma: float,
-    target_radius: float,
-    mode: str = 'hard',
-    alpha: float = 0.05,
-    current_lr: Optional[float] = None,
-) -> float:
-    """Apply retraction to spectral sphere.
-
-    Args:
-        x: Weight matrix (modified in-place)
-        sigma: Current spectral norm
-        target_radius: Target radius R
-        mode: 'hard' or 'dynamic'
-        alpha: Step size for dynamic mode (ignored for hard mode)
-        current_lr: Current learning rate (only used in dynamic mode to scale alpha)
-
-    Returns:
-        bias: The bias value used (only relevant for dynamic mode, 0.0 for hard mode)
-    """
-    if mode not in ('hard', 'dynamic'):
-        raise NotImplementedError(f'not supported retract mode: {mode}')
-
-    if mode == 'hard':
-        # Hard retraction: if sigma != R, scale W to have norm R
-        if max(sigma, 0.0) + 1e-8 != target_radius:
-            scale_factor = target_radius / (max(sigma, 0.0) + 1e-8)
-            x.mul_(scale_factor)
-        return 0.0
-
-    bias = -1.0 if sigma > target_radius else 1.0
-    effective_alpha = alpha * current_lr if current_lr is not None else alpha
-
-    x.mul_(1.0 + effective_alpha * bias)
-
-    return bias
-
-
-@torch.no_grad()
 def msign(x: torch.Tensor, steps: int) -> torch.Tensor:
     """Matrix sign via Newton-Schulz with Polar-Express coefficients."""
-    if x.dtype != torch.float32:
-        raise ValueError('input tensor x must be in float32')
+    transpose: bool = x.size(-2) > x.size(-1)
 
-    transpose = x.size(-2) > x.size(-1)
     x = x.mT if transpose else x
     x = normalize(x, p=2, dim=(-2, -1), eps=1e-7)
 
@@ -216,35 +174,6 @@ def solve_lambda_with_bisection(
             lambda_r, f_r = lambda_mid, f_mid
 
     return best_lambda
-
-
-def get_spectral_ball_scale_factor(size_out: int, size_in: int, mode: str = 'spectral') -> float:
-    """Get the scale factor for the spectral ball update.
-
-    This function mirrors Muon's scale factor to enable learning rate transferability.
-    The default "align_adamw_rms" mode uses the same scaling as Muon for consistency.
-
-    Args:
-        size_out: The size of the output dimension (rows).
-        size_in: The size of the input dimension (columns).
-        mode: The mode to use for the scale.
-            - "align_adamw_rms": 0.2 * max(size_out, size_in) ** 0.5 (default, matches Muon)
-            - "shape_scaling": max(1, size_out / size_in) ** 0.5
-            - "spectral_mup": (size_out / size_in) ** 0.5
-
-    Returns:
-        The scale factor for the update.
-    """
-    if mode not in ('shape_scaling', 'align_adamw_rms', 'spectral_mup'):
-        raise ValueError(f'invalid mode for SpectralBall update scale factor: {mode}')
-
-    if mode == 'shape_scaling':
-        return math.sqrt(max(1.0, size_out / size_in))
-
-    if mode == 'align_adamw_rms':
-        return 0.2 * math.sqrt(max(size_out, size_in))
-
-    return math.sqrt(size_out / size_in)
 
 
 def compute_spectral_ball_update(
