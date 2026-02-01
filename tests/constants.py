@@ -104,6 +104,7 @@ from pytorch_optimizer.optimizer import (
     SignSGD,
     SimplifiedAdEMAMix,
     SophiaH,
+    SpectralSphere,
     SPlus,
     StableAdamW,
     StableSPAM,
@@ -936,6 +937,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (BCOS, {'lr': 1e0, 'mode': 'c'}, 5),
     (BCOS, {'lr': 1e0, 'mode': 'c', 'simple_cond': True}, 5),
     (Ano, {'lr': 1e0, 'weight_decay': 1e-3, 'logarithmic_schedule': True}, 5),
+    (SpectralSphere, {'lr': 1e0}, 5),
 ]
 
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
