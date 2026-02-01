@@ -66,11 +66,8 @@ def apply_retract(
 @torch.no_grad()
 def msign(x: torch.Tensor, steps: int) -> torch.Tensor:
     """Matrix sign via Newton-Schulz with Polar-Express coefficients."""
-    if x.ndim < 2:
-        raise ValueError('input tensor must have at least 2 dimensions.')
-
     if x.dtype != torch.float32:
-        raise ValueError('input tensor G must be in float32')
+        raise ValueError('input tensor x must be in float32')
 
     transpose = x.size(-2) > x.size(-1)
     x = x.mT if transpose else x
