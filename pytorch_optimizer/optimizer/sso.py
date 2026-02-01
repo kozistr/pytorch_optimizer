@@ -1,5 +1,5 @@
 import math
-from typing import Any, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import torch
 from torch.nn.functional import normalize
@@ -11,7 +11,7 @@ from pytorch_optimizer.base.type import Closure, Loss, Parameters, ParamGroup
 
 @torch.no_grad()
 def power_iteration(w: torch.Tensor, steps: int = 50) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Leading singular triplet (σ, u, v) via bilateral power iteration (fp32/bf16)."""
+    """Leading singular triplet (sigma, u, v) via bilateral power iteration (fp32/bf16)."""
     if w.ndim < 2:
         raise ValueError('Input tensor must have at least 2 dimensions.')
 
@@ -103,7 +103,12 @@ def msign(x: torch.Tensor, steps: int) -> torch.Tensor:
 
 
 @torch.no_grad()
-def compute_f_tensor(x: torch.Tensor, theta: torch.Tensor, lambda_value: Union[torch.Tensor, float], msign_steps: int = 8) -> torch.Tensor:
+def compute_f_tensor(
+    x: torch.Tensor,
+    theta: torch.Tensor,
+    lambda_value: Union[torch.Tensor, float],
+    msign_steps: int = 8,
+) -> torch.Tensor:
     """f(lambda) = <Θ, msign(G + lambdaΘ)>. Returns 0-d tensor (no GPU sync)."""
     z = x + lambda_value * theta
     phi = msign(z, steps=msign_steps)
@@ -204,7 +209,7 @@ def solve_lambda_with_bisection(
     if abs(best_f) <= tolerance_f:
         return best_lambda
 
-    for it in range(1, max_iterations + 1):
+    for _ in range(1, max_iterations + 1):
         lambda_mid = 0.5 * (lambda_l + lambda_r)
 
         f_mid = compute_f_tensor(x, theta, lambda_mid, msign_steps)
@@ -297,7 +302,7 @@ def compute_spectral_ball_update(
         solver_max_iterations: Maximum solver iterations
 
     Returns:
-        Update direction Φ to be applied as W ← W - lr * Φ, retraction bias, and current spectral norm σ.
+        Update direction Φ to be applied as W ← W - lr * Φ, retraction bias, and current spectral norm sigma.
 
     Note:
         W is modified in-place during the retraction step.
