@@ -334,7 +334,8 @@ class SpectralSphere(BaseOptimizer):
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
         nesterov (bool): Whether to use nesterov momentum.
-        power_iteration_steps (int): The number of Newton-Schulz iterations to run.
+        power_iteration_steps (int): Number of power iteration steps for spectral norm computation.
+        msign_steps (int): Number of Newton-Schulz iterations for msign (uses Polar-Express).
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
 
     Example:
@@ -342,11 +343,11 @@ class SpectralSphere(BaseOptimizer):
 
         hidden_weights = [p for p in model.body.parameters() if p.ndim >= 2]
 
-        param_groups_sso = [
-            dict(params=hidden_weights, lr=0.02, weight_decay=0.01, use_muon=True),
+        param_groups = [
+            dict(params=hidden_weights, lr=0.02, weight_decay=0.01),
         ]
 
-        sso_optimizer = SpectralSphere(param_groups_sso)
+        optimizer = SpectralSphere(param_groups)
         ...
     """
 
