@@ -12,9 +12,6 @@ from pytorch_optimizer.base.type import Closure, Loss, Parameters, ParamGroup
 @torch.no_grad()
 def power_iteration(w: torch.Tensor, steps: int = 50) -> Tuple[torch.Tensor, torch.Tensor]:
     """Leading singular triplet (sigma, u, v) via bilateral power iteration (fp32/bf16)."""
-    if w.ndim < 2:
-        raise ValueError('Input tensor must have at least 2 dimensions.')
-
     w = w.to(torch.bfloat16)
     v = torch.ones_like(w[..., :1, :].transpose(-2, -1))
 
@@ -228,20 +225,6 @@ def solve_lambda_with_bisection(
     return best_lambda
 
 
-def compute_target_radius(shape: tuple, radius_mode: str, radius_scaler: float = 1.0) -> float:
-    """Compute target radius R: 'spectral_mup' → sqrt(n_out/n_in) * scaler, 'identity' → 1.0 * scaler."""
-    if radius_mode not in ('spectral_mup', 'identity'):
-        raise ValueError(f'invalid radius_mode: {radius_mode}. Must be `spectral_mup` or `identity`.')
-
-    if radius_mode == 'spectral_mup':
-        n_out, n_in = shape
-        factor = math.sqrt(n_out / n_in)
-    else:
-        factor = 1.0
-
-    return radius_scaler * factor
-
-
 def get_spectral_ball_scale_factor(size_out: int, size_in: int, mode: str = 'spectral') -> float:
     """Get the scale factor for the spectral ball update.
 
@@ -365,8 +348,6 @@ class SpectralSphere(BaseOptimizer):
         from pytorch_optimizer import SpectralSphere
 
         hidden_weights = [p for p in model.body.parameters() if p.ndim >= 2]
-        hidden_gains_biases = [p for p in model.body.parameters() if p.ndim < 2]
-        non_hidden_params = [*model.head.parameters(), *model.embed.parameters()]
 
         param_groups_sso = [
             dict(params=hidden_weights, lr=0.02, weight_decay=0.01, use_muon=True),
@@ -388,12 +369,6 @@ class SpectralSphere(BaseOptimizer):
         msign_steps: int = 5,
         solver_tolerance_f: float = 1e-8,
         solver_max_iterations: int = 100,
-        radius_mode: str = 'spectral_mup',
-        radius_scaler: float = 1.0,
-        scale_mode: str = 'align_adamw_rms',
-        retract_mode: str = 'hard',
-        retract_alpha: float = 0.05,
-        tp_mode: str = 'duplicated',
         maximize: bool = False,
         **kwargs,
     ):
@@ -407,12 +382,6 @@ class SpectralSphere(BaseOptimizer):
         self.msign_steps = msign_steps
         self.solver_tolerance_f = solver_tolerance_f
         self.solver_max_iterations = solver_max_iterations
-        self.radius_mode = radius_mode
-        self.radius_scaler = radius_scaler
-        self.scale_mode = scale_mode
-        self.retract_mode = retract_mode
-        self.retract_alpha = retract_alpha
-        self.tp_mode = tp_mode
 
         self.maximize = maximize
 
