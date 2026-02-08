@@ -331,8 +331,8 @@ class SpectralSphere(BaseOptimizer):
             if p.grad is None:
                 continue
 
-            if p.dim() < 2:
-                raise ValueError(f'{self} does not support <2D parameters')
+            if p.dim() != 2:
+                raise ValueError(f'{self} only supports 2D parameters')
 
             grad = p.grad
             if grad.is_sparse:
@@ -380,8 +380,6 @@ class SpectralSphere(BaseOptimizer):
                 buf.lerp_(grad, weight=1.0 - group['momentum'])
 
                 update = grad.lerp_(buf, weight=group['momentum']) if group['nesterov'] else buf
-                if update.ndim > 2:
-                    update = update.view(len(update), -1)
 
                 update = compute_spectral_ball_update(
                     p,
@@ -392,6 +390,6 @@ class SpectralSphere(BaseOptimizer):
                     solver_max_iterations=self.solver_max_iterations,
                 )
 
-                p.add_(update.reshape(p.shape), alpha=-group['lr'])
+                p.add_(update, alpha=-group['lr'])
 
         return loss
