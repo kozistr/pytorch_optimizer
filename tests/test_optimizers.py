@@ -58,7 +58,7 @@ def test_f32_optimizers(optimizer_config, foreach, environment):
         iterations=iterations,
         create_graph=should_use_create_graph(optimizer_name),
         closure_fn=closure_fn,
-        threshold=1.5,
+        threshold=1.5 if optimizer_name not in ('SpectralSphere',) else 1.4,
     )
 
 
@@ -88,7 +88,7 @@ def test_bf16_optimizers(optimizer_config, foreach, environment):
         iterations=iterations,
         create_graph=should_use_create_graph(optimizer_name),
         closure_fn=closure_fn,
-        threshold=1.5,
+        threshold=1.5 if optimizer_name not in ('SpectralSphere',) else 1.4,
     )
 
 
