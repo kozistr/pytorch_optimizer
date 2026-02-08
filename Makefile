@@ -1,4 +1,4 @@
-.PHONY: format lint test check requirements visualize docs update-docs
+.PHONY: format lint test check requirements visualize docs update-docs update-deps
 
 FILES := pytorch_optimizer examples tests scripts hubconf.py
 BLACK_FLAGS := -S -l 119
@@ -29,3 +29,6 @@ docs:
 
 update-docs:
 	python scripts/update_docs.py
+
+update-deps:
+	uv sync --upgrade

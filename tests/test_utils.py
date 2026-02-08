@@ -62,7 +62,7 @@ class TestVersionUtils:
         elif python_version.minor < 10:
             assert pytorch_version == [2, 8, 0]
         else:
-            assert pytorch_version == [2, 9, 1]
+            assert pytorch_version == [2, 10, 0]
 
     def test_compare_versions(self):
         assert compare_versions('2.9.1', '2.4.0') >= 0

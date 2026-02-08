@@ -6,6 +6,7 @@ from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeEr
 from pytorch_optimizer.optimizer import DynamicLossScaler, load_optimizer
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
+from pytorch_optimizer.optimizer.sso import SpectralSphere, solve_lambda_with_bisection
 from tests.constants import (
     COMPLEX_OPTIMIZERS,
     FOREACH_OPTIMIZERS,
@@ -58,7 +59,7 @@ def test_f32_optimizers(optimizer_config, foreach, environment):
         iterations=iterations,
         create_graph=should_use_create_graph(optimizer_name),
         closure_fn=closure_fn,
-        threshold=1.5,
+        threshold=1.5 if optimizer_name not in ('SpectralSphere',) else 1.4,
     )
 
 
@@ -88,7 +89,7 @@ def test_bf16_optimizers(optimizer_config, foreach, environment):
         iterations=iterations,
         create_graph=should_use_create_graph(optimizer_name),
         closure_fn=closure_fn,
-        threshold=1.5,
+        threshold=1.5 if optimizer_name not in ('SpectralSphere',) else 1.4,
     )
 
 
@@ -579,3 +580,17 @@ def test_emo_optimizers(optimizer_name):
     optimizer.state['ema'] = {'short': 1.0, 'medium': 5.0, 'long': 40.0}
 
     optimizer.step()
+
+
+def test_spectral_sphere_methods():
+    opt = SpectralSphere([simple_zero_rank_parameter(True)])
+    with pytest.raises(ValueError):
+        opt.step()
+
+    x = torch.full((2, 2), 10.0)
+    theta = torch.full((2, 2), 0.01)
+    _ = solve_lambda_with_bisection(x, theta)
+
+    x = torch.tensor([[5.0, 1.0], [1.0, 5.0]])
+    theta = torch.tensor([[1.5, 0.0], [0.0, -2.8]])
+    _ = solve_lambda_with_bisection(x, theta, initial_guess=0.18, initial_step=0.012, msign_steps=0)

@@ -145,6 +145,8 @@ def build_optimizer_parameter(parameters, optimizer_name, config):
             {'params': hidden_weights, 'use_muon': True},
             {'params': hidden_gains_biases, 'use_muon': False},
         ]
+    elif optimizer_name in ('SpectralSphere',):
+        parameters = [{'params': [p for p in parameters if p.ndim >= 2]}]
     elif optimizer_name == 'AdamWSN':
         sn_params = [p for p in parameters if p.ndim == 2]
         regular_params = [p for p in parameters if p.ndim != 2]

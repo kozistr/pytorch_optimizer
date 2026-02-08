@@ -58,9 +58,9 @@ dependencies = [
 [dependency-groups]
 dev = [
     'black<25; python_version < "3.9"',
-    'black>=25,<26; python_version >= "3.9"',
+    'black<26; python_version >= "3.9"',
     'ruff>=0.14,<0.15',
-    'pyright==1.1.407',
+    'pyright==1.1.408',
     'pytest<9; python_version < "3.10"',
     'pytest>=9,<10; python_version >= "3.10"',
     'pytest-cov<6; python_version < "3.9"',
