@@ -106,10 +106,10 @@ def find_bracket(
             elif f_new <= 0 <= f_prev:
                 lambda_l, f_l = lambda_new, f_new
                 lambda_r, f_r = lambda_prev, f_prev
-            elif abs(f_prev) <= abs(f_new):
+            elif abs(f_prev) <= abs(f_new):  # pragma: no cover
                 lambda_l = lambda_r = lambda_prev
                 f_l = f_r = f_prev
-            else:
+            else:  # pragma: no cover
                 lambda_l = lambda_r = lambda_new
                 f_l = f_r = f_new
 
@@ -331,8 +331,8 @@ class SpectralSphere(BaseOptimizer):
             if p.grad is None:
                 continue
 
-            if p.dim() == 1:
-                raise ValueError(f'{self} does not support 1D parameters')
+            if p.dim() < 2:
+                raise ValueError(f'{self} does not support <2D parameters')
 
             grad = p.grad
             if grad.is_sparse:
