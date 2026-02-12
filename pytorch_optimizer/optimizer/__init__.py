@@ -339,13 +339,15 @@ def create_optimizer(
 ) -> Optimizer:
     r"""Build optimizer.
 
-    :param model: nn.Module. model.
-    :param optimizer_name: str. name of optimizer.
-    :param lr: float. learning rate.
-    :param weight_decay: float. weight decay.
-    :param wd_ban_list: List[str]. weight decay ban list by layer.
-    :param use_lookahead: bool. use Lookahead.
-    :param use_orthograd: bool. use OrthoGrad.
+    Args:
+        model (nn.Module): model.
+        optimizer_name (str): optimizer name.
+        lr (float): learning rate.
+        weight_decay (float): weight decay.
+        wd_ban_list (List[str]): weight decay ban list by layer.
+        use_lookahead (bool): use Lookahead.
+        use_orthograd (bool): use OrthoGrad.
+        **kwargs (dict): optimizer parameters.
     """
     optimizer_name = optimizer_name.lower()
 
@@ -391,13 +393,16 @@ def get_optimizer_parameters(
 ) -> Parameters:
     r"""Get optimizer parameters while filtering specified modules.
 
-    Notice that, You can also ban by a module name level (e.g. LayerNorm) if you pass nn.Module instance. You just only
-    need to input `LayerNorm` to exclude weight decay from the layer norm layer(s).
+    Notice that, You can also ban by a module name level (e.g. LayerNorm) if you pass nn.Module instance.
+    You just only need to input `LayerNorm` to exclude weight decay from the layer norm layer(s).
 
-    :param model_or_parameter: Union[nn.Module, List]. model or parameters.
-    :param weight_decay: float. weight_decay.
-    :param wd_ban_list: List[str]. ban list not to set weight decay.
-    :returns: PARAMETERS. new parameter list.
+    Args:
+        model_or_parameter (Union[nn.Module, List]): model or parameters.
+        weight_decay (float): weight decay.
+        wd_ban_list (List[str]): weight decay ban list.
+
+    Returns:
+        Parameters: optimizer parameters.
     """
     banned_parameter_patterns: Set[str] = set()
 
@@ -437,8 +442,9 @@ def get_optimizer_parameters(
 def get_supported_optimizers(filters: Optional[Union[str, List[str]]] = None) -> List[str]:
     r"""Return list of available optimizer names, sorted alphabetically.
 
-    :param filters: Optional[Union[str, List[str]]]. wildcard filter string that works with fmatch.
-        if None, it will return the whole list.
+    Args:
+        filters (Optional[Union[str, List[str]]]): wildcard filter string that works with fmatch.
+            if None, it will return the whole list.
     """
     if filters is None:
         return sorted(OPTIMIZERS.keys())

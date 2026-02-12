@@ -59,7 +59,7 @@ dependencies = [
 dev = [
     'black<25; python_version < "3.9"',
     'black<26; python_version >= "3.9"',
-    'ruff>=0.14,<0.15',
+    'ruff>=0.15,<0.16',
     'pyright==1.1.408',
     'pytest<9; python_version < "3.10"',
     'pytest>=9,<10; python_version >= "3.10"',
