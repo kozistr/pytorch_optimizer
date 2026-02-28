@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Literal, Optional, Tuple, Type, Union
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from typing import TypeAlias
 else:  # pragma: no cover
     TypeAlias = object
