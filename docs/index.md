@@ -1,11 +1,13 @@
 # pytorch-optimizer
 
-![CI](https://github.com/kozistr/pytorch_optimizer/actions/workflows/ci.yml/badge.svg?branch=main)
-[![Docs](https://readthedocs.org/projects/pytorch-optimizers/badge/?version=latest)](https://pytorch-optimizers.readthedocs.io/en/latest/?badge=latest)
-[![PyPI](https://badge.fury.io/py/pytorch-optimizer.svg)](https://badge.fury.io/py/pytorch-optimizer)
-[![Python](https://img.shields.io/pypi/pyversions/pytorch-optimizer.svg)](https://pypi.org/project/pytorch-optimizer/)
-[![Codecov](https://codecov.io/gh/kozistr/pytorch_optimizer/branch/main/graph/badge.svg?token=L4K00EA0VD)](https://codecov.io/gh/kozistr/pytorch_optimizer)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![CI](https://img.shields.io/github/actions/workflow/status/kozistr/pytorch_optimizer/ci.yml?branch=main&style=for-the-badge&logo=github)
+[![Docs](https://img.shields.io/readthedocs/pytorch-optimizers?style=for-the-badge&logo=readthedocs)](https://pytorch-optimizers.readthedocs.io/en/latest/?badge=latest)
+[![PyPI](https://img.shields.io/pypi/v/pytorch-optimizer?style=for-the-badge&logo=pypi)](https://pypi.org/project/pytorch-optimizer/)
+[![Python](https://img.shields.io/pypi/pyversions/pytorch-optimizer?style=for-the-badge&logo=python)](https://pypi.org/project/pytorch-optimizer/)
+[![Codecov](https://img.shields.io/codecov/c/github/kozistr/pytorch_optimizer?style=for-the-badge&logo=codecov)](https://codecov.io/gh/kozistr/pytorch_optimizer)
+[![License](https://img.shields.io/badge/license-Apache%202.0-brightgreen?style=for-the-badge)](https://opensource.org/licenses/Apache-2.0)
+![Total Downloads](https://img.shields.io/pepy/dt/pytorch_optimizer?style=for-the-badge&label=Total%20Downloads)
+![Monthly Downloads](https://img.shields.io/pypi/dm/pytorch_optimizer?style=for-the-badge&label=Monthly%20downloads)
 
 `pytorch-optimizer` is a production-focused optimization toolkit for PyTorch with **100+ optimizers**, **10+ learning rate schedulers**, and **10+ loss functions** behind a consistent API.
 
