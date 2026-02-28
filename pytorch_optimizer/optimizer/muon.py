@@ -1,15 +1,14 @@
 import math
-from typing import List, Tuple
+from typing import List, Tuple, cast
 
 import torch
 from torch import nn
 from torch.distributed import all_gather, get_rank, get_world_size
 from torch.optim import Optimizer
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Loss, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 
 
@@ -107,6 +106,7 @@ class Muon(BaseOptimizer):
         self.maximize = maximize
 
         for group in params:
+            group = cast(ParamGroup, group)
             if 'use_muon' not in group:
                 raise ValueError('`use_muon` must be set.')
 
@@ -301,6 +301,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
         self.rank: int = get_rank()
 
         for group in params:
+            group = cast(ParamGroup, group)
             if 'use_muon' not in group:
                 raise ValueError('`use_muon` must be set.')
 
@@ -500,6 +501,7 @@ class AdaMuon(BaseOptimizer):
         self.maximize = maximize
 
         for group in params:
+            group = cast(ParamGroup, group)
             if 'use_muon' not in group:
                 raise ValueError('`use_muon` must be set.')
 
@@ -694,6 +696,7 @@ class AdaGO(BaseOptimizer):
         self.maximize = maximize
 
         for group in params:
+            group = cast(ParamGroup, group)
             if 'use_muon' not in group:
                 raise ValueError('`use_muon` must be set.')
 

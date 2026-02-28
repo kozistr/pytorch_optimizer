@@ -1,11 +1,10 @@
 from typing import List
 
 import torch
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
 
 
 def channel_view(x: torch.Tensor) -> torch.Tensor:

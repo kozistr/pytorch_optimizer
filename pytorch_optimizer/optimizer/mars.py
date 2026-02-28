@@ -2,11 +2,10 @@ import math
 from typing import Literal, Optional, Tuple
 
 import torch
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 
 MARS_TYPE = Literal['adamw', 'lion', 'shampoo']

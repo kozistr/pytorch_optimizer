@@ -4,17 +4,17 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch.optim import Optimizer
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 from pytorch_optimizer.base.type import (
-    HUTCHINSON_G,
-    OPTIMIZER_INSTANCE_OR_CLASS,
     Betas,
     Closure,
     Defaults,
+    HutchinsonG,
     Loss,
+    OptimizerInstanceOrClass,
     ParamGroup,
+    ParamsT,
     State,
 )
 from pytorch_optimizer.optimizer.foreach_utils import foreach_rsqrt_
@@ -27,7 +27,7 @@ class BaseOptimizer(ABC, Optimizer):
         super().__init__(params, defaults)
 
     @staticmethod
-    def load_optimizer(optimizer: OPTIMIZER_INSTANCE_OR_CLASS, **kwargs) -> Optimizer:
+    def load_optimizer(optimizer: OptimizerInstanceOrClass, **kwargs) -> Optimizer:
         """Build torch.optim.Optimizer class."""
         if isinstance(optimizer, Optimizer):
             return optimizer
@@ -93,7 +93,7 @@ class BaseOptimizer(ABC, Optimizer):
         state: State,
         num_samples: int = 1,
         alpha: float = 1.0,
-        distribution: HUTCHINSON_G = 'gaussian',
+        distribution: HutchinsonG = 'gaussian',
     ) -> None:
         r"""Hutchinson's approximate Hessian, added to the state under key `hessian`.
 
@@ -102,7 +102,7 @@ class BaseOptimizer(ABC, Optimizer):
             state (State): Optimizer state dictionary.
             num_samples (int): Number of times to sample noise vector `z` for the trace approximation.
             alpha (float): Scaling factor for the Hessian estimate.
-            distribution (HUTCHINSON_G): Type of noise distribution used (e.g., Rademacher).
+            distribution (HutchinsonG): Type of noise distribution used (e.g., Rademacher).
         """
         if distribution not in ('gaussian', 'rademacher'):
             raise NotImplementedError(f'hessian with distribution {distribution} is not implemented.')

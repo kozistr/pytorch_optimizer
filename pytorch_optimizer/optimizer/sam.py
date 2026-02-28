@@ -7,11 +7,10 @@ from torch.distributed import ReduceOp, all_reduce, get_world_size, is_initializ
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import Optimizer
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import OPTIMIZER, Betas, Closure, Defaults, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, OptimizerType, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_running_stats
 
@@ -83,7 +82,7 @@ class SAM(BaseOptimizer):
     def __init__(
         self,
         params: ParamsT,
-        base_optimizer: OPTIMIZER,
+        base_optimizer: OptimizerType,
         rho: float = 0.05,
         adaptive: bool = False,
         use_gc: bool = False,
@@ -406,7 +405,7 @@ class WSAM(BaseOptimizer):
         self,
         model: Union[nn.Module, DistributedDataParallel],
         params: ParamsT,
-        base_optimizer: OPTIMIZER,
+        base_optimizer: OptimizerType,
         rho: float = 0.05,
         gamma: float = 0.9,
         adaptive: bool = False,
@@ -741,7 +740,7 @@ class LookSAM(BaseOptimizer):
     def __init__(
         self,
         params: ParamsT,
-        base_optimizer: OPTIMIZER,
+        base_optimizer: OptimizerType,
         rho: float = 0.1,
         k: int = 10,
         alpha: float = 0.7,
@@ -913,7 +912,7 @@ class FriendlySAM(BaseOptimizer):
     def __init__(
         self,
         params: ParamsT,
-        base_optimizer: OPTIMIZER,
+        base_optimizer: OptimizerType,
         rho: float = 0.05,
         sigma: float = 1.0,
         lmbda: float = 0.9,

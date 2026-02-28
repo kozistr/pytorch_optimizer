@@ -14,7 +14,7 @@ from torch.optim.lr_scheduler import (
     StepLR,
 )
 
-from pytorch_optimizer.base.type import SCHEDULER
+from pytorch_optimizer.base.type import SchedulerClass
 from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_perm_steps, get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
@@ -64,12 +64,12 @@ LR_SCHEDULER_LIST: Dict = {
     SchedulerType.REX: REXScheduler,
     SchedulerType.WARMUP_STABLE_DECAY: get_wsd_schedule,
 }
-LR_SCHEDULERS: Dict[str, SCHEDULER] = {
+LR_SCHEDULERS: Dict[str, SchedulerClass] = {
     str(lr_scheduler_name).lower(): lr_scheduler for lr_scheduler_name, lr_scheduler in LR_SCHEDULER_LIST.items()
 }
 
 
-def load_lr_scheduler(lr_scheduler_name: str) -> SCHEDULER:
+def load_lr_scheduler(lr_scheduler_name: str) -> SchedulerClass:
     r"""Load learning rate scheduler.
 
     :param lr_scheduler_name: learning rate scheduler name.

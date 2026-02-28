@@ -1,5 +1,6 @@
 from torch import nn
-from torch.optim.optimizer import ParamsT
+
+from pytorch_optimizer.base.type import ParamsT
 
 
 def deberta_v3_large_lr_scheduler(

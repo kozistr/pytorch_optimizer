@@ -5,7 +5,7 @@ from torch import nn
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import OPTIMIZER_INSTANCE_OR_CLASS, Closure, Defaults, Loss, ParamGroup, State
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, OptimizerInstanceOrClass, ParamGroup, State
 
 
 def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
@@ -82,7 +82,7 @@ class TRAC(BaseOptimizer):
     """A Parameter-Free Optimizer for Lifelong Reinforcement Learning.
 
     Args:
-        optimizer (OPTIMIZER_INSTANCE_OR_CLASS): Base optimizer.
+        optimizer (OptimizerInstanceOrClass): Base optimizer.
         betas (List[float]): List of beta values.
         num_coefs (int): Number of polynomial coefficients to use in the approximation.
         s_prev (float): Initial scale value.
@@ -101,7 +101,7 @@ class TRAC(BaseOptimizer):
 
     def __init__(
         self,
-        optimizer: OPTIMIZER_INSTANCE_OR_CLASS,
+        optimizer: OptimizerInstanceOrClass,
         betas: List[float] = (0.9, 0.99, 0.999, 0.9999, 0.99999, 0.999999),
         num_coefs: int = 128,
         s_prev: float = 1e-8,

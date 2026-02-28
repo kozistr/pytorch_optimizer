@@ -1,11 +1,10 @@
 from typing import List, Optional
 
 import torch
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import HUTCHINSON_G, Betas, Closure, Defaults, Loss, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, HutchinsonG, Loss, ParamGroup, ParamsT
 
 
 class SophiaH(BaseOptimizer):
@@ -23,7 +22,7 @@ class SophiaH(BaseOptimizer):
         p (float): Clip effective (applied) gradient (p).
         update_period (int): Number of steps after which to apply Hessian approximation.
         num_samples (int): Times to sample z for the approximation of the Hessian trace.
-        hessian_distribution: HUTCHINSON_G. Type of distribution to initialize Hessian.
+        hessian_distribution: HutchinsonG. Type of distribution to initialize Hessian.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
     """
@@ -39,7 +38,7 @@ class SophiaH(BaseOptimizer):
         p: float = 1e-2,
         update_period: int = 10,
         num_samples: int = 1,
-        hessian_distribution: HUTCHINSON_G = 'gaussian',
+        hessian_distribution: HutchinsonG = 'gaussian',
         eps: float = 1e-12,
         maximize: bool = False,
         **kwargs,

@@ -2,11 +2,10 @@ import math
 from typing import Dict, Tuple, Union
 
 import torch
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 
 
 def update_ema(state: Dict, loss: Union[float, torch.Tensor]) -> Dict[str, float]:

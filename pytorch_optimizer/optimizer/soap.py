@@ -3,11 +3,10 @@ from itertools import chain
 from typing import List, Optional
 
 import torch
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import DATA_FORMAT, Betas, Closure, Defaults, Loss, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, DataFormat, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.shampoo_utils import merge_small_dims
 
 
@@ -45,7 +44,7 @@ class SOAP(BaseOptimizer):
         precondition_1d: bool = False,
         correct_bias: bool = True,
         normalize_gradient: bool = False,
-        data_format: DATA_FORMAT = 'channels_first',
+        data_format: DataFormat = 'channels_first',
         eps: float = 1e-8,
         maximize: bool = False,
         **kwargs,

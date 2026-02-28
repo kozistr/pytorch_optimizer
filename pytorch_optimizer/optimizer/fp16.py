@@ -3,9 +3,8 @@ from typing import Dict, List, Optional, Union, cast
 import torch
 from torch import nn
 from torch.optim import Optimizer
-from torch.optim.optimizer import ParamsT
 
-from pytorch_optimizer.base.type import Closure
+from pytorch_optimizer.base.type import Closure, ParamsT
 from pytorch_optimizer.optimizer.utils import clip_grad_norm, has_overflow
 
 

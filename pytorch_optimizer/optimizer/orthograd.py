@@ -4,7 +4,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import OPTIMIZER_INSTANCE_OR_CLASS, Closure, Defaults, Loss, ParamGroup, State
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, OptimizerInstanceOrClass, ParamGroup, State
 
 
 class OrthoGrad(BaseOptimizer):
@@ -13,10 +13,10 @@ class OrthoGrad(BaseOptimizer):
     A wrapper optimizer that projects gradients to be orthogonal to the current parameters before performing an update.
 
     Args:
-        optimizer (OPTIMIZER_INSTANCE_OR_CLASS): Base optimizer.
+        optimizer (OptimizerInstanceOrClass): Base optimizer.
     """
 
-    def __init__(self, optimizer: OPTIMIZER_INSTANCE_OR_CLASS, **kwargs) -> None:
+    def __init__(self, optimizer: OptimizerInstanceOrClass, **kwargs) -> None:
         self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
         self.eps: float = 1e-30

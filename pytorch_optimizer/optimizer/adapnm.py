@@ -1,11 +1,10 @@
 import math
 
 import torch
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 
 
 class AdaPNM(BaseOptimizer):

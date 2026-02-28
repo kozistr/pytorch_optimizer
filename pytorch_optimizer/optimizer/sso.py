@@ -2,11 +2,10 @@ from typing import Optional, Tuple, Union
 
 import torch
 from torch.nn.functional import normalize
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Closure, Loss, ParamGroup
+from pytorch_optimizer.base.type import Closure, Loss, ParamGroup, ParamsT
 
 
 @torch.no_grad()

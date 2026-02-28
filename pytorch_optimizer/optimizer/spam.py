@@ -5,11 +5,10 @@ import torch
 from torch.nn import Parameter, ParameterList
 from torch.optim import SGD, Optimizer
 from torch.optim.lr_scheduler import CosineAnnealingLR, LRScheduler
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 
 
 class CosineDecay:

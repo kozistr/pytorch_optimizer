@@ -5,14 +5,14 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import OPTIMIZER_INSTANCE_OR_CLASS, Closure, Defaults, Loss, ParamGroup, State
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, OptimizerInstanceOrClass, ParamGroup, State
 
 
 class Lookahead(BaseOptimizer):
     """k steps forward, 1 step back.
 
     Args:
-        optimizer (OPTIMIZER_INSTANCE_OR_CLASS): Base optimizer.
+        optimizer (OptimizerInstanceOrClass): Base optimizer.
         k (int): Number of lookahead steps.
         alpha (float): Linear interpolation factor.
         pullback_momentum (str): Change to inner optimizer momentum on interpolation update.
@@ -20,7 +20,7 @@ class Lookahead(BaseOptimizer):
 
     def __init__(
         self,
-        optimizer: OPTIMIZER_INSTANCE_OR_CLASS,
+        optimizer: OptimizerInstanceOrClass,
         k: int = 5,
         alpha: float = 0.5,
         pullback_momentum: str = 'none',

@@ -4,11 +4,10 @@ from typing import List, Optional
 
 import torch
 from torch.distributed import ProcessGroup, all_gather, get_world_size
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Closure, Loss
+from pytorch_optimizer.base.type import Closure, Loss, ParamsT
 
 HAS_EINOPS: bool = find_spec('einops') is not None
 

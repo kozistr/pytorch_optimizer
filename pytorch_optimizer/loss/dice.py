@@ -4,7 +4,7 @@ import torch
 from torch.nn.functional import logsigmoid, one_hot
 from torch.nn.modules.loss import _Loss
 
-from pytorch_optimizer.base.type import CLASS_MODE
+from pytorch_optimizer.base.type import ClassMode
 
 
 def soft_dice_score(
@@ -40,7 +40,7 @@ class DiceLoss(_Loss):
         https://github.com/BloodAxe/pytorch-toolbelt
 
     Args:
-        mode (CLASS_MODE): Loss mode - 'binary', 'multiclass', or 'multilabel'.
+        mode (ClassMode): Loss mode - 'binary', 'multiclass', or 'multilabel'.
         classes (Optional[List[int]]): List of classes to include in loss computation. Defaults to all classes.
         log_loss (bool): If True, loss is computed as `-log(dice_coeff)`; otherwise `1 - dice_coeff`.
         from_logits (bool): If True, assumes input is raw logits.
@@ -51,7 +51,7 @@ class DiceLoss(_Loss):
 
     def __init__(
         self,
-        mode: CLASS_MODE = 'binary',
+        mode: ClassMode = 'binary',
         classes: Optional[List[int]] = None,
         log_loss: bool = False,
         from_logits: bool = True,

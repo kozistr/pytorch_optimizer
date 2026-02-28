@@ -3,11 +3,10 @@ from enum import IntEnum
 from typing import Dict, List, Optional
 
 import torch
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 
 

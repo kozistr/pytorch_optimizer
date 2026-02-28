@@ -1,24 +1,30 @@
-from typing import Any, Callable, Dict, Literal, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, Iterable, Literal, Optional, Tuple, Type, TypeAlias, Union
 
+import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 
-OPTIMIZER = Type[Optimizer]
-OPTIMIZER_INSTANCE_OR_CLASS = Union[OPTIMIZER, Optimizer]
-SCHEDULER = Type[LRScheduler]
+OptimizerType: TypeAlias = Type[Optimizer]
+OptimizerInstanceOrClass: TypeAlias = Union[OptimizerType, Optimizer]
+SchedulerClass: TypeAlias = Type[LRScheduler]
 
-Defaults = Dict[str, Any]
-ParamGroup = Dict[str, Any]
-State = Dict
+Defaults: TypeAlias = Dict[str, Any]
+ParamGroup: TypeAlias = Dict[str, Any]
+State: TypeAlias = Dict
+ParamsT: TypeAlias = Union[
+    Iterable[torch.Tensor],
+    Iterable[Dict[str, Any]],
+    Iterable[Tuple[str, torch.Tensor]],
+]
 
-Closure = Optional[Callable[[], float]]
-Loss = Optional[float]
-Betas = Union[
+Closure: TypeAlias = Optional[Callable[[], float]]
+Loss: TypeAlias = Optional[float]
+Betas: TypeAlias = Union[
     Tuple[float, float],
     Tuple[float, float, float],
 ]
 
-HUTCHINSON_G = Literal['gaussian', 'rademacher']
-CLASS_MODE = Literal['binary', 'multiclass', 'multilabel']
+HutchinsonG: TypeAlias = Literal['gaussian', 'rademacher']
+ClassMode: TypeAlias = Literal['binary', 'multiclass', 'multilabel']
 
-DATA_FORMAT = Literal['channels_first', 'channels_last']
+DataFormat: TypeAlias = Literal['channels_first', 'channels_last']

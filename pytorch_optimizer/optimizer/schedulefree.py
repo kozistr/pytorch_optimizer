@@ -3,17 +3,17 @@ from typing import Callable, Dict, List
 
 import torch
 from torch.optim import Optimizer
-from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import (
-    OPTIMIZER_INSTANCE_OR_CLASS,
     Betas,
     Closure,
     Defaults,
     Loss,
+    OptimizerInstanceOrClass,
     ParamGroup,
+    ParamsT,
     State,
 )
 
@@ -531,7 +531,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
 
     def __init__(
         self,
-        optimizer: OPTIMIZER_INSTANCE_OR_CLASS,
+        optimizer: OptimizerInstanceOrClass,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
         r: float = 0.0,
