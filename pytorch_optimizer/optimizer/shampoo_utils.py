@@ -1,6 +1,6 @@
 import itertools
 from enum import IntEnum
-from typing import Any, List, Tuple, Union, cast
+from typing import List, Tuple, Union
 
 import torch
 
@@ -659,17 +659,26 @@ def zero_power_via_newton_schulz_5(
     if g.ndim < 2:
         raise ValueError(f'input must be over 2-dimensional. got {g.ndim}D.')
 
-    is_dtensor = has_dtensor and isinstance(g, DTensor)
+    is_dtensor: bool = has_dtensor and isinstance(g, DTensor)
     weight_schedule = get_newton_schulz_weights(weights)
 
-    x = g.to_local() if is_dtensor else g
-    x = x.to(dtype=dtype, copy=True)
+    coeff_sequence = [weight_schedule[min(i, len(weight_schedule) - 1)] for i in range(num_steps)]
+
+    x = g.to(dtype=dtype, copy=True)
 
     transpose: bool = x.size(-2) > x.size(-1)
     if transpose:
         x = x.mT
 
     x.div_(x.norm(2, dim=(-2, -1), keepdim=True).mul_(safety_factor).clamp_min_(eps))
+
+    if is_dtensor:
+        for w0, w1, w2 in coeff_sequence:
+            a = x @ x.mT
+            b = w1 * a + w2 * (a @ a)
+            x = w0 * x + (b @ x)
+
+        return x.mT if transpose else x
 
     mm_fn = torch.baddbmm if x.ndim > 2 else torch.addmm
 
@@ -678,18 +687,10 @@ def zero_power_via_newton_schulz_5(
     b = torch.empty_like(a)
     c = torch.empty_like(x)
 
-    for i in range(num_steps):
-        w0, w1, w2 = weight_schedule[min(i, len(weight_schedule) - 1)]
+    for w0, w1, w2 in coeff_sequence:
         mm_fn(a, x, x.mT, beta=0.0, alpha=1.0, out=a)
         mm_fn(a, a, a, beta=w1, alpha=w2, out=b)
         mm_fn(x, b, x, beta=w0, alpha=1.0, out=c)
         x, c = c, x
 
-    output = x.mT if transpose else x
-    if is_dtensor:
-        dtensor_g = cast(Any, g)
-        output = DTensor.from_local(
-            output, device_mesh=dtensor_g.device_mesh, placements=dtensor_g.placements, run_check=False
-        )
-
-    return output
+    return x.mT if transpose else x
