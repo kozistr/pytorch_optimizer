@@ -30,6 +30,16 @@ from tests.utils import (
 )
 
 
+def accelerate_style_move_to_device(state, device):
+    if isinstance(state, torch.Tensor):
+        return state.to(device)
+    if isinstance(state, (list, tuple)):
+        return type(state)(accelerate_style_move_to_device(v, device) for v in state)
+    if isinstance(state, dict):
+        return type(state)({k: accelerate_style_move_to_device(v, device) for k, v in state.items()})
+    return state
+
+
 @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
 def test_lookahead(pullback_momentum, environment):
     x_data, y_data = environment
@@ -40,6 +50,23 @@ def test_lookahead(pullback_momentum, environment):
 
     trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
     trainer.run(iterations=5, threshold=2.0)
+
+
+def test_lookahead_state_dict_with_accelerate_style_mapping():
+    model = Example()
+    optimizer = Lookahead(load_optimizer('adamw')(model.parameters(), lr=1e-3))
+
+    for p in model.parameters():
+        if p.requires_grad:
+            p.grad = torch.randn_like(p)
+
+    optimizer.step()
+
+    state_dict = optimizer.state_dict()
+    assert isinstance(state_dict['lookahead_state'], dict)
+
+    moved_state = accelerate_style_move_to_device(state_dict, torch.device('cpu'))
+    optimizer.load_state_dict(moved_state)
 
 
 @pytest.mark.parametrize('adaptive', [True, False])

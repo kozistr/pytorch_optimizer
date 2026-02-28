@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import pytest
 import torch
 from torch import nn
@@ -76,6 +78,29 @@ def test_lookahead_parameters():
 
     with pytest.raises(ValueError):
         Lookahead(optimizer, pullback_momentum='invalid')
+
+
+def test_lookahead_load_legacy_defaultdict_state():
+    parameter = simple_parameter()
+    optimizer = load_optimizer('adamp')([parameter], lr=1e-2)
+    lookahead = Lookahead(optimizer)
+
+    parameter.grad = torch.randn_like(parameter)
+    lookahead.step()
+
+    state_dict = lookahead.state_dict()
+    legacy_lookahead_state = defaultdict(
+        dict, {p: dict(param_state) for p, param_state in state_dict['lookahead_state'].items()}
+    )
+    lookahead.load_state_dict(
+        {'lookahead_state': legacy_lookahead_state, 'base_optimizer': state_dict['base_optimizer']}
+    )
+
+    parameter.grad = torch.randn_like(parameter)
+    lookahead.step()
+
+    assert isinstance(lookahead.state, defaultdict)
+    assert 'slow_params' in lookahead.state[parameter]
 
 
 @pytest.mark.parametrize('optimizer', [SAM, WSAM, LookSAM, BSAM, FriendlySAM])

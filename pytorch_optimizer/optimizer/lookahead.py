@@ -98,11 +98,13 @@ class Lookahead(BaseOptimizer):
                 del state['backup_params']
 
     def state_dict(self) -> State:
-        return {'lookahead_state': self.state, 'base_optimizer': self.optimizer.state_dict()}
+        lookahead_state: State = {p: dict(param_state) for p, param_state in self.state.items()}
+        return {'lookahead_state': lookahead_state, 'base_optimizer': self.optimizer.state_dict()}
 
     def load_state_dict(self, state: State) -> None:
         r"""Load state."""
-        self.state = state['lookahead_state']
+        lookahead_state = state['lookahead_state']
+        self.state = defaultdict(dict, {p: dict(param_state) for p, param_state in lookahead_state.items()})
         self.optimizer.load_state_dict(state['base_optimizer'])
 
     @torch.no_grad()
