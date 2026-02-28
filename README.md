@@ -1,86 +1,117 @@
 # pytorch-optimizer
 
-|         |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Build   | ![workflow](https://github.com/kozistr/pytorch_optimizer/actions/workflows/ci.yml/badge.svg?branch=main) [![Documentation Status](https://readthedocs.org/projects/pytorch-optimizers/badge/?version=latest)](https://pytorch-optimizers.readthedocs.io/en/latest/?badge=latest)                                                                                                                                                                                                                                                                                                        |
-| Quality | [![codecov](https://codecov.io/gh/kozistr/pytorch_optimizer/branch/main/graph/badge.svg?token=L4K00EA0VD)](https://codecov.io/gh/kozistr/pytorch_optimizer) [![CodeQL](https://github.com/kozistr/pytorch_optimizer/actions/workflows/pr_codeql.yml/badge.svg)](https://github.com/kozistr/pytorch_optimizer/actions/workflows/pr_codeql.yml) ![black](https://img.shields.io/badge/code%20style-black-000000.svg) [![ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v1.json)](https://github.com/charliermarsh/ruff) |
-| Package | [![PyPI version](https://badge.fury.io/py/pytorch-optimizer.svg)](https://badge.fury.io/py/pytorch-optimizer) [![PyPI pyversions](https://img.shields.io/pypi/pyversions/pytorch-optimizer.svg)](https://pypi.python.org/pypi/pytorch-optimizer/)                                                                                                                                                                                                                                                                                                                                       |
-| Status  | [![PyPi download](https://static.pepy.tech/badge/pytorch-optimizer)](https://pepy.tech/project/pytorch-optimizer) [![PyPi month download](https://static.pepy.tech/badge/pytorch-optimizer/month)](https://pepy.tech/project/pytorch-optimizer)                                                                                                                                                                                                                                                                                                                                         |
-| License | [![apache](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+![CI](https://img.shields.io/github/actions/workflow/status/kozistr/pytorch_optimizer/ci.yml?branch=main&style=for-the-badge&logo=github)
+[![Docs](https://img.shields.io/readthedocs/pytorch-optimizers?style=for-the-badge&logo=readthedocs)](https://pytorch-optimizers.readthedocs.io/en/latest/?badge=latest)
+[![PyPI](https://img.shields.io/pypi/v/pytorch-optimizer?style=for-the-badge&logo=pypi)](https://pypi.org/project/pytorch-optimizer/)
+[![Python](https://img.shields.io/pypi/pyversions/pytorch-optimizer?style=for-the-badge&logo=python)](https://pypi.org/project/pytorch-optimizer/)
+[![Codecov](https://img.shields.io/codecov/c/github/kozistr/pytorch_optimizer?style=for-the-badge&logo=codecov)](https://codecov.io/gh/kozistr/pytorch_optimizer)
+[![License](https://img.shields.io/badge/license-Apache%202.0-brightgreen?style=for-the-badge)](https://opensource.org/licenses/Apache-2.0)
+![Total Downloads](https://img.shields.io/pepy/dt/pytorch_optimizer?style=for-the-badge&label=Total%20Downloads)
+![Monthly Downloads](https://img.shields.io/pypi/dm/pytorch_optimizer?style=for-the-badge&label=Monthly%20downloads)
 
-## The reasons why you use `pytorch-optimizer`.
+`pytorch-optimizer` is a production-focused optimization toolkit for PyTorch with **100+ optimizers**, **10+ learning rate schedulers**, and **10+ loss functions** behind a consistent API.
 
-* Wide range of supported optimizers. Currently, **100+ optimizers (+ `bitsandbytes`, `qgalore`, `torchao`)**, **10+ lr schedulers**, and **10+ loss functions** are supported!
-* Including many features and variants such as `foreach`, `ADOPT`, `Cautious`, `AdamD`, `StableAdamW`, and `Gradient Centrailiaztion`
-* Easy to use, clean, and tested codes
-* Active maintenance
-* Somewhat a bit more optimized compared to the original implementation
+Use it when you want fast experimentation with modern training methods without rewriting optimizer boilerplate.
 
-Highly inspired by [pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
+Highly inspired by [jettify/pytorch-optimizer](https://github.com/jettify/pytorch-optimizer).
 
-## Getting Started
+## Why pytorch-optimizer
 
-For more, see the [stable documentation](https://pytorch-optimizers.readthedocs.io/en/stable/) or [latest documentation](https://pytorch-optimizers.readthedocs.io/en/latest/).
+- Broad optimizer coverage, including many recent research variants.
+- Consistent loader APIs for optimizers, schedulers, and losses.
+- Practical features such as `foreach`, `Lookahead`, and `Gradient Centralization` integrations.
+- Tested and actively maintained codebase.
+- Works with optional ecosystem integrations like `bitsandbytes`, `q-galore-torch`, and `torchao`.
 
-Most optimizers are under MIT or Apache 2.0 license, but a few optimizers like `Fromage`, `Nero` have `CC BY-NC-SA 4.0 license`, which is non-commercial. 
-So, please double-check the license before using it at your work.
+## Installation
 
-### Installation
+Requirements:
+- Python `>=3.8`
+- PyTorch `>=1.10`
 
 ```bash
-$ pip3 install pytorch-optimizer
+pip install pytorch-optimizer
 ```
 
-From `v2.12.0`, `v3.1.0`, you can use `bitsandbytes`, `q-galore-torch`, `torchao` optimizers respectively!
-please check [the bnb requirements](https://github.com/TimDettmers/bitsandbytes?tab=readme-ov-file#tldr), [q-galore-torch installation](https://github.com/VITA-Group/Q-GaLore?tab=readme-ov-file#install-q-galore-optimizer), [torchao installation](https://github.com/pytorch/ao?tab=readme-ov-file#installation)
- before installing it.
+Optional integrations are not installed by default:
+- `bitsandbytes`: <https://github.com/TimDettmers/bitsandbytes?tab=readme-ov-file#tldr>
+- `q-galore-torch`: <https://github.com/VITA-Group/Q-GaLore?tab=readme-ov-file#install-q-galore-optimizer>
+- `torchao`: <https://github.com/pytorch/ao?tab=readme-ov-file#installation>
 
-From `v3.0.0`, drop `Python 3.7` support. However, you can still use this package with `Python 3.7` by installing with `--ignore-requires-python` option.
+## Quick Start
 
-### Simple Usage
+### 1) Use an optimizer class directly
 
 ```python
 from pytorch_optimizer import AdamP
 
 model = YourModel()
-optimizer = AdamP(model.parameters())
-
-# or you can use optimizer loader, simply passing a name of the optimizer.
-
-from pytorch_optimizer import load_optimizer
-
-optimizer = load_optimizer(optimizer='adamp')(model.parameters())
-
-# if you install `bitsandbytes` optimizer, you can use `8-bit` optimizers from `pytorch-optimizer`.
-
-optimizer = load_optimizer(optimizer='bnb_adamw8bit')(model.parameters())
+optimizer = AdamP(model.parameters(), lr=1e-3)
 ```
 
-Also, you can load the optimizer via `torch.hub`.
+### 2) Load by name
+
+```python
+from pytorch_optimizer import load_optimizer
+
+model = YourModel()
+optimizer = load_optimizer('adamp')(model.parameters(), lr=1e-3)
+```
+
+### 3) Build with `create_optimizer()`
+
+```python
+from pytorch_optimizer import create_optimizer
+
+model = YourModel()
+optimizer = create_optimizer(
+    model,
+    optimizer_name='adamp',
+    lr=1e-3,
+    weight_decay=1e-3,
+    use_gc=True,
+    use_lookahead=True,
+)
+```
+
+### 4) Optional: load via `torch.hub`
 
 ```python
 import torch
 
 model = YourModel()
-
-opt = torch.hub.load('kozistr/pytorch_optimizer', 'adamp')
-optimizer = opt(model.parameters())
+opt_cls = torch.hub.load('kozistr/pytorch_optimizer', 'adamp')
+optimizer = opt_cls(model.parameters(), lr=1e-3)
 ```
 
-If you want to build the optimizer with parameters & configs, there's `create_optimizer()` API.
+## Discover Available Components
+
+### Optimizers
 
 ```python
-from pytorch_optimizer import create_optimizer
+from pytorch_optimizer import get_supported_optimizers
 
-optimizer = create_optimizer(
-    model,
-    'adamp',
-    lr=1e-3,
-    weight_decay=1e-3,
-    use_gc=True,
-    use_lookahead=True,
-    use_orthograd=False,
-)
+all_optimizers = get_supported_optimizers()
+adam_family = get_supported_optimizers('adam*')
+selected = get_supported_optimizers(['adam*', 'ranger*'])
+```
+
+### Learning Rate Schedulers
+
+```python
+from pytorch_optimizer import get_supported_lr_schedulers
+
+all_schedulers = get_supported_lr_schedulers()
+cosine_like = get_supported_lr_schedulers('cosine*')
+```
+
+### Loss Functions
+
+```python
+from pytorch_optimizer import get_supported_loss_functions
+
+all_losses = get_supported_loss_functions()
+focal_related = get_supported_loss_functions('*focal*')
 ```
 
 ## Supported Optimizers
@@ -290,143 +321,44 @@ get_supported_loss_functions(['*focal*', 'bce*'])
 | Tversky         | *Tversky loss function for image segmentation using 3D fully convolutional deep networks*                               |                                                        | <https://arxiv.org/abs/1706.05721> | [cite](https://ui.adsabs.harvard.edu/abs/2017arXiv170605721S/exportcitation) |
 | Lovasz Hinge    | *A tractable surrogate for the optimization of the intersection-over-union measure in neural networks*                  | [github](https://github.com/bermanmaxim/LovaszSoftmax) | <https://arxiv.org/abs/1705.08790> | [cite](https://github.com/bermanmaxim/LovaszSoftmax#citation)                |
 
-## Useful Resources
 
-Several optimization ideas to regularize & stabilize the training. Most of the ideas are applied in `Ranger21` optimizer.
+## Documentation
 
-Also, most of the captures are taken from `Ranger21` paper.
+- Stable docs: <https://pytorch-optimizers.readthedocs.io/en/stable/>
+- Latest docs: <https://pytorch-optimizers.readthedocs.io/en/latest/>
+- Optimizer API reference: <https://pytorch-optimizers.readthedocs.io/en/latest/optimizer/>
+- LR scheduler API reference: <https://pytorch-optimizers.readthedocs.io/en/latest/lr_scheduler/>
+- Loss API reference: <https://pytorch-optimizers.readthedocs.io/en/latest/loss/>
+- FAQ: <https://pytorch-optimizers.readthedocs.io/en/latest/qa/>
+- Visualization examples: <https://pytorch-optimizers.readthedocs.io/en/latest/visualization/>
+- Repository docs source: [docs/optimizer.md](docs/optimizer.md), [docs/lr_scheduler.md](docs/lr_scheduler.md), [docs/loss.md](docs/loss.md)
 
-|                                                                                 |                                                                       |                                                                                   |
-|---------------------------------------------------------------------------------|-----------------------------------------------------------------------|-----------------------------------------------------------------------------------|
-| [Adaptive Gradient Clipping](#adaptive-gradient-clipping)                       | [Gradient Centralization](#gradient-centralization)                   | [Softplus Transformation](#softplus-transformation)                               |
-| [Gradient Normalization](#gradient-normalization)                               | [Norm Loss](#norm-loss)                                               | [Positive-Negative Momentum](#positive-negative-momentum)                         |
-| [Linear learning rate warmup](#linear-learning-rate-warmup)                     | [Stable weight decay](#stable-weight-decay)                           | [Explore-exploit learning rate schedule](#explore-exploit-learning-rate-schedule) |
-| [Lookahead](#lookahead)                                                         | [Chebyshev learning rate schedule](#chebyshev-learning-rate-schedule) | [(Adaptive) Sharpness-Aware Minimization](#adaptive-sharpness-aware-minimization) |
-| [On the Convergence of Adam and Beyond](#on-the-convergence-of-adam-and-beyond) | [Improved bias-correction in Adam](#improved-bias-correction-in-adam) | [Adaptive Gradient Norm Correction](#adaptive-gradient-norm-correction)           |
+## License Notes
 
-### Adaptive Gradient Clipping
+Most implementations are under MIT or Apache 2.0 compatible terms from their original sources.
+Some algorithms (for example `Fromage`, `Nero`) are tied to `CC BY-NC-SA 4.0`, which is non-commercial.
+Please verify the license of each optimizer before production or commercial use.
 
-This idea originally proposed in `NFNet (Normalized-Free Network)` paper. `AGC (Adaptive Gradient Clipping)` clips gradients based on the `unit-wise ratio of gradient norms to parameter norms`.
+## Contributing and Community
 
-* code : [github](https://github.com/deepmind/deepmind-research/tree/master/nfnets)
-* paper : [arXiv](https://arxiv.org/abs/2102.06171)
-
-### Gradient Centralization
-
-|                                                                                                               |
-|---------------------------------------------------------------------------------------------------------------|
-| ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/gradient_centralization.png) |
-
-`Gradient Centralization (GC)` operates directly on gradients by centralizing the gradient to have zero mean.
-
-* code : [github](https://github.com/Yonghongwei/Gradient-Centralization)
-* paper : [arXiv](https://arxiv.org/abs/2004.01461)
-
-### Softplus Transformation
-
-By running the final variance denom through the softplus function, it lifts extremely tiny values to keep them viable.
-
-* paper : [arXiv](https://arxiv.org/abs/1908.00700)
-
-### Gradient Normalization
-
-### Norm Loss
-
-|                                                                                                 |
-|-------------------------------------------------------------------------------------------------|
-| ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/norm_loss.png) |
-
-* paper : [arXiv](https://arxiv.org/abs/2103.06583)
-
-### Positive-Negative Momentum
-
-|                                                                                                                  |
-|------------------------------------------------------------------------------------------------------------------|
-| ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/positive_negative_momentum.png) |
-
-* code : [github](https://github.com/zeke-xie/Positive-Negative-Momentum)
-* paper : [arXiv](https://arxiv.org/abs/2103.17182)
-
-### Linear learning rate warmup
-
-|                                                                                                        |
-|--------------------------------------------------------------------------------------------------------|
-| ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/linear_lr_warmup.png) |
-
-* paper : [arXiv](https://arxiv.org/abs/1910.04209)
-
-### Stable weight decay
-
-|                                                                                                           |
-|-----------------------------------------------------------------------------------------------------------|
-| ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/stable_weight_decay.png) |
-
-* code : [github](https://github.com/zeke-xie/stable-weight-decay-regularization)
-* paper : [arXiv](https://arxiv.org/abs/2011.11152)
-
-### Explore-exploit learning rate schedule
-
-|                                                                                                                   |
-|-------------------------------------------------------------------------------------------------------------------|
-| ![image](https://raw.githubusercontent.com/kozistr/pytorch_optimizer/main/assets/explore_exploit_lr_schedule.png) |
-
-* code : [github](https://github.com/nikhil-iyer-97/wide-minima-density-hypothesis)
-* paper : [arXiv](https://arxiv.org/abs/2003.03977)
-
-### Lookahead
-
-`k` steps forward, 1 step back. `Lookahead` consisting of keeping an exponential moving average of the weights that is updated and substituted to the current weights every `k` lookahead steps (5 by default).
-
-### Chebyshev learning rate schedule
-
-Acceleration via Fractal Learning Rate Schedules.
-
-### (Adaptive) Sharpness-Aware Minimization
-
-Sharpness-Aware Minimization (SAM) simultaneously minimizes loss value and loss sharpness.  
-In particular, it seeks parameters that lie in neighborhoods having uniformly low loss.
-
-### On the Convergence of Adam and Beyond
-
-Convergence issues can be fixed by endowing such algorithms with 'long-term memory' of past gradients.
-
-### Improved bias-correction in Adam
-
-With the default bias-correction, Adam may actually make larger than requested gradient updates early in training.
-
-### Adaptive Gradient Norm Correction
-
-Correcting the norm of a gradient in each iteration based on the adaptive training history of gradient norm.
-
-### Cautious optimizer
-
-Updates only occur when the proposed update direction aligns with the current gradient.
-
-### Adam-ATAN2
-
-Adam-atan2 is a new numerically stable, scale-invariant version of Adam that eliminates the epsilon hyperparameter.
-
-## Frequently asked questions
-
-[here](docs/qa.md)
-
-## Visualization
-
-[here](docs/visualization.md)
+- Contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Security policy: [SECURITY.md](SECURITY.md)
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
 
 ## Citation
 
-Please cite the original authors of optimization algorithms. You can easily find it in the above table! 
-If you use this software, please cite it below. Or you can get it from "cite this repository" button.
+Please cite original optimizer authors when you use specific algorithms.
+If you use this repository, you can use the citation metadata in [CITATION.cff](CITATION.cff) or GitHub's "Cite this repository".
 
-    @software{Kim_pytorch_optimizer_optimizer_2021,
-        author = {Kim, Hyeongchan},
-        month = jan,
-        title = {{pytorch_optimizer: optimizer & lr scheduler & loss function collections in PyTorch}},
-        url = {https://github.com/kozistr/pytorch_optimizer},
-        version = {3.1.0},
-        year = {2021}
-    }
+```bibtex
+@software{Kim_pytorch_optimizer_optimizer_2021,
+  author = {Kim, Hyeongchan},
+  title = {{pytorch_optimizer: optimizer & lr scheduler & loss function collections in PyTorch}},
+  url = {https://github.com/kozistr/pytorch_optimizer},
+  year = {2021}
+}
+```
 
 ## Maintainer
 
