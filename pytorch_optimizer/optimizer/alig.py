@@ -28,6 +28,7 @@ class AliG(BaseOptimizer):
         momentum (float): Momentum factor.
         adjusted_momentum (bool): If True, use PyTorch-like momentum instead of standard Nesterov momentum.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(

@@ -15,6 +15,7 @@ class FOCUS(BaseOptimizer):
         gamma (float): Controls the strength of the attraction.
         weight_decay (float): Weight decay (L2 penalty).
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

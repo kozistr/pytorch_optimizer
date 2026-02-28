@@ -30,6 +30,7 @@ class Prodigy(BaseOptimizer):
         eps (float): term added to the denominator to improve numerical stability. when eps is None, use atan2 rather
             than epsilon and division for parameter updates.
         maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

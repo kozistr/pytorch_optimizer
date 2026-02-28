@@ -152,6 +152,7 @@ def dct(x: torch.Tensor, norm: Optional[str] = None) -> torch.Tensor:
 
     Returns:
         torch.Tensor: The DCT-II of the signal over the last dimension.
+
     """
     x_shape = x.shape
 
@@ -187,6 +188,7 @@ def inverse_dct(x: torch.Tensor, norm: Optional[str] = None) -> torch.Tensor:
 
     Returns:
         torch.Tensor: The inverse DCT-II of the signal over the last dimension.
+
     """
     x_shape = x.shape
     n = x_shape[-1]
@@ -297,6 +299,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
         compression_chunk (int): Compression chunk size.
         weight_decay (float): Weight decay (L2 penalty).
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(

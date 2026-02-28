@@ -23,6 +23,7 @@ class CAME(BaseOptimizer):
         eps1 (float): Term added to the denominator to improve numerical stability.
         eps2 (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(

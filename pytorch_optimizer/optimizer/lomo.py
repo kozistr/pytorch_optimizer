@@ -24,6 +24,7 @@ class LOMO(BaseOptimizer):
         clip_grad_norm (Optional[float]): Gradient norm clipping value.
         clip_grad_value (Optional[float]): Gradient value clipping threshold.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(
@@ -219,6 +220,7 @@ class AdaLOMO(BaseOptimizer):
         clip_grad_value (Optional[float]): Clip gradient value.
         eps1 (float): Term added to the denominator to improve numerical stability.
         eps2 (float): Term added to the denominator to improve numerical stability.
+
     """
 
     def __init__(

@@ -19,6 +19,7 @@ class BaseLinearWarmupScheduler(ABC):
         min_lr (float): The minimum learning rate to decay to (or start from if warmup).
         init_lr (float): Initial learning rate at the start of warmup.
         warmup_steps (int): Number of steps to warm up linearly from init_lr to max_lr.
+
     """
 
     def __init__(

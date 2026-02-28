@@ -19,6 +19,7 @@ class CosineDecay:
         t_max (int): Maximum number of iterations for the decay.
         eta_min (Optional[float]): Minimum value of the parameter after decay. Defaults to 0.
         last_epoch (Optional[int]): The index of the last epoch. Defaults to -1.
+
     """
 
     def __init__(self, death_rate: float, t_max: int, eta_min: float = 0.0, last_epoch: int = -1):
@@ -32,6 +33,7 @@ class CosineDecay:
 
         Args:
             current_step (int): Current step index.
+
         """
         self.cosine_stepper.last_epoch = current_step
         self.cosine_stepper.step()
@@ -41,6 +43,7 @@ class CosineDecay:
 
         Args:
             current_step (int): Current step index.
+
         """
         if current_step >= self.t_max:
             return self.eta_min
@@ -65,6 +68,7 @@ class SPAM(BaseOptimizer):
         update_proj_gap (int): Update projection gap.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
+
     """
 
     def __init__(
@@ -288,6 +292,7 @@ class StableSPAM(BaseOptimizer):
         update_proj_gap (int): Update projection gap.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
+
     """
 
     def __init__(

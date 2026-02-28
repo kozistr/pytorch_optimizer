@@ -21,6 +21,7 @@ class A2Grad(BaseOptimizer):
         rho (float): Represents the degree of weighting decrease, a constant smoothing factor between 0 and 1.
         variant (str): Variant of A2Grad optimizer. One of 'uni', 'inc', or 'exp'.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(

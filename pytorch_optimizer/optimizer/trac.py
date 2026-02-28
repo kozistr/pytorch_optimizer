@@ -9,13 +9,14 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, OptimizerInstan
 
 
 def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
-    r"""Implement of the Horner scheme to evaluate a polynomial.
+    r"""Implement Horner's scheme to evaluate a polynomial.
 
     Taken from https://discuss.pytorch.org/t/polynomial-evaluation-by-horner-rule/67124
 
     Args:
         x (torch.Tensor): Variable at which to evaluate the polynomial.
         coef (torch.Tensor): Coefficients of the polynomial, ordered from highest degree to lowest.
+
     """
     result = coef[0].clone()
 
@@ -30,6 +31,7 @@ class ERF1994(nn.Module):
 
     Args:
         num_coefs (int): The number of polynomial coefficients to use in the approximation.
+
     """
 
     def __init__(self, num_coefs: int = 128) -> None:
@@ -53,6 +55,7 @@ class ERF1994(nn.Module):
 
         Args:
             z (torch.Tensor): A tensor of complex numbers.
+
         """
         self.l = self.l.to(z.device)
         self.i = self.i.to(z.device)
@@ -70,6 +73,7 @@ class ERF1994(nn.Module):
 
         Args:
             z (torch.Tensor): A tensor of complex numbers.
+
         """
         sign_r = torch.sign(z.real)
         sign_i = torch.sign(z.imag)
@@ -97,6 +101,7 @@ class TRAC(BaseOptimizer):
             loss = loss_fn(model(input), output)
             loss.backward()
             optimizer.step()
+
     """
 
     def __init__(

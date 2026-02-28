@@ -13,6 +13,7 @@ class LDAMLoss(nn.Module):
         max_m (float): Maximum margin (the `C` term in the paper).
         weight (Optional[torch.Tensor]): Optional class weights for re-weighting.
         s (float): Scaling factor for logits.
+
     """
 
     def __init__(

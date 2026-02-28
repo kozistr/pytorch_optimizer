@@ -18,6 +18,7 @@ def has_foreach_support(tensors: List[torch.Tensor]) -> bool:
 
     Returns:
         True if foreach operations are supported, False otherwise.
+
     """
     if len(tensors) == 0:
         return False
@@ -57,6 +58,7 @@ def group_tensors_by_device_and_dtype(
         - 'grads': List of gradients in this group
         - 'indices': Original indices of parameters in this group
         - state_name: List of state tensors for each state in state_lists
+
     """
     if state_lists is None:
         state_lists = {}
@@ -87,9 +89,10 @@ def group_tensors_by_device_and_dtype(
 def foreach_rsqrt(
     tensors: Union[List[torch.Tensor], Tuple[torch.Tensor, ...]],
 ) -> Sequence[torch.Tensor]:  # pragma: no cover
-    """foreach_rsqrt implementation by Pytorch version.
+    """Version-aware ``foreach_rsqrt`` implementation.
 
-    `torch._foreach_rsqrt` is introduced since Pytorch 2.8.0, So, previous versions do not use this.
+    ``torch._foreach_rsqrt`` was introduced in PyTorch 2.8.0, so earlier versions
+    use a reciprocal-of-sqrt fallback.
     """
     if TORCH_VERSION_AT_LEAST_2_8:
         return torch._foreach_rsqrt(tensors)
@@ -98,9 +101,10 @@ def foreach_rsqrt(
 
 
 def foreach_rsqrt_(tensors: Union[List[torch.Tensor], Tuple[torch.Tensor, ...]]) -> None:  # pragma: no cover
-    """foreach_rsqrt_ implementation by Pytorch version.
+    """Version-aware in-place ``foreach_rsqrt_`` implementation.
 
-    `torch._foreach_rsqrt_` is introduced since Pytorch 2.8.0, So, previous versions do not use this.
+    ``torch._foreach_rsqrt_`` was introduced in PyTorch 2.8.0, so earlier versions
+    use in-place sqrt followed by reciprocal.
     """
     if TORCH_VERSION_AT_LEAST_2_8:
         torch._foreach_rsqrt_(tensors)

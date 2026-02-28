@@ -28,6 +28,7 @@ class DAdaptAdaGrad(BaseOptimizer):
         fixed_decay (bool): Fix weight decay.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(
@@ -266,6 +267,7 @@ class DAdaptAdam(BaseOptimizer):
         bias_correction (bool): Turn on Adam's bias correction.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(
@@ -440,6 +442,7 @@ class DAdaptSGD(BaseOptimizer):
         weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
         fixed_decay (bool): Fix weight decay.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(
@@ -591,6 +594,7 @@ class DAdaptAdan(BaseOptimizer):
             Default is inf, for unrestricted.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(
@@ -765,6 +769,7 @@ class DAdaptLion(BaseOptimizer):
         weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
         fixed_decay (bool): Fix weight decay.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(

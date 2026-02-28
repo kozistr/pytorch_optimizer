@@ -153,6 +153,7 @@ class AdaGradGraft(SGDGraft):
     Args:
         var (torch.Tensor): variable to be optimized.
         diagonal_eps (float): small epsilon added to diagonal for numerical stability.
+
     """
 
     def __init__(self, var: torch.Tensor, diagonal_eps: float):
@@ -175,6 +176,7 @@ class RMSPropGraft(SGDGraft):
     Args:
         var (torch.Tensor): variable to optimize.
         diagonal_eps (float): small epsilon added to diagonal for numerical stability.
+
     """
 
     def __init__(self, var: torch.Tensor, diagonal_eps: float):
@@ -202,6 +204,7 @@ class BlockPartitioner:
         rank (int): rank of the tensor.
         block_size (int): size of each block to partition.
         pre_conditioner_type (int): type of pre-conditioner used.
+
     """
 
     def __init__(self, var: torch.Tensor, rank: int, block_size: int, pre_conditioner_type: int):
@@ -308,6 +311,7 @@ class PreConditioner:
         pre_conditioner_type (int): type of pre-conditioner to use.
         matrix_eps (float): epsilon term added for numerical stability in matrix operations.
         use_svd (bool): use SVD method instead of Schur-Newton method for matrix inverse powers calculation.
+
     """
 
     def __init__(
@@ -387,6 +391,7 @@ class PreConditioner:
 
         Args:
             grad (torch.Tensor): gradient tensor from which to compute statistics.
+
         """
         if len(self.statistics) == 0:
             return
@@ -450,6 +455,7 @@ class PreConditioner:
 
         Args:
             grad (torch.Tensor): gradient tensor to precondition.
+
         """
         if len(self.pre_conditioners) == 0:
             return grad
@@ -496,6 +502,7 @@ def power_iteration(mat_g: torch.Tensor, num_iters: int = 100) -> torch.Tensor:
     Args:
         mat_g (torch.Tensor): symmetric positive semi-definite matrix.
         num_iters (int): number of power iteration steps.
+
     """
     v = torch.randn(mat_g.shape[0], dtype=mat_g.dtype, device=mat_g.device)
     mat_v = torch.empty_like(v)
@@ -540,6 +547,7 @@ def compute_power_schur_newton(
         error_tolerance (float): threshold to stop iteration based on error.
         ridge_epsilon (float): small value added times identity matrix for positive definiteness.
         max_error_ratio (float): factor to limit allowed temporary increase in error.
+
     """
     shape: torch.Size = mat_g.shape
     if len(shape) == 1:
@@ -596,6 +604,7 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
     Args:
         matrix (torch.Tensor): square positive semi-definite matrix.
         power (float): exponent for the root computation.
+
     """
     u, s, vh = torch.linalg.svd(matrix.to(torch.float32), full_matrices=False)
     s.pow_(-1.0 / power)
@@ -614,6 +623,7 @@ def merge_small_dims(shape_to_merge: Union[List[int], torch.Size], max_dim: int)
     Args:
         shape_to_merge (Union[List[int], torch.Size]): the original shape to merge.
         max_dim (int): maximum allowed dimension for merging.
+
     """
     merged_shape: List[int] = []
 
@@ -655,6 +665,7 @@ def zero_power_via_newton_schulz_5(
             variants.
         weights (NewtonSchulzWeights): Coefficients as a preset name, one tuple, or a tuple schedule.
         dtype (torch.dtype): dtype of g.
+
     """
     if g.ndim < 2:
         raise ValueError(f'input must be over 2-dimensional. got {g.ndim}D.')

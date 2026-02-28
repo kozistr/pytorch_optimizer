@@ -20,6 +20,7 @@ class NovoGrad(BaseOptimizer):
         grad_averaging (bool): Multiply ck (1 - momentum).
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

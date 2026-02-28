@@ -12,6 +12,7 @@ class REXScheduler(LRScheduler):
         total_steps (int): Number of steps to optimize.
         max_lr (float): Maximum learning rate.
         min_lr (float): Minimum learning rate.
+
     """
 
     def __init__(

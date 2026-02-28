@@ -77,6 +77,7 @@ class SAM(BaseOptimizer):
             optimizer.step(closure)
             optimizer.zero_grad()
         ```
+
     """
 
     def __init__(
@@ -196,6 +197,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
             lr_scheduler.step()
             optimizer.update_rho_t()
         ```
+
     """
 
     def __init__(
@@ -339,6 +341,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
             inputs (torch.Tensor): inputs.
             targets (torch.Tensor): targets.
             kwargs (Dict): keyword arguments.
+
         """
 
         def get_grad() -> Tuple[Any, torch.Tensor]:
@@ -399,6 +402,7 @@ class WSAM(BaseOptimizer):
         max_norm (Optional[float]): max norm of the gradients.
         eps (float): term added to the denominator of WSAM to improve numerical stability.
         kwargs (Dict): parameters for optimizer.
+
     """
 
     def __init__(
@@ -561,6 +565,7 @@ class BSAM(BaseOptimizer):
             optimizer.step(closure)
             optimizer.zero_grad()
         ```
+
     """
 
     def __init__(
@@ -735,6 +740,7 @@ class LookSAM(BaseOptimizer):
             optimizer.step(closure)
             optimizer.zero_grad()
         ```
+
     """
 
     def __init__(
@@ -907,6 +913,7 @@ class FriendlySAM(BaseOptimizer):
             optimizer.step(closure)
             optimizer.zero_grad()
         ```
+
     """
 
     def __init__(

@@ -21,6 +21,7 @@ class LARS(BaseOptimizer):
         foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

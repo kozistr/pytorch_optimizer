@@ -19,6 +19,7 @@ class PNM(BaseOptimizer):
         fixed_decay (bool): Fix weight decay.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective instead of minimizing.
+
     """
 
     def __init__(

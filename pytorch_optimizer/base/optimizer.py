@@ -57,6 +57,7 @@ class BaseOptimizer(ABC, Optimizer):
             >>> optimizer.set_hessian(hessian_diag_est)
             # OR
             >>> optimizer.step(hessian=hessian_diag_est)
+
         """
         i: int = 0
         for group in param_groups or []:
@@ -77,6 +78,7 @@ class BaseOptimizer(ABC, Optimizer):
             param_groups (ParamsT): Parameter groups from the optimizer.
             state (State): Optimizer state dictionary.
             pre_zero (bool): If True, zero-out the Hessian before computing/updating it.
+
         """
         for group in param_groups or []:
             for p in group['params']:
@@ -103,6 +105,7 @@ class BaseOptimizer(ABC, Optimizer):
             num_samples (int): Number of times to sample noise vector `z` for the trace approximation.
             alpha (float): Scaling factor for the Hessian estimate.
             distribution (HutchinsonG): Type of noise distribution used (e.g., Rademacher).
+
         """
         if distribution not in ('gaussian', 'rademacher'):
             raise NotImplementedError(f'hessian with distribution {distribution} is not implemented.')
@@ -148,6 +151,7 @@ class BaseOptimizer(ABC, Optimizer):
             weight_decouple (bool): If True, applies decoupled weight decay as in AdamW.
             fixed_decay (bool): If True, fixes weight decay to not depend on learning rate.
             ratio (Optional[float]): Optional scaling factor for weight decay.
+
         """
         if weight_decouple:
             p.mul_(1.0 - weight_decay * (1.0 if fixed_decay else lr) * (ratio if ratio is not None else 1.0))
@@ -168,6 +172,7 @@ class BaseOptimizer(ABC, Optimizer):
             update (torch.Tensor): update tensor.
             lr (float): Learning rate to scale the update.
             weight_decay (float): Weight decay coefficient (L2 penalty).
+
         """
         p.copy_(torch.where(update * p >= 0, p * (1.0 - weight_decay * lr), p))
 
@@ -187,6 +192,7 @@ class BaseOptimizer(ABC, Optimizer):
             max_exp_avg_sq (Optional[torch.Tensor]): Maximum of all exp_avg_sq elements, for AMSBound.
             eps (float): Small epsilon value for numerical stability.
             exp_avg_sq_eps (float): Epsilon used specifically for numerical stability in exp_avg_sq computations.
+
         """
         if ams_bound:
             if torch.is_complex(max_exp_avg_sq):
@@ -206,6 +212,7 @@ class BaseOptimizer(ABC, Optimizer):
         Args:
             beta (float): Exponential decay rate for moment estimates.
             step (int): Current optimization step number.
+
         """
         return 1.0 - math.pow(beta, step)  # fmt: skip
 
@@ -218,6 +225,7 @@ class BaseOptimizer(ABC, Optimizer):
         Args:
             beta (float): The original beta decay rate.
             step (int): Current optimization step number.
+
         """
         beta_n: float = math.pow(beta, step)
         return (beta_n - beta) / (beta_n - 1.0)  # fmt: skip
@@ -230,6 +238,7 @@ class BaseOptimizer(ABC, Optimizer):
             adam_debias (bool): If True, only corrects the denominator to avoid inflating step sizes early in training.
             step_size (float): The step size for the update.
             bias_correction1 (float): The bias correction factor for the first moment.
+
         """
         return step_size if adam_debias else step_size / bias_correction1
 
@@ -251,6 +260,7 @@ class BaseOptimizer(ABC, Optimizer):
             beta2 (float): Beta2 parameter from optimizer (momentum term).
             n_sma_threshold (float): Simple Moving Average (SMA) threshold for rectification.
             degenerated_to_sgd (bool): Whether to degenerate to SGD if below threshold.
+
         """
         step_size: float = lr
         n_sma: float = 0.0
@@ -284,6 +294,7 @@ class BaseOptimizer(ABC, Optimizer):
             adanorm (bool): Whether to use the AdaNorm variant.
             exp_grad_norm (Optional[torch.Tensor]): Exponential moving average of gradient norm.
             r (Optional[float]): EMA factor; between 0.9 and 0.99 is preferred.
+
         """
         if not adanorm or exp_grad_norm is None:
             return grad
@@ -340,8 +351,9 @@ class BaseOptimizer(ABC, Optimizer):
         """Apply the Cautious Optimizer feature.
 
         Args:
-            update (torch.Tensor): update. it'll be masked in in-place manner.
-            grad (torch.Tensor): gradient.
+            update (torch.Tensor): Update tensor, masked in-place.
+            grad (torch.Tensor): Gradient tensor.
+
         """
         mask = (update * grad > 0).to(grad.dtype)
         mask.mul_(mask.numel() / (mask.sum() + 1))
@@ -357,6 +369,7 @@ class BaseOptimizer(ABC, Optimizer):
 
         Returns:
             True if foreach operations should be used, False otherwise.
+
         """
         if foreach is False:
             return False
@@ -391,6 +404,7 @@ class BaseOptimizer(ABC, Optimizer):
             - params: List of parameter tensors with gradients
             - grads: List of corresponding gradient tensors
             - state_dict: Dictionary mapping state keys to lists of state tensors
+
         """
         if state_keys is None:
             state_keys = []
@@ -432,6 +446,7 @@ class BaseOptimizer(ABC, Optimizer):
             weight_decay: Weight decay coefficient.
             weight_decouple: If True, applies decoupled weight decay as in AdamW.
             fixed_decay: If True, fixes weight decay to not depend on learning rate.
+
         """
         if weight_decay == 0.0:
             return
@@ -458,6 +473,7 @@ class BaseOptimizer(ABC, Optimizer):
             grad (torch.Tensor): gradient.
             exp_avg_sq (torch.Tensor): Exponential moving average of squared gradient.
             eps (float): Small value to prevent division by zero.
+
         """
         return grad.pow(2).div_(exp_avg_sq.clip(min=eps)).mean().sqrt_().clip_(min=1.0).item()
 

@@ -22,6 +22,7 @@ def soft_jaccard_score(
         label_smooth (float): Label smoothing factor to avoid zero denominators.
         eps (float): Small epsilon for numerical stability.
         dims (Optional[Tuple[int, ...]]): Dimensions to reduce over when computing the score.
+
     """
     if dims is not None:
         intersection = torch.sum(output * target, dim=dims)
@@ -47,6 +48,7 @@ class JaccardLoss(_Loss):
         from_logits (bool): If True, input is raw logits, which will be converted to probabilities.
         label_smooth (float): Label smoothing constant.
         eps (float): Small number to prevent division by zero.
+
     """
 
     def __init__(

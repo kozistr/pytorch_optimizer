@@ -32,6 +32,7 @@ class ScheduleFreeSGD(BaseOptimizer):
         warmup_steps (int): enables a linear learning rate warmup.
         eps (float): term added to denominator to improve numerical stability.
         maximize (bool): maximize the objective instead of minimizing.
+
     """
 
     def __init__(
@@ -182,6 +183,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
         ams_bound (bool): whether to use the AMSBound variant.
         eps (float): term added to denominator for numerical stability.
         maximize (bool): maximize the objective instead of minimizing.
+
     """
 
     def __init__(
@@ -354,6 +356,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
             stabilize training.
         eps (float): term added to denominator to improve numerical stability.
         maximize (bool): maximize the objective instead of minimizing.
+
     """
 
     def __init__(
@@ -527,6 +530,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
         r (float): use polynomial weighting in the average with power r.
         weight_lr_power (float): during warmup, weights in average equal lr raised to this power; 0 disables weighting.
         maximize (bool): maximize the objective instead of minimizing.
+
     """
 
     def __init__(

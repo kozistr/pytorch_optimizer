@@ -32,6 +32,7 @@ class PCGrad(BaseOptimizer):
     Args:
         optimizer (Optimizer): Optimizer instance.
         reduction (str): Reduction method for gradients.
+
     """
 
     def __init__(self, optimizer: Optimizer, reduction: str = 'mean'):
@@ -79,6 +80,7 @@ class PCGrad(BaseOptimizer):
 
         Args:
             objectives (Iterable[nn.Module]): A list of objectives.
+
         """
         grads, shapes, has_grads = [], [], []
         for objective in objectives:
@@ -99,6 +101,7 @@ class PCGrad(BaseOptimizer):
         Args:
             grads (List[torch.Tensor]): A list of the gradient of the parameters.
             has_grads (List[torch.Tensor]): A list of masks representing whether the parameter has gradient.
+
         """
         shared: torch.Tensor = torch.stack(has_grads).prod(0).bool()
 
@@ -127,6 +130,7 @@ class PCGrad(BaseOptimizer):
 
         Args:
             objectives (Iterable[nn.Module]): A list of objectives.
+
         """
         grads, shapes, has_grads = self.pack_grad(objectives)
 

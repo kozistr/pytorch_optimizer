@@ -21,6 +21,7 @@ def lovasz_hinge_flat(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tenso
     Args:
         y_pred (torch.Tensor): Predictions.
         y_true (torch.Tensor): Ground truth.
+
     """
     y_pred = y_pred.view(-1)
     y_true = y_true.view(-1)
@@ -40,6 +41,7 @@ class LovaszHingeLoss(nn.Module):
 
     Args:
         per_image (bool): compute the loss per image instead of per batch.
+
     """
 
     def __init__(self, per_image: bool = True):

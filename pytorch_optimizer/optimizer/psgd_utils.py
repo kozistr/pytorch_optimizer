@@ -83,6 +83,7 @@ def update_precondition_dense(
         dgs (List[torch.Tensor]): List of perturbations of gradients.
         step (float): Update step size normalized to range [0, 1].
         eps (float): An offset to avoid division by zero.
+
     """
     dx = torch.cat([torch.reshape(x, [-1, 1]) for x in dxs])
     dg = torch.cat([torch.reshape(g, [-1, 1]) for g in dgs])

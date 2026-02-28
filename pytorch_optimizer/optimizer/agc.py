@@ -14,6 +14,7 @@ def agc(
         agc_eps (float): AGC epsilon to clip the norm of the parameter.
         agc_clip_val (float): Norm clip value.
         eps (float): Small term to prevent division by zero, unrelated to standard optimizer eps.
+
     """
     max_norm = unit_norm(p).clamp_min_(agc_eps).mul_(agc_clip_val)
     g_norm = unit_norm(grad).clamp_min_(eps)

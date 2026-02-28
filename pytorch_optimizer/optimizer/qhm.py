@@ -17,6 +17,7 @@ class QHM(BaseOptimizer):
         weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
         fixed_decay (bool): fix weight decay.
         maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

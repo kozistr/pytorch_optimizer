@@ -40,6 +40,7 @@ def gradfilter_ma(
         grads = gradfilter_ma(model, grads=grads, window_size=window_size, lamb=lamb)
 
         optimizer.step()  # Call the optimizer.
+
     """
     if grads is None:
         grads = {n: deque(maxlen=window_size) for n, p in model.named_parameters() if p.requires_grad}
@@ -83,6 +84,7 @@ def gradfilter_ema(
         grads = gradfilter_ema(model, grads=grads, alpha=alpha, lamb=lamb)
 
         optimizer.step()  # Call the optimizer.
+
     """
     if grads is None:
         grads = {n: p.grad for n, p in model.named_parameters() if p.requires_grad and p.grad is not None}
@@ -115,6 +117,7 @@ class GrokFastAdamW(BaseOptimizer):
         foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

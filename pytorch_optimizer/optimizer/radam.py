@@ -19,6 +19,7 @@ class RAdam(BaseOptimizer):
         degenerated_to_sgd (float): degenerated to SGD.
         eps (float): term added to the denominator to improve numerical stability.
         maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

@@ -18,6 +18,7 @@ class Grams(BaseOptimizer):
         weight_decouple (bool): Whether to use decoupled weight decay.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

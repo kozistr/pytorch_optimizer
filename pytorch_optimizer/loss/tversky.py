@@ -9,6 +9,7 @@ class TverskyLoss(nn.Module):
         alpha (float): Weight of false positives.
         beta (float): Weight of false negatives.
         smooth (float): Small constant to avoid division by zero.
+
     """
 
     def __init__(self, alpha: float = 0.5, beta: float = 0.5, smooth: float = 1e-6):

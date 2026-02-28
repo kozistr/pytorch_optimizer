@@ -16,6 +16,7 @@ class Lookahead(BaseOptimizer):
         k (int): Number of lookahead steps.
         alpha (float): Linear interpolation factor.
         pullback_momentum (str): Change to inner optimizer momentum on interpolation update.
+
     """
 
     def __init__(

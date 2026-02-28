@@ -348,6 +348,7 @@ def create_optimizer(
         use_lookahead (bool): use Lookahead.
         use_orthograd (bool): use OrthoGrad.
         **kwargs (dict): optimizer parameters.
+
     """
     optimizer_name = optimizer_name.lower()
 
@@ -403,6 +404,7 @@ def get_optimizer_parameters(
 
     Returns:
         ParamsT: optimizer parameters.
+
     """
     banned_parameter_patterns: Set[str] = set()
 
@@ -445,6 +447,7 @@ def get_supported_optimizers(filters: Optional[Union[str, List[str]]] = None) ->
     Args:
         filters (Optional[Union[str, List[str]]]): wildcard filter string that works with fmatch.
             if None, it will return the whole list.
+
     """
     if filters is None:
         return sorted(OPTIMIZERS.keys())

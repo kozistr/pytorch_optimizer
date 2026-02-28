@@ -14,6 +14,7 @@ class Gravity(BaseOptimizer):
         alpha (float): Alpha controls the V initialization.
         beta (float): Beta will be used to compute running average of V.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

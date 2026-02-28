@@ -72,6 +72,7 @@ def get_wsd_scheduler_lambda(  # noqa: PLR0911
         min_lr_ratio (float): Minimum learning rate as a ratio of the initial learning rate.
         num_cycles (float): Number of waves in the cosine schedule (default is a half-cosine decay).
         cooldown_type (COOLDOWN_TYPE): Cooldown type of the learning rate scheduler.
+
     """
     if current_step < num_warmup_steps:
         return float(current_step) / float(max(1, num_warmup_steps))
@@ -112,6 +113,7 @@ def get_wsd_schedule(
         num_cycles (float): The number of waves in the cosine schedule (default is a half-cosine decay).
         cooldown_type (COOLDOWN_TYPE): Cooldown type of the learning rate scheduler.
         last_epoch (int): The index of the last epoch when resuming training.
+
     """
     lr_scheduler = partial(
         get_wsd_scheduler_lambda,

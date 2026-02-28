@@ -22,6 +22,7 @@ class RACS(BaseOptimizer):
         fixed_decay (bool): fix weight decay.
         eps (float): term added to the denominator to improve numerical stability.
         maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(
@@ -155,6 +156,7 @@ class Alice(BaseOptimizer):
         fixed_decay (bool): fix weight decay.
         eps (float): term added to the denominator to improve numerical stability.
         maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

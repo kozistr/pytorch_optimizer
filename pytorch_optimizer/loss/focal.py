@@ -18,6 +18,7 @@ class FocalLoss(nn.Module):
     Args:
         alpha (float): Weighting factor for class imbalance.
         gamma (float): Focusing parameter to down-weight easy examples and focus training on hard negatives.
+
     """
 
     def __init__(self, alpha: float = 1.0, gamma: float = 2.0):
@@ -40,6 +41,7 @@ class FocalCosineLoss(nn.Module):
         gamma (float): Focusing parameter to reduce loss contribution from easy examples.
         focal_weight (float): Weight of the focal loss component in the combined loss.
         reduction (str): Specifies the reduction to apply to the output: 'none', 'mean', or 'sum'.
+
     """
 
     def __init__(self, alpha: float = 1.0, gamma: float = 2.0, focal_weight: float = 0.1, reduction: str = 'mean'):
@@ -73,6 +75,7 @@ class BCEFocalLoss(nn.Module):
         label_smooth (float): Smoothness constant to regularize target labels.
         eps (float): Small epsilon to avoid numerical instability.
         reduction (str): Specifies reduction type to apply to output: 'none', 'mean' or 'sum'.
+
     """
 
     def __init__(
@@ -108,6 +111,7 @@ class FocalTverskyLoss(nn.Module):
         beta (float): Weight for false positives in Tversky index.
         gamma (float): Focusing parameter that shapes the loss to focus more on hard examples.
         smooth (float): Smoothing factor to avoid division by zero.
+
     """
 
     def __init__(self, alpha: float = 0.5, beta: float = 0.5, gamma: float = 1.0, smooth: float = 1e-6):

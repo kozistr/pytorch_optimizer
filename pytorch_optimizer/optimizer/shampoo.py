@@ -26,6 +26,7 @@ class Shampoo(BaseOptimizer):
             tuning memory and compute requirements.
         matrix_eps (float): term added to denominator to improve numerical stability.
         maximize (bool): maximize the objective instead of minimizing.
+
     """
 
     def __init__(
@@ -192,6 +193,7 @@ class ScalableShampoo(BaseOptimizer):
         matrix_eps (float): epsilon for numerical stability in matrix.
         use_svd (bool): whether to use SVD for matrix inverse powers (alternative is Schur-Newton).
         maximize (bool): maximize the objective instead of minimizing.
+
     """
 
     def __init__(

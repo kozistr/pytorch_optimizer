@@ -19,6 +19,7 @@ class FAdam(BaseOptimizer):
         momentum_dtype (torch.dtype): Dtype of momentum.
         fim_dtype (torch.dtype): Dtype of Fisher information matrix.
         maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
+
     """
 
     def __init__(

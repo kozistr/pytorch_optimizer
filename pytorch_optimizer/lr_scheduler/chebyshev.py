@@ -18,6 +18,7 @@ def get_chebyshev_steps(num_epochs: int, small_m: float = 0.05, big_m: float = 1
 
     Returns:
         np.array: Array of Chebyshev step sizes of length num_epochs.
+
     """
     c, r = (big_m + small_m) / 2.0, (big_m - small_m) / 2.0
     thetas = (np.arange(num_epochs) + 0.5) * np.pi / num_epochs  # epoch starts from 0, so +0.5 instead of -0.5
@@ -35,6 +36,7 @@ def get_chebyshev_permutation(num_epochs: int) -> np.ndarray:
 
     Args:
         num_epochs (int): Number of epochs (T).
+
     """
     perm = np.array([0])
     while len(perm) < num_epochs:
@@ -47,6 +49,7 @@ def get_chebyshev_perm_steps(num_epochs: int) -> np.ndarray:
 
     Args:
         num_epochs (int): Number of total epochs.
+
     """
     steps: np.ndarray = get_chebyshev_steps(num_epochs)
     perm: np.ndarray = get_chebyshev_permutation(num_epochs - 2)
@@ -63,6 +66,7 @@ def get_chebyshev_lr_lambda(epoch: int, num_epochs: int, is_warmup: bool = False
 
     Returns:
         float: Learning rate ratio for the given epoch based on Chebyshev schedule.
+
     """
     if is_warmup:
         return 1.0
@@ -91,6 +95,7 @@ def get_chebyshev_schedule(
         num_epochs (int): Number of total epochs.
         is_warmup (bool): Whether it is the warm-up stage.
         last_epoch (int): The index of the last epoch when resuming training.
+
     """
     lr_scheduler = partial(get_chebyshev_lr_lambda, num_epochs=num_epochs, is_warmup=is_warmup)
 

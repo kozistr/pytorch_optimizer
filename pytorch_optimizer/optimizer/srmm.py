@@ -16,6 +16,7 @@ class SRMM(BaseOptimizer):
         beta (float): Adaptivity weight.
         memory_length (Optional[int]): Internal memory length for moving average. None for no refreshing.
         maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
+
     """
 
     def __init__(

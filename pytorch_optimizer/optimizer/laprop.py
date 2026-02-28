@@ -21,6 +21,7 @@ class LaProp(BaseOptimizer):
         ams_bound (bool): Whether to use the AMSBound variant.
         eps (float): Epsilon value for numerical stability.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

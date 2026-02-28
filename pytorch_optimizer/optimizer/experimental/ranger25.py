@@ -35,6 +35,7 @@ class Ranger25(BaseOptimizer):
         eps (Optional[float]): Term added to the denominator to improve numerical stability.
             When eps is None and stable_adamw is False, adam-atan2 feature will be used.
         maximize (bool): Maximize the objective w.r.t the parameters instead of minimizing.
+
     """
 
     def __init__(

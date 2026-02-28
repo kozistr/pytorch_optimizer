@@ -33,6 +33,7 @@ def cosine_similarity_by_view(
         y (torch.Tensor): Destination tensor.
         eps (float): Small constant epsilon added for numerical stability.
         view_func (Callable): Function defining the view (e.g., per-channel or per-layer).
+
     """
     x = view_func(x)
     y = view_func(y)
@@ -79,6 +80,7 @@ class SGDP(BaseOptimizer):
         nesterov (bool): Enables Nesterov momentum.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
+
     """
 
     def __init__(
@@ -213,6 +215,7 @@ class AdamP(BaseOptimizer):
         nesterov (bool): Enables Nesterov momentum.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(

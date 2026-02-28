@@ -17,6 +17,7 @@ class CosineAnnealingWarmupRestarts(LRScheduler):
         warmup_steps (int): Number of warmup steps.
         gamma (float): Decrease rate of max learning rate by cycle.
         last_epoch (int): The index of the last epoch for resuming training.
+
     """
 
     def __init__(

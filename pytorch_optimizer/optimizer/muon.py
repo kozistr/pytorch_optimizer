@@ -80,6 +80,7 @@ class Muon(BaseOptimizer):
         ]
 
         optimizer = Muon(param_groups)
+
     """
 
     def __init__(
@@ -278,6 +279,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
         ]
 
         optimizer = DistributedMuon(param_groups)
+
     """
 
     def __init__(
@@ -488,6 +490,7 @@ class AdaMuon(BaseOptimizer):
         ]
 
         optimizer = AdaMuon(param_groups)
+
     """
 
     def __init__(
@@ -682,6 +685,7 @@ class AdaGO(BaseOptimizer):
         ]
 
         optimizer = AdaGO(param_groups)
+
     """
 
     def __init__(

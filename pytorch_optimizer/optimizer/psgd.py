@@ -57,6 +57,7 @@ class Kron(BaseOptimizer):
         precondition_dtype (torch.dtype): dtype of the pre-conditioner.
         balance_prob (float): probability of performing balancing.
         maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

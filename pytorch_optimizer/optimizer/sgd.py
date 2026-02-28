@@ -19,6 +19,7 @@ class AccSGD(BaseOptimizer):
         constant (float): any small constant under 1.
         weight_decay (float): weight decay (L2 penalty).
         maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(
@@ -127,6 +128,7 @@ class SGDW(BaseOptimizer):
         foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): maximize the objective instead of minimizing.
+
     """
 
     def __init__(
@@ -285,6 +287,7 @@ class ASGD(BaseOptimizer):
         dampening (float): dampening for momentum.
         eps (float): term added to denominator to improve numerical stability.
         maximize (bool): maximize the objective instead of minimizing.
+
     """
 
     def __init__(
@@ -407,6 +410,7 @@ class SignSGD(BaseOptimizer):
         foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): maximize the objective instead of minimizing.
+
     """
 
     def __init__(
@@ -535,6 +539,7 @@ class SGDSaI(BaseOptimizer):
         weight_decouple (bool): optimizer uses decoupled weight decay as in AdamW.
         eps (float): term added to denominator to improve numerical stability.
         maximize (bool): maximize the objective instead of minimizing.
+
     """
 
     def __init__(
@@ -675,6 +680,7 @@ class VSGD(BaseOptimizer):
         weight_decouple (bool): optimizer uses decoupled weight decay as in AdamW.
         eps (float): term added to denominator to improve numerical stability.
         maximize (bool): maximize the objective instead of minimizing.
+
     """
 
     def __init__(

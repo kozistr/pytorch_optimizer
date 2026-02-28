@@ -15,6 +15,7 @@ class GaLoreProjector:
         scale (float): Scale factor applied during projection.
         projection_type (PROJECTION_TYPE): Type of projection. Supported types include 'std', 'reverse_std',
             'right', 'left', 'full', and 'random'.
+
     """
 
     def __init__(

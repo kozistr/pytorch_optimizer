@@ -12,6 +12,7 @@ def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
     Args:
         x (torch.Tensor): Tensor to reduce-max.
         dim (int): Dimension to exclude.
+
     """
     rank: int = len(x.shape)
     if rank == 0:
@@ -37,6 +38,7 @@ class SM3(BaseOptimizer):
         beta (float): Coefficient used for exponential moving averages.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(

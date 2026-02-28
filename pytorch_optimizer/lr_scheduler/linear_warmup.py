@@ -6,7 +6,7 @@ from pytorch_optimizer.base.scheduler import BaseLinearWarmupScheduler
 
 
 class LinearScheduler(BaseLinearWarmupScheduler):
-    """Linear LR Scheduler w/ linear warmup."""
+    """Linear LR scheduler with linear warmup."""
 
     def _step(self) -> float:
         return self.max_lr + (self.min_lr - self.max_lr) * (self.step_t - self.warmup_steps) / (
@@ -15,7 +15,7 @@ class LinearScheduler(BaseLinearWarmupScheduler):
 
 
 class CosineScheduler(BaseLinearWarmupScheduler):
-    """Cosine LR Scheduler w/ linear warmup."""
+    """Cosine LR scheduler with linear warmup."""
 
     def _step(self) -> float:
         phase: float = (self.step_t - self.warmup_steps) / (self.total_steps - self.warmup_steps) * math.pi
@@ -27,6 +27,7 @@ class PolyScheduler(BaseLinearWarmupScheduler):
 
     Args:
         poly_order (float): lr scheduler decreases with steps.
+
     """
 
     def __init__(self, optimizer, poly_order: float = 0.5, **kwargs):

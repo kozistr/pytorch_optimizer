@@ -16,6 +16,7 @@ class FTRL(BaseOptimizer):
         lambda_1 (float): L1 regularization parameter.
         lambda_2 (float): L2 regularization parameter.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

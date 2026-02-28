@@ -13,6 +13,7 @@ class MSVAG(BaseOptimizer):
         lr (float): Learning rate.
         beta (float): Moving average (momentum) constant (scalar tensor or float value).
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

@@ -20,6 +20,7 @@ class Ano(BaseOptimizer):
         logarithmic_schedule (bool): Enable adaptive beta1 scheduling based on step count.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

@@ -22,6 +22,7 @@ class Fromage(BaseOptimizer):
         p_bound (Optional[float]): Restricts the optimization to a bounded set. For example, a value of 2.0 restricts
             parameter norms to lie within 2x their initial norms, which helps regularize the model class.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

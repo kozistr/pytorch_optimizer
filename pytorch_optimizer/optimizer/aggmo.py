@@ -16,6 +16,7 @@ class AggMo(BaseOptimizer):
         weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
         fixed_decay (bool): Apply fixed weight decay instead of adaptive.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(

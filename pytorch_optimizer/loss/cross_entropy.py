@@ -10,6 +10,7 @@ class BCELoss(nn.Module):
         label_smooth (float): Smoothness constant to soften target labels.
         eps (float): Small epsilon to avoid numerical instability.
         reduction (str): Specifies the reduction to apply to the output; 'none' | 'mean' | 'sum'.
+
     """
 
     def __init__(self, label_smooth: float = 0.0, eps: float = 1e-6, reduction: str = 'mean'):

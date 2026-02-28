@@ -1,9 +1,10 @@
 class NoSparseGradientError(Exception):
-    r"""Raised when the gradient is sparse gradient.
+    r"""Raised when the gradient is sparse.
 
     Args:
         optimizer_name (str): The name of the optimizer where the error occurred.
         note (str): Additional special conditions or notes (default is an empty string).
+
     """
 
     def __init__(self, optimizer_name: str, note: str = ''):
@@ -21,7 +22,7 @@ class ZeroParameterSizeError(Exception):
 
 
 class NoClosureError(Exception):
-    """Raised when there's no closure function."""
+    """Raised when no closure function is provided."""
 
     def __init__(self, optimizer_name: str, note: str = ''):
         self.message: str = f'{optimizer_name} requires closure.{note}'
@@ -29,7 +30,7 @@ class NoClosureError(Exception):
 
 
 class NegativeLRError(Exception):
-    """Raised when learning rate is negative."""
+    """Raised when the learning rate is negative."""
 
     def __init__(self, lr: float, lr_type: str = ''):
         self.note: str = lr_type if lr_type else 'learning rate'
@@ -38,7 +39,7 @@ class NegativeLRError(Exception):
 
 
 class NegativeStepError(Exception):
-    """Raised when step is negative."""
+    """Raised when the step is negative."""
 
     def __init__(self, num_steps: int, step_type: str = ''):
         self.note: str = step_type if step_type else 'step'
@@ -52,6 +53,7 @@ class NoComplexParameterError(Exception):
     Args:
         optimizer_name (str): The name of the optimizer where the error occurred.
         note (str): Additional special conditions or notes (default is an empty string).
+
     """
 
     def __init__(self, optimizer_name: str, note: str = ''):

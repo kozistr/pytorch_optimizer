@@ -165,6 +165,7 @@ class RotateOnly(nn.Module):
         latent_size (int): size of the shared representation, size of the output of the backbone.z.
         normalized_losses (bool): Whether to use normalized losses to back-propagate through the task-specific
             parameters as well.
+
     """
 
     num_tasks: int
@@ -284,6 +285,7 @@ class RotateOnly(nn.Module):
             losses (Sequence[torch.Tensor]): losses.
             backbone_loss (Optional[torch.Tensor]): backbone loss.
             **kwargs: a keyword arguments.
+
         """
         if not self.training:
             raise AssertionError('Backward should only be called when training')
@@ -353,6 +355,7 @@ class RotoGrad(RotateOnly):
             in the first iterations.
         normalize_losses (bool): Whether to use these normalized losses to back-propagate through the task-specific
             parameters as well.
+
     """
 
     num_tasks: int
@@ -407,6 +410,7 @@ class RotoGradNorm(RotoGrad):
             This is done to overcome problems with losses quickly changing in the first iterations.
         normalize_losses (bool): Whether to use these normalized losses to back-propagate through the task-specific
             parameters as well.
+
     """
 
     def __init__(

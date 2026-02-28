@@ -56,6 +56,7 @@ class Ranger21(BaseOptimizer):
         norm_loss_factor (float): norm loss factor.
         eps (float): term added to the denominator to improve numerical stability.
         maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(  # pylint: disable=R0913

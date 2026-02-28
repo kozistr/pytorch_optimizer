@@ -26,6 +26,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
             If not specified, defaults to num_heads. Could be unspecified for non-transformer models.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(

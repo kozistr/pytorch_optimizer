@@ -22,6 +22,7 @@ def soft_dice_score(
         label_smooth (float): Label smoothing factor to avoid zero denominators.
         eps (float): Small epsilon for numerical stability.
         dims (Optional[Tuple[int, ...]]): Dimensions over which to reduce when computing score.
+
     """
     if dims is not None:
         intersection = torch.sum(output * target, dim=dims)
@@ -47,6 +48,7 @@ class DiceLoss(_Loss):
         label_smooth (float): Smoothness constant for dice coefficient numerator and denominator.
         ignore_index (Optional[int]): Label to ignore during loss computation.
         eps (float): Small epsilon for numerical stability.
+
     """
 
     def __init__(

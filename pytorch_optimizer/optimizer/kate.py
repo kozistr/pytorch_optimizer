@@ -17,6 +17,7 @@ class Kate(BaseOptimizer):
         fixed_decay (bool): Whether to fix weight decay.
         eps (float): Epsilon value for numerical stability.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

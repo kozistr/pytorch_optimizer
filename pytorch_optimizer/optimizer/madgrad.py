@@ -25,6 +25,7 @@ class MADGRAD(BaseOptimizer):
             On sparse problems both weight_decay and momentum should be set to 0.
         weight_decouple (float): Apply AdamW style decoupled weight decay.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+
     """
 
     def __init__(

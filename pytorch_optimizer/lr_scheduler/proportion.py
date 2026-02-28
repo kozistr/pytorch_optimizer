@@ -14,6 +14,7 @@ class ProportionScheduler:
         min_lr (float): Minimum learning rate.
         max_value (float): Maximum value of rho.
         min_value (float): Minimum value of rho.
+
     """
 
     def __init__(

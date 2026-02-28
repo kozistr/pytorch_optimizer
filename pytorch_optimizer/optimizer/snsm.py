@@ -44,6 +44,7 @@ class AdamWSN(BaseOptimizer):
         >>> regular_params = [p for p in model.parameters() if id(p) not in sn_param_ids]
         >>> param_groups = [{'params': regular_params, 'sn': False}, {'params': sn_params, 'sn': True}]
         >>> optimizer = AdamWSN(param_groups, lr=args.lr, weight_decay=args.weight_decay, subset_size=args.subset_size)
+
     """
 
     def __init__(

@@ -20,6 +20,7 @@ class AdaShift(BaseOptimizer):
             If None, no function is applied.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+
     """
 
     def __init__(

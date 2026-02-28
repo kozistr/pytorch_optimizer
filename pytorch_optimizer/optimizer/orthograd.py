@@ -14,6 +14,7 @@ class OrthoGrad(BaseOptimizer):
 
     Args:
         optimizer (OptimizerInstanceOrClass): Base optimizer.
+
     """
 
     def __init__(self, optimizer: OptimizerInstanceOrClass, **kwargs) -> None:

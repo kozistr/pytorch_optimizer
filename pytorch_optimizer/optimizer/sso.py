@@ -210,6 +210,7 @@ def compute_spectral_ball_update(
 
     Note:
         W is modified in-place during the retraction step.
+
     """
     momentum_fp32 = momentum.to(torch.float32)
     momentum_fp32 = momentum_fp32 / (torch.linalg.norm(momentum_fp32, dim=(-2, -1), keepdim=True).clamp_min_(1e-8))
@@ -279,6 +280,7 @@ class SpectralSphere(BaseOptimizer):
 
         optimizer = SpectralSphere(param_groups)
         ...
+
     """
 
     def __init__(
