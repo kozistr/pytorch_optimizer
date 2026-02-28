@@ -290,6 +290,12 @@ class TestShampooUtils:
         with pytest.raises(ValueError):
             zero_power_via_newton_schulz_5(x, weights='invalid')
 
+        with pytest.raises(ValueError):
+            zero_power_via_newton_schulz_5(x, weights=[])
+
+        with pytest.raises(ValueError):
+            zero_power_via_newton_schulz_5(x, weights=[(1.0, 2.0)])
+
 
 class TestSM3Utils:
     def test_max_reduce_except_dim(self):

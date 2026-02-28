@@ -672,7 +672,7 @@ def zero_power_via_newton_schulz_5(
 
     x.div_(x.norm(2, dim=(-2, -1), keepdim=True).mul_(safety_factor).clamp_min_(eps))
 
-    if is_dtensor:
+    if is_dtensor:  # pragma: no cover
         for w0, w1, w2 in coeff_sequence:
             a = x @ x.mT
             b = w1 * a + w2 * (a @ a)
