@@ -1,15 +1,16 @@
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
 
 
 class RAdam(BaseOptimizer):
     """Rectified Adam.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): learning rate.
         betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
         weight_decay (float): weight decay (L2 penalty).
@@ -23,7 +24,7 @@ class RAdam(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-3,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,

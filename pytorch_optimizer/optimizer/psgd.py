@@ -4,10 +4,11 @@ from typing import Callable, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Closure, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Closure, Loss, ParamGroup
 from pytorch_optimizer.optimizer.psgd_utils import norm_lower_bound
 
 MEMORY_SAVE_MODE_TYPE = Literal['one_diag', 'smart_one_diag', 'all_diag']
@@ -39,7 +40,7 @@ class Kron(BaseOptimizer):
     """PSGD with the Kronecker product pre-conditioner.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): learning rate.
         momentum (float): momentum factor.
         weight_decay (float): weight decay (L2 penalty).
@@ -61,7 +62,7 @@ class Kron(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-3,
         momentum: float = 0.9,
         weight_decay: float = 0.0,

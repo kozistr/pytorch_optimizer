@@ -3,6 +3,7 @@ from typing import Callable, Dict, List
 
 import torch
 from torch.optim import Optimizer
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -12,7 +13,6 @@ from pytorch_optimizer.base.type import (
     Closure,
     Defaults,
     Loss,
-    Parameters,
     ParamGroup,
     State,
 )
@@ -22,7 +22,7 @@ class ScheduleFreeSGD(BaseOptimizer):
     """Schedule-Free SGD.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): learning rate.
         momentum (float): momentum factor, must be between 0 and 1 exclusive.
         weight_decay (float): weight decay (L2 penalty).
@@ -36,7 +36,7 @@ class ScheduleFreeSGD(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1.0,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
@@ -170,7 +170,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
     """Schedule-Free AdamW.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): learning rate.
         betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
         weight_decay (float): weight decay (L2 penalty).
@@ -186,7 +186,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 2.5e-3,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,
@@ -343,7 +343,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
     """Schedule-Free RAdam.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): learning rate.
         betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
         weight_decay (float): weight decay (L2 penalty).
@@ -358,7 +358,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 2.5e-3,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,

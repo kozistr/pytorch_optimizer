@@ -3,10 +3,11 @@ from enum import IntEnum
 from typing import Dict, List, Optional
 
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup
 from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 
 
@@ -293,7 +294,7 @@ class SCION(BaseOptimizer):
     """Training Deep Learning Models with Norm-Constrained LMOs.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): learning rate.
         momentum (float): momentum factor. 1.0 - usual momentum.
         constraint (bool): whether to use a constraint SCG or not.
@@ -328,7 +329,7 @@ class SCION(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-3,
         momentum: float = 0.1,
         constraint: bool = False,
@@ -489,7 +490,7 @@ class SCIONLight(BaseOptimizer):
     r"""Memory-efficient variant of the Scion optimizer.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): learning rate.
         momentum (float): momentum factor. 1.0 - usual momentum.
         constraint (bool): whether to use a constraint SCG or not.
@@ -524,7 +525,7 @@ class SCIONLight(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-3,
         momentum: float = 0.1,
         constraint: bool = False,

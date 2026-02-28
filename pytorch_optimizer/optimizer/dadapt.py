@@ -7,10 +7,11 @@
 import math
 
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
 from pytorch_optimizer.optimizer.utils import get_global_gradient_norm, to_real
 
 
@@ -18,7 +19,7 @@ class DAdaptAdaGrad(BaseOptimizer):
     """AdaGrad with D-Adaptation. Leave LR set to 1 unless you encounter instability.
 
     Args:
-        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         momentum (float): Momentum factor.
         d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
@@ -32,7 +33,7 @@ class DAdaptAdaGrad(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1.0,
         momentum: float = 0.0,
         d0: float = 1e-6,
@@ -255,7 +256,7 @@ class DAdaptAdam(BaseOptimizer):
     """Adam with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
     Args:
-        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         betas (Betas): Betas.
         d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
@@ -270,7 +271,7 @@ class DAdaptAdam(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1.0,
         betas: Betas = (0.9, 0.999),
         d0: float = 1e-6,
@@ -431,7 +432,7 @@ class DAdaptSGD(BaseOptimizer):
     """SGD with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
     Args:
-        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         momentum (float): Momentum.
         d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
@@ -444,7 +445,7 @@ class DAdaptSGD(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1.0,
         momentum: float = 0.9,
         d0: float = 1e-6,
@@ -581,7 +582,7 @@ class DAdaptAdan(BaseOptimizer):
     """Adan with D-Adaptation. Leave LR set to 1 unless you encounter instability.
 
     Args:
-        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         betas: (Betas). coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
@@ -595,7 +596,7 @@ class DAdaptAdan(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1.0,
         betas: Betas = (0.98, 0.92, 0.99),
         weight_decay: float = 0.0,
@@ -757,7 +758,7 @@ class DAdaptLion(BaseOptimizer):
     """Lion with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
     Args:
-        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         betas: (Betas). Coefficients used for computing running averages of gradient and the squared Hessian trace.
         d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
@@ -769,7 +770,7 @@ class DAdaptLion(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1.0,
         betas: Betas = (0.9, 0.999),
         d0: float = 1e-6,

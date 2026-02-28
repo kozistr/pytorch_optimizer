@@ -3,8 +3,9 @@ from typing import Dict, List, Optional, Union, cast
 import torch
 from torch import nn
 from torch.optim import Optimizer
+from torch.optim.optimizer import ParamsT
 
-from pytorch_optimizer.base.type import Closure, Parameters
+from pytorch_optimizer.base.type import Closure
 from pytorch_optimizer.optimizer.utils import clip_grad_norm, has_overflow
 
 
@@ -133,9 +134,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
         return params
 
     @classmethod
-    def build_fp32_params(
-        cls, parameters: Parameters, flatten: bool = True
-    ) -> Union[torch.Tensor, List[torch.Tensor]]:
+    def build_fp32_params(cls, parameters: ParamsT, flatten: bool = True) -> Union[torch.Tensor, List[torch.Tensor]]:
         parameters = cast(List[torch.Tensor], parameters)
 
         if flatten:

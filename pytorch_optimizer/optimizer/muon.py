@@ -5,10 +5,11 @@ import torch
 from torch import nn
 from torch.distributed import all_gather, get_rank, get_world_size
 from torch.optim import Optimizer
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Loss, ParamGroup
 from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 
 
@@ -41,7 +42,7 @@ class Muon(BaseOptimizer):
     - We believe it may not work well for fine-tuning pretrained models, but we haven't tested this.
 
     Args:
-        params (Parameters): The parameters to be optimized by Muon.
+        params (ParamsT): The parameters to be optimized by Muon.
         lr (float): Learning rate.
         momentum (float): The momentum used by the internal SGD.
         weight_decay (float): Weight decay (L2 penalty).
@@ -79,7 +80,7 @@ class Muon(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 2e-2,
         momentum: float = 0.95,
         weight_decay: float = 0.0,
@@ -232,7 +233,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
     - We believe it may not work well for fine-tuning pretrained models, but we haven't tested this.
 
     Args:
-        params (Parameters): The parameters to be optimized by Muon.
+        params (ParamsT): The parameters to be optimized by Muon.
         lr (float): Learning rate.
         momentum (float): The momentum used by the internal SGD.
         weight_decay (float): Weight decay (L2 penalty).
@@ -270,7 +271,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 2e-2,
         momentum: float = 0.95,
         weight_decay: float = 0.0,
@@ -436,7 +437,7 @@ class AdaMuon(BaseOptimizer):
     - We believe it may not work well for fine-tuning pretrained models, but we haven't tested this.
 
     Args:
-        params (Parameters): The parameters to be optimized by Muon.
+        params (ParamsT): The parameters to be optimized by Muon.
         lr (float): Learning rate.
         betas (tuple): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
@@ -473,7 +474,7 @@ class AdaMuon(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 2e-2,
         betas: Betas = (0.9, 0.95),
         weight_decay: float = 0.0,
@@ -620,7 +621,7 @@ class AdaGO(BaseOptimizer):
     """AdaGrad Meets Muon: Adaptive Stepsizes for Orthogonal Updates.
 
     Args:
-        params (Parameters): The parameters to be optimized by Muon.
+        params (ParamsT): The parameters to be optimized by Muon.
         lr (float): Learning rate.
         momentum (float): The momentum used by the internal SGD.
         weight_decay (float): Weight decay (L2 penalty).
@@ -660,7 +661,7 @@ class AdaGO(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 5e-2,
         momentum: float = 0.95,
         weight_decay: float = 0.0,
@@ -842,7 +843,7 @@ def prepare_muon_parameters(
             else:
                 non_muon_params.append(param)
 
-    param_groups: Parameters = [
+    param_groups: ParamsT = [
         {'params': muon_parameters, 'lr': lr, 'weight_decay': weight_decay, 'use_muon': True},
         {'params': non_muon_params, 'lr': adamw_lr, 'weight_decay': adamw_wd, 'use_muon': False},
     ]

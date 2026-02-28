@@ -1,6 +1,5 @@
-from typing import Any, Callable, Dict, Iterable, Literal, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, Literal, Optional, Tuple, Type, Union
 
-import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 
@@ -11,7 +10,6 @@ SCHEDULER = Type[LRScheduler]
 Defaults = Dict[str, Any]
 ParamGroup = Dict[str, Any]
 State = Dict
-Parameters = Optional[Union[Iterable[torch.Tensor], Iterable[ParamGroup]]]
 
 Closure = Optional[Callable[[], float]]
 Loss = Optional[float]

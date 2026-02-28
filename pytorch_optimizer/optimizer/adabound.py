@@ -2,17 +2,18 @@ import math
 from typing import List
 
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
 
 
 class AdaBound(BaseOptimizer):
     r"""Adaptive Gradient Methods with Dynamic Bound of Learning Rate.
 
     Args:
-        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         final_lr (float): Final learning rate.
         betas: Coefficients used for computing running averages of gradient and the squared Hessian trace.
@@ -27,7 +28,7 @@ class AdaBound(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-3,
         final_lr: float = 1e-1,
         betas: Betas = (0.9, 0.999),

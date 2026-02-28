@@ -2,10 +2,11 @@ import math
 from typing import Optional
 
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
 
 
 class Prodigy(BaseOptimizer):
@@ -14,7 +15,7 @@ class Prodigy(BaseOptimizer):
     Leave LR set to 1 unless you encounter instability.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): learning rate.
         betas (Betas): betas.
         beta3 (float): coefficients for computing the Prodigy step-size using running averages. If set to None,
@@ -34,7 +35,7 @@ class Prodigy(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1.0,
         betas: Betas = (0.9, 0.999),
         beta3: Optional[float] = None,

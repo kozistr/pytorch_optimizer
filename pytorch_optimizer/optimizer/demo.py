@@ -4,10 +4,11 @@ from typing import List, Optional
 
 import torch
 from torch.distributed import ProcessGroup, all_gather, get_world_size
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Closure, Loss, Parameters
+from pytorch_optimizer.base.type import Closure, Loss
 
 HAS_EINOPS: bool = find_spec('einops') is not None
 
@@ -290,7 +291,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
     """Decoupled Momentum Optimization.
 
     Args:
-        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         compression_decay (float): Compression decay.
         compression_top_k (int): Compression top-k.
@@ -301,7 +302,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-3,
         compression_decay: float = 0.999,
         compression_top_k: int = 32,

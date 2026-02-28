@@ -1,17 +1,18 @@
 from typing import Tuple
 
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
 
 
 class QHAdam(BaseOptimizer):
     """Quasi-hyperbolic momentum and Adam for deep learning.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): learning rate.
         betas (Betas): coefficients used for computing running averages of gradient and the squared Hessian trace.
         nus (Tuple[float, float]): immediate discount factors used to estimate the gradient and its square.
@@ -24,7 +25,7 @@ class QHAdam(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-3,
         betas: Betas = (0.9, 0.999),
         nus: Tuple[float, float] = (1.0, 1.0),

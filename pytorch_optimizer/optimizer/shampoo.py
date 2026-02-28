@@ -1,8 +1,9 @@
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
 from pytorch_optimizer.optimizer.shampoo_utils import (
     LayerWiseGrafting,
     PreConditioner,
@@ -16,7 +17,7 @@ class Shampoo(BaseOptimizer):
     """Preconditioned Stochastic Tensor Optimization.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): learning rate.
         momentum (float): momentum factor.
         weight_decay (float): weight decay (L2 penalty).
@@ -30,7 +31,7 @@ class Shampoo(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-3,
         momentum: float = 0.0,
         weight_decay: float = 0.0,
@@ -170,7 +171,7 @@ class ScalableShampoo(BaseOptimizer):
     https://github.com/google-research/google-research/blob/master/scalable_shampoo/pytorch/shampoo.py
 
     Args:
-        params (Parameters): iterable or dicts defining parameter groups.
+        params (ParamsT): iterable or dicts defining parameter groups.
         lr (float): learning rate.
         betas (tuple): beta1 and beta2 for momentum.
         moving_average_for_momentum (bool): whether to perform moving average for momentum (beta1).
@@ -196,7 +197,7 @@ class ScalableShampoo(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-3,
         betas: Betas = (0.9, 0.999),
         moving_average_for_momentum: bool = False,

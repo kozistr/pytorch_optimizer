@@ -3,10 +3,11 @@ from typing import Optional
 
 import torch
 from torch.nn.functional import softplus
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
 from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
@@ -30,7 +31,7 @@ class Ranger21(BaseOptimizer):
         * Corrects the denominator (AdamD).
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         num_iterations (int): number of the total training steps. Ranger21 optimizer schedules the learning rate
             with its own recipes.
         lr (float): learning rate.
@@ -60,7 +61,7 @@ class Ranger21(BaseOptimizer):
 
     def __init__(  # pylint: disable=R0913
         self,
-        params: Parameters,
+        params: ParamsT,
         num_iterations: int,
         lr: float = 1e-3,
         beta0: float = 0.9,

@@ -1,10 +1,11 @@
 from typing import List, Optional
 
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import HUTCHINSON_G, Betas, Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import HUTCHINSON_G, Betas, Closure, Defaults, Loss, ParamGroup
 
 
 class AdaHessian(BaseOptimizer):
@@ -13,7 +14,7 @@ class AdaHessian(BaseOptimizer):
     Requires `loss.backward(create_graph=True)` in order to calculate Hessians.
 
     Args:
-        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
@@ -29,7 +30,7 @@ class AdaHessian(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-1,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,

@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch.optim import Optimizer
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 from pytorch_optimizer.base.type import (
@@ -13,7 +14,6 @@ from pytorch_optimizer.base.type import (
     Closure,
     Defaults,
     Loss,
-    Parameters,
     ParamGroup,
     State,
 )
@@ -23,7 +23,7 @@ from pytorch_optimizer.optimizer.foreach_utils import foreach_rsqrt_
 class BaseOptimizer(ABC, Optimizer):
     """Base optimizer class. Provides common functionalities for the optimizers."""
 
-    def __init__(self, params: Parameters, defaults: Defaults) -> None:
+    def __init__(self, params: ParamsT, defaults: Defaults) -> None:
         super().__init__(params, defaults)
 
     @staticmethod
@@ -40,7 +40,7 @@ class BaseOptimizer(ABC, Optimizer):
 
     @staticmethod
     @torch.no_grad()
-    def set_hessian(param_groups: Parameters, state: State, hessian: List[torch.Tensor]) -> None:
+    def set_hessian(param_groups: ParamsT, state: State, hessian: List[torch.Tensor]) -> None:
         """Set hessian to state from external source. Generally useful when using functorch as a base.
 
         Args:
@@ -70,11 +70,11 @@ class BaseOptimizer(ABC, Optimizer):
                 i += 1
 
     @staticmethod
-    def zero_hessian(param_groups: Parameters, state: State, pre_zero: bool = True) -> None:
+    def zero_hessian(param_groups: ParamsT, state: State, pre_zero: bool = True) -> None:
         """Zero-out Hessian.
 
         Args:
-            param_groups (Parameters): Parameter groups from the optimizer.
+            param_groups (ParamsT): Parameter groups from the optimizer.
             state (State): Optimizer state dictionary.
             pre_zero (bool): If True, zero-out the Hessian before computing/updating it.
         """
@@ -89,7 +89,7 @@ class BaseOptimizer(ABC, Optimizer):
     @staticmethod
     @torch.no_grad()
     def compute_hutchinson_hessian(
-        param_groups: Parameters,
+        param_groups: ParamsT,
         state: State,
         num_samples: int = 1,
         alpha: float = 1.0,
@@ -98,7 +98,7 @@ class BaseOptimizer(ABC, Optimizer):
         r"""Hutchinson's approximate Hessian, added to the state under key `hessian`.
 
         Args:
-            param_groups (Parameters): Parameter groups from the optimizer.
+            param_groups (ParamsT): Parameter groups from the optimizer.
             state (State): Optimizer state dictionary.
             num_samples (int): Number of times to sample noise vector `z` for the trace approximation.
             alpha (float): Scaling factor for the Hessian estimate.

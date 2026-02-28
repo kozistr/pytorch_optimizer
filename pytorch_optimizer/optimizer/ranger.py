@@ -1,8 +1,9 @@
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 
 
@@ -10,7 +11,7 @@ class Ranger(BaseOptimizer):
     """A synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): learning rate.
         betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
         weight_decay (float): weight decay (L2 penalty).
@@ -26,7 +27,7 @@ class Ranger(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-3,
         betas: Betas = (0.95, 0.999),
         alpha: float = 0.5,

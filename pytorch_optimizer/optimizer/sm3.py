@@ -1,8 +1,9 @@
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup
 
 
 @torch.no_grad()
@@ -30,7 +31,7 @@ class SM3(BaseOptimizer):
     r"""Memory-Efficient Adaptive Optimization.
 
     Args:
-        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         momentum (float): Coefficient used to scale prior updates before adding. This drastically increases
             memory usage if momentum > 0.0. This is ignored if the parameter's gradient is sparse.
@@ -41,7 +42,7 @@ class SM3(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-1,
         momentum: float = 0.0,
         beta: float = 0.0,

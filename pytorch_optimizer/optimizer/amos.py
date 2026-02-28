@@ -2,10 +2,11 @@ import math
 from typing import List, Optional
 
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup
 from pytorch_optimizer.optimizer.foreach_utils import foreach_rsqrt_
 
 
@@ -13,7 +14,7 @@ class Amos(BaseOptimizer):
     """An Adam-style Optimizer with Adaptive Weight Decay towards Model-Oriented Scale.
 
     Args:
-        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         beta (float): A float slightly less than 1. Recommended to set `1 - beta` approximately the same magnitude
             as the learning rate, similar to beta2 in Adam.
@@ -29,7 +30,7 @@ class Amos(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-3,
         beta: float = 0.999,
         momentum: float = 0.0,

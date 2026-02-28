@@ -1,17 +1,18 @@
 from typing import List, Optional
 
 import torch
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Closure, Defaults, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup
 
 
 class LARS(BaseOptimizer):
     """Layer-wise Adaptive Rate Scaling (no rate scaling or weight decay for parameters <= 1D).
 
     Args:
-        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         weight_decay (float): Weight decay (L2 penalty).
         momentum (float): Momentum.
@@ -25,7 +26,7 @@ class LARS(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 1e-3,
         weight_decay: float = 0.0,
         momentum: float = 0.9,

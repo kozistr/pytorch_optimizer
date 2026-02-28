@@ -1,6 +1,5 @@
 from torch import nn
-
-from pytorch_optimizer.base.type import Parameters
+from torch.optim.optimizer import ParamsT
 
 
 def deberta_v3_large_lr_scheduler(
@@ -11,7 +10,7 @@ def deberta_v3_large_lr_scheduler(
     base_lr: float = 2e-5,
     head_lr: float = 1e-4,
     wd: float = 1e-2,
-) -> Parameters:
+) -> ParamsT:
     r"""DeBERTa-v3 large layer-wise learning rate scheduler.
 
     Reference: https://github.com/gilfernandes/commonlit

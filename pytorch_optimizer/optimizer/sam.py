@@ -7,15 +7,16 @@ from torch.distributed import ReduceOp, all_reduce, get_world_size, is_initializ
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import Optimizer
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import OPTIMIZER, Betas, Closure, Defaults, Parameters, ParamGroup
+from pytorch_optimizer.base.type import OPTIMIZER, Betas, Closure, Defaults, ParamGroup
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_running_stats
 
 
-def get_global_gradient_norm(param_groups: Parameters, device: torch.device) -> torch.Tensor:
+def get_global_gradient_norm(param_groups: ParamsT, device: torch.device) -> torch.Tensor:
     """Get global gradient norm."""
     norms: List[torch.Tensor] = []
     for group in param_groups or []:
@@ -36,7 +37,7 @@ class SAM(BaseOptimizer):
     """Sharpness-Aware Minimization for Efficiently Improving Generalization.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         base_optimizer (Optimizer): base optimizer.
         rho (float): size of the neighborhood for computing the max loss.
         adaptive (bool): element-wise Adaptive SAM.
@@ -81,7 +82,7 @@ class SAM(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         base_optimizer: OPTIMIZER,
         rho: float = 0.05,
         adaptive: bool = False,
@@ -170,7 +171,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
     """Surrogate Gap Guided Sharpness-Aware Minimization.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         base_optimizer (Optimizer): base optimizer.
         model (nn.Module): model.
         alpha (float): rho alpha.
@@ -200,7 +201,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         base_optimizer: Optimizer,
         model: nn.Module,
         rho_scheduler,
@@ -390,7 +391,7 @@ class WSAM(BaseOptimizer):
     Args:
         model (Union[torch.nn.Module, torch.nn.DataParallel]): the model instance. DDP model is recommended to make
             `model.no_sync` to work.
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         base_optimizer (Optimizer): base optimizer.
         rho (float): size of the neighborhood for computing the max loss.
         gamma (float): weighted factor gamma / (1 - gamma) of the sharpness term. 0.8 ~ 0.95 is the optimal.
@@ -404,7 +405,7 @@ class WSAM(BaseOptimizer):
     def __init__(
         self,
         model: Union[nn.Module, DistributedDataParallel],
-        params: Parameters,
+        params: ParamsT,
         base_optimizer: OPTIMIZER,
         rho: float = 0.05,
         gamma: float = 0.9,
@@ -534,7 +535,7 @@ class BSAM(BaseOptimizer):
     """SAM as an Optimal Relaxation of Bayes.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         num_data (int): number of training data.
         lr (float): learning rate.
         betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
@@ -565,7 +566,7 @@ class BSAM(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         num_data: int,
         lr: float = 5e-1,
         betas: Betas = (0.9, 0.999),
@@ -690,7 +691,7 @@ class LookSAM(BaseOptimizer):
     Leave LR set to 1 unless you encounter instability.
 
     Args:
-        params (Parameters): Iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         base_optimizer (Optimizer): Base optimizer.
         rho (float): Size of the neighborhood for computing the max loss.
         k (int): Lookahead step.
@@ -739,7 +740,7 @@ class LookSAM(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         base_optimizer: OPTIMIZER,
         rho: float = 0.1,
         k: int = 10,
@@ -863,7 +864,7 @@ class FriendlySAM(BaseOptimizer):
     """Friendly Sharpness-Aware Minimization.
 
     Args:
-        params (Parameters): iterable of parameters to optimize or dicts defining parameter groups.
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         base_optimizer (Optimizer): base optimizer.
         rho (float): size of the neighborhood for computing the max loss.
         sigma (float): sigma of FriendlySAM.
@@ -911,7 +912,7 @@ class FriendlySAM(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         base_optimizer: OPTIMIZER,
         rho: float = 0.05,
         sigma: float = 1.0,

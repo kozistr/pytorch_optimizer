@@ -2,10 +2,11 @@ from typing import Optional, Tuple, Union
 
 import torch
 from torch.nn.functional import normalize
+from torch.optim.optimizer import ParamsT
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Closure, Loss, Parameters, ParamGroup
+from pytorch_optimizer.base.type import Closure, Loss, ParamGroup
 
 
 @torch.no_grad()
@@ -256,7 +257,7 @@ class SpectralSphere(BaseOptimizer):
         - Modular Duality in Deep Learning. arXiv:2410.21265 (2024).
 
     Args:
-        params (Parameters): The parameters to be optimized by Muon.
+        params (ParamsT): The parameters to be optimized by Muon.
         lr (float): Learning rate.
         momentum (float): The momentum used by the internal SGD.
         weight_decay (float): Weight decay (L2 penalty).
@@ -283,7 +284,7 @@ class SpectralSphere(BaseOptimizer):
 
     def __init__(
         self,
-        params: Parameters,
+        params: ParamsT,
         lr: float = 3e-4,
         momentum: float = 0.9,
         weight_decay: float = 1e-2,
