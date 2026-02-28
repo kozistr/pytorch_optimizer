@@ -16,7 +16,6 @@ Loss = Optional[float]
 Betas = Union[
     Tuple[float, float],
     Tuple[float, float, float],
-    Tuple[None, float],
 ]
 
 HUTCHINSON_G = Literal['gaussian', 'rademacher']

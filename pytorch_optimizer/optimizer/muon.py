@@ -106,7 +106,7 @@ class Muon(BaseOptimizer):
 
         self.maximize = maximize
 
-        for group in params or []:
+        for group in params:
             if 'use_muon' not in group:
                 raise ValueError('`use_muon` must be set.')
 
@@ -300,7 +300,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
         self.world_size: int = get_world_size()
         self.rank: int = get_rank()
 
-        for group in params or []:
+        for group in params:
             if 'use_muon' not in group:
                 raise ValueError('`use_muon` must be set.')
 
@@ -499,7 +499,7 @@ class AdaMuon(BaseOptimizer):
 
         self.maximize = maximize
 
-        for group in params or []:
+        for group in params:
             if 'use_muon' not in group:
                 raise ValueError('`use_muon` must be set.')
 
@@ -693,7 +693,7 @@ class AdaGO(BaseOptimizer):
 
         self.maximize = maximize
 
-        for group in params or []:
+        for group in params:
             if 'use_muon' not in group:
                 raise ValueError('`use_muon` must be set.')
 
