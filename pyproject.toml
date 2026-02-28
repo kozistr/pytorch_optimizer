@@ -1,6 +1,6 @@
 [project]
 name = "pytorch_optimizer"
-version = "3.9.0"
+version = "3.10.0"
 description = "optimizer & lr scheduler & objective function collections in PyTorch"
 license = { text = "Apache-2.0" }
 readme = "README.md"
