@@ -1,4 +1,9 @@
-from typing import Any, Callable, Dict, Iterable, Literal, Optional, Tuple, Type, TypeAlias, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Literal, Optional, Tuple, Type, Union
+
+if TYPE_CHECKING:
+    from typing import TypeAlias
+else:  # pragma: no cover
+    TypeAlias = object
 
 import torch
 from torch.optim import Optimizer

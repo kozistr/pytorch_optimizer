@@ -161,6 +161,12 @@ omit = [
     "./pytorch_optimizer/optimizer/rotograd.py",
 ]
 
+[tool.hatch.build.targets.wheel.force-include]
+"pytorch_optimizer/py.typed" = "pytorch_optimizer/py.typed"
+
+[tool.hatch.build.targets.sdist.force-include]
+"pytorch_optimizer/py.typed" = "pytorch_optimizer/py.typed"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
