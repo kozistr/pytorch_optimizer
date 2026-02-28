@@ -296,3 +296,20 @@ class TestGaLoreProjector:
 def test_muon_use_muon_param(optimizer_name):
     with pytest.raises(ValueError):
         load_optimizer(optimizer_name)([Example().parameters()])
+
+
+@pytest.mark.parametrize('optimizer_name', ['Muon', 'AdaMuon', 'AdaGO'])
+@pytest.mark.parametrize('ns_coeffs', ['original', 'quintic', 'polar_express', 'polar_express_safer'])
+def test_muon_ns_coeffs(optimizer_name, ns_coeffs):
+    opt = load_optimizer(optimizer_name)(
+        [{'params': [nn.Parameter(torch.randn(2, 2))], 'use_muon': True}], ns_coeffs=ns_coeffs
+    )
+    assert opt.param_groups[0]['ns_coeffs'] is not None
+
+
+@pytest.mark.parametrize('optimizer_name', ['Muon', 'AdaMuon', 'AdaGO'])
+def test_muon_invalid_ns_coeffs(optimizer_name):
+    with pytest.raises(ValueError):
+        load_optimizer(optimizer_name)(
+            [{'params': [nn.Parameter(torch.randn(2, 2))], 'use_muon': True}], ns_coeffs='invalid'
+        )

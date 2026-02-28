@@ -1,8 +1,91 @@
 import itertools
 from enum import IntEnum
-from typing import List, Tuple, Union
+from typing import Any, List, Tuple, Union, cast
 
 import torch
+
+DTensor = torch.Tensor
+has_dtensor: bool = False
+try:  # pragma: no cover
+    from torch.distributed.tensor import DTensor
+
+    has_dtensor = True
+except ImportError:  # pragma: no cover
+    try:
+        from torch.distributed._tensor import DTensor  # type: ignore[attr-defined]
+
+        has_dtensor = True
+    except ImportError:
+        pass
+
+NewtonSchulzWeight = Tuple[float, float, float]
+NewtonSchulzWeights = Union[str, NewtonSchulzWeight, List[NewtonSchulzWeight], Tuple[NewtonSchulzWeight, ...]]
+
+NS_COEFFICIENTS = {
+    'original': [
+        # Keller Jordan's Muon.
+        (3.4445, -4.7750, 2.0315),
+    ],
+    'quintic': [
+        # Optimized quintic schedules from modded-nanogpt.
+        (4.0848, -6.8946, 2.9270),
+        (3.9505, -6.3029, 2.6377),
+        (3.7418, -5.5913, 2.3037),
+        (2.8769, -3.1427, 1.2046),
+        (2.8366, -3.0525, 1.2012),
+    ],
+    'polar_express': [
+        # Polar Express schedule with safety 1e-2.
+        (8.237312490495555, -23.157747414558198, 16.680568411445915),
+        (4.082441999064835, -2.893047735332586, 0.5252849256975648),
+        (3.9263479922546582, -2.8547468034765298, 0.5318022422894988),
+        (3.2982187133085143, -2.424541981026706, 0.48632008358844075),
+        (2.2970369434552573, -1.63662558125903, 0.4002628455953627),
+        (1.8763805351440397, -1.2347896577722228, 0.35891887501668385),
+        (1.8564423485617974, -1.2132449880935525, 0.3568003487825883),
+        (1.8749994008682747, -1.2499988017229169, 0.3749994008546422),
+    ],
+    'polar_express_safer': [
+        # Polar Express safer schedule with safety 2e-2.
+        (8.156554524902461, -22.48329292557795, 15.878769915207462),
+        (4.0429299351667245, -2.808917465908704, 0.5000178451051299),
+        (3.8916678022926563, -2.7724841532176825, 0.5060648178503389),
+        (3.285753657755658, -2.3681294933425394, 0.46449024233003117),
+        (2.3005307116270983, -1.6111665557258408, 0.3833374427545273),
+        (1.8631210546382593, -1.2042160621002727, 0.3421879560523383),
+        (1.8382572152247512, -1.1779263289537742, 0.3396513038637379),
+        (1.8749999923301852, -1.2499999836060613, 0.374999991275876),
+    ],
+}
+
+
+def get_newton_schulz_weights(weights: NewtonSchulzWeights) -> List[NewtonSchulzWeight]:
+    """Get Newton-Schulz quintic-iteration coefficients from a preset name or explicit coefficients."""
+    if isinstance(weights, str):
+        key = weights.lower()
+        if key in NS_COEFFICIENTS:
+            return list(NS_COEFFICIENTS[key])
+
+        raise ValueError(f'Invalid `weights` string choice. expected one of {tuple(NS_COEFFICIENTS.keys())}.')
+
+    # Single coefficient tuple, e.g. (3.4445, -4.7750, 2.0315).
+    if isinstance(weights, tuple) and len(weights) == 3:
+        w0, w1, w2 = weights
+        if isinstance(w0, (int, float)) and isinstance(w1, (int, float)) and isinstance(w2, (int, float)):
+            return [(float(w0), float(w1), float(w2))]
+
+    if len(weights) == 0:
+        raise ValueError('`weights` schedule must not be empty.')
+
+    normalized: List[NewtonSchulzWeight] = []
+    for coeff in weights:
+        if not isinstance(coeff, tuple) or len(coeff) != 3:
+            raise ValueError('`weights` must be a preset name, a coefficient tuple, or a list of coefficient tuples.')
+
+        c0, c1, c2 = coeff
+        normalized.append((float(c0), float(c1), float(c2)))
+
+    return normalized
 
 
 class LayerWiseGrafting(IntEnum):
@@ -551,7 +634,8 @@ def zero_power_via_newton_schulz_5(
     num_steps: int = 5,
     eps: float = 1e-7,
     safety_factor: float = 1.0,
-    weights: Tuple[int, int, int] = (3.4445, -4.7750, 2.0315),
+    weights: NewtonSchulzWeights = (3.4445, -4.7750, 2.0315),
+    dtype: torch.dtype = torch.bfloat16,
 ) -> torch.Tensor:
     r"""Compute the zeroth power / orthogonalization of G.
 
@@ -569,12 +653,17 @@ def zero_power_via_newton_schulz_5(
             eigenvalue of G.
         safety_factor (float): Multiplicative safety factor for norm. 1.01 is common safety value in 'polar express'
             variants.
-        weights (Tuple[int, int, int]): Weights.
+        weights (NewtonSchulzWeights): Coefficients as a preset name, one tuple, or a tuple schedule.
+        dtype (torch.dtype): dtype of g.
     """
     if g.ndim < 2:
         raise ValueError(f'input must be over 2-dimensional. got {g.ndim}D.')
 
-    x = g.bfloat16()
+    is_dtensor = has_dtensor and isinstance(g, DTensor)
+    weight_schedule = get_newton_schulz_weights(weights)
+
+    x = g.to_local() if is_dtensor else g
+    x = x.to(dtype=dtype, copy=True)
 
     transpose: bool = x.size(-2) > x.size(-1)
     if transpose:
@@ -589,10 +678,18 @@ def zero_power_via_newton_schulz_5(
     b = torch.empty_like(a)
     c = torch.empty_like(x)
 
-    for _ in range(num_steps):
+    for i in range(num_steps):
+        w0, w1, w2 = weight_schedule[min(i, len(weight_schedule) - 1)]
         mm_fn(a, x, x.mT, beta=0.0, alpha=1.0, out=a)
-        mm_fn(a, a, a, beta=weights[1], alpha=weights[2], out=b)
-        mm_fn(x, b, x, beta=weights[0], alpha=1.0, out=c)
+        mm_fn(a, a, a, beta=w1, alpha=w2, out=b)
+        mm_fn(x, b, x, beta=w0, alpha=1.0, out=c)
         x, c = c, x
 
-    return x.mT if transpose else x
+    output = x.mT if transpose else x
+    if is_dtensor:
+        dtensor_g = cast(Any, g)
+        output = DTensor.from_local(
+            output, device_mesh=dtensor_g.device_mesh, placements=dtensor_g.placements, run_check=False
+        )
+
+    return output

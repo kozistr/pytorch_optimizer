@@ -269,6 +269,27 @@ class TestShampooUtils:
         with pytest.raises(ValueError):
             zero_power_via_newton_schulz_5(x[0])
 
+        output_by_name = zero_power_via_newton_schulz_5(x, weights='original')
+        output_by_tuple = zero_power_via_newton_schulz_5(x, weights=(3.4445, -4.7750, 2.0315))
+
+        torch.testing.assert_close(output_by_name, output_by_tuple)
+
+        quintic_output = zero_power_via_newton_schulz_5(x, weights='quintic')
+        polar_express_output = zero_power_via_newton_schulz_5(x, weights='polar_express')
+        polar_express_safer_output = zero_power_via_newton_schulz_5(x, weights='polar_express_safer')
+        custom_schedule_output = zero_power_via_newton_schulz_5(
+            x,
+            weights=[(4.0848, -6.8946, 2.9270), (3.9505, -6.3029, 2.6377)],
+        )
+
+        assert quintic_output.shape == x.shape
+        assert polar_express_output.shape == x.shape
+        assert polar_express_safer_output.shape == x.shape
+        assert custom_schedule_output.shape == x.shape
+
+        with pytest.raises(ValueError):
+            zero_power_via_newton_schulz_5(x, weights='invalid')
+
 
 class TestSM3Utils:
     def test_max_reduce_except_dim(self):
