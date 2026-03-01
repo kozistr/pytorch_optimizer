@@ -16,6 +16,7 @@ nav:
   - Utilization: util.md
   - Base: base.md
   - Visualization: visualization.md
+  - Benchmark: benchmark.md
   - Change Logs:
     - changelogs/*.md
   - Q&A: qa.md
