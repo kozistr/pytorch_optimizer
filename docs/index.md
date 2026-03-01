@@ -281,12 +281,12 @@ get_supported_lr_schedulers(['cosine*', '*warm*'])
 # ['cosine', 'cosine_annealing', 'cosine_annealing_with_warm_restart', 'cosine_annealing_with_warmup', 'warmup_stable_decay']
 ```
 
-| LR Scheduler | Description | Official Code | Paper(Citation) |
-| ----------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Explore-Exploit | *Wide-minima Density Hypothesis and the Explore-Exploit Learning Rate Schedule* |  | [paper](https://arxiv.org/abs/2003.03977)([cite](https://ui.adsabs.harvard.edu/abs/2020arXiv200303977I/exportcitation)) |
-| Chebyshev | *Acceleration via Fractal Learning Rate Schedules* |  | [paper](https://arxiv.org/abs/2103.01338)([cite](https://ui.adsabs.harvard.edu/abs/2021arXiv210301338A/exportcitation)) |
-| REX | *Revisiting Budgeted Training with an Improved Schedule* | [github](https://github.com/Nerogar/OneTrainer/blob/2c6f34ea0838e5a86774a1cf75093d7e97c70f03/modules/util/lr_scheduler_util.py#L66) | [paper](https://arxiv.org/abs/2107.04197)([cite](https://ui.adsabs.harvard.edu/abs/2021arXiv210704197C/exportcitation)) |
-| WSD | *Warmup-Stable-Decay learning rate scheduler* | [github](https://github.com/OpenBMB/MiniCPM) | [paper](https://arxiv.org/abs/2404.06395)([cite](https://github.com/OpenBMB/MiniCPM?tab=readme-ov-file#%E5%B7%A5%E4%BD%9C%E5%BC%95%E7%94%A8)) |
+| LR Scheduler    | Description                                                                     | Official Code                                                                                                                       | Paper(Citation)                                                                                                                               |
+|-----------------|---------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| Explore-Exploit | *Wide-minima Density Hypothesis and the Explore-Exploit Learning Rate Schedule* |                                                                                                                                     | [paper](https://arxiv.org/abs/2003.03977)([cite](https://ui.adsabs.harvard.edu/abs/2020arXiv200303977I/exportcitation))                       |
+| Chebyshev       | *Acceleration via Fractal Learning Rate Schedules*                              |                                                                                                                                     | [paper](https://arxiv.org/abs/2103.01338)([cite](https://ui.adsabs.harvard.edu/abs/2021arXiv210301338A/exportcitation))                       |
+| REX             | *Revisiting Budgeted Training with an Improved Schedule*                        | [github](https://github.com/Nerogar/OneTrainer/blob/2c6f34ea0838e5a86774a1cf75093d7e97c70f03/modules/util/lr_scheduler_util.py#L66) | [paper](https://arxiv.org/abs/2107.04197)([cite](https://ui.adsabs.harvard.edu/abs/2021arXiv210704197C/exportcitation))                       |
+| WSD             | *Warmup-Stable-Decay learning rate scheduler*                                   | [github](https://github.com/OpenBMB/MiniCPM)                                                                                        | [paper](https://arxiv.org/abs/2404.06395)([cite](https://github.com/OpenBMB/MiniCPM?tab=readme-ov-file#%E5%B7%A5%E4%BD%9C%E5%BC%95%E7%94%A8)) |
 
 ## Supported Loss Function
 
@@ -310,16 +310,16 @@ get_supported_loss_functions(['*focal*', 'bce*'])
 # ['bcefocalloss', 'bceloss', 'focalcosineloss', 'focalloss', 'focaltverskyloss']
 ```
 
-| Loss Functions | Description | Official Code | Paper(Citation) |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------ |
-| Label Smoothing | *Rethinking the Inception Architecture for Computer Vision* |  | [paper](https://arxiv.org/abs/1512.00567)([cite](https://ui.adsabs.harvard.edu/abs/2015arXiv151200567S/exportcitation)) |
-| Focal | *Focal Loss for Dense Object Detection* |  | [paper](https://arxiv.org/abs/1708.02002)([cite](https://ui.adsabs.harvard.edu/abs/2017arXiv170802002L/exportcitation)) |
-| Focal Cosine | *Data-Efficient Deep Learning Method for Image Classification Using Data Augmentation, Focal Cosine Loss, and Ensemble* |  | [paper](https://arxiv.org/abs/2007.07805)([cite](https://ui.adsabs.harvard.edu/abs/2020arXiv200707805K/exportcitation)) |
-| LDAM | *Learning Imbalanced Datasets with Label-Distribution-Aware Margin Loss* | [github](https://github.com/kaidic/LDAM-DRW) | [paper](https://arxiv.org/abs/1906.07413)([cite](https://github.com/kaidic/LDAM-DRW#reference)) |
-| Jaccard (IOU) | *IoU Loss for 2D/3D Object Detection* |  | [paper](https://arxiv.org/abs/1908.03851)([cite](https://ui.adsabs.harvard.edu/abs/2019arXiv190803851Z/exportcitation)) |
-| Bi-Tempered | *The Principle of Unchanged Optimality in Reinforcement Learning Generalization* |  | [paper](https://arxiv.org/abs/1906.03361)([cite](https://ui.adsabs.harvard.edu/abs/2019arXiv190600336I/exportcitation)) |
-| Tversky | *Tversky loss function for image segmentation using 3D fully convolutional deep networks* |  | [paper](https://arxiv.org/abs/1706.05721)([cite](https://ui.adsabs.harvard.edu/abs/2017arXiv170605721S/exportcitation)) |
-| Lovasz Hinge | *A tractable surrogate for the optimization of the intersection-over-union measure in neural networks* | [github](https://github.com/bermanmaxim/LovaszSoftmax) | [paper](https://arxiv.org/abs/1705.08790)([cite](https://github.com/bermanmaxim/LovaszSoftmax#citation)) |
+| Loss Functions  | Description                                                                                                             | Official Code                                          | Paper(Citation)                                                                                                         |
+|-----------------|-------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| Label Smoothing | *Rethinking the Inception Architecture for Computer Vision*                                                             |                                                        | [paper](https://arxiv.org/abs/1512.00567)([cite](https://ui.adsabs.harvard.edu/abs/2015arXiv151200567S/exportcitation)) |
+| Focal           | *Focal Loss for Dense Object Detection*                                                                                 |                                                        | [paper](https://arxiv.org/abs/1708.02002)([cite](https://ui.adsabs.harvard.edu/abs/2017arXiv170802002L/exportcitation)) |
+| Focal Cosine    | *Data-Efficient Deep Learning Method for Image Classification Using Data Augmentation, Focal Cosine Loss, and Ensemble* |                                                        | [paper](https://arxiv.org/abs/2007.07805)([cite](https://ui.adsabs.harvard.edu/abs/2020arXiv200707805K/exportcitation)) |
+| LDAM            | *Learning Imbalanced Datasets with Label-Distribution-Aware Margin Loss*                                                | [github](https://github.com/kaidic/LDAM-DRW)           | [paper](https://arxiv.org/abs/1906.07413)([cite](https://github.com/kaidic/LDAM-DRW#reference))                         |
+| Jaccard (IOU)   | *IoU Loss for 2D/3D Object Detection*                                                                                   |                                                        | [paper](https://arxiv.org/abs/1908.03851)([cite](https://ui.adsabs.harvard.edu/abs/2019arXiv190803851Z/exportcitation)) |
+| Bi-Tempered     | *The Principle of Unchanged Optimality in Reinforcement Learning Generalization*                                        |                                                        | [paper](https://arxiv.org/abs/1906.03361)([cite](https://ui.adsabs.harvard.edu/abs/2019arXiv190600336I/exportcitation)) |
+| Tversky         | *Tversky loss function for image segmentation using 3D fully convolutional deep networks*                               |                                                        | [paper](https://arxiv.org/abs/1706.05721)([cite](https://ui.adsabs.harvard.edu/abs/2017arXiv170605721S/exportcitation)) |
+| Lovasz Hinge    | *A tractable surrogate for the optimization of the intersection-over-union measure in neural networks*                  | [github](https://github.com/bermanmaxim/LovaszSoftmax) | [paper](https://arxiv.org/abs/1705.08790)([cite](https://github.com/bermanmaxim/LovaszSoftmax#citation))                |
 
 
 ## Documentation
@@ -331,7 +331,6 @@ get_supported_loss_functions(['*focal*', 'bce*'])
 - Loss API reference: <https://pytorch-optimizers.readthedocs.io/en/latest/loss/>
 - FAQ: <https://pytorch-optimizers.readthedocs.io/en/latest/qa/>
 - Visualization examples: <https://pytorch-optimizers.readthedocs.io/en/latest/visualization/>
-- Repository docs source: [docs/optimizer.md](docs/optimizer.md), [docs/lr_scheduler.md](docs/lr_scheduler.md), [docs/loss.md](docs/loss.md)
 
 ## License Notes
 
@@ -341,15 +340,13 @@ Please verify the license of each optimizer before production or commercial use.
 
 ## Contributing and Community
 
-- Contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- Security policy: [SECURITY.md](SECURITY.md)
-- Changelog: [CHANGELOG.md](CHANGELOG.md)
+- Contributing guide: [CONTRIBUTING](CONTRIBUTING.md)
+- Changelog: [CHANGELOG](CHANGELOG.md)
 
 ## Citation
 
 Please cite original optimizer authors when you use specific algorithms.
-If you use this repository, you can use the citation metadata in [CITATION.cff](CITATION.cff) or GitHub's "Cite this repository".
+If you use this repository, you can use the citation metadata in [CITATION](CITATION.cff) or GitHub's "Cite this repository".
 
 ```bibtex
 @software{Kim_pytorch_optimizer_optimizer_2021,
