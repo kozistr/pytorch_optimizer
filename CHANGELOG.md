@@ -1,3 +1,43 @@
+# v3.10.0
+
+## Change Log
+
+### Feature
+
+* Add support for `foreach`. (#287, #476, #477)
+  * More than 10 optimizers (e.g. AdaFactor, StableAdamW, Lion, AdaBelief, Amos, ...) now support `foreach`.
+  * In most cases, `foreach` improves training speed by 1.1x to 1.5x, with a moderate increase in memory usage.
+  * Like official `PyTorch` optimizers, the default value of `foreach` is `None`. When `foreach=None`, CUDA paths prefer the `foreach` implementation over the for-loop implementation.
+  * If you need the previous for-loop behavior, set `foreach=False` explicitly.
+* Update the Emo-series optimizers. (#472, #478)
+  * Update `EmoNavi`, `EmoFact`, and `EmoLynx`.
+  * Begin deprecating `EmoNeco` and `EmoZeal` (they are being phased out).
+* Implement `SpectralSphere` optimizer. (#483, #485)
+  * [Controlled LLM Training on Spectral Sphere](https://arxiv.org/abs/2601.08393)
+* Support various coefficients for `zero_power_via_newton_schulz_5`. (#487)
+  * Add coefficient presets: `original`, `quintic`, `polar_express`, and `polar_express_safer`.
+  * Support custom coefficient schedules and expose `ns_coeffs` in `Muon`, `DistributedMuon`, `AdaMuon`, and `AdaGO`.
+
+### Refactor
+
+* Rename and organize type aliases. (#488)
+
+### Fix
+
+* Fix misbehavior in `AdaFactor` optimizer. (#477)
+* Fix a potential `NaN` issue in `AdamP` optimizer. (#480, #481)
+* Fix `Lookahead` wrapper compatibility with `accelerate` by normalizing `lookahead_state` serialization. (#484, #489)
+
+### Docs
+
+* Convert the previous docstring style to Google style. (#487)
+* Add `py.typed` to mark distributed typing information. (#487)
+* rework the README.md. (#491, #492)
+
+### CI/CD
+
+* Introduce `uv`. (#473)
+
 # v3.9.0
 
 ## Change Log
