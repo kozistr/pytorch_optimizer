@@ -416,6 +416,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.ROSE
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.RotoGrad
     :docstring:
     :members:
