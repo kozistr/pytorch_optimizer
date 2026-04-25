@@ -594,3 +594,14 @@ def test_spectral_sphere_methods():
     x = torch.tensor([[5.0, 1.0], [1.0, 5.0]])
     theta = torch.tensor([[1.5, 0.0], [0.0, -2.8]])
     _ = solve_lambda_with_bisection(x, theta, initial_guess=0.18, initial_step=0.012, msign_steps=0)
+
+
+def test_rose_optimizer():
+    with pytest.raises(ValueError):
+        load_optimizer('rose')([simple_parameter(True)], compute_dtype=torch.bfloat16)
+
+    opt = load_optimizer('rose')([simple_zero_rank_parameter(True)])
+    opt.step()
+
+    opt = load_optimizer('rose')([simple_parameter(True)], bf16_sr=False, compute_dtype=torch.float32)
+    opt.step()

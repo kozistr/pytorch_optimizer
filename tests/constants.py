@@ -411,7 +411,6 @@ SKIP_COMPLEX_NOT_SUPPORTED: frozenset = frozenset(
         'adalomo',
         'demo',
         'distributedmuon',
-        'rose',
     }
 )
 
@@ -943,6 +942,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (Ano, {'lr': 1e0, 'weight_decay': 1e-3, 'logarithmic_schedule': True}, 5),
     (SpectralSphere, {'lr': 5e-1, 'momentum': 0.95, 'weight_decay': 1e-3, 'msign_steps': 8}, 5),
     (ROSE, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
+    (ROSE, {'lr': 1e0, 'weight_decay': 1e-3, 'wd_schedule': 1e0}, 5),
     (ROSE, {'lr': 7.5e-1, 'weight_decay': 1e-3, 'stabilize': False}, 10),
 ]
 
