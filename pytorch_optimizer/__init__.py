@@ -66,6 +66,7 @@ from pytorch_optimizer.optimizer import (
     SGDP,
     SGDW,
     SM3,
+    ROSE,
     SOAP,
     SPAM,
     SRMM,

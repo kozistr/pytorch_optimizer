@@ -67,6 +67,9 @@ dev = [
     'pytest-cov>=6,<7; python_version >= "3.9"',
 ]
 
+[tool.uv]
+exclude-newer = "7 days ago"
+
 [tool.uv.sources]
 torch = [
     { index = "pytorch-cpu" },
