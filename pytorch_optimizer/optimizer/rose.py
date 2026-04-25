@@ -25,7 +25,6 @@ class ROSE(BaseOptimizer):
             variation of the per-slice range tensor, and then interpolates between the local range and a smoother
             global mean denominator. This can smooth noisy gradients.
         bf16_sr (bool): Stochastic Rounding for BFloat16.
-        eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
 
     """
@@ -42,13 +41,11 @@ class ROSE(BaseOptimizer):
         stabilize: bool = True,
         bf16_sr: bool = True,
         compute_dtype: torch.dtype = torch.float64,
-        eps: float = 1e-8,
         maximize: bool = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
         self.validate_non_negative(weight_decay, 'weight_decay')
-        self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
 
@@ -65,7 +62,6 @@ class ROSE(BaseOptimizer):
             'stabilize': stabilize,
             'bf16_sr': bf16_sr,
             'compute_dtype': compute_dtype,
-            'eps': eps,
         }
 
         super().__init__(params, defaults)

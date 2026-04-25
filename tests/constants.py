@@ -17,6 +17,7 @@ from pytorch_optimizer.optimizer import (
     PNM,
     QHM,
     RACS,
+    ROSE,
     SCION,
     SGDP,
     SGDW,
@@ -939,6 +940,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (BCOS, {'lr': 1e0, 'mode': 'c', 'simple_cond': True}, 5),
     (Ano, {'lr': 1e0, 'weight_decay': 1e-3, 'logarithmic_schedule': True}, 5),
     (SpectralSphere, {'lr': 5e-1, 'momentum': 0.95, 'weight_decay': 1e-3, 'msign_steps': 8}, 5),
+    (ROSE, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
 ]
 
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
