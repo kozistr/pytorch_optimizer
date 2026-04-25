@@ -1,6 +1,6 @@
 import torch
 
-from pytorch_optimizer.base.exception import NoSparseGradientError
+from pytorch_optimizer.base.exception import NoSparseGradientError, NoComplexParameterError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.utils import copy_stochastic
@@ -80,6 +80,9 @@ class ROSE(BaseOptimizer):
             grad = p.grad
             if grad.is_sparse:
                 raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
