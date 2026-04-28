@@ -130,6 +130,7 @@ from pytorch_optimizer.optimizer import (
     EXAdam,
     FAdam,
     Fira,
+    FlashAdamW,
     FriendlySAM,
     Fromage,
     GaLore,
