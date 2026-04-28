@@ -122,6 +122,7 @@ from pytorch_optimizer.optimizer import (
     DeMo,
     DiffGrad,
     DistributedMuon,
+    DualAdam,
     DynamicLossScaler,
     SpectralSphere,
     EmoFact,
