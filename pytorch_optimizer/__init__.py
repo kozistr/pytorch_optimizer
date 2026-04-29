@@ -141,6 +141,7 @@ from pytorch_optimizer.optimizer import (
     Lamb,
     LaProp,
     Lion,
+    LoRARite,
     Lookahead,
     LookSAM,
     Muon,

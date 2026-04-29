@@ -296,6 +296,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.LoRARite
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Lamb
     :docstring:
     :members:

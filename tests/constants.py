@@ -85,6 +85,7 @@ from pytorch_optimizer.optimizer import (
     Lamb,
     LaProp,
     Lion,
+    LoRARite,
     Muon,
     Nero,
     NovoGrad,
@@ -263,6 +264,7 @@ BETA_OPTIMIZER_NAMES: frozenset = frozenset(
         'adamuon',
         'laprop',
         'apollo',
+        'lorarite',
         'mars',
         'adatam',
         'focus',
@@ -414,7 +416,7 @@ SKIP_COMPLEX_NOT_SUPPORTED: frozenset = frozenset(
     }
 )
 
-SKIP_BF16_OPTIMIZERS: frozenset = frozenset({'adai', 'prodigy', 'nero'})
+SKIP_BF16_OPTIMIZERS: frozenset = frozenset({'adai', 'prodigy', 'nero', 'lorarite'})
 
 CAWR_RECIPES: Tuple[Tuple, ...] = (
     (
@@ -749,6 +751,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (ApolloDQN, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decay_type': 'stable', 'warmup_steps': 0}, 50),
     (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'grad_averaging': True}, 5),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
+    (LoRARite, {'lr': 3e-2, 'betas': (0.9, 0.999), 'clip_unmagnified_grad': 1.0}, 10),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 10),
     (AliG, {'max_lr': 5e-1, 'momentum': 0.9}, 5),
