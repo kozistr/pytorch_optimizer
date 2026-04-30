@@ -215,7 +215,7 @@ class LoRARite(BaseOptimizer):
                 raise ValueError(f'{name} must be a boolean')
 
         for name, value in (('lora_l_dim', lora_l_dim), ('lora_r_dim', lora_r_dim)):
-            if not isinstance(value, int) or isinstance(value, bool):
+            if not isinstance(value, int):
                 raise ValueError(f'{name} must be an integer')
 
         self.helper = _LoRARiteHelper(maybe_inf_to_nan=maybe_inf_to_nan)
