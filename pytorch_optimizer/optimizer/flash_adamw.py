@@ -282,8 +282,7 @@ class FlashAdamW(BaseOptimizer):
                 raise NoComplexParameterError(str(self))
 
             state = self.state[p]
-            if 'step' not in state:
-                state['step'] = torch.zeros((), dtype=torch.int64)
+            if 'exp_avg' not in state and _quantized_key('exp_avg') not in state:
                 _store_state(state, 'exp_avg', torch.zeros_like(p, dtype=torch.float32), group['quantize'], p.dtype)
                 _store_state(state, 'exp_avg_sq', torch.zeros_like(p, dtype=torch.float32), group['quantize'], p.dtype)
 
@@ -310,8 +309,7 @@ class FlashAdamW(BaseOptimizer):
             return
 
         state = self.state[p]
-        state['step'].add_(1)
-        step: int = int(state['step'].item())
+        step: int = group['step']
 
         grad = p.grad.detach().to(torch.float32)
         self.maximize_gradient(grad, maximize=self.maximize)
@@ -409,8 +407,6 @@ class FlashAdamW(BaseOptimizer):
                 continue
 
             state = self.state[param]
-            if 'step' not in state:
-                state['step'] = torch.zeros((), dtype=torch.int64)
             master_bytewidth = next(
                 group['master_bytewidth']
                 for group in self.param_groups
