@@ -1,21 +1,10 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-
-PairInfo = Tuple[
-    Dict[str, Any],
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
-    torch.Tensor,
-]
-
 
 class _LoRARiteHelper:
     def __init__(self, maybe_inf_to_nan: bool = True):
@@ -204,16 +193,6 @@ class LoRARite(BaseOptimizer):
         self.validate_non_negative(update_skipping, 'update_skipping')
         self.validate_non_negative(weight_decay, 'weight_decay')
 
-        for name, value in (
-            ('relative_epsilon', relative_epsilon),
-            ('apply_escape', apply_escape),
-            ('maybe_inf_to_nan', maybe_inf_to_nan),
-            ('balance_param', balance_param),
-            ('maximize', maximize),
-        ):
-            if not isinstance(value, bool):
-                raise ValueError(f'{name} must be a boolean')
-
         for name, value in (('lora_l_dim', lora_l_dim), ('lora_r_dim', lora_r_dim)):
             if not isinstance(value, int):
                 raise ValueError(f'{name} must be an integer')
@@ -286,7 +265,7 @@ class LoRARite(BaseOptimizer):
         group: ParamGroup,
         param_left: torch.Tensor,
         param_right: torch.Tensor,
-    ) -> PairInfo:
+    ) -> Dict[str, Any]:
         helper = self.helper
         state = self.state[param_left]
         self.init_pair_state(group, state, param_left, param_right)
@@ -320,21 +299,30 @@ class LoRARite(BaseOptimizer):
 
         state['basis_l'] = basis_left
         state['basis_r'] = basis_right
+        state['rotate_inv_l'] = rotate_inv_left
+        state['rotate_inv_r'] = rotate_inv_right
+        state['update_l'] = update_left
+        state['update_r'] = update_right
+        state['projection_l'] = projection_left
+        state['projection_r'] = projection_right
 
-        return state, update_left, update_right, rotate_inv_left, rotate_inv_right, projection_left, projection_right
+        return state
 
     def apply_pair_update(
         self,
         group: ParamGroup,
         param_left: torch.Tensor,
         param_right: torch.Tensor,
-        pair_info: PairInfo,
         grad_norm: torch.Tensor,
     ) -> None:
         helper = self.helper
-        state, update_left, update_right, rotate_inv_left, rotate_inv_right, projection_left, projection_right = (
-            pair_info
-        )
+        state = self.state[param_left]
+        update_left = state.pop('update_l')
+        update_right = state.pop('update_r')
+        rotate_inv_left = state.pop('rotate_inv_l')
+        rotate_inv_right = state.pop('rotate_inv_r')
+        projection_left = state.pop('projection_l')
+        projection_right = state.pop('projection_r')
         beta1, beta2 = group['betas']
 
         param_left_2d, _ = helper.move_lora_dim_to_last(param_left, group['lora_l_dim'])
@@ -434,8 +422,8 @@ class LoRARite(BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        pair_infos: List[Tuple[ParamGroup, torch.Tensor, torch.Tensor, PairInfo]] = []
-        grad_norm_sq: torch.Tensor = torch.zeros(())
+        pair_infos: List[Tuple[ParamGroup, torch.Tensor, torch.Tensor]] = []
+        grad_norm_sq: Optional[torch.Tensor] = None
 
         for group in self.param_groups:
             self.init_group(group)
@@ -445,14 +433,17 @@ class LoRARite(BaseOptimizer):
                 if param_left.grad is None or param_right.grad is None:
                     continue
 
-                pair_info = self.build_pair_info(group, param_left, param_right)
-                update_left, update_right = pair_info[1], pair_info[2]
-                grad_norm_sq = grad_norm_sq.to(update_left.device).add_(torch.linalg.norm(update_left).pow(2))
-                grad_norm_sq = grad_norm_sq.add_(torch.linalg.norm(update_right).pow(2))
-                pair_infos.append((group, param_left, param_right, pair_info))
+                state = self.build_pair_info(group, param_left, param_right)
+                update_left, update_right = state['update_l'], state['update_r']
+                if grad_norm_sq is None:
+                    grad_norm_sq = update_left.new_zeros(())
 
-        grad_norm = torch.sqrt(grad_norm_sq)
-        for group, param_left, param_right, pair_info in pair_infos:
-            self.apply_pair_update(group, param_left, param_right, pair_info, grad_norm)
+                grad_norm_sq.add_(torch.linalg.norm(update_left).pow(2).to(grad_norm_sq.device))
+                grad_norm_sq.add_(torch.linalg.norm(update_right).pow(2).to(grad_norm_sq.device))
+                pair_infos.append((group, param_left, param_right))
+
+        grad_norm = torch.sqrt(grad_norm_sq) if grad_norm_sq is not None else torch.zeros(())
+        for group, param_left, param_right in pair_infos:
+            self.apply_pair_update(group, param_left, param_right, grad_norm)
 
         return loss
