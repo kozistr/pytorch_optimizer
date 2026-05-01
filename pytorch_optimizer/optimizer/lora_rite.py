@@ -6,6 +6,7 @@ from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGr
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 
+
 class _LoRARiteHelper:
     def __init__(self, maybe_inf_to_nan: bool = True):
         self.maybe_inf_to_nan = maybe_inf_to_nan

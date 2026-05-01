@@ -304,10 +304,6 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.LoRARite
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.Lamb
     :docstring:
     :members:
@@ -349,6 +345,10 @@
     :members:
 
 ::: pytorch_optimizer.LookSAM
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.LoRARite
     :docstring:
     :members:
 
