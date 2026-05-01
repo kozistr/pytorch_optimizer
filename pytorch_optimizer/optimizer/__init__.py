@@ -46,11 +46,13 @@ from pytorch_optimizer.optimizer.conda import Conda
 from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptLion, DAdaptSGD
 from pytorch_optimizer.optimizer.demo import DeMo
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
+from pytorch_optimizer.optimizer.dual_adam import DualAdam
 from pytorch_optimizer.optimizer.emonavi import EmoFact, EmoLynx, EmoNavi
 from pytorch_optimizer.optimizer.exadam import EXAdam
 from pytorch_optimizer.optimizer.experimental.ranger25 import Ranger25
 from pytorch_optimizer.optimizer.fadam import FAdam
 from pytorch_optimizer.optimizer.fira import Fira
+from pytorch_optimizer.optimizer.flash_adamw import FlashAdamW
 from pytorch_optimizer.optimizer.focus import FOCUS
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler, SafeFP16Optimizer
 from pytorch_optimizer.optimizer.fromage import Fromage
@@ -175,6 +177,7 @@ OPTIMIZER_LIST: List[OptimizerType] = [
     DeMo,
     DiffGrad,
     DistributedMuon,
+    DualAdam,
     EXAdam,
     EmoFact,
     EmoLynx,
@@ -183,6 +186,7 @@ OPTIMIZER_LIST: List[OptimizerType] = [
     FOCUS,
     FTRL,
     Fira,
+    FlashAdamW,
     Fromage,
     GaLore,
     Grams,

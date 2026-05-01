@@ -220,6 +220,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.DualAdam
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.DynamicLossScaler
     :docstring:
     :members:
@@ -245,6 +249,10 @@
     :members:
 
 ::: pytorch_optimizer.Fira
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.FlashAdamW
     :docstring:
     :members:
 
