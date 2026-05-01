@@ -747,8 +747,8 @@ def test_lora_rite_sparse_and_complex_gradients():
     complex_optimizer = load_optimizer('lorarite')([complex_param])
     with pytest.raises(NoComplexParameterError):
         complex_optimizer.step()
-        
-        
+
+
 def run_matching_flash_adamw_steps(flash_optimizer, torch_optimizer, flash_param, torch_param, gradients):
     for grad in gradients:
         flash_param.grad = grad.clone()
@@ -1026,14 +1026,17 @@ def test_flash_adamw_complex_gradient():
 def test_lora_rite_invalid_parameters(kwargs, error):
     with pytest.raises(error):
         load_optimizer('lorarite')(None, **kwargs)
+
+
+@pytest.mark.parametrize(
+    ('kwargs', 'error'),
+    [
         ({'eps': -1e-8}, ValueError),
         ({'weight_decay': -1e-3}, ValueError),
         ({'master_weight_bits': 16}, ValueError),
         ({'fused': True}, NotImplementedError),
     ],
 )
-
-
 def test_flash_adamw_invalid_parameters(kwargs, error):
     flash_adamw = load_optimizer('flashadamw')
     with pytest.raises(error):
