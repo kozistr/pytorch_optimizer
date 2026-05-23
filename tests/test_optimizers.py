@@ -770,6 +770,29 @@ def test_flash_adamw_loads_compressed_state_as_uncompressed_state():
     assert 'exp_avg' in raw_optimizer.state_dict()['state'][0]
 
 
+def test_flash_adamw_uncompressed_state_dict_reloads_as_quantized_state():
+    param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
+    param.grad = torch.tensor([0.2, -0.3, 0.4])
+
+    optimizer = load_optimizer('flashadamw')([param], lr=1e-2, weight_decay=0.0, compress_state_dict=False)
+    optimizer.step()
+
+    state_dict = optimizer.state_dict()
+    saved_state = state_dict['state'][0]
+    assert 'exp_avg' in saved_state
+    assert 'exp_avg::quantized' not in saved_state
+
+    new_optimizer = load_optimizer('flashadamw')(
+        [nn.Parameter(param.detach().clone())],
+        lr=1e-2,
+        weight_decay=0.0,
+    )
+    new_optimizer.load_state_dict(state_dict)
+    new_state = next(iter(new_optimizer.state.values()))
+    assert 'exp_avg::quantized' in new_state
+    assert 'exp_avg' not in new_state
+
+
 @pytest.mark.parametrize(('master_weight_bits', 'error_dtype'), [(24, torch.int8), (32, torch.int16)])
 def test_flash_adamw_master_weight_bits(master_weight_bits, error_dtype):
     model = nn.Linear(2, 1).bfloat16()
