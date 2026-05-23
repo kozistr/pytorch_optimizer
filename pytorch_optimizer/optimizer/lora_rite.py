@@ -7,7 +7,9 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 
 
-class _LoRARiteHelper:
+class LoRARiteHelper:
+    """LoRARite Helper."""
+
     def __init__(self, maybe_inf_to_nan: bool = True):
         self.maybe_inf_to_nan = maybe_inf_to_nan
 
@@ -194,7 +196,7 @@ class LoRARite(BaseOptimizer):
         self.validate_non_negative(update_skipping, 'update_skipping')
         self.validate_non_negative(weight_decay, 'weight_decay')
 
-        self.helper = _LoRARiteHelper(maybe_inf_to_nan=maybe_inf_to_nan)
+        self.helper = LoRARiteHelper(maybe_inf_to_nan=maybe_inf_to_nan)
         self.maximize = maximize
 
         defaults: Defaults = {

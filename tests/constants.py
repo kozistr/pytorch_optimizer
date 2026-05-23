@@ -13,8 +13,6 @@ from pytorch_optimizer.optimizer import (
     MARS,
     MSVAG,
     OPTIMIZERS,
-    DualAdam,
-    LoRARite,
     PID,
     PNM,
     QHM,
@@ -542,7 +540,7 @@ BINARY_DICE_RECIPES: Tuple[Tuple, ...] = (
 
 PULLBACK_MOMENTUM: Tuple[str, ...] = ('none', 'reset', 'pullback')
 
-OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
+OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (build_orthograd, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (build_schedulefree, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
