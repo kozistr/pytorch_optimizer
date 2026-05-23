@@ -1,3 +1,22 @@
+# v3.10.1
+
+## Change Log
+
+### Feature
+
+* Implement `LoRARite` optimizer. (#498, #504)
+  * [LoRA Done RITE: Robust Invariant Transformation Equilibration for LoRA Optimization](https://arxiv.org/abs/2410.20625)
+* Implement `FlashAdamW` optimizer. (#495, #503)
+  * [FlashOptim: Optimizers for Memory-Efficient Training](https://arxiv.org/abs/2602.23349) 
+* Implement `DualAdam` optimizer. (#496, #502)
+  * [Combining Adam and its Inverse Counterpart to Enhance Generalization of Deep Learning Optimizers](https://arxiv.org/abs/2603.07122)
+* Implement `ROSE` optimizer. (#500, #501)
+  * [Stateless optimization through range-normalized gradient updates](https://github.com/MatthewK78) 
+
+## Contributions
+
+thanks to @mfazrinizar
+
 # v3.10.0
 
 ## Change Log
