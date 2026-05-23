@@ -834,7 +834,7 @@ def test_flash_adamw_numerics_guard_and_stats():
     assert empty_optimizer.param_absmax[id(empty_param)] == 0.0
 
 
-def test_flashadamw_parameters():
+def test_flash_adamw_parameters():
     with pytest.raises(ValueError):
         load_optimizer('flashadamw')(None, master_weight_bits=16)
 
