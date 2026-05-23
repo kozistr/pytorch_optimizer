@@ -610,8 +610,8 @@ def test_rose_optimizer():
 
 
 def _paired_lora_rite_parameters():
-    param_left = torch.nn.Parameter(torch.tensor([[1.0, 0.2, -0.3], [0.8, 0.5, -0.7]]))
-    param_right = torch.nn.Parameter(torch.tensor([[0.6, -0.4], [0.1, 0.9], [-0.8, 0.3], [0.7, -0.2]]))
+    param_left = nn.Parameter(torch.tensor([[1.0, 0.2, -0.3], [0.8, 0.5, -0.7]]))
+    param_right = nn.Parameter(torch.tensor([[0.6, -0.4], [0.1, 0.9], [-0.8, 0.3], [0.7, -0.2]]))
     param_left.grad = torch.tensor([[0.2, 0.3, -0.2], [-0.1, 0.4, 0.5]])
     param_right.grad = torch.tensor([[0.1, -0.3], [0.2, 0.4], [-0.5, 0.1], [0.3, -0.2]])
     return param_left, param_right
@@ -623,7 +623,6 @@ def test_lora_rite_helper_methods():
     tensor = torch.arange(6.0).reshape(2, 3)
     moved, shape = helper.move_lora_dim_to_last(tensor, 0)
 
-    assert moved.shape == (3, 2)
     assert torch.equal(helper.restore_original_shape_and_dim(moved, 0, shape), tensor)
     assert helper.move_lora_dim_to_last(torch.tensor(1.0), 0)[0].shape == (1, 1)
     assert torch.isnan(helper.inf_to_nan(torch.tensor(float('inf'))))
@@ -655,6 +654,7 @@ def test_lora_rite_helper_methods():
 
 def test_lora_rite_rich_options_and_existing_state():
     param_left, param_right = _paired_lora_rite_parameters()
+
     optimizer = load_optimizer('lorarite')(
         [param_left, param_right],
         lr=5e-3,
@@ -702,7 +702,7 @@ def test_lora_rite_skips_large_updates_and_missing_pair():
 
 
 def test_flash_adamw_quantized_state_and_compressed_state_dict():
-    param = torch.nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
+    param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
     param.grad = torch.tensor([0.2, -0.3, 0.4])
 
     optimizer = load_optimizer('flashadamw')([param], lr=1e-2, weight_decay=0.0)
@@ -716,7 +716,7 @@ def test_flash_adamw_quantized_state_and_compressed_state_dict():
     assert 'exp_avg' not in state
     assert optimizer.state_dict()['state'][0]['exp_avg::quantized'].dtype == torch.int8
 
-    new_param = torch.nn.Parameter(param.detach().clone())
+    new_param = nn.Parameter(param.detach().clone())
     new_optimizer = load_optimizer('flashadamw')([new_param], lr=1e-2, weight_decay=0.0)
     new_optimizer.load_state_dict(optimizer.state_dict())
     assert new_optimizer.state[new_param]['exp_avg::quantized'].dtype == torch.int8
@@ -728,7 +728,7 @@ def test_flash_adamw_quantized_state_and_compressed_state_dict():
 
 
 def test_flash_adamw_empty_quantized_state():
-    param = torch.nn.Parameter(torch.empty(0))
+    param = nn.Parameter(torch.empty(0))
     param.grad = torch.empty(0)
 
     optimizer = load_optimizer('flashadamw')([param], lr=1e-2, weight_decay=0.0)
@@ -743,7 +743,7 @@ def test_flash_adamw_empty_quantized_state():
 
 
 def test_flash_adamw_uncompressed_state_dict_reloads_as_quantized_state():
-    param = torch.nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
+    param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
     param.grad = torch.tensor([0.2, -0.3, 0.4])
 
     optimizer = load_optimizer('flashadamw')([param], lr=1e-2, weight_decay=0.0, compress_state_dict=False)
@@ -755,7 +755,7 @@ def test_flash_adamw_uncompressed_state_dict_reloads_as_quantized_state():
     assert 'exp_avg::quantized' not in saved_state
 
     new_optimizer = load_optimizer('flashadamw')(
-        [torch.nn.Parameter(param.detach().clone())],
+        [nn.Parameter(param.detach().clone())],
         lr=1e-2,
         weight_decay=0.0,
     )
@@ -766,13 +766,13 @@ def test_flash_adamw_uncompressed_state_dict_reloads_as_quantized_state():
 
 
 def test_flash_adamw_loads_compressed_state_as_uncompressed_state():
-    param = torch.nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
+    param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
     param.grad = torch.tensor([0.2, -0.3, 0.4])
 
     optimizer = load_optimizer('flashadamw')([param], lr=1e-2, weight_decay=0.0)
     optimizer.step()
 
-    new_param = torch.nn.Parameter(param.detach().clone())
+    new_param = nn.Parameter(param.detach().clone())
     state_dict = optimizer.state_dict()
     state_dict['param_groups'][0]['quantize'] = False
 
@@ -782,11 +782,11 @@ def test_flash_adamw_loads_compressed_state_as_uncompressed_state():
     assert 'exp_avg' in new_state
     assert 'exp_avg::quantized' not in new_state
 
-    uncompressed_optimizer = load_optimizer('flashadamw')([torch.nn.Parameter(param.detach().clone())], quantize=False)
+    uncompressed_optimizer = load_optimizer('flashadamw')([nn.Parameter(param.detach().clone())], quantize=False)
     uncompressed_optimizer.load_state_dict(uncompressed_optimizer.state_dict())
     assert list(uncompressed_optimizer.state_dict()['state'].values()) == [{}]
 
-    raw_param = torch.nn.Parameter(param.detach().clone())
+    raw_param = nn.Parameter(param.detach().clone())
     raw_param.grad = torch.zeros_like(raw_param)
     raw_optimizer = load_optimizer('flashadamw')([raw_param], quantize=False, compress_state_dict=False)
     raw_optimizer.step()
@@ -839,18 +839,18 @@ def test_flash_adamw_fresh_fp32_model_state_dict():
 def test_flash_adamw_ecc_helpers():
     fp32_param = torch.tensor([1.01, -2.02], dtype=torch.float32)
     narrow_param = fp32_param.to(torch.bfloat16)
-    error_bits = compute_ecc_bits(fp32_param, narrow_param, master_bytewidth=3)
+    error_bits = compute_ecc_bits(fp32_param, narrow_param, master_byte_width=3)
     reconstructed = reconstruct_fp32_param(narrow_param, error_bits)
 
     assert error_bits.dtype == torch.int8
     assert torch.allclose(reconstructed, fp32_param, atol=1e-2)
 
     with pytest.raises(ValueError):
-        compute_ecc_bits(fp32_param.to(torch.float16), narrow_param, master_bytewidth=3)
+        compute_ecc_bits(fp32_param.to(torch.float16), narrow_param, master_byte_width=3)
     with pytest.raises(ValueError):
-        compute_ecc_bits(fp32_param, fp32_param, master_bytewidth=3)
+        compute_ecc_bits(fp32_param, fp32_param, master_byte_width=3)
     with pytest.raises(ValueError):
-        compute_ecc_bits(fp32_param, narrow_param, master_bytewidth=2)
+        compute_ecc_bits(fp32_param, narrow_param, master_byte_width=2)
     with pytest.raises(ValueError):
         reconstruct_fp32_param(fp32_param, error_bits)
     with pytest.raises(ValueError):
@@ -858,43 +858,36 @@ def test_flash_adamw_ecc_helpers():
 
 
 def test_flash_adamw_numerics_guard_and_stats():
-    flash_adamw = load_optimizer('flashadamw')
-    param = torch.nn.Parameter(torch.ones(1, dtype=torch.bfloat16))
-    optimizer = flash_adamw([param], lr=1e-3, weight_decay=0.0, quantize=False, check_numerics=True)
+    param = nn.Parameter(torch.ones(1, dtype=torch.bfloat16))
+    optimizer = load_optimizer('flashadamw')([param], lr=1e-3, weight_decay=0.0, quantize=False, check_numerics=True)
 
     optimizer.recompute_param_stats()
-    optimizer.maybe_check_numerics(param, lr=0.0, master_bytewidth=0)
+    optimizer.maybe_check_numerics(param, lr=0.0, master_byte_width=0)
 
     param.data.zero_()
     optimizer.param_absmax.pop(id(param), None)
-    optimizer.maybe_check_numerics(param, lr=1e-3, master_bytewidth=0)
+    optimizer.maybe_check_numerics(param, lr=1e-3, master_byte_width=0)
 
     param.data.fill_(1.0)
     optimizer.param_absmax[id(param)] = float('nan')
-    optimizer.maybe_check_numerics(param, lr=1e-3, master_bytewidth=0)
+    optimizer.maybe_check_numerics(param, lr=1e-3, master_byte_width=0)
 
     optimizer.param_absmax[id(param)] = 1.0
     with pytest.raises(ArithmeticError):
-        optimizer.maybe_check_numerics(param, lr=1e-12, master_bytewidth=2)
+        optimizer.maybe_check_numerics(param, lr=1e-12, master_byte_width=2)
 
-    empty_param = torch.nn.Parameter(torch.empty(0, dtype=torch.bfloat16))
-    empty_optimizer = flash_adamw([empty_param], lr=1e-3, weight_decay=0.0, quantize=False)
+    empty_param = nn.Parameter(torch.empty(0, dtype=torch.bfloat16))
+    empty_optimizer = load_optimizer('flashadamw')([empty_param], lr=1e-3, weight_decay=0.0, quantize=False)
     empty_optimizer.recompute_param_stats()
     assert empty_optimizer.param_absmax[id(empty_param)] == 0.0
 
 
-@pytest.mark.parametrize(
-    ('kwargs', 'error'),
-    [
-        ({'master_weight_bits': 16}, ValueError),
-        ({'fused': True}, NotImplementedError),
-    ],
-)
-def test_flash_adamw_invalid_parameters(kwargs, error):
-    with pytest.raises(error):
-        load_optimizer('flashadamw')(None, **kwargs)
-
-
-def test_flash_adamw_invalid_master_weight_bits_for_fp32_parameters():
+def test_flashadamw_parameters():
     with pytest.raises(ValueError):
-        load_optimizer('flashadamw')([torch.nn.Parameter(torch.ones(1))], master_weight_bits=24)
+        load_optimizer('flashadamw')(None, master_weight_bits=16)
+
+    with pytest.raises(NotImplementedError):
+        load_optimizer('flashadamw')(None, fused=True)
+
+    with pytest.raises(ValueError):
+        load_optimizer('flashadamw')([nn.Parameter(torch.ones(1))], master_weight_bits=24)

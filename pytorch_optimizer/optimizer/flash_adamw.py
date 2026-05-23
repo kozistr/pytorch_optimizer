@@ -294,6 +294,11 @@ class FlashAdamW(BaseOptimizer):
         if 'error_bits' in state:
             state['error_bits'].copy_(compute_ecc_bits(value, p, master_byte_width))
 
+    def recompute_param_stats(self) -> None:
+        for group in self.param_groups:
+            for p in group['params']:
+                self.param_absmax[id(p)] = float(p.detach().abs().max().item()) if p.numel() > 0 else 0.0
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
