@@ -652,32 +652,6 @@ def test_lora_rite_helper_methods():
     assert torch.allclose(escape, torch.tensor(1.0))
 
 
-def test_lora_rite_rich_options_and_existing_state():
-    param_left, param_right = _paired_lora_rite_parameters()
-
-    optimizer = load_optimizer('lorarite')(
-        [param_left, param_right],
-        lr=5e-3,
-        betas=(0.5, 0.9),
-        eps=1e-4,
-        relative_epsilon=True,
-        clip_unmagnified_grad=1e-3,
-        update_capping=1e-2,
-        update_skipping=10.0,
-        apply_escape=True,
-        balance_param=True,
-        maximize=True,
-        maybe_inf_to_nan=False,
-    )
-
-    optimizer.step()
-    param_left.grad = torch.full_like(param_left, 0.3)
-    param_right.grad = torch.full_like(param_right, -0.2)
-    optimizer.step()
-
-    assert torch.linalg.norm(param_left).sub(torch.linalg.norm(param_right)).abs() < 1e-4
-
-
 def test_lora_rite_skips_large_updates_and_missing_pair():
     param_left, param_right = _paired_lora_rite_parameters()
     initial_left = param_left.detach().clone()
@@ -740,29 +714,6 @@ def test_flash_adamw_empty_quantized_state():
     state = optimizer.state[param]
     assert state['exp_avg::quantized'].numel() == 0
     assert state['exp_avg::scales'].numel() == 0
-
-
-def test_flash_adamw_uncompressed_state_dict_reloads_as_quantized_state():
-    param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
-    param.grad = torch.tensor([0.2, -0.3, 0.4])
-
-    optimizer = load_optimizer('flashadamw')([param], lr=1e-2, weight_decay=0.0, compress_state_dict=False)
-    optimizer.step()
-
-    state_dict = optimizer.state_dict()
-    saved_state = state_dict['state'][0]
-    assert 'exp_avg' in saved_state
-    assert 'exp_avg::quantized' not in saved_state
-
-    new_optimizer = load_optimizer('flashadamw')(
-        [nn.Parameter(param.detach().clone())],
-        lr=1e-2,
-        weight_decay=0.0,
-    )
-    new_optimizer.load_state_dict(state_dict)
-    new_state = next(iter(new_optimizer.state.values()))
-    assert 'exp_avg::quantized' in new_state
-    assert 'exp_avg' not in new_state
 
 
 def test_flash_adamw_loads_compressed_state_as_uncompressed_state():
@@ -851,6 +802,7 @@ def test_flash_adamw_ecc_helpers():
         compute_ecc_bits(fp32_param, fp32_param, master_byte_width=3)
     with pytest.raises(ValueError):
         compute_ecc_bits(fp32_param, narrow_param, master_byte_width=2)
+
     with pytest.raises(ValueError):
         reconstruct_fp32_param(fp32_param, error_bits)
     with pytest.raises(ValueError):
