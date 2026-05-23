@@ -125,12 +125,9 @@ class DualAdam(BaseOptimizer):
                 de_nom = exp_avg_sq.div(bias_correction2).sqrt_().add_(group['eps'])
 
                 if use_inverse_adam:
-                    adam_update = exp_avg_hat.div(de_nom)
-                    inverse_adam_update = exp_avg_hat.mul(de_nom)
-                    update = adam_update.mul(1.0 - inverse_adam_rate).add_(
-                        inverse_adam_update, alpha=inverse_adam_rate
-                    )
-                    p.add_(update, alpha=-group['lr'])
+                    update = de_nom.reciprocal().mul_(1.0 - inverse_adam_rate).add_(de_nom, alpha=inverse_adam_rate)
+
+                    p.addcmul_(exp_avg_hat, update, value=-group['lr'])
                 else:
                     p.addcdiv_(exp_avg_hat, de_nom, value=-group['lr'])
 

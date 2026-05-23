@@ -13,6 +13,8 @@ from pytorch_optimizer.optimizer import (
     MARS,
     MSVAG,
     OPTIMIZERS,
+    DualAdam,
+    LoRARite,
     PID,
     PNM,
     QHM,
@@ -954,6 +956,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
     (ROSE, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     (ROSE, {'lr': 1e0, 'weight_decay': 1e-3, 'wd_schedule': 1e0}, 5),
     (ROSE, {'lr': 7.5e-1, 'weight_decay': 1e-3, 'stabilize': False}, 10),
+    (DualAdam, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True, 'switch_rate': 0.5}, 5),
+    (LoRARite, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': True, 'update_capping': 0.1}, 5),
 ]
 
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [

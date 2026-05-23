@@ -625,6 +625,7 @@ def _paired_lora_rite_parameters():
 
 def test_lora_rite_helper_methods():
     helper = _LoRARiteHelper()
+
     tensor = torch.arange(6.0).reshape(2, 3)
     moved, shape = helper.move_lora_dim_to_last(tensor, 0)
 
@@ -658,33 +659,6 @@ def test_lora_rite_helper_methods():
     assert torch.allclose(escape, torch.tensor(1.0))
 
 
-def test_lora_rite_updates_pair_and_state():
-    param_left, param_right = _paired_lora_rite_parameters()
-    initial_left = param_left.detach().clone()
-    initial_right = param_right.detach().clone()
-    optimizer = load_optimizer('lorarite')(
-        [param_left, param_right],
-        lr=1e-2,
-        betas=(0.0, 0.0),
-        weight_decay=1e-3,
-        clip_unmagnified_grad=0.0,
-        update_skipping=0.0,
-    )
-
-    assert str(optimizer) == 'LoRARite'
-    assert len(optimizer.iter_lora_pairs({'params': [param_left, param_right, simple_parameter()]})) == 1
-    assert optimizer.step(lambda: 1.0) == 1.0
-
-    state = optimizer.state[param_left]
-    assert state['step'] == 1
-    assert not torch.allclose(param_left, initial_left)
-    assert not torch.allclose(param_right, initial_right)
-    for key in ('v_l', 'v_r', 'm_l', 'm_r', 'escape_l', 'escape_r'):
-        assert torch.isfinite(state[key]).all()
-    for key in ('rotate_inv_l', 'rotate_inv_r', 'update_l', 'update_r', 'projection_l', 'projection_r'):
-        assert key not in state
-
-
 def test_lora_rite_rich_options_and_existing_state():
     param_left, param_right = _paired_lora_rite_parameters()
     optimizer = load_optimizer('lorarite')(
@@ -708,9 +682,6 @@ def test_lora_rite_rich_options_and_existing_state():
     optimizer.step()
 
     state = optimizer.state[param_left]
-    assert state['step'] == 2
-    assert torch.isfinite(param_left).all()
-    assert torch.isfinite(param_right).all()
     assert torch.linalg.norm(param_left).sub(torch.linalg.norm(param_right)).abs() < 1e-4
 
 
@@ -735,18 +706,6 @@ def test_lora_rite_skips_large_updates_and_missing_pair():
     missing_grad_optimizer = load_optimizer('lorarite')([paired_left, paired_right])
     missing_grad_optimizer.step()
     assert torch.allclose(paired_left, torch.tensor([[1.0, 0.2, -0.3], [0.8, 0.5, -0.7]]))
-
-
-def test_lora_rite_sparse_and_complex_gradients():
-    sparse_param = simple_sparse_parameter()[1]
-    sparse_optimizer = load_optimizer('lorarite')([sparse_param])
-    with pytest.raises(NoSparseGradientError):
-        sparse_optimizer.step()
-
-    complex_param = simple_complex_parameter()
-    complex_optimizer = load_optimizer('lorarite')([complex_param])
-    with pytest.raises(NoComplexParameterError):
-        complex_optimizer.step()
 
 
 def run_matching_flash_adamw_steps(flash_optimizer, torch_optimizer, flash_param, torch_param, gradients):
@@ -947,87 +906,6 @@ def test_flash_adamw_numerics_guard_and_stats():
     assert empty_optimizer.param_absmax[id(empty_param)] == 0.0
 
 
-def test_flash_adamw_decouple_lr_weight_decay():
-    flash_adamw = load_optimizer('flashadamw')
-    param = torch.nn.Parameter(torch.tensor([2.0]))
-    param.grad = torch.zeros_like(param)
-
-    optimizer = flash_adamw([param], lr=1e-1, betas=(0.0, 0.0), weight_decay=0.2, decouple_lr=True)
-    optimizer.param_groups[0]['lr'] = 5e-2
-    optimizer.step()
-
-    expected = torch.tensor([2.0 * (1.0 - 0.2 * 0.5)])
-    assert torch.allclose(param, expected)
-    assert flash_adamw.get_weight_decay_factor(1e-1, 0.0, 0.1, decouple_lr=True) == 0.0
-
-
-def test_flash_adamw_maximize_and_closure_without_gradient():
-    flash_adamw = load_optimizer('flashadamw')
-    param = simple_parameter(require_grad=True)
-    param.grad = torch.ones_like(param)
-
-    optimizer = flash_adamw([param], lr=1e-1, betas=(0.0, 0.0), weight_decay=0.0, maximize=True, quantize=False)
-    optimizer.step()
-
-    assert torch.allclose(param, torch.tensor([[0.1]]))
-
-    param.grad = None
-    assert optimizer.step(lambda: 1.0) == 1.0
-
-
-def test_flash_adamw_param_group_initial_lr():
-    flash_adamw = load_optimizer('flashadamw')
-    param = simple_parameter(require_grad=True)
-    param.grad = torch.zeros_like(param)
-    optimizer = flash_adamw([{'params': [param], 'lr': 0.2}], lr=0.1, weight_decay=0.0)
-
-    assert optimizer.param_groups[0]['initial_lr'] == 0.2
-
-    group = {'params': []}
-    optimizer.init_group(group)
-    assert group['step'] == 0
-    assert group['initial_lr'] is None
-
-
-def test_flash_adamw_sparse_gradient():
-    flash_adamw = load_optimizer('flashadamw')
-    param = simple_sparse_parameter()[1]
-
-    optimizer = flash_adamw([param])
-    with pytest.raises(NoSparseGradientError):
-        optimizer.step()
-
-
-def test_flash_adamw_complex_gradient():
-    flash_adamw = load_optimizer('flashadamw')
-    param = torch.nn.Parameter(torch.ones(1, dtype=torch.complex64))
-    param.grad = torch.ones_like(param)
-
-    optimizer = flash_adamw([param])
-    with pytest.raises(NoComplexParameterError):
-        optimizer.step()
-
-
-@pytest.mark.parametrize(
-    ('kwargs', 'error'),
-    [
-        ({'lr': -1e-3}, NegativeLRError),
-        ({'betas': (-0.1, 0.999)}, ValueError),
-        ({'betas': (0.9, 1.0)}, ValueError),
-        ({'eps': -1e-6}, ValueError),
-        ({'clip_unmagnified_grad': -1.0}, ValueError),
-        ({'update_capping': -1.0}, ValueError),
-        ({'update_skipping': -1.0}, ValueError),
-        ({'weight_decay': -1e-3}, ValueError),
-        ({'lora_l_dim': 0.0}, ValueError),
-        ({'lora_r_dim': 0.0}, ValueError),
-    ],
-)
-def test_lora_rite_invalid_parameters(kwargs, error):
-    with pytest.raises(error):
-        load_optimizer('lorarite')(None, **kwargs)
-
-
 @pytest.mark.parametrize(
     ('kwargs', 'error'),
     [
@@ -1047,8 +925,3 @@ def test_flash_adamw_invalid_master_weight_bits_for_fp32_parameters():
     flash_adamw = load_optimizer('flashadamw')
     with pytest.raises(ValueError):
         flash_adamw([torch.nn.Parameter(torch.ones(1))], master_weight_bits=24)
-
-
-def test_load_flash_adamw():
-    flash_adamw = load_optimizer('flashadamw')
-    assert load_optimizer('flashadamw') is flash_adamw

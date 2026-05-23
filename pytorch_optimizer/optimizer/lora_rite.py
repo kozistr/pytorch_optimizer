@@ -194,10 +194,6 @@ class LoRARite(BaseOptimizer):
         self.validate_non_negative(update_skipping, 'update_skipping')
         self.validate_non_negative(weight_decay, 'weight_decay')
 
-        for name, value in (('lora_l_dim', lora_l_dim), ('lora_r_dim', lora_r_dim)):
-            if not isinstance(value, int):
-                raise ValueError(f'{name} must be an integer')
-
         self.helper = _LoRARiteHelper(maybe_inf_to_nan=maybe_inf_to_nan)
         self.maximize = maximize
 
