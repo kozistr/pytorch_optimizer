@@ -36,8 +36,7 @@ conventions and take precedence where they are more specific.
 - Use conventional commit prefixes without square brackets. Prefixes describe the kind of
   change, not just the files touched:
   - `feature: ...` — add user-visible functionality, such as the historical `feature: implement Magma optimizer` commit.
-  - `fix: ...` — correct a bug or compatibility issue, such as `fix: prevent NaN in AdamP
-    rsqrt`.
+  - `fix: ...` — correct a bug or compatibility issue, such as `fix: prevent NaN in AdamP rsqrt`.
   - `docs: ...` — change documentation, such as `docs: update documentation`.
   - `style: ...` — make formatting or lint-only changes, such as `style: fix F401`.
   - `build(ci): ...` — change CI or release automation, such as `build(ci): fix release title`.

@@ -140,8 +140,7 @@ line coverage.
 - Use conventional commit prefixes without square brackets. Prefixes describe the kind of
   change:
   - `feature: ...` — add user-visible functionality; example: `feature: implement Magma optimizer`.
-  - `fix: ...` — correct a bug or compatibility issue; example: `fix: prevent NaN in AdamP
-    rsqrt`.
+  - `fix: ...` — correct a bug or compatibility issue; example: `fix: prevent NaN in AdamP rsqrt`.
   - `docs: ...` — change documentation; example: `docs: update documentation`.
   - `style: ...` — make formatting or lint-only changes; example: `style: fix F401`.
   - `build(ci): ...` — change CI or release automation; example: `build(ci): fix release title`.
