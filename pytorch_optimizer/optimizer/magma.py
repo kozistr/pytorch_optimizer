@@ -125,11 +125,7 @@ class Magma(BaseOptimizer):
         }
 
     def load_state_dict(self, state_dict: State) -> None:
-        base_state = state_dict.get('base', state_dict.get('base_optimizer'))
-        if base_state is None:
-            raise KeyError("state_dict must contain 'base'")
-
-        self.optimizer.load_state_dict(base_state)
+        self.optimizer.load_state_dict(state_dict['base'])
 
         self.mask_prob = state_dict['mask_prob']
         self.tau = state_dict['tau']
