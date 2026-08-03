@@ -62,13 +62,13 @@ dependencies = [
 [dependency-groups]
 dev = [
     'black<25; python_version < "3.9"',
-    'black<26; python_version >= "3.9"',
-    'ruff>=0.15,<0.16',
+    'black<27; python_version >= "3.9"',
+    'ruff>=0.16,<0.17',
     'pyright==1.1.408',
     'pytest<9; python_version < "3.10"',
     'pytest>=9,<10; python_version >= "3.10"',
     'pytest-cov<6; python_version < "3.9"',
-    'pytest-cov>=6,<7; python_version >= "3.9"',
+    'pytest-cov>=7,<8; python_version >= "3.9"',
 ]
 
 [tool.uv]
