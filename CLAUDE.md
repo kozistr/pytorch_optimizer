@@ -137,8 +137,18 @@ line coverage.
 
 ## Commits and pull requests
 
-- Use conventional commit prefixes without square brackets, such as `feature:`, `fix:`,
-  `docs:`, `style:`, `build(ci):`, and `build(deps):`.
+- Use conventional commit prefixes without square brackets. Prefixes describe the kind of
+  change:
+  - `feature: ...` — add user-visible functionality; historical example: `305528b6 [Feature]
+    Implement Magma optimizer`.
+  - `fix: ...` — correct a bug or compatibility issue; historical example: `50682fc1 [Fix]
+    Compat issue with the Accelerate library`.
+  - `docs: ...` — change documentation; example: `cf4ecef4 docs: update documentation`.
+  - `style: ...` — make formatting or lint-only changes; example: `2bb66560 style: fix F401`.
+  - `build(ci): ...` — change CI or release automation; example: `d3c81db7 build(ci): fix
+    release title`.
+  - `build(deps): ...` — update dependencies or lockfiles; example: `9d5dea89 build(deps):
+    packages`.
 - Feature PR titles use the repository convention, such as `[Feature] Implement `Magma` optimizer`.
 
 ## External Optimizer Support
