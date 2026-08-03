@@ -1,5 +1,9 @@
 # Agent Instructions
 
+Read `CLAUDE.md` for the repository's detailed architecture, development commands,
+and contribution guidance. The instructions below add the current project-specific
+conventions and take precedence where they are more specific.
+
 ## Development workflow
 
 - Use `uv` for dependency resolution and execution. Prefer `uv run just <recipe>` so tests use the versions in `uv.lock`.
