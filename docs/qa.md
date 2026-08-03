@@ -10,4 +10,4 @@
 
 ## Q3) How to run visualizations?
 
-Run `make visualize` or `python3 -m examples.visualize_optimizers` on the project root.
+Run `just visualize` or `python3 -m examples.visualize_optimizers` on the project root.

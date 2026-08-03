@@ -20,22 +20,22 @@ pip install -e ".[dev]"
 
 ```bash
 # Format code
-make format
+just format
 
 # Lint code
-make lint
+just lint
 
 # Full check (lint + type checking)
-make check
+just check
 
 # Run tests
-make test
+just test
 
 # Run a specific test
 python -m pytest tests/test_optimizers.py::test_name -sv -vv
 
 # Serve documentation locally
-make docs
+just docs
 ```
 
 ## Code Style
@@ -46,7 +46,7 @@ make docs
 - Linter: **ruff**
 - Docstring style: **Google style** ([example](https://github.com/kozistr/pytorch_optimizer/blob/main/pytorch_optimizer/optimizer/adamp.py#L14))
 
-Run `make format` and `make check` before submitting a PR.
+Run `just format` and `just check` before submitting a PR.
 
 ## Adding New Optimizers, Loss Functions, or LR Schedulers
 
@@ -65,7 +65,7 @@ Reference existing implementations:
    - `apply_cautious()`, `get_adanorm_gradient()`
    - `validate_learning_rate()`, `validate_betas()`, `validate_range()`
 4. Register in the corresponding `__init__.py` files
-5. Run `make format` and `make check`
+5. Run `just format` and `just check`
 6. Add tests with **100% coverage** requirement
 7. For new optimizers: add a minimal training recipe to `tests/constants.py` (see `OPTIMIZERS` list)
 8. Add a short description to the latest changelog in `docs/changelogs/`
