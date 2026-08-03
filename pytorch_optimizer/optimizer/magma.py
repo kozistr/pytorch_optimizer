@@ -4,6 +4,7 @@ import torch
 from torch import Tensor
 from torch.optim import AdamW, Optimizer
 
+from pytorch_optimizer.base.exception import NoComplexParameterError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import (
     Closure,
@@ -74,7 +75,8 @@ class Magma(BaseOptimizer):
             self.optimizer = self.load_optimizer(optimizer, **kwargs)
         else:
             self.validate_learning_rate(kwargs.get('lr', 1e-3))
-            kwargs.pop('num_iterations', None)
+            for option in ('alpha', 'k', 'num_iterations', 'pullback_momentum', 'use_muon'):
+                kwargs.pop(option, None)
             self.optimizer = self.load_optimizer(AdamW, params=optimizer, **kwargs)
 
         self.mask_prob = mask_prob
@@ -182,6 +184,8 @@ class Magma(BaseOptimizer):
         gradients: Dict[int, Tensor] = {}
         for group in self.param_groups:
             for parameter in group['params']:
+                if torch.is_complex(parameter):
+                    raise NoComplexParameterError(str(self))
                 if id(parameter) in self._exclude_ids:
                     continue
                 if closure is not None or parameter.grad is not None:
