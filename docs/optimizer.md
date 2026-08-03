@@ -344,6 +344,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Magma
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.LookSAM
     :docstring:
     :members:
