@@ -200,7 +200,7 @@ class Magma(BaseOptimizer):
         else:
             loss = self.optimizer.step()
 
-        mask_probability = torch.tensor(self.mask_prob)
+        mask_probabilities: Dict[torch.device, Tensor] = {}
         for parameter, gradient, snapshot in saved:
             if gradient is None or gradient.is_sparse:
                 continue
@@ -219,18 +219,18 @@ class Magma(BaseOptimizer):
 
             cosine = torch.nn.functional.cosine_similarity(
                 moment.flatten().unsqueeze(0), gradient.flatten().unsqueeze(0)
-            ).item()
-            alignment_target = torch.sigmoid(torch.tensor(cosine / self.tau, device=parameter.device))
+            ).squeeze(0)
+            alignment_target = torch.sigmoid(cosine.float() / self.tau)
             alignment_state = parameter_state['alignment']
             alignment_state.lerp_(alignment_target, 1.0 - self.alignment_ema)
-            alignment_score = alignment_state.item()
 
-            mask = torch.bernoulli(mask_probability).item()
-            blend = alignment_score * mask
-            if blend == 0.0:
-                parameter.copy_(snapshot)
-            elif blend != 1.0:
-                parameter.mul_(blend).add_(snapshot, alpha=1.0 - blend)
+            mask_probability = mask_probabilities.get(parameter.device)
+            if mask_probability is None:
+                mask_probability = torch.tensor(self.mask_prob, device=parameter.device)
+                mask_probabilities[parameter.device] = mask_probability
+
+            blend = alignment_state * torch.bernoulli(mask_probability)
+            parameter.lerp_(snapshot, 1.0 - blend)
 
         return loss
 
