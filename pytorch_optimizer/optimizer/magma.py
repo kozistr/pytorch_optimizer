@@ -220,13 +220,13 @@ class Magma(BaseOptimizer):
             cosine = torch.nn.functional.cosine_similarity(
                 moment.flatten().unsqueeze(0), gradient.flatten().unsqueeze(0)
             ).item()
-            alignment = torch.sigmoid(torch.tensor(cosine / self.tau, device=parameter.device)).item()
-            previous_alignment = parameter_state['alignment'].item()
-            alignment = self.alignment_ema * previous_alignment + (1.0 - self.alignment_ema) * alignment
-            parameter_state['alignment'].fill_(alignment)
+            alignment_target = torch.sigmoid(torch.tensor(cosine / self.tau, device=parameter.device)).item()
+            alignment_state = parameter_state['alignment']
+            alignment_state.mul_(self.alignment_ema).add_(alignment_target, alpha=1.0 - self.alignment_ema)
+            alignment_score = alignment_state.item()
 
             mask = torch.bernoulli(mask_probability).item()
-            blend = alignment * mask
+            blend = alignment_score * mask
             if blend == 0.0:
                 parameter.copy_(snapshot)
             elif blend != 1.0:
