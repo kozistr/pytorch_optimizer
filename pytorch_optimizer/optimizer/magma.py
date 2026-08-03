@@ -1,11 +1,19 @@
-from typing import Callable, Dict, Optional, Set, Tuple
+from typing import Callable, Dict, Optional, Set, Tuple, Union
 
 import torch
 from torch import Tensor
-from torch.optim import Optimizer
+from torch.optim import AdamW, Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.base.type import Closure, Defaults, Loss, OptimizerInstanceOrClass, ParamGroup, State
+from pytorch_optimizer.base.type import (
+    Closure,
+    Defaults,
+    Loss,
+    OptimizerInstanceOrClass,
+    ParamGroup,
+    ParamsT,
+    State,
+)
 
 _MOMENT_KEYS = ('exp_avg', 'momentum_buffer')
 
@@ -20,7 +28,8 @@ class Magma(BaseOptimizer):
     including when a parameter update is masked.
 
     Args:
-        optimizer (OptimizerInstanceOrClass): Base optimizer.
+        optimizer (OptimizerInstanceOrClass or ParamsT): Base optimizer instance/class,
+            or parameters to optimize with AdamW.
         mask_prob (float): Probability of keeping an update.
         tau (float): Temperature used by the alignment sigmoid.
         momentum_beta (float): EMA coefficient for the fallback momentum.
@@ -40,15 +49,16 @@ class Magma(BaseOptimizer):
 
     """
 
-    def __init__(  # noqa: PLR0917
+    def __init__(
         self,
-        optimizer: OptimizerInstanceOrClass,
+        optimizer: Union[OptimizerInstanceOrClass, ParamsT],
         mask_prob: float = 0.5,
         tau: float = 2.0,
         momentum_beta: float = 0.9,
         alignment_ema: float = 0.9,
         moment_key: Optional[str] = 'auto',
         exclude: Optional[Set[Tensor]] = None,
+        base_optimizer: OptimizerInstanceOrClass = AdamW,
         **kwargs,
     ) -> None:
         self.validate_range(mask_prob, 'mask_prob', 0.0, 1.0, range_type='[]')
@@ -59,7 +69,14 @@ class Magma(BaseOptimizer):
         self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
         self._optimizer_step_post_hooks: Dict[int, Callable] = {}
 
-        self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
+        if isinstance(optimizer, Optimizer):
+            self.optimizer = optimizer
+        elif isinstance(optimizer, type) and issubclass(optimizer, Optimizer):
+            self.optimizer = self.load_optimizer(optimizer, **kwargs)
+        else:
+            self.validate_learning_rate(kwargs.get('lr', 1e-3))
+            kwargs.pop('num_iterations', None)
+            self.optimizer = self.load_optimizer(base_optimizer, params=optimizer, **kwargs)
 
         self.mask_prob = mask_prob
         self.tau = tau

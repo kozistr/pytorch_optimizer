@@ -202,6 +202,7 @@ OPTIMIZER_LIST: List[OptimizerType] = [
     Lamb,
     Lion,
     MADGRAD,
+    Magma,
     MARS,
     MSVAG,
     Muon,
