@@ -1,3 +1,5 @@
+set windows-shell := ['powershell.exe', '-NoLogo', '-Command']
+
 files := 'pytorch_optimizer examples tests scripts hubconf.py'
 black-flags := '-S -l 119'
 
