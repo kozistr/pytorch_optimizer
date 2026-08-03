@@ -58,7 +58,6 @@ class Magma(BaseOptimizer):
         alignment_ema: float = 0.9,
         moment_key: Optional[str] = 'auto',
         exclude: Optional[Set[Tensor]] = None,
-        base_optimizer: OptimizerInstanceOrClass = AdamW,
         **kwargs,
     ) -> None:
         self.validate_range(mask_prob, 'mask_prob', 0.0, 1.0, range_type='[]')
@@ -76,7 +75,7 @@ class Magma(BaseOptimizer):
         else:
             self.validate_learning_rate(kwargs.get('lr', 1e-3))
             kwargs.pop('num_iterations', None)
-            self.optimizer = self.load_optimizer(base_optimizer, params=optimizer, **kwargs)
+            self.optimizer = self.load_optimizer(AdamW, params=optimizer, **kwargs)
 
         self.mask_prob = mask_prob
         self.tau = tau

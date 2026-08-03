@@ -80,6 +80,17 @@ def test_magma(environment):
     trainer.run(iterations=5, threshold=2.0)
 
 
+def test_magma_from_parameters():
+    parameter = simple_parameter()
+    optimizer = load_optimizer('magma')([parameter], lr=1e-1, mask_prob=1.0)
+
+    parameter.grad = torch.ones_like(parameter)
+    initial_parameter = parameter.detach().clone()
+    optimizer.step()
+
+    assert not torch.equal(parameter, initial_parameter)
+
+
 def test_magma_masks_parameters_and_updates_base_state():
     parameter = simple_parameter()
     optimizer = Magma(torch.optim.SGD([parameter], lr=1e-1, momentum=0.9), mask_prob=0.0)
