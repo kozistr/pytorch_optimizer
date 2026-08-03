@@ -61,8 +61,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    'black<25; python_version < "3.9"',
-    'black<27; python_version >= "3.9"',
     'ruff>=0.16,<0.17',
     'pyright==1.1.408',
     'pytest<9; python_version < "3.10"',
@@ -136,6 +134,7 @@ known-first-party = ["pytorch_optimizer"]
 [tool.ruff.lint.pylint]
 max-statements = 60
 max-branches = 17
+max-positional-args = 23
 
 [tool.ruff.format]
 quote-style = "single"

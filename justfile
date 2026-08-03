@@ -1,14 +1,11 @@
 set windows-shell := ['powershell.exe', '-NoLogo', '-Command']
 
 files := 'pytorch_optimizer examples tests scripts hubconf.py'
-black-flags := '-S -l 119'
 
 format:
     ruff check --fix {{files}}
-    black {{black-flags}} {{files}}
 
 lint:
-    black {{black-flags}} --check {{files}}
     ruff check {{files}}
 
 check: lint
