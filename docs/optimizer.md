@@ -344,10 +344,6 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.Magma
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.LookSAM
     :docstring:
     :members:
@@ -357,6 +353,10 @@
     :members:
 
 ::: pytorch_optimizer.MADGRAD
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.Magma
     :docstring:
     :members:
 
