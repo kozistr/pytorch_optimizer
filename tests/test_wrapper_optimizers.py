@@ -13,6 +13,7 @@ from pytorch_optimizer import (
     FriendlySAM,
     Lookahead,
     LookSAM,
+    Magma,
     OrthoGrad,
     PCGrad,
     ProportionScheduler,
@@ -67,6 +68,123 @@ def test_lookahead_state_dict_with_accelerate_style_mapping():
 
     moved_state = accelerate_style_move_to_device(state_dict, torch.device('cpu'))
     optimizer.load_state_dict(moved_state)
+
+
+def test_magma(environment):
+    x_data, y_data = environment
+    model, loss_fn = build_model()
+
+    optimizer = Magma(load_optimizer('adamw')(model.parameters(), lr=5e-1), mask_prob=1.0)
+
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(iterations=5, threshold=2.0)
+
+
+def test_magma_from_parameters():
+    parameter = simple_parameter()
+    optimizer = load_optimizer('magma')([parameter], lr=1e-1, mask_prob=1.0)
+
+    parameter.grad = torch.ones_like(parameter)
+    initial_parameter = parameter.detach().clone()
+    optimizer.step()
+
+    assert not torch.equal(parameter, initial_parameter)
+
+
+def test_magma_str_and_closure():
+    parameter = simple_parameter()
+    optimizer = Magma(torch.optim.SGD([parameter], lr=1e-1), mask_prob=1.0)
+
+    def closure():
+        parameter.grad = torch.ones_like(parameter)
+        return parameter.sum()
+
+    assert str(optimizer) == 'Magma'
+    optimizer.step(closure)
+
+
+def test_magma_accepts_optimizer_class_and_adds_param_group():
+    parameter = simple_parameter()
+    optimizer = Magma(torch.optim.SGD, params=[parameter], lr=1e-1)
+
+    new_parameter = simple_parameter()
+    optimizer.add_param_group({'params': [new_parameter]})
+
+    assert new_parameter in optimizer.param_groups[-1]['params']
+
+
+def test_magma_loads_magma_state():
+    parameter = simple_parameter()
+    optimizer = Magma(torch.optim.SGD([parameter], lr=1e-1), mask_prob=1.0)
+
+    parameter.grad = torch.ones_like(parameter)
+    optimizer.step()
+
+    new_parameter = simple_parameter()
+    new_optimizer = Magma(torch.optim.SGD([new_parameter], lr=1e-1))
+    new_optimizer.load_state_dict(optimizer.state_dict())
+
+    assert 'alignment' in new_optimizer.state_dict()['magma_state'][(0, 0)]
+
+
+def test_magma_moment_selection():
+    parameter = simple_parameter()
+    optimizer = Magma(torch.optim.SGD([parameter], lr=1e-1))
+
+    assert optimizer._get_first_moment(parameter) is None
+
+    optimizer.moment_key = None
+    assert optimizer._get_first_moment(parameter) is None
+
+    optimizer.moment_key = 'custom'
+    optimizer.optimizer.state[parameter]['custom'] = torch.ones_like(parameter)
+    assert optimizer._get_first_moment(parameter) is not None
+
+    optimizer.optimizer.state[parameter]['custom'] = None
+    assert optimizer._get_first_moment(parameter) is None
+
+    optimizer.moment_key = 'auto'
+    assert optimizer._get_first_moment(parameter) is None
+
+
+def test_magma_fallback_momentum():
+    parameter = simple_parameter()
+    optimizer = Magma(torch.optim.SGD([parameter], lr=1e-1), mask_prob=1.0)
+
+    parameter.grad = torch.ones_like(parameter)
+    optimizer.step()
+
+    assert 'momentum' in optimizer.state_dict()['magma_state'][(0, 0)]
+
+
+def test_magma_masks_parameters_and_updates_base_state():
+    parameter = simple_parameter()
+    optimizer = Magma(torch.optim.SGD([parameter], lr=1e-1, momentum=0.9), mask_prob=0.0)
+
+    parameter.grad = torch.ones_like(parameter)
+    initial_parameter = parameter.detach().clone()
+    optimizer.step()
+
+    assert torch.equal(parameter, initial_parameter)
+    assert 'momentum_buffer' in optimizer.state[parameter]
+    assert 'alignment' in optimizer.state_dict()['magma_state'][(0, 0)]
+
+
+def test_magma_excludes_parameters_and_loads_state_dict():
+    parameter = simple_parameter()
+    optimizer = Magma(torch.optim.AdamW([parameter], lr=1e-1), mask_prob=0.0, exclude={parameter})
+
+    parameter.grad = torch.ones_like(parameter)
+    initial_parameter = parameter.detach().clone()
+    optimizer.step()
+
+    assert not torch.equal(parameter, initial_parameter)
+    state_dict = optimizer.state_dict()
+
+    new_parameter = simple_parameter()
+    new_optimizer = Magma(torch.optim.AdamW([new_parameter], lr=1e-1))
+    new_optimizer.load_state_dict(state_dict)
+    assert new_optimizer.state[new_parameter].keys() == optimizer.state[parameter].keys()
 
 
 @pytest.mark.parametrize('adaptive', [True, False])

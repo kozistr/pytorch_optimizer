@@ -16,7 +16,7 @@ keywords = [
     "AdamP", "AdamS", "Adan", "AggMo", "Aida", "AliG", "Amos", "Apollo", "APOLLO", "AvaGrad", "bSAM", "BCOS", "CAME",
     "Conda", "DAdaptAdaGrad", "DAdaptAdam", "DAdaptAdan", "DAdaptSGD", "DAdaptLion", "DeMo", "DiffGrad", "EmoFact",
     "EmoLynx", "EmoNavi", "EmoNeco", "EmoZeal", "EXAdam", "FAdam", "Fira", "FOCUS", "FriendlySAM", "Fromage", "FTRL",
-    "GaLore", "Grams", "Gravity", "GrokFast", "GSAM", "Kate", "Lamb", "LaProp", "LARS", "Lion", "LoRARite", "LOMO", "Lookahead",
+    "GaLore", "Grams", "Gravity", "GrokFast", "GSAM", "Kate", "Lamb", "LaProp", "LARS", "Lion", "LoRARite", "LOMO", "Lookahead", "Magma",
     "EmoLynx", "EmoNavi", "EmoNeco", "EmoZeal", "EXAdam", "FAdam", "Fira", "FlashAdamW", "FOCUS", "FriendlySAM",
     "Conda", "DAdaptAdaGrad", "DAdaptAdam", "DAdaptAdan", "DAdaptSGD", "DAdaptLion", "DeMo", "DiffGrad", "DualAdam",
     "EmoFact", "EmoLynx", "EmoNavi", "EmoNeco", "EmoZeal", "EXAdam", "FAdam", "Fira", "FOCUS", "FriendlySAM", "Fromage", 
@@ -61,14 +61,12 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    'black<25; python_version < "3.9"',
-    'black<26; python_version >= "3.9"',
-    'ruff>=0.15,<0.16',
+    'ruff>=0.16,<0.17',
     'pyright==1.1.408',
     'pytest<9; python_version < "3.10"',
     'pytest>=9,<10; python_version >= "3.10"',
     'pytest-cov<6; python_version < "3.9"',
-    'pytest-cov>=6,<7; python_version >= "3.9"',
+    'pytest-cov>=7,<8; python_version >= "3.9"',
 ]
 
 [tool.uv]
@@ -136,6 +134,7 @@ known-first-party = ["pytorch_optimizer"]
 [tool.ruff.lint.pylint]
 max-statements = 60
 max-branches = 17
+max-positional-args = 23
 
 [tool.ruff.format]
 quote-style = "single"

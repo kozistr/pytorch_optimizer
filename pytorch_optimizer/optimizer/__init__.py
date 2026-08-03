@@ -71,6 +71,7 @@ from pytorch_optimizer.optimizer.lomo import LOMO, AdaLOMO
 from pytorch_optimizer.optimizer.lookahead import Lookahead
 from pytorch_optimizer.optimizer.lora_rite import LoRARite
 from pytorch_optimizer.optimizer.madgrad import MADGRAD
+from pytorch_optimizer.optimizer.magma import Magma
 from pytorch_optimizer.optimizer.mars import MARS
 from pytorch_optimizer.optimizer.msvag import MSVAG
 from pytorch_optimizer.optimizer.muon import AdaGO, AdaMuon, DistributedMuon, Muon, prepare_muon_parameters
@@ -201,6 +202,7 @@ OPTIMIZER_LIST: List[OptimizerType] = [
     Lamb,
     Lion,
     MADGRAD,
+    Magma,
     MARS,
     MSVAG,
     Muon,

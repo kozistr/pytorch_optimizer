@@ -356,6 +356,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.Magma
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.MARS
     :docstring:
     :members:

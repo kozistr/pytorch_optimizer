@@ -2,48 +2,51 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Read `AGENT.md` for the current agent workflow and project-specific conventions.
+
 ## Build and Development Commands
 
 ```bash
-# Install dependencies (using poetry)
-poetry install
+# Install dependencies using uv
+uv sync
 
 # Run tests with coverage
-make test
+uv run just test
 # Or directly:
-python -m pytest -p no:pastebin -p no:nose -p no:doctest --disable-warnings -sv -vv --cov=pytorch_optimizer --cov-report=xml ./tests
+uv run pytest -p no:pastebin -p no:nose -p no:doctest --disable-warnings --cov=pytorch_optimizer --cov-report=xml ./tests
 
 # Run a single test file
-python -m pytest tests/test_optimizers.py -sv -vv
+uv run pytest tests/test_optimizers.py -sv -vv
 
 # Run a specific test
-python -m pytest tests/test_optimizers.py::test_name -sv -vv
+uv run pytest tests/test_optimizers.py::test_name -sv -vv
 
 # Format code
-make format
+uv run just format
 
 # Lint code
-make lint
+uv run just lint
 
 # Full check (lint + type checking)
-make check
+uv run just check
 
 # Update documentation
-make update-docs
+uv run just update-docs
 # Or: python scripts/update_docs.py
 
 # Serve documentation locally
-make docs
+uv run just docs
 ```
 
 ## Code Style
 
 - Line length: **119** characters
 - Use **single quotes** for strings (not double quotes)
-- Formatter: **black** with `-S -l 119` flags
-- Linter: **ruff**
+- Formatter and linter: **ruff**
 - Docstring style: **Google style**, not reST or NumPy style
 - Do **not** add meaningless or redundant comments or docstrings
+- Avoid `from __future__ import annotations` and `TYPE_CHECKING` imports unless required by
+  the surrounding code.
 
 ## Architecture Overview
 
@@ -94,10 +97,11 @@ Reference existing implementations for patterns:
    - `apply_cautious()`, `get_adanorm_gradient()`
    - `validate_learning_rate()`, `validate_betas()`, `validate_range()`
 4. Register in the corresponding `__init__.py` files
-5. Run `make format` and `make check` to ensure strict style compliance
+5. Run `uv run just format` and `uv run just check` to ensure strict style compliance
 6. Add tests with **100% coverage** requirement
 7. For new optimizers: add a minimal training recipe to `tests/constants.py` (see `OPTIMIZERS` list)
 8. Add a short description to the latest changelog in `docs/changelogs/`
+   - Never edit the root `CHANGELOG.md`; it is maintained automatically.
 9. Update `README.md`:
    - Update the count of optimizers/loss functions/schedulers
    - Add entry to the appropriate markdown table with format:
@@ -119,7 +123,7 @@ optimizer = create_optimizer(model, 'adamp', lr=1e-3, use_gc=True, use_lookahead
 
 ## Testing
 
-Tests are in `tests/` directory:
+Tests are in the `tests/` directory:
 - `test_optimizers.py` - Main optimizer tests
 - `test_optimizer_parameters.py` - Parameter validation tests
 - `test_optimizer_variants.py` - Variant tests (Cautious, AdamD, etc.)
@@ -127,6 +131,21 @@ Tests are in `tests/` directory:
 - `test_lr_schedulers.py` - Scheduler tests
 
 The `conftest.py` provides a `environment` fixture with sample data for training tests.
+
+Use `uv run coverage report -m` to verify coverage. New implementation code must have 100%
+line coverage.
+
+## Commits and pull requests
+
+- Use conventional commit prefixes without square brackets. Prefixes describe the kind of
+  change:
+  - `feature: ...` — add user-visible functionality; example: `feature: implement Magma optimizer`.
+  - `fix: ...` — correct a bug or compatibility issue; example: `fix: prevent NaN in AdamP rsqrt`.
+  - `docs: ...` — change documentation; example: `docs: update documentation`.
+  - `style: ...` — make formatting or lint-only changes; example: `style: fix F401`.
+  - `build(ci): ...` — change CI or release automation; example: `build(ci): fix release title`.
+  - `build(deps): ...` — update dependencies or lockfiles; example: `build(deps): packages`.
+- Feature PR titles use the repository convention, such as `[Feature] Implement `Magma` optimizer`.
 
 ## External Optimizer Support
 
