@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Optional, Set, Tuple, Union
+from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -144,8 +144,7 @@ class Magma(BaseOptimizer):
 
         self._state = {}
         for key, parameter_state in state_dict.get('magma_state', {}).items():
-            normalized_key = tuple(key) if isinstance(key, list) else key
-            parameter_id = key_to_id.get(normalized_key)
+            parameter_id = key_to_id.get(key)
             if parameter_id is not None:
                 self._state[parameter_id] = {name: value.clone() for name, value in parameter_state.items()}
 
@@ -172,16 +171,14 @@ class Magma(BaseOptimizer):
 
         return None
 
-    def _capture_gradients(self, gradients: Dict[int, Tensor]) -> None:
-        for group in self.param_groups:
-            for parameter in group['params']:
-                if parameter.grad is not None and id(parameter) not in self._exclude_ids:
-                    gradients[id(parameter)] = parameter.grad.detach().clone()
+    def _capture_gradients(self, saved: List[Tuple[Tensor, Optional[Tensor], Tensor]]) -> None:
+        for index, (parameter, _, snapshot) in enumerate(saved):
+            if parameter.grad is not None:
+                saved[index] = (parameter, parameter.grad.detach().clone(), snapshot)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
-        snapshots: Dict[int, Tuple[Tensor, Tensor]] = {}
-        gradients: Dict[int, Tensor] = {}
+        saved: List[Tuple[Tensor, Optional[Tensor], Tensor]] = []
         for group in self.param_groups:
             for parameter in group['params']:
                 if torch.is_complex(parameter):
@@ -189,26 +186,26 @@ class Magma(BaseOptimizer):
                 if id(parameter) in self._exclude_ids:
                     continue
                 if closure is not None or parameter.grad is not None:
-                    snapshots[id(parameter)] = (parameter, parameter.detach().clone())
-                if parameter.grad is not None:
-                    gradients[id(parameter)] = parameter.grad.detach().clone()
+                    gradient = parameter.grad.detach().clone() if parameter.grad is not None else None
+                    saved.append((parameter, gradient, parameter.detach().clone()))
 
         if closure is not None:
 
             def magma_closure():
                 loss = closure()
-                self._capture_gradients(gradients)
+                self._capture_gradients(saved)
                 return loss
 
             loss = self.optimizer.step(magma_closure)
         else:
             loss = self.optimizer.step()
 
-        for parameter_id, (parameter, snapshot) in snapshots.items():
-            gradient = gradients.get(parameter_id)
+        mask_probability = torch.tensor(self.mask_prob)
+        for parameter, gradient, snapshot in saved:
             if gradient is None or gradient.is_sparse:
                 continue
 
+            parameter_id = id(parameter)
             if parameter_id not in self._state:
                 self._state[parameter_id] = {'alignment': torch.tensor(1.0, device=parameter.device)}
 
@@ -228,7 +225,7 @@ class Magma(BaseOptimizer):
             alignment = self.alignment_ema * previous_alignment + (1.0 - self.alignment_ema) * alignment
             parameter_state['alignment'].fill_(alignment)
 
-            mask = torch.bernoulli(torch.tensor(self.mask_prob)).item()
+            mask = torch.bernoulli(mask_probability).item()
             blend = alignment * mask
             if blend == 0.0:
                 parameter.copy_(snapshot)
