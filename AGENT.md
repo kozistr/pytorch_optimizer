@@ -36,14 +36,12 @@ conventions and take precedence where they are more specific.
 - Use conventional commit prefixes without square brackets. Prefixes describe the kind of
   change, not just the files touched:
   - `feature: ...` — add user-visible functionality, such as the historical
-    `305528b6 [Feature] Implement Magma optimizer` commit.
-  - `fix: ...` — correct a bug or compatibility issue, such as `50682fc1 [Fix] Compat issue
-    with the Accelerate library`.
-  - `docs: ...` — change documentation, such as `cf4ecef4 docs: update documentation`.
-  - `style: ...` — make formatting or lint-only changes, such as `2bb66560 style: fix F401`.
-  - `build(ci): ...` — change CI or release automation, such as `d3c81db7 build(ci): fix
-    release title`.
-  - `build(deps): ...` — update dependencies or lockfiles, such as `9d5dea89 build(deps):
-    packages`.
+    `feature: implement Magma optimizer` commit.
+  - `fix: ...` — correct a bug or compatibility issue, such as `fix: prevent NaN in AdamP
+    rsqrt`.
+  - `docs: ...` — change documentation, such as `docs: update documentation`.
+  - `style: ...` — make formatting or lint-only changes, such as `style: fix F401`.
+  - `build(ci): ...` — change CI or release automation, such as `build(ci): fix release title`.
+  - `build(deps): ...` — update dependencies or lockfiles, such as `build(deps): packages`.
 - Feature PR titles follow the repository convention, such as `[Feature] Implement `Magma` optimizer`.
 - Keep commits focused, verify the branch and working tree before pushing, and use `--force-with-lease` only when rewriting a pushed branch is necessary.
