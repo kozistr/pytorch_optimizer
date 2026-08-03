@@ -230,7 +230,7 @@ class Magma(BaseOptimizer):
                 mask_probabilities[parameter.device] = mask_probability
 
             blend = alignment_state * torch.bernoulli(mask_probability)
-            parameter.lerp_(snapshot, 1.0 - blend)
+            parameter.lerp_(snapshot, 1.0 - blend.to(dtype=parameter.dtype))
 
         return loss
 
