@@ -230,6 +230,20 @@ def test_swats_sgd_phase():
     opt.step()
 
 
+@pytest.mark.parametrize('foreach', [False, True])
+def test_sign_sgd_preserves_momentum_buffer(foreach):
+    param = nn.Parameter(torch.tensor([0.0]))
+    optimizer = load_optimizer('signsgd')([param], lr=1.0, momentum=0.9, foreach=foreach)
+
+    param.grad = torch.tensor([1.0])
+    optimizer.step()
+
+    param.grad = torch.tensor([-0.1])
+    optimizer.step()
+
+    assert torch.allclose(optimizer.state[param]['momentum_buffer'], torch.tensor([0.08]))
+
+
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2])
 def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
     model, _ = build_model()
