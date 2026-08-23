@@ -244,6 +244,43 @@ def test_sign_sgd_preserves_momentum_buffer(foreach):
     assert torch.allclose(optimizer.state[param]['momentum_buffer'], torch.tensor([0.08]))
 
 
+@pytest.mark.parametrize('foreach', [False, True])
+def test_sign_sgd_decoupled_weight_decay(foreach):
+    param = nn.Parameter(torch.tensor([2.0]))
+    optimizer = load_optimizer('signsgd')(
+        [param], lr=0.1, momentum=0.9, weight_decay=0.2, weight_decouple=True, foreach=foreach
+    )
+
+    param.grad = torch.tensor([0.0])
+    optimizer.step()
+
+    assert torch.allclose(param, torch.tensor([1.96]))
+
+
+@pytest.mark.parametrize('foreach', [False, True])
+def test_sign_sgd_coupled_weight_decay(foreach):
+    param = nn.Parameter(torch.tensor([2.0]))
+    optimizer = load_optimizer('signsgd')(
+        [param], lr=0.1, momentum=0.9, weight_decay=0.2, weight_decouple=False, foreach=foreach
+    )
+
+    param.grad = torch.tensor([0.0])
+    optimizer.step()
+
+    assert torch.allclose(param, torch.tensor([1.9]))
+
+
+@pytest.mark.parametrize('foreach', [False, True])
+def test_sign_sgd_no_weight_decay(foreach):
+    param = nn.Parameter(torch.tensor([2.0]))
+    optimizer = load_optimizer('signsgd')([param], lr=0.1, momentum=0.9, weight_decay=0.0, foreach=foreach)
+
+    param.grad = torch.tensor([0.0])
+    optimizer.step()
+
+    assert torch.allclose(param, torch.tensor([2.0]))
+
+
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2])
 def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
     model, _ = build_model()
