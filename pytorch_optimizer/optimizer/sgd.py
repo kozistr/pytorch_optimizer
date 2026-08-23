@@ -458,7 +458,7 @@ class SignSGD(BaseOptimizer):
 
             state = self.state[p]
 
-            if group['momentum'] > 0.0:
+            if group['momentum'] > 0.0 and 'momentum_buffer' not in state:
                 state['momentum_buffer'] = torch.zeros_like(p)
 
     def _can_use_foreach(self, group: ParamGroup) -> bool:
