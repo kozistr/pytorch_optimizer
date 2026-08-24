@@ -127,7 +127,7 @@ class Tiger(BaseOptimizer):
             )
 
             exp_avg = state['exp_avg']
-            exp_avg.mul_(beta).add_(grad, alpha=1.0 - beta)
+            exp_avg.lerp_(grad, weight=1.0 - beta)
 
             p.add_(torch.sign(exp_avg) if not torch.is_complex(exp_avg) else torch.sgn(exp_avg), alpha=-group['lr'])
 
