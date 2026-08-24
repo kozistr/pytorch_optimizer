@@ -517,7 +517,7 @@ class SignSGD(BaseOptimizer):
 
             if momentum > 0.0:
                 buf = state['momentum_buffer']
-                buf.mul_(momentum).add_(grad, alpha=1.0 - momentum)
+                buf.lerp_(grad, weight=1.0 - momentum)
             else:
                 buf = grad
 

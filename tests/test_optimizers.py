@@ -281,6 +281,21 @@ def test_sign_sgd_no_weight_decay(foreach):
     assert torch.allclose(param, torch.tensor([2.0]))
 
 
+@pytest.mark.parametrize(
+    ('optimizer_name', 'kwargs'), [('signsgd', {'momentum': 0.1}), ('tiger', {'beta': 0.1})]
+)
+def test_sign_based_foreach_parity(optimizer_name, kwargs):
+    def run(foreach):
+        param = nn.Parameter(torch.tensor([2.0]))
+        optimizer = load_optimizer(optimizer_name)([param], lr=0.1, foreach=foreach, **kwargs)
+        for grad in (1.0, -0.1):
+            param.grad = torch.tensor([grad])
+            optimizer.step()
+        return param.item()
+
+    assert run(False) == run(True)
+
+
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2])
 def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
     model, _ = build_model()
