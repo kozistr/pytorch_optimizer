@@ -40,3 +40,24 @@ class PolyScheduler(BaseLinearWarmupScheduler):
 
     def _step(self) -> float:
         return self.min_lr + (self.max_lr - self.min_lr) * (self.step_t - self.warmup_steps) ** self.poly_order
+
+
+class ExponentialScheduler(BaseLinearWarmupScheduler):
+    """Exponential LR Scheduler with linear warmup.
+
+    Args:
+        gamma (float): multiplicative decay factor applied after warmup.
+
+    """
+
+    def __init__(self, optimizer, gamma: float = 0.99, **kwargs):
+        self.gamma = gamma
+
+        if gamma <= 0 or gamma > 1.0:
+            raise ValueError(f'gamma must be in the interval (0, 1]. {gamma}')
+
+        super().__init__(optimizer, **kwargs)
+
+    def _step(self) -> float:
+        value = self.max_lr * self.gamma ** (self.step_t - self.warmup_steps)
+        return max(value, self.min_lr)

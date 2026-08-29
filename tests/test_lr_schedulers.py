@@ -12,7 +12,7 @@ from pytorch_optimizer.lr_scheduler.chebyshev import (
 )
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
-from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
+from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, ExponentialScheduler, LinearScheduler, PolyScheduler
 from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from pytorch_optimizer.lr_scheduler.rex import REXScheduler
 from pytorch_optimizer.lr_scheduler.wsd import get_wsd_schedule
@@ -146,6 +146,28 @@ class TestWarmupSchedulers:
             warmup_steps=5,
         )
         LRSchedulerAssertions.assert_lr_sequence(lr_scheduler, LWP_RECIPE, decimals=6)
+
+    def test_exponential_scheduler(self, optimizer_factory):
+        lr_scheduler = ExponentialScheduler(
+            optimizer_factory,
+            t_max=10,
+            max_lr=1e-2,
+            min_lr=1e-4,
+            init_lr=1e-3,
+            warmup_steps=2,
+            gamma=0.5,
+        )
+
+        expected_lrs = [
+            0.001,
+            0.0055,
+            0.01,
+            0.005,
+            0.0025,
+            0.00125,
+        ]
+
+        LRSchedulerAssertions.assert_lr_sequence(lr_scheduler, expected_lrs, decimals=7)
 
 
 @pytest.mark.parametrize('proportion_learning_rate', PROPORTION_LEARNING_RATES)
