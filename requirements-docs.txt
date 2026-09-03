@@ -3,7 +3,7 @@
 numpy<2.0
 torch==2.10.0
 mkdocs==1.6.1
-mkdocs-material==9.7.6
+mkdocs-material==9.7.7
 pymdown-extensions==10.21.2
 mkdocstrings-python==2.0.3
 markdown-include==0.8.1
