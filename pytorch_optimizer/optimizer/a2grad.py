@@ -102,7 +102,7 @@ class A2Grad(BaseOptimizer):
                 state = self.state[p]
 
                 avg_grad, v_k, x_k = state['avg_grad'], state['v_k'], state['x_k']
-                avg_grad.add_(grad - avg_grad, alpha=group['step'] + 1)
+                avg_grad.add_(grad - avg_grad, alpha=1.0 / group['step'])
 
                 delta_k = grad.clone()
                 delta_k.add_(avg_grad, alpha=-1.0)
