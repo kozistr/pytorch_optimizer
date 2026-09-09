@@ -420,6 +420,8 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
                 if torch.is_complex(p):
                     raise NoComplexParameterError(str(self))
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 state = self.demo_state.get(p, {})
 
                 self.apply_weight_decay(

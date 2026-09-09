@@ -118,6 +118,8 @@ class ROSE(BaseOptimizer):
                 grad = p.grad.to(dtype=torch.float32 if fp32 else compute_dtype)
                 param = p.to(dtype=torch.float32 if fp32 else compute_dtype)
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 self.apply_weight_decay(
                     p,
                     grad,

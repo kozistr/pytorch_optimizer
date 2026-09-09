@@ -94,6 +94,8 @@ class RACS(BaseOptimizer):
 
                 state = self.state[p]
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 if grad.ndim < 2:
                     grad = grad.reshape(len(grad), 1)
                 elif grad.ndim > 2:
@@ -294,6 +296,8 @@ class Alice(BaseOptimizer):
                     raise NoComplexParameterError(str(self))
 
                 state = self.state[p]
+
+                self.maximize_gradient(grad, maximize=self.maximize)
 
                 if grad.ndim < 2:
                     grad = grad.reshape(len(grad), 1)
