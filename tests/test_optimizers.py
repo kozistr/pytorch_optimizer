@@ -79,6 +79,22 @@ def test_adasmooth_zero_initialized_parameter():
         assert torch.isfinite(param).all()
 
 
+def test_a2grad_running_mean_does_not_diverge():
+    # avg_grad is the running mean of gradients (delta_k = grad - avg_grad),
+    # but the incremental-mean update used alpha = step + 1 instead of the
+    # reciprocal 1 / step, so avg_grad grew unboundedly and the optimizer
+    # NaN'd within ~35 steps. The existing tests run too few iterations to
+    # reach the divergence.
+    torch.manual_seed(0)
+    param = nn.Parameter(torch.rand(4))
+    optimizer = load_optimizer('a2grad')([param], lr=1e-2)
+    for _ in range(100):
+        optimizer.zero_grad()
+        ((param - 1.0) ** 2).sum().backward()
+        optimizer.step()
+        assert torch.isfinite(param).all()
+
+
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 @pytest.mark.parametrize('foreach', [False, True])
 def test_bf16_optimizers(optimizer_config, foreach, environment):
