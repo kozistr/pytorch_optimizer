@@ -65,6 +65,20 @@ def test_f32_optimizers(optimizer_config, foreach, environment):
     )
 
 
+def test_adasmooth_zero_initialized_parameter():
+    # AdaSmooth divides by the total absolute parameter movement (sum of |Δp|).
+    # A zero-initialized parameter (e.g. a bias, or a zero-init layer) does not
+    # move on the first step, so the denominator was 0 and the update became
+    # 0 / 0 = NaN, permanently corrupting the parameter.
+    param = nn.Parameter(torch.zeros(4))
+    optimizer = load_optimizer('adasmooth')([param], lr=1e-2)
+    for _ in range(5):
+        optimizer.zero_grad()
+        ((param - 1.0) ** 2).sum().backward()
+        optimizer.step()
+        assert torch.isfinite(param).all()
+
+
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 @pytest.mark.parametrize('foreach', [False, True])
 def test_bf16_optimizers(optimizer_config, foreach, environment):
