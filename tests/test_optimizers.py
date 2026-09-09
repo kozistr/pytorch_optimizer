@@ -111,6 +111,20 @@ def test_adashift_default_keep_num_does_not_nan():
         assert torch.isfinite(param).all()
 
 
+def test_madgrad_learning_rate_not_inflated_by_eps():
+    # The effective learning rate was `lr + eps`, so eps leaked into the step
+    # size: a step with lr=0 still moved the parameter, and for small learning
+    # rates the eps addition inflated the lr substantially (2x at lr=1e-6). eps
+    # belongs only in the denominator, not added to lr.
+    param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
+    before = param.detach().clone()
+    optimizer = load_optimizer('madgrad')([param], lr=0.0)
+    optimizer.zero_grad()
+    ((param - 5.0) ** 2).sum().backward()
+    optimizer.step()
+    torch.testing.assert_close(param.detach(), before)
+
+
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 @pytest.mark.parametrize('foreach', [False, True])
 def test_bf16_optimizers(optimizer_config, foreach, environment):
