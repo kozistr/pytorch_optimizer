@@ -101,6 +101,8 @@ class PAdam(BaseOptimizer):
 
                 grad = p.grad
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 state = self.state[p]
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']

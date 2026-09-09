@@ -1,5 +1,9 @@
+import os
+import socket
+
 import pytest
 import torch
+import torch.distributed as dist
 from torch import nn
 
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
@@ -1004,3 +1008,78 @@ def test_flash_adamw_parameters():
 
     with pytest.raises(ValueError):
         load_optimizer('flashadamw')([nn.Parameter(torch.ones(1))], master_weight_bits=24)
+
+
+MAXIMIZE_NOOP_CASES = [
+    ('padam', {'lr': 1e0, 'weight_decay': 1e-3}),
+    ('kron', {'lr': 1e0, 'weight_decay': 1e-3, 'pre_conditioner_update_probability': 1.0, 'balance_prob': 0.0}),
+    ('racs', {'lr': 1e0}),
+    ('alice', {'lr': 1e0, 'rank': 2, 'leading_basis': 1, 'update_interval': 2}),
+    ('rose', {'lr': 1e0, 'weight_decay': 1e-3}),
+    ('asgd', {'lr': 5e-1, 'weight_decay': 1e-3}),
+]
+
+
+def _maximize_update_directions(optimizer_name, config):
+    x = torch.randn(8, 2)
+    y = torch.randn(8, 1)
+
+    def run(maximize):
+        torch.manual_seed(42)
+        model = LogisticRegression()
+        init = torch.cat([p.detach().flatten() for p in model.parameters()])
+        optimizer = load_optimizer(optimizer_name)(model.parameters(), maximize=maximize, **config)
+        for _ in range(3):
+            optimizer.zero_grad()
+            torch.manual_seed(1)
+            nn.functional.mse_loss(model(x), y).backward()
+            torch.manual_seed(1)
+            optimizer.step()
+        return torch.cat([p.detach().flatten() for p in model.parameters()]) - init
+
+    return run(maximize=False), run(maximize=True)
+
+
+@pytest.mark.parametrize(('optimizer_name', 'config'), MAXIMIZE_NOOP_CASES)
+def test_maximize_reverses_update_direction(optimizer_name, config):
+    # `maximize=True` must ascend the objective, flipping the update relative to `maximize=False`.
+    # These optimizers accepted and documented the `maximize` option but never applied it in `step`,
+    # so both updates used to be byte-identical.
+    torch.manual_seed(42)
+
+    update_minimize, update_maximize = _maximize_update_directions(optimizer_name, config)
+
+    assert not torch.allclose(update_minimize, update_maximize), 'maximize=True had no effect'
+
+    cosine = torch.cosine_similarity(update_minimize, update_maximize, dim=0)
+    assert cosine < 0.0, f'maximize=True did not reverse the update direction (cosine={cosine:.4f})'
+
+
+def test_demo_maximize_reverses_update_direction():
+    pytest.importorskip('einops')
+
+    if dist.is_available() and dist.is_initialized():
+        pytest.skip('a process group is already initialized')
+
+    with socket.socket() as sock:
+        sock.bind(('127.0.0.1', 0))
+        port = sock.getsockname()[1]
+
+    os.environ['MASTER_ADDR'] = '127.0.0.1'
+    os.environ['MASTER_PORT'] = str(port)
+
+    try:
+        dist.init_process_group(backend='gloo', rank=0, world_size=1)
+    except Exception as exc:  # pragma: no cover - environment dependent
+        pytest.skip(f'cannot initialize a process group: {exc}')
+
+    try:
+        torch.manual_seed(42)
+        update_minimize, update_maximize = _maximize_update_directions('demo', {'lr': 1e0})
+
+        assert not torch.allclose(update_minimize, update_maximize), 'maximize=True had no effect'
+
+        cosine = torch.cosine_similarity(update_minimize, update_maximize, dim=0)
+        assert cosine < 0.0, f'maximize=True did not reverse the update direction (cosine={cosine:.4f})'
+    finally:
+        dist.destroy_process_group()
