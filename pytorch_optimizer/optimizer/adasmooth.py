@@ -115,7 +115,7 @@ class AdaSmooth(BaseOptimizer):
                 s.add_(p_diff)
                 n.add_(p_diff.abs())
 
-                c = s.sum().abs_().div_(n.sum())  # e_t
+                c = s.sum().abs_().div_(n.sum().add_(group['eps']))  # e_t
                 c.mul_(beta2 - beta1).add_(1.0 - beta2)
 
                 c_p2 = c.pow(2)
