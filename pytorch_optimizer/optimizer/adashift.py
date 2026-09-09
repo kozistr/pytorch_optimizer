@@ -67,7 +67,7 @@ class AdaShift(BaseOptimizer):
             state = self.state[p]
 
             if len(state) == 0:
-                state['grad_queue'] = deque([grad.clone()], maxlen=group['keep_num'])
+                state['grad_queue'] = deque(maxlen=group['keep_num'])
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
