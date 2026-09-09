@@ -150,8 +150,6 @@ class Adai(BaseOptimizer):
 
                 grad = p.grad
 
-                self.maximize_gradient(grad, maximize=self.maximize)
-
                 state = self.state[p]
 
                 if group['stable_weight_decay'] and group['weight_decay'] > 0.0:
