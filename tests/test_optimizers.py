@@ -111,6 +111,21 @@ def test_adashift_default_keep_num_does_not_nan():
         assert torch.isfinite(param).all()
 
 
+def test_msvag_debiasing_does_not_overflow():
+    # The moment estimates were debiased by dividing by beta ** step, which
+    # underflows toward zero as step grows, so m / v (and the update) explode
+    # and the optimizer NaNs (around step 496). EMA debiasing must divide by
+    # 1 - beta ** step. Run long enough to reach the overflow.
+    torch.manual_seed(0)
+    param = nn.Parameter(torch.rand(4))
+    optimizer = load_optimizer('msvag')([param], lr=1e-2)
+    for _ in range(600):
+        optimizer.zero_grad()
+        ((param - 1.0) ** 2).sum().backward()
+        optimizer.step()
+        assert torch.isfinite(param).all()
+
+
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 @pytest.mark.parametrize('foreach', [False, True])
 def test_bf16_optimizers(optimizer_config, foreach, environment):
