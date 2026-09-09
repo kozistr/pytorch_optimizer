@@ -79,6 +79,22 @@ def test_adasmooth_zero_initialized_parameter():
         assert torch.isfinite(param).all()
 
 
+def test_adashift_default_keep_num_does_not_nan():
+    # The gradient queue was pre-seeded with the first gradient, so with the
+    # default keep_num (10) it filled one step early and the first update used
+    # a negative bias correction (debias with a negative step), turning
+    # sqrt(exp_avg_sq / bias_correction) into sqrt of a negative -> NaN. The
+    # existing tests use keep_num=1, which sidesteps this.
+    torch.manual_seed(0)
+    param = nn.Parameter(torch.rand(4))
+    optimizer = load_optimizer('adashift')([param], lr=1e-2)
+    for _ in range(20):
+        optimizer.zero_grad()
+        ((param - 1.0) ** 2).sum().backward()
+        optimizer.step()
+        assert torch.isfinite(param).all()
+
+
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 @pytest.mark.parametrize('foreach', [False, True])
 def test_bf16_optimizers(optimizer_config, foreach, environment):
