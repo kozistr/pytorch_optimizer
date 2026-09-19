@@ -1004,3 +1004,28 @@ def test_flash_adamw_parameters():
 
     with pytest.raises(ValueError):
         load_optimizer('flashadamw')([nn.Parameter(torch.ones(1))], master_weight_bits=24)
+
+
+def test_adai_maximize_reverses_update_direction():
+    # Adai negates the gradient in both of its two passes over the same `p.grad`
+    # (`maximize_gradient` is in-place), so the negations cancelled and `maximize=True`
+    # kept descending the objective. It must reverse the update instead.
+    torch.manual_seed(42)
+    x = torch.randn(8, 2)
+    y = torch.randn(8, 1)
+
+    def run(maximize):
+        torch.manual_seed(42)
+        model = LogisticRegression()
+        init = torch.cat([p.detach().flatten() for p in model.parameters()])
+        optimizer = load_optimizer('adai')(model.parameters(), lr=1e0, weight_decay=1e-3, maximize=maximize)
+        for _ in range(3):
+            optimizer.zero_grad()
+            torch.manual_seed(1)
+            nn.functional.mse_loss(model(x), y).backward()
+            torch.manual_seed(1)
+            optimizer.step()
+        return torch.cat([p.detach().flatten() for p in model.parameters()]) - init
+
+    cosine = torch.cosine_similarity(run(maximize=False), run(maximize=True), dim=0)
+    assert cosine < 0.0, f'maximize=True did not reverse the update direction (cosine={cosine:.4f})'
