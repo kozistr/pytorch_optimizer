@@ -384,6 +384,8 @@ class ASGD(BaseOptimizer):
                 if grad.is_sparse:
                     raise NoSparseGradientError(str(self))
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 self.apply_weight_decay(
                     p=p,
                     grad=grad,

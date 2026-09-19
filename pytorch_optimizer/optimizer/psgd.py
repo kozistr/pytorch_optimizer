@@ -156,6 +156,8 @@ class Kron(BaseOptimizer):
                 if torch.is_complex(p):
                     raise NoComplexParameterError(str(self))
 
+                self.maximize_gradient(grad, maximize=self.maximize)
+
                 state = self.state[p]
 
                 if len(state) == 0:
