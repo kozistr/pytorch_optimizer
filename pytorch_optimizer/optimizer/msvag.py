@@ -93,8 +93,8 @@ class MSVAG(BaseOptimizer):
                 exp_avg.mul_(beta).add_(grad, alpha=1.0 - beta)
                 exp_avg_sq.mul_(beta).addcmul_(grad, grad, value=1.0 - beta)
 
-                m = exp_avg.div(beta_power)
-                v = exp_avg_sq.div(beta_power)
+                m = exp_avg.div(1.0 - beta_power)
+                v = exp_avg_sq.div(1.0 - beta_power)
 
                 rho: float = self.get_rho(beta_power, beta)
 
