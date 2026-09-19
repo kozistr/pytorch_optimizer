@@ -59,7 +59,7 @@ class MSVAG(BaseOptimizer):
     def get_rho(beta_power: float, beta: float) -> float:
         r"""Get rho."""
         rho: float = (1.0 - beta_power ** 2) * (1.0 - beta) ** 2  # fmt: skip
-        rho /= (1.0 - beta) * (1.0 - beta_power) ** 2
+        rho /= (1.0 - beta ** 2) * (1.0 - beta_power) ** 2  # fmt: skip
         return min(rho, 0.9999)
 
     @torch.no_grad()
