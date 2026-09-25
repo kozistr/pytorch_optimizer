@@ -296,6 +296,11 @@ class TestShampooUtils:
         with pytest.raises(ValueError):
             zero_power_via_newton_schulz_5(x, weights=[(1.0, 2.0)])
 
+        cpu = zero_power_via_newton_schulz_5(x)
+        reference = zero_power_via_newton_schulz_5(x, dtype=torch.float32)
+        assert cpu.dtype == x.dtype
+        torch.testing.assert_close(cpu, reference)
+
 
 class TestSM3Utils:
     def test_max_reduce_except_dim(self):
