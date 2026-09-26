@@ -53,13 +53,22 @@
 
 ## Commits and pull requests
 
-- Use conventional commit prefixes without square brackets. Prefixes describe the kind of
-  change, not just the files touched:
-  - `feature: ...` — add user-visible functionality, such as the historical `feature: implement Magma optimizer` commit.
-  - `fix: ...` — correct a bug or compatibility issue, such as `fix: prevent NaN in AdamP rsqrt`.
-  - `docs: ...` — change documentation, such as `docs: update documentation`.
-  - `style: ...` — make formatting or lint-only changes, such as `style: fix F401`.
-  - `build(ci): ...` — change CI or release automation, such as `build(ci): fix release title`.
-  - `build(deps): ...` — update dependencies or lockfiles, such as `build(deps): packages`.
-- Feature PR titles follow the repository convention, such as `[Feature] Implement `Magma` optimizer`.
+Every commit subject must start with one of these prefixes:
+
+| Prefix | Use for |
+| --- | --- |
+| `feat:` | Add a feature or public API. |
+| `fix:` | Correct a bug or unintended behavior. |
+| `perf:` | Improve execution speed or resource use. |
+| `style:` | Change code formatting without changing behavior. |
+| `refactor:` | Restructure code without changing public behavior. |
+| `docs:` | Add, revise, or reorganize documentation. |
+| `chore:` | Maintain development tools, automation, or repository housekeeping. |
+| `build:` | Change build, packaging, or dependency configuration. |
+| `update:` | Refresh project content or metadata when no more specific prefix applies. |
+
+Keep the text after the prefix imperative, concise, and specific to the committed change.
+Do not use commit prefixes outside this list.
+
+- Feature PR titles follow the existing format, such as `[Feature] Implement Magma optimizer`.
 - Keep commits focused, verify the branch and working tree before pushing, and use `--force-with-lease` only when rewriting a pushed branch is necessary.
