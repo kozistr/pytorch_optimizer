@@ -112,7 +112,7 @@ def test_adashift_default_keep_num_does_not_nan():
 
 
 def test_madgrad_zero_lr_takes_no_step():
-    # eps is folded into the learning rate, but not when lr is 0 -- previously
+    # eps is folded into the learning rate, but not when lr is 0. Previously
     # `lr + eps` meant a zero learning rate still moved the parameter by an
     # eps-sized step.
     param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))

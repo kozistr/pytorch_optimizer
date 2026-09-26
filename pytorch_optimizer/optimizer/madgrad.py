@@ -102,10 +102,8 @@ class MADGRAD(BaseOptimizer):
             weight_decay, momentum, eps = group['weight_decay'], group['momentum'], group['eps']
 
             # eps is folded into the learning rate (as in the reference implementation),
-            # but not when lr is 0 -- otherwise a zero learning rate would still step.
-            lr: float = group['lr']
-            if lr != 0.0:
-                lr += eps
+            # but not when lr is 0, otherwise a zero learning rate would still step.
+            lr: float = group['lr'] + eps if group['lr'] != 0.0 else 0.0
 
             _lambda = lr * math.pow(self.state['k'] + 1, 0.5)
 
