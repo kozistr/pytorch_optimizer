@@ -16,10 +16,10 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: 3.12
           enable-cache: true
@@ -36,10 +36,10 @@ jobs:
     name: Static Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: 3.12
           enable-cache: true
@@ -48,21 +48,36 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --no-editable
 
-      - uses: jakebailey/pyright-action@v2
+      - uses: jakebailey/pyright-action@8ec14b5cfe41f26e5f41686a31eb6012758217ef # v3.0.2
         with:
-          version: 1.1.408
+          version: 1.1.414
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: 3.12
+          enable-cache: true
+
+      - name: Build documentation
+        run: uv run --no-project --python 3.12 --with-requirements requirements-docs.txt zensical build --strict
 
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Setup uv
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
@@ -76,7 +91,7 @@ jobs:
 
     - name: Upload coverage
       if: success()
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         directory: ./
@@ -88,12 +103,12 @@ jobs:
 
   ci-summary:
     if: always()
-    needs: [lint, type_check, test]
+    needs: [lint, type_check, docs, test]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
-        if: needs.lint.result == 'failure' || needs.type_check.result == 'failure' || needs.test.result == 'failure'
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: exit 1
 
       - name: Report Summary
-        run: echo "✅ Lint and tests completed for all targets"
+        run: echo "✅ Lint, documentation, and tests completed for all targets"

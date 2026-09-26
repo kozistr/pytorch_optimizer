@@ -3,97 +3,84 @@ name: Publish
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
 
 jobs:
-
-  get-version:
-    name: Get Version
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.extract.outputs.version }}
-    steps:
-      - name: Extract tag version
-        id: extract
-        run: echo "version=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
-
-  prepend-changelog:
-    name: Prepend Change Log
-    runs-on: ubuntu-latest
-    needs: get-version
-
-    permissions:
-      contents: write
-      pull-requests: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Prepend changelog to CHANGELOG.md
-        run: |
-          VERSION="${{ needs.get-version.outputs.version }}"
-          CHANGELOG_FILE="docs/changelogs/$VERSION.md"
-
-          if [ ! -f "$CHANGELOG_FILE" ]; then
-            echo "No changelog found for $VERSION"
-            exit 1
-          fi
-
-          MAIN_CHANGELOG="CHANGELOG.md"
-          TMP_FILE=$(mktemp)
-
-          {
-            echo "# $VERSION"
-            echo
-            cat "$CHANGELOG_FILE"
-            echo
-            cat "$MAIN_CHANGELOG"
-          } > "$TMP_FILE"
-
-          mv "$TMP_FILE" "$MAIN_CHANGELOG"
-
-      - name: Create Pull Request
-        id: create_pull_request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: "docs/changelog-update-${{ needs.get-version.outputs.version }}"
-          commit-message: "[skip ci] docs: prepend changelog for ${{ needs.get-version.outputs.version }}"
-          title: "[Docs] Prepend changelog for ${{ needs.get-version.outputs.version }}"
-          body: "Automated changelog update for ${{ needs.get-version.outputs.version }}"
-          base: main
-          delete-branch: true
-          labels: automerge
-          token: ${{ secrets.GH_TOKEN }}
-
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [get-version, prepend-changelog]
+    permissions:
+      contents: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Create release
-        id: create_release
-        uses: softprops/action-gh-release@v2
+      - name: Generate release notes and create release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          body_path: docs/changelogs/${{ needs.get-version.outputs.version }}.md
+          generate_release_notes: true
           draft: false
           prerelease: false
-          name: pytorch-optimizer ${{ needs.get-version.outputs.version }}
-          tag_name: ${{ github.ref }}
+          name: pytorch-optimizer ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          token: ${{ secrets.GH_TOKEN }}
+
+  changelog:
+    name: Update Changelogs
+    runs-on: ubuntu-latest
+    needs: release
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Update changelogs from the published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$RELEASE_TAG" --json body --jq .body > "$RUNNER_TEMP/release-notes.md"
+          python scripts/update_changelog.py "$RELEASE_TAG" "$RUNNER_TEMP/release-notes.md"
+
+      - name: Create changelog pull request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: docs/changelog-update-${{ github.ref_name }}
+          commit-message: "docs: update changelogs for ${{ github.ref_name }}"
+          title: "docs: update changelogs for ${{ github.ref_name }}"
+          body: "Sync the generated release notes from https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }} into CHANGELOG.md and the documentation."
+          base: main
+          add-paths: |
+            CHANGELOG.md
+            docs/changelogs/${{ github.ref_name }}.md
+            docs/changelogs/index.md
+          delete-branch: true
+          labels: automerge
           token: ${{ secrets.GH_TOKEN }}
 
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: release
+    needs: changelog
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: 3.12
           enable-cache: true

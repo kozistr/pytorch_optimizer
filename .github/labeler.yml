@@ -2,6 +2,8 @@ documentation:
   - changed-files:
     - any-glob-to-any-file:
       - '**/*.md'
+      - zensical.toml
+      - docs/**
 
 github_actions:
   - changed-files:
@@ -15,6 +17,7 @@ dependencies:
       - requirements.txt
       - requirements-dev.txt
       - requirements-docs.txt
+      - uv.lock
 
 optimizer:
   - changed-files:

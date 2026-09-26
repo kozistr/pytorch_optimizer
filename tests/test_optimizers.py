@@ -65,46 +65,12 @@ def test_f32_optimizers(optimizer_config, foreach, environment):
     )
 
 
-def test_adasmooth_zero_initialized_parameter():
-    # AdaSmooth divides by the total absolute parameter movement (sum of |Δp|).
-    # A zero-initialized parameter (e.g. a bias, or a zero-init layer) does not
-    # move on the first step, so the denominator was 0 and the update became
-    # 0 / 0 = NaN, permanently corrupting the parameter.
-    param = nn.Parameter(torch.zeros(4))
-    optimizer = load_optimizer('adasmooth')([param], lr=1e-2)
-    for _ in range(5):
-        optimizer.zero_grad()
-        ((param - 1.0) ** 2).sum().backward()
-        optimizer.step()
-        assert torch.isfinite(param).all()
-
-
-def test_a2grad_running_mean_does_not_diverge():
-    # avg_grad is the running mean of gradients (delta_k = grad - avg_grad),
-    # but the incremental-mean update used alpha = step + 1 instead of the
-    # reciprocal 1 / step, so avg_grad grew unboundedly and the optimizer
-    # NaN'd within ~35 steps. The existing tests run too few iterations to
-    # reach the divergence.
+@pytest.mark.parametrize(('optimizer_name', 'iterations'), [('adasmooth', 5), ('a2grad', 100), ('adashift', 20)])
+def test_optimizer_updates_remain_finite(optimizer_name, iterations):
     torch.manual_seed(0)
-    param = nn.Parameter(torch.rand(4))
-    optimizer = load_optimizer('a2grad')([param], lr=1e-2)
-    for _ in range(100):
-        optimizer.zero_grad()
-        ((param - 1.0) ** 2).sum().backward()
-        optimizer.step()
-        assert torch.isfinite(param).all()
-
-
-def test_adashift_default_keep_num_does_not_nan():
-    # The gradient queue was pre-seeded with the first gradient, so with the
-    # default keep_num (10) it filled one step early and the first update used
-    # a negative bias correction (debias with a negative step), turning
-    # sqrt(exp_avg_sq / bias_correction) into sqrt of a negative -> NaN. The
-    # existing tests use keep_num=1, which sidesteps this.
-    torch.manual_seed(0)
-    param = nn.Parameter(torch.rand(4))
-    optimizer = load_optimizer('adashift')([param], lr=1e-2)
-    for _ in range(20):
+    param = nn.Parameter(torch.zeros(4) if optimizer_name == 'adasmooth' else torch.rand(4))
+    optimizer = load_optimizer(optimizer_name)([param], lr=1e-2)
+    for _ in range(iterations):
         optimizer.zero_grad()
         ((param - 1.0) ** 2).sum().backward()
         optimizer.step()
@@ -291,45 +257,22 @@ def test_sign_sgd_preserves_momentum_buffer(foreach):
 
 
 @pytest.mark.parametrize('foreach', [False, True])
-def test_sign_sgd_decoupled_weight_decay(foreach):
-    param = nn.Parameter(torch.tensor([2.0]))
-    optimizer = load_optimizer('signsgd')(
-        [param], lr=0.1, momentum=0.9, weight_decay=0.2, weight_decouple=True, foreach=foreach
-    )
-
-    param.grad = torch.tensor([0.0])
-    optimizer.step()
-
-    assert torch.allclose(param, torch.tensor([1.96]))
-
-
-@pytest.mark.parametrize('foreach', [False, True])
-def test_sign_sgd_coupled_weight_decay(foreach):
-    param = nn.Parameter(torch.tensor([2.0]))
-    optimizer = load_optimizer('signsgd')(
-        [param], lr=0.1, momentum=0.9, weight_decay=0.2, weight_decouple=False, foreach=foreach
-    )
-
-    param.grad = torch.tensor([0.0])
-    optimizer.step()
-
-    assert torch.allclose(param, torch.tensor([1.9]))
-
-
-@pytest.mark.parametrize('foreach', [False, True])
-def test_sign_sgd_no_weight_decay(foreach):
-    param = nn.Parameter(torch.tensor([2.0]))
-    optimizer = load_optimizer('signsgd')([param], lr=0.1, momentum=0.9, weight_decay=0.0, foreach=foreach)
-
-    param.grad = torch.tensor([0.0])
-    optimizer.step()
-
-    assert torch.allclose(param, torch.tensor([2.0]))
-
-
 @pytest.mark.parametrize(
-    ('optimizer_name', 'kwargs'), [('signsgd', {'momentum': 0.1}), ('tiger', {'beta': 0.1})]
+    ('weight_decay', 'weight_decouple', 'expected'), [(0.2, True, 1.96), (0.2, False, 1.9), (0.0, True, 2.0)]
 )
+def test_sign_sgd_weight_decay(foreach, weight_decay, weight_decouple, expected):
+    param = nn.Parameter(torch.tensor([2.0]))
+    optimizer = load_optimizer('signsgd')(
+        [param], lr=0.1, momentum=0.9, weight_decay=weight_decay, weight_decouple=weight_decouple, foreach=foreach
+    )
+
+    param.grad = torch.tensor([0.0])
+    optimizer.step()
+
+    assert torch.allclose(param, torch.tensor([expected]))
+
+
+@pytest.mark.parametrize(('optimizer_name', 'kwargs'), [('signsgd', {'momentum': 0.1}), ('tiger', {'beta': 0.1})])
 def test_sign_based_foreach_parity(optimizer_name, kwargs):
     def run(foreach):
         param = nn.Parameter(torch.tensor([2.0]))

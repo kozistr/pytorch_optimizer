@@ -1,0 +1,80 @@
+[project]
+site_name = "pytorch-optimizer"
+site_description = "Optimizers, learning rate schedulers, and loss functions for PyTorch"
+site_url = "https://pytorch-optimizers.readthedocs.io/"
+repo_name = "kozistr/pytorch_optimizer"
+repo_url = "https://github.com/kozistr/pytorch_optimizer"
+edit_uri = "edit/main/docs/"
+nav = [
+  { "Home" = "index.md" },
+  { "User Guide" = [
+    { "Getting Started" = "getting-started.md" },
+    { "Frequently Asked Questions" = "qa.md" },
+  ] },
+  { "API Reference" = [
+    { "Optimizers" = "optimizer.md" },
+    { "Learning Rate Schedulers" = "lr_scheduler.md" },
+    { "Loss Functions" = "loss.md" },
+    { "Utilities" = "util.md" },
+    { "Base Optimizer" = "base.md" },
+  ] },
+  { "Performance" = [
+    { "Benchmarks" = "benchmark.md" },
+    { "Visualizations" = "visualization.md" },
+  ] },
+  { "Changelog" = "changelogs/index.md" },
+]
+extra_javascript = [
+  "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML",
+  "https://cdnjs.cloudflare.com/ajax/libs/tablesort/5.2.1/tablesort.min.js",
+  "javascripts/tables.js",
+]
+
+[project.theme]
+variant = "classic"
+features = [
+  "content.action.edit",
+  "content.action.view",
+  "content.code.annotate",
+  "content.code.copy",
+  "content.tooltips",
+  "navigation.footer",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.top",
+  "search.highlight",
+  "search.suggest",
+  "toc.follow",
+]
+palette = [
+  { media = "(prefers-color-scheme: light)", scheme = "default", toggle = { icon = "material/brightness-4", name = "Switch to dark mode" } },
+  { media = "(prefers-color-scheme: dark)", scheme = "slate", toggle = { icon = "material/brightness-7", name = "Switch to light mode" } },
+]
+
+[project.plugins.mkdocstrings.handlers.python]
+paths = ["."]
+options.allow_inspection = false
+options.docstring_style = "google"
+options.show_root_heading = true
+options.show_root_full_path = false
+options.show_root_members_full_path = false
+options.show_bases = true
+options.show_source = true
+
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.attr_list]
+[project.markdown_extensions.def_list]
+[project.markdown_extensions.tables]
+[project.markdown_extensions.toc]
+permalink = true
+[project.markdown_extensions."pymdownx.arithmatex"]
+[project.markdown_extensions."pymdownx.details"]
+[project.markdown_extensions."pymdownx.highlight"]
+[project.markdown_extensions."pymdownx.inlinehilite"]
+[project.markdown_extensions."pymdownx.magiclink"]
+repo_url_shorthand = true
+user = "kozistr"
+repo = "pytorch_optimizer"
+[project.markdown_extensions."pymdownx.superfences"]
+[project.markdown_extensions."pymdownx.tasklist"]
+custom_checkbox = true
