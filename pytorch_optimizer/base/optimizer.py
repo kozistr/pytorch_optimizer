@@ -341,8 +341,7 @@ class BaseOptimizer(ABC, Optimizer):
         foreach_rsqrt_(r_factors)
         r_factors = [r_factor.unsqueeze(-1) for r_factor in r_factors]
 
-        c_factors = [c_factor.unsqueeze(-2) for c_factor in exp_avg_sq_col]
-        foreach_rsqrt_(c_factors)
+        c_factors = [c_factor.unsqueeze(-2).rsqrt() for c_factor in exp_avg_sq_col]
 
         torch._foreach_copy_(output, torch._foreach_mul(r_factors, c_factors))
 
