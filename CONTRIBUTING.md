@@ -55,8 +55,18 @@ The `docs` and `docs-build` recipes install documentation dependencies in an iso
 - Edit navigation and theme settings in `zensical.toml`.
 - Keep the documentation home page in `docs/index.md` and usage examples in `docs/getting-started.md`.
 - Run `uv run just update-docs` after changing public exports to regenerate the optimizer, scheduler, and loss references.
-- Add release notes under `docs/changelogs/` and link new versions from `docs/changelogs/index.md`.
+- Indent nested changelog bullets by four spaces per level. Use `#123` for issue and PR references; the site links them to GitHub.
 - Run `uv run just docs-build` before submitting documentation changes.
+
+### Release notes
+
+When a maintainer pushes a `vMAJOR.MINOR.PATCH` tag, the publish workflow asks GitHub to generate release notes from merged PRs.
+It creates the GitHub release, then opens a PR to sync that release's notes into `CHANGELOG.md`,
+`docs/changelogs/<tag>.md`, and the changelog index. The changelog PR uses the existing `automerge` label.
+Rerunning the workflow updates the existing version section instead of adding it twice.
+
+Write PR titles that explain the change to users. You do not need to maintain a separate changelog entry before a release.
+If a maintainer edits the published release notes, rerun the changelog job to sync those edits.
 
 ## Adding New Optimizers, Loss Functions, or LR Schedulers
 
@@ -78,7 +88,7 @@ Reference existing implementations:
 5. Run `uv run just format` and `uv run just check`
 6. Add tests with **100% coverage** requirement
 7. For new optimizers: add a minimal training recipe to `tests/constants.py` (see `OPTIMIZERS` list)
-8. Add a short description to the latest changelog in `docs/changelogs/`
+8. Describe the user-visible change in the PR title and description for the generated release notes.
 9. Update `README.md`:
    - Update the count of optimizers/loss functions/schedulers
    - Add entry to the appropriate markdown table

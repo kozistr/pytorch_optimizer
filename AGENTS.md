@@ -9,6 +9,7 @@
   - `uv run just check`
   - `uv run just test`
 - New or changed implementation code should have 100% test coverage. Check it with `uv run coverage report -m`.
+- If coverage drops, add focused tests using the existing patterns in `tests/constants.py` and `tests/test_*.py`.
 - Run a focused test with `uv run pytest tests/test_optimizers.py::test_name -sv -vv`.
 - Use `uv run just docs` to serve the Zensical documentation and `uv run just docs-build` to build it with strict validation.
 - Run `uv run just update-docs` after changing public exports to regenerate the API reference.
@@ -28,12 +29,15 @@
 ## Code style
 
 - Follow nearby repository code and tests before introducing new patterns.
+- Add comments only when code is difficult to understand; avoid redundant, meaningless, or excessive comments.
+- Use blank lines to separate logical steps and improve readability.
+- Do not add introductory comments or docstrings to scripts.
 - Use a maximum line length of 119 characters and single-quoted strings.
 - Use the repository's existing typing style. Do not add `from __future__ import annotations` or `TYPE_CHECKING` imports unless the surrounding code requires them.
 - Optimizers inherit from `BaseOptimizer`, implement `init_group()` and `step()`, and reuse its validation and update helpers where applicable.
 - Follow Google-style docstrings. Reuse helpers such as `apply_weight_decay()`, `apply_cautious()`, `debias()`,
   `validate_learning_rate()`, `validate_betas()`, and `validate_range()` before adding update or validation logic.
-- Keep implementations focused; remove redundant compatibility layers, comments, and abstractions.
+- Keep implementations focused; remove redundant compatibility layers and abstractions.
 
 ## Adding an optimizer
 
@@ -41,8 +45,9 @@
 - Export it from the optimizer package and register it in `OPTIMIZER_LIST` so it is available through `OPTIMIZERS` and `load_optimizer()`.
 - Add a training recipe to `tests/constants.py`; the parametrized tests in `tests/test_optimizers.py` will exercise it.
 - Add focused tests for optimizer-specific behavior, state handling, validation, wrappers, and edge cases as needed.
-- Update the relevant documentation and a versioned file under `docs/changelogs/`.
-- Link new changelog files from `docs/changelogs/index.md` and update the relevant algorithm table in `README.md`.
+- Update the relevant documentation and algorithm table in `README.md`.
+- Write clear PR titles and descriptions; the release workflow generates notes from merged PRs and syncs them to
+  `CHANGELOG.md`, `docs/changelogs/<tag>.md`, and the changelog index through an automated PR.
 - Register new loss functions and schedulers in their package exports and add them to the corresponding tests and README tables.
 - Never edit the root `CHANGELOG.md`; it is maintained automatically.
 
