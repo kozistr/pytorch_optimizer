@@ -217,13 +217,16 @@ class AdaFactor(BaseOptimizer):
                 row_means.append(factored_update.mean(dim=-1))
                 col_means.append(factored_update.mean(dim=-2))
 
-            torch._foreach_lerp_(exp_avg_sq_rows, row_means, weight=bias_correction2)
-            torch._foreach_lerp_(exp_avg_sq_cols, col_means, weight=bias_correction2)
+            torch._foreach_mul_(exp_avg_sq_rows, beta2_t)
+            torch._foreach_add_(exp_avg_sq_rows, row_means, alpha=1.0 - beta2_t)
+            torch._foreach_mul_(exp_avg_sq_cols, beta2_t)
+            torch._foreach_add_(exp_avg_sq_cols, col_means, alpha=1.0 - beta2_t)
 
             self.approximate_sq_grad(exp_avg_sq_rows, exp_avg_sq_cols, factored_updates)
 
         if non_factored_updates:
-            torch._foreach_lerp_(exp_avg_sqs, non_factored_updates, weight=bias_correction2)
+            torch._foreach_mul_(exp_avg_sqs, beta2_t)
+            torch._foreach_add_(exp_avg_sqs, non_factored_updates, alpha=1.0 - beta2_t)
 
             non_factored_updates = foreach_rsqrt(exp_avg_sqs)
 
@@ -245,7 +248,10 @@ class AdaFactor(BaseOptimizer):
 
         rms_values = self.get_rms(updates)
         torch._foreach_div_(rms_values, self.clip_threshold)
-        torch._foreach_clamp_max_(rms_values, 1.0)
+        if group['ams_bound']:
+            torch._foreach_clamp_max_(rms_values, 1.0)
+        else:
+            torch._foreach_clamp_min_(rms_values, 1.0)
 
         torch._foreach_div_(updates, rms_values)
         torch._foreach_mul_(updates, lrs)
@@ -297,13 +303,13 @@ class AdaFactor(BaseOptimizer):
             if factored:
                 exp_avg_sq_row, exp_avg_sq_col = state['exp_avg_sq_row'], state['exp_avg_sq_col']
 
-                exp_avg_sq_row.lerp_(update.mean(dim=-1), weight=bias_correction2)
-                exp_avg_sq_col.lerp_(update.mean(dim=-2), weight=bias_correction2)
+                exp_avg_sq_row.mul_(beta2_t).add_(update.mean(dim=-1), alpha=1.0 - beta2_t)
+                exp_avg_sq_col.mul_(beta2_t).add_(update.mean(dim=-2), alpha=1.0 - beta2_t)
 
                 self.approximate_sq_grad(exp_avg_sq_row, exp_avg_sq_col, update)
             else:
                 exp_avg_sq = state['exp_avg_sq']
-                exp_avg_sq.lerp_(update, weight=bias_correction2)
+                exp_avg_sq.mul_(beta2_t).add_(update, alpha=1.0 - beta2_t)
                 torch.rsqrt(exp_avg_sq, out=update)
 
             if group['ams_bound']:
@@ -313,7 +319,8 @@ class AdaFactor(BaseOptimizer):
 
             update.mul_(grad)
 
-            factor = self.get_rms(update).div_(self.clip_threshold).clamp_max_(1.0)
+            factor = self.get_rms(update).div_(self.clip_threshold)
+            factor.clamp_max_(1.0) if group['ams_bound'] else factor.clamp_min_(1.0)
             update.div_(factor).mul_(lr)
 
             if beta1 is not None:
