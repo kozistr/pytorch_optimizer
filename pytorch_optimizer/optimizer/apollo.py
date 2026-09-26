@@ -152,10 +152,11 @@ class ApolloDQN(BaseOptimizer):
                 d_p.copy_(exp_avg_grad.div(de_nom))
 
                 if weight_decay > 0.0 and group['weight_decay_type'] != 'l2':
+                    decay = weight_decay
                     if group['weight_decay_type'] == 'stable':
-                        weight_decay /= de_nom.mean().item()
+                        decay = weight_decay / de_nom.mean().item()
 
-                    d_p.add_(p, alpha=weight_decay)
+                    d_p.add_(p, alpha=decay)
 
                 p.add_(d_p, alpha=-current_lr)
 
