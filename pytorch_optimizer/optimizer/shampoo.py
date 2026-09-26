@@ -138,7 +138,7 @@ class Shampoo(BaseOptimizer):
 
                     pre_cond.add_(grad @ grad_t)
                     if group['step'] % self.preconditioning_compute_steps == 0:
-                        inv_pre_cond.copy_(compute_power_svd(pre_cond, order))
+                        inv_pre_cond.copy_(compute_power_svd(pre_cond, 2 * order))
 
                     if dim_id == order - 1:
                         grad = grad_t @ inv_pre_cond
