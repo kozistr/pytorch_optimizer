@@ -304,9 +304,16 @@ class BaseOptimizer(ABC, Optimizer):
 
         grad_norm = torch.linalg.norm(grad)
 
-        exp_grad_norm.mul(r).add_(grad_norm, alpha=1.0 - r)
+        # mul_ keeps the update in the stored EMA. The previous mul built a
+        # temporary, so the average stayed 0 and no gradient was ever scaled.
+        exp_grad_norm.mul_(r).add_(grad_norm, alpha=1.0 - r)
 
-        return grad.mul(exp_grad_norm).div_(grad_norm) if exp_grad_norm > grad_norm else grad
+        # A zero gradient after a non-zero history has exp_grad_norm above 0.
+        # Dividing by grad_norm there is 0/0. Leave it unscaled.
+        if grad_norm > 0 and exp_grad_norm > grad_norm:
+            return grad.mul(exp_grad_norm).div_(grad_norm)
+
+        return grad
 
     @staticmethod
     def get_rms(x: Union[List[torch.Tensor], torch.Tensor]) -> Union[List[torch.Tensor], torch.Tensor]:
