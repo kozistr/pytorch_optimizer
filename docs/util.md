@@ -1,4 +1,4 @@
-# Utilization
+# Utilities
 
 ::: pytorch_optimizer.get_supported_optimizers
     :docstring:

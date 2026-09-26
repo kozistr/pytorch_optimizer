@@ -11,42 +11,52 @@ cd pytorch_optimizer
 
 # Install dependencies using uv (recommended)
 uv sync
-
-# Or using pip
-pip install -e ".[dev]"
 ```
 
 ## Development Commands
 
 ```bash
 # Format code
-just format
+uv run just format
 
 # Lint code
-just lint
+uv run just lint
 
 # Full check (lint + type checking)
-just check
+uv run just check
 
 # Run tests
-just test
+uv run just test
 
 # Run a specific test
-python -m pytest tests/test_optimizers.py::test_name -sv -vv
+uv run pytest tests/test_optimizers.py::test_name -sv -vv
 
 # Serve documentation locally
-just docs
+uv run just docs
+
+# Build documentation with warnings treated as errors
+uv run just docs-build
 ```
 
 ## Code Style
 
 - Line length: **119** characters
 - Use **single quotes** for strings (not double quotes)
-- Formatter: **black** with `-S -l 119` flags
-- Linter: **ruff**
+- Formatter and linter: **ruff**
 - Docstring style: **Google style** ([example](https://github.com/kozistr/pytorch_optimizer/blob/main/pytorch_optimizer/optimizer/adamp.py#L14))
 
-Run `just format` and `just check` before submitting a PR.
+Run `uv run just format` and `uv run just check` before submitting a PR.
+
+## Documentation
+
+We use [Zensical](https://zensical.org/) with `mkdocstrings` for the API reference.
+The `docs` and `docs-build` recipes install documentation dependencies in an isolated Python 3.12 environment.
+
+- Edit navigation and theme settings in `zensical.toml`.
+- Keep the documentation home page in `docs/index.md` and usage examples in `docs/getting-started.md`.
+- Run `uv run just update-docs` after changing public exports to regenerate the optimizer, scheduler, and loss references.
+- Add release notes under `docs/changelogs/` and link new versions from `docs/changelogs/index.md`.
+- Run `uv run just docs-build` before submitting documentation changes.
 
 ## Adding New Optimizers, Loss Functions, or LR Schedulers
 
@@ -65,7 +75,7 @@ Reference existing implementations:
    - `apply_cautious()`, `get_adanorm_gradient()`
    - `validate_learning_rate()`, `validate_betas()`, `validate_range()`
 4. Register in the corresponding `__init__.py` files
-5. Run `just format` and `just check`
+5. Run `uv run just format` and `uv run just check`
 6. Add tests with **100% coverage** requirement
 7. For new optimizers: add a minimal training recipe to `tests/constants.py` (see `OPTIMIZERS` list)
 8. Add a short description to the latest changelog in `docs/changelogs/`

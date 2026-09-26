@@ -331,6 +331,7 @@ get_supported_loss_functions(['*focal*', 'bce*'])
 
 - Stable docs: <https://pytorch-optimizers.readthedocs.io/en/stable/>
 - Latest docs: <https://pytorch-optimizers.readthedocs.io/en/latest/>
+- Getting started: <https://pytorch-optimizers.readthedocs.io/en/latest/getting-started/>
 - Optimizer API reference: <https://pytorch-optimizers.readthedocs.io/en/latest/optimizer/>
 - LR scheduler API reference: <https://pytorch-optimizers.readthedocs.io/en/latest/lr_scheduler/>
 - Loss API reference: <https://pytorch-optimizers.readthedocs.io/en/latest/loss/>

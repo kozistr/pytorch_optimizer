@@ -22,7 +22,10 @@ visualize:
     python -m examples.visualize_optimizers
 
 docs:
-    mkdocs serve
+    uv run --no-project --python 3.12 --with-requirements requirements-docs.txt zensical serve
+
+docs-build:
+    uv run --no-project --python 3.12 --with-requirements requirements-docs.txt zensical build --strict
 
 update-docs:
     python scripts/update_docs.py

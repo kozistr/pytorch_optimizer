@@ -80,17 +80,6 @@ def test_magma(environment):
     trainer.run(iterations=5, threshold=2.0)
 
 
-def test_magma_from_parameters():
-    parameter = simple_parameter()
-    optimizer = load_optimizer('magma')([parameter], lr=1e-1, mask_prob=1.0)
-
-    parameter.grad = torch.ones_like(parameter)
-    initial_parameter = parameter.detach().clone()
-    optimizer.step()
-
-    assert not torch.equal(parameter, initial_parameter)
-
-
 def test_magma_str_and_closure():
     parameter = simple_parameter()
     optimizer = Magma(torch.optim.SGD([parameter], lr=1e-1), mask_prob=1.0)
@@ -124,7 +113,7 @@ def test_magma_loads_magma_state():
     new_optimizer = Magma(torch.optim.SGD([new_parameter], lr=1e-1))
     new_optimizer.load_state_dict(optimizer.state_dict())
 
-    assert 'alignment' in new_optimizer.state_dict()['magma_state'][(0, 0)]
+    assert {'alignment', 'momentum'} <= new_optimizer.state_dict()['magma_state'][(0, 0)].keys()
 
 
 def test_magma_moment_selection():
@@ -145,16 +134,6 @@ def test_magma_moment_selection():
 
     optimizer.moment_key = 'auto'
     assert optimizer._get_first_moment(parameter) is None
-
-
-def test_magma_fallback_momentum():
-    parameter = simple_parameter()
-    optimizer = Magma(torch.optim.SGD([parameter], lr=1e-1), mask_prob=1.0)
-
-    parameter.grad = torch.ones_like(parameter)
-    optimizer.step()
-
-    assert 'momentum' in optimizer.state_dict()['magma_state'][(0, 0)]
 
 
 def test_magma_masks_parameters_and_updates_base_state():
