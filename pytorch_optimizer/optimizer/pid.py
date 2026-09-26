@@ -123,7 +123,8 @@ class PID(BaseOptimizer):
 
                     if group['step'] > 1:
                         d_buf.add_(grad - g_buf, alpha=1.0 - group['momentum'])
-                        g_buf.copy_(grad)
+
+                    g_buf.copy_(grad)
 
                     grad.add_(i_buf, alpha=group['integral']).add_(d_buf, alpha=group['derivative'])
 
