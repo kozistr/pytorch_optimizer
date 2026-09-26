@@ -111,7 +111,7 @@ class AdaShift(BaseOptimizer):
                 exp_avg = state['exp_avg']
                 exp_avg.sub_(offset_grad, alpha=first_grad_weight).mul_(beta1).add_(grad, alpha=last_grad_weight)
 
-                reduced_grad_sq = self.reduce_func(offset_grad.pow_(2))
+                reduced_grad_sq = self.reduce_func(offset_grad.pow(2))
 
                 exp_avg_sq = state['exp_avg_sq']
                 exp_avg_sq.mul_(beta2).add_(reduced_grad_sq, alpha=1.0 - beta2)
