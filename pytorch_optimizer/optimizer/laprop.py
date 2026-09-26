@@ -133,15 +133,15 @@ class LaProp(BaseOptimizer):
                 bias_correction1: float = state['exp_avg_lr_1'] / group['lr'] if group['lr'] != 0.0 else 1.0
                 step_size: float = 1.0 / bias_correction1
 
-                de_nom = exp_avg_sq
+                second_moment = exp_avg_sq
                 if group['centered']:
                     exp_mean_avg_beta2.mul_(beta2).add_(grad, alpha=1.0 - beta2)
                     if group['step'] > self.steps_before_using_centered:
-                        de_nom -= exp_mean_avg_beta2.pow(2)
+                        second_moment = exp_avg_sq - exp_mean_avg_beta2.pow(2)
 
                 de_nom = self.apply_ams_bound(
                     ams_bound=group['ams_bound'],
-                    exp_avg_sq=exp_avg_sq,
+                    exp_avg_sq=second_moment,
                     max_exp_avg_sq=state.get('max_exp_avg_sq', None),
                     eps=group['eps'],
                 )
