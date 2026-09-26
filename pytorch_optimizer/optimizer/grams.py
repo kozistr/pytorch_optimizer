@@ -100,10 +100,15 @@ class Grams(BaseOptimizer):
 
                 p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
 
-                exp_avg.lerp_(grad, weight=beta1)
+                # lerp_(grad, w) keeps (1 - w) of the old average. w must be
+                # 1 - beta1; beta1 keeps 10% of the history with beta1 = 0.9.
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                update = (exp_avg / bias_correction1) / (exp_avg_sq / bias_correction2_sq).sqrt_().add_(group['eps'])
+                # Debiased Adam denominator: sqrt(v) / sqrt(1 - beta2^t).
+                # Dividing v by sqrt(1 - beta2^t) before the root takes the
+                # fourth root of the correction instead.
+                update = (exp_avg / bias_correction1) / (exp_avg_sq.sqrt() / bias_correction2_sq).add_(group['eps'])
                 update.abs_().mul_(grad.sign())
 
                 self.apply_weight_decay(
