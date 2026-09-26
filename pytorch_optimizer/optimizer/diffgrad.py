@@ -1,3 +1,5 @@
+import math
+
 import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
@@ -105,6 +107,7 @@ class DiffGrad(BaseOptimizer):
             beta1, beta2 = group['betas']
 
             bias_correction1: float = self.debias(beta1, group['step'])
+            bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
             step_size, n_sma = self.get_rectify_step_size(
                 is_rectify=group['rectify'],
@@ -160,10 +163,6 @@ class DiffGrad(BaseOptimizer):
                     torch.view_as_complex(grad) if torch.is_complex(state['previous_grad']) else grad
                 )
 
-                if not group['rectify']:
-                    p.addcdiv_(exp_avg, de_nom, value=-step_size)
-                    continue
-
                 self.apply_weight_decay(
                     p=p,
                     grad=None,
@@ -172,6 +171,11 @@ class DiffGrad(BaseOptimizer):
                     weight_decouple=group['weight_decouple'],
                     fixed_decay=group['fixed_decay'],
                 )
+
+                if not group['rectify']:
+                    step_size = group['lr'] * bias_correction2_sq / bias_correction1
+                    p.addcdiv_(dfc, de_nom, value=-step_size)
+                    continue
 
                 if n_sma >= self.n_sma_threshold:
                     p.addcdiv_(dfc, de_nom, value=-step_size)
