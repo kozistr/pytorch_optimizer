@@ -134,7 +134,9 @@ class AdaBelief(BaseOptimizer):
 
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
 
-        grad_residuals = torch._foreach_sub(grads, exp_avgs)
+        # beta1 == 0 makes the first moment equal the gradient, so g - m is
+        # identically 0 and the second moment stays at eps.
+        grad_residuals = grads if beta1 == 0.0 else torch._foreach_sub(grads, exp_avgs)
 
         torch._foreach_mul_(exp_avg_vars, beta2)
         torch._foreach_addcmul_(exp_avg_vars, grad_residuals, grad_residuals, value=1.0 - beta2)
@@ -182,7 +184,7 @@ class AdaBelief(BaseOptimizer):
 
             exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
 
-            grad_residual = grad - exp_avg
+            grad_residual = grad if beta1 == 0.0 else grad - exp_avg
             exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2).add_(group['eps'])
 
             de_nom = self.apply_ams_bound(
