@@ -114,6 +114,11 @@ class StableAdamW(BaseOptimizer):
         if self.maximize:
             torch._foreach_neg_(grads)
 
+        torch._foreach_lerp_(exp_avgs, grads, weight=beta1_comp)
+
+        torch._foreach_mul_(exp_avg_sqs, beta2_hat)
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2_hat)
+
         step_sizes: List[float] = [
             -lr / self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
             for grad, exp_avg_sq in zip(grads, exp_avg_sqs)
@@ -122,11 +127,6 @@ class StableAdamW(BaseOptimizer):
         if group['weight_decay'] != 0.0 and group['weight_decouple']:
             wd_step_sizes = [1.0 + group['weight_decay'] * step_size for step_size in step_sizes]
             torch._foreach_mul_(params, wd_step_sizes)
-
-        torch._foreach_lerp_(exp_avgs, grads, weight=beta1_comp)
-
-        torch._foreach_mul_(exp_avg_sqs, beta2_hat)
-        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2_hat)
 
         de_noms = torch._foreach_sqrt(exp_avg_sqs)
         torch._foreach_add_(de_noms, eps)
