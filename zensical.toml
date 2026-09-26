@@ -71,6 +71,10 @@ permalink = true
 [project.markdown_extensions."pymdownx.details"]
 [project.markdown_extensions."pymdownx.highlight"]
 [project.markdown_extensions."pymdownx.inlinehilite"]
+[project.markdown_extensions."pymdownx.magiclink"]
+repo_url_shorthand = true
+user = "kozistr"
+repo = "pytorch_optimizer"
 [project.markdown_extensions."pymdownx.superfences"]
 [project.markdown_extensions."pymdownx.tasklist"]
 custom_checkbox = true
