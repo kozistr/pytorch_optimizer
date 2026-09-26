@@ -134,7 +134,9 @@ class AdaBelief(BaseOptimizer):
 
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
 
-        grad_residuals = torch._foreach_sub(grads, exp_avgs)
+        # beta1 == 0 makes the first moment equal the gradient, so g - m is
+        # identically 0 and the second moment stays at eps.
+        grad_residuals = grads if beta1 == 0.0 else torch._foreach_sub(grads, exp_avgs)
 
         torch._foreach_mul_(exp_avg_vars, beta2)
         torch._foreach_addcmul_(exp_avg_vars, grad_residuals, grad_residuals, value=1.0 - beta2)
@@ -142,8 +144,9 @@ class AdaBelief(BaseOptimizer):
 
         de_noms = torch._foreach_sqrt(exp_avg_vars)
         torch._foreach_div_(de_noms, bias_correction2_sq)
+        torch._foreach_add_(de_noms, group['eps'])
 
-        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-lr)
+        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-lr / self.debias(beta1, group['step']))
 
     def _step_per_param(self, group: ParamGroup, step_size: float, n_sma: float) -> None:
         beta1, beta2 = group['betas']
@@ -182,8 +185,19 @@ class AdaBelief(BaseOptimizer):
 
             exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
 
-            grad_residual = grad - exp_avg
+            grad_residual = grad if beta1 == 0.0 else grad - exp_avg
             exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2).add_(group['eps'])
+
+            if not group['rectify']:
+                base = exp_avg_var
+                if group['ams_bound']:
+                    base = state['max_exp_avg_var']
+                    if torch.is_complex(base):
+                        base = torch.view_as_real(base)
+                    torch.maximum(base, exp_avg_var, out=base)
+                de_nom = base.sqrt().div_(bias_correction2_sq).add_(group['eps'])
+                p.addcdiv_(exp_avg, de_nom, value=-group['lr'] / self.debias(beta1, group['step']))
+                continue
 
             de_nom = self.apply_ams_bound(
                 ams_bound=group['ams_bound'],
@@ -191,11 +205,6 @@ class AdaBelief(BaseOptimizer):
                 max_exp_avg_sq=state.get('max_exp_avg_var', None),
                 eps=group['eps'],
             )
-
-            if not group['rectify']:
-                de_nom.div_(bias_correction2_sq)
-                p.addcdiv_(exp_avg, de_nom, value=-step_size)
-                continue
 
             if n_sma >= self.n_sma_threshold:
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
