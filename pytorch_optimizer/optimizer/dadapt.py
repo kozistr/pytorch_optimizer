@@ -398,7 +398,7 @@ class DAdaptAdam(BaseOptimizer):
         numerator_weighted.mul_(beta2_sq).add_(numerator_acc, alpha=1.0 - beta2_sq)  # fmt: skip
 
         if lr > 0.0:
-            d_hat = numerator_weighted / (1.0 - beta2_sq) * sk_l1
+            d_hat = numerator_weighted / ((1.0 - beta2_sq) * sk_l1)
             d = max(d, min(d_hat.item(), d * group['growth_rate']))
 
         for group in self.param_groups:
