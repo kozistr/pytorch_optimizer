@@ -116,7 +116,7 @@ class LARS(BaseOptimizer):
                 one = torch.ones_like(pn)
                 trust_ratio = torch.where(
                     pn > 0.0,
-                    torch.where(gn > 0.0, (group['trust_coefficient'] * pn / gn), one),
+                    torch.where(gn > 0.0, (group['trust_coefficient'] * pn / (gn + pn * group['weight_decay'])), one),
                     one,
                 )
                 trust_ratios.append(trust_ratio)
@@ -150,7 +150,7 @@ class LARS(BaseOptimizer):
 
                 trust_ratio = torch.where(
                     param_norm > 0.0,
-                    torch.where(update_norm > 0.0, (group['trust_coefficient'] * param_norm / update_norm), one),
+                    torch.where(update_norm > 0.0, (group['trust_coefficient'] * param_norm / (update_norm + param_norm * group['weight_decay'])), one),
                     one,
                 )
 
