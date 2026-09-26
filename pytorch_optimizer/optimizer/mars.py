@@ -259,6 +259,6 @@ class MARS(BaseOptimizer):
 
                 p.add_(update, alpha=-step_size)
 
-                state['last_grad'] = torch.view_as_complex(grad) if torch.is_complex(state['last_grad']) else grad
+                last_grad.copy_(torch.view_as_complex(grad) if torch.is_complex(last_grad) else grad)
 
         return loss
