@@ -53,7 +53,13 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         self.num_query_groups: int = num_query_groups if num_query_groups is not None else num_embeds
         self.validate_mod(num_embeds, self.num_query_groups)
 
-        self.world_size: int = torch.cuda.device_count()
+        # Visible GPUs are not a process group. all_gather below requires
+        # dist to be initialized; otherwise a single process that can see
+        # several devices calls it and raises.
+        if dist.is_available() and dist.is_initialized():
+            self.world_size: int = dist.get_world_size()
+        else:
+            self.world_size = 1
 
         self.model = model
         self.model_sharding = model_sharding
