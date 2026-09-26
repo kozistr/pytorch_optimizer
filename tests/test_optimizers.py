@@ -77,6 +77,19 @@ def test_optimizer_updates_remain_finite(optimizer_name, iterations):
         assert torch.isfinite(param).all()
 
 
+def test_madgrad_zero_lr_takes_no_step():
+    # eps is folded into the learning rate, but not when lr is 0. Previously
+    # `lr + eps` meant a zero learning rate still moved the parameter by an
+    # eps-sized step.
+    param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
+    before = param.detach().clone()
+    optimizer = load_optimizer('madgrad')([param], lr=0.0)
+    optimizer.zero_grad()
+    ((param - 5.0) ** 2).sum().backward()
+    optimizer.step()
+    torch.testing.assert_close(param.detach(), before)
+
+
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 @pytest.mark.parametrize('foreach', [False, True])
 def test_bf16_optimizers(optimizer_config, foreach, environment):
