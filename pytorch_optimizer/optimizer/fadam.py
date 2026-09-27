@@ -80,7 +80,7 @@ class FAdam(BaseOptimizer):
 
             if len(state) == 0:
                 state['momentum'] = torch.zeros_like(p, dtype=self.momentum_dtype)
-                state['fim'] = torch.zeros_like(p, dtype=self.fim_dtype)
+                state['fim'] = torch.ones_like(p, dtype=self.fim_dtype)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -112,7 +112,7 @@ class FAdam(BaseOptimizer):
                 fim.mul_(curr_beta2).addcmul_(grad, grad, value=1.0 - curr_beta2)
 
                 rms_grad = grad.pow(2).mean().sqrt_()
-                curr_eps = min(rms_grad, 1) * group['eps']
+                curr_eps = max(rms_grad, 1) * group['eps']
 
                 fim_base = fim.pow(group['p']).add_(curr_eps)
                 grad_nat = grad / fim_base
