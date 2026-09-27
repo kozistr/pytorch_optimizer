@@ -173,8 +173,6 @@ class Prodigy(BaseOptimizer):
         d = min(d_max, d * group['growth_rate'])
 
         for group in self.param_groups:
-            group['step'] += 1
-
             group['d_numerator'] = d_numerator
             group['d_de_nom'] = d_de_nom
             group['d'] = d
