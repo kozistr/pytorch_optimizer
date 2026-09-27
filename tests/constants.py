@@ -744,7 +744,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (Adan, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
     (DAdaptAdaGrad, {'lr': 3e0, 'weight_decay': 1e-3}, 30),
     (DAdaptAdaGrad, {'lr': 5e0, 'weight_decay': 1e-3, 'momentum': 0.1}, 20),
-    (DAdaptAdam, {'lr': 5e4, 'weight_decay': 1e-3}, 5),
+    (DAdaptAdam, {'lr': 1e2, 'weight_decay': 1e-3}, 5),
     (DAdaptSGD, {'lr': 2e0, 'weight_decay': 1e-3}, 25),
     (DAdaptAdan, {'lr': 2e0, 'weight_decay': 1e-3}, 20),
     (DAdaptAdan, {'lr': 2e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 20),
