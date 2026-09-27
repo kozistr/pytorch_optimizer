@@ -123,6 +123,8 @@ class DiffGrad(BaseOptimizer):
                 step_size=step_size,
                 bias_correction1=bias_correction1,
             )
+            if not group['rectify']:
+                step_size = group['lr'] * bias_correction2_sq / bias_correction1
 
             for p in group['params']:
                 if p.grad is None:
@@ -173,7 +175,6 @@ class DiffGrad(BaseOptimizer):
                 )
 
                 if not group['rectify']:
-                    step_size = group['lr'] * bias_correction2_sq / bias_correction1
                     p.addcdiv_(dfc, de_nom, value=-step_size)
                     continue
 
