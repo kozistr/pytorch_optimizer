@@ -121,8 +121,6 @@ class AdEMAMix(BaseOptimizer):
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
-            step_size: float = group['lr'] / bias_correction1
-
             alpha_t: float = self.schedule_alpha(group['t_alpha_beta3'], group['step'], group['alpha'])
             beta3_t: float = self.schedule_beta3(group['t_alpha_beta3'], group['step'], beta1, beta3)
 
@@ -157,10 +155,11 @@ class AdEMAMix(BaseOptimizer):
                 if group.get('cautious'):
                     self.apply_cautious(update, grad)
 
+                update.div_(bias_correction1).add_(exp_avg_slow, alpha=alpha_t).div_(de_nom)
+
+                step_size: float = group['lr']
                 if group.get('stable_adamw'):
                     step_size /= self.get_stable_adamw_rms(grad, exp_avg_sq)
-
-                update.add_(exp_avg_slow, alpha=alpha_t).div_(de_nom)
 
                 p.add_(update, alpha=-step_size)
 
