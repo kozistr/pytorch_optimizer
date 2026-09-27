@@ -164,14 +164,15 @@ class SPlus(BaseOptimizer):
                     p.shape, group['lr'], group['nonstandard_constant'], group['max_dim']
                 )
 
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=scaled_lr,
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
+                if not group['weight_decouple']:
+                    self.apply_weight_decay(
+                        p=p,
+                        grad=grad,
+                        lr=scaled_lr,
+                        weight_decay=group['weight_decay'],
+                        weight_decouple=False,
+                        fixed_decay=group['fixed_decay'],
+                    )
 
                 m, ema = state['momentum'], state['ema']
                 m.lerp_(grad, weight=1.0 - beta1)
@@ -213,5 +214,9 @@ class SPlus(BaseOptimizer):
                 p.add_(update, alpha=-scaled_lr)
 
                 ema.lerp_(p, weight=1.0 - group['ema_rate'])
+
+                if group['weight_decouple'] and group['weight_decay'] != 0.0:
+                    decay = group['weight_decay'] if group['fixed_decay'] else scaled_lr * group['weight_decay']
+                    p.mul_(1.0 - decay)
 
         return loss
