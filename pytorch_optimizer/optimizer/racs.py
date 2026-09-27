@@ -224,7 +224,8 @@ class Alice(BaseOptimizer):
         for _ in range(num_steps):
             u, _ = torch.linalg.qr(a @ u)
 
-        return torch.linalg.eigh(u.T @ a @ u)
+        vals, vecs = torch.linalg.eigh(u.T @ a @ u)
+        return vals, u @ vecs
 
     def switch(self, q: torch.Tensor, u_prev: torch.Tensor, rank: int, leading_basis: int) -> torch.Tensor:
         vals, vecs = self.subspace_iteration(q.to(torch.float32), u_prev.to(torch.float32), num_steps=1)
@@ -326,6 +327,7 @@ class Alice(BaseOptimizer):
                 if group['step'] == 1 or group['step'] % group['update_interval'] == 0:
                     q_t = beta3 * (u @ q @ u.T) + (1.0 - beta3) * (grad @ grad.T)
                     u = self.switch(q_t, u, rank, leading_basis)
+                    state['U'] = u
 
                 sigma = u.T @ grad
 
