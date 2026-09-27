@@ -756,7 +756,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (AdaFactor, {'lr': 5e-1, 'betas': (None, 0.999), 'weight_decay': 1e-3}, 70),
     (ApolloDQN, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (ApolloDQN, {'lr': 5e-1, 'weight_decay': 1e-3, 'rebound': 'belief'}, 10),
-    (ApolloDQN, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decay_type': 'stable', 'warmup_steps': 0}, 50),
+    (ApolloDQN, {'lr': 1e-2, 'weight_decay': 1e-6, 'weight_decay_type': 'stable', 'warmup_steps': 0}, 5),
     (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'grad_averaging': True}, 5),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (LoRARite, {'lr': 3e-2, 'betas': (0.9, 0.999), 'clip_unmagnified_grad': 1.0}, 10),
