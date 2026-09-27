@@ -278,11 +278,28 @@ class SOAP(BaseOptimizer):
                         outer_product.to(state['GG'][idx].dtype), weight=1.0 - state['shampoo_beta']
                     )
 
+        if state['Q'] is not None:
+            state['exp_avg'] = self.project(
+                state['exp_avg'],
+                state,
+                merge_dims=merge_dims,
+                max_precondition_dim=max_precondition_dim,
+                project_type='backward',
+            )
+
         if state['Q'] is None:
             state['Q'] = self.get_orthogonal_matrix(state['GG'])
 
         if step > 0 and step % state['precondition_frequency'] == 0:
             state['Q'] = self.get_orthogonal_matrix_qr(state, max_precondition_dim, merge_dims)
+
+        if step > 0:
+            state['exp_avg'] = self.project(
+                state['exp_avg'],
+                state,
+                merge_dims=merge_dims,
+                max_precondition_dim=max_precondition_dim,
+            )
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -300,10 +317,11 @@ class SOAP(BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
+            adam_step: int = group['step'] - 1
             step_size: float = group['lr']
             if group['correct_bias']:
-                bias_correction1: float = self.debias(beta1, group['step'])
-                bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
+                bias_correction1: float = self.debias(beta1, adam_step)
+                bias_correction2_sq: float = math.sqrt(self.debias(beta2, adam_step))
 
                 step_size *= bias_correction2_sq / bias_correction1
 
@@ -323,17 +341,13 @@ class SOAP(BaseOptimizer):
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.mul_(beta1).add_(grad_projected, alpha=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).add_(grad_projected.square(), alpha=1.0 - beta2)
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
-                exp_avg_projected = self.project(
-                    exp_avg, state, merge_dims=group['merge_dims'], max_precondition_dim=group['max_precondition_dim']
-                )
-
                 norm_grad = self.project(
-                    exp_avg_projected / de_nom,
+                    exp_avg / de_nom,
                     state,
                     merge_dims=group['merge_dims'],
                     max_precondition_dim=group['max_precondition_dim'],
@@ -357,7 +371,7 @@ class SOAP(BaseOptimizer):
                 self.update_pre_conditioner(
                     grad,
                     state,
-                    step=group['step'],
+                    step=adam_step,
                     max_precondition_dim=group['max_precondition_dim'],
                     merge_dims=group['merge_dims'],
                     precondition_1d=group['precondition_1d'],
