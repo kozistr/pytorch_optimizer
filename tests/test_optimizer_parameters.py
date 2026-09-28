@@ -31,9 +31,10 @@ class TestEpsilonParameters:
             ('Shampoo', 'matrix_eps'),
             ('ScalableShampoo', 'diagonal_eps'),
             ('ScalableShampoo', 'matrix_eps'),
+            ('FAdam', 'eps_2'),
         ],
     )
-    def test_shampoo_epsilon_parameters(self, optimizer_name, param_name):
+    def test_optimizer_epsilon_parameters(self, optimizer_name, param_name):
         opt = load_optimizer(optimizer_name)
         with pytest.raises(ValueError):
             opt(None, **{param_name: -1e-6})
