@@ -68,8 +68,6 @@ class FAdam(BaseOptimizer):
         return 'FAdam'
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        group.setdefault('eps_2', self.defaults['eps_2'])
-
         if 'step' not in group:
             group['step'] = 0
 
