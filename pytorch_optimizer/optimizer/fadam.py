@@ -8,17 +8,20 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 class FAdam(BaseOptimizer):
     """Adam is a natural gradient optimizer using diagonal empirical Fisher information.
 
+    The adaptive stabilizer is ``min(eps, eps_2 * RMS(grad)) ** (2 * p)``.
+
     Args:
         params (ParamsT): ParamsT to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
         clip (float): Maximum norm of the gradient.
-        p (float): Momentum factor.
-        eps (float): Term added to the denominator to improve numerical stability.
+        p (float): Exponent applied to the Fisher information diagonal.
+        eps (float): Upper bound on the adaptive epsilon before applying the exponent.
         momentum_dtype (torch.dtype): Dtype of momentum.
         fim_dtype (torch.dtype): Dtype of Fisher information matrix.
         maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
+        eps_2 (float): Gradient RMS multiplier for the adaptive epsilon.
 
     """
 
@@ -34,6 +37,7 @@ class FAdam(BaseOptimizer):
         momentum_dtype: torch.dtype = torch.float32,
         fim_dtype: torch.dtype = torch.float32,
         maximize: bool = False,
+        eps_2: float = 0.01,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -42,6 +46,7 @@ class FAdam(BaseOptimizer):
         self.validate_positive(clip, 'clip')
         self.validate_positive(p, 'p')
         self.validate_non_negative(eps, 'eps')
+        self.validate_non_negative(eps_2, 'eps_2')
 
         self.momentum_dtype = momentum_dtype
         self.fim_dtype = fim_dtype
@@ -54,6 +59,7 @@ class FAdam(BaseOptimizer):
             'clip': clip,
             'p': p,
             'eps': eps,
+            'eps_2': eps_2,
         }
 
         super().__init__(params, defaults)
@@ -112,9 +118,9 @@ class FAdam(BaseOptimizer):
                 fim.mul_(curr_beta2).addcmul_(grad, grad, value=1.0 - curr_beta2)
 
                 rms_grad = grad.pow(2).mean().sqrt_()
-                curr_eps = min(rms_grad, 1) * group['eps']
+                curr_eps = min(group['eps'], group['eps_2'] * rms_grad)
 
-                fim_base = fim.pow(group['p']).add_(curr_eps)
+                fim_base = fim.pow(group['p']).add_(curr_eps ** (2.0 * group['p']))
                 grad_nat = grad / fim_base
 
                 rms = grad_nat.pow(2).mean().sqrt_()
