@@ -77,7 +77,7 @@ class LARS(BaseOptimizer):
                 state = self.state[p]
 
                 if 'momentum_buffer' not in state:
-                    state['momentum_buffer'] = grad.clone()
+                    state['momentum_buffer'] = torch.zeros_like(p)
 
     def _can_use_foreach(self, group: ParamGroup) -> bool:
         """Check if foreach can be used for this group.
