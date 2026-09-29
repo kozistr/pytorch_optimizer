@@ -17,7 +17,7 @@ from tests.utils import Trainer, build_model, build_optimizer_parameter, ids, si
     ('optimizer_name', 'foreach'),
     [
         pytest.param(name, foreach, marks=pytest.mark.xfail(strict=True, reason='first-step maximize state differs'))
-        if name in {'lars', 'grokfastadamw'}
+        if name == 'grokfastadamw'
         else (name, foreach)
         for name in sorted(MAXIMIZE_OPTIMIZERS)
         for foreach in ([False, True] if name in FOREACH_OPTIMIZERS else [False])
