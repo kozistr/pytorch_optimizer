@@ -106,6 +106,8 @@ class LOMO(BaseOptimizer):
                     if self.clip_grad_norm is not None and self.clip_grad_norm > 0.0 and self.clip_coef is not None:
                         grad_fp32.mul_(self.clip_coef)
 
+                    self.maximize_gradient(grad_fp32, maximize=self.maximize)
+
                     p_fp32 = p.to(torch.float32)
                     p_fp32.add_(grad_fp32, alpha=-self.lr)
                     p.copy_(p_fp32)
@@ -151,6 +153,8 @@ class LOMO(BaseOptimizer):
 
                     if self.clip_grad_norm is not None and self.clip_grad_norm > 0 and self.clip_coef is not None:
                         partitioned_grad_fp32.mul_(self.clip_coef)
+
+                    self.maximize_gradient(partitioned_grad_fp32, maximize=self.maximize)
 
                     partitioned_p = param_fp32.narrow(0, 0, end - start)
                     partitioned_p.add_(partitioned_grad_fp32, alpha=-self.lr)
