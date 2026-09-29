@@ -75,6 +75,7 @@ class MARS(BaseOptimizer):
             'gamma': gamma,
             'optimize_1d': optimize_1d,
             'weight_decay': weight_decay,
+            'weight_decay_1d': weight_decay_1d,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'ams_bound': ams_bound,
@@ -252,7 +253,11 @@ class MARS(BaseOptimizer):
                     p,
                     grad,
                     lr=step_size,
-                    weight_decay=group['weight_decay'],
+                    weight_decay=(
+                        group['weight_decay']
+                        if group['optimize_1d'] or is_grad_2d
+                        else group['weight_decay_1d']
+                    ),
                     weight_decouple=group['weight_decouple'],
                     fixed_decay=group['fixed_decay'],
                 )
