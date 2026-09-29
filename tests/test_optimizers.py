@@ -435,6 +435,31 @@ def test_stableadamw_optimizer():
     optimizer.step()
 
 
+@pytest.mark.parametrize(
+    'dtypes',
+    [(torch.float16, torch.float32), (torch.float32, torch.float16), (torch.float32, torch.bfloat16)],
+)
+@pytest.mark.parametrize('foreach', [None, True])
+def test_stableadamw_mixed_dtype_foreach(dtypes, foreach):
+    params = [nn.Parameter(torch.ones(1, dtype=dtype)) for dtype in dtypes]
+    reference_params = [nn.Parameter(param.detach().clone()) for param in params]
+
+    for param, reference_param in zip(params, reference_params):
+        param.grad = torch.ones_like(param)
+        reference_param.grad = torch.ones_like(reference_param)
+
+    optimizer = load_optimizer('StableAdamW')(params, lr=1e-4, weight_decay=0.0, foreach=foreach)
+    reference = load_optimizer('StableAdamW')(reference_params, lr=1e-4, weight_decay=0.0, foreach=False)
+
+    optimizer.step()
+    reference.step()
+
+    for param, reference_param in zip(params, reference_params):
+        assert torch.allclose(param, reference_param)
+        if param.dtype in (torch.float16, torch.bfloat16):
+            assert torch.allclose(optimizer.state[param]['kahan_comp'], reference.state[reference_param]['kahan_comp'])
+
+
 def test_adam_mini_optimizer():
     optimizer = load_optimizer('AdamMini')(LogisticRegression())
     optimizer.step()
