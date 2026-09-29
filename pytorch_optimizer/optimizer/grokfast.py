@@ -186,7 +186,9 @@ class GrokFastAdamW(BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 if group['grokfast'] and group['grokfast_lamb'] > 0.0:
-                    state['grok_exp_avg'] = grad.clone()
+                    grok_exp_avg = grad.clone()
+                    self.maximize_gradient(grok_exp_avg, maximize=self.maximize)
+                    state['grok_exp_avg'] = grok_exp_avg
 
     def _can_use_foreach(self, group: ParamGroup) -> bool:
         if group.get('foreach') is False:
