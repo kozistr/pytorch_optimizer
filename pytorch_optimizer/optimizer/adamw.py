@@ -168,6 +168,8 @@ class StableAdamW(BaseOptimizer):
 
             p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
 
+            self.maximize_gradient(grad, maximize=self.maximize)
+
             exp_avg.lerp_(grad, weight=beta1_comp)
             exp_avg_sq.mul_(beta2_hat).addcmul_(grad, grad, value=1.0 - beta2_hat)
 

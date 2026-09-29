@@ -7,15 +7,40 @@ from tests.constants import (
     ADANORM_SUPPORTED_OPTIMIZERS,
     COPT_SUPPORTED_OPTIMIZERS,
     FOREACH_OPTIMIZERS,
+    MAXIMIZE_OPTIMIZERS,
     STABLE_ADAMW_SUPPORTED_OPTIMIZERS,
 )
 from tests.utils import Trainer, build_model, build_optimizer_parameter, ids, simple_parameter
 
 
-@pytest.mark.parametrize('optimizer_name', FOREACH_OPTIMIZERS)
-def test_foreach_maximize(optimizer_name):
-    optimizer = load_optimizer(optimizer_name)([simple_parameter()], maximize=True, foreach=True)
-    optimizer.step()
+@pytest.mark.parametrize(
+    ('optimizer_name', 'foreach'),
+    [
+        pytest.param(name, foreach, marks=pytest.mark.xfail(strict=True, reason='first-step maximize state differs'))
+        if name in {'lars', 'grokfastadamw'}
+        else (name, foreach)
+        for name in sorted(MAXIMIZE_OPTIMIZERS)
+        for foreach in ([False, True] if name in FOREACH_OPTIMIZERS else [False])
+    ],
+)
+def test_maximize(optimizer_name, foreach):
+    optimizer_class = load_optimizer(optimizer_name)
+    params = [torch.full((2, 2), 2.0, requires_grad=True) for _ in range(2)]
+    params[0].grad = torch.full_like(params[0], 0.5)
+    params[1].grad = torch.full_like(params[1], -0.5)
+
+    options = {'foreach': foreach} if optimizer_name in FOREACH_OPTIMIZERS else {}
+    ascent = optimizer_class([params[0]], maximize=True, **options)
+    descent = optimizer_class([params[1]], maximize=False, **options)
+
+    if optimizer_name.startswith('schedulefree'):
+        ascent.train()
+        descent.train()
+
+    ascent.step()
+    descent.step()
+
+    torch.testing.assert_close(params[0], params[1])
 
 
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
