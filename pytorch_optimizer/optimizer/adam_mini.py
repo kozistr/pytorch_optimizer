@@ -46,12 +46,14 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
         self.validate_non_negative(weight_decay, 'weight_decay')
-        self.validate_non_negative(num_embeds, 'num_embeds')
-        self.validate_non_negative(num_heads, 'num_heads')
+        self.validate_positive(num_embeds, 'num_embeds')
+        self.validate_positive(num_heads, 'num_heads')
         self.validate_non_negative(eps, 'eps')
 
-        self.num_query_groups: int = num_query_groups if num_query_groups is not None else num_embeds
-        self.validate_mod(num_embeds, self.num_query_groups)
+        self.num_query_groups: int = num_query_groups if num_query_groups is not None else num_heads
+        self.validate_positive(self.num_query_groups, 'num_query_groups')
+        self.validate_mod(num_embeds, num_heads)
+        self.validate_mod(num_heads, self.num_query_groups)
 
         # Visible GPUs are not a process group. all_gather below requires
         # dist to be initialized; otherwise a single process that can see
@@ -94,10 +96,6 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
 
             if any(block in name for block in self.qk_blocks):
                 group['parameter_per_head'] = self.num_embeds * self.num_embeds // self.num_heads
-
-            if 'attn.attn.weight' in name or 'attn.qkv.weight' in name:
-                group['n_head'] = self.num_heads
-                group['q_per_kv'] = self.num_embeds // self.num_query_groups
 
             groups.append(group)
 
@@ -177,7 +175,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         p,
         grad,
         state,
-        num_heads: int,
+        num_query_groups: int,
         q_per_kv: int,
         lr: float,
         beta1: float,
@@ -187,12 +185,12 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         eps: float,
     ) -> None:
         if len(state) == 0:
-            state['m'] = torch.zeros_like(p, dtype=torch.float32).view(num_heads, q_per_kv + 2, -1)
-            state['v_mean'] = torch.zeros(num_heads, q_per_kv + 2, device=state['m'].device)
+            state['m'] = torch.zeros_like(p, dtype=torch.float32).view(num_query_groups, q_per_kv + 2, -1)
+            state['v_mean'] = torch.zeros(num_query_groups, q_per_kv + 2, device=state['m'].device)
 
         m, v = state['m'], state['v_mean']
 
-        grad = grad.view(num_heads, q_per_kv + 2, -1)
+        grad = grad.view(num_query_groups, q_per_kv + 2, -1)
 
         m.lerp_(grad, weight=1.0 - beta1)
 
@@ -201,7 +199,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
 
         h = (v.sqrt() / bias_correction2_sq).add_(eps)
 
-        update = (1 / (h * bias_correction1)).view(num_heads, q_per_kv + 2, -1).mul_(m)
+        update = m / (h * bias_correction1).unsqueeze(-1)
 
         if p.dim() > 1:
             d0, d1 = p.size()
@@ -332,8 +330,8 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
                         p,
                         grad,
                         state,
-                        group['n_head'],
-                        group['q_per_kv'],
+                        self.num_query_groups,
+                        self.num_heads // self.num_query_groups,
                         group['lr'],
                         beta1,
                         beta2,
