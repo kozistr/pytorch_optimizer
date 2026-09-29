@@ -35,6 +35,7 @@
 - Use a maximum line length of 119 characters and single-quoted strings.
 - Use the repository's existing typing style. Do not add `from __future__ import annotations` or `TYPE_CHECKING` imports unless the surrounding code requires them.
 - Optimizers inherit from `BaseOptimizer`, implement `init_group()` and `step()`, and reuse its validation and update helpers where applicable.
+- All optimizer implementations must follow the algorithms and update rules in their original papers.
 - Follow Google-style docstrings. Reuse helpers such as `apply_weight_decay()`, `apply_cautious()`, `debias()`,
   `validate_learning_rate()`, `validate_betas()`, and `validate_range()` before adding update or validation logic.
 - Keep implementations focused; remove redundant compatibility layers and abstractions.

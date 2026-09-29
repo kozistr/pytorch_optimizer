@@ -301,6 +301,23 @@ def test_schedulefree_wrapper():
     optimizer.add_param_group({'params': []})
 
 
+def test_schedulefree_wrapper_legacy_state_dict():
+    parameter = simple_parameter()
+    optimizer = ScheduleFreeWrapper(torch.optim.SGD([parameter], lr=0.1))
+    optimizer.train()
+    parameter.grad = torch.ones_like(parameter)
+    optimizer.step()
+
+    legacy_state = {'schedulefree_state': optimizer.state, 'base_optimizer': optimizer.optimizer.state_dict()}
+    same_parameter = ScheduleFreeWrapper(torch.optim.SGD([parameter], lr=0.1))
+    same_parameter.load_state_dict(legacy_state)
+    torch.testing.assert_close(same_parameter.state[parameter]['z'], optimizer.state[parameter]['z'])
+
+    different_parameter = ScheduleFreeWrapper(torch.optim.SGD([simple_parameter()], lr=0.1))
+    with pytest.raises(ValueError, match='schedule-free state does not match'):
+        different_parameter.load_state_dict(legacy_state)
+
+
 @pytest.mark.parametrize('reduction', ['mean', 'sum'])
 def test_pc_grad_optimizers(reduction, environment):
     torch.manual_seed(42)
