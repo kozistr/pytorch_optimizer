@@ -339,7 +339,7 @@ class FlashAdamW(BaseOptimizer):
                     weight_decay=group['weight_decay'],
                     weight_decouple=True,
                     fixed_decay=False,
-                    ratio=1.0 / group['initial_lr'],
+                    ratio=1.0 / group['initial_lr'] if group['decouple_lr'] else None,
                 )
 
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
