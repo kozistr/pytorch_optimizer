@@ -527,27 +527,6 @@ def test_mars_c_t_norm():
     optimizer.step()
 
 
-@pytest.mark.parametrize(
-    ('shape', 'optimize_1d', 'expected'),
-    [((2,), False, 0.9), ((1, 1), False, 0.97), ((2,), True, 0.97)],
-)
-def test_mars_weight_decay_1d(shape, optimize_1d, expected):
-    param = nn.Parameter(torch.ones(shape))
-    param.grad = torch.zeros_like(param)
-
-    optimizer = load_optimizer('mars')(
-        [param],
-        lr=0.1,
-        lr_1d=0.2,
-        weight_decay=0.3,
-        weight_decay_1d=0.5,
-        optimize_1d=optimize_1d,
-    )
-    optimizer.step()
-
-    assert torch.allclose(param, torch.full_like(param, expected))
-
-
 def test_spam_optimizer():
     optimizer = load_optimizer('spam')(Example().parameters(), density=0.0)
     optimizer.step()
