@@ -114,9 +114,10 @@ class LARS(BaseOptimizer):
             trust_ratios = []
             for pn, gn in zip(param_norms, grad_norms):
                 one = torch.ones_like(pn)
+                denominator = gn + group['weight_decay'] * pn
                 trust_ratio = torch.where(
                     pn > 0.0,
-                    torch.where(gn > 0.0, (group['trust_coefficient'] * pn / gn), one),
+                    torch.where(denominator > 0.0, (group['trust_coefficient'] * pn / denominator), one),
                     one,
                 )
                 trust_ratios.append(trust_ratio)
@@ -147,10 +148,11 @@ class LARS(BaseOptimizer):
                 update_norm = torch.linalg.norm(grad)
 
                 one = torch.ones_like(param_norm)
+                denominator = update_norm + group['weight_decay'] * param_norm
 
                 trust_ratio = torch.where(
                     param_norm > 0.0,
-                    torch.where(update_norm > 0.0, (group['trust_coefficient'] * param_norm / update_norm), one),
+                    torch.where(denominator > 0.0, (group['trust_coefficient'] * param_norm / denominator), one),
                     one,
                 )
 
