@@ -49,7 +49,7 @@ class ScheduleFreeSGD(BaseOptimizer):
         **kwargs,
     ):
         self.validate_learning_rate(lr)
-        self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='[]')
+        self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='()')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
@@ -203,6 +203,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
+        self.validate_range(betas[0], 'beta1', 0.0, 1.0, range_type='()')
         self.validate_non_negative(decoupling_c, 'decoupling_c')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
@@ -374,6 +375,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
+        self.validate_range(betas[0], 'beta1', 0.0, 1.0, range_type='()')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
@@ -543,7 +545,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
         maximize: bool = False,
         **kwargs,
     ):
-        self.validate_range(momentum, 'momentum', 0.0, 1.0, '[)')
+        self.validate_range(momentum, 'momentum', 0.0, 1.0, '()')
         self.validate_non_negative(weight_decay, 'weight_decay')
 
         self.momentum = momentum
