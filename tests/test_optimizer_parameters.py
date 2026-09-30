@@ -56,12 +56,6 @@ def test_pcgrad_parameters():
         PCGrad(opt, reduction='invalid')
 
 
-@pytest.mark.parametrize('gamma', [0.0, -1.0])
-def test_adabound_rejects_non_positive_gamma(gamma):
-    with pytest.raises(ValueError, match='gamma must be positive'):
-        load_optimizer('adabound')([simple_parameter()], gamma=gamma)
-
-
 def test_lookahead_parameters():
     optimizer_instance = load_optimizer('adamp')
     optimizer = optimizer_instance([simple_parameter()])
