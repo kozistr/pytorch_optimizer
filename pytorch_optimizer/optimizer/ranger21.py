@@ -281,9 +281,10 @@ class Ranger21(BaseOptimizer):
                     grad_ma, neg_grad_ma = state['neg_grad_ma'], state['grad_ma']
 
                 variance_ma = state['variance_ma']
-                torch.max(state['max_variance_ma'], variance_ma, out=variance_ma)
+                max_variance_ma = state['max_variance_ma']
+                torch.maximum(max_variance_ma, variance_ma, out=max_variance_ma)
 
-                de_nom = (variance_ma.sqrt() / bias_correction2_sq).add_(group['eps'])
+                de_nom = (max_variance_ma.sqrt() / bias_correction2_sq).add_(group['eps'])
 
                 if self.use_softplus:
                     de_nom = softplus(de_nom, beta=self.beta_softplus)
