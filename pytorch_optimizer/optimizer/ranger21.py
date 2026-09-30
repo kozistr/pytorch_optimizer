@@ -197,6 +197,12 @@ class Ranger21(BaseOptimizer):
 
         return self.current_lr
 
+    def _preprocess_gradient(self, grad: torch.Tensor) -> None:
+        if self.centralize_gradients:
+            centralize_gradient(grad, gc_conv_only=False)
+        if self.normalize_gradients:
+            normalize_gradient(grad)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -229,8 +235,7 @@ class Ranger21(BaseOptimizer):
 
                 grad.copy_(agc(p, grad, self.agc_eps, self.agc_clipping_value))
 
-                centralize_gradient(grad, gc_conv_only=False)
-                normalize_gradient(grad)
+                self._preprocess_gradient(grad)
 
                 variance_ma = state['variance_ma']
                 variance_ma.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
@@ -290,8 +295,7 @@ class Ranger21(BaseOptimizer):
                     de_nom = softplus(de_nom, beta=self.beta_softplus)
 
                 grad = p.grad
-                centralize_gradient(grad, gc_conv_only=False)
-                normalize_gradient(grad)
+                self._preprocess_gradient(grad)
 
                 grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
 
