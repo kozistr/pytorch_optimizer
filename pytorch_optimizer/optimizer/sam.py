@@ -102,6 +102,7 @@ class SAM(BaseOptimizer):
 
         self.base_optimizer: Optimizer = base_optimizer(self.param_groups, **kwargs)
         self.param_groups = self.base_optimizer.param_groups
+        self.state = self.base_optimizer.state
 
     def __str__(self) -> str:
         return 'SAM'
@@ -163,6 +164,7 @@ class SAM(BaseOptimizer):
     def load_state_dict(self, state_dict: Dict):
         super().load_state_dict(state_dict)
         self.base_optimizer.param_groups = self.param_groups
+        self.base_optimizer.state = self.state
 
 
 class GSAM(BaseOptimizer):  # pragma: no cover
