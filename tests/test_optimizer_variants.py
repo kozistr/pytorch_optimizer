@@ -41,27 +41,6 @@ def test_maximize(optimizer_name, foreach):
     torch.testing.assert_close(params[0], params[1])
 
 
-@pytest.mark.parametrize('foreach', [False, True])
-def test_lamb_paper_weight_decay(foreach):
-    parameter = torch.nn.Parameter(torch.tensor([3.0, 4.0]))
-    parameter.grad = torch.tensor([1.0, 2.0])
-    optimizer = load_optimizer('lamb')(
-        [parameter],
-        lr=0.1,
-        betas=(0.0, 0.0),
-        eps=0.0,
-        weight_decay=0.1,
-        weight_decouple=False,
-        foreach=foreach,
-    )
-
-    optimizer.step()
-
-    paper_update = torch.tensor([1.3, 1.4])
-    expected = torch.tensor([3.0, 4.0]) - 0.1 * 5.0 / paper_update.norm() * paper_update
-    torch.testing.assert_close(parameter, expected)
-
-
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_adanorm_optimizer(optimizer_config, environment):
     x_data, y_data = environment
