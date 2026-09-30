@@ -65,7 +65,7 @@ jobs:
           enable-cache: true
 
       - name: Build documentation
-        run: uv run --no-project --python 3.12 --with-requirements requirements-docs.txt zensical build --strict
+        run: uv run --no-project --python 3.12 --with-requirements docs/requirements-docs.txt zensical build --strict
 
   test:
     runs-on: ubuntu-latest
