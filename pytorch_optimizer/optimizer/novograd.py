@@ -74,14 +74,6 @@ class NovoGrad(BaseOptimizer):
             if torch.is_complex(p):
                 raise NoComplexParameterError(str(self))
 
-            state = self.state[p]
-
-            grad_p2 = grad.pow(2).sum()
-
-            if len(state) == 0:
-                state['moments'] = grad.div(grad_p2.sqrt().add_(group['eps'])) + group['weight_decay'] * p
-                state['grads_ema'] = grad_p2
-
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -95,14 +87,9 @@ class NovoGrad(BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
-            bias_correction1: float = self.debias(beta1, group['step'])
-            bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
-
-            step_size: float = self.apply_adam_debias(
-                group.get('adam_debias', False),
-                step_size=group['lr'] * bias_correction2_sq,
-                bias_correction1=bias_correction1,
-            )
+            step_size: float = group['lr']
+            if group.get('adam_debias', False):
+                step_size *= math.sqrt(self.debias(beta2, group['step']))
 
             for p in group['params']:
                 if p.grad is None:
@@ -113,12 +100,15 @@ class NovoGrad(BaseOptimizer):
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
+                first_update = len(state) == 0
+                grad_p2 = grad.pow(2).sum()
 
-                grads_ema, moments = state['grads_ema'], state['moments']
+                if first_update:
+                    state['grads_ema'] = grad_p2
+                else:
+                    state['grads_ema'].mul_(beta2).add_(grad_p2, alpha=1.0 - beta2)
 
-                grads_ema.mul_(beta2).add_(grad.pow(2).sum(), alpha=1.0 - beta2)
-
-                de_nom = grads_ema.sqrt().add_(group['eps'])
+                de_nom = state['grads_ema'].sqrt().add_(group['eps'])
                 grad.div_(de_nom)
 
                 self.apply_weight_decay(
@@ -130,11 +120,14 @@ class NovoGrad(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                if group['grad_averaging']:
-                    grad.mul_(1.0 - beta1)
+                if first_update:
+                    state['moments'] = grad.clone()
+                else:
+                    if group['grad_averaging']:
+                        grad.mul_(1.0 - beta1)
 
-                moments.mul_(beta1).add_(grad)
+                    state['moments'].mul_(beta1).add_(grad)
 
-                p.add_(moments, alpha=-step_size)
+                p.add_(state['moments'], alpha=-step_size)
 
         return loss
