@@ -248,6 +248,83 @@ def test_sam_optimizer_with_closure(adaptive, wrapper, environment):
     trainer.run_with_closure(iterations=3, threshold=2.0)
 
 
+@pytest.mark.parametrize('existing_history', [False, True])
+@pytest.mark.parametrize(
+    ('base_optimizer', 'config'),
+    [
+        (torch.optim.SGD, {'momentum': 0.9}),
+        (torch.optim.Adam, {}),
+        (load_optimizer('adamw'), {'foreach': False}),
+    ],
+    ids=['sgd-momentum', 'adam', 'library-adamw'],
+)
+def test_sam_checkpoint_preserves_base_optimizer_history(base_optimizer, config, existing_history):
+    def take_step(opt, params, target):
+        def closure():
+            opt.zero_grad()
+            loss = sum((p - target).square().sum() for p in params)
+            loss.backward()
+            return loss
+
+        closure()
+        opt.step(closure)
+
+    parameters = [nn.Parameter(torch.tensor([1.0, -0.5])), nn.Parameter(torch.tensor([0.25]))]
+    optimizer = SAM(
+        [{'params': [parameters[0]]}, {'params': [parameters[1]], 'lr': 0.025}],
+        base_optimizer,
+        lr=0.1,
+        rho=0.1,
+        adaptive=True,
+        **config,
+    )
+    for target in (0.5, -1.0):
+        take_step(optimizer, parameters, target)
+    checkpoint = deepcopy(optimizer.state_dict())
+
+    restored_parameters = [nn.Parameter(p.detach().clone()) for p in parameters]
+    restored = SAM(
+        [{'params': [p]} for p in restored_parameters], base_optimizer, lr=0.9, rho=0.2, **config
+    )
+    if existing_history:
+        take_step(restored, restored_parameters, 2.0)
+        with torch.no_grad():
+            for p, restored_p in zip(parameters, restored_parameters):
+                restored_p.copy_(p)
+    restored.load_state_dict(checkpoint)
+
+    assert restored.param_groups[0]['lr'] == 0.1
+    assert restored.param_groups[1]['lr'] == 0.025
+    assert restored.param_groups[0]['rho'] == 0.1
+    assert restored.param_groups[0]['adaptive']
+    for p, restored_p in zip(parameters, restored_parameters):
+        torch.testing.assert_close(restored.base_optimizer.state[restored_p], optimizer.base_optimizer.state[p])
+
+    for target in (0.75, -0.25, 1.0):
+        take_step(optimizer, parameters, target)
+        take_step(restored, restored_parameters, target)
+        for p, restored_p in zip(parameters, restored_parameters):
+            torch.testing.assert_close(restored_p, p)
+            torch.testing.assert_close(restored.base_optimizer.state[restored_p], optimizer.base_optimizer.state[p])
+
+
+def test_sam_loads_checkpoint_without_base_optimizer_history():
+    parameter = nn.Parameter(torch.tensor([1.0]))
+    optimizer = SAM([parameter], torch.optim.SGD, lr=0.1, momentum=0.9)
+    checkpoint = {'state': {0: {}}, 'param_groups': deepcopy(optimizer.state_dict()['param_groups'])}
+    optimizer.load_state_dict(checkpoint)
+
+    parameter.grad = torch.ones_like(parameter)
+    optimizer.first_step(zero_grad=True)
+    parameter.grad = torch.ones_like(parameter)
+    optimizer.second_step(zero_grad=True)
+
+    torch.testing.assert_close(parameter, torch.tensor([0.9]))
+    torch.testing.assert_close(
+        optimizer.base_optimizer.state[parameter]['momentum_buffer'], torch.ones_like(parameter)
+    )
+
+
 @pytest.mark.parametrize('adaptive', [True, False])
 @pytest.mark.parametrize('decouple', [True, False])
 def test_wsam_optimizer(adaptive, decouple, environment):
