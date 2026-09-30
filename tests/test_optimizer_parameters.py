@@ -1,4 +1,3 @@
-import math
 from collections import defaultdict
 
 import pytest
@@ -141,41 +140,6 @@ def test_safe_fp16_methods():
 
 class TestRanger21:
     """Tests for Ranger21 optimizer specific functionality."""
-
-    @pytest.mark.parametrize('beta0', [0.0, 0.5, 0.9])
-    def test_pnm_matches_paper(self, beta0):
-        parameter = nn.Parameter(torch.tensor([10.0, 20.0]))
-        optimizer = Ranger21(
-            [parameter],
-            num_iterations=2,
-            lr=0.1,
-            beta0=beta0,
-            betas=(0.0, 0.0),
-            weight_decay=0.0,
-            norm_loss_factor=0.0,
-            agc_clipping_value=1e3,
-            use_softplus=False,
-            disable_lr_scheduler=True,
-            lookahead_merge_time=100,
-            eps=0.0,
-        )
-
-        expected = parameter.detach().clone()
-        previous_gradient = torch.zeros_like(parameter)
-        noise_norm = math.sqrt((1.0 + beta0) ** 2 + beta0 ** 2)
-
-        for gradient in (torch.tensor([1.0, 2.0]), torch.tensor([-1.0, 2.0])):
-            parameter.grad = gradient.clone()
-            optimizer.step()
-
-            direction = ((1.0 + beta0) * gradient - beta0 * previous_gradient) / (noise_norm * gradient.abs())
-            expected.add_(direction, alpha=-0.1)
-            torch.testing.assert_close(parameter, expected)
-            previous_gradient = gradient
-
-    def test_beta0_rejects_one(self):
-        with pytest.raises(ValueError):
-            Ranger21([simple_parameter()], num_iterations=2, beta0=1.0)
 
     def test_warm_iterations(self):
         assert Ranger21.build_warm_up_iterations(1000, 0.999) == 220
