@@ -44,6 +44,22 @@ class TestHessianMethods:
         with pytest.raises(NotImplementedError):
             BaseOptimizer.compute_hutchinson_hessian({}, {}, distribution='dummy')
 
+    def test_rademacher_hessian_with_cross_terms(self):
+        parameter = torch.tensor([1.0, 2.0], dtype=torch.float64, requires_grad=True)
+        hessian = torch.tensor([[2.0, 3.0], [3.0, 4.0]], dtype=torch.float64)
+        loss = 0.5 * parameter @ hessian @ parameter
+        parameter.grad = torch.autograd.grad(loss, parameter, create_graph=True)[0]
+        state = {parameter: {'hessian': torch.zeros_like(parameter)}}
+
+        with torch.random.fork_rng(devices=[]):
+            # These four seeded directions cancel the off-diagonal Hessian terms.
+            torch.manual_seed(0)
+            BaseOptimizer.compute_hutchinson_hessian(
+                [{'params': [parameter]}], state, num_samples=4, distribution='rademacher'
+            )
+
+        torch.testing.assert_close(state[parameter]['hessian'], hessian.diagonal())
+
 
 class TestGradientMethods:
     """Tests for gradient-related methods."""

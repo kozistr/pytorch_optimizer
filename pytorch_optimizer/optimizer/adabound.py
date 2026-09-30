@@ -43,6 +43,7 @@ class AdaBound(BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
+        self.validate_positive(gamma, 'gamma')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
@@ -94,16 +95,20 @@ class AdaBound(BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        for group, base_lr in zip(self.param_groups, self.base_lrs):
+        for group_index, group in enumerate(self.param_groups):
             self.init_group(group)
             group['step'] += 1
+
+            base_lr = self.base_lrs[group_index]
+            if base_lr == 0.0 and group['lr'] > 0.0:
+                base_lr = self.base_lrs[group_index] = group['lr']
 
             beta1, beta2 = group['betas']
 
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
-            final_lr: float = group['final_lr'] * group['lr'] / base_lr
+            final_lr: float = group['final_lr'] * group['lr'] / base_lr if base_lr > 0.0 else 0.0
             lower_bound: float = final_lr * (1 - 1 / (group['gamma'] * group['step'] + 1))
             upper_bound: float = final_lr * (1 + 1 / (group['gamma'] * group['step']))
 

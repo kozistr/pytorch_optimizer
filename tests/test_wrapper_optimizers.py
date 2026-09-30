@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import pytest
 import torch
@@ -68,6 +70,62 @@ def test_lookahead_state_dict_with_accelerate_style_mapping():
 
     moved_state = accelerate_style_move_to_device(state_dict, torch.device('cpu'))
     optimizer.load_state_dict(moved_state)
+
+
+@pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
+def test_lookahead_resume_with_new_parameters(pullback_momentum):
+    parameters = [nn.Parameter(torch.tensor([1.0])), nn.Parameter(torch.tensor([2.0, -1.0]))]
+    optimizer = Lookahead(
+        torch.optim.SGD([{'params': [p], 'lr': lr} for p, lr in zip(parameters, [0.1, 0.05])], momentum=0.9),
+        k=2,
+        pullback_momentum=pullback_momentum,
+    )
+    for p in parameters:
+        p.grad = torch.ones_like(p)
+    optimizer.step()
+
+    restored_parameters = [nn.Parameter(p.detach().clone()) for p in parameters]
+    restored = Lookahead(
+        torch.optim.SGD([{'params': [p]} for p in restored_parameters], lr=0.1, momentum=0.9),
+        k=2,
+        pullback_momentum=pullback_momentum,
+    )
+    restored.load_state_dict(deepcopy(optimizer.state_dict()))
+
+    for gradient in (-0.5, 0.25, 1.0):
+        for p, restored_p in zip(parameters, restored_parameters):
+            p.grad = torch.full_like(p, gradient)
+            restored_p.grad = p.grad.clone()
+        optimizer.step()
+        restored.step()
+
+        for p, restored_p in zip(parameters, restored_parameters):
+            torch.testing.assert_close(restored_p, p)
+            torch.testing.assert_close(restored.state[restored_p]['slow_params'], optimizer.state[p]['slow_params'])
+            torch.testing.assert_close(
+                restored.optimizer.state[restored_p]['momentum_buffer'],
+                optimizer.optimizer.state[p]['momentum_buffer'],
+            )
+
+
+@pytest.mark.parametrize('mismatch', ['legacy', 'missing', 'extra'])
+def test_lookahead_rejects_mismatched_state(mismatch):
+    parameters = [nn.Parameter(torch.tensor([1.0])), nn.Parameter(torch.tensor([2.0]))]
+    optimizer = Lookahead(torch.optim.SGD(parameters, lr=0.1))
+    state_dict = deepcopy(optimizer.state_dict())
+    if mismatch == 'legacy':
+        state_dict['lookahead_state'] = {
+            nn.Parameter(p.detach().clone()): dict(optimizer.state[p]) for p in parameters
+        }
+    elif mismatch == 'missing':
+        del state_dict['lookahead_state'][(0, 1)]
+    else:
+        state_dict['lookahead_state'][(0, 2)] = deepcopy(state_dict['lookahead_state'][(0, 0)])
+
+    original_state = optimizer.state
+    with pytest.raises(ValueError, match='lookahead state does not match the current parameters'):
+        optimizer.load_state_dict(state_dict)
+    assert optimizer.state is original_state
 
 
 def test_magma(environment):
@@ -346,6 +404,25 @@ def test_pc_grad_optimizers(reduction, environment):
         optimizer.step()
 
     assert tensor_to_numpy(init_loss) > 1.25 * tensor_to_numpy(loss)
+
+
+@pytest.mark.parametrize('reduction', ['mean', 'sum'])
+def test_pcgrad_preserves_unused_parameters(reduction):
+    shared = nn.Parameter(torch.tensor([1.0]))
+    task_specific = nn.Parameter(torch.tensor([2.0]))
+    unused = nn.Parameter(torch.tensor([3.0]))
+    optimizer = PCGrad(torch.optim.SGD([shared, task_specific, unused], lr=0.1, weight_decay=0.2), reduction)
+
+    optimizer.pc_backward([(shared - 1.0).square().sum() + task_specific.sum(), (shared - 1.0).square().sum()])
+
+    torch.testing.assert_close(shared.grad, torch.zeros_like(shared))
+    torch.testing.assert_close(task_specific.grad, torch.ones_like(task_specific))
+    assert unused.grad is None
+
+    optimizer.step()
+    torch.testing.assert_close(shared, torch.tensor([0.98]))
+    torch.testing.assert_close(task_specific, torch.tensor([1.86]))
+    torch.testing.assert_close(unused, torch.tensor([3.0]))
 
 
 def test_trac_optimizer(environment):
