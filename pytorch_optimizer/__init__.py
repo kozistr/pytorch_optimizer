@@ -119,6 +119,7 @@ from pytorch_optimizer.optimizer import (
     DAdaptAdan,
     DAdaptLion,
     DAdaptSGD,
+    DASH,
     DeMo,
     DiffGrad,
     DistributedMuon,

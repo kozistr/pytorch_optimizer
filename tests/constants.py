@@ -6,6 +6,7 @@ from pytorch_optimizer.optimizer import (
     ASGD,
     BCOS,
     CAME,
+    DASH,
     FOCUS,
     FTRL,
     LARS,
@@ -1059,6 +1060,19 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (DualAdam, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True, 'switch_rate': 0.5}, 5),
     (LoRARite, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': True, 'update_capping': 0.1}, 5),
     (FlashAdamW, {'lr': 5e-1, 'weight_decay': 1e-3, 'check_numerics': True, 'master_weight_bits': None}, 5),
+    (DASH, {'lr': 1e-1, 'weight_decay': 1e-3, 'block_size': 4, 'preconditioning_frequency': 2}, 5),
+    (
+        DASH,
+        {
+            'lr': 1e-1,
+            'momentum': 0.9,
+            'block_size': 4,
+            'preconditioning_frequency': 2,
+            'inv_root_method': 'newton_db',
+            'matrix_scaling': 'power_iter_multi',
+        },
+        5,
+    ),
 ]
 
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
