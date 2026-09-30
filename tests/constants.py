@@ -666,6 +666,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (DiffGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'rectify': True}, 5),
     (DualAdam, {'lr': 5e-1, 'weight_decay': 1e-3, 'switch_rate': 0.25}, 5),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3}, 5),
+    (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
     (Lamb, {'lr': 1e-1, 'weight_decay': 1e-3, 'pre_norm': True, 'max_grad_norm': 0.0}, 5),
     (Lamb, {'lr': 5e-2, 'weight_decay': 1e-3, 'grad_averaging': False}, 5),
     (Lamb, {'lr': 5e-2, 'weight_decay': 1e-3, 'adam': True, 'eps': 1e-8}, 5),
