@@ -1,6 +1,6 @@
 import random
 from copy import deepcopy
-from typing import Iterable, List, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -51,11 +51,11 @@ class PCGrad(BaseOptimizer):
     def step(self):
         return self.optimizer.step()
 
-    def set_grad(self, grads: List[torch.Tensor]) -> None:
+    def set_grad(self, grads: List[torch.Tensor], has_grads: Optional[List[torch.Tensor]] = None) -> None:
         idx: int = 0
         for group in self.optimizer.param_groups:
             for p in group['params']:
-                p.grad = grads[idx]
+                p.grad = grads[idx] if has_grads is None or torch.any(has_grads[idx]) else None
                 idx += 1
 
     def retrieve_grad(self) -> Tuple[List[torch.Tensor], List[int], List[torch.Tensor]]:
@@ -136,5 +136,6 @@ class PCGrad(BaseOptimizer):
 
         pc_grad = self.project_conflicting(grads, has_grads)
         pc_grad = un_flatten_grad(pc_grad, shapes[0])
+        has_grad = un_flatten_grad(torch.stack(has_grads).sum(dim=0), shapes[0])
 
-        self.set_grad(pc_grad)
+        self.set_grad(pc_grad, has_grad)

@@ -123,7 +123,7 @@ class BaseOptimizer(ABC, Optimizer):
 
         for i in range(num_samples):
             if distribution == 'rademacher':
-                zs = [torch.randint_like(p, 0, 1) * 2.0 - 1.0 for p in params]
+                zs = [torch.randint_like(p, 0, 2) * 2.0 - 1.0 for p in params]
             else:
                 zs = [torch.randn_like(p) for p in params]
 
