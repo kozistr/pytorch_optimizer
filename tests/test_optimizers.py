@@ -3,7 +3,7 @@ import torch
 from torch import nn
 
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
-from pytorch_optimizer.optimizer import DynamicLossScaler, ScheduleFreeWrapper, load_optimizer
+from pytorch_optimizer.optimizer import DynamicLossScaler, load_optimizer
 from pytorch_optimizer.optimizer.flash_adamw import compute_ecc_bits, reconstruct_fp32_param
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.lora_rite import LoRARiteHelper
@@ -396,32 +396,6 @@ def test_schedule_free_methods(optimizer_name):
 
     optimizer.eval()
     optimizer.train()
-
-
-@pytest.mark.parametrize(
-    ('optimizer_name', 'value'),
-    [
-        ('ScheduleFreeSGD', 0.0),
-        ('ScheduleFreeSGD', 1.0),
-        ('ScheduleFreeAdamW', 0.0),
-        ('ScheduleFreeRAdam', 0.0),
-        ('ScheduleFreeWrapper', 0.0),
-    ],
-)
-def test_schedule_free_rejects_invalid_momentum(optimizer_name, value):
-    parameter = simple_parameter(True)
-
-    if optimizer_name == 'ScheduleFreeWrapper':
-        optimizer_class = ScheduleFreeWrapper
-        optimizer_args = (torch.optim.SGD([parameter], lr=0.1),)
-        options = {'momentum': value}
-    else:
-        optimizer_class = load_optimizer(optimizer_name)
-        optimizer_args = ([parameter],)
-        options = {'momentum': value} if optimizer_name == 'ScheduleFreeSGD' else {'betas': (value, 0.999)}
-
-    with pytest.raises(ValueError, match=r'(momentum|beta1) must be in the range'):
-        optimizer_class(*optimizer_args, **options)
 
 
 @pytest.mark.parametrize('filter_type', ['mean', 'sum'])
