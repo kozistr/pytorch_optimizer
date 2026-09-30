@@ -71,5 +71,7 @@ Every commit subject must start with one of these prefixes:
 Keep the text after the prefix imperative, concise, and specific to the committed change.
 Do not use commit prefixes outside this list.
 
+- Write concise, specific PR titles that describe the actual change. Use a title tag only when it adds useful context
+  and accurately matches the work; do not derive it mechanically from the commit prefix.
 - Feature PR titles follow the existing format, such as `[Feature] Implement Magma optimizer`.
 - Keep commits focused, verify the branch and working tree before pushing, and use `--force-with-lease` only when rewriting a pushed branch is necessary.
