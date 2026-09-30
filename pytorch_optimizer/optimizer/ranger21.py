@@ -34,8 +34,7 @@ class Ranger21(BaseOptimizer):
         num_iterations (int): number of the total training steps. Ranger21 optimizer schedules the learning rate
             with its own recipes.
         lr (float): learning rate.
-        beta0 (float): Manages the amplitude of the noise introduced by positive negative momentum
-            while 0.9 is a recommended default value, you can use -0.5 to minimize the noise.
+        beta0 (float): Manages the amplitude of the noise introduced by positive negative momentum.
         betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
         use_softplus (bool): use softplus to smooth.
         beta_softplus (float): beta.
@@ -89,13 +88,14 @@ class Ranger21(BaseOptimizer):
         self.validate_learning_rate(lr)
         self.validate_learning_rate(warm_down_min_lr)
         self.validate_betas(betas)
-        self.validate_range(beta0, 'beta0', 0.0, 1.0, range_type='[]')
+        self.validate_range(beta0, 'beta0', 0.0, 1.0, range_type='[)')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(agc_clipping_value, 'agc_clipping_value')
         self.validate_non_negative(eps, 'eps')
         self.validate_non_negative(agc_eps, 'agc_eps')
 
         self.min_lr = warm_down_min_lr
+        self.beta0 = beta0
         self.use_softplus = use_softplus
         self.beta_softplus = beta_softplus
         self.disable_lr_scheduler = disable_lr_scheduler
@@ -247,7 +247,7 @@ class Ranger21(BaseOptimizer):
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
-            noise_norm: float = math.sqrt((1.0 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
+            noise_norm: float = math.sqrt((1.0 + self.beta0) ** 2 + self.beta0 ** 2)  # fmt: skip
 
             if self.disable_lr_scheduler:
                 lr: float = group['lr']
@@ -294,7 +294,8 @@ class Ranger21(BaseOptimizer):
 
                 grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
 
-                pn_momentum = grad_ma.mul(2.0).add_(neg_grad_ma, alpha=-1.0).mul_(1.0 / noise_norm)
+                pn_momentum = grad_ma.mul(1.0 + self.beta0).add_(neg_grad_ma, alpha=-self.beta0)
+                pn_momentum.mul_(1.0 / noise_norm)
                 p.addcdiv_(pn_momentum, de_nom, value=-step_size)
 
         self.lookahead_process_step()
