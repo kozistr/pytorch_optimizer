@@ -22,10 +22,10 @@ visualize:
     python -m examples.visualize_optimizers
 
 docs:
-    uv run --no-project --python 3.12 --with-requirements requirements-docs.txt zensical serve
+    uv run --no-project --python 3.12 --with-requirements docs/requirements-docs.txt zensical serve
 
 docs-build:
-    uv run --no-project --python 3.12 --with-requirements requirements-docs.txt zensical build --strict
+    uv run --no-project --python 3.12 --with-requirements docs/requirements-docs.txt zensical build --strict
 
 update-docs:
     python scripts/update_docs.py

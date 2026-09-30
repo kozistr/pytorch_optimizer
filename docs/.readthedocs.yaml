@@ -5,7 +5,7 @@ build:
   tools:
     python: "3.12"
   commands:
-    - python -m pip install -r requirements-docs.txt
+    - python -m pip install -r docs/requirements-docs.txt
     - zensical build --strict
     - mkdir -p "$READTHEDOCS_OUTPUT/html"
     - cp -a site/. "$READTHEDOCS_OUTPUT/html/"

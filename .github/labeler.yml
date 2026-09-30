@@ -16,7 +16,7 @@ dependencies:
       - pyproject.toml
       - requirements.txt
       - requirements-dev.txt
-      - requirements-docs.txt
+      - docs/requirements-docs.txt
       - uv.lock
 
 optimizer:
