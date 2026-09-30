@@ -147,6 +147,32 @@ def test_sam_no_gradient(optimizer, environment):
     optimizer.second_step(zero_grad=True)
 
 
+@pytest.mark.parametrize(('first_pass_active', 'second_pass_active'), [(True, False), (False, True), (True, True)])
+def test_sam_changing_gradient_availability(first_pass_active, second_pass_active):
+    parameter = nn.Parameter(torch.tensor([1.0]))
+    always_active = nn.Parameter(torch.tensor([2.0]))
+    optimizer = SAM([parameter, always_active], torch.optim.SGD, lr=0.1, rho=0.1)
+
+    first_loss = always_active.sum() + (parameter.sum() if first_pass_active else 0.0)
+    first_loss.backward()
+    optimizer.first_step(zero_grad=True)
+
+    second_loss = always_active.sum() + (parameter.sum() if second_pass_active else 0.0)
+    second_loss.backward()
+    optimizer.second_step(zero_grad=True)
+
+    expected = torch.tensor([0.9 if second_pass_active else 1.0])
+    torch.testing.assert_close(parameter, expected)
+    torch.testing.assert_close(always_active, torch.tensor([1.9]))
+
+    always_active.sum().backward()
+    optimizer.first_step(zero_grad=True)
+    always_active.sum().backward()
+    optimizer.second_step(zero_grad=True)
+    torch.testing.assert_close(parameter, expected)
+    torch.testing.assert_close(always_active, torch.tensor([1.8]))
+
+
 def test_wsam_no_gradient(environment):
     x_data, y_data = environment
     model, loss_fn = build_model()

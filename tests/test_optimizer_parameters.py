@@ -56,16 +56,24 @@ def test_pcgrad_parameters():
         PCGrad(opt, reduction='invalid')
 
 
+@pytest.mark.parametrize('gamma', [0.0, -1.0])
+def test_adabound_rejects_non_positive_gamma(gamma):
+    with pytest.raises(ValueError, match='gamma must be positive'):
+        load_optimizer('adabound')([simple_parameter()], gamma=gamma)
+
+
 def test_lookahead_parameters():
     optimizer_instance = load_optimizer('adamp')
     optimizer = optimizer_instance([simple_parameter()])
 
     for pullback_momentum in PULLBACK_MOMENTUM:
         opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
+        assert not opt.state[optimizer.param_groups[0]['params'][0]]['slow_params'].requires_grad
         opt.load_state_dict(opt.state_dict())
 
     opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
     opt.backup_and_load_cache()
+    assert not opt.state[optimizer.param_groups[0]['params'][0]]['backup_params'].requires_grad
     opt.clear_and_load_backup()
 
     _ = opt.__getstate__()
@@ -89,9 +97,7 @@ def test_lookahead_load_legacy_defaultdict_state():
     lookahead.step()
 
     state_dict = lookahead.state_dict()
-    legacy_lookahead_state = defaultdict(
-        dict, {p: dict(param_state) for p, param_state in state_dict['lookahead_state'].items()}
-    )
+    legacy_lookahead_state = defaultdict(dict, {p: dict(param_state) for p, param_state in lookahead.state.items()})
     lookahead.load_state_dict(
         {'lookahead_state': legacy_lookahead_state, 'base_optimizer': state_dict['base_optimizer']}
     )

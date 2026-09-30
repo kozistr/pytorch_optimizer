@@ -77,6 +77,29 @@ def test_optimizer_updates_remain_finite(optimizer_name, iterations):
         assert torch.isfinite(param).all()
 
 
+def test_adabound_zero_learning_rate_warmup():
+    parameter = nn.Parameter(torch.tensor([1.0, -1.0]))
+    reference_parameter = nn.Parameter(parameter.detach().clone())
+    config = {'betas': (0.5, 0.5), 'final_lr': 0.2, 'gamma': 1.0, 'weight_decay': 0.1}
+    optimizer = load_optimizer('adabound')([parameter], lr=0.0, **config)
+    reference = load_optimizer('adabound')([reference_parameter], lr=0.1, **config)
+    gradient = torch.tensor([1.0, -0.5])
+
+    for step, lr in enumerate((0.0, 0.0, 0.1, 0.05, 0.0, 0.2), start=1):
+        previous_parameter = parameter.detach().clone()
+        optimizer.param_groups[0]['lr'] = reference.param_groups[0]['lr'] = lr
+        parameter.grad = gradient.clone()
+        reference_parameter.grad = gradient.clone()
+        optimizer.step()
+        reference.step()
+
+        torch.testing.assert_close(parameter, reference_parameter)
+        torch.testing.assert_close(optimizer.state[parameter]['exp_avg'], gradient * (1.0 - 0.5**step))
+        torch.testing.assert_close(optimizer.state[parameter]['exp_avg_sq'], gradient.square() * (1.0 - 0.5**step))
+        if lr == 0.0:
+            torch.testing.assert_close(parameter, previous_parameter)
+
+
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
 @pytest.mark.parametrize('foreach', [False, True])
 def test_bf16_optimizers(optimizer_config, foreach, environment):
