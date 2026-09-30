@@ -17,8 +17,9 @@ class Lamb(BaseOptimizer):
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
+        weight_decay (float): Weight decay coefficient.
+        weight_decouple (bool): Apply decoupled weight decay as in AdamW. False follows the LAMB paper's
+            standard update.
         fixed_decay (bool): Fix weight decay.
         rectify (bool): Perform the rectified update similar to RAdam.
         degenerated_to_sgd (bool): Degenerate to SGD.
@@ -147,14 +148,15 @@ class Lamb(BaseOptimizer):
 
             torch._foreach_div_(grads, grad_norm)
 
-        self.apply_weight_decay_foreach(
-            params=params,
-            grads=grads,
-            lr=group['lr'],
-            weight_decay=group['weight_decay'],
-            weight_decouple=group['weight_decouple'],
-            fixed_decay=group['fixed_decay'],
-        )
+        if group['weight_decouple']:
+            self.apply_weight_decay_foreach(
+                params=params,
+                grads=grads,
+                lr=group['lr'],
+                weight_decay=group['weight_decay'],
+                weight_decouple=True,
+                fixed_decay=group['fixed_decay'],
+            )
 
         torch._foreach_mul_(exp_avgs, beta1)
         torch._foreach_add_(exp_avgs, grads, alpha=beta3)
@@ -166,6 +168,9 @@ class Lamb(BaseOptimizer):
         torch._foreach_add_(updates, eps)
         torch._foreach_reciprocal_(updates)
         torch._foreach_mul_(updates, exp_avgs)
+
+        if not group['weight_decouple'] and group['weight_decay'] > 0.0:
+            torch._foreach_add_(updates, params, alpha=group['weight_decay'])
 
         weight_norms = torch._foreach_norm(params)
         torch._foreach_clamp_max_(weight_norms, self.clamp)
@@ -253,6 +258,8 @@ class Lamb(BaseOptimizer):
                 update.add_(exp_avg, alpha=-step_size)
         else:
             update = exp_avg / exp_avg_sq.sqrt().add_(group['eps'])
+            if not group['weight_decouple'] and group['weight_decay'] > 0.0:
+                update.add_(p, alpha=group['weight_decay'])
 
         weight_norm = torch.linalg.norm(p).clamp_(min=0, max=self.clamp)
         p_norm = torch.linalg.norm(update)
