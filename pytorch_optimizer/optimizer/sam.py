@@ -1,3 +1,4 @@
+import math
 from contextlib import ExitStack
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
@@ -165,6 +166,236 @@ class SAM(BaseOptimizer):
         super().load_state_dict(state_dict)
         self.base_optimizer.param_groups = self.param_groups
         self.base_optimizer.state = self.state
+
+
+class SSAM(SAM):
+    """Make Sharpness-Aware Minimization Stronger: A Sparsified Perturbation Approach.
+
+    The ascent step of SAM is applied only to a subset of the weights. The mask is kept for `1 - sparsity` of all
+    weights, and the perturbation norm is still computed from the full gradient.
+
+    * `mask_type='dynamic'` (SSAM-D): the mask starts random. Every `update_freq` steps a fraction of the live weights
+      (the death rate) is dropped by `drop_strategy`, and the same number of dead weights is grown by
+      `growth_strategy`. The death rate follows a cosine decay over `total_steps`.
+    * `mask_type='fisher'` (SSAM-F): the mask keeps the weights with the largest empirical Fisher information. Call
+      `update_fisher_mask` between steps. Until it has been called, the perturbation is dense (plain SAM).
+
+    Args:
+        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
+        base_optimizer (Optimizer): base optimizer.
+        rho (float): size of the neighborhood for computing the max loss.
+        sparsity (float): fraction of the weights that are not perturbed.
+        mask_type (str): `dynamic` or `fisher`.
+        drop_rate (float): initial fraction of live weights dropped at each `dynamic` mask update.
+        drop_strategy (str): score used to drop weights. `weight`, `gradient` or `random`. Live weights with the lowest
+            score are dropped.
+        growth_strategy (str): score used to grow weights. `weight`, `gradient` or `random`. Dead weights with the
+            highest score are grown.
+        update_freq (int): number of `first_step` calls between `dynamic` mask updates. The first update happens
+            after the first step.
+        total_steps (Optional[int]): number of steps over which the death rate decays to zero. If None, it is constant.
+        perturb_eps (float): eps for perturbation.
+        kwargs (Dict): parameters for optimizer.
+
+    Example:
+        ```python
+        optimizer = SSAM(model.parameters(), torch.optim.SGD, lr=0.1, sparsity=0.5, mask_type='fisher')
+
+        # every few epochs, `closure` runs a forward-backward pass on one random training sample
+        optimizer.update_fisher_mask(closure, num_samples=1024)
+        ```
+
+    """
+
+    def __init__(
+        self,
+        params: ParamsT,
+        base_optimizer: OptimizerType,
+        rho: float = 0.05,
+        sparsity: float = 0.2,
+        mask_type: str = 'dynamic',
+        drop_rate: float = 0.5,
+        drop_strategy: str = 'gradient',
+        growth_strategy: str = 'random',
+        update_freq: int = 100,
+        total_steps: Optional[int] = None,
+        perturb_eps: float = 1e-12,
+        **kwargs,
+    ):
+        self.validate_range(sparsity, 'sparsity', 0.0, 1.0, range_type='[]')
+        self.validate_options(mask_type, 'mask_type', ['dynamic', 'fisher'])
+        self.validate_range(drop_rate, 'drop_rate', 0.0, 1.0, range_type='[]')
+        self.validate_options(drop_strategy, 'drop_strategy', ['weight', 'gradient', 'random'])
+        self.validate_options(growth_strategy, 'growth_strategy', ['weight', 'gradient', 'random'])
+        self.validate_positive(update_freq, 'update_freq')
+        if total_steps is not None:
+            self.validate_positive(total_steps, 'total_steps')
+
+        self.sparsity = sparsity
+        self.mask_type = mask_type
+        self.drop_rate = drop_rate
+        self.drop_strategy = drop_strategy
+        self.growth_strategy = growth_strategy
+        self.update_freq = update_freq
+        self.total_steps = total_steps
+
+        self.masks: Dict[torch.Tensor, torch.Tensor] = {}
+        self.num_first_steps: int = 0
+
+        super().__init__(params, base_optimizer, rho=rho, perturb_eps=perturb_eps, **kwargs)
+
+        if mask_type == 'dynamic':
+            self.init_random_mask()
+
+    def __str__(self) -> str:
+        return 'SSAM'
+
+    def get_params(self) -> List[torch.Tensor]:
+        return [p for group in self.param_groups for p in group['params']]
+
+    @torch.no_grad()
+    def set_masks(self, live: torch.Tensor) -> None:
+        r"""Split a flat boolean tensor over all parameters and store it as the masks."""
+        start: int = 0
+        for p in self.get_params():
+            self.masks[p] = live[start : start + p.numel()].reshape(p.shape).clone()
+            start += p.numel()
+
+    @torch.no_grad()
+    def get_flat_mask(self) -> torch.Tensor:
+        return torch.cat([self.masks[p].flatten() for p in self.get_params()])
+
+    @torch.no_grad()
+    def init_random_mask(self) -> None:
+        params = self.get_params()
+        scores = torch.cat([torch.rand(p.numel(), device=p.device) for p in params])
+
+        live = torch.zeros_like(scores, dtype=torch.bool)
+        live[torch.topk(scores, scores.numel() - math.ceil(scores.numel() * self.sparsity)).indices] = True
+
+        self.set_masks(live)
+
+    def state_dict(self) -> Dict:
+        state_dict = super().state_dict()
+        state_dict['ssam'] = {
+            'num_first_steps': self.num_first_steps,
+            'masks': [self.masks[p].clone() for p in self.get_params() if p in self.masks],
+        }
+        return state_dict
+
+    def load_state_dict(self, state_dict: Dict) -> None:
+        state_dict = dict(state_dict)
+        ssam_state = state_dict.pop('ssam', None)
+
+        super().load_state_dict(state_dict)
+
+        if ssam_state is not None:
+            self.num_first_steps = ssam_state['num_first_steps']
+            for p, mask in zip(self.get_params(), ssam_state['masks']):
+                self.masks[p] = mask.to(p.device)
+
+    def get_death_rate(self, step: int) -> float:
+        if self.total_steps is None:
+            return self.drop_rate
+        return self.drop_rate * (1.0 + math.cos(math.pi * min(step / self.total_steps, 1.0))) / 2.0
+
+    def get_score(self, p: torch.Tensor, strategy: str) -> torch.Tensor:
+        if strategy == 'weight':
+            return p.abs()
+        if strategy == 'gradient':
+            return p.grad.abs() if p.grad is not None else torch.zeros_like(p)
+        return torch.rand_like(p)
+
+    @torch.no_grad()
+    def update_dynamic_mask(self, step: int) -> None:
+        r"""Drop the live weights with the lowest drop score, and grow the same number of dead weights."""
+        params = self.get_params()
+        mask = self.get_flat_mask()
+
+        drop_scores = torch.cat([self.get_score(p, self.drop_strategy).flatten() for p in params]) + 1e-7
+        growth_scores = torch.cat([self.get_score(p, self.growth_strategy).flatten() for p in params]) + 1e-7
+
+        num_live: int = int(mask.sum().item())
+        num_grow: int = min(int(num_live * self.get_death_rate(step)), mask.numel() - num_live)
+        num_keep: int = num_live - num_grow
+
+        live = torch.zeros_like(mask)
+        if num_keep > 0:
+            live[torch.topk(drop_scores * mask, num_keep).indices] = True
+        if num_grow > 0:
+            live[torch.topk(growth_scores * (~mask), num_grow).indices] = True
+
+        self.set_masks(live)
+
+    def update_fisher_mask(self, closure: Closure, num_samples: int = 1024) -> None:
+        r"""Keep the weights with the largest empirical Fisher information.
+
+        The gradients are cleared. Call it between steps, not between `first_step` and `second_step`.
+
+        Args:
+            closure (Closure): runs a forward-backward pass on one random training sample.
+            num_samples (int): number of samples used to estimate the Fisher information.
+
+        """
+        self.validate_positive(num_samples, 'num_samples')
+
+        if closure is None:
+            raise NoClosureError(str(self))
+
+        params = self.get_params()
+        fisher = [torch.zeros_like(p) for p in params]
+
+        for _ in range(num_samples):
+            self.zero_grad()
+            with torch.enable_grad():
+                closure()
+            with torch.no_grad():
+                for f, p in zip(fisher, params):
+                    if p.grad is not None:
+                        f.add_(p.grad.square())
+
+        self.zero_grad()
+
+        with torch.no_grad():
+            scores = torch.cat([f.flatten() for f in fisher])
+
+            live = torch.zeros_like(scores, dtype=torch.bool)
+            live[torch.topk(scores, int(scores.numel() * (1.0 - self.sparsity))).indices] = True
+
+            self.set_masks(live)
+
+    @torch.no_grad()
+    def first_step(self, zero_grad: bool = False):
+        device = self.param_groups[0]['params'][0].device
+
+        grad_norm = get_global_gradient_norm(self.param_groups, device).add_(self.perturb_eps)
+
+        for group in self.param_groups:
+            scale = group['rho'] / grad_norm
+
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                grad = p.grad
+                if self.use_gc:
+                    centralize_gradient(grad, gc_conv_only=False)
+
+                self.state[p]['old_p'] = p.clone()
+
+                e_w = grad * scale.to(p)
+                if p in self.masks:
+                    e_w.mul_(self.masks[p])
+
+                p.add_(e_w)
+
+        if self.mask_type == 'dynamic':
+            if self.num_first_steps % self.update_freq == 0:
+                self.update_dynamic_mask(self.num_first_steps)
+            self.num_first_steps += 1
+
+        if zero_grad:
+            self.zero_grad()
 
 
 class GSAM(BaseOptimizer):  # pragma: no cover
