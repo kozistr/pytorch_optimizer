@@ -920,7 +920,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (MARS, {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3, 'mars_type': 'adamw', 'ams_bound': True}, 5),
     (SGDSaI, {'lr': 1e0}, 15),
     (SGDSaI, {'lr': 1e0, 'momentum': 0.0}, 15),
-    (Grams, {'lr': 5e-2, 'weight_decay': 1e-3}, 5),
+    (Grams, {'lr': 5e-2, 'weight_decay': 1e-3}, 10),
     (SPAM, {'lr': 1e0, 'weight_decay': 1e-3, 'warmup_epoch': 1, 'grad_accu_steps': 1, 'update_proj_gap': 1}, 5),
     (StableSPAM, {'lr': 1e0, 'weight_decay': 1e-3, 'update_proj_gap': 1, 't_max': 5}, 5),
     (TAM, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
