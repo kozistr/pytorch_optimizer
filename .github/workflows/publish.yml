@@ -68,38 +68,24 @@ jobs:
         env:
           BUMP: ${{ inputs.bump }}
         run: |
-          python - <<'PY' >> "$GITHUB_OUTPUT"
-          import os
-          import re
-          import tomllib
-          from pathlib import Path
+          uv lock --check
+          current="$(uv version --short)"
+          if [[ ! "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo 'Package version must have the form MAJOR.MINOR.PATCH' >&2
+            exit 1
+          fi
 
-          project = Path('pyproject.toml')
-          text = project.read_text(encoding='utf-8')
-          current = tomllib.loads(text)['project']['version']
-          if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', current):
-              raise ValueError('Package version must have the form MAJOR.MINOR.PATCH')
-
-          lock = tomllib.loads(Path('uv.lock').read_text(encoding='utf-8'))
-          package = next(package for package in lock['package'] if package['name'] == 'pytorch-optimizer')
-          if package['version'] != current:
-              raise ValueError('uv.lock version does not match pyproject.toml')
-
-          if os.environ['GITHUB_EVENT_NAME'] == 'workflow_dispatch':
-              parts = list(map(int, current.split('.')))
-              index = {'major': 0, 'minor': 1, 'patch': 2}[os.environ['BUMP']]
-              parts[index] += 1
-              parts[index + 1:] = [0] * (2 - index)
-              version = '.'.join(map(str, parts))
-              project.write_text(text.replace(f'version = "{current}"', f'version = "{version}"', 1), encoding='utf-8')
-              tag = f'v{version}'
-          else:
-              tag = os.environ['GITHUB_REF_NAME']
-              if tag != f'v{current}':
-                  raise ValueError(f'Tag {tag} does not match package version {current}')
-
-          print(f'tag={tag}')
-          PY
+          if [[ "$GITHUB_EVENT_NAME" == 'workflow_dispatch' ]]; then
+            version="$(uv version --bump "$BUMP" --no-sync --short)"
+            tag="v$version"
+          else
+            tag="$GITHUB_REF_NAME"
+            if [[ "$tag" != "v$current" ]]; then
+              echo "Tag $tag does not match package version $current" >&2
+              exit 1
+            fi
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Commit and push version bump
         id: commit
@@ -111,7 +97,6 @@ jobs:
               echo "Tag $RELEASE_TAG already exists" >&2
               exit 1
             fi
-            uv lock
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git add pyproject.toml uv.lock
