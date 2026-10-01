@@ -69,6 +69,13 @@ class FocalCosineLoss(nn.Module):
 class BCEFocalLoss(nn.Module):
     """BCEFocal loss function with probability input.
 
+    Apply alpha to positive targets and 1 - alpha to negative targets.
+    The focusing factor is (1 - p) ** gamma for positives and p ** gamma
+    for negatives. Label smoothing applies to the underlying BCE term.
+
+    Reference:
+        https://arxiv.org/abs/1708.02002
+
     Args:
         alpha (float): Weighting factor for class imbalance, commonly set to 0.25.
         gamma (float): Focusing parameter to reduce loss contribution of easy examples.
@@ -95,11 +102,12 @@ class BCEFocalLoss(nn.Module):
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         bce_loss = self.bce(y_pred, y_true)
-        focal_loss = (
-            y_true * self.alpha * (1.0 - y_pred) ** self.gamma * bce_loss
-            + (1.0 - y_true) ** self.gamma * bce_loss
-        )  # fmt: skip
+        pt = y_true * y_pred + (1.0 - y_true) * (1.0 - y_pred)
+        alpha_t = y_true * self.alpha + (1.0 - y_true) * (1.0 - self.alpha)
+        focal_loss = alpha_t * (1.0 - pt) ** self.gamma * bce_loss
 
+        if self.reduction == 'none':
+            return focal_loss
         return focal_loss.mean() if self.reduction == 'mean' else focal_loss.sum()
 
 
