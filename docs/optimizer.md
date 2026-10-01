@@ -376,6 +376,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.NorMuon
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.NovoGrad
     :docstring:
     :members:

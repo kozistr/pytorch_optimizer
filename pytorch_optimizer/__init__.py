@@ -150,6 +150,7 @@ from pytorch_optimizer.optimizer import (
     Muon,
     NAdam,
     Nero,
+    NorMuon,
     NovoGrad,
     OrthoGrad,
     PAdam,

@@ -1,13 +1,16 @@
+import copy
+
 import pytest
 import torch
 from torch import nn
 
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
-from pytorch_optimizer.optimizer import DynamicLossScaler, load_optimizer
+from pytorch_optimizer.optimizer import DynamicLossScaler, NorMuon, load_optimizer, prepare_muon_parameters
 from pytorch_optimizer.optimizer.flash_adamw import compute_ecc_bits, reconstruct_fp32_param
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.lora_rite import LoRARiteHelper
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
+from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
 from pytorch_optimizer.optimizer.sso import SpectralSphere, solve_lambda_with_bisection
 from tests.constants import (
     COMPLEX_OPTIMIZERS,
@@ -171,7 +174,7 @@ def test_init_group(optimizer_config):
     common_config = {'num_iterations': 1}
     group = {'params': []}
 
-    if optimizer_name in {'muon', 'adamuon', 'adago'}:
+    if optimizer_name in {'muon', 'adamuon', 'adago', 'normuon'}:
         optimizer_class([{'params': param, 'use_muon': True}], **common_config).init_group(group)
     else:
         optimizer_class([param], **common_config).init_group({**group, 'betas': (0.0, 0.0)})
@@ -185,7 +188,7 @@ def test_closure(optimizer):
 
     if optimizer_name == 'Ranger21':
         optimizer = optimizer([param], num_iterations=1)
-    elif optimizer_name in ('Muon', 'AdaMuon', 'AdaGO'):
+    elif optimizer_name in ('Muon', 'AdaMuon', 'AdaGO', 'NorMuon'):
         optimizer = optimizer([{'params': param, 'use_muon': False}])
     else:
         optimizer = optimizer([param])
@@ -527,7 +530,7 @@ def test_soap_merge_dims_channel_last(environment):
         optimizer.step()
 
 
-@pytest.mark.parametrize('optimizer_name', ['Muon', 'AdaMuon', 'AdaGO'])
+@pytest.mark.parametrize('optimizer_name', ['Muon', 'AdaMuon', 'AdaGO', 'NorMuon'])
 def test_muon_high_dimensions(optimizer_name):
     model = nn.Sequential(
         nn.Conv1d(1, 1, 1),
@@ -978,3 +981,149 @@ def test_flash_adamw_parameters():
 
     with pytest.raises(ValueError):
         load_optimizer('flashadamw')([nn.Parameter(torch.ones(1))], master_weight_bits=24)
+
+
+def naive_normuon(weight, grads, lr, momentum, beta2, eps, scale, nesterov=True, wd=0.0):
+    """One-matrix NorMuon written straight from Algorithm 1 (float64 state, library Newton-Schulz)."""
+    m_buf = torch.zeros_like(weight)
+    v = torch.zeros(weight.size(0), 1, dtype=weight.dtype)
+
+    for grad in grads:
+        grad = grad.clone()
+        m_buf = m_buf + (grad - m_buf) * (1.0 - momentum)
+        direction = grad + (m_buf - grad) * momentum if nesterov else m_buf
+
+        o = zero_power_via_newton_schulz_5(direction.reshape(direction.size(0), -1)).to(weight.dtype)
+
+        v = v + (o.square().mean(dim=-1, keepdim=True) - v) * (1.0 - beta2)
+        o_hat = o / (v.sqrt() + eps)
+
+        if scale == 'match_rms':
+            step = o_hat * (0.2 * (o_hat.numel() ** 0.5) / (o_hat.norm() + eps))
+            step_lr = lr
+        else:
+            rows, cols = weight.shape
+            step = o_hat * (o.norm() / (o_hat.norm() + eps))
+            step_lr = lr * max(1.0, rows / cols) ** 0.5
+
+        weight = weight * (1.0 - lr * wd) - step_lr * step
+
+    return weight
+
+
+@pytest.mark.parametrize('shape', [(8, 16), (16, 8), (12, 12)])
+@pytest.mark.parametrize('scale', ['preserve_norm', 'match_rms'])
+@pytest.mark.parametrize('nesterov', [True, False])
+def test_normuon_matches_algorithm(shape, scale, nesterov):
+    torch.manual_seed(0)
+    weight = torch.randn(*shape, dtype=torch.float64)
+    grads = [torch.randn(*shape, dtype=torch.float64) for _ in range(6)]
+
+    param = nn.Parameter(weight.clone())
+    optimizer = NorMuon(
+        [{'params': [param], 'use_muon': True}],
+        lr=0.02,
+        weight_decay=0.01,
+        nesterov=nesterov,
+        update_scale=scale,
+    )
+    for grad in grads:
+        param.grad = grad.clone()
+        optimizer.step()
+
+    expected = naive_normuon(weight, grads, 0.02, 0.95, 0.95, 1e-10, scale, nesterov=nesterov, wd=0.01)
+
+    torch.testing.assert_close(param.detach(), expected, atol=1e-7, rtol=1e-6)
+
+
+def test_normuon_update_norm_and_rms():
+    torch.manual_seed(1)
+    grad = torch.randn(10, 20)
+
+    for scale in ('preserve_norm', 'match_rms'):
+        param = nn.Parameter(torch.zeros(10, 20))
+        param.grad = grad.clone()
+        NorMuon([{'params': [param], 'use_muon': True}], lr=1.0, update_scale=scale, use_adjusted_lr=True).step()
+
+        update = -param.detach()
+        if scale == 'match_rms':
+            assert update.square().mean().sqrt().item() == pytest.approx(0.2, rel=1e-4)
+        else:
+            orthogonalized = zero_power_via_newton_schulz_5(grad.mul(1.0 - 0.95).mul(0.95).add(grad * 0.05)).float()
+            assert update.norm().item() == pytest.approx(orthogonalized.norm().item(), rel=1e-2)
+
+
+def test_normuon_normalizes_rows():
+    torch.manual_seed(2)
+    param = nn.Parameter(torch.zeros(6, 6))
+    optimizer = NorMuon([{'params': [param], 'use_muon': True}], lr=1.0, update_scale='match_rms', beta2=0.0)
+
+    # beta2 = 0 keeps only the current squared update, so every row is divided by its own RMS
+    param.grad = torch.randn(6, 6) * torch.tensor([1.0, 10.0, 0.1, 5.0, 2.0, 0.5]).unsqueeze(-1)
+    optimizer.step()
+
+    row_rms = param.detach().square().mean(dim=-1).sqrt()
+    assert row_rms.max().item() / row_rms.min().item() == pytest.approx(1.0, rel=1e-3)
+
+
+def test_normuon_flattens_high_dimensional_parameters():
+    torch.manual_seed(3)
+    param = nn.Parameter(torch.randn(4, 3, 2, 2))
+    param.grad = torch.randn(4, 3, 2, 2)
+
+    optimizer = NorMuon([{'params': [param], 'use_muon': True}], lr=0.1)
+    optimizer.step()
+
+    assert optimizer.state[param]['second_momentum_buffer'].shape == (4, 1)
+    assert torch.isfinite(param).all()
+
+
+def test_normuon_zero_gradient_is_finite():
+    param = nn.Parameter(torch.ones(4, 4))
+    param.grad = torch.zeros(4, 4)
+
+    NorMuon([{'params': [param], 'use_muon': True}], lr=0.1).step()
+
+    torch.testing.assert_close(param.detach(), torch.ones(4, 4))
+
+
+def test_normuon_state_dict_round_trip():
+    def build():
+        torch.manual_seed(5)
+        param = nn.Parameter(torch.randn(6, 4))
+        return param, NorMuon([{'params': [param], 'use_muon': True}], lr=0.05)
+
+    param, optimizer = build()
+    for _ in range(3):
+        param.grad = torch.randn(6, 4)
+        optimizer.step()
+
+    new_param, new_optimizer = build()
+    new_param.data.copy_(param.data)
+    new_optimizer.load_state_dict(copy.deepcopy(optimizer.state_dict()))
+
+    grad = torch.randn(6, 4)
+    param.grad, new_param.grad = grad.clone(), grad.clone()
+    optimizer.step()
+    new_optimizer.step()
+
+    torch.testing.assert_close(param.detach(), new_param.detach())
+
+
+def test_normuon_invalid_parameters():
+    group = [{'params': [nn.Parameter(torch.randn(2, 2))], 'use_muon': True}]
+
+    with pytest.raises(ValueError):
+        NorMuon(group, update_scale='unknown')
+
+    with pytest.raises(ValueError):
+        NorMuon(group, beta2=1.0)
+
+    with pytest.raises(ValueError):
+        NorMuon(group, eps=-1.0)
+
+
+def test_prepare_muon_parameters_normuon():
+    model = nn.Sequential(nn.Linear(4, 4), nn.Linear(4, 2))
+
+    assert isinstance(prepare_muon_parameters(model, 'normuon', lr=0.02, weight_decay=0.0), NorMuon)
