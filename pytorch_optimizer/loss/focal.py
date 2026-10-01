@@ -61,7 +61,9 @@ class FocalCosineLoss(nn.Module):
 
         ce_loss = cross_entropy(normalize(y_pred), y_true, reduction='none')
         pt = torch.exp(-ce_loss)
-        focal_loss = (self.alpha * (1 - pt) ** self.gamma * ce_loss).mean()
+        focal_loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
+        if self.reduction != 'none':
+            focal_loss = focal_loss.mean() if self.reduction == 'mean' else focal_loss.sum()
 
         return cosine_loss + self.focal_weight * focal_loss
 
