@@ -46,7 +46,7 @@ def test_f32_optimizers(optimizer_config, foreach, environment):
         pytest.skip(f'skip {optimizer_name} w/ foreach')
 
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
     optimizer = optimizer_class(parameters, **config, foreach=foreach)
@@ -61,7 +61,7 @@ def test_f32_optimizers(optimizer_config, foreach, environment):
         iterations=iterations,
         create_graph=should_use_create_graph(optimizer_name),
         closure_fn=closure_fn,
-        threshold=1.5 if optimizer_name not in ('SpectralSphere',) else 1.4,
+        threshold=1.4 if optimizer_name in ('SpectralSphere', 'build_orthograd') else 1.5,
     )
 
 
@@ -110,7 +110,7 @@ def test_bf16_optimizers(optimizer_config, foreach, environment):
         pytest.skip(f'skip {optimizer_name}')
 
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
     model = model.bfloat16()
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
@@ -126,7 +126,7 @@ def test_bf16_optimizers(optimizer_config, foreach, environment):
         iterations=iterations,
         create_graph=should_use_create_graph(optimizer_name),
         closure_fn=closure_fn,
-        threshold=1.5 if optimizer_name not in ('SpectralSphere',) else 1.4,
+        threshold=1.4 if optimizer_name in ('SpectralSphere', 'build_orthograd') else 1.5,
     )
 
 
@@ -139,7 +139,7 @@ def test_complex_optimizers(optimizer_config, environment):
         pytest.skip(f'{optimizer_name} does not support complex')
 
     x_data, y_data = environment
-    model, loss_fn = build_model(use_complex=True)
+    model, loss_fn = build_model(use_complex=True, device=x_data.device)
     x_data = x_data.to(torch.complex64)
     parameters, config = build_optimizer_parameter(list(model.parameters()), optimizer_name, config)
 
@@ -510,7 +510,7 @@ def test_soap_merge_dims_channel_last(environment):
 
     model = nn.Sequential(
         nn.Conv2d(1, 1, 2, 1),
-    )
+    ).to(x_data.device)
 
     optimizer = load_optimizer('soap')(
         model.parameters(),

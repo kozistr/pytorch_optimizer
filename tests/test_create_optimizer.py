@@ -55,13 +55,14 @@ def test_create_optimizer_with_orthograd(optimizer_name):
 
 
 @pytest.mark.parametrize(
-    'optimizer_name',
+    ('optimizer_name', 'package_flag'),
     [
-        'bnb_adamw8bit',
-        'q_galore_adamw8bit',
-        'torchao_adamw4bit',
+        ('bnb_adamw8bit', 'HAS_BNB'),
+        ('q_galore_adamw8bit', 'HAS_Q_GALORE'),
+        ('torchao_adamw4bit', 'HAS_TORCHAO'),
     ],
 )
-def test_external_optimizers_require_import(optimizer_name):
+def test_external_optimizers_require_import(optimizer_name, package_flag, monkeypatch):
+    monkeypatch.setattr(f'pytorch_optimizer.optimizer.{package_flag}', False)
     with pytest.raises(ImportError):
         load_optimizer(optimizer_name)

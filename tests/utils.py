@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
 import torch
@@ -129,9 +129,10 @@ def sphere_loss(x: torch.Tensor) -> torch.Tensor:
     return x.pow(2).sum()
 
 
-def build_model(use_complex: bool = False):
+def build_model(use_complex: bool = False, device: Union[str, torch.device] = 'cpu'):
     torch.manual_seed(42)
-    return ComplexLogisticRegression() if use_complex else LogisticRegression(), nn.BCEWithLogitsLoss()
+    model = ComplexLogisticRegression() if use_complex else LogisticRegression()
+    return model.to(device), nn.BCEWithLogitsLoss().to(device)
 
 
 def build_optimizer_parameter(parameters, optimizer_name, config):
@@ -229,12 +230,15 @@ class Trainer:
             return self.loss_fn(self.y_data, y_pred)
         return self.loss_fn(y_pred, self.y_data)
 
-    @staticmethod
     def assert_loss_decreased(
+        self,
         init_loss: torch.Tensor,
         final_loss: torch.Tensor,
         threshold: float,
     ) -> Tuple[np.ndarray, np.ndarray]:
+        for p in self.model.parameters():
+            assert torch.isfinite(p).all(), 'Model parameters became nonfinite during training'
+
         init_loss_np = tensor_to_numpy(init_loss)
         final_loss_np = tensor_to_numpy(final_loss)
 
@@ -274,8 +278,7 @@ class Trainer:
         closure_fn=None,
         threshold: float = 1.5,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        context = torch.autocast('cpu', dtype=torch.bfloat16)
-        scaler = torch.GradScaler(device='cpu', enabled=False)
+        context = torch.autocast(self.x_data.device.type, dtype=torch.bfloat16)
 
         init_loss, loss = None, None
         for _ in range(iterations):
@@ -286,7 +289,7 @@ class Trainer:
 
             init_loss = init_loss or loss
 
-            scaler.scale(loss).backward(create_graph=create_graph)
+            loss.backward(create_graph=create_graph)
 
             if closure_fn is not None:
                 self.optimizer.step(closure_fn(loss))

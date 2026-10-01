@@ -99,6 +99,6 @@ class FTRL(BaseOptimizer):
                 update.div_((group['beta'] + n.sqrt()).div_(group['lr']).add_(group['lambda_2']))
 
                 p.copy_(update)
-                p.masked_fill_(z.abs() < group['lambda_1'], 0.0)
+                p.masked_fill_(z.abs() <= group['lambda_1'], 0.0)
 
         return loss
