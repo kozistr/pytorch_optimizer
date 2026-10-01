@@ -1041,7 +1041,7 @@ class NorMuon(BaseOptimizer):
                     second_momentum = state['second_momentum_buffer']
                     second_momentum.lerp_(v_mean, weight=1.0 - group['beta2'])
 
-                    update = update / second_momentum.sqrt().add_(group['eps'])
+                    update.div_(second_momentum.sqrt().add_(group['eps']))
 
                     if group['update_scale'] == 'preserve_norm':
                         update.mul_(original_norm / update.norm().add_(group['eps']))
