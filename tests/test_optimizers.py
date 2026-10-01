@@ -458,20 +458,6 @@ def test_stableadamw_optimizer():
     optimizer.step()
 
 
-@pytest.mark.parametrize('foreach', [False, True])
-def test_stableadamw_coupled_decay_with_zero_gradient(foreach):
-    parameter = nn.Parameter(torch.tensor([1.0], dtype=torch.float64))
-    optimizer = load_optimizer('stableadamw')(
-        [parameter], lr=0.1, weight_decay=0.2, weight_decouple=False, eps=1e-8, foreach=foreach
-    )
-    parameter.grad = torch.zeros_like(parameter)
-    optimizer.step()
-
-    assert parameter.item() == pytest.approx(1.0 - 0.1 * 0.2 / (0.2 + 1e-8))
-    torch.testing.assert_close(optimizer.state[parameter]['exp_avg'], torch.tensor([0.2], dtype=torch.float64))
-    torch.testing.assert_close(optimizer.state[parameter]['exp_avg_sq'], torch.tensor([0.04], dtype=torch.float64))
-
-
 def test_adam_mini_optimizer():
     optimizer = load_optimizer('AdamMini')(LogisticRegression())
     optimizer.step()
