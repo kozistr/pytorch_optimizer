@@ -304,9 +304,12 @@ class BaseOptimizer(ABC, Optimizer):
 
         grad_norm = torch.linalg.norm(grad)
 
-        exp_grad_norm.mul(r).add_(grad_norm, alpha=1.0 - r)
+        exp_grad_norm.mul_(r).add_(grad_norm, alpha=1.0 - r)
 
-        return grad.mul(exp_grad_norm).div_(grad_norm) if exp_grad_norm > grad_norm else grad
+        if grad_norm > 0 and exp_grad_norm > grad_norm:
+            return grad.mul(exp_grad_norm).div_(grad_norm)
+
+        return grad
 
     @staticmethod
     def get_rms(x: Union[List[torch.Tensor], torch.Tensor]) -> Union[List[torch.Tensor], torch.Tensor]:
