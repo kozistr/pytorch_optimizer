@@ -131,7 +131,7 @@ def test_sparse_supported(sparse_optimizer):
 @pytest.mark.parametrize('optimizer', [SAM, LookSAM, FriendlySAM])
 def test_sam_no_gradient(optimizer, environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     model.fc1.weight.requires_grad = False
     model.fc1.weight.grad = None
@@ -175,7 +175,7 @@ def test_sam_changing_gradient_availability(first_pass_active, second_pass_activ
 
 def test_wsam_no_gradient(environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     model.fc1.weight.requires_grad = False
     model.fc1.weight.grad = None

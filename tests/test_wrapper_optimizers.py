@@ -47,7 +47,7 @@ def accelerate_style_move_to_device(state, device):
 @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
 def test_lookahead(pullback_momentum, environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     optimizer = Lookahead(load_optimizer('adamw')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum)
     optimizer.init_group({})
@@ -136,7 +136,7 @@ def test_lookahead_rejects_mismatched_state(mismatch):
 
 def test_magma(environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     optimizer = Magma(load_optimizer('adamw')(model.parameters(), lr=5e-1), mask_prob=1.0)
 
@@ -234,7 +234,7 @@ def test_magma_excludes_parameters_and_loads_state_dict():
 @pytest.mark.parametrize('wrapper', [SAM, FriendlySAM, LookSAM])
 def test_sam_optimizer(adaptive, wrapper, environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     optimizer = wrapper(model.parameters(), load_optimizer('asgd'), lr=5e-1, adaptive=adaptive, use_gc=True)
 
@@ -246,7 +246,7 @@ def test_sam_optimizer(adaptive, wrapper, environment):
 @pytest.mark.parametrize('wrapper', [SAM, FriendlySAM, LookSAM])
 def test_sam_optimizer_with_closure(adaptive, wrapper, environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     optimizer = wrapper(model.parameters(), load_optimizer('adamw'), lr=5e-1, adaptive=adaptive)
 
@@ -258,7 +258,7 @@ def test_sam_optimizer_with_closure(adaptive, wrapper, environment):
 @pytest.mark.parametrize('decouple', [True, False])
 def test_wsam_optimizer(adaptive, decouple, environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     optimizer = WSAM(
         model,
@@ -277,7 +277,7 @@ def test_wsam_optimizer(adaptive, decouple, environment):
 @pytest.mark.parametrize('adaptive', [True, False])
 def test_wsam_optimizer_with_closure(adaptive, environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     optimizer = WSAM(model, model.parameters(), load_optimizer('adamp'), lr=5e-2, adaptive=adaptive, max_norm=100.0)
 
@@ -290,7 +290,7 @@ def test_gsam_optimizer(adaptive, environment):
     pytest.skip('skip GSAM optimizer')
 
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     lr: float = 5e-1
     num_iterations: int = 25
@@ -317,9 +317,17 @@ def test_gsam_optimizer(adaptive, environment):
 
 
 @pytest.mark.parametrize('adaptive', [True, False])
-def test_bsam_optimizer(adaptive, environment):
+def test_bsam_optimizer(adaptive, environment, monkeypatch):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
+
+    normal = torch.normal
+
+    def sample_noise(mean, std):
+        return normal(mean, std.cpu()).to(std.device)
+
+    # Use the same noise samples when comparing CPU and CUDA convergence.
+    monkeypatch.setattr(torch, 'normal', sample_noise)
 
     optimizer = BSAM(model.parameters(), lr=2e-3, num_data=len(x_data), rho=1e-5, adaptive=adaptive)
 
@@ -388,7 +396,7 @@ def test_pc_grad_optimizers(reduction, environment):
 
     x_data, y_data = environment
 
-    model: nn.Module = MultiHeadLogisticRegression()
+    model: nn.Module = MultiHeadLogisticRegression().to(x_data.device)
     loss_fn_1: nn.Module = nn.BCEWithLogitsLoss()
     loss_fn_2: nn.Module = nn.L1Loss()
 
@@ -433,7 +441,7 @@ def test_pcgrad_preserves_unused_parameters(reduction):
 
 def test_trac_optimizer(environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     optimizer = TRAC(load_optimizer('adamw')(model.parameters(), lr=1e0))
 

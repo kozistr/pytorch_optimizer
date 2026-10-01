@@ -44,7 +44,7 @@ def test_maximize(optimizer_name, foreach):
 @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_adanorm_optimizer(optimizer_config, environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     optimizer_class, config, num_iterations = optimizer_config
     optimizer = optimizer_class(model.parameters(), **config, adanorm=True)
@@ -70,7 +70,7 @@ def test_adanorm_variant(optimizer_config):
 @pytest.mark.parametrize('optimizer_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_adamd_variant(optimizer_config, environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     optimizer_class, config, num_iterations = optimizer_config
     optimizer = optimizer_class(model.parameters(), **config, adam_debias=True)
@@ -83,7 +83,7 @@ def test_adamd_variant(optimizer_config, environment):
 @pytest.mark.parametrize('optimizer_config', COPT_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_cautious_variant(optimizer_config, environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     optimizer_class, config, num_iterations = optimizer_config
     parameters, config = build_optimizer_parameter(model.parameters(), optimizer_class.__name__, config)
@@ -96,7 +96,7 @@ def test_cautious_variant(optimizer_config, environment):
 @pytest.mark.parametrize('optimizer_config', STABLE_ADAMW_SUPPORTED_OPTIMIZERS, ids=ids)
 def test_stable_adamw_variant(optimizer_config, environment):
     x_data, y_data = environment
-    model, loss_fn = build_model()
+    model, loss_fn = build_model(device=x_data.device)
 
     optimizer_class, config, num_iterations = optimizer_config
     optimizer = optimizer_class(model.parameters(), **config)

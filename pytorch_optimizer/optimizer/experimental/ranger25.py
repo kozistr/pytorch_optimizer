@@ -127,21 +127,6 @@ class Ranger25(BaseOptimizer):
         )
 
     @torch.no_grad()
-    def apply_orthogonal_gradients(self, params, eps: float = 1e-16) -> None:
-        for p in params:
-            if p.grad is None or p.grad.is_sparse or torch.is_complex(p):
-                continue
-
-            w = p.view(-1)
-            g = p.grad.view(-1)
-
-            proj = torch.dot(w, g).div_(torch.dot(w, w).add_(eps))
-            g_ortho = g.to(dtype=torch.float32, copy=True).sub_(w, alpha=proj)
-            g_ortho_scaled = g_ortho.mul_(g.norm(2).div_(g_ortho.norm(2).add_(eps)))
-
-            p.grad.copy_(g_ortho_scaled.view_as(p.grad))
-
-    @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
         if closure is not None:

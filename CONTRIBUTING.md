@@ -104,6 +104,18 @@ Tests are in `tests/` directory:
 
 100% test coverage is required.
 
+### GPU training tests
+
+The training tests use CPU by default. To run them on a local GPU, use a Python interpreter with a CUDA-enabled
+PyTorch installation:
+
+```bash
+python -m pytest --device=cuda
+```
+
+The `--device` option reports an error when CUDA is requested but unavailable. The default `uv.lock` uses CPU-only
+PyTorch, so use your existing CUDA interpreter for this check.
+
 ## Questions
 
 If you have any questions about contribution, please ask in the Issues, Discussions, or just in PR :)

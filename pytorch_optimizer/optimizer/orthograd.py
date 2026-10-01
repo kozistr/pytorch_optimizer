@@ -53,18 +53,7 @@ class OrthoGrad(BaseOptimizer):
 
     @torch.no_grad()
     def apply_orthogonal_gradients(self, params) -> None:
-        for p in params:
-            if p.grad is None or p.grad.is_sparse or torch.is_complex(p):
-                continue
-
-            w = p.view(-1)
-            g = p.grad.view(-1)
-
-            proj = torch.dot(w, g).div_(torch.dot(w, w).add_(self.eps))
-            g_ortho = g.to(dtype=torch.float32, copy=True).sub_(w, alpha=proj)
-            g_ortho_scaled = g_ortho.mul_(g.norm(2).div_(g_ortho.norm(2).add_(self.eps)))
-
-            p.grad.copy_(g_ortho_scaled.view_as(p.grad))
+        super().apply_orthogonal_gradients(params, eps=self.eps)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
