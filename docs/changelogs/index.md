@@ -2,7 +2,6 @@
 
 Release notes, newest first.
 
-- [v3.10.2](v3.10.2.md)
 - [v3.10.1](v3.10.1.md)
 - [v3.10.0](v3.10.0.md)
 - [v3.9.0](v3.9.0.md)
