@@ -5,6 +5,7 @@ on:
     types:
       - opened
       - synchronize
+      - labeled
   check_suite:
     types:
       - completed
