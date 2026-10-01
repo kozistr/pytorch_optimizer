@@ -179,10 +179,9 @@ def test_init_group(optimizer_config):
 
 @pytest.mark.parametrize('optimizer', {config[0] for config in OPTIMIZERS}, ids=names)
 def test_closure(optimizer):
-    param = simple_parameter()
-    param.grad = None
-
     optimizer_name: str = optimizer.__name__
+    param = torch.tensor([1.0, 0.0], requires_grad=True) if optimizer_name == 'build_orthograd' else simple_parameter()
+    param.grad = None
 
     if optimizer_name == 'Ranger21':
         optimizer = optimizer([param], num_iterations=1)
@@ -202,6 +201,15 @@ def test_closure(optimizer):
     elif optimizer_name in ('AliG',):
         with pytest.raises(NoClosureError):
             optimizer.step()
+    elif optimizer_name == 'build_orthograd':
+
+        def closure():
+            loss = param.sum()
+            loss.backward()
+            return loss
+
+        assert optimizer.step(closure).item() == 1.0
+        torch.testing.assert_close(param.grad, torch.tensor([0.0, 2.0**0.5]))
     else:
         optimizer.step(closure=dummy_closure)
 
