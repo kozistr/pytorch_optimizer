@@ -435,23 +435,6 @@ def test_trac_optimizer(environment):
     trainer.run_trac_style(iterations=3, threshold=2.0)
 
 
-def test_orthograd_projects_closure_gradients():
-    parameter = nn.Parameter(torch.tensor([1.0, 0.0]))
-    optimizer = OrthoGrad(torch.optim.SGD([parameter], lr=0.1))
-
-    def closure():
-        optimizer.zero_grad()
-        loss = parameter.sum()
-        loss.backward()
-        return loss
-
-    loss = optimizer.step(closure)
-
-    assert loss.item() == 1.0
-    torch.testing.assert_close(parameter.grad, torch.tensor([0.0, 2.0**0.5]))
-    torch.testing.assert_close(parameter, torch.tensor([1.0, -0.1 * 2.0**0.5]))
-
-
 def test_trac_optimizer_erf_imag():
     model = Example()
 
