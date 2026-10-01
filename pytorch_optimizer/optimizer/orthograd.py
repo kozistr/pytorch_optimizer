@@ -68,6 +68,16 @@ class OrthoGrad(BaseOptimizer):
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
-        for group in self.param_groups:
-            self.apply_orthogonal_gradients(group['params'])
-        return self.optimizer.step(closure)
+        if closure is None:
+            for group in self.param_groups:
+                self.apply_orthogonal_gradients(group['params'])
+            return self.optimizer.step()
+
+        def orthogonal_closure():
+            with torch.enable_grad():
+                loss = closure()
+            for group in self.param_groups:
+                self.apply_orthogonal_gradients(group['params'])
+            return loss
+
+        return self.optimizer.step(orthogonal_closure)
