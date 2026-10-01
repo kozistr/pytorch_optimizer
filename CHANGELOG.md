@@ -1,3 +1,71 @@
+# v3.11.0
+
+## What's Changed
+* [Docs] Prepend changelog for v3.10.1 by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/509
+* [Feature] Implement `Magma` optimizer by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/514
+* [Fix] Keep `SignSGD` momentum buffer across steps by @11NOel11 in https://github.com/kozistr/pytorch_optimizer/pull/516
+* [Fix] Apply weight decay in `SignSGD` by @11NOel11 in https://github.com/kozistr/pytorch_optimizer/pull/518
+* [Fix] Match `foreach` and per-parameter rounding in `SignSGD` and `Tiger` by @11NOel11 in https://github.com/kozistr/pytorch_optimizer/pull/520
+* Fix AdaSmooth NaN on zero-initialized parameters by @winklemad in https://github.com/kozistr/pytorch_optimizer/pull/522
+* Fix AdaShift NaN on the first update with keep_num > 1 by @winklemad in https://github.com/kozistr/pytorch_optimizer/pull/523
+* Fix A2Grad diverging to NaN from an inverted running-mean weight by @winklemad in https://github.com/kozistr/pytorch_optimizer/pull/524
+* Fix M-SVAG NaN from debiasing moments by beta**step instead of 1 - beta**step by @winklemad in https://github.com/kozistr/pytorch_optimizer/pull/525
+* [Fix] `rho` calculation for `M-SVAG` optimizer by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/529
+* docs: migrate to Zensical and automate changelogs by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/532
+* Raise Shampoo factors to -1/(2k) by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/530
+* Do not start an AdamMini collective without a process group by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/534
+* Keep MARS last_grad stable across the next backward by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/533
+* Divide the DAdaptAdam distance estimate by sk_l1 by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/538
+* Store the first PID gradient for the next derivative by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/539
+* [Fix] scale StableAdamW after the second moment is updated by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/544
+* [Fix] advance the Prodigy step counter once per update by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/546
+* [Fix] keep LaProp's centered second moment out of the stored average by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/547
+* [Fix] bias-correct only the fast AdEMAMix moment by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/549
+* [Fix] lift Alice subspace vectors back to the parameter shape by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/550
+* Keep ApolloDQN stable weight decay inside one parameter by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/535
+* [Fix] lower DAdaptAdam test learning rate by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/552
+* Fix MADGRAD adding eps to the learning rate by @winklemad in https://github.com/kozistr/pytorch_optimizer/pull/526
+* Apply the documented `maximize` option in optimizers that ignored it by @winklemad in https://github.com/kozistr/pytorch_optimizer/pull/527
+* Fix Adai ignoring `maximize` (gradient negated twice) by @winklemad in https://github.com/kozistr/pytorch_optimizer/pull/528
+* [Fix] Match FAdam adaptive epsilon to the paper by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/557
+* [Fix] Correct Schedule-Free wrapper state and AdamMini GQA updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/558
+* [Fix] Apply MARS 1D weight decay by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/559
+* [Fix] Respect FlashAdamW learning-rate decay mode by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/561
+* [Fix] Handle mixed dtypes in StableAdamW foreach updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/560
+* [Fix] Honor maximize in StableAdamW scalar updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/562
+* [Fix] Honor maximize in LOMO updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/563
+* [Fix] Initialize LARS momentum from zero by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/564
+* [Fix] Include decay in the LARS trust ratio by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/565
+* [Fix] Initialize GrokFast EMA for maximize by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/566
+* [Fix] Use beta0 in Ranger21 positive-negative momentum by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/568
+* [Fix] Reject invalid schedule-free momentum values by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/567
+* [Fix] Preserve Ranger21 second-moment maximum by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/569
+* Move docs requirements file under docs/ by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/570
+* Honor Ranger21 gradient processing options by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/571
+* Clarify pull request title guidance by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/572
+* Apply coupled LAMB decay within the trust ratio by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/573
+* Match NovoGrad's first update and step size to the paper by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/574
+* [Fix] Correct Hessian sampling and optimizer edge cases by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/575
+* [Fix] Preserve base optimizer state in SAM checkpoints by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/576
+* [Fix] Remap TRAC references when loading checkpoints by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/579
+* [Fix] Project OrthoGrad gradients after closure evaluation by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/583
+* [Fix] Keep Lookahead slow momentum in separate storage by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/582
+* [Fix] Honor zero weight decay in create_optimizer by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/580
+* [Fix] Apply StableAdamW coupled decay before moment updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/581
+* [Fix] Apply BCE focal class weights and elementwise reduction by @AHMETHAKANBEZIR1 in https://github.com/kozistr/pytorch_optimizer/pull/585
+* [Fix] Stabilize OrthoGrad and FTRL GPU training by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/586
+* [Build] Add manual release workflow by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/587
+* Accumulate the AdaNorm norm average and guard zero gradients by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/536
+* [Fix] take the Ano second-moment sign before the decay by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/553
+
+## New Contributors
+* @11NOel11 made their first contribution in https://github.com/kozistr/pytorch_optimizer/pull/516
+* @winklemad made their first contribution in https://github.com/kozistr/pytorch_optimizer/pull/522
+* @shaneraphel made their first contribution in https://github.com/kozistr/pytorch_optimizer/pull/530
+* @AHMETHAKANBEZIR1 made their first contribution in https://github.com/kozistr/pytorch_optimizer/pull/585
+
+**Full Changelog**: https://github.com/kozistr/pytorch_optimizer/compare/v3.10.1...v3.11.0
+
 # v3.10.1
 
 ## Change Log
