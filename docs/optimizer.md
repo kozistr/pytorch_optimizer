@@ -276,6 +276,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.get_mup_param_groups
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.get_supported_optimizers
     :docstring:
     :members:
@@ -368,7 +372,19 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.MuAdam
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.MuAdamW
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Muon
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.MuSGD
     :docstring:
     :members:
 

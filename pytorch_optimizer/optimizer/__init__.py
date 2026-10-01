@@ -75,6 +75,7 @@ from pytorch_optimizer.optimizer.magma import Magma
 from pytorch_optimizer.optimizer.mars import MARS
 from pytorch_optimizer.optimizer.msvag import MSVAG
 from pytorch_optimizer.optimizer.muon import AdaGO, AdaMuon, DistributedMuon, Muon, prepare_muon_parameters
+from pytorch_optimizer.optimizer.mup import MuAdam, MuAdamW, MuSGD, get_mup_param_groups
 from pytorch_optimizer.optimizer.nero import Nero
 from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.orthograd import OrthoGrad
