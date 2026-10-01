@@ -362,8 +362,13 @@ def create_optimizer(
     """
     optimizer_name = optimizer_name.lower()
 
+    if optimizer_name != 'lbfgs':
+        kwargs['weight_decay'] = weight_decay
+
     parameters = (
-        get_optimizer_parameters(model, weight_decay, wd_ban_list) if weight_decay > 0.0 else model.parameters()
+        get_optimizer_parameters(model, weight_decay, wd_ban_list)
+        if weight_decay > 0.0
+        else [{'params': model.parameters(), 'weight_decay': weight_decay}]
     )
 
     optimizer_class: OptimizerType = load_optimizer(optimizer_name)
@@ -375,7 +380,7 @@ def create_optimizer(
     elif optimizer_name in ('muon', 'adamuon', 'adago'):
         warn(f'highly recommend you to manually create the {optimizer_name} manually.', UserWarning, stacklevel=1)
 
-        optimizer = prepare_muon_parameters(model, optimizer_name, lr=lr, weight_decay=weight_decay, **kwargs)
+        optimizer = prepare_muon_parameters(model, optimizer_name, lr=lr, **kwargs)
     else:
         optimizer = optimizer_class(parameters, lr=lr, **kwargs)
 
