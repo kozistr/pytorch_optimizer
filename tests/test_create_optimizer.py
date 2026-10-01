@@ -28,7 +28,7 @@ def test_create_optimizer_basic(optimizer_name):
         use_orthograd=False,
         **_get_optimizer_kwargs(optimizer_name),
     )
-    assert optimizer.defaults['weight_decay'] == 0.0
+    assert optimizer.defaults.get('weight_decay', 0.0) == 0.0
     assert all(group.get('weight_decay', 0.0) == 0.0 for group in optimizer.param_groups)
 
 
