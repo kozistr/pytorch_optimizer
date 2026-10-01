@@ -115,6 +115,11 @@ class StableAdamW(BaseOptimizer):
         if self.maximize:
             torch._foreach_neg_(grads)
 
+        if not group['weight_decouple']:
+            self.apply_weight_decay_foreach(
+                params, grads, lr, group['weight_decay'], weight_decouple=False, fixed_decay=False
+            )
+
         torch._foreach_lerp_(exp_avgs, grads, weight=beta1_comp)
 
         torch._foreach_mul_(exp_avg_sqs, beta2_hat)
@@ -170,19 +175,25 @@ class StableAdamW(BaseOptimizer):
 
             self.maximize_gradient(grad, maximize=self.maximize)
 
+            if not group['weight_decouple']:
+                self.apply_weight_decay(
+                    p, grad, group['lr'], group['weight_decay'], weight_decouple=False, fixed_decay=False
+                )
+
             exp_avg.lerp_(grad, weight=beta1_comp)
             exp_avg_sq.mul_(beta2_hat).addcmul_(grad, grad, value=1.0 - beta2_hat)
 
             lr: float = group['lr'] / self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
 
-            self.apply_weight_decay(
-                p,
-                grad=grad,
-                lr=lr,
-                weight_decay=group['weight_decay'],
-                weight_decouple=group['weight_decouple'],
-                fixed_decay=False,
-            )
+            if group['weight_decouple']:
+                self.apply_weight_decay(
+                    p,
+                    grad=grad,
+                    lr=lr,
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=True,
+                    fixed_decay=False,
+                )
 
             if group['kahan_sum'] and p.dtype in (torch.float16, torch.bfloat16):
                 kahan_comp = state['kahan_comp']
