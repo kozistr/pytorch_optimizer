@@ -143,9 +143,45 @@ class TRAC(BaseOptimizer):
         return self.optimizer.state
 
     def state_dict(self) -> State:
-        return self.optimizer.state_dict()
+        state_dict = self.optimizer.state_dict()
+        if 'trac' in state_dict['state']:
+            parameter_indices = {
+                p: index
+                for group, saved_group in zip(self.param_groups, state_dict['param_groups'])
+                for p, index in zip(group['params'], saved_group['params'])
+            }
+            state_dict['state']['trac'] = {
+                parameter_indices.get(key, key): value for key, value in state_dict['state']['trac'].items()
+            }
+        return state_dict
 
     def load_state_dict(self, state_dict: State) -> None:
+        saved_trac = state_dict['state'].get('trac')
+        if saved_trac is not None:
+            parameters = [p for group in self.param_groups for p in group['params']]
+            references = [value for key, value in saved_trac.items() if isinstance(key, torch.Tensor)]
+            if not references:
+                references = [
+                    saved_trac.get(index) for group in state_dict['param_groups'] for index in group['params']
+                ]
+
+            metadata = {key: value for key, value in saved_trac.items() if isinstance(key, str)}
+            if (
+                len(references) != len(parameters)
+                or len(saved_trac) != len(metadata) + len(parameters)
+                or any(
+                    not isinstance(ref, torch.Tensor) or ref.shape != p.shape for p, ref in zip(parameters, references)
+                )
+            ):
+                raise ValueError('TRAC state does not match the current parameters')
+
+            trac_state = {
+                key: value.to(device=parameters[0].device) if isinstance(value, torch.Tensor) else value
+                for key, value in metadata.items()
+            }
+            trac_state.update({p: ref.to(p) for p, ref in zip(parameters, references)})
+            state_dict = {**state_dict, 'state': {**state_dict['state'], 'trac': trac_state}}
+
         self.optimizer.load_state_dict(state_dict)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
