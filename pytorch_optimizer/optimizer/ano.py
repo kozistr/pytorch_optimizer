@@ -122,7 +122,8 @@ class Ano(BaseOptimizer):
                 exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
 
                 square_grad = grad.square()
-                exp_avg_sq.mul_(beta2).addcmul_(torch.sign(square_grad - exp_avg_sq), square_grad, value=1.0 - beta2)
+                sign_term = torch.sign(square_grad - exp_avg_sq)
+                exp_avg_sq.mul_(beta2).addcmul_(sign_term, square_grad, value=1.0 - beta2)
 
                 de_nom = square_grad.copy_(exp_avg_sq).div_(bias_correction2).sqrt_().add_(group['eps'])
 
