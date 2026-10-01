@@ -363,7 +363,9 @@ def create_optimizer(
     optimizer_name = optimizer_name.lower()
 
     parameters = (
-        get_optimizer_parameters(model, weight_decay, wd_ban_list) if weight_decay > 0.0 else model.parameters()
+        get_optimizer_parameters(model, weight_decay, wd_ban_list)
+        if weight_decay > 0.0
+        else [{'params': model.parameters(), 'weight_decay': weight_decay}]
     )
 
     optimizer_class: OptimizerType = load_optimizer(optimizer_name)
@@ -371,13 +373,15 @@ def create_optimizer(
     if optimizer_name == 'alig':
         optimizer = optimizer_class(parameters, max_lr=lr, **kwargs)
     elif optimizer_name in ('lomo', 'adalomo', 'adammini'):
-        optimizer = optimizer_class(model, lr=lr, **kwargs)
+        optimizer = optimizer_class(model, lr=lr, weight_decay=weight_decay, **kwargs)
     elif optimizer_name in ('muon', 'adamuon', 'adago'):
         warn(f'highly recommend you to manually create the {optimizer_name} manually.', UserWarning, stacklevel=1)
 
         optimizer = prepare_muon_parameters(model, optimizer_name, lr=lr, weight_decay=weight_decay, **kwargs)
     else:
         optimizer = optimizer_class(parameters, lr=lr, **kwargs)
+
+    optimizer.defaults['weight_decay'] = weight_decay
 
     if use_orthograd:
         optimizer = OrthoGrad(optimizer, **kwargs)

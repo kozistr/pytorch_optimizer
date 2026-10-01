@@ -21,13 +21,15 @@ def test_create_optimizer_basic(optimizer_name):
     if optimizer_name in SKIP_CREATE_OPTIMIZER:
         pytest.skip(f'skip {optimizer_name}')
 
-    create_optimizer(
+    optimizer = create_optimizer(
         Example(),
         optimizer_name=optimizer_name,
         use_lookahead=False,
         use_orthograd=False,
         **_get_optimizer_kwargs(optimizer_name),
     )
+    assert optimizer.defaults['weight_decay'] == 0.0
+    assert all(group.get('weight_decay', 0.0) == 0.0 for group in optimizer.param_groups)
 
 
 @pytest.mark.parametrize('optimizer_name', WRAPPER_TEST_OPTIMIZERS)
