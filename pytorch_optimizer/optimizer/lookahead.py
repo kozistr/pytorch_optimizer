@@ -144,7 +144,7 @@ class Lookahead(BaseOptimizer):
 
             if self.pullback_momentum == 'pullback':
                 internal_momentum = self.optimizer.state[p]['momentum_buffer']
-                internal_momentum.mul_(self.alpha).add_(state['slow_momentum'], alpha=1.0 - self.alpha)
+                internal_momentum.lerp_(state['slow_momentum'], weight=1.0 - self.alpha)
                 state['slow_momentum'].copy_(internal_momentum)
             elif self.pullback_momentum == 'reset':
                 self.optimizer.state[p]['momentum_buffer'] = torch.zeros_like(p)
