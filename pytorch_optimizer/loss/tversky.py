@@ -24,10 +24,13 @@ class TverskyLoss(nn.Module):
         y_pred = y_pred.view(-1)
         y_true = y_true.view(-1)
 
-        tp = (y_pred * y_true).sum()
-        fp = ((1.0 - y_true) * y_pred).sum()
-        fn = (y_true * (1.0 - y_pred)).sum()
+        tp = y_pred * y_true
+        output_dtype = tp.dtype
+        accumulation_dtype = torch.float32 if output_dtype in (torch.float16, torch.bfloat16) else output_dtype
+        tp = tp.sum(dtype=accumulation_dtype)
+        fp = ((1.0 - y_true) * y_pred).sum(dtype=accumulation_dtype)
+        fn = (y_true * (1.0 - y_pred)).sum(dtype=accumulation_dtype)
 
         loss = (tp + self.smooth) / (tp + self.alpha * fp + self.beta * fn + self.smooth)
 
-        return 1.0 - loss
+        return (1.0 - loss).to(output_dtype)
