@@ -330,10 +330,7 @@ class SOAP(BaseOptimizer):
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
                 exp_avg_projected = self.project(
-                    exp_avg,
-                    state,
-                    merge_dims=group['merge_dims'],
-                    max_precondition_dim=group['max_precondition_dim'],
+                    exp_avg, state, merge_dims=group['merge_dims'], max_precondition_dim=group['max_precondition_dim']
                 )
 
                 norm_grad = self.project(
