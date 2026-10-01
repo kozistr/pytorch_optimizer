@@ -235,7 +235,7 @@ def test_schedulefree_sparse_gradient():
         optimizer.step(lambda: 0.1)
 
 
-@pytest.mark.parametrize('optimizer', ['muon', 'adamuon', 'adago'])
+@pytest.mark.parametrize('optimizer', ['muon', 'adamuon', 'adago', 'normuon'])
 def test_muon_no_gradient(optimizer):
     model = nn.Sequential(nn.Linear(1, 1))
     model[0].weight.grad = None
@@ -257,7 +257,7 @@ def test_complex_not_supported(no_complex_optimizer):
 
     param = simple_complex_parameter()
 
-    use_muon: bool = no_complex_optimizer in ('muon', 'adamuon', 'adago')
+    use_muon: bool = no_complex_optimizer in ('muon', 'adamuon', 'adago', 'normuon')
     optimizer = OptimizerBuilder.create(no_complex_optimizer, [param], use_muon=use_muon)
 
     with pytest.raises(NoComplexParameterError):
