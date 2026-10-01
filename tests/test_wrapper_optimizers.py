@@ -101,6 +101,11 @@ def test_lookahead_resume_with_new_parameters(pullback_momentum):
 
         for p, restored_p in zip(parameters, restored_parameters):
             torch.testing.assert_close(restored_p, p)
+            if pullback_momentum == 'pullback':
+                assert (
+                    optimizer.state[p]['slow_momentum'].data_ptr()
+                    != optimizer.optimizer.state[p]['momentum_buffer'].data_ptr()
+                )
             torch.testing.assert_close(restored.state[restored_p]['slow_params'], optimizer.state[p]['slow_params'])
             torch.testing.assert_close(
                 restored.optimizer.state[restored_p]['momentum_buffer'],

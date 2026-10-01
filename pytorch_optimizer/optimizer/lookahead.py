@@ -121,6 +121,9 @@ class Lookahead(BaseOptimizer):
             raise ValueError('lookahead state does not match the current parameters')
 
         self.optimizer.load_state_dict(state['base_optimizer'])
+        for parameter_state in restored_state.values():
+            if 'slow_momentum' in parameter_state:
+                parameter_state['slow_momentum'] = parameter_state['slow_momentum'].clone()
         self.state = defaultdict(dict, restored_state)
 
     @torch.no_grad()
@@ -141,10 +144,8 @@ class Lookahead(BaseOptimizer):
 
             if self.pullback_momentum == 'pullback':
                 internal_momentum = self.optimizer.state[p]['momentum_buffer']
-                self.optimizer.state[p]['momentum_buffer'] = internal_momentum.mul_(self.alpha).add_(
-                    state['slow_momentum'], alpha=1.0 - self.alpha
-                )
-                state['slow_momentum'] = self.optimizer.state[p]['momentum_buffer']
+                internal_momentum.mul_(self.alpha).add_(state['slow_momentum'], alpha=1.0 - self.alpha)
+                state['slow_momentum'].copy_(internal_momentum)
             elif self.pullback_momentum == 'reset':
                 self.optimizer.state[p]['momentum_buffer'] = torch.zeros_like(p)
 
