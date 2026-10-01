@@ -1,4 +1,5 @@
 from copy import deepcopy
+from io import BytesIO
 
 import numpy as np
 import pytest
@@ -447,6 +448,49 @@ def test_trac_optimizer_erf_imag():
     assert str(optimizer).lower() == 'trac'
 
 
+@pytest.mark.parametrize('checkpoint_format', ['indexed', 'legacy'])
+def test_trac_checkpoint_resumes_with_new_parameters(checkpoint_format):
+    parameters = [nn.Parameter(torch.tensor([1.0])), nn.Parameter(torch.tensor([-1.0, 2.0]))]
+    optimizer = TRAC(
+        torch.optim.SGD([{'params': [p], 'lr': lr} for p, lr in zip(parameters, [0.1, 0.05])], momentum=0.9)
+    )
+    for gradient in (0.5, -0.25, 1.0):
+        for p in parameters:
+            p.grad = torch.full_like(p, gradient)
+        optimizer.step()
+
+    state_dict = optimizer.state_dict() if checkpoint_format == 'indexed' else optimizer.optimizer.state_dict()
+    if checkpoint_format == 'indexed':
+        assert all(isinstance(key, (str, int)) for key in state_dict['state']['trac'])
+    assert all(p in optimizer.state['trac'] for p in parameters)
+    stream = BytesIO()
+    torch.save(state_dict, stream)
+    stream.seek(0)
+    saved_state = torch.load(stream, weights_only=False)
+
+    restored_parameters = [nn.Parameter(p.detach().clone()) for p in parameters]
+    restored = TRAC(torch.optim.SGD([{'params': [p]} for p in restored_parameters], lr=0.1, momentum=0.9))
+    restored.load_state_dict(saved_state)
+
+    for gradient in (-0.5, 0.25, 1.0):
+        for p, restored_p in zip(parameters, restored_parameters):
+            p.grad = torch.full_like(p, gradient)
+            restored_p.grad = p.grad.clone()
+        optimizer.step()
+        restored.step()
+
+        for p, restored_p in zip(parameters, restored_parameters):
+            torch.testing.assert_close(restored_p, p)
+            torch.testing.assert_close(restored.state['trac'][restored_p], optimizer.state['trac'][p])
+            torch.testing.assert_close(
+                restored.optimizer.state[restored_p]['momentum_buffer'],
+                optimizer.optimizer.state[p]['momentum_buffer'],
+            )
+        for key in ('s', 'variance', 'sigma'):
+            torch.testing.assert_close(restored.state['trac'][key], optimizer.state['trac'][key])
+        assert restored.state['trac']['step'] == optimizer.state['trac']['step']
+
+
 @pytest.mark.parametrize('wrapper_optimizer_instance', [Lookahead, OrthoGrad, TRAC])
 def test_load_wrapper_optimizer(wrapper_optimizer_instance):
     params = [simple_parameter()]
@@ -465,3 +509,15 @@ def test_load_wrapper_optimizer(wrapper_optimizer_instance):
 
     state = optimizer.state_dict()
     optimizer.load_state_dict(state)
+
+
+def test_trac_rejects_missing_checkpoint_reference():
+    parameter = nn.Parameter(torch.tensor([1.0]))
+    optimizer = TRAC(torch.optim.SGD([parameter], lr=0.1))
+    parameter.grad = torch.ones_like(parameter)
+    optimizer.step()
+    state_dict = deepcopy(optimizer.state_dict())
+    del state_dict['state']['trac'][0]
+
+    with pytest.raises(ValueError, match='TRAC state does not match'):
+        optimizer.load_state_dict(state_dict)
