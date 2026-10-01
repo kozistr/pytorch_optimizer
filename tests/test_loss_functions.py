@@ -24,7 +24,6 @@ from tests.utils import MultiClassExample
 
 
 class TestBinaryCE:
-
     @torch.no_grad()
     @pytest.mark.parametrize('recipe', [('train', 0.37069410), ('eval', 0.30851572)])
     def test_bce_loss(self, recipe, binary_predictions):
@@ -42,10 +41,10 @@ class TestBinaryCE:
     @pytest.mark.parametrize(
         'recipe',
         [
-            ('train', 'mean', 0.16992925),
-            ('eval', 'mean', 0.14931047),
-            ('train', 'sum', 1.699292540),
-            ('eval', 'sum', 1.49310469),
+            ('train', 'mean', 0.031676896),
+            ('eval', 'mean', 0.029709899),
+            ('train', 'sum', 0.316768959),
+            ('eval', 'sum', 0.297098987),
         ],
     )
     def test_bce_focal_loss(self, recipe, binary_predictions):
@@ -323,3 +322,81 @@ def test_lovasz_hinge_loss(recipe):
     loss = criterion(y_pred, y_true)
 
     assert float(loss) == pytest.approx(expected_loss, abs=1e-6)
+
+
+@pytest.mark.parametrize('dtype', [torch.float32, torch.float64])
+@pytest.mark.parametrize('alpha', [0.0, 0.25, 1.0])
+@pytest.mark.parametrize('gamma', [0.0, 2.0])
+@pytest.mark.parametrize('target_kind', ['mixed', 'negative', 'positive'])
+@pytest.mark.parametrize('reduction', ['none', 'mean', 'sum'])
+def test_bce_focal_class_weights(dtype, alpha, gamma, target_kind, reduction):
+    probabilities = torch.tensor([[0.1, 0.4], [0.8, 0.9], [0.3, 0.7]], dtype=dtype).t()
+    targets = torch.tensor([[0.0, 1.0], [1.0, 0.0], [0.0, 1.0]], dtype=dtype).t()
+    if target_kind != 'mixed':
+        targets.fill_(float(target_kind == 'positive'))
+    original_probabilities, original_targets = probabilities.clone(), targets.clone()
+    probabilities.requires_grad_()
+    reference_probabilities = probabilities.detach().clone().requires_grad_()
+
+    # Independent positive/negative branches of Lin et al.'s alpha-balanced focal loss.
+    positive = -alpha * (1 - reference_probabilities).pow(gamma) * reference_probabilities.log()
+    negative = -(1 - alpha) * reference_probabilities.pow(gamma) * torch.log1p(-reference_probabilities)
+    expected = torch.where(targets == 1, positive, negative)
+    if reduction == 'mean':
+        expected = expected.mean()
+    elif reduction == 'sum':
+        expected = expected.sum()
+
+    actual = BCEFocalLoss(alpha=alpha, gamma=gamma, reduction=reduction)(probabilities, targets)
+    torch.testing.assert_close(actual, expected)
+    actual_grad = torch.autograd.grad(actual.sum(), probabilities)[0]
+    expected_grad = torch.autograd.grad(expected.sum(), reference_probabilities)[0]
+    torch.testing.assert_close(actual_grad, expected_grad)
+    torch.testing.assert_close(probabilities.detach(), original_probabilities)
+    torch.testing.assert_close(targets, original_targets)
+
+
+@pytest.mark.parametrize('training', [True, False])
+@pytest.mark.parametrize('reduction', ['none', 'mean', 'sum'])
+def test_bce_focal_label_smoothing(training, reduction):
+    probabilities = torch.tensor([[0.2, 0.8], [0.4, 0.6]], dtype=torch.float64, requires_grad=True)
+    targets = torch.tensor([[0.0, 1.0], [1.0, 0.0]], dtype=torch.float64)
+    reference_probabilities = probabilities.detach().clone().requires_grad_()
+    smoothed_targets = 0.8 * targets + 0.1 if training else targets
+    expected_bce = -(
+        smoothed_targets * reference_probabilities.log()
+        + (1 - smoothed_targets) * torch.log1p(-reference_probabilities)
+    )
+    weights = torch.where(
+        targets == 1,
+        0.25 * (1 - reference_probabilities).square(),
+        0.75 * reference_probabilities.square(),
+    )
+    expected = weights * expected_bce
+    if reduction == 'mean':
+        expected = expected.mean()
+    elif reduction == 'sum':
+        expected = expected.sum()
+
+    criterion = BCEFocalLoss(alpha=0.25, gamma=2, label_smooth=0.2, reduction=reduction)
+    criterion.train(training)
+    actual = criterion(probabilities, targets)
+    torch.testing.assert_close(actual, expected)
+    torch.testing.assert_close(
+        torch.autograd.grad(actual.sum(), probabilities)[0],
+        torch.autograd.grad(expected.sum(), reference_probabilities)[0],
+    )
+
+
+@pytest.mark.parametrize('dtype', [torch.float32, torch.float64])
+@pytest.mark.parametrize('gamma', [0.0, 2.0])
+def test_bce_focal_probability_boundaries(dtype, gamma):
+    probabilities = torch.tensor([0.0, 1.0, 0.0, 1.0], dtype=dtype, requires_grad=True)
+    targets = torch.tensor([0.0, 1.0, 1.0, 0.0], dtype=dtype)
+    criterion = BCEFocalLoss(alpha=0.25, gamma=gamma, reduction='none')
+    actual = criterion(probabilities, targets)
+    clamped = probabilities.detach().clamp(1e-6, 1 - 1e-6)
+    positive = -0.25 * (1 - probabilities.detach()).pow(gamma) * clamped.log()
+    negative = -0.75 * probabilities.detach().pow(gamma) * torch.log1p(-clamped)
+    torch.testing.assert_close(actual, torch.where(targets == 1, positive, negative))
+    assert torch.isfinite(torch.autograd.grad(actual.sum(), probabilities)[0]).all()
