@@ -23,8 +23,8 @@ def lovasz_hinge_flat(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tenso
         y_true (torch.Tensor): Ground truth.
 
     """
-    y_pred = y_pred.view(-1)
-    y_true = y_true.view(-1)
+    y_pred = y_pred.reshape(-1)
+    y_true = y_true.reshape(-1)
 
     signs = 2.0 * y_true.float() - 1.0
 
