@@ -125,7 +125,7 @@ class Ano(BaseOptimizer):
                 sign_term = torch.sign(square_grad - exp_avg_sq)
                 exp_avg_sq.mul_(beta2).addcmul_(sign_term, square_grad, value=1.0 - beta2)
 
-                de_nom = exp_avg_sq.div(bias_correction2).add(group['eps']).sqrt_()
+                de_nom = square_grad.copy_(exp_avg_sq).div_(bias_correction2).sqrt_().add_(group['eps'])
 
                 p.addcdiv_(grad.abs().mul_(exp_avg.sign()), de_nom, value=-group['lr'])
 
