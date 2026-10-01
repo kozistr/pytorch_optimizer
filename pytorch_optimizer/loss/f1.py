@@ -18,8 +18,8 @@ class SoftF1Loss(nn.Module):
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         tp = (y_true * y_pred).sum().float()
-        fn = ((1 - y_true) * y_pred).sum().float()
-        fp = (y_true * (1 - y_pred)).sum().float()
+        fp = ((1 - y_true) * y_pred).sum().float()
+        fn = (y_true * (1 - y_pred)).sum().float()
 
         p = tp / (tp + fp + self.eps)
         r = tp / (tp + fn + self.eps)

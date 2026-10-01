@@ -88,6 +88,19 @@ class TestBinaryCE:
 
         assert float(loss) == pytest.approx(0.38905364, abs=1e-6)
 
+    @torch.no_grad()
+    @pytest.mark.parametrize('recipe', [(0.5, 0.375), (2.0, 0.70588235)])
+    def test_soft_f1_loss_beta(self, recipe):
+        beta, expected_loss = recipe
+
+        criterion = SoftF1Loss(beta=beta)
+
+        y_pred = torch.FloatTensor([1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        y_true = torch.FloatTensor([1.0, 1.0, 1.0, 1.0, 0.0, 0.0])
+        loss = criterion(y_pred, y_true)
+
+        assert float(loss) == pytest.approx(expected_loss, abs=1e-5)
+
 
 class TestDiceAndJaccard:
     eps: float = 1e-6
