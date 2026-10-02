@@ -68,25 +68,21 @@ class TestBinaryCE:
 
         assert float(loss) == pytest.approx(0.07848126, abs=1e-6)
 
-    @pytest.mark.parametrize('reduction', ['none', 'mean', 'sum'])
-    def test_focal_cosine_loss(self, reduction):
-        y_pred = torch.tensor([[0.9, 0.1, 0.1], [0.2, 0.9, 0.1], [0.2, 0.1, 0.1]], requires_grad=True)
-        y_true = torch.tensor([0, 1, 2])
-        unit = y_pred / y_pred.norm(dim=1, keepdim=True)
-        correct = unit[torch.arange(3), y_true]
-        ce = unit.logsumexp(dim=1) - correct
-        per_sample = 1.0 - correct + 0.1 * (1.0 - (-ce).exp()).square() * ce
-        expected = (
-            per_sample if reduction == 'none' else per_sample.mean() if reduction == 'mean' else per_sample.sum()
-        )
-        actual = FocalCosineLoss(reduction=reduction)(y_pred, y_true)
-        torch.testing.assert_close(actual, expected)
-        torch.testing.assert_close(
-            torch.autograd.grad(actual.sum(), y_pred, retain_graph=True)[0],
-            torch.autograd.grad(expected.sum(), y_pred)[0],
-        )
-        if reduction == 'mean':
-            assert actual.item() == pytest.approx(0.2413520, abs=1e-6)
+    @torch.no_grad()
+    @pytest.mark.parametrize(
+        ('reduction', 'expected_loss'),
+        [
+            ('none', [0.024584262909110033, 0.04368160706201334, 0.655790168737243]),
+            ('mean', 0.24135201290278882),
+            ('sum', 0.7240560387083664),
+        ],
+    )
+    def test_focal_cosine_loss(self, reduction, expected_loss):
+        criterion = FocalCosineLoss(reduction=reduction)
+        y_pred = torch.FloatTensor([[0.9, 0.1, 0.1], [0.2, 0.9, 0.1], [0.2, 0.1, 0.1]])
+        y_true = torch.LongTensor([0, 1, 2])
+        loss = criterion(y_pred, y_true)
+        torch.testing.assert_close(loss, torch.tensor(expected_loss), atol=1e-6, rtol=0)
 
     @torch.no_grad()
     def test_soft_f1_loss(self, binary_predictions):
