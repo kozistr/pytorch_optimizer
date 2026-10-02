@@ -61,6 +61,7 @@ from pytorch_optimizer.optimizer import (
     QHM,
     RACS,
     SAM,
+    SaRA,
     SCION,
     SGD,
     SGDP,

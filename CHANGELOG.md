@@ -1,6 +1,7 @@
 # v3.11.0
 
 ## What's Changed
+* Implement the `SaRA` optimizer.
 * [Docs] Prepend changelog for v3.10.1 by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/509
 * [Feature] Implement `Magma` optimizer by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/514
 * [Fix] Keep `SignSGD` momentum buffer across steps by @11NOel11 in https://github.com/kozistr/pytorch_optimizer/pull/516

@@ -508,6 +508,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.SaRA
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.SOAP
     :docstring:
     :members:
