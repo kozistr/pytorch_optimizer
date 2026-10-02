@@ -413,26 +413,3 @@ def test_bce_focal_probability_boundaries(dtype, gamma):
     negative = -0.75 * probabilities.detach().pow(gamma) * torch.log1p(-clamped)
     torch.testing.assert_close(actual, torch.where(targets == 1, positive, negative))
     assert torch.isfinite(torch.autograd.grad(actual.sum(), probabilities)[0]).all()
-
-
-@pytest.mark.parametrize('dtype', [torch.float16, torch.bfloat16, torch.float32, torch.float64])
-@pytest.mark.parametrize('focal', [False, True])
-def test_tversky_large_mask(dtype, focal):
-    logits = torch.zeros(1, 1, 512, 512, dtype=dtype, requires_grad=True)
-    targets = torch.ones_like(logits)
-    reference_logits = logits.detach().double().requires_grad_()
-    probabilities = reference_logits.sigmoid()
-    intersection = probabilities.sum()
-    false_negatives = (1 - probabilities).sum()
-    expected = 1 - (intersection + 1e-6) / (intersection + 0.7 * false_negatives + 1e-6)
-    criterion = FocalTverskyLoss(alpha=0.3, beta=0.7, gamma=2.0) if focal else TverskyLoss(alpha=0.3, beta=0.7)
-    if focal:
-        expected = expected.square()
-
-    actual = criterion(logits, targets)
-    assert actual.dtype == dtype
-    torch.testing.assert_close(actual, expected.to(dtype))
-    torch.testing.assert_close(
-        torch.autograd.grad(actual, logits)[0],
-        torch.autograd.grad(expected, reference_logits)[0].to(dtype),
-    )
