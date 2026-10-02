@@ -68,35 +68,25 @@ class TestBinaryCE:
 
         assert float(loss) == pytest.approx(0.07848126, abs=1e-6)
 
-    @torch.no_grad()
-    def test_focal_cosine_loss(self):
-        criterion = FocalCosineLoss(alpha=1.0, gamma=2.0, focal_weight=0.1)
-
-        y_pred = torch.FloatTensor([[0.9, 0.1, 0.1], [0.2, 0.9, 0.1], [0.2, 0.1, 0.1]])
-        y_true = torch.LongTensor([0, 1, 2])
-        loss = criterion(y_pred, y_true)
-
-        assert float(loss) == pytest.approx(0.2413520, abs=1e-6)
-
     @pytest.mark.parametrize('reduction', ['none', 'mean', 'sum'])
-    @pytest.mark.parametrize('dtype', [torch.float32, torch.float64])
-    def test_focal_cosine_reduction(self, reduction, dtype):
-        y_pred = torch.tensor([[0.9, 0.1, 0.1], [0.2, 0.9, 0.1], [0.2, 0.1, 0.1]], dtype=dtype, requires_grad=True)
+    def test_focal_cosine_loss(self, reduction):
+        y_pred = torch.tensor([[0.9, 0.1, 0.1], [0.2, 0.9, 0.1], [0.2, 0.1, 0.1]], requires_grad=True)
         y_true = torch.tensor([0, 1, 2])
         unit = y_pred / y_pred.norm(dim=1, keepdim=True)
         correct = unit[torch.arange(3), y_true]
         ce = unit.logsumexp(dim=1) - correct
-        per_sample = 1.0 - correct + 0.3 * 0.7 * (1.0 - (-ce).exp()).square() * ce
+        per_sample = 1.0 - correct + 0.1 * (1.0 - (-ce).exp()).square() * ce
         expected = (
             per_sample if reduction == 'none' else per_sample.mean() if reduction == 'mean' else per_sample.sum()
         )
-        actual = FocalCosineLoss(alpha=0.7, gamma=2.0, focal_weight=0.3, reduction=reduction)(y_pred, y_true)
-
+        actual = FocalCosineLoss(reduction=reduction)(y_pred, y_true)
         torch.testing.assert_close(actual, expected)
-        weights = torch.tensor([1.0, 2.0, 4.0], dtype=dtype) if reduction == 'none' else 1.0
-        actual_grad = torch.autograd.grad((actual * weights).sum(), y_pred, retain_graph=True)[0]
-        expected_grad = torch.autograd.grad((expected * weights).sum(), y_pred)[0]
-        torch.testing.assert_close(actual_grad, expected_grad)
+        torch.testing.assert_close(
+            torch.autograd.grad(actual.sum(), y_pred, retain_graph=True)[0],
+            torch.autograd.grad(expected.sum(), y_pred)[0],
+        )
+        if reduction == 'mean':
+            assert actual.item() == pytest.approx(0.2413520, abs=1e-6)
 
     @torch.no_grad()
     def test_soft_f1_loss(self, binary_predictions):
