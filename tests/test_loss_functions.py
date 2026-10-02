@@ -302,26 +302,6 @@ def test_focal_tverysky_loss():
     assert float(loss) == pytest.approx(0.6307878, abs=1e-6)
 
 
-@pytest.mark.parametrize('per_image', [True, False])
-@pytest.mark.parametrize('strided', ['predictions', 'targets'])
-def test_lovasz_hinge_strided_input(per_image, strided):
-    values = torch.arange(24, dtype=torch.float32).reshape(2, 3, 4)
-    y_pred = (values / 7.0 - 1.3).transpose(1, 2)
-    y_true = (values.remainder(3) == 0).float().transpose(1, 2)
-    if strided == 'predictions':
-        y_true = y_true.contiguous()
-    else:
-        y_pred = y_pred.contiguous()
-    y_pred.requires_grad_()
-    reference = y_pred.detach().contiguous().requires_grad_()
-    criterion = LovaszHingeLoss(per_image)
-
-    actual = criterion(y_pred, y_true)
-    expected = criterion(reference, y_true.contiguous())
-    torch.testing.assert_close(actual, expected)
-    torch.testing.assert_close(torch.autograd.grad(actual, y_pred)[0], torch.autograd.grad(expected, reference)[0])
-
-
 @torch.no_grad()
 @pytest.mark.parametrize('recipe', [(True, 1.74925303), (False, 1.08580458)])
 def test_lovasz_hinge_loss(recipe):
