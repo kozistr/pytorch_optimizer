@@ -24,12 +24,14 @@ class TverskyLoss(nn.Module):
         y_pred = y_pred.view(-1)
         y_true = y_true.view(-1)
 
-        tp = y_pred * y_true
-        output_dtype = tp.dtype
+        output_dtype = torch.promote_types(y_pred.dtype, y_true.dtype)
         accumulation_dtype = torch.float32 if output_dtype in (torch.float16, torch.bfloat16) else output_dtype
-        tp = tp.sum(dtype=accumulation_dtype)
-        fp = ((1.0 - y_true) * y_pred).sum(dtype=accumulation_dtype)
-        fn = (y_true * (1.0 - y_pred)).sum(dtype=accumulation_dtype)
+        y_pred = y_pred.to(accumulation_dtype)
+        y_true = y_true.to(accumulation_dtype)
+
+        tp = (y_pred * y_true).sum()
+        fp = ((1.0 - y_true) * y_pred).sum()
+        fn = (y_true * (1.0 - y_pred)).sum()
 
         loss = (tp + self.smooth) / (tp + self.alpha * fp + self.beta * fn + self.smooth)
 
