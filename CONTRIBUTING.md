@@ -47,6 +47,17 @@ uv run just docs-build
 
 Run `uv run just format` and `uv run just check` before submitting a PR.
 
+## Coding Agents and LLMs
+
+You can use coding agents and LLMs for code, tests, and documentation. Before opening a PR, review the generated
+changes and make sure you understand them. You are responsible for the changes you submit.
+
+- Verify optimizer update rules against the original paper and explain differences from its reference implementation.
+- Check generated tests against the algorithm or a trusted reference and meet the project's coverage requirement.
+- Run the required checks and report the results in your PR, including checks you could not run.
+
+Be ready to explain your implementation, edge cases, and tests during review.
+
 ## Documentation
 
 We use [Zensical](https://zensical.org/) with `mkdocstrings` for the API reference.

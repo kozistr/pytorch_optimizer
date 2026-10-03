@@ -1,3 +1,5 @@
+import math
+
 import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
@@ -115,6 +117,9 @@ class DiffGrad(BaseOptimizer):
                 degenerated_to_sgd=self.degenerated_to_sgd,
             )
 
+            if not group['rectify']:
+                step_size *= math.sqrt(self.debias(beta2, group['step']))
+
             step_size = self.apply_adam_debias(
                 adam_debias=group.get('adam_debias', False),
                 step_size=step_size,
@@ -128,6 +133,15 @@ class DiffGrad(BaseOptimizer):
                 grad = p.grad
 
                 self.maximize_gradient(grad, maximize=self.maximize)
+
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
 
                 state = self.state[p]
 
@@ -161,17 +175,8 @@ class DiffGrad(BaseOptimizer):
                 )
 
                 if not group['rectify']:
-                    p.addcdiv_(exp_avg, de_nom, value=-step_size)
+                    p.addcdiv_(dfc, de_nom, value=-step_size)
                     continue
-
-                self.apply_weight_decay(
-                    p=p,
-                    grad=None,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
 
                 if n_sma >= self.n_sma_threshold:
                     p.addcdiv_(dfc, de_nom, value=-step_size)
