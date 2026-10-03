@@ -18,7 +18,7 @@ from pytorch_optimizer.optimizer import (
     load_optimizer,
 )
 from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
-from tests.constants import PULLBACK_MOMENTUM
+from tests.recipes import PULLBACK_MOMENTUM
 from tests.utils import Example, simple_parameter
 
 

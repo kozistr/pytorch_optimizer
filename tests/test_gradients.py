@@ -12,7 +12,7 @@ from pytorch_optimizer.optimizer import (
     OrthoGrad,
     load_optimizer,
 )
-from tests.constants import (
+from tests.recipes import (
     COMPLEX_OPTIMIZERS,
     SKIP_COMPLEX_NOT_SUPPORTED,
     SKIP_NO_GRADIENT_TEST,

@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from pytorch_optimizer.optimizer import load_optimizer
-from tests.constants import (
+from tests.recipes import (
     ADAMD_SUPPORTED_OPTIMIZERS,
     ADANORM_SUPPORTED_OPTIMIZERS,
     COPT_SUPPORTED_OPTIMIZERS,

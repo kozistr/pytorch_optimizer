@@ -23,7 +23,7 @@ from pytorch_optimizer import (
     ScheduleFreeWrapper,
     load_optimizer,
 )
-from tests.constants import PULLBACK_MOMENTUM
+from tests.recipes import PULLBACK_MOMENTUM
 from tests.utils import (
     Example,
     MultiHeadLogisticRegression,

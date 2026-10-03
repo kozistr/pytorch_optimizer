@@ -9,7 +9,7 @@
   - `uv run just check`
   - `uv run just test`
 - New or changed implementation code should have 100% test coverage. Check it with `uv run coverage report -m`.
-- For optimizer changes, add or update minimal training recipes in `tests/constants.py`, including affected variants.
+- For optimizer changes, add or update minimal training recipes in `tests/recipes.py`, including affected variants.
 - Use `uv run coverage report -m` to find uncovered lines, then add focused cases in `tests/test_*.py`.
 - Follow nearby test patterns and avoid duplicating coverage from training recipes.
 - Run a focused test with `uv run pytest tests/test_optimizers.py::test_name -sv -vv`.
@@ -24,7 +24,7 @@
 - The public API exports components from `pytorch_optimizer/__init__.py`. Use `load_optimizer()` to load a class by name
   and `create_optimizer()` to configure an optimizer with common options and wrappers.
 - Optional integrations include `bitsandbytes`, `q-galore-torch`, and `torchao`.
-- `tests/test_optimizers.py` uses recipes from `tests/constants.py` for training tests. Parameter validation, variants,
+- `tests/test_optimizers.py` uses recipes from `tests/recipes.py` for training tests. Parameter validation, variants,
   wrappers, losses, and schedulers have separate test modules. `tests/conftest.py` supplies the training data fixture.
 - `zensical.toml` owns documentation navigation and theme settings. Keep the home page separate from `README.md`.
 
@@ -46,7 +46,7 @@
 
 - Add the implementation under `pytorch_optimizer/optimizer/`.
 - Export it from the optimizer package and register it in `OPTIMIZER_LIST` so it is available through `OPTIMIZERS` and `load_optimizer()`.
-- Add a training recipe to `tests/constants.py`; the parametrized tests in `tests/test_optimizers.py` will exercise it.
+- Add a training recipe to `tests/recipes.py`; the parametrized tests in `tests/test_optimizers.py` will exercise it.
 - Add focused tests for uncovered optimizer behavior, state handling, validation, wrappers, and edge cases.
 - Update the relevant documentation and algorithm table in `README.md`.
 - Write clear PR titles and descriptions; the release workflow generates notes from merged PRs and syncs them to
