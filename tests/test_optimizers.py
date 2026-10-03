@@ -1,3 +1,4 @@
+from numpy import load
 import pytest
 import torch
 from torch import nn
@@ -978,3 +979,9 @@ def test_flash_adamw_parameters():
 
     with pytest.raises(ValueError):
         load_optimizer('flashadamw')([nn.Parameter(torch.ones(1))], master_weight_bits=24)
+
+
+def test_adabound_zero_lr():
+    optimizer = load_optimizer('adabound')([simple_parameter(True)], lr=0.0)
+    optimizer.param_groups[0]['lr'] = 1e-3
+    optimizer.step()
