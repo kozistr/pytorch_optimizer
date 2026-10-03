@@ -91,8 +91,8 @@ class FOCUS(BaseOptimizer):
 
                 p, grad, exp_avg, pbar = self.view_as_real(p, grad, exp_avg, pbar)
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
-                pbar.mul_(beta2).add_(p, alpha=1.0 - beta2)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
+                pbar.lerp_(p, weight=1.0 - beta2)
 
                 pbar_hat = pbar / bias_correction2
 

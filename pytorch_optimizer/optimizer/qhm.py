@@ -104,7 +104,7 @@ class QHM(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                buf.mul_(group['momentum']).add_(grad, alpha=1.0 - group['momentum'])
+                buf.lerp_(grad, weight=1.0 - group['momentum'])
 
                 p.add_(buf, alpha=-group['lr'] * group['nu'])
                 p.add_(grad, alpha=-group['lr'] * (1.0 - group['nu']))

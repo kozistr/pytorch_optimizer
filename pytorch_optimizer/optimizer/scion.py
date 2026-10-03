@@ -449,7 +449,7 @@ class SCION(BaseOptimizer):
 
             d = state['d']
 
-            d.mul_(1.0 - group['momentum']).add_(grad, alpha=group['momentum'])
+            d.lerp_(grad, weight=group['momentum'])
 
             update = norm.lmo(d).mul_(group['scale'])
 

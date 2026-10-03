@@ -90,7 +90,7 @@ class MSVAG(BaseOptimizer):
 
                 p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
 
-                exp_avg.mul_(beta).add_(grad, alpha=1.0 - beta)
+                exp_avg.lerp_(grad, weight=1.0 - beta)
                 exp_avg_sq.mul_(beta).addcmul_(grad, grad, value=1.0 - beta)
 
                 m = exp_avg.div(1.0 - beta_power)

@@ -243,7 +243,7 @@ class DAdaptAdaGrad(BaseOptimizer):
                     z = x0 - sk.div(alpha_k.sqrt().add_(group['eps']))
 
                     if group['momentum'] > 0.0:
-                        p.mul_(group['momentum']).add_(z, alpha=1.0 - group['momentum'])
+                        p.lerp_(z, weight=1.0 - group['momentum'])
                     else:
                         p.copy_(z)
 
@@ -395,7 +395,7 @@ class DAdaptAdam(BaseOptimizer):
         if sk_l1 == 0:
             return loss
 
-        numerator_weighted.mul_(beta2_sq).add_(numerator_acc, alpha=1.0 - beta2_sq)  # fmt: skip
+        numerator_weighted.lerp_(numerator_acc, weight=1.0 - beta2_sq)  # fmt: skip
 
         if lr > 0.0:
             d_hat = numerator_weighted / ((1.0 - beta2_sq) * sk_l1)
@@ -575,7 +575,7 @@ class DAdaptSGD(BaseOptimizer):
                 z = state['z']
                 z.copy_(state['x0'] - state['s'])
 
-                p.mul_(group['momentum']).add_(z, alpha=1.0 - group['momentum'])
+                p.lerp_(z, weight=1.0 - group['momentum'])
 
         return loss
 
@@ -874,7 +874,7 @@ class DAdaptLion(BaseOptimizer):
 
                 exp_avg, s = state['exp_avg'], state['s']
 
-                update = exp_avg.clone().mul_(beta1).add_(grad, alpha=1.0 - beta1).sign_()
+                update = exp_avg.clone().lerp_(grad, weight=1.0 - beta1).sign_()
                 p.add_(update, alpha=-d_lr)
 
                 exp_avg.mul_(beta2).add_(grad, alpha=(1.0 - beta2) * d_lr)
@@ -884,7 +884,7 @@ class DAdaptLion(BaseOptimizer):
 
                 sk_l1.add_(s.abs().sum())
 
-        numerator_weighted.mul_(beta2_sq).add_(numerator_accumulator, alpha=1.0 - beta2_sq)
+        numerator_weighted.lerp_(numerator_accumulator, weight=1.0 - beta2_sq)
 
         if sk_l1 == 0:
             return loss

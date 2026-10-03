@@ -103,7 +103,7 @@ class TAM(BaseOptimizer):
                 s, momentum_buffer = state['s'], state['momentum_buffer']
 
                 corr = normalize(momentum_buffer, p=2.0, dim=0).mul_(normalize(grad, p=2.0, dim=0))
-                s.mul_(decay_rate).add_(corr, alpha=1.0 - decay_rate)
+                s.lerp_(corr, weight=1.0 - decay_rate)
 
                 d = ((1.0 + s) / 2.0).add_(group['eps']).mul_(grad)
 
@@ -228,7 +228,7 @@ class AdaTAM(BaseOptimizer):
                 s, exp_avg, exp_avg_sq = state['s'], state['exp_avg'], state['exp_avg_sq']
 
                 corr = normalize(exp_avg, p=2.0, dim=0).mul_(normalize(grad, p=2.0, dim=0))
-                s.mul_(decay_rate).add_(corr, alpha=1.0 - decay_rate)
+                s.lerp_(corr, weight=1.0 - decay_rate)
 
                 d = ((1.0 + s) / 2.0).add_(group['eps']).mul_(grad)
 

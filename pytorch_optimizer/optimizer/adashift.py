@@ -114,7 +114,7 @@ class AdaShift(BaseOptimizer):
                 reduced_grad_sq = self.reduce_func(offset_grad.pow_(2))
 
                 exp_avg_sq = state['exp_avg_sq']
-                exp_avg_sq.mul_(beta2).add_(reduced_grad_sq, alpha=1.0 - beta2)
+                exp_avg_sq.lerp_(reduced_grad_sq, weight=1.0 - beta2)
 
                 update = exp_avg.clone()
                 if group.get('cautious'):

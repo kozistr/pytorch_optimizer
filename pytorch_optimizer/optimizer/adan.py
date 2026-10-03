@@ -203,8 +203,8 @@ class Adan(BaseOptimizer):
                 r=group.get('adanorm_r', None),
             )
 
-            exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
-            exp_avg_diff.mul_(beta2).add_(grad_diff, alpha=1.0 - beta2)
+            exp_avg.lerp_(s_grad, weight=1.0 - beta1)
+            exp_avg_diff.lerp_(grad_diff, weight=1.0 - beta2)
 
             grad_diff.mul_(beta2).add_(grad)
             exp_avg_sq.mul_(beta3).addcmul_(grad_diff, grad_diff, value=1.0 - beta3)

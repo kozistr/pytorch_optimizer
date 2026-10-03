@@ -297,7 +297,7 @@ class Ranger21(BaseOptimizer):
                 grad = p.grad
                 self._preprocess_gradient(grad)
 
-                grad_ma.mul_(beta1 ** 2).add_(grad, alpha=1.0 - beta1 ** 2)  # fmt: skip
+                grad_ma.lerp_(grad, weight=1.0 - beta1 ** 2)  # fmt: skip
 
                 pn_momentum = grad_ma.mul(1.0 + self.beta0).add_(neg_grad_ma, alpha=-self.beta0)
                 pn_momentum.mul_(1.0 / noise_norm)
@@ -318,8 +318,5 @@ class Ranger21(BaseOptimizer):
 
                     state = self.state[p]
 
-                    p.mul_(self.lookahead_blending_alpha).add_(
-                        state['lookahead_params'],
-                        alpha=1.0 - self.lookahead_blending_alpha,
-                    )
+                    p.lerp_(state['lookahead_params'], weight=1.0 - self.lookahead_blending_alpha)
                     state['lookahead_params'].copy_(p)

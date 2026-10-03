@@ -244,7 +244,7 @@ class SPAM(BaseOptimizer):
                         mask = grad.pow(2) > (self.threshold * exp_avg_sq)
                         grad[mask].sign_().mul_(torch.sqrt(exp_avg_sq[mask] * self.threshold))
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
@@ -435,7 +435,7 @@ class StableSPAM(BaseOptimizer):
                     state['exp_avg_sq'] = torch.zeros_like(grad)
                     group['step'] = 1
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])

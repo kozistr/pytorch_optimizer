@@ -168,7 +168,7 @@ class SM3(BaseOptimizer):
 
                     if momentum > 0.0:
                         m = state['momentum_buffer']
-                        m.mul_(momentum).add_(update, alpha=1.0 - momentum)
+                        m.lerp_(update, weight=1.0 - momentum)
                         update = m
 
                 p.add_(update, alpha=-group['lr'])

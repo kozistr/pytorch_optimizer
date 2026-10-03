@@ -110,7 +110,7 @@ class EXAdam(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 d1 = 1.0 + exp_avg_sq.div(exp_avg_sq.add(group['eps'])) * (1.0 - bias_correction2)

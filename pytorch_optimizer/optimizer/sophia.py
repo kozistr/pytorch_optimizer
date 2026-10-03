@@ -140,10 +140,10 @@ class SophiaH(BaseOptimizer):
                 )
 
                 momentum, hessian_moment = state['momentum'], state['hessian_moment']
-                momentum.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                momentum.lerp_(grad, weight=1.0 - beta1)
 
                 if 'hessian' in state and (group['step'] % self.update_period == 0 or hessian is not None):
-                    hessian_moment.mul_(beta2).add_(state['hessian'], alpha=1.0 - beta2)
+                    hessian_moment.lerp_(state['hessian'], weight=1.0 - beta2)
 
                 update = (momentum / torch.clip(hessian_moment, min=group['eps'])).clamp_(-group['p'], group['p'])
 

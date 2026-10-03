@@ -324,8 +324,8 @@ class SOAP(BaseOptimizer):
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
-                exp_avg_sq.mul_(beta2).add_(grad_projected.square(), alpha=1.0 - beta2)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
+                exp_avg_sq.lerp_(grad_projected.square(), weight=1.0 - beta2)
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 

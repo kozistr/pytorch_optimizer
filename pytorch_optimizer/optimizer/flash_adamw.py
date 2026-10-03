@@ -342,7 +342,7 @@ class FlashAdamW(BaseOptimizer):
                     ratio=1.0 / group['initial_lr'] if group['decouple_lr'] else None,
                 )
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 denominator = exp_avg_sq.div(bias_correction2).sqrt_().add_(group['eps'])

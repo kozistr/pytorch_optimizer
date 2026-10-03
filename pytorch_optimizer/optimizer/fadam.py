@@ -127,7 +127,7 @@ class FAdam(BaseOptimizer):
                 divisor = max(1, rms) / group['clip']
                 grad_nat.div_(divisor)
 
-                momentum.mul_(beta1).add_(grad_nat, alpha=1.0 - beta1)
+                momentum.lerp_(grad_nat, weight=1.0 - beta1)
 
                 grad_weights = p / fim_base
 

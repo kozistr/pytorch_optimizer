@@ -136,7 +136,7 @@ class Lookahead(BaseOptimizer):
 
             slow = state['slow_params']
 
-            p.mul_(self.alpha).add_(slow, alpha=1.0 - self.alpha)
+            p.lerp_(slow, weight=1.0 - self.alpha)
             slow.copy_(p)
 
             if 'momentum_buffer' not in self.optimizer.state[p]:

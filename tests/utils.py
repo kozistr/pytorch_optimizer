@@ -202,6 +202,8 @@ class OptimizerBuilder:
             overrides.update({'rank': 2, 'leading_basis': 1})
         elif optimizer_name == 'adahessian':
             overrides.update({'update_period': 2})
+        elif optimizer_name == 'sgd':
+            overrides.setdefault('lr', 1e-3)
 
         if optimizer_name in ('muon', 'adamuon', 'adago', 'normuon'):
             params = cls.with_muon(params, use_muon=overrides.pop('use_muon', False))

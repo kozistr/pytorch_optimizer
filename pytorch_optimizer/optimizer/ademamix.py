@@ -145,9 +145,9 @@ class AdEMAMix(BaseOptimizer):
 
                 exp_avg, exp_avg_sq, exp_avg_slow = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_slow']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
-                exp_avg_slow.mul_(beta3_t).add_(grad, alpha=1.0 - beta3_t)
+                exp_avg_slow.lerp_(grad, weight=1.0 - beta3_t)
 
                 de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
@@ -302,7 +302,7 @@ class SimplifiedAdEMAMix(BaseOptimizer):
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 state['num_sum'] = beta1 * state['num_sum'] + 1.0

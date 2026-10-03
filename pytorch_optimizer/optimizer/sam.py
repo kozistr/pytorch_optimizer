@@ -492,7 +492,7 @@ class WSAM(BaseOptimizer):
                     continue
 
                 if not self.decouple:
-                    p.grad.mul_(group['alpha']).add_(self.state[p]['grad'], alpha=1.0 - group['alpha'])
+                    p.grad.lerp_(self.state[p]['grad'], weight=1.0 - group['alpha'])
                 else:
                     self.state[p]['sharpness'] = p.grad.clone() - self.state[p]['grad']
                     p.grad.mul_(0.0).add_(self.state[p]['grad'], alpha=1.0)
@@ -662,10 +662,10 @@ class BSAM(BaseOptimizer):
                 state = self.state[p]
 
                 momentum, s = state['momentum'], state['s']
-                momentum.mul_(beta1).add_(p.grad * weight_decay, alpha=1.0 - beta1)
+                momentum.lerp_(p.grad * weight_decay, weight=1.0 - beta1)
 
                 var = (torch.sqrt(s).mul_(p.grad.abs()).add_(weight_decay + self.damping)).pow_(2)
-                s.mul_(beta2).add_(var, alpha=1.0 - beta2)
+                s.lerp_(var, weight=1.0 - beta2)
 
                 p.add_(momentum / s, alpha=-group['lr'])
 

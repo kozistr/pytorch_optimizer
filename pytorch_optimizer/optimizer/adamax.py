@@ -126,7 +126,7 @@ class AdaMax(BaseOptimizer):
                     r=group.get('adanorm_r', None),
                 )
 
-                exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(s_grad, weight=1.0 - beta1)
 
                 norm_buf = torch.cat(
                     (exp_inf.mul_(beta2).unsqueeze(0), grad.abs().add_(group['eps']).unsqueeze_(0)),

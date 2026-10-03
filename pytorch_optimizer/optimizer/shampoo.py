@@ -87,7 +87,9 @@ class Shampoo(BaseOptimizer):
                     state['momentum_buffer'] = grad.clone()
 
                 for dim_id, dim in enumerate(grad.size()):
-                    state[f'pre_cond_{dim_id}'] = group['matrix_eps'] * torch.eye(dim, out=grad.new(dim, dim))
+                    state[f'pre_cond_{dim_id}'] = (
+                        torch.eye(dim, device=grad.device).to(grad.dtype).mul_(group['matrix_eps'])
+                    )
                     state[f'inv_pre_cond_{dim_id}'] = grad.new(dim, dim).zero_()
 
     @torch.no_grad()
@@ -114,7 +116,7 @@ class Shampoo(BaseOptimizer):
                 state = self.state[p]
 
                 if momentum > 0.0:
-                    grad.mul_(1.0 - momentum).add_(state['momentum_buffer'], alpha=momentum)
+                    grad.lerp_(state['momentum_buffer'], weight=momentum)
 
                 self.apply_weight_decay(
                     p=p,

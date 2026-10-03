@@ -125,7 +125,7 @@ class SPlus(BaseOptimizer):
                         for d in p.shape
                     ]
                     state['q_sides'] = [
-                        torch.eye(d, device=p.device, dtype=p.dtype) if d < group['max_dim'] else None for d in p.shape
+                        torch.eye(d, device=p.device).to(p.dtype) if d < group['max_dim'] else None for d in p.shape
                     ]
 
     @staticmethod

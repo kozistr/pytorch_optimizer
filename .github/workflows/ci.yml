@@ -89,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.15']
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -121,9 +121,32 @@ jobs:
         fail_ci_if_error: true
         verbose: false
 
+  test-minimum:
+    name: Test minimum supported versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: '3.10'
+          enable-cache: true
+          prune-cache: false
+
+      - name: Install dependencies
+        run: |
+          uv sync --frozen --no-editable --no-install-package torch --no-install-package numpy
+          uv pip install 'torch==2.1.0+cpu' 'numpy==1.26.4' --extra-index-url https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match
+
+      - name: Check test
+        run: uv run --no-sync pytest
+
   ci-summary:
     if: always()
-    needs: [lint, type_check, docs, test]
+    needs: [lint, type_check, docs, test, test-minimum]
     runs-on: ubuntu-latest
     steps:
       - name: Check results

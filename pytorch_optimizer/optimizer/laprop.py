@@ -135,7 +135,7 @@ class LaProp(BaseOptimizer):
 
                 second_moment = exp_avg_sq
                 if group['centered']:
-                    exp_mean_avg_beta2.mul_(beta2).add_(grad, alpha=1.0 - beta2)
+                    exp_mean_avg_beta2.lerp_(grad, weight=1.0 - beta2)
                     if group['step'] > self.steps_before_using_centered:
                         second_moment = exp_avg_sq - exp_mean_avg_beta2.pow(2)
 

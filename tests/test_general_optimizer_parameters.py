@@ -17,6 +17,8 @@ def _config_for_optimizer(optimizer_name: str, **config):
         config['num_iterations'] = config.get('num_iterations', 100)
     elif optimizer_name == 'bsam':
         config['num_data'] = config.get('num_data', 100)
+    elif optimizer_name == 'distributedmuon' and 'eps' in config:
+        config['adamw_eps'] = config.pop('eps')
     return config
 
 

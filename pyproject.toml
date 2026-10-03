@@ -35,8 +35,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -51,23 +49,18 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
-    'numpy>1.24.4; python_version >= "3.9"',
-    'numpy<=1.24.4; python_version < "3.9"',
-    "torch>=1.10,<2.5; python_full_version < '3.9'",
-    'torch>=1.10,<2.9; python_version >= "3.9" and python_version < "3.10"',
-    'torch>=1.10; python_version >= "3.10"',
+    'numpy>1.24.4',
+    'torch>=2.1',
 ]
 
 [dependency-groups]
 dev = [
     'ruff>=0.16.9,<0.17',
     'pyright==1.1.414',
-    'pytest<9; python_version < "3.10"',
-    'pytest>=9.1.1,<10; python_version >= "3.10"',
-    'pytest-cov<6; python_version < "3.9"',
-    'pytest-cov>=7.1.0,<8; python_version >= "3.9"',
+    'pytest>=9.1.1,<10',
+    'pytest-cov>=7.1.0,<8',
 ]
 
 [tool.uv.sources]
@@ -82,7 +75,7 @@ explicit = true
 
 [tool.ruff]
 src = ["pytorch_optimizer", "tests", "examples"]
-target-version = "py312"
+target-version = "py310"
 line-length = 119
 exclude = [
     ".git",
@@ -151,7 +144,7 @@ reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
 reportMissingImports = false
 reportOptionalMemberAccess = false
-pythonVersion = "3.12"
+pythonVersion = "3.10"
 pythonPlatform = "Linux"
 
 [tool.pytest.ini_options]

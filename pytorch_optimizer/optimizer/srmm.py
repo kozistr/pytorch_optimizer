@@ -90,8 +90,8 @@ class SRMM(BaseOptimizer):
 
                 mov_avg_grad, mov_avg_param = state['mov_avg_grad'], state['mov_avg_param']
 
-                mov_avg_grad.mul_(1.0 - w_t).add_(grad, alpha=w_t)
-                mov_avg_param.mul_(1.0 - w_t).add_(p, alpha=w_t)
+                mov_avg_grad.lerp_(grad, weight=w_t)
+                mov_avg_param.lerp_(p, weight=w_t)
 
                 mov_avg_param.add_(mov_avg_grad, alpha=-group['lr'])
 

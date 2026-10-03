@@ -110,7 +110,7 @@ class Conda(BaseOptimizer):
                 state = self.state[p]
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
 
                 if p.dim() == 2:
                     if 'projector' not in state:
