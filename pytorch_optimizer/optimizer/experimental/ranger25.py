@@ -1,5 +1,5 @@
 import math
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 
@@ -146,7 +146,7 @@ class Ranger25(BaseOptimizer):
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
-            step_size: float = group['lr'] / bias_correction1
+            step_size: Union[float, torch.Tensor] = group['lr'] / bias_correction1
             clip: float = math.pow(group['step'], 0.25)
 
             alpha_t: float = self.schedule_alpha(group['t_alpha_beta3'], group['step'], group['alpha'])
@@ -189,7 +189,12 @@ class Ranger25(BaseOptimizer):
                 de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq)
 
                 if group['eps'] is not None:
-                    p.addcdiv_(update, de_nom.add_(group['eps']), value=-step_size)
+                    de_nom.add_(group['eps'])
+                    if self.stable_adamw:
+                        de_nom = de_nom.to(dtype=step_size.dtype).div_(-step_size)
+                        p.addcdiv_(update, de_nom)
+                    else:
+                        p.addcdiv_(update, de_nom, value=-step_size)
                 else:
                     p.add_(update.atan2_(de_nom), alpha=-step_size)
 

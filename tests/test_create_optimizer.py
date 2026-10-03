@@ -1,8 +1,9 @@
 import pytest
+import torch
 
 from pytorch_optimizer.optimizer import create_optimizer, load_optimizer
-from tests.constants import SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
-from tests.utils import Example
+from tests.constants import COMPILE_SUPPORTED_OPTIMIZERS, SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
+from tests.utils import Example, Trainer, build_model, ids
 
 WRAPPER_TEST_OPTIMIZERS = ['adamp', 'lion', 'lamb', 'adan', 'madgrad', 'ranger']
 
@@ -41,6 +42,34 @@ def test_create_optimizer_with_lookahead(optimizer_name):
         use_orthograd=False,
         **_get_optimizer_kwargs(optimizer_name),
     )
+
+
+@pytest.mark.parametrize('optimizer_config', COMPILE_SUPPORTED_OPTIMIZERS, ids=ids)
+@pytest.mark.parametrize('foreach', [False, True])
+@pytest.mark.skipif(not torch._dynamo.is_dynamo_supported(), reason='torch.compile is unavailable in this runtime')
+def test_create_compiled_optimizer(optimizer_config, foreach, environment):
+    torch._dynamo.reset()
+
+    optimizer_class, config, iterations = optimizer_config
+    config = config.copy()
+
+    x_data, y_data = environment
+    model, loss_fn = build_model(device=x_data.device)
+
+    if optimizer_class.__name__ == 'AdamW':
+        config['capturable'] = foreach
+
+    optimizer = create_optimizer(
+        model,
+        optimizer_class.__name__,
+        foreach=foreach,
+        compile=True,
+        compile_kwargs={'backend': 'aot_eager'},
+        **config,
+    )
+
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(iterations=iterations)
 
 
 @pytest.mark.parametrize('optimizer_name', WRAPPER_TEST_OPTIMIZERS)

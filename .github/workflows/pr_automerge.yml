@@ -6,7 +6,8 @@ on:
       - opened
       - synchronize
       - labeled
-  check_suite:
+  workflow_run:
+    workflows: [CI]
     types:
       - completed
 
@@ -20,13 +21,15 @@ jobs:
 
     steps:
       - id: automerge
-        if: ${{ contains(github.event.pull_request.labels.*.name, 'automerge') }}
+        if: >-
+          contains(github.event.pull_request.labels.*.name, 'automerge') ||
+          (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
         name: automerge
         uses: pascalgn/automerge-action@7961b8b5eec56cc088c140b56d864285eabd3f67 # v0.16.4
         env:
           MERGE_LABELS: "automerge"
           MERGE_METHOD_LABEL_REQUIRED: "false"
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           MERGE_METHOD: "squash"
           MERGE_REQUIRED_APPROVALS: "0"
           MERGE_DELETE_BRANCH: "true"

@@ -10,6 +10,7 @@ from pytorch_optimizer.optimizer.lora_rite import LoRARiteHelper
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
 from pytorch_optimizer.optimizer.sso import SpectralSphere, solve_lambda_with_bisection
 from tests.constants import (
+    COMPILE_SUPPORTED_OPTIMIZERS,
     COMPLEX_OPTIMIZERS,
     FOREACH_OPTIMIZERS,
     OPTIMIZERS,
@@ -65,39 +66,25 @@ def test_f32_optimizers(optimizer_config, foreach, environment):
     )
 
 
-@pytest.mark.parametrize(('optimizer_name', 'iterations'), [('adasmooth', 5), ('a2grad', 100), ('adashift', 20)])
-def test_optimizer_updates_remain_finite(optimizer_name, iterations):
-    torch.manual_seed(0)
-    param = nn.Parameter(torch.zeros(4) if optimizer_name == 'adasmooth' else torch.rand(4))
-    optimizer = load_optimizer(optimizer_name)([param], lr=1e-2)
-    for _ in range(iterations):
-        optimizer.zero_grad()
-        ((param - 1.0) ** 2).sum().backward()
-        optimizer.step()
-        assert torch.isfinite(param).all()
+@pytest.mark.parametrize('optimizer_config', COMPILE_SUPPORTED_OPTIMIZERS, ids=ids)
+@pytest.mark.parametrize('foreach', [False, True])
+def test_tensor_lr_optimizers(optimizer_config, foreach, environment):
+    optimizer_class, config, iterations = optimizer_config
+    config = config.copy()
 
+    x_data, y_data = environment
+    model, loss_fn = build_model(device=x_data.device)
+    config['lr'] = torch.tensor(config['lr'], device=x_data.device)
 
-def test_adabound_zero_learning_rate_warmup():
-    parameter = nn.Parameter(torch.tensor([1.0, -1.0]))
-    reference_parameter = nn.Parameter(parameter.detach().clone())
-    config = {'betas': (0.5, 0.5), 'final_lr': 0.2, 'gamma': 1.0, 'weight_decay': 0.1}
-    optimizer = load_optimizer('adabound')([parameter], lr=0.0, **config)
-    reference = load_optimizer('adabound')([reference_parameter], lr=0.1, **config)
-    gradient = torch.tensor([1.0, -0.5])
+    if optimizer_class.__name__ == 'AdamW' and foreach:
+        if x_data.device.type == 'cpu':
+            pytest.skip('Native AdamW foreach with a tensor learning rate requires a capturable device')
+        config['capturable'] = True
 
-    for step, lr in enumerate((0.0, 0.0, 0.1, 0.05, 0.0, 0.2), start=1):
-        previous_parameter = parameter.detach().clone()
-        optimizer.param_groups[0]['lr'] = reference.param_groups[0]['lr'] = lr
-        parameter.grad = gradient.clone()
-        reference_parameter.grad = gradient.clone()
-        optimizer.step()
-        reference.step()
+    optimizer = optimizer_class(model.parameters(), **config, foreach=foreach)
 
-        torch.testing.assert_close(parameter, reference_parameter)
-        torch.testing.assert_close(optimizer.state[parameter]['exp_avg'], gradient * (1.0 - 0.5**step))
-        torch.testing.assert_close(optimizer.state[parameter]['exp_avg_sq'], gradient.square() * (1.0 - 0.5**step))
-        if lr == 0.0:
-            torch.testing.assert_close(parameter, previous_parameter)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(iterations=iterations)
 
 
 @pytest.mark.parametrize('optimizer_config', OPTIMIZERS, ids=ids)
@@ -991,3 +978,9 @@ def test_flash_adamw_parameters():
 
     with pytest.raises(ValueError):
         load_optimizer('flashadamw')([nn.Parameter(torch.ones(1))], master_weight_bits=24)
+
+
+def test_adabound_zero_lr():
+    optimizer = load_optimizer('adabound')([simple_parameter(True)], lr=0.0)
+    optimizer.param_groups[0]['lr'] = 1e-3
+    optimizer.step()

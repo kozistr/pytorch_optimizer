@@ -69,6 +69,22 @@ optimizer = create_optimizer(
 
 See the [optimizer reference](optimizer.md) for the available options and optimizer-specific arguments.
 
+## Compile optimizer steps
+
+Set `compile=True` to compile optimizer steps on CPU or GPU. We test Lion, native PyTorch AdamW, and StableAdamW:
+
+```python
+optimizer = create_optimizer(model, 'lion', lr=1e-3, foreach=False, compile=True)
+```
+
+The factory converts float learning rates to tensors on the model's device so schedulers can change them without recompilation.
+For native AdamW on CUDA, set `capturable=True` if you use a tensor rate with `foreach=True`.
+
+Use `compile=False` (the default) for eager execution.
+Use eager execution on Python 3.15, where PyTorch disables compilation.
+Pass `torch.compile()` options through `compile_kwargs`.
+Run with `TORCH_LOGS=graph_breaks,recompiles` to inspect graph breaks and recompilation.
+
 ## Discover components
 
 Filter component names with shell-style patterns:

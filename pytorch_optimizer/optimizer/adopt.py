@@ -182,11 +182,10 @@ class ADOPT(BaseOptimizer):
             else:
                 update = exp_avg
 
-            step_lr = lr
             if group.get('stable_adamw'):
-                step_lr /= self.get_stable_adamw_rms(grad, exp_avg_sq)
+                update = update / self.get_stable_adamw_rms(grad, exp_avg_sq)
 
-            p.add_(update, alpha=-step_lr)
+            p.add_(update, alpha=-lr)
 
             exp_avg_sq.mul_(beta2).addcmul_(grad, grad.conj(), value=1.0 - beta2)
 
