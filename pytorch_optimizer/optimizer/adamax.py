@@ -69,14 +69,11 @@ class AdaMax(BaseOptimizer):
             state = self.state[p]
 
             if len(state) == 0:
-                state['step'] = 0
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_inf'] = torch.zeros_like(p)
 
                 if group.get('adanorm'):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
-
-            state.setdefault('step', group['step'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -91,6 +88,14 @@ class AdaMax(BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
+            bias_correction1: float = self.debias(beta1, group['step'])
+
+            step_size: float = self.apply_adam_debias(
+                adam_debias=group.get('adam_debias', False),
+                step_size=group['lr'],
+                bias_correction1=bias_correction1,
+            )
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -100,13 +105,6 @@ class AdaMax(BaseOptimizer):
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 state = self.state[p]
-                state['step'] += 1
-
-                step_size: float = self.apply_adam_debias(
-                    adam_debias=group.get('adam_debias', False),
-                    step_size=group['lr'],
-                    bias_correction1=self.debias(beta1, state['step']),
-                )
 
                 exp_avg, exp_inf = state['exp_avg'], state['exp_inf']
 

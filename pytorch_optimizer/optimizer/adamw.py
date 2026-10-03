@@ -129,13 +129,13 @@ class StableAdamW(BaseOptimizer):
 
         torch._foreach_lerp_(exp_avgs, grads, weight=beta1_comp)
 
-        squared_grads = [grad.float() for grad in grads] if params[0].dtype == torch.float16 else grads
+        stats_grads = [grad.float() for grad in grads] if params[0].dtype == torch.float16 else grads
         torch._foreach_mul_(exp_avg_sqs, beta2_hat)
-        torch._foreach_addcmul_(exp_avg_sqs, squared_grads, squared_grads, value=1.0 - beta2_hat)
+        torch._foreach_addcmul_(exp_avg_sqs, stats_grads, stats_grads, value=1.0 - beta2_hat)
 
         step_sizes: list[torch.Tensor] = [
             -lr / self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
-            for grad, exp_avg_sq in zip(grads, exp_avg_sqs)
+            for grad, exp_avg_sq in zip(stats_grads, exp_avg_sqs)
         ]
 
         if group['weight_decay'] != 0.0 and group['weight_decouple']:
@@ -188,10 +188,10 @@ class StableAdamW(BaseOptimizer):
                 )
 
             exp_avg.lerp_(grad, weight=beta1_comp)
-            squared_grad = grad.float() if grad.dtype == torch.float16 else grad
-            exp_avg_sq.mul_(beta2_hat).addcmul_(squared_grad, squared_grad, value=1.0 - beta2_hat)
+            stats_grad = grad.float() if grad.dtype == torch.float16 else grad
+            exp_avg_sq.mul_(beta2_hat).addcmul_(stats_grad, stats_grad, value=1.0 - beta2_hat)
 
-            lr = group['lr'] / self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
+            lr = group['lr'] / self.get_stable_adamw_rms(stats_grad, exp_avg_sq, eps=eps_p2)
 
             if group['weight_decouple']:
                 self.apply_weight_decay(
