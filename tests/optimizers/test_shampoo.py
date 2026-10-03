@@ -31,6 +31,15 @@ def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
 
 
 class TestShampooUtils:
+    def test_compute_power_converges(self):
+        matrix = torch.tensor([[4.0, 1.0], [1.0, 3.0]], dtype=torch.float64)
+        eigenvalues, eigenvectors = torch.linalg.eigh(matrix)
+        expected = (eigenvectors * eigenvalues.rsqrt()) @ eigenvectors.T
+
+        result = compute_power_schur_newton(matrix, p=2, ridge_epsilon=0.0, error_tolerance=1e-12)
+
+        torch.testing.assert_close(result, expected, rtol=1e-6, atol=1e-6)
+
     def test_compute_power(self):
         x = compute_power_schur_newton(torch.zeros((1,)), p=1)
         assert torch.tensor([1000000.0]) == x
