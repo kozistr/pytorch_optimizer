@@ -396,8 +396,8 @@ class BaseOptimizer(ABC, Optimizer):
                 continue
 
             dtype = torch.float64 if p.dtype == torch.float64 else torch.float32
-            w = p.view(-1).to(dtype=dtype)
-            g = p.grad.view(-1).to(dtype=dtype)
+            w = p.reshape(-1).to(dtype=dtype)
+            g = p.grad.reshape(-1).to(dtype=dtype)
 
             proj = torch.dot(w, g).div_(torch.dot(w, w).add_(eps))
             g_ortho = g.sub(w * proj)
@@ -525,11 +525,13 @@ class BaseOptimizer(ABC, Optimizer):
             eps: Small value to prevent division by zero.
 
         Returns:
-            torch.Tensor: RMS scale, promoted to float32 for float16 and bfloat16 step size arithmetic.
+            torch.Tensor: RMS scale, computed in float32 for float16 and bfloat16 gradients.
 
         """
-        rms = grad.pow(2).div_(exp_avg_sq.clip(min=eps)).mean().sqrt_().clip_(min=1.0)
-        return rms.float() if rms.dtype in (torch.float16, torch.bfloat16) else rms
+        if grad.dtype in (torch.float16, torch.bfloat16):
+            grad, exp_avg_sq = grad.float(), exp_avg_sq.float()
+
+        return grad.pow(2).div_(exp_avg_sq.clip(min=eps)).mean().sqrt_().clip_(min=1.0)
 
     @staticmethod
     def validate_range(x: float, name: str, low: float, high: float, range_type: str = '[)') -> None:

@@ -128,11 +128,7 @@ class AdaMax(BaseOptimizer):
 
                 exp_avg.lerp_(s_grad, weight=1.0 - beta1)
 
-                norm_buf = torch.cat(
-                    (exp_inf.mul_(beta2).unsqueeze(0), grad.abs().add_(group['eps']).unsqueeze_(0)),
-                    dim=0,
-                )
-                torch.max(norm_buf, dim=0, keepdim=False, out=(exp_inf, exp_inf.new().long()))
+                torch.maximum(exp_inf.mul_(beta2), grad.abs().add_(group['eps']), out=exp_inf)
 
                 p.addcdiv_(exp_avg, exp_inf, value=-step_size)
 

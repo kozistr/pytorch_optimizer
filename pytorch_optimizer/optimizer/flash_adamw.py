@@ -376,11 +376,16 @@ class FlashAdamW(BaseOptimizer):
         for group in self.param_groups:
             group.setdefault('initial_lr', group['lr'])
 
-        for group in self.param_groups:
-            for p in group['params']:
+        for group, saved_group in zip(self.param_groups, state_dict['param_groups']):
+            for p, saved_id in zip(group['params'], saved_group['params']):
                 state = self.state[p]
                 if not state:
                     continue
+
+                saved_state = state_dict['state'][saved_id]
+                for key, value in saved_state.items():
+                    if isinstance(value, torch.Tensor):
+                        state[key] = value.to(device=p.device)
 
                 for name in ('exp_avg', 'exp_avg_sq'):
                     if group['quantize'] and name in state:

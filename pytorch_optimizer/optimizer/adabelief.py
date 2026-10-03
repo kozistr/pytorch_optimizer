@@ -112,6 +112,7 @@ class AdaBelief(BaseOptimizer):
         grads: list[torch.Tensor],
         exp_avgs: list[torch.Tensor],
         exp_avg_vars: list[torch.Tensor],
+        step_size: float,
     ) -> None:
         beta1, beta2 = group['betas']
         lr = group['lr']
@@ -140,8 +141,9 @@ class AdaBelief(BaseOptimizer):
 
         de_noms = torch._foreach_sqrt(exp_avg_vars)
         torch._foreach_div_(de_noms, bias_correction2_sq)
+        torch._foreach_add_(de_noms, group['eps'])
 
-        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-lr)
+        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
 
     def _step_per_param(self, group: ParamGroup, step_size: float, n_sma: float) -> None:
         beta1, beta2 = group['betas']
@@ -187,13 +189,16 @@ class AdaBelief(BaseOptimizer):
                 ams_bound=group['ams_bound'],
                 exp_avg_sq=exp_avg_var,
                 max_exp_avg_sq=state.get('max_exp_avg_var', None),
-                eps=group['eps'],
+                eps=0.0,
+                exp_avg_sq_eps=0.0,
             )
 
             if not group['rectify']:
-                de_nom.div_(bias_correction2_sq)
+                de_nom.div_(bias_correction2_sq).add_(group['eps'])
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
                 continue
+
+            de_nom.add_(group['eps'])
 
             if n_sma >= self.n_sma_threshold:
                 p.addcdiv_(exp_avg, de_nom, value=-step_size)
@@ -235,7 +240,9 @@ class AdaBelief(BaseOptimizer):
                     group, self.state, state_keys=['exp_avg', 'exp_avg_var']
                 )
                 if params:
-                    self._step_foreach(group, params, grads, state_dict['exp_avg'], state_dict['exp_avg_var'])
+                    self._step_foreach(
+                        group, params, grads, state_dict['exp_avg'], state_dict['exp_avg_var'], step_size
+                    )
             else:
                 self._step_per_param(group, step_size, n_sma)
 

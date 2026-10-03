@@ -448,9 +448,28 @@ def test_stableadamw_optimizer():
     model = LogisticRegression()
 
     model.fc1.weight.data = torch.randn(2, 2, dtype=torch.float16)
+    model.fc2.weight.data = model.fc2.weight.data.half()
 
-    optimizer = load_optimizer('StableAdamW')(model.parameters())
+    params = list(model.parameters())
+    optimizer = load_optimizer('StableAdamW')([{'params': params[:1]}, {'params': params[1:]}])
     optimizer.step()
+
+    model.fc1.weight.grad = torch.full_like(model.fc1.weight, 400.0)
+    model.fc1.bias.grad = torch.full_like(model.fc1.bias, 2.0)
+    optimizer.step()
+
+    restored_params = [nn.Parameter(param.detach().clone()) for param in params]
+    restored = load_optimizer('stableadamw')([{'params': restored_params[:1]}, {'params': restored_params[1:]}])
+    restored.load_state_dict(optimizer.state_dict())
+
+    second_moment = restored.state[restored_params[0]]['exp_avg_sq']
+    assert second_moment.dtype == torch.float32
+    assert second_moment.device == restored_params[0].device
+    torch.testing.assert_close(second_moment, optimizer.state[params[0]]['exp_avg_sq'])
+    torch.testing.assert_close(
+        restored.state[restored_params[1]]['exp_avg_sq'], optimizer.state[params[1]]['exp_avg_sq']
+    )
+    assert restored_params[2] not in restored.state
 
 
 def test_adam_mini_optimizer():
