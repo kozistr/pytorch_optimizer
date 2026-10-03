@@ -1,5 +1,4 @@
 import math
-from typing import Optional, Union
 
 import torch
 
@@ -28,11 +27,11 @@ class Ranger25(BaseOptimizer):
         betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
         alpha (float): Usually between 4 and 10 works well.
-        t_alpha_beta3 (Optional[float]): Total number of iterations is preferred when needed.
+        t_alpha_beta3 (float | None): Total number of iterations is preferred when needed.
         cautious (bool): Whether to use the Cautious variant.
         stable_adamw (bool): Whether to use stable AdamW variant.
         orthograd (bool): Whether to use OrthoGrad variant.
-        eps (Optional[float]): Term added to the denominator to improve numerical stability.
+        eps (float | None): Term added to the denominator to improve numerical stability.
             When eps is None and stable_adamw is False, adam-atan2 feature will be used.
         maximize (bool): Maximize the objective w.r.t the parameters instead of minimizing.
 
@@ -45,13 +44,13 @@ class Ranger25(BaseOptimizer):
         betas: Betas = (0.9, 0.98, 0.9999),
         weight_decay: float = 1e-3,
         alpha: float = 5.0,
-        t_alpha_beta3: Optional[float] = None,
+        t_alpha_beta3: float | None = None,
         lookahead_merge_time: int = 5,
         lookahead_blending_alpha: float = 0.5,
         cautious: bool = True,
         stable_adamw: bool = True,
         orthograd: bool = True,
-        eps: Optional[float] = 1e-8,
+        eps: float | None = 1e-8,
         maximize: bool = False,
         **kwargs,
     ):
@@ -109,11 +108,11 @@ class Ranger25(BaseOptimizer):
                 state['slow_momentum'] = p.clone()
 
     @staticmethod
-    def schedule_alpha(t_alpha_beta3: Optional[float], step: int, alpha: float) -> float:
+    def schedule_alpha(t_alpha_beta3: float | None, step: int, alpha: float) -> float:
         return alpha if t_alpha_beta3 is None else min(step * alpha / t_alpha_beta3, alpha)
 
     @staticmethod
-    def schedule_beta3(t_alpha_beta3: Optional[float], step: int, beta1: float, beta3: float) -> float:
+    def schedule_beta3(t_alpha_beta3: float | None, step: int, beta1: float, beta3: float) -> float:
         if t_alpha_beta3 is None:
             return beta3
 
@@ -146,7 +145,7 @@ class Ranger25(BaseOptimizer):
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
-            step_size: Union[float, torch.Tensor] = group['lr'] / bias_correction1
+            step_size: float | torch.Tensor = group['lr'] / bias_correction1
             clip: float = math.pow(group['step'], 0.25)
 
             alpha_t: float = self.schedule_alpha(group['t_alpha_beta3'], group['step'], group['alpha'])

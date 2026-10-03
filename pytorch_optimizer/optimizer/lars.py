@@ -1,4 +1,3 @@
-from typing import List, Optional
 
 import torch
 
@@ -18,7 +17,7 @@ class LARS(BaseOptimizer):
         dampening (float): Dampening for momentum.
         trust_coefficient (float): Trust coefficient.
         nesterov (bool): Enables Nesterov momentum.
-        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
 
@@ -33,7 +32,7 @@ class LARS(BaseOptimizer):
         dampening: float = 0.0,
         trust_coefficient: float = 1e-3,
         nesterov: bool = False,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -96,9 +95,9 @@ class LARS(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        momentum_buffers: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        momentum_buffers: list[torch.Tensor],
     ) -> None:
         if self.maximize:
             torch._foreach_neg_(grads)

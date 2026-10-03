@@ -1,5 +1,4 @@
 import math
-from typing import Optional, Set
 
 import torch
 from torch import distributed as dist
@@ -22,7 +21,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         weight_decay (float): Weight decay (L2 penalty).
         num_embeds (int): Number of embedding dimensions. Could be unspecified if training non-transformer models.
         num_heads (int): Number of attention heads. Could be unspecified if training non-transformer models.
-        num_query_groups (Optional[int]): Number of query groups in Group Query Attention (GQA).
+        num_query_groups (int | None): Number of query groups in Group Query Attention (GQA).
             If not specified, defaults to num_heads. Could be unspecified for non-transformer models.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
@@ -38,7 +37,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         model_sharding: bool = False,
         num_embeds: int = 2048,
         num_heads: int = 32,
-        num_query_groups: Optional[int] = None,
+        num_query_groups: int | None = None,
         eps: float = 1e-8,
         maximize: bool = False,
         **kwargs,
@@ -68,8 +67,8 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         self.num_embeds = num_embeds
         self.num_heads = num_heads
 
-        self.embed_blocks: Set[str] = {'embed', 'embd', 'wte', 'lm_head.weight', 'output.weight'}
-        self.qk_blocks: Set[str] = {'k_proj.weight', 'q_proj.weight', 'wq.weight', 'wk.weight'}
+        self.embed_blocks: set[str] = {'embed', 'embd', 'wte', 'lm_head.weight', 'output.weight'}
+        self.qk_blocks: set[str] = {'k_proj.weight', 'q_proj.weight', 'wq.weight', 'wk.weight'}
 
         self.maximize = maximize
 

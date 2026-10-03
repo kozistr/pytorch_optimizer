@@ -1,5 +1,4 @@
 import math
-from typing import List, Optional
 
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
@@ -48,7 +47,7 @@ class CosineAnnealingWarmupRestarts(LRScheduler):
         self.last_epoch = last_epoch
 
         self.cycle: int = 0
-        self.base_lrs: List[float] = []
+        self.base_lrs: list[float] = []
 
         super().__init__(optimizer, last_epoch)
 
@@ -60,7 +59,7 @@ class CosineAnnealingWarmupRestarts(LRScheduler):
             param_group['lr'] = self.min_lr
             self.base_lrs.append(self.min_lr)
 
-    def get_lr(self) -> List[float]:
+    def get_lr(self) -> list[float]:
         if self.step_in_cycle == -1:
             return self.base_lrs
 
@@ -82,7 +81,7 @@ class CosineAnnealingWarmupRestarts(LRScheduler):
             for base_lr in self.base_lrs
         ]
 
-    def step(self, epoch: Optional[int] = None):
+    def step(self, epoch: int | None = None):
         if epoch is None:
             epoch = self.last_epoch + 1
             self.step_in_cycle = self.step_in_cycle + 1

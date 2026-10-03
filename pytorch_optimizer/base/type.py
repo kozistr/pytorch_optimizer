@@ -1,33 +1,22 @@
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Literal, Optional, Tuple, Type, Union
-
-if TYPE_CHECKING:  # pragma: no cover
-    from typing import TypeAlias
-else:  # pragma: no cover
-    TypeAlias = object
+from collections.abc import Callable, Iterable
+from typing import Any, Literal, TypeAlias
 
 import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 
-OptimizerType: TypeAlias = Type[Optimizer]
-OptimizerInstanceOrClass: TypeAlias = Union[OptimizerType, Optimizer]
-SchedulerClass: TypeAlias = Type[LRScheduler]
+OptimizerType: TypeAlias = type[Optimizer]
+OptimizerInstanceOrClass: TypeAlias = OptimizerType | Optimizer
+SchedulerClass: TypeAlias = type[LRScheduler]
 
-Defaults: TypeAlias = Dict[str, Any]
-ParamGroup: TypeAlias = Dict[str, Any]
-State: TypeAlias = Dict
-ParamsT: TypeAlias = Union[
-    Iterable[torch.Tensor],
-    Iterable[Dict[str, Any]],
-    Iterable[Tuple[str, torch.Tensor]],
-]
+Defaults: TypeAlias = dict[str, Any]
+ParamGroup: TypeAlias = dict[str, Any]
+State: TypeAlias = dict
+ParamsT: TypeAlias = Iterable[torch.Tensor] | Iterable[dict[str, Any]] | Iterable[tuple[str, torch.Tensor]]
 
-Closure: TypeAlias = Optional[Callable[[], float]]
-Loss: TypeAlias = Optional[float]
-Betas: TypeAlias = Union[
-    Tuple[float, float],
-    Tuple[float, float, float],
-]
+Closure: TypeAlias = Callable[[], float] | None
+Loss: TypeAlias = float | None
+Betas: TypeAlias = tuple[float, float] | tuple[float, float, float]
 
 HutchinsonG: TypeAlias = Literal['gaussian', 'rademacher']
 ClassMode: TypeAlias = Literal['binary', 'multiclass', 'multilabel']

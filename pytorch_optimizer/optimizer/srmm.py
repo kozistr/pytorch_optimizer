@@ -1,4 +1,3 @@
-from typing import List, Optional
 
 import torch
 
@@ -14,7 +13,7 @@ class SRMM(BaseOptimizer):
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         beta (float): Adaptivity weight.
-        memory_length (Optional[int]): Internal memory length for moving average. None for no refreshing.
+        memory_length (int | None): Internal memory length for moving average. None for no refreshing.
         maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
 
     """
@@ -24,7 +23,7 @@ class SRMM(BaseOptimizer):
         params: ParamsT,
         lr: float = 0.01,
         beta: float = 0.5,
-        memory_length: Optional[int] = 100,
+        memory_length: int | None = 100,
         maximize: bool = False,
         **kwargs,
     ):
@@ -37,7 +36,7 @@ class SRMM(BaseOptimizer):
 
         super().__init__(params, defaults)
 
-        self.base_lrs: List[float] = [group['lr'] for group in self.param_groups]
+        self.base_lrs: list[float] = [group['lr'] for group in self.param_groups]
 
     def __str__(self) -> str:
         return 'SRMM'

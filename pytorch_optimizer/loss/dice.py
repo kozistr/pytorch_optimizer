@@ -1,4 +1,3 @@
-from typing import List, Optional, Tuple
 
 import torch
 from torch.nn.functional import logsigmoid, one_hot
@@ -12,7 +11,7 @@ def soft_dice_score(
     target: torch.Tensor,
     label_smooth: float = 0.0,
     eps: float = 1e-6,
-    dims: Optional[Tuple[int, ...]] = None,
+    dims: tuple[int, ...] | None = None,
 ) -> torch.Tensor:
     """Get soft dice score.
 
@@ -21,7 +20,7 @@ def soft_dice_score(
         target (torch.Tensor): Ground truth segmentation masks.
         label_smooth (float): Label smoothing factor to avoid zero denominators.
         eps (float): Small epsilon for numerical stability.
-        dims (Optional[Tuple[int, ...]]): Dimensions over which to reduce when computing score.
+        dims (tuple[int, ...] | None): Dimensions over which to reduce when computing score.
 
     """
     if dims is not None:
@@ -42,11 +41,11 @@ class DiceLoss(_Loss):
 
     Args:
         mode (ClassMode): Loss mode - 'binary', 'multiclass', or 'multilabel'.
-        classes (Optional[List[int]]): List of classes to include in loss computation. Defaults to all classes.
+        classes (list[int] | None): List of classes to include in loss computation. Defaults to all classes.
         log_loss (bool): If True, loss is computed as `-log(dice_coeff)`; otherwise `1 - dice_coeff`.
         from_logits (bool): If True, assumes input is raw logits.
         label_smooth (float): Smoothness constant for dice coefficient numerator and denominator.
-        ignore_index (Optional[int]): Label to ignore during loss computation.
+        ignore_index (int | None): Label to ignore during loss computation.
         eps (float): Small epsilon for numerical stability.
 
     """
@@ -54,11 +53,11 @@ class DiceLoss(_Loss):
     def __init__(
         self,
         mode: ClassMode = 'binary',
-        classes: Optional[List[int]] = None,
+        classes: list[int] | None = None,
         log_loss: bool = False,
         from_logits: bool = True,
         label_smooth: float = 0.0,
-        ignore_index: Optional[int] = None,
+        ignore_index: int | None = None,
         eps: float = 1e-6,
     ):
         super().__init__()
@@ -84,7 +83,7 @@ class DiceLoss(_Loss):
         bs: int = y_true.size(0)
         num_classes: int = y_pred.size(1)
 
-        dims: Tuple[int, ...] = (0, 2)
+        dims: tuple[int, ...] = (0, 2)
 
         if self.mode == 'binary':
             y_true = y_true.view(bs, 1, -1)
@@ -147,6 +146,6 @@ class DiceLoss(_Loss):
         target: torch.Tensor,
         label_smooth: float = 0.0,
         eps: float = 1e-6,
-        dims: Optional[Tuple[int, ...]] = None,
+        dims: tuple[int, ...] | None = None,
     ) -> torch.Tensor:
         return soft_dice_score(output, target, label_smooth, eps, dims)

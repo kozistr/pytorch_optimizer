@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union, cast
+from typing import cast
 
 import torch
 from torch import nn
@@ -39,7 +39,7 @@ class DynamicLossScaler:
         scale_factor: float = 2.0,
         scale_window: int = 2000,
         tolerance: float = 0.00,
-        threshold: Optional[float] = None,
+        threshold: float | None = None,
     ):  # fmt: skip
         self.loss_scale = init_scale
         self.scale_factor = scale_factor
@@ -128,15 +128,15 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
         self.needs_sync: bool = True
 
     @classmethod
-    def get_parameters(cls, optimizer: Optimizer) -> List:
-        params: List = []
+    def get_parameters(cls, optimizer: Optimizer) -> list:
+        params: list = []
         for group in optimizer.param_groups:
             params += list(group['params'])
         return params
 
     @classmethod
-    def build_fp32_params(cls, parameters: ParamsT, flatten: bool = True) -> Union[torch.Tensor, List[torch.Tensor]]:
-        parameters = cast(List[torch.Tensor], parameters)
+    def build_fp32_params(cls, parameters: ParamsT, flatten: bool = True) -> torch.Tensor | list[torch.Tensor]:
+        parameters = cast(list[torch.Tensor], parameters)
 
         if flatten:
             total_param_size: int = sum(p.numel() for p in parameters)
@@ -153,7 +153,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
 
             return fp32_params
 
-        fp32_params: List[torch.Tensor] = []
+        fp32_params: list[torch.Tensor] = []
         for p in parameters:
             p32 = nn.Parameter(p.float())
             p32.grad = torch.zeros_like(p32)
@@ -161,14 +161,14 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
 
         return fp32_params
 
-    def state_dict(self) -> Dict:
+    def state_dict(self) -> dict:
         """Return the optimizer state dict."""
         state_dict = self.optimizer.state_dict()
         if self.scaler is not None:
             state_dict['loss_scaler'] = self.scaler.loss_scale
         return state_dict
 
-    def load_state_dict(self, state_dict: Dict):
+    def load_state_dict(self, state_dict: dict):
         """Load an optimizer state dict.
 
         In general, prefer using the existing optimizer instance's configuration (e.g., learning rate)

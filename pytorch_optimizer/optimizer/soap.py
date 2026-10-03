@@ -1,6 +1,5 @@
 import math
 from itertools import chain
-from typing import List, Optional
 
 import torch
 
@@ -17,7 +16,7 @@ class SOAP(BaseOptimizer):
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        shampoo_beta (Optional[float]): If not None, use this beta for the pre-conditioner
+        shampoo_beta (float | None): If not None, use this beta for the pre-conditioner
             (L and R in paper, state['GG'] below) moving average instead of betas.
         weight_decay (float): Weight decay (L2 penalty).
         precondition_frequency (int): How often to update the pre-conditioner.
@@ -37,7 +36,7 @@ class SOAP(BaseOptimizer):
         params: ParamsT,
         lr: float = 3e-3,
         betas: Betas = (0.95, 0.95),
-        shampoo_beta: Optional[float] = None,
+        shampoo_beta: float | None = None,
         weight_decay: float = 1e-2,
         precondition_frequency: int = 10,
         max_precondition_dim: int = 10000,
@@ -153,8 +152,8 @@ class SOAP(BaseOptimizer):
         return grad
 
     @staticmethod
-    def get_orthogonal_matrix(mat: torch.Tensor) -> List[torch.Tensor]:
-        matrices: List = []
+    def get_orthogonal_matrix(mat: torch.Tensor) -> list[torch.Tensor]:
+        matrices: list = []
         for m in mat:
             if len(m) == 0:
                 matrices.append([])

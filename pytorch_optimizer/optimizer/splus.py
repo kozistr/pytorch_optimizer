@@ -1,4 +1,3 @@
-from typing import Tuple
 
 import torch
 
@@ -129,7 +128,7 @@ class SPlus(BaseOptimizer):
                     ]
 
     @staticmethod
-    def get_scaled_lr(shape: Tuple[int, int], lr: float, nonstandard_constant: float, max_dim: int = 10000) -> float:
+    def get_scaled_lr(shape: tuple[int, int], lr: float, nonstandard_constant: float, max_dim: int = 10000) -> float:
         scale: float = (
             nonstandard_constant
             if len(shape) != 2 or shape[0] > max_dim or shape[1] > max_dim

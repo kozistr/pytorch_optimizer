@@ -1,4 +1,3 @@
-from typing import List
 
 import numpy as np
 import pytest
@@ -51,7 +50,7 @@ class TestVersionUtils:
             parse_pytorch_version('a.s.d.f')
 
     def test_parse_version(self):
-        pytorch_version: List[int] = parse_pytorch_version(torch.__version__)
+        pytorch_version: list[int] = parse_pytorch_version(torch.__version__)
 
         assert len(pytorch_version) == 3
         assert pytorch_version == [2, 14, 0]
@@ -139,7 +138,7 @@ class TestNormUtils:
 class TestParameterUtils:
     def test_get_optimizer_parameters(self):
         model: nn.Module = Example()
-        wd_ban_list: List[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight', 'LayerNorm']
+        wd_ban_list: list[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight', 'LayerNorm']
 
         before_parameters = list(model.named_parameters())
 
@@ -153,7 +152,7 @@ class TestParameterUtils:
 
     def test_is_valid_parameters(self):
         model: nn.Module = Example()
-        wd_ban_list: List[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+        wd_ban_list: list[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
 
         after_parameters = get_optimizer_parameters(model, weight_decay=1e-3, wd_ban_list=wd_ban_list)
 

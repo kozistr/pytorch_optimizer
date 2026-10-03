@@ -4,7 +4,7 @@ import operator
 import re
 import warnings
 from importlib.util import find_spec
-from typing import Dict, List, Optional, Tuple, Type, Union, cast
+from typing import cast
 
 import torch
 from torch import nn
@@ -16,7 +16,7 @@ from torch.optim.optimizer import Optimizer
 from pytorch_optimizer.base.type import Closure, Loss, ParamsT
 
 
-def parse_pytorch_version(version_string: str) -> List[int]:
+def parse_pytorch_version(version_string: str) -> list[int]:
     """Parse a PyTorch version string."""
     match = re.match(r'(\d+\.\d+\.\d+)', version_string)
     if not match:
@@ -62,18 +62,18 @@ class CPUOffloadOptimizer:  # pragma: no cover
 
     Args:
         params (ParamsT): A list of parameters or parameter groups.
-        optimizer_class (Type[torch.optim.Optimizer]): Constructor of the base optimizer.
+        optimizer_class (type[torch.optim.Optimizer]): Constructor of the base optimizer.
             Defaults to :class:`torch.optim.AdamW`.
         offload_gradients (bool, optional): Free GPU gradients once they are moved to CPU.
             Not compatible with gradient accumulation. Defaults to False.
-        kwargs (Dict): Other keyword arguments to be passed to the base optimizer, e.g. `lr`, `weight_decay`.
+        kwargs (dict): Other keyword arguments to be passed to the base optimizer, e.g. `lr`, `weight_decay`.
 
     """
 
     def __init__(
         self,
         params: ParamsT,
-        optimizer_class: Type[Optimizer] = torch.optim.AdamW,
+        optimizer_class: type[Optimizer] = torch.optim.AdamW,
         *,
         offload_gradients: bool = False,
         **kwargs,
@@ -88,8 +88,8 @@ class CPUOffloadOptimizer:  # pragma: no cover
         if not isinstance(param_groups[0], dict):
             param_groups = [{'params': param_groups}]
 
-        self.param_cuda2cpu_map: Dict[torch.Tensor, torch.Tensor] = {}
-        self.optim_dict: Dict[torch.Tensor, Optimizer] = {}
+        self.param_cuda2cpu_map: dict[torch.Tensor, torch.Tensor] = {}
+        self.optim_dict: dict[torch.Tensor, Optimizer] = {}
         self.stream = torch.cuda.Stream()
 
         self.queue = {}
@@ -205,7 +205,7 @@ class StochasticAccumulator:
                 del p.acc_grad
 
     @staticmethod
-    def assign_hooks(model: nn.Module) -> List:
+    def assign_hooks(model: nn.Module) -> list:
         return [
             p.register_post_accumulate_grad_hook(StochasticAccumulator.stochastic_grad_accum)
             for _, p in model.named_parameters()
@@ -247,10 +247,10 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
 
 
 def clip_grad_norm(
-    parameters: Union[ParamsT, torch.Tensor],
+    parameters: ParamsT | torch.Tensor,
     max_norm: float = 0.0,
     sync: bool = False,
-) -> Union[torch.Tensor, float]:
+) -> torch.Tensor | float:
     """Clip gradient norms.
 
     During combination with FSDP, will also ensure that grad norms are aggregated across all workers,
@@ -274,7 +274,7 @@ def clip_grad_norm(
         parameters = [parameters]
 
     # make sure any generators are expanded
-    parameters = cast(List, list(parameters))
+    parameters = cast(list, list(parameters))
 
     # if syncing we need to manually perform the clipping so that we aggregate properly
     if max_norm > 0 and not sync:
@@ -298,7 +298,7 @@ def clip_grad_norm(
 def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
     """Get norm of unit."""
     keep_dim: bool = True
-    dim: Optional[Union[int, Tuple[int, ...]]] = None
+    dim: int | tuple[int, ...] | None = None
 
     x_len: int = len(x.shape)
     if x_len <= 1:
@@ -335,7 +335,7 @@ def enable_running_stats(model: nn.Module):
 
 
 @torch.no_grad()
-def get_global_gradient_norm(param_groups: List[Dict]) -> torch.Tensor:
+def get_global_gradient_norm(param_groups: list[dict]) -> torch.Tensor:
     """Get global gradient norm."""
     global_grad_norm = torch.zeros(1, dtype=torch.float32, device=param_groups[0]['params'][0].device)
 
@@ -350,7 +350,7 @@ def get_global_gradient_norm(param_groups: List[Dict]) -> torch.Tensor:
 @torch.no_grad()
 def reg_noise(
     network1: nn.Module, network2: nn.Module, num_data: int, lr: float, eta: float = 8e-3, temperature: float = 1e-4
-) -> Union[torch.Tensor, float]:
+) -> torch.Tensor | float:
     """Entropy-MCMC: Sampling from flat basins with ease.
 
     Usage example and detailed implementation can be found at:

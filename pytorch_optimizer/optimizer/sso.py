@@ -1,4 +1,3 @@
-from typing import Optional, Tuple, Union
 
 import torch
 from torch.nn.functional import normalize
@@ -9,7 +8,7 @@ from pytorch_optimizer.base.type import Closure, Loss, ParamGroup, ParamsT
 
 
 @torch.no_grad()
-def power_iteration(w: torch.Tensor, steps: int = 50) -> Tuple[torch.Tensor, torch.Tensor]:
+def power_iteration(w: torch.Tensor, steps: int = 50) -> tuple[torch.Tensor, torch.Tensor]:
     """Leading singular triplet (sigma, u, v) via bilateral power iteration (fp32/bf16)."""
     w = w.to(torch.bfloat16)
     v = torch.ones_like(w[..., :1, :].transpose(-2, -1))
@@ -57,7 +56,7 @@ def msign(x: torch.Tensor, steps: int) -> torch.Tensor:
 def compute_f_tensor(
     x: torch.Tensor,
     theta: torch.Tensor,
-    lambda_value: Union[torch.Tensor, float],
+    lambda_value: torch.Tensor | float,
     msign_steps: int = 8,
 ) -> torch.Tensor:
     """f(lambda) = <Θ, msign(G + lambdaΘ)>. Returns 0-d tensor (no GPU sync)."""
@@ -75,7 +74,7 @@ def find_bracket(
     max_expansions: int = 10,
     msign_steps: int = 8,
     tolerance_f: float = 1e-8,
-) -> Tuple[Optional[float], Optional[float], torch.Tensor, torch.Tensor]:
+) -> tuple[float | None, float | None, torch.Tensor, torch.Tensor]:
     """Find lambda_l < lambda_r such that: f(lambda_l) <= 0 <= f(lambda_r) with f monotone increasing.
 
     If f(initial_guess) is already near zero, returns a degenerate bracket.

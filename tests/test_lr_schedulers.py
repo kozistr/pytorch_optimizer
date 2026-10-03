@@ -1,4 +1,3 @@
-from typing import Tuple
 
 import numpy as np
 import pytest
@@ -149,7 +148,7 @@ class TestWarmupSchedulers:
 
 
 @pytest.mark.parametrize('proportion_learning_rate', PROPORTION_LEARNING_RATES)
-def test_proportion_scheduler(proportion_learning_rate: Tuple[float, float, float], optimizer_factory):
+def test_proportion_scheduler(proportion_learning_rate: tuple[float, float, float], optimizer_factory):
     lr_scheduler = CosineScheduler(
         optimizer_factory,
         t_max=10,

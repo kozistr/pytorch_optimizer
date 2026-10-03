@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Callable, Dict, List
+from collections.abc import Callable
 
 import torch
 from torch.optim import Optimizer
@@ -70,7 +70,7 @@ class ScheduleFreeSGD(BaseOptimizer):
 
         super().__init__(params, defaults)
 
-        self.base_lrs: List[float] = [group['lr'] for group in self.param_groups]
+        self.base_lrs: list[float] = [group['lr'] for group in self.param_groups]
 
     def __str__(self) -> str:
         return 'ScheduleFreeSGD'
@@ -228,7 +228,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
 
         super().__init__(params, defaults)
 
-        self.base_lrs: List[float] = [group['lr'] for group in self.param_groups]
+        self.base_lrs: list[float] = [group['lr'] for group in self.param_groups]
 
     def __str__(self) -> str:
         return 'ScheduleFreeAdamW'
@@ -560,8 +560,8 @@ class ScheduleFreeWrapper(BaseOptimizer):
 
         self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
 
-        self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
-        self._optimizer_step_post_hooks: Dict[int, Callable] = {}
+        self._optimizer_step_pre_hooks: dict[int, Callable] = {}
+        self._optimizer_step_post_hooks: dict[int, Callable] = {}
 
         self.state: State = defaultdict(dict)
         self.defaults: Defaults = self.optimizer.defaults

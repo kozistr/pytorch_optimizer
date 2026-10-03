@@ -1,5 +1,5 @@
 import math
-from typing import List, Tuple, cast
+from typing import cast
 
 import torch
 from torch import nn
@@ -16,7 +16,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
 )
 
 
-def get_adjusted_lr(lr: float, param_shape: Tuple[float, ...], use_adjusted_lr: bool = False) -> float:
+def get_adjusted_lr(lr: float, param_shape: tuple[float, ...], use_adjusted_lr: bool = False) -> float:
     r"""Get the adjust learning rate."""
     output_shape, *input_shape = param_shape
     input_shape = math.prod(input_shape)
@@ -1084,8 +1084,8 @@ def prepare_muon_parameters(
     for all cases. So, highly recommend you to create the Muon optimizer manually following by the given example in the
     docstring.
     """
-    muon_parameters: List[str] = []
-    non_muon_params: List[str] = []
+    muon_parameters: list[str] = []
+    non_muon_params: list[str] = []
 
     for _, module in model.named_modules():
         for name, param in module.named_parameters(recurse=False):

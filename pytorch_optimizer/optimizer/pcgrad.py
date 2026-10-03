@@ -1,6 +1,6 @@
 import random
+from collections.abc import Iterable
 from copy import deepcopy
-from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -10,15 +10,15 @@ from torch.optim import Optimizer
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 
 
-def flatten_grad(grads: List[torch.Tensor]) -> torch.Tensor:
+def flatten_grad(grads: list[torch.Tensor]) -> torch.Tensor:
     """Flatten the gradient."""
     return torch.cat([grad.flatten() for grad in grads])
 
 
-def un_flatten_grad(grads: torch.Tensor, shapes: List[int]) -> List[torch.Tensor]:
+def un_flatten_grad(grads: torch.Tensor, shapes: list[int]) -> list[torch.Tensor]:
     """Unflatten the gradient."""
     idx: int = 0
-    un_flatten_grads: List[torch.Tensor] = []
+    un_flatten_grads: list[torch.Tensor] = []
     for shape in shapes:
         length = np.prod(shape)
         un_flatten_grads.append(grads[idx:idx + length].view(shape).clone())  # fmt: skip
@@ -51,14 +51,14 @@ class PCGrad(BaseOptimizer):
     def step(self):
         return self.optimizer.step()
 
-    def set_grad(self, grads: List[torch.Tensor], has_grads: Optional[List[torch.Tensor]] = None) -> None:
+    def set_grad(self, grads: list[torch.Tensor], has_grads: list[torch.Tensor] | None = None) -> None:
         idx: int = 0
         for group in self.optimizer.param_groups:
             for p in group['params']:
                 p.grad = grads[idx] if has_grads is None or torch.any(has_grads[idx]) else None
                 idx += 1
 
-    def retrieve_grad(self) -> Tuple[List[torch.Tensor], List[int], List[torch.Tensor]]:
+    def retrieve_grad(self) -> tuple[list[torch.Tensor], list[int], list[torch.Tensor]]:
         """Get the gradient of the parameters of the network with specific objective."""
         grad, shape, has_grad = [], [], []
         for group in self.optimizer.param_groups:
@@ -75,7 +75,7 @@ class PCGrad(BaseOptimizer):
 
         return grad, shape, has_grad
 
-    def pack_grad(self, objectives: Iterable) -> Tuple[List[torch.Tensor], List[List[int]], List[torch.Tensor]]:
+    def pack_grad(self, objectives: Iterable) -> tuple[list[torch.Tensor], list[list[int]], list[torch.Tensor]]:
         """Pack the gradient of the parameters of the network for each objective.
 
         Args:
@@ -95,17 +95,17 @@ class PCGrad(BaseOptimizer):
 
         return grads, shapes, has_grads
 
-    def project_conflicting(self, grads: List[torch.Tensor], has_grads: List[torch.Tensor]) -> torch.Tensor:
+    def project_conflicting(self, grads: list[torch.Tensor], has_grads: list[torch.Tensor]) -> torch.Tensor:
         """Project conflicting.
 
         Args:
-            grads (List[torch.Tensor]): A list of the gradient of the parameters.
-            has_grads (List[torch.Tensor]): A list of masks representing whether the parameter has gradient.
+            grads (list[torch.Tensor]): A list of the gradient of the parameters.
+            has_grads (list[torch.Tensor]): A list of masks representing whether the parameter has gradient.
 
         """
         shared: torch.Tensor = torch.stack(has_grads).prod(0).bool()
 
-        pc_grad: List[torch.Tensor] = deepcopy(grads)
+        pc_grad: list[torch.Tensor] = deepcopy(grads)
         for i, g_i in enumerate(pc_grad):
             random.shuffle(grads)
             for g_j in grads:

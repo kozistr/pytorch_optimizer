@@ -1,6 +1,6 @@
 import math
 from abc import ABC, abstractmethod
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from collections.abc import Iterable, Sequence
 
 import torch
 from torch.optim import Optimizer
@@ -40,13 +40,13 @@ class BaseOptimizer(ABC, Optimizer):
 
     @staticmethod
     @torch.no_grad()
-    def set_hessian(param_groups: ParamsT, state: State, hessian: List[torch.Tensor]) -> None:
+    def set_hessian(param_groups: ParamsT, state: State, hessian: list[torch.Tensor]) -> None:
         """Set hessian to state from external source. Generally useful when using functorch as a base.
 
         Args:
             param_groups: PARAMETERS. Parameter groups from optimizer.
             state: STATE. Optimizer state dictionary.
-            hessian: List[torch.Tensor]. Sequence of Hessian tensors to set.
+            hessian: list[torch.Tensor]. Sequence of Hessian tensors to set.
 
         Example:
             # Hutchinson's Estimator using Hessian-vector product (HVP)
@@ -110,7 +110,7 @@ class BaseOptimizer(ABC, Optimizer):
         if distribution not in ('gaussian', 'rademacher'):
             raise NotImplementedError(f'hessian with distribution {distribution} is not implemented.')
 
-        params: List[torch.Tensor] = [
+        params: list[torch.Tensor] = [
             p
             for group in param_groups or []
             for p in group['params']
@@ -134,23 +134,23 @@ class BaseOptimizer(ABC, Optimizer):
     @staticmethod
     def apply_weight_decay(
         p: torch.Tensor,
-        grad: Optional[torch.Tensor],
-        lr: Union[float, torch.Tensor],
+        grad: torch.Tensor | None,
+        lr: float | torch.Tensor,
         weight_decay: float,
         weight_decouple: bool,
         fixed_decay: bool,
-        ratio: Optional[float] = None,
+        ratio: float | None = None,
     ) -> None:
         """Apply weight decay in an in-place manner.
 
         Args:
             p (torch.Tensor): Parameter tensor to apply weight decay to.
             grad (torch.Tensor): Gradient tensor of parameter p.
-            lr (Union[float, torch.Tensor]): Learning rate to scale the update.
+            lr (float | torch.Tensor): Learning rate to scale the update.
             weight_decay (float): Weight decay coefficient (L2 penalty).
             weight_decouple (bool): If True, applies decoupled weight decay as in AdamW.
             fixed_decay (bool): If True, fixes weight decay to not depend on learning rate.
-            ratio (Optional[float]): Optional scaling factor for weight decay.
+            ratio (float | None): Optional scaling factor for weight decay.
 
         """
         if weight_decouple:
@@ -180,7 +180,7 @@ class BaseOptimizer(ABC, Optimizer):
     def apply_ams_bound(
         ams_bound: bool,
         exp_avg_sq: torch.Tensor,
-        max_exp_avg_sq: Optional[torch.Tensor],
+        max_exp_avg_sq: torch.Tensor | None,
         eps: float,
         exp_avg_sq_eps: float = 1e-15,
     ) -> torch.Tensor:
@@ -189,7 +189,7 @@ class BaseOptimizer(ABC, Optimizer):
         Args:
             ams_bound (bool): Whether to apply the AMSBound variant.
             exp_avg_sq (torch.Tensor): Exponential moving average of squared gradients.
-            max_exp_avg_sq (Optional[torch.Tensor]): Maximum of all exp_avg_sq elements, for AMSBound.
+            max_exp_avg_sq (torch.Tensor | None): Maximum of all exp_avg_sq elements, for AMSBound.
             eps (float): Small epsilon value for numerical stability.
             exp_avg_sq_eps (float): Epsilon used specifically for numerical stability in exp_avg_sq computations.
 
@@ -250,7 +250,7 @@ class BaseOptimizer(ABC, Optimizer):
         beta2: float,
         n_sma_threshold: int,
         degenerated_to_sgd: bool,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Get step size for rectify optimizer.
 
         Args:
@@ -285,15 +285,15 @@ class BaseOptimizer(ABC, Optimizer):
 
     @staticmethod
     def get_adanorm_gradient(
-        grad: torch.Tensor, adanorm: bool, exp_grad_norm: Optional[torch.Tensor] = None, r: Optional[float] = 0.95
+        grad: torch.Tensor, adanorm: bool, exp_grad_norm: torch.Tensor | None = None, r: float | None = 0.95
     ) -> torch.Tensor:
         r"""Get AdaNorm gradient.
 
         Args:
             grad (torch.Tensor): Gradient.
             adanorm (bool): Whether to use the AdaNorm variant.
-            exp_grad_norm (Optional[torch.Tensor]): Exponential moving average of gradient norm.
-            r (Optional[float]): EMA factor; between 0.9 and 0.99 is preferred.
+            exp_grad_norm (torch.Tensor | None): Exponential moving average of gradient norm.
+            r (float | None): EMA factor; between 0.9 and 0.99 is preferred.
 
         """
         if not adanorm or exp_grad_norm is None:
@@ -312,12 +312,12 @@ class BaseOptimizer(ABC, Optimizer):
         return grad
 
     @staticmethod
-    def get_rms(x: Union[List[torch.Tensor], torch.Tensor]) -> Union[List[torch.Tensor], torch.Tensor]:
+    def get_rms(x: list[torch.Tensor] | torch.Tensor) -> list[torch.Tensor] | torch.Tensor:
         """Get RMS."""
         if isinstance(x, torch.Tensor):
             return x.norm(2).div_(math.sqrt(x.numel()))
 
-        factors: List[float] = [math.sqrt(p.numel()) for p in x]
+        factors: list[float] = [math.sqrt(p.numel()) for p in x]
         norms = torch._foreach_norm(x, ord=2)
         torch._foreach_div_(norms, factors)
 
@@ -325,9 +325,9 @@ class BaseOptimizer(ABC, Optimizer):
 
     @staticmethod
     def approximate_sq_grad(
-        exp_avg_sq_row: Union[List[torch.Tensor], torch.Tensor],
-        exp_avg_sq_col: Union[List[torch.Tensor], torch.Tensor],
-        output: Union[List[torch.Tensor], torch.Tensor],
+        exp_avg_sq_row: list[torch.Tensor] | torch.Tensor,
+        exp_avg_sq_col: list[torch.Tensor] | torch.Tensor,
+        output: list[torch.Tensor] | torch.Tensor,
     ) -> None:
         """Get approximation of EMA of squared gradient."""
         if isinstance(exp_avg_sq_row, torch.Tensor):
@@ -392,12 +392,12 @@ class BaseOptimizer(ABC, Optimizer):
             p.grad.copy_(g_ortho.view_as(p.grad))
 
     @staticmethod
-    def can_use_foreach(group: ParamGroup, foreach: Optional[bool]) -> bool:
+    def can_use_foreach(group: ParamGroup, foreach: bool | None) -> bool:
         """Check if foreach operations can be used for this parameter group.
 
         Args:
             group (ParamGroup): Parameter group dictionary.
-            foreach (Optional[bool]): User-specified foreach preference (None for auto-detect).
+            foreach (bool | None): User-specified foreach preference (None for auto-detect).
 
         Returns:
             True if foreach operations should be used, False otherwise.
@@ -422,8 +422,8 @@ class BaseOptimizer(ABC, Optimizer):
     def collect_trainable_params(
         group: ParamGroup,
         state: State,
-        state_keys: Optional[List[str]] = None,
-    ) -> Tuple[List[torch.Tensor], List[torch.Tensor], Dict[str, List[torch.Tensor]]]:
+        state_keys: list[str] | None = None,
+    ) -> tuple[list[torch.Tensor], list[torch.Tensor], dict[str, list[torch.Tensor]]]:
         """Collect trainable parameters, gradients, and state tensors from a group.
 
         Args:
@@ -441,9 +441,9 @@ class BaseOptimizer(ABC, Optimizer):
         if state_keys is None:
             state_keys = []
 
-        params: List[torch.Tensor] = []
-        grads: List[torch.Tensor] = []
-        state_dict: Dict[str, List[torch.Tensor]] = {key: [] for key in state_keys}
+        params: list[torch.Tensor] = []
+        grads: list[torch.Tensor] = []
+        state_dict: dict[str, list[torch.Tensor]] = {key: [] for key in state_keys}
 
         for p in group['params']:
             if p.grad is None:
@@ -462,9 +462,9 @@ class BaseOptimizer(ABC, Optimizer):
 
     @staticmethod
     def apply_weight_decay_foreach(
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        lr: Union[List[float], List[torch.Tensor], float, torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        lr: list[float] | list[torch.Tensor] | float | torch.Tensor,
         weight_decay: float,
         weight_decouple: bool,
         fixed_decay: bool,
@@ -525,17 +525,17 @@ class BaseOptimizer(ABC, Optimizer):
             raise ValueError(f'{name} must be in the range ({low}, {high})')
 
     @staticmethod
-    def validate_non_negative(x: Optional[float], name: str) -> None:
+    def validate_non_negative(x: float | None, name: str) -> None:
         if x is not None and x < 0.0:
             raise ValueError(f'{name} must be non-negative')
 
     @staticmethod
-    def validate_non_positive(x: Optional[float], name: str) -> None:
+    def validate_non_positive(x: float | None, name: str) -> None:
         if x is not None and x > 0.0:
             raise ValueError(f'{name} must be non-positive')
 
     @staticmethod
-    def validate_positive(x: Union[float, int], name: str) -> None:
+    def validate_positive(x: float | int, name: str) -> None:
         if x <= 0:
             raise ValueError(f'{name} must be positive')
 
@@ -552,13 +552,13 @@ class BaseOptimizer(ABC, Optimizer):
             raise NegativeStepError(step, step_type=step_type)
 
     @staticmethod
-    def validate_options(x: str, name: str, options: List[str]) -> None:
+    def validate_options(x: str, name: str, options: list[str]) -> None:
         if x not in options:
             opts: str = ' or '.join([f"'{option}'" for option in options]).strip()
             raise ValueError(f'{name} {x} must be one of ({opts})')
 
     @staticmethod
-    def validate_learning_rate(learning_rate: Optional[float]) -> None:
+    def validate_learning_rate(learning_rate: float | None) -> None:
         if learning_rate is not None and learning_rate < 0.0:
             raise NegativeLRError(learning_rate)
 
@@ -569,7 +569,7 @@ class BaseOptimizer(ABC, Optimizer):
 
     def validate_betas(
         self,
-        betas: Union[Betas, Tuple[None, float]],
+        betas: Betas | tuple[None, float],
         beta_range_type: str = '[)',
         beta3_range_type: str = '[]',
     ) -> None:
@@ -584,7 +584,7 @@ class BaseOptimizer(ABC, Optimizer):
         if betas[2] is not None:
             self.validate_range(betas[2], 'beta3', 0.0, 1.0, range_type=beta3_range_type)
 
-    def validate_nus(self, nus: Union[float, Tuple[float, float]]) -> None:
+    def validate_nus(self, nus: float | tuple[float, float]) -> None:
         if isinstance(nus, tuple):
             nu1, nu2 = nus
             self.validate_range(nu1, 'nu1', 0.0, 1.0, range_type='[]')

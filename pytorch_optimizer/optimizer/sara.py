@@ -1,6 +1,5 @@
 import math
 import random
-from typing import Optional
 
 import torch
 
@@ -19,7 +18,7 @@ class SaRA(BaseOptimizer):
 
     Args:
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (Optional[float]): Learning rate. Defaults to `1e-3 * exp(-350 * threshold)` when None.
+        lr (float | None): Learning rate. Defaults to `1e-3 * exp(-350 * threshold)` when None.
         betas (Betas): Coefficients used for computing running averages of gradient and its square.
         threshold (float): Strict upper bound on the absolute values of initially trainable weights.
         progressive_iter (int): Refine the mask before update `progressive_iter + 1`. -1 disables refinement.
@@ -35,7 +34,7 @@ class SaRA(BaseOptimizer):
     def __init__(
         self,
         params: ParamsT,
-        lr: Optional[float] = None,
+        lr: float | None = None,
         betas: Betas = (0.9, 0.999),
         threshold: float = 1e-3,
         progressive_iter: int = -1,

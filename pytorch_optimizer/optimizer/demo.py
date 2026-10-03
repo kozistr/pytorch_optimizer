@@ -1,6 +1,5 @@
 import math
 from importlib.util import find_spec
-from typing import List, Optional
 
 import torch
 from torch.distributed import ProcessGroup, all_gather, get_world_size
@@ -43,13 +42,13 @@ class TransformDCT:
                         self.b_dict[sc] = inverse_dct(i, norm=norm).to(p.dtype).to(p.device)
 
     @torch.no_grad()
-    def einsum_2d(self, x: torch.Tensor, b: torch.Tensor, d: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def einsum_2d(self, x: torch.Tensor, b: torch.Tensor, d: torch.Tensor | None = None) -> torch.Tensor:
         if d is None:
             return torch.einsum('...ij, jb -> ...ib', x, b)
         return torch.einsum('...ijkl, jb, ld -> ...ikbd', x, b, d)
 
     @torch.no_grad()
-    def einsum_2d_t(self, x: torch.Tensor, b: torch.Tensor, d: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def einsum_2d_t(self, x: torch.Tensor, b: torch.Tensor, d: torch.Tensor | None = None) -> torch.Tensor:
         if d is None:
             return torch.einsum('...ij, jb -> ...ib', x, b)
         return torch.einsum('...ijkl, kb, ld -> ...ibjd', x, b, d)
@@ -140,7 +139,7 @@ class CompressDCT:
         return self.decompress(p, idx, val, shape)
 
 
-def dct(x: torch.Tensor, norm: Optional[str] = None) -> torch.Tensor:
+def dct(x: torch.Tensor, norm: str | None = None) -> torch.Tensor:
     """Discrete Cosine Transform, Type II (a.k.a. the DCT).
 
     For the meaning of the parameter `norm`, see:
@@ -148,7 +147,7 @@ def dct(x: torch.Tensor, norm: Optional[str] = None) -> torch.Tensor:
 
     Args:
         x (torch.Tensor): The input signal.
-        norm (Optional[str]): The normalization, either None or 'ortho'.
+        norm (str | None): The normalization, either None or 'ortho'.
 
     Returns:
         torch.Tensor: The DCT-II of the signal over the last dimension.
@@ -176,7 +175,7 @@ def dct(x: torch.Tensor, norm: Optional[str] = None) -> torch.Tensor:
     return 2 * v.view(*x_shape)
 
 
-def inverse_dct(x: torch.Tensor, norm: Optional[str] = None) -> torch.Tensor:
+def inverse_dct(x: torch.Tensor, norm: str | None = None) -> torch.Tensor:
     """Get the inverse to DCT-II, which is a scaled Discrete Cosine Transform, Type III.
 
     For the meaning of the parameter `norm`, see:
@@ -184,7 +183,7 @@ def inverse_dct(x: torch.Tensor, norm: Optional[str] = None) -> torch.Tensor:
 
     Args:
         x (torch.Tensor): The input signal.
-        norm (Optional[str]): The normalization, None or 'ortho'.
+        norm (str | None): The normalization, None or 'ortho'.
 
     Returns:
         torch.Tensor: The inverse DCT-II of the signal over the last dimension.
@@ -219,7 +218,7 @@ def inverse_dct(x: torch.Tensor, norm: Optional[str] = None) -> torch.Tensor:
     return x.view(*x_shape)
 
 
-def get_prime_divisors(n: int) -> List[int]:
+def get_prime_divisors(n: int) -> list[int]:
     """Get prime divisors."""
     divisors = []
 
@@ -245,7 +244,7 @@ def get_prime_divisors(n: int) -> List[int]:
     return divisors
 
 
-def get_divisors(n: int) -> List[int]:
+def get_divisors(n: int) -> list[int]:
     """Get divisors."""
     divisors = []
 
@@ -310,7 +309,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
         compression_top_k: int = 32,
         compression_chunk: int = 64,
         weight_decay: float = 0.0,
-        process_group: Optional[ProcessGroup] = None,
+        process_group: ProcessGroup | None = None,
         maximize: bool = False,
         **kwargs,
     ):

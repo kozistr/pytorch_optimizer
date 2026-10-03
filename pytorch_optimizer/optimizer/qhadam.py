@@ -1,4 +1,3 @@
-from typing import Tuple
 
 import torch
 
@@ -14,7 +13,7 @@ class QHAdam(BaseOptimizer):
         params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): learning rate.
         betas (Betas): coefficients used for computing running averages of gradient and the squared Hessian trace.
-        nus (Tuple[float, float]): immediate discount factors used to estimate the gradient and its square.
+        nus (tuple[float, float]): immediate discount factors used to estimate the gradient and its square.
         weight_decay (float): weight decay (L2 penalty).
         weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
         fixed_decay (bool): fix weight decay.
@@ -28,7 +27,7 @@ class QHAdam(BaseOptimizer):
         params: ParamsT,
         lr: float = 1e-3,
         betas: Betas = (0.9, 0.999),
-        nus: Tuple[float, float] = (1.0, 1.0),
+        nus: tuple[float, float] = (1.0, 1.0),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,

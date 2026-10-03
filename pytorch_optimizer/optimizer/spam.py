@@ -1,5 +1,4 @@
 import math
-from typing import Optional
 
 import torch
 from torch.nn import Parameter, ParameterList
@@ -17,8 +16,8 @@ class CosineDecay:
     Args:
         death_rate (float): Initial value to be decayed.
         t_max (int): Maximum number of iterations for the decay.
-        eta_min (Optional[float]): Minimum value of the parameter after decay. Defaults to 0.
-        last_epoch (Optional[int]): The index of the last epoch. Defaults to -1.
+        eta_min (float | None): Minimum value of the parameter after decay. Defaults to 0.
+        last_epoch (int | None): The index of the last epoch. Defaults to -1.
 
     """
 
@@ -286,7 +285,7 @@ class StableSPAM(BaseOptimizer):
         gamma1 (float): Gamma1 parameter.
         gamma2 (float): Gamma2 parameter.
         theta (float): Theta parameter.
-        t_max (Optional[int]): Total number of steps.
+        t_max (int | None): Total number of steps.
         eta_min (float): Eta_min of CosineDecay.
         weight_decay (float): Weight decay (L2 penalty).
         update_proj_gap (int): Update projection gap.
@@ -303,7 +302,7 @@ class StableSPAM(BaseOptimizer):
         gamma1: float = 0.7,
         gamma2: float = 0.9,
         theta: float = 0.999,
-        t_max: Optional[int] = None,
+        t_max: int | None = None,
         eta_min: float = 0.5,
         weight_decay: float = 0.0,
         update_proj_gap: int = 1000,

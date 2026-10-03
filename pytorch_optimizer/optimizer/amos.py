@@ -1,5 +1,4 @@
 import math
-from typing import List, Optional
 
 import torch
 
@@ -21,7 +20,7 @@ class Amos(BaseOptimizer):
         extra_l2 (float): Additional L2 regularization.
         c_coef (float): Coefficient for decay_factor_c.
         d_coef (float): Coefficient for decay_factor_d.
-        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
@@ -37,7 +36,7 @@ class Amos(BaseOptimizer):
         extra_l2: float = 0.0,
         c_coef: float = 0.25,
         d_coef: float = 0.25,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         eps: float = 1e-18,
         maximize: bool = False,
         **kwargs,
@@ -105,11 +104,11 @@ class Amos(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        exp_avgs: List[torch.Tensor],
-        exp_avg_sqs: List[torch.Tensor],
-        decays: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
+        decays: list[torch.Tensor],
     ) -> None:
         lr_sq: float = math.sqrt(group['lr'])
         lr_p2: float = math.pow(group['lr'], 2)
@@ -121,7 +120,7 @@ class Amos(BaseOptimizer):
             torch._foreach_neg_(grads)
 
         g2 = [grad.pow(2).mean() for grad in grads]
-        init_lrs: List[float] = [group['lr'] * self.get_scale(p) for p in params]
+        init_lrs: list[float] = [group['lr'] * self.get_scale(p) for p in params]
 
         torch._foreach_mul_(exp_avg_sqs, beta)
         torch._foreach_add_(exp_avg_sqs, g2, alpha=1.0 - beta)

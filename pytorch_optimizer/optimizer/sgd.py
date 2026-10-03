@@ -1,5 +1,4 @@
 import math
-from typing import List, Optional, Tuple
 
 import torch
 
@@ -125,7 +124,7 @@ class SGDW(BaseOptimizer):
         weight_decouple (bool): optimizer uses decoupled weight decay as in AdamW.
         dampening (float): dampening for momentum.
         nesterov (bool): enables Nesterov momentum.
-        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): maximize the objective instead of minimizing.
 
@@ -140,7 +139,7 @@ class SGDW(BaseOptimizer):
         weight_decouple: bool = True,
         dampening: float = 0.0,
         nesterov: bool = False,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -192,9 +191,9 @@ class SGDW(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        momentum_buffers: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        momentum_buffers: list[torch.Tensor],
     ) -> None:
         lr = group['lr']
         dampening = group['dampening']
@@ -331,7 +330,7 @@ class ASGD(BaseOptimizer):
         pass
 
     @staticmethod
-    def get_norms_by_group(group: ParamGroup, device: torch.device) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_norms_by_group(group: ParamGroup, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
         """Get parameter & gradient norm by group."""
         p_norm = torch.zeros(1, dtype=torch.float32, device=device)
         g_norm = torch.zeros(1, dtype=torch.float32, device=device)
@@ -409,7 +408,7 @@ class SignSGD(BaseOptimizer):
         momentum (float): momentum factor (0.0 = SignSGD, >0 = Signum).
         weight_decay (float): weight decay (L2 penalty).
         weight_decouple (bool): optimizer uses decoupled weight decay as in AdamW.
-        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): maximize the objective instead of minimizing.
 
@@ -422,7 +421,7 @@ class SignSGD(BaseOptimizer):
         momentum: float = 0.9,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -472,9 +471,9 @@ class SignSGD(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        momentum_buffers: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        momentum_buffers: list[torch.Tensor],
     ) -> None:
         lr = group['lr']
 

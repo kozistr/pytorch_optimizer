@@ -1,4 +1,3 @@
-from typing import List, Optional
 
 import torch
 
@@ -95,7 +94,7 @@ class SophiaH(BaseOptimizer):
                 state['hessian_moment'] = torch.zeros_like(grad)
 
     @torch.no_grad()
-    def step(self, closure: Closure = None, hessian: Optional[List[torch.Tensor]] = None) -> Loss:
+    def step(self, closure: Closure = None, hessian: list[torch.Tensor] | None = None) -> Loss:
         loss: Loss = None
         if closure is not None:
             with torch.enable_grad():

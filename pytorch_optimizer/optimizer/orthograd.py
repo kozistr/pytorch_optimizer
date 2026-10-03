@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from collections.abc import Callable
 
 import torch
 from torch.optim import Optimizer
@@ -18,8 +18,8 @@ class OrthoGrad(BaseOptimizer):
     """
 
     def __init__(self, optimizer: OptimizerInstanceOrClass, **kwargs) -> None:
-        self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
-        self._optimizer_step_post_hooks: Dict[int, Callable] = {}
+        self._optimizer_step_pre_hooks: dict[int, Callable] = {}
+        self._optimizer_step_post_hooks: dict[int, Callable] = {}
         self.eps: float = 1e-30
 
         self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)

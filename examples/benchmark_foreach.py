@@ -22,8 +22,8 @@ Note:
 import argparse
 import gc
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Tuple, Type
 
 import torch
 from torch import nn
@@ -89,7 +89,7 @@ class ComparisonResult:
     memory_diff_pct: float
 
 
-def get_memory_stats(device: torch.device) -> Dict[str, float]:
+def get_memory_stats(device: torch.device) -> dict[str, float]:
     """Get current memory statistics for the device."""
     if device.type == 'cuda':
         torch.cuda.synchronize()
@@ -118,7 +118,7 @@ class SimpleMLP(nn.Module):
         input_dim: int = 1024,
         hidden_dim: int = 2048,
         num_layers: int = 8,
-        output_dim: Optional[int] = None,
+        output_dim: int | None = None,
     ):
         super().__init__()
         output_dim = output_dim or input_dim
@@ -250,7 +250,7 @@ class SimpleTransformer(nn.Module):
 
 def create_model_and_data(
     model_type: str, batch_size: int, device: torch.device
-) -> Tuple[nn.Module, torch.Tensor, torch.Tensor, Callable]:
+) -> tuple[nn.Module, torch.Tensor, torch.Tensor, Callable]:
     """Create model, data, and loss function for benchmarking."""
     if model_type == 'mlp':
         model = SimpleMLP(input_dim=1024, hidden_dim=2048, num_layers=8).to(device)
@@ -279,7 +279,7 @@ def create_model_and_data(
 
 
 def benchmark_optimizer(
-    optimizer_cls: Type,
+    optimizer_cls: type,
     model_factory: Callable,
     data: torch.Tensor,
     target: torch.Tensor,
@@ -289,7 +289,7 @@ def benchmark_optimizer(
     num_steps: int = 100,
     warmup_steps: int = 10,
     **opt_kwargs,
-) -> Optional[BenchmarkResult]:
+) -> BenchmarkResult | None:
     """Benchmark a single optimizer configuration."""
     reset_memory_stats(device)
 
@@ -374,7 +374,7 @@ def run_benchmarks(
     warmup_steps: int = 10,
     batch_size: int = 64,
     verbose: bool = True,
-) -> Tuple[List[BenchmarkResult], List[ComparisonResult]]:
+) -> tuple[list[BenchmarkResult], list[ComparisonResult]]:
     """Run benchmarks for all optimizers."""
     results = []
     comparisons = []
@@ -453,7 +453,7 @@ def run_benchmarks(
     return results, comparisons
 
 
-def print_summary(comparisons: List[ComparisonResult], device_name: str) -> None:
+def print_summary(comparisons: list[ComparisonResult], device_name: str) -> None:
     if not comparisons:
         print('No comparison results available.')
         return
@@ -558,7 +558,7 @@ def main():
         print('OVERALL SUMMARY ACROSS ALL MODELS')
         print('=' * 100)
 
-        optimizer_speedups: Dict[str, List[float]] = {}
+        optimizer_speedups: dict[str, list[float]] = {}
         for _, comparisons in all_comparisons.items():
             for comp in comparisons:
                 if comp.optimizer_name not in optimizer_speedups:

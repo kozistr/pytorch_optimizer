@@ -1,4 +1,3 @@
-from typing import List
 
 from torch.optim.lr_scheduler import LRScheduler
 
@@ -32,7 +31,7 @@ class ProportionScheduler:
         self.min_value = min_value
 
         self.step_t: int = 0
-        self.last_lr: List[float] = []
+        self.last_lr: list[float] = []
 
         self.step()
 

@@ -1,4 +1,3 @@
-from typing import List, Optional
 
 import torch
 from torch import nn
@@ -9,15 +8,15 @@ class LDAMLoss(nn.Module):
     r"""Label-Distribution-Aware Margin (LDAM) Loss.
 
     Args:
-        num_class_list (List[int]): List of the number of samples per class.
+        num_class_list (list[int]): List of the number of samples per class.
         max_m (float): Maximum margin (the `C` term in the paper).
-        weight (Optional[torch.Tensor]): Optional class weights for re-weighting.
+        weight (torch.Tensor | None): Optional class weights for re-weighting.
         s (float): Scaling factor for logits.
 
     """
 
     def __init__(
-        self, num_class_list: List[int], max_m: float = 0.5, weight: Optional[torch.Tensor] = None, s: float = 30.0
+        self, num_class_list: list[int], max_m: float = 0.5, weight: torch.Tensor | None = None, s: float = 30.0
     ):
         super().__init__()
 

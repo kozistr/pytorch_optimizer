@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import torch
 
@@ -24,7 +24,7 @@ class LoRARiteHelper:
         return decay * (1.0 - decay ** (next_step - 1.0)) / (1.0 - decay**next_step)
 
     @staticmethod
-    def move_lora_dim_to_last(tensor: torch.Tensor, dim: int) -> Tuple[torch.Tensor, torch.Size]:
+    def move_lora_dim_to_last(tensor: torch.Tensor, dim: int) -> tuple[torch.Tensor, torch.Size]:
         if tensor.ndim == 0:
             tensor = tensor.reshape(1)
             dim = 0
@@ -125,7 +125,7 @@ class LoRARiteHelper:
         return update.mul(1.0 - beta2_decay).add(moments, alpha=beta2_decay)
 
     @staticmethod
-    def get_rotation_and_basis(tensor: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_rotation_and_basis(tensor: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         return torch.linalg.qr(tensor)
 
     @staticmethod
@@ -222,7 +222,7 @@ class LoRARite(BaseOptimizer):
         return 'LoRARite'
 
     @staticmethod
-    def iter_lora_pairs(group: ParamGroup) -> List[Tuple[torch.Tensor, torch.Tensor]]:
+    def iter_lora_pairs(group: ParamGroup) -> list[tuple[torch.Tensor, torch.Tensor]]:
         params = list(group['params'])
         return list(zip(params[::2], params[1::2]))
 
@@ -241,7 +241,7 @@ class LoRARite(BaseOptimizer):
                 raise NoComplexParameterError(str(self))
 
     def init_pair_state(
-        self, group: ParamGroup, state: Dict[str, Any], param_left: torch.Tensor, param_right: torch.Tensor
+        self, group: ParamGroup, state: dict[str, Any], param_left: torch.Tensor, param_right: torch.Tensor
     ) -> None:
         if 'step' in state:
             return
@@ -264,7 +264,7 @@ class LoRARite(BaseOptimizer):
         group: ParamGroup,
         param_left: torch.Tensor,
         param_right: torch.Tensor,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         helper = self.helper
         state = self.state[param_left]
         self.init_pair_state(group, state, param_left, param_right)
@@ -421,8 +421,8 @@ class LoRARite(BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        pair_infos: List[Tuple[ParamGroup, torch.Tensor, torch.Tensor]] = []
-        grad_norm_sq: Optional[torch.Tensor] = None
+        pair_infos: list[tuple[ParamGroup, torch.Tensor, torch.Tensor]] = []
+        grad_norm_sq: torch.Tensor | None = None
 
         for group in self.param_groups:
             self.init_group(group)
