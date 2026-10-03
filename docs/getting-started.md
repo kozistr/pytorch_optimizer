@@ -74,13 +74,10 @@ See the [optimizer reference](optimizer.md) for the available options and optimi
 Set `compile=True` to compile optimizer steps on CPU or GPU. We test Lion, native PyTorch AdamW, and StableAdamW:
 
 ```python
-lr = torch.tensor(1e-3, device=next(model.parameters()).device)
-optimizer = create_optimizer(model, 'lion', lr=lr, foreach=False, compile=True)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.9)
+optimizer = create_optimizer(model, 'lion', lr=1e-3, foreach=False, compile=True)
 ```
 
-Use a tensor learning rate to avoid recompilation as the scheduler changes it.
-Call `optimizer.step()` before `scheduler.step()`.
+The factory converts float learning rates to tensors on the model's device so schedulers can change them without recompilation.
 For native AdamW on CUDA, set `capturable=True` if you use a tensor rate with `foreach=True`.
 
 Use `compile=False` (the default) for eager execution.

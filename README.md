@@ -89,14 +89,12 @@ optimizer = opt_cls(model.parameters(), lr=1e-3)
 Enable `torch.compile()` through `create_optimizer()` for Lion, native PyTorch AdamW, or StableAdamW:
 
 ```python
-import torch
 from pytorch_optimizer import create_optimizer
 
-lr = torch.tensor(1e-3, device=next(model.parameters()).device)
-optimizer = create_optimizer(model, 'lion', lr=lr, foreach=False, compile=True)
+optimizer = create_optimizer(model, 'lion', lr=1e-3, foreach=False, compile=True)
 ```
 
-Use a tensor learning rate to avoid recompilation as a scheduler changes it.
+The factory converts the learning rate to a tensor to avoid recompilation when it changes.
 Use `compile=False` (the default) for eager execution.
 
 See the [compilation guide](https://pytorch-optimizers.readthedocs.io/en/latest/getting-started/#compile-optimizer-steps)

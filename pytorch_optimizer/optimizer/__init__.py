@@ -358,7 +358,8 @@ def create_optimizer(
     Args:
         model (nn.Module): model.
         optimizer_name (str): optimizer name.
-        lr (Union[float, torch.Tensor]): Learning rate. Use a scalar tensor with compiled steps and changing rates.
+        lr (Union[float, torch.Tensor]): Learning rate. Compilation converts float rates to tensors
+            on the model's device.
         weight_decay (float): weight decay.
         wd_ban_list (List[str]): weight decay ban list by layer.
         use_lookahead (bool): use Lookahead.
@@ -371,6 +372,9 @@ def create_optimizer(
 
     """
     optimizer_name = optimizer_name.lower()
+
+    if compile and not isinstance(lr, torch.Tensor):
+        lr = torch.tensor(lr, device=next(model.parameters()).device)
 
     if optimizer_name != 'lbfgs':
         kwargs['weight_decay'] = weight_decay
