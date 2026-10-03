@@ -100,10 +100,10 @@ class Grams(BaseOptimizer):
 
                 p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
 
-                exp_avg.lerp_(grad, weight=beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
-                update = (exp_avg / bias_correction1) / (exp_avg_sq / bias_correction2_sq).sqrt_().add_(group['eps'])
+                update = (exp_avg / bias_correction1) / (exp_avg_sq.sqrt() / bias_correction2_sq).add_(group['eps'])
                 update.abs_().mul_(grad.sign())
 
                 self.apply_weight_decay(
