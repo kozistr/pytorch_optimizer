@@ -32,7 +32,7 @@ def cosine_similarity_by_view(
         x: Source tensor.
         y: Destination tensor.
         eps: Small constant epsilon added for numerical stability.
-        view_func: Function defining the view (e.g., per-channel or per-layer).
+        view_func: Function defining the view (e.g., per channel or per layer).
 
     """
     x = view_func(x)
@@ -64,7 +64,7 @@ def projection(
 
 
 class SGDP(BaseOptimizer):
-    """SGD + Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights.
+    """SGD with projected updates for scale invariant weights.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -74,8 +74,8 @@ class SGDP(BaseOptimizer):
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
-        delta: Threshold that determines whether a set of parameters is scale-invariant or not.
-        wd_ratio: Relative weight decay applied on scale-invariant parameters compared to that applied on
+        delta: Threshold that determines whether a set of parameters is scale invariant or not.
+        wd_ratio: Relative weight decay applied on scale invariant parameters compared to that applied on
             scale-variant parameters.
         nesterov: Use Nesterov momentum.
         eps: Term added to the denominator to improve numerical stability.
@@ -200,7 +200,7 @@ class SGDP(BaseOptimizer):
 
 
 class AdamP(BaseOptimizer):
-    """Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights.
+    """Adam with projected updates for scale invariant weights.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -209,8 +209,8 @@ class AdamP(BaseOptimizer):
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
-        delta: Threshold that determines whether a set of parameters is scale-invariant or not.
-        wd_ratio: Relative weight decay applied on scale-invariant parameters compared to that applied on
+        delta: Threshold that determines whether a set of parameters is scale invariant or not.
+        wd_ratio: Relative weight decay applied on scale invariant parameters compared to that applied on
             scale-variant parameters.
         nesterov: Use Nesterov momentum.
         eps: Term added to the denominator to improve numerical stability.

@@ -6,7 +6,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class AdaMax(BaseOptimizer):
-    """Adam with an exponentially weighted infinity-norm denominator.
+    """Adam with an exponentially weighted infinity norm denominator.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

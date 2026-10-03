@@ -144,23 +144,23 @@ class LoRARiteHelper:
 
 
 class LoRARite(BaseOptimizer):
-    """Robust Invariant Transformation Equilibration for LoRA optimization.
+    """LoRA factor optimization with matrix preconditioning and basis corrections.
 
     This optimizer expects LoRA factors in alternating order, such as `lora_a_1, lora_b_1, lora_a_2, lora_b_2`.
-    Unpaired parameters and pairs with missing gradients are skipped, matching common fine-tuning workflows where only
+    Unpaired parameters and pairs with missing gradients are skipped, matching common fine tuning workflows where only
     part of the model may receive gradients on a given step.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        betas: Coefficients used for first-moment and matrix second-moment estimates.
+        betas: Coefficients used for first moment and matrix second moment estimates.
         eps: Term added to the denominator to improve numerical stability.
-        relative_epsilon: Scale the root epsilon by the largest matrix second-moment eigenvalue.
+        relative_epsilon: Scale the root epsilon by the largest matrix second moment eigenvalue.
         clip_unmagnified_grad: Global clipping threshold for unmagnified LoRA gradients. Disabled when 0.
-        update_capping: Per-update RMS capping threshold after preconditioning. Disabled when 0.
+        update_capping: Per update RMS capping threshold after preconditioning. Disabled when 0.
         update_skipping: Skip unmagnified updates whose RMS is above this threshold. Disabled when 0.
         weight_decay: Weight decay coefficient.
-        apply_escape: Apply the RITE escape correction when rotating second-moment bases.
+        apply_escape: Apply the RITE escape correction when rotating second moment bases.
         lora_l_dim: LoRA rank dimension for left factors.
         lora_r_dim: LoRA rank dimension for right factors.
         maybe_inf_to_nan: Convert infinite update statistics to NaN before threshold checks.

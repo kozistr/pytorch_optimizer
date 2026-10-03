@@ -6,7 +6,7 @@ from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 
 
 class BaseLinearWarmupScheduler(ABC):
-    """Base scheduler for linear warmup followed by learning rate decay.
+    """Base scheduler for linear warmup followed by a learning rate schedule.
 
     Each call to `step()` sets the same learning rate for all parameter groups.
 
@@ -14,7 +14,7 @@ class BaseLinearWarmupScheduler(ABC):
         optimizer: Optimizer whose learning rate to update.
         t_max: Total number of scheduler steps, including warmup.
         max_lr: Learning rate at the end of warmup.
-        min_lr: Minimum learning rate and initial rate before the first step.
+        min_lr: Baseline learning rate and initial rate before the first step.
         init_lr: Learning rate at the first warmup step.
         warmup_steps: Number of steps to increase the rate from `init_lr` to `max_lr`.
 

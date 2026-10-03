@@ -7,7 +7,7 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 
 class Tiger(BaseOptimizer):
-    """Sign-based updates with a single gradient momentum buffer.
+    """Sign based updates with a single gradient momentum buffer.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

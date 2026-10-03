@@ -8,12 +8,12 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class Aida(BaseOptimizer):
-    """A DNN Optimizer that Improves over AdaBelief by Suppression of the Adaptive Stepsize Range.
+    """Adaptive updates using alternating gradient and momentum projections.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        betas: Decay rates for gradient momentum and the squared projected-gradient residual.
+        betas: Decay rates for gradient momentum and the squared projected gradient residual.
         k: Number of alternating gradient and momentum projections per update.
         xi: Term used in vector projections to avoid division by zero.
         weight_decay: Weight decay coefficient.

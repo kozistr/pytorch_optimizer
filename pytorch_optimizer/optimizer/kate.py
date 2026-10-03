@@ -6,7 +6,7 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 
 class Kate(BaseOptimizer):
-    """Remove that Square Root: A New Efficient Scale-Invariant Version of AdaGrad.
+    """Scale invariant AdaGrad-style updates without square root normalization.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

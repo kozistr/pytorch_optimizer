@@ -15,16 +15,16 @@ class AdaFactor(BaseOptimizer):
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        betas: Update momentum decay and second-moment decay cap. Set the first value to `None` to disable
+        betas: Update momentum decay and second moment decay cap. Set the first value to `None` to disable
             momentum.
-        decay_rate: Exponent controlling the step-dependent second-moment decay.
+        decay_rate: Exponent controlling the step-dependent second moment decay.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         clip_threshold: Maximum root mean square of the preconditioned update.
         ams_bound: Use the running maximum of the second moment to bound adaptive updates.
-        scale_parameter: If True, the learning rate is scaled by root-mean-square of parameter.
-        relative_step: If True, time-dependent learning rate is computed instead of external learning rate.
+        scale_parameter: If True, the learning rate is scaled by root mean square of parameter.
+        relative_step: If True, time dependent learning rate is computed instead of external learning rate.
         warmup_init: Warm up the relative step size from `1e-6 * step`.
         eps1: Stability constant added to squared gradients.
         eps2: Lower bound for parameter RMS scaling.

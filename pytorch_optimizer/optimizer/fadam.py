@@ -6,20 +6,20 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class FAdam(BaseOptimizer):
-    """Natural-gradient Adam using diagonal empirical Fisher information.
+    """Natural gradient Adam using diagonal empirical Fisher information.
 
     The adaptive stabilizer is `min(eps, eps_2 * RMS(grad)) ** (2 * p)`.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        betas: Decay rates for natural-gradient momentum and diagonal empirical Fisher estimates.
+        betas: Decay rates for natural gradient momentum and diagonal empirical Fisher estimates.
         weight_decay: Weight decay coefficient.
-        clip: Maximum norm of the gradient.
+        clip: RMS cap for natural gradients and preconditioned weight decay.
         p: Exponent applied to the Fisher information diagonal.
         eps: Upper bound on the adaptive epsilon before applying the exponent.
         momentum_dtype: Dtype of momentum.
-        fim_dtype: Dtype of Fisher information matrix.
+        fim_dtype: Data type of the Fisher information diagonal.
         maximize: Maximize the objective instead of minimizing it.
         eps_2: Gradient RMS multiplier for the adaptive epsilon.
 

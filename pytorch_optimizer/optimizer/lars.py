@@ -7,7 +7,9 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 
 class LARS(BaseOptimizer):
-    """Layer-wise Adaptive Rate Scaling (no rate scaling or weight decay for parameters <= 1D).
+    """SGD with learning rates scaled by parameter and gradient norms.
+
+    Scalars and vectors use ordinary SGD without weight decay or rate scaling.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

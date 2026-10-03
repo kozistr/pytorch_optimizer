@@ -96,13 +96,14 @@ def load_lr_scheduler(lr_scheduler_name: str) -> SchedulerClass:
     """Return a learning rate scheduler class by name.
 
     Args:
-        lr_scheduler_name: Case-insensitive name from `get_supported_lr_schedulers()`.
+        lr_scheduler_name: Case insensitive name from `get_supported_lr_schedulers()`.
 
     Returns:
         Scheduler: Registered scheduler class.
 
     Raises:
         NotImplementedError: The scheduler name is unsupported.
+
     """
     lrs_name: str = lr_scheduler_name.lower()
 
@@ -116,7 +117,7 @@ def get_supported_lr_schedulers(filters: str | list[str] | None = None) -> list[
     """List registered scheduler names in alphabetical order.
 
     Args:
-        filters: Wildcard pattern or list of patterns, such as `'*adam*'`. `None` selects all names.
+        filters: Wildcard pattern or list of patterns, such as `'*cosine*'`. `None` selects all names.
 
     Returns:
         list[str]: Matching names in lowercase, without duplicates.

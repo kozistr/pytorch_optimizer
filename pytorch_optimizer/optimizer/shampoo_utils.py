@@ -88,12 +88,13 @@ def get_newton_schulz_weights(weights: NewtonSchulzWeights) -> list[NewtonSchulz
 
 
 class LayerWiseGrafting(IntEnum):
-    """Layer-wise update scale references for Shampoo.
+    """Layer wise update scale references for Shampoo.
 
     Grafting combines the Shampoo update direction with the magnitude of an SGD,
-    AdaGrad, RMSProp, or sign-based update.
+    AdaGrad, RMSProp, or sign based update.
 
     Reference: https://arxiv.org/abs/2002.11803
+
     """
 
     NONE = 0
@@ -122,7 +123,7 @@ class Graft:
 
 
 class SGDGraft(Graft):
-    """SGD momentum as a layer-wise update scale reference."""
+    """SGD momentum as a layer wise update scale reference."""
 
     def __init__(self, var: torch.Tensor):
         super().__init__(var)
@@ -135,7 +136,7 @@ class SGDGraft(Graft):
 
 
 class SQRTNGraft(Graft):
-    """Sign-based layer-wise update scale reference."""
+    """Sign based layer wise update scale reference."""
 
     def __init__(self, var: torch.Tensor):
         super().__init__(var)
@@ -187,7 +188,7 @@ class RMSPropGraft(SGDGraft):
         self.statistics.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
-        """Scale gradients by the inverse root of the squared-gradient moving average."""
+        """Scale gradients by the inverse root of the squared gradient moving average."""
         return grad.div(self.statistics.sqrt().add_(self.diagonal_eps))
 
 
@@ -284,8 +285,9 @@ class BlockPartitioner:
 class PreConditionerType(IntEnum):
     """Dimensions to precondition with Shampoo.
 
-    `ALL` preconditions every dimension. `INPUT` and `OUTPUT` use one-sided
+    `ALL` preconditions every dimension. `INPUT` and `OUTPUT` use one sided
     preconditioning, treating the last dimension as output and the others as input.
+
     """
 
     ALL = 0
@@ -294,7 +296,7 @@ class PreConditionerType(IntEnum):
 
 
 class PreConditioner:
-    """Compute statistics & shape from gradients for preconditioning.
+    """Shampoo gradient statistics and matrix preconditioners.
 
     Args:
         var: Tensor variable corresponding to model parameters.
@@ -589,7 +591,7 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
 
     Args:
         matrix: Positive semidefinite matrix or batch of matrices.
-        power: Root order; the matrix exponent is `-1 / power`.
+        power: Root order. The matrix exponent is `-1 / power`.
 
     Returns:
         torch.Tensor: Matrix inverse root in the input data type.
@@ -638,7 +640,7 @@ def zero_power_via_newton_schulz_5(
 ) -> torch.Tensor:
     """Approximate a matrix's polar factor with quintic Newton-Schulz iterations.
 
-    The coefficient schedule controls the singular-value transformation. A finite
+    The coefficient schedule controls the singular value transformation. A finite
     number of iterations need not produce an exactly orthogonal matrix.
 
     Args:

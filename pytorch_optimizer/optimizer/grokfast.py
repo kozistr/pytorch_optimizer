@@ -21,11 +21,11 @@ def gradfilter_ma(
     filter_type: FILTER_TYPE = 'mean',
     warmup: bool = True,
 ) -> dict[str, deque]:
-    """Amplify slow gradient components with a windowed moving-average filter.
+    """Amplify slow gradient components with a windowed moving average filter.
 
     Args:
         model: Model whose gradients to modify in place after backward.
-        grads: Per-parameter gradient queues from the previous call. `None` creates the queues.
+        grads: Per parameter gradient queues from the previous call. `None` creates the queues.
         window_size: Number of gradients to retain per parameter.
         lamb: Amplification factor for the filtered gradients.
         filter_type: Queue reduction: `'mean'` or `'sum'`.
@@ -72,11 +72,11 @@ def gradfilter_ema(
     alpha: float = 0.98,
     lamb: float = 2.0,
 ) -> dict[str, torch.Tensor]:
-    """Amplify slow gradient components with an exponential moving-average filter.
+    """Amplify slow gradient components with an exponential moving average filter.
 
     Args:
         model: Model whose gradients to modify in place after backward.
-        grads: Per-parameter gradient averages from the previous call. `None` initializes them.
+        grads: Per parameter gradient averages from the previous call. `None` initializes them.
         alpha: Decay rate for the gradient moving average.
         lamb: Amplification factor for the averaged gradients.
 

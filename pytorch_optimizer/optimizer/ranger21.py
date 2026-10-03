@@ -12,34 +12,34 @@ from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
 
 
 class Ranger21(BaseOptimizer):
-    """AdamW with positive-negative momentum, gradient clipping, and Lookahead.
+    """AdamW with positive negative momentum, gradient clipping, and Lookahead.
 
     Includes gradient centralization and normalization, stable weight decay, norm loss,
     softplus smoothing, and an optional learning rate schedule with warmup and warmdown.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
-        num_iterations: Total training steps for the built-in learning rate schedule.
+        num_iterations: Total training steps for the built in learning rate schedule.
         lr: Learning rate.
         beta0: Manages the amplitude of the noise introduced by positive negative momentum.
         betas: Decay rates for the first and second moments.
         use_softplus: Use softplus to smooth.
         beta_softplus: Beta parameter for softplus smoothing.
         disable_lr_scheduler: Whether to disable learning rate schedule.
-        num_warm_up_iterations: Number of warm-up iterations. Ranger21 performs linear learning rate warmup.
-        num_warm_down_iterations: Number of warm-down iterations. Ranger21 performs Explore-exploit learning rate
+        num_warm_up_iterations: Number of warmup iterations. Ranger21 performs linear learning rate warmup.
+        num_warm_down_iterations: Number of warmdown iterations. Ranger21 performs Explore-exploit learning rate
             scheduling.
         warm_down_min_lr: Learning rate at the end of warmdown.
         agc_clipping_value: Maximum gradient-to-parameter norm ratio for adaptive clipping.
         agc_eps: Lower bound for the parameter norm in adaptive clipping.
         centralize_gradients: Use GC both convolution & fc layers.
         normalize_gradients: Use gradient normalization.
-        lookahead_merge_time: Steps between Lookahead slow-weight updates.
+        lookahead_merge_time: Steps between Lookahead slow weight updates.
         lookahead_blending_alpha: Interpolation factor from slow weights toward fast weights.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
-        norm_loss_factor: Coefficient for the unit-norm regularization update.
+        norm_loss_factor: Coefficient for the unit norm regularization update.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
 

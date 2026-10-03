@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class Grams(BaseOptimizer):
-    """Gradient Descent with Adaptive Momentum Scaling.
+    """Adaptive updates combining gradient signs with momentum magnitudes.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

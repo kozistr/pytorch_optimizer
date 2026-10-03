@@ -6,7 +6,7 @@ def centralize_gradient(grad: torch.Tensor, gc_conv_only: bool = False) -> None:
 
     Args:
         grad: Gradient tensor.
-        gc_conv_only: If False, apply GC to both convolutional and fully connected layers; if True, apply only to
+        gc_conv_only: If False, apply GC to both convolutional and fully connected layers. If True, apply only to
             convolutional layers.
 
     """

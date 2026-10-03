@@ -61,7 +61,7 @@ def get_supported_loss_functions(filters: str | list[str] | None = None) -> list
     """List registered loss function names in alphabetical order.
 
     Args:
-        filters: Wildcard pattern or list of patterns, such as `'*adam*'`. `None` selects all names.
+        filters: Wildcard pattern or list of patterns, such as `'*focal*'`. `None` selects all names.
 
     Returns:
         list[str]: Matching names in lowercase, without duplicates.

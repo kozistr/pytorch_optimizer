@@ -43,7 +43,7 @@ def get_global_gradient_norm(param_groups: ParamsT, device: torch.device) -> tor
 
 
 class SAM(BaseOptimizer):
-    """Sharpness-aware minimization with a two-pass parameter update.
+    """Sharpness-aware minimization with a two pass parameter update.
 
     Compute gradients at the current weights before calling `step()`. The closure
     must recompute the loss and gradients at the perturbed weights.
@@ -173,7 +173,7 @@ class SAM(BaseOptimizer):
 
 
 class GSAM(BaseOptimizer):  # pragma: no cover
-    """Sharpness-aware minimization with surrogate-gap gradient decomposition.
+    """Sharpness-aware minimization with surrogate gap gradient decomposition.
 
     Use `set_closure()` to supply the loss and batch before each step. Advance the learning
     rate scheduler and call `update_rho_t()` to update the perturbation radius.
@@ -183,10 +183,10 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         base_optimizer: Existing optimizer instance for parameter updates.
         model: Model used for the forward passes.
         rho_scheduler (ProportionScheduler): Scheduler that supplies the perturbation radius.
-        alpha: Weight of the surrogate-gap gradient component.
+        alpha: Weight of the surrogate gap gradient component.
         adaptive: Scale perturbations by the squared parameter values.
         perturb_eps: Stability constant for the perturbation norm.
-        **kwargs (dict): Additional parameter-group options.
+        **kwargs (dict): Additional parameter group options.
 
     """
 
@@ -320,7 +320,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
     @torch.no_grad()
     def set_closure(self, loss_fn: nn.Module, inputs: torch.Tensor, targets: torch.Tensor, **kwargs) -> None:
-        """Store a forward-backward closure for the current batch.
+        """Store a forward backward closure for the current batch.
 
         The closure clears gradients, evaluates the model and loss, and runs backpropagation.
 
@@ -384,7 +384,7 @@ class WSAM(BaseOptimizer):
         base_optimizer: Optimizer class to instantiate for parameter updates.
         rho: Size of the neighborhood for computing the max loss.
         gamma: Sharpness mixing coefficient, used as `gamma / (1 - gamma)`.
-        adaptive: Element-wise adaptive SAM.
+        adaptive: Elementwise adaptive SAM.
         decouple: Apply the sharpness correction after the base optimizer update.
         max_norm: Max norm of the gradients.
         eps: Term added to the denominator of WSAM to improve numerical stability.
@@ -531,7 +531,7 @@ class BSAM(BaseOptimizer):
         betas: Decay rates for gradient momentum and the squared curvature estimate.
         weight_decay: Weight decay coefficient.
         rho: Size of the neighborhood for computing the max loss.
-        adaptive: Element-wise Adaptive SAM.
+        adaptive: Elementwise Adaptive SAM.
         damping: Damping to stabilize the method.
         **kwargs (dict): Parameters for optimizer.
 
@@ -668,7 +668,7 @@ class LookSAM(BaseOptimizer):
         params: Parameters to optimize or dictionaries defining parameter groups.
         base_optimizer: Optimizer class to instantiate for the parameter update.
         rho: Radius of the neighborhood used to perturb parameters.
-        k: Number of steps between full sharpness-gradient updates.
+        k: Number of steps between full sharpness gradient updates.
         alpha: Weight of the reused orthogonal sharpness gradient.
         use_gc: Centralize gradients before perturbing parameters.
         adaptive: Scale perturbations by the squared parameter values.
@@ -826,7 +826,7 @@ class LookSAM(BaseOptimizer):
 
 
 class FriendlySAM(BaseOptimizer):
-    """Sharpness-aware minimization with momentum-adjusted perturbations.
+    """Sharpness-aware minimization with momentum adjusted perturbations.
 
     Compute gradients at the current weights before calling `step()`. The closure
     must recompute the loss and gradients at the perturbed weights.
@@ -836,7 +836,7 @@ class FriendlySAM(BaseOptimizer):
         base_optimizer: Optimizer class to instantiate for the parameter update.
         rho: Radius of the neighborhood used to perturb parameters.
         sigma: Strength of the momentum subtraction in the perturbation gradient.
-        lmbda: Decay rate for perturbation-gradient momentum.
+        lmbda: Decay rate for perturbation gradient momentum.
         adaptive: Scale perturbations by the squared parameter values.
         perturb_eps: Stability constant for the perturbation norm.
         **kwargs (dict): Options for the base optimizer.

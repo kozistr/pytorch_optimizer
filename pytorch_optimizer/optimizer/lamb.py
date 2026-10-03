@@ -8,9 +8,9 @@ from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
 class Lamb(BaseOptimizer):
-    """Large Batch Optimization for Deep Learning.
+    """Adam updates with a trust ratio for each parameter tensor.
 
-    This Lamb implementation is based on the paper v3, which does not use de-biasing.
+    The default update follows version 3 of the paper without bias correction.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -23,9 +23,9 @@ class Lamb(BaseOptimizer):
         degenerated_to_sgd: Use an SGD update before the moving average reaches the rectification threshold.
         n_sma_threshold: Minimum effective simple moving average length for rectification.
         grad_averaging: Scale new gradient contributions by `1 - beta1`.
-        max_grad_norm: Max gradient norm to clip.
+        max_grad_norm: Reference norm for gradient scaling when `pre_norm=True`. `0` disables scaling.
         adam: Use a trust ratio of 1 for all parameters.
-        pre_norm: Perform pre-normalization of all gradients.
+        pre_norm: Divide gradients by a scaling factor derived from their global norm.
         eps: Term added to the denominator to improve numerical stability.
         foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
         maximize: Maximize the objective instead of minimizing it.

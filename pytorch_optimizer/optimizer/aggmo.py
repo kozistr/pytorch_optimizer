@@ -6,7 +6,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class AggMo(BaseOptimizer):
-    """Aggregated Momentum: Stability Through Passive Damping.
+    """SGD with aggregated momentum buffers at multiple decay rates.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

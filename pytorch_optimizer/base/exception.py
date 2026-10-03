@@ -39,7 +39,7 @@ class NegativeLRError(Exception):
 
 
 class NegativeStepError(Exception):
-    """A step count is negative."""
+    """A step count is below the required minimum."""
 
     def __init__(self, num_steps: int, step_type: str = ''):
         self.note: str = step_type if step_type else 'step'

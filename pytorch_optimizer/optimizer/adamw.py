@@ -9,7 +9,7 @@ from pytorch_optimizer.optimizer.foreach_utils import group_tensors_by_device_an
 
 
 class StableAdamW(BaseOptimizer):
-    """AdamW with update clipping and optional low-precision Kahan summation.
+    """AdamW with update clipping and optional low precision Kahan summation.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

@@ -58,7 +58,7 @@ class BaseOptimizer(ABC, Optimizer):
         Args:
             param_groups: Optimizer parameter groups.
             state: Optimizer state dictionary to update.
-            hessian: One tensor per parameter, in parameter-group order, with matching shapes.
+            hessian: One tensor per parameter, in parameter group order, with matching shapes.
 
         Raises:
             ValueError: A Hessian tensor and its parameter have different shapes.
@@ -87,7 +87,7 @@ class BaseOptimizer(ABC, Optimizer):
         Args:
             param_groups: Parameter groups from the optimizer.
             state: Optimizer state dictionary.
-            pre_zero: If True, zero-out the Hessian before computing/updating it.
+            pre_zero: Clear existing Hessian estimates before accumulating new ones.
 
         """
         for group in param_groups or []:
@@ -112,7 +112,7 @@ class BaseOptimizer(ABC, Optimizer):
         Args:
             param_groups: Parameter groups from the optimizer.
             state: Optimizer state dictionary.
-            num_samples: Number of times to sample noise vector `z` for the trace approximation.
+            num_samples: Number of noise vectors for the Hessian diagonal estimate.
             alpha: Scale of the estimate to add to existing Hessian buffers.
             distribution: Noise distribution: `'gaussian'` or `'rademacher'`.
 
@@ -160,7 +160,7 @@ class BaseOptimizer(ABC, Optimizer):
             weight_decay: Weight decay coefficient (L2 penalty).
             weight_decouple: If True, applies decoupled weight decay as in AdamW.
             fixed_decay: If True, fixes weight decay to not depend on learning rate.
-            ratio: Optional scaling factor for weight decay.
+            ratio: Optional scaling factor for decoupled weight decay.
 
         """
         if weight_decouple:
@@ -194,12 +194,12 @@ class BaseOptimizer(ABC, Optimizer):
         eps: float,
         exp_avg_sq_eps: float = 1e-15,
     ) -> torch.Tensor:
-        """Compute an adaptive denominator, with optional running-maximum second moments.
+        """Compute an adaptive denominator, with optional running maximum second moments.
 
         Args:
             ams_bound: Whether to apply the AMSBound variant.
             exp_avg_sq: Exponential moving average of squared gradients.
-            max_exp_avg_sq: Maximum of all exp_avg_sq elements, for AMSBound.
+            max_exp_avg_sq: Running elementwise maximum of `exp_avg_sq`, updated in place for AMSBound.
             eps: Small epsilon value for numerical stability.
             exp_avg_sq_eps: Epsilon used specifically for numerical stability in exp_avg_sq computations.
 
@@ -228,7 +228,7 @@ class BaseOptimizer(ABC, Optimizer):
 
     @staticmethod
     def debias_beta(beta: float, step: int) -> float:
-        """Return the decay rate for a bias-corrected moving average.
+        """Return the decay rate for a bias corrected moving average.
 
         Computes `beta * (1 - beta ** (step - 1)) / (1 - beta ** step)`.
 
@@ -237,7 +237,7 @@ class BaseOptimizer(ABC, Optimizer):
             step: Optimization step, starting at 1.
 
         Returns:
-            float: Bias-corrected decay rate.
+            float: Bias corrected decay rate.
 
         """
         beta_n: float = beta ** step
@@ -306,7 +306,7 @@ class BaseOptimizer(ABC, Optimizer):
             grad: Gradient.
             adanorm: Whether to use the AdaNorm variant.
             exp_grad_norm: Exponential moving average of gradient norm.
-            r: EMA factor; between 0.9 and 0.99 is preferred.
+            r: Decay rate for the gradient norm average.
 
         """
         if not adanorm or exp_grad_norm is None:
@@ -342,7 +342,7 @@ class BaseOptimizer(ABC, Optimizer):
         exp_avg_sq_col: list[torch.Tensor] | torch.Tensor,
         output: list[torch.Tensor] | torch.Tensor,
     ) -> None:
-        """Write a factored inverse-root second-moment approximation to `output`.
+        """Write a factored inverse root second moment approximation to `output`.
 
         Args:
             exp_avg_sq_row: Row second moments, as a tensor or list of tensors.
@@ -373,7 +373,7 @@ class BaseOptimizer(ABC, Optimizer):
         """Mask updates that disagree with the gradient sign and rescale them in place.
 
         Args:
-            update: Update tensor, masked in-place.
+            update: Update tensor, masked in place.
             grad: Gradient tensor.
 
         """
@@ -387,7 +387,7 @@ class BaseOptimizer(ABC, Optimizer):
         """Project gradients orthogonally to parameters and restore their norms.
 
         Args:
-            params: Parameters whose dense real gradients are modified in-place.
+            params: Parameters whose dense real gradients are modified in place.
             eps: Small value to prevent division by zero.
 
         """
@@ -525,7 +525,7 @@ class BaseOptimizer(ABC, Optimizer):
             eps: Small value to prevent division by zero.
 
         Returns:
-            torch.Tensor: RMS scale, promoted to float32 for float16 and bfloat16 step-size arithmetic.
+            torch.Tensor: RMS scale, promoted to float32 for float16 and bfloat16 step size arithmetic.
 
         """
         rms = grad.pow(2).div_(exp_avg_sq.clip(min=eps)).mean().sqrt_().clip_(min=1.0)
@@ -545,13 +545,13 @@ class BaseOptimizer(ABC, Optimizer):
 
     @staticmethod
     def validate_non_negative(x: float | None, name: str) -> None:
-        """Raise `ValueError` for a negative value; accept `None`."""
+        """Raise `ValueError` for a negative value. Accept `None`."""
         if x is not None and x < 0.0:
             raise ValueError(f'{name} must be non-negative')
 
     @staticmethod
     def validate_non_positive(x: float | None, name: str) -> None:
-        """Raise `ValueError` for a positive value; accept `None`."""
+        """Raise `ValueError` for a positive value. Accept `None`."""
         if x is not None and x > 0.0:
             raise ValueError(f'{name} must be non-positive')
 
@@ -584,7 +584,7 @@ class BaseOptimizer(ABC, Optimizer):
 
     @staticmethod
     def validate_learning_rate(learning_rate: float | None) -> None:
-        """Raise `NegativeLRError` for a negative learning rate; accept `None`."""
+        """Raise `NegativeLRError` for a negative learning rate. Accept `None`."""
         if learning_rate is not None and learning_rate < 0.0:
             raise NegativeLRError(learning_rate)
 

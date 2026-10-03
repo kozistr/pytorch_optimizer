@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class AvaGrad(BaseOptimizer):
-    """Domain-independent Dominance of Adaptive Methods.
+    """Adaptive updates with a lagged second moment preconditioner.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

@@ -6,7 +6,7 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 
 class MSVAG(BaseOptimizer):
-    """Dissecting Adam: The Sign, Magnitude and Variance of Stochastic Gradients.
+    """Adaptive momentum updates with gradient variance damping.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -57,7 +57,7 @@ class MSVAG(BaseOptimizer):
 
     @staticmethod
     def get_rho(beta_power: float, beta: float) -> float:
-        """Compute the finite-step variance correction for a moving average."""
+        """Compute the finite step variance correction for a moving average."""
         rho: float = (1.0 - beta_power ** 2) * (1.0 - beta) ** 2  # fmt: skip
         rho /= (1.0 - beta ** 2) * (1.0 - beta_power) ** 2  # fmt: skip
         return min(rho, 0.9999)

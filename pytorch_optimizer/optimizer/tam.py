@@ -7,13 +7,13 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class TAM(BaseOptimizer):
-    """Torque-Aware Momentum.
+    """SGD with gradient momentum alignment scaling.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
         momentum: Momentum factor.
-        decay_rate: Decay rate for the gradient-momentum alignment average.
+        decay_rate: Decay rate for the gradient momentum alignment average.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
@@ -124,13 +124,13 @@ class TAM(BaseOptimizer):
 
 
 class AdaTAM(BaseOptimizer):
-    """Adaptive Torque-Aware Momentum.
+    """Adam with gradient momentum alignment scaling.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
         betas: Decay rates for gradient momentum and squared gradients.
-        decay_rate: Decay rate for the gradient-momentum alignment average.
+        decay_rate: Decay rate for the gradient momentum alignment average.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.

@@ -6,7 +6,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class DualAdam(BaseOptimizer):
-    """Combining Adam and its inverse counterpart to enhance generalization.
+    """Adam with a decaying inverse Adam update contribution.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

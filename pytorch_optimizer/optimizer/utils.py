@@ -56,7 +56,7 @@ else:
 
 
 class CPUOffloadOptimizer:  # pragma: no cover
-    """Offload optimizer states and updates to the CPU for single-GPU training.
+    """Offload optimizer states and updates to the CPU for single GPU training.
 
     Transfers gradients to pinned CPU memory and copies updated parameters back to the GPU.
 
@@ -212,7 +212,7 @@ class StochasticAccumulator:
 
 
 def is_valid_parameters(parameters: ParamsT) -> bool:
-    """Check for a nonempty list or tuple whose first entry is a parameter-group dictionary."""
+    """Check for a nonempty list or tuple whose first entry is a parameter group dictionary."""
     return isinstance(parameters, (list, tuple)) and len(parameters) > 0 and isinstance(parameters[0], dict)
 
 
@@ -231,7 +231,7 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
 
     Args:
         x: Gradient tensor to normalize.
-        use_channels: If True, perform channel-wise normalization.
+        use_channels: If True, perform channel wise normalization.
         epsilon: Small constant added for numerical stability.
 
     """
@@ -289,7 +289,7 @@ def clip_grad_norm(
 
 
 def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
-    """Compute parameter-unit norms for adaptive gradient clipping.
+    """Compute parameter unit norms for adaptive gradient clipping.
 
     Uses the full norm for scalars and vectors, dimension 1 for 2D and 3D tensors,
     and all dimensions after the first for tensors with four or more dimensions.
@@ -319,7 +319,7 @@ def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
 
 
 def disable_running_stats(model: nn.Module):
-    """Pause BatchNorm running-statistic updates by setting momentum to zero."""
+    """Pause BatchNorm running statistic updates by setting momentum to zero."""
 
     def _disable(module):
         if isinstance(module, _BatchNorm):
@@ -330,7 +330,7 @@ def disable_running_stats(model: nn.Module):
 
 
 def enable_running_stats(model: nn.Module):
-    """Restore BatchNorm momentum after pausing running-statistic updates."""
+    """Restore BatchNorm momentum after pausing running statistic updates."""
 
     def _enable(module):
         if isinstance(module, _BatchNorm) and hasattr(module, 'backup_momentum'):
@@ -347,7 +347,7 @@ def get_global_gradient_norm(param_groups: list[dict]) -> torch.Tensor:
         param_groups: Nonempty optimizer parameter groups.
 
     Returns:
-        torch.Tensor: Squared global norm as a single-element float32 tensor.
+        torch.Tensor: Squared global norm as a single element float32 tensor.
 
     """
     global_grad_norm = torch.zeros(1, dtype=torch.float32, device=param_groups[0]['params'][0].device)

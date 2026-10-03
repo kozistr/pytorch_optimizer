@@ -6,13 +6,13 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 
 class FTRL(BaseOptimizer):
-    """Follow The Regularized Leader.
+    """Follow the Regularized Leader updates with L1 and L2 penalties.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        lr_power: Controls how the learning rate decreases during training. Use zero for a fixed learning rate.
-        beta: Beta value as described in the paper.
+        lr_power: Exponent controlling the accumulated gradient correction, typically `-0.5`.
+        beta: Offset in the adaptive update denominator.
         lambda_1: L1 regularization parameter.
         lambda_2: L2 regularization parameter.
         maximize: Maximize the objective instead of minimizing it.

@@ -92,7 +92,8 @@ def foreach_rsqrt_(tensors: list[torch.Tensor] | tuple[torch.Tensor, ...]) -> No
     """Compute reciprocal square roots in place with a fallback for PyTorch versions before 2.8.
 
     `torch._foreach_rsqrt_` was introduced in PyTorch 2.8.0, so earlier versions
-    use in-place sqrt followed by reciprocal.
+    use in place sqrt followed by reciprocal.
+
     """
     if TORCH_VERSION_AT_LEAST_2_8:
         torch._foreach_rsqrt_(tensors)

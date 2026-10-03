@@ -176,11 +176,11 @@ class ScalableShampoo(BaseOptimizer):
         start_preconditioning_step: Step to start preconditioning.
         preconditioning_compute_steps: Frequency of preconditioner computation.
         statistics_compute_steps: Frequency of statistics computation.
-        block_size: Block size for large layers; 1 means AdaGrad (inefficient).
+        block_size: Block size for large layers. 1 means AdaGrad (inefficient).
         skip_preconditioning_rank_lt: Skip preconditioning for layers with rank below this.
         no_preconditioning_for_layers_with_dim_gt: Avoid preconditioning large layers.
         shape_interpretation: Automatic shape interpretation for tensor dims.
-        graft_type: Layer-wise scale reference from `LayerWiseGrafting`.
+        graft_type: Layer wise scale reference from `LayerWiseGrafting`.
         pre_conditioner_type: Dimensions to precondition, from `PreConditionerType`.
         nesterov: Use Nesterov momentum.
         diagonal_eps: Epsilon for numerical stability in diagonal.

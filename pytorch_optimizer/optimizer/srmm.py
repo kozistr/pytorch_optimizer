@@ -7,7 +7,7 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 
 class SRMM(BaseOptimizer):
-    """Stochastic regularized majorization-minimization with weakly convex and multi-convex surrogates.
+    """Stochastic regularized majorization-minimization with weakly convex and multi convex surrogates.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

@@ -26,7 +26,7 @@ def get_adjusted_lr(lr: float, param_shape: tuple[float, ...], use_adjusted_lr: 
             sqrt(max(output, input))`.
 
     Returns:
-        float: Shape-adjusted learning rate.
+        float: Shape adjusted learning rate.
 
     """
     output_shape, *input_shape = param_shape
@@ -45,11 +45,11 @@ class Muon(BaseOptimizer):
     """Momentum updates with Newton-Schulz matrix orthogonalization.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
-    such as embeddings, classifier heads, biases, and gains. Pass higher-dimensional
-    weights directly; the orthogonal update uses a flattened matrix view.
+    such as embeddings, classifier heads, biases, and gains. Pass higher dimensional
+    weights directly. The orthogonal update uses a flattened matrix view.
 
     Args:
-        params: Parameters to optimize or dictionaries defining parameter groups.
+        params: Parameter group dictionaries with a `use_muon` flag for each group.
         lr: Learning rate.
         momentum: Momentum factor.
         weight_decay: Weight decay coefficient.
@@ -59,7 +59,7 @@ class Muon(BaseOptimizer):
         ns_coeffs: Newton-Schulz coefficients or preset name.
         use_adjusted_lr: Scale orthogonal updates using the Moonlight shape adjustment.
         adamw_lr: Learning rate for parameters in the AdamW groups.
-        adamw_betas: First- and second-moment decay rates for the AdamW groups.
+        adamw_betas: Decay rates for the first and second moments in the AdamW groups.
         adamw_wd: Weight decay for parameters in the AdamW groups.
         adamw_eps: Numerical stability constant for the AdamW groups.
         maximize: Maximize the objective instead of minimizing it.
@@ -238,12 +238,12 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
     """Distributed momentum updates with Newton-Schulz matrix orthogonalization.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
-    such as embeddings, classifier heads, biases, and gains. Pass higher-dimensional
-    weights directly; the orthogonal update uses a flattened matrix view.
+    such as embeddings, classifier heads, biases, and gains. Pass higher dimensional
+    weights directly. The orthogonal update uses a flattened matrix view.
     Requires an initialized distributed process group.
 
     Args:
-        params: Parameters to optimize or dictionaries defining parameter groups.
+        params: Parameter group dictionaries with a `use_muon` flag for each group.
         lr: Learning rate.
         momentum: Momentum factor.
         weight_decay: Weight decay coefficient.
@@ -253,7 +253,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
         ns_coeffs: Newton-Schulz coefficients or preset name.
         use_adjusted_lr: Scale orthogonal updates using the Moonlight shape adjustment.
         adamw_lr: Learning rate for parameters in the AdamW groups.
-        adamw_betas: First- and second-moment decay rates for the AdamW groups.
+        adamw_betas: Decay rates for the first and second moments in the AdamW groups.
         adamw_wd: Weight decay for parameters in the AdamW groups.
         adamw_eps: Numerical stability constant for the AdamW groups.
         maximize: Maximize the objective instead of minimizing it.
@@ -445,11 +445,11 @@ class AdaMuon(BaseOptimizer):
     """Adaptive momentum updates with Newton-Schulz matrix orthogonalization.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
-    such as embeddings, classifier heads, biases, and gains. Pass higher-dimensional
-    weights directly; the orthogonal update uses a flattened matrix view.
+    such as embeddings, classifier heads, biases, and gains. Pass higher dimensional
+    weights directly. The orthogonal update uses a flattened matrix view.
 
     Args:
-        params: Parameters to optimize or dictionaries defining parameter groups.
+        params: Parameter group dictionaries with a `use_muon` flag for each group.
         lr: Learning rate.
         betas: Decay rates for gradient momentum and squared orthogonalized updates.
         weight_decay: Weight decay coefficient.
@@ -458,7 +458,7 @@ class AdaMuon(BaseOptimizer):
         ns_coeffs: Newton-Schulz coefficients or preset name.
         use_adjusted_lr: Scale orthogonal updates using the Moonlight shape adjustment.
         adamw_lr: Learning rate for parameters in the AdamW groups.
-        adamw_betas: First- and second-moment decay rates for the AdamW groups.
+        adamw_betas: Decay rates for the first and second moments in the AdamW groups.
         adamw_wd: Weight decay for parameters in the AdamW groups.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
@@ -639,14 +639,14 @@ class AdaMuon(BaseOptimizer):
 
 
 class AdaGO(BaseOptimizer):
-    """Orthogonal momentum updates with AdaGrad step-size adaptation.
+    """Orthogonal momentum updates with AdaGrad step size adaptation.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
-    such as embeddings, classifier heads, biases, and gains. Pass higher-dimensional
-    weights directly; the orthogonal update uses a flattened matrix view.
+    such as embeddings, classifier heads, biases, and gains. Pass higher dimensional
+    weights directly. The orthogonal update uses a flattened matrix view.
 
     Args:
-        params: Parameters to optimize or dictionaries defining parameter groups.
+        params: Parameter group dictionaries with a `use_muon` flag for each group.
         lr: Learning rate.
         momentum: Momentum factor.
         weight_decay: Weight decay coefficient.
@@ -659,7 +659,7 @@ class AdaGO(BaseOptimizer):
         ns_coeffs: Newton-Schulz coefficients or preset name.
         use_adjusted_lr: Scale orthogonal updates using the Moonlight shape adjustment.
         adamw_lr: Learning rate for parameters in the AdamW groups.
-        adamw_betas: First- and second-moment decay rates for the AdamW groups.
+        adamw_betas: Decay rates for the first and second moments in the AdamW groups.
         adamw_wd: Weight decay for parameters in the AdamW groups.
         adamw_eps: Numerical stability constant for the AdamW groups.
         maximize: Maximize the objective instead of minimizing it.
@@ -850,31 +850,31 @@ class AdaGO(BaseOptimizer):
 
 
 class NorMuon(BaseOptimizer):
-    """Muon updates with row-wise second-moment normalization.
+    """Muon updates with row wise second moment normalization.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
-    such as embeddings, classifier heads, biases, and gains. Pass higher-dimensional
-    weights directly; the orthogonal update uses a flattened matrix view.
+    such as embeddings, classifier heads, biases, and gains. Pass higher dimensional
+    weights directly. The orthogonal update uses a flattened matrix view.
 
     Args:
-        params: Parameters to optimize or dictionaries defining parameter groups.
+        params: Parameter group dictionaries with a `use_muon` flag for each group.
         lr: Learning rate.
         momentum: Momentum factor.
-        beta2: Decay rate of the row-wise second moment of the orthogonalized update.
+        beta2: Decay rate of the row wise second moment of the orthogonalized update.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         nesterov: Use Nesterov momentum.
         ns_steps: Number of Newton-Schulz iterations.
         ns_coeffs: Newton-Schulz coefficients or preset name.
-        update_scale: How to rescale the row-normalized update. `preserve_norm` keeps the Frobenius norm of the
+        update_scale: How to rescale the row normalized update. `preserve_norm` keeps the Frobenius norm of the
             orthogonalized update, as the official code does. `match_rms` gives it the Frobenius norm `0.2 * sqrt(m
             * n)`, so the RMS is 0.2 as in Algorithm 1 of the paper.
         use_adjusted_lr: Apply the Moonlight shape adjustment in `preserve_norm` mode. Unused in `match_rms` mode.
         adamw_lr: Learning rate for parameters in the AdamW groups.
-        adamw_betas: First- and second-moment decay rates for the AdamW groups.
+        adamw_betas: Decay rates for the first and second moments in the AdamW groups.
         adamw_wd: Weight decay for parameters in the AdamW groups.
         adamw_eps: Numerical stability constant for the AdamW groups.
-        eps: Term added to the denominator of the row-wise normalization.
+        eps: Term added to the denominator of the row wise normalization.
         maximize: Maximize the objective instead of minimizing it.
 
     Examples:
@@ -1075,22 +1075,22 @@ def prepare_muon_parameters(
     adamw_wd: float = 0.0,
     **kwargs,
 ) -> Optimizer:
-    """Create a Muon-family optimizer by grouping model parameters.
+    """Create a Muon family optimizer by grouping model parameters.
 
     Classifies weights by parameter name and dimensionality. Review the resulting groups,
-    or construct them yourself using the optimizer's example for model-specific control.
+    or construct them yourself using the optimizer's example for model specific control.
 
     Args:
         model: Model whose parameters to group.
-        optimizer_name: Muon-family optimizer name.
-        lr: Learning rate for the orthogonal-update groups.
-        weight_decay: Weight decay for the orthogonal-update groups.
+        optimizer_name: Muon family optimizer name.
+        lr: Learning rate for the orthogonal update groups.
+        weight_decay: Weight decay for the orthogonal update groups.
         adamw_lr: Learning rate for the AdamW groups.
         adamw_wd: Weight decay for the AdamW groups.
-        **kwargs: Options for the selected optimizer.
+        **kwargs (dict): Options for the selected optimizer.
 
     Returns:
-        Optimizer: Optimizer with orthogonal-update and AdamW parameter groups.
+        Optimizer: Optimizer with orthogonal update and AdamW parameter groups.
 
     """
     muon_parameters: list[str] = []

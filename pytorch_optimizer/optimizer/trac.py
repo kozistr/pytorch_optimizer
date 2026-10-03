@@ -83,7 +83,7 @@ class ERF1994(nn.Module):
 
 
 class TRAC(BaseOptimizer):
-    """A Parameter-Free Optimizer for Lifelong Reinforcement Learning.
+    """Optimizer wrapper with parameter free scale adaptation.
 
     Args:
         optimizer: Base optimizer.

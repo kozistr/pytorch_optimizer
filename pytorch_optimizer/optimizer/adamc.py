@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class AdamC(BaseOptimizer):
-    """Why Gradients Rapidly Increase Near the End of Training.
+    """Adam with weight decay scaled by the learning rate in normalization layers.
 
     Set `normalized=True` for LayerNorm and BatchNorm layers.
 

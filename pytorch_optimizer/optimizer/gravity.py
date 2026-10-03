@@ -6,7 +6,7 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 
 class Gravity(BaseOptimizer):
-    """Kinematic optimization with a gradient-dependent velocity update.
+    """Kinematic optimization with a gradient dependent velocity update.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

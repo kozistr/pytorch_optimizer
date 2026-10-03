@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class Prodigy(BaseOptimizer):
-    """An Expeditiously Adaptive Parameter-Free Learner.
+    """Adam with distance adaptive step sizes.
 
     Leave LR set to 1 unless you encounter instability.
 
@@ -24,7 +24,7 @@ class Prodigy(BaseOptimizer):
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         bias_correction: Apply bias correction to the moment estimates.
-        safeguard_warmup: Exclude the learning rate from the distance-estimate denominator during warmup.
+        safeguard_warmup: Exclude the learning rate from the distance estimate denominator during warmup.
         eps: Term added to the denominator to improve numerical stability. when eps is None, use atan2 rather than
             epsilon and division for parameter updates.
         maximize: Maximize the objective instead of minimizing it.

@@ -15,11 +15,11 @@ from pytorch_optimizer.optimizer.utils import get_global_gradient_norm, to_real
 
 
 class DAdaptAdaGrad(BaseOptimizer):
-    """AdaGrad with D-Adaptation. Leave LR set to 1 unless you encounter instability.
+    """AdaGrad with D-Adaptation.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
-        lr: Learning rate.
+        lr: Multiplier for the adapted step size. Use `1.0` unless training is unstable.
         momentum: Momentum factor.
         d0: Initial estimate of the distance to the optimum.
         growth_rate: Maximum multiplicative growth of the distance estimate per step.
@@ -253,11 +253,11 @@ class DAdaptAdaGrad(BaseOptimizer):
 
 
 class DAdaptAdam(BaseOptimizer):
-    """Adam with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
+    """Adam with D-Adaptation V3.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
-        lr: Learning rate.
+        lr: Multiplier for the adapted step size. Use `1.0` unless training is unstable.
         betas: Decay rates for the gradient mean and squared gradients.
         d0: Initial estimate of the distance to the optimum.
         growth_rate: Maximum multiplicative growth of the distance estimate per step.
@@ -430,11 +430,11 @@ class DAdaptAdam(BaseOptimizer):
 
 
 class DAdaptSGD(BaseOptimizer):
-    """SGD with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
+    """SGD with D-Adaptation V3.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
-        lr: Learning rate.
+        lr: Multiplier for the adapted step size. Use `1.0` unless training is unstable.
         momentum: Momentum factor.
         d0: Initial estimate of the distance to the optimum.
         growth_rate: Maximum multiplicative growth of the distance estimate per step.
@@ -581,11 +581,11 @@ class DAdaptSGD(BaseOptimizer):
 
 
 class DAdaptAdan(BaseOptimizer):
-    """Adan with D-Adaptation. Leave LR set to 1 unless you encounter instability.
+    """Adan with D-Adaptation.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
-        lr: Learning rate.
+        lr: Multiplier for the adapted step size. Use `1.0` unless training is unstable.
         betas: Decay rates for gradients, gradient differences, and squared corrected gradients.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
@@ -757,11 +757,11 @@ class DAdaptAdan(BaseOptimizer):
 
 
 class DAdaptLion(BaseOptimizer):
-    """Lion with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
+    """Lion with D-Adaptation V3.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
-        lr: Learning rate.
+        lr: Multiplier for the adapted step size. Use `1.0` unless training is unstable.
         betas: Decay rates for update interpolation and gradient momentum.
         d0: Initial estimate of the distance to the optimum.
         weight_decay: Weight decay coefficient.

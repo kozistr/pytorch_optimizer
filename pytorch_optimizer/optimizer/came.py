@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class CAME(BaseOptimizer):
-    """Confidence-guided Adaptive Memory Efficient Optimization.
+    """Factored adaptive updates with confidence weighted momentum.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -123,7 +123,7 @@ class CAME(BaseOptimizer):
         exp_avg_sq_col: torch.Tensor,
         output: torch.Tensor,
     ):
-        """Write a factored inverse-root second-moment approximation to `output`."""
+        """Write a factored inverse root second moment approximation to `output`."""
         r_factor: torch.Tensor = (exp_avg_sq_row / exp_avg_sq_row.mean(dim=-1, keepdim=True)).rsqrt_().unsqueeze(-1)
         c_factor: torch.Tensor = exp_avg_sq_col.unsqueeze(-2).rsqrt()
         torch.mul(r_factor, c_factor, out=output)

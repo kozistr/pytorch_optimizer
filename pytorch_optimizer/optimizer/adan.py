@@ -10,7 +10,7 @@ from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
 class Adan(BaseOptimizer):
-    """Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models.
+    """Adaptive updates with gradient difference momentum.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

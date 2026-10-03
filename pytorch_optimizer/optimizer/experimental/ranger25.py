@@ -9,22 +9,15 @@ from pytorch_optimizer.optimizer.agc import agc
 
 
 class Ranger25(BaseOptimizer):
-    """Mixin' every fancy optimizer hacks.
+    """Adaptive updates combining ADOPT preconditioning, mixed momentum, and Lookahead.
 
-    Here's the components:
-        * ADOPT
-        * AdEMAMix
-        * Cautious
-        * StableAdamW or Adam-atan2
-        * OrthoGrad
-        * Adaptive gradient clipping
-        * Lookahead
-        * Cautious Weight Decay
+    Includes adaptive gradient clipping and cautious weight decay, with optional
+    cautious updates, OrthoGrad, and StableAdamW or Adam atan2 scaling.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        betas: Decay rates for fast normalized-gradient momentum, squared gradients, and slow normalized-gradient
+        betas: Decay rates for fast normalized gradient momentum, squared gradients, and slow normalized gradient
             momentum.
         weight_decay: Weight decay coefficient.
         alpha: Weight of slow momentum relative to fast momentum.
@@ -35,7 +28,7 @@ class Ranger25(BaseOptimizer):
         eps: Term added to the denominator to improve numerical stability. When eps is None and stable_adamw is
             False, adam-atan2 feature will be used.
         maximize: Maximize the objective instead of minimizing it.
-        lookahead_merge_time: Number of steps between Lookahead slow-weight updates.
+        lookahead_merge_time: Number of steps between Lookahead slow weight updates.
         lookahead_blending_alpha: Interpolation factor from slow weights toward fast weights.
 
     """

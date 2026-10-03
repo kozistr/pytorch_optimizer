@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class SWATS(BaseOptimizer):
-    """Improving Generalization Performance by Switching from Adam to SGD.
+    """Adaptive updates that switch from Adam to SGD.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

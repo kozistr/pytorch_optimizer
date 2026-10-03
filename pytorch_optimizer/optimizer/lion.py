@@ -8,7 +8,7 @@ from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradi
 
 
 class Lion(BaseOptimizer):
-    """Symbolic Discovery of Optimization Algorithms.
+    """Sign based updates from interpolated gradient momentum.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

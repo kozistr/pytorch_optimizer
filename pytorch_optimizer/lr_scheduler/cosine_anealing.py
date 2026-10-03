@@ -10,7 +10,7 @@ class CosineAnnealingWarmupRestarts(LRScheduler):
     Args:
         optimizer: Wrapped optimizer instance.
         first_cycle_steps: Number of steps in the first cycle.
-        cycle_mult: Multiplier for the post-warmup duration of each new cycle.
+        cycle_mult: Multiplier for the post warmup duration of each new cycle.
         max_lr: Maximum learning rate.
         min_lr: Minimum learning rate.
         warmup_steps: Number of warmup steps.

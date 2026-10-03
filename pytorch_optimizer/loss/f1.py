@@ -6,7 +6,7 @@ class SoftF1Loss(nn.Module):
     """Soft F-beta loss for binary prediction probabilities.
 
     Args:
-        beta: Precision-recall balance. Values above 1 give recall more weight.
+        beta: Precision recall balance. Values above 1 give recall more weight.
         eps: Small epsilon value to avoid division by zero during calculation.
 
     """

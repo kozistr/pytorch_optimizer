@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class AdaMod(BaseOptimizer):
-    """An Adaptive and Momental Bound Method for Stochastic Learning.
+    """Adam with bounds from a moving average of adaptive learning rates.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

@@ -36,7 +36,7 @@ def quantize_state(
     softsign: bool = True,
     group_size: int = GROUP_SIZE,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Quantize optimizer state in groups with per-group scales."""
+    """Quantize optimizer state in groups with per group scales."""
     numel = tensor.numel()
     target_dtype = torch.int8 if signed else torch.uint8
     if numel == 0:
@@ -72,7 +72,7 @@ def dequantize_state(
     softsign: bool = True,
     group_size: int = GROUP_SIZE,
 ) -> torch.Tensor:
-    """Reconstruct a floating-point optimizer state from quantized values and scales."""
+    """Reconstruct a floating point optimizer state from quantized values and scales."""
     numel = quantized.numel()
     if numel == 0:
         return torch.empty_like(quantized, dtype=torch.float32)
@@ -120,13 +120,13 @@ def store_state(state: dict[str, Any], name: str, tensor: torch.Tensor, quantize
 
 
 def ulp_scale(narrow: torch.Tensor) -> torch.Tensor:
-    """Compute the spacing between adjacent values for low-precision parameters."""
+    """Compute the spacing between adjacent values for low precision parameters."""
     next_values = torch.nextafter(narrow.abs(), torch.full_like(narrow, float('inf')))
     return next_values.sub(narrow.abs()).to(torch.float32).mul_(0.5).clamp_min_(torch.finfo(torch.float32).tiny)
 
 
 def compute_ecc_bits(fp32_param: torch.Tensor, narrow_param: torch.Tensor, master_byte_width: int) -> torch.Tensor:
-    """Encode master-weight residuals as error-correction bits."""
+    """Encode master weight residuals as error correction bits."""
     if fp32_param.dtype != torch.float32:
         raise ValueError(f'fp32_param must be float32, got {fp32_param.dtype}')
     if narrow_param.dtype not in (torch.bfloat16, torch.float16):
@@ -145,7 +145,7 @@ def compute_ecc_bits(fp32_param: torch.Tensor, narrow_param: torch.Tensor, maste
 
 
 def reconstruct_fp32_param(param: torch.Tensor, error_bits: torch.Tensor) -> torch.Tensor:
-    """Reconstruct float32 parameters from low-precision weights and correction bits."""
+    """Reconstruct float32 parameters from low precision weights and correction bits."""
     if param.dtype not in (torch.bfloat16, torch.float16):
         raise ValueError(f'param must be bf16 or fp16, got {param.dtype}')
     if error_bits.dtype == torch.int8:
@@ -159,10 +159,10 @@ def reconstruct_fp32_param(param: torch.Tensor, error_bits: torch.Tensor) -> tor
 
 
 class FlashAdamW(BaseOptimizer):
-    """AdamW with grouped 8-bit optimizer states and optional master-weight error correction.
+    """AdamW with grouped 8-bit optimizer states and optional master weight error correction.
 
-    Supports compressed checkpoints and low-precision parameters through a portable
-    PyTorch implementation of FlashOptim-style updates.
+    Supports compressed checkpoints and low precision parameters through a portable
+    PyTorch implementation of FlashOptim style updates.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -173,9 +173,9 @@ class FlashAdamW(BaseOptimizer):
         decouple_lr: Scale weight decay by `lr / initial_lr` instead of `lr`.
         quantize: Store Adam moments as grouped 8-bit values plus fp16 scales.
         compress_state_dict: Save quantized states in checkpoints when `quantize` is enabled.
-        master_weight_bits: Effective master-weight precision for bf16/fp16 parameters. Supports `None`, `24`, and
+        master_weight_bits: Effective master weight precision for bf16/fp16 parameters. Supports `None`, `24`, and
             `32`.
-        check_numerics: Raise if low-precision parameter updates are unlikely to alter the master weight.
+        check_numerics: Raise if low precision parameter updates are unlikely to alter the master weight.
         fused: Placeholder for FlashOptim's Triton fused path. Currently unsupported in this portable backend.
         maximize: Maximize the objective instead of minimizing it.
 

@@ -9,7 +9,7 @@ class BCELoss(nn.Module):
     Args:
         label_smooth: Smoothness constant to soften target labels.
         eps: Small epsilon to avoid numerical instability.
-        reduction: Specifies the reduction to apply to the output; 'none' | 'mean' | 'sum'.
+        reduction: Specifies the reduction to apply to the output. 'none' | 'mean' | 'sum'.
 
     """
 

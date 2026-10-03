@@ -43,9 +43,9 @@ class DiceLoss(_Loss):
         https://github.com/BloodAxe/pytorch-toolbelt
 
     Args:
-        mode: Loss mode - 'binary', 'multiclass', or 'multilabel'.
+        mode: Segmentation mode: `'binary'`, `'multiclass'`, or `'multilabel'`.
         classes: List of classes to include in loss computation. Defaults to all classes.
-        log_loss: If True, loss is computed as `-log(dice_coeff)`; otherwise `1 - dice_coeff`.
+        log_loss: Compute `-log(dice_coeff)` instead of `1 - dice_coeff`.
         from_logits: If True, assumes input is raw logits.
         label_smooth: Smoothness constant for dice coefficient numerator and denominator.
         ignore_index: Label to ignore during loss computation.
@@ -81,7 +81,7 @@ class DiceLoss(_Loss):
 
         Args:
             y_pred: Predictions with shape `(N, C, ...)`. Use logits when `from_logits=True`.
-            y_true: Class indices with shape `(N, ...)` for multiclass mode; binary masks matching the predictions for
+            y_true: Class indices with shape `(N, ...)` for multiclass mode. Binary masks matching the predictions for
                 multilabel mode. Binary mode also accepts `(N, ...)`.
 
         Returns:

@@ -9,14 +9,14 @@ from pytorch_optimizer.optimizer.galore_utils import PROJECTION_TYPE, GaLoreProj
 
 
 class Conda(BaseOptimizer):
-    """Column-normalized Adam with low-rank gradient projection.
+    """Adam with gradient projection in a basis derived from momentum.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
         betas: Decay rates for the first and second moments.
         weight_decay: Weight decay coefficient.
-        update_proj_gap: Number of steps between low-rank projection updates.
+        update_proj_gap: Number of steps between low rank projection updates.
         scale: Scaling factor for the projected update.
         projection_type: The type of the projection.
         eps: Term added to the denominator to improve numerical stability.

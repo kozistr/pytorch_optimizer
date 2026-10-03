@@ -6,14 +6,14 @@ from pytorch_optimizer.optimizer.utils import unit_norm
 def agc(
     p: torch.Tensor, grad: torch.Tensor, agc_eps: float = 1e-3, agc_clip_val: float = 1e-2, eps: float = 1e-6
 ) -> torch.Tensor:
-    """Clip gradients relative to their parameter-unit norms.
+    """Clip gradients relative to their parameter unit norms.
 
     Args:
         p: Parameter tensor.
         grad: Gradient tensor with the same shape as `p`.
-        agc_eps: Lower bound for parameter-unit norms.
+        agc_eps: Lower bound for parameter unit norms.
         agc_clip_val: Maximum gradient-to-parameter norm ratio.
-        eps: Lower bound for gradient-unit norms.
+        eps: Lower bound for gradient unit norms.
 
     Returns:
         torch.Tensor: Clipped gradient tensor. The input gradient remains unchanged.

@@ -10,7 +10,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class AdamMini(BaseOptimizer):  # pragma: no cover
-    """Adam with shared second-moment estimates within parameter blocks.
+    """Adam with shared second moment estimates within parameter blocks.
 
     Args:
         model: Model instance.
@@ -19,10 +19,10 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         lr: Learning rate.
         betas: Decay rates for the first and second moments.
         weight_decay: Weight decay coefficient.
-        num_embeds: Number of embedding dimensions. Could be unspecified if training non-transformer models.
-        num_heads: Number of attention heads. Could be unspecified if training non-transformer models.
+        num_embeds: Number of embedding dimensions. Could be unspecified if training non transformer models.
+        num_heads: Number of attention heads. Could be unspecified if training non transformer models.
         num_query_groups: Number of query groups in Group Query Attention (GQA). If not specified, defaults to
-            num_heads. Could be unspecified for non-transformer models.
+            num_heads. Could be unspecified for non transformer models.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
 

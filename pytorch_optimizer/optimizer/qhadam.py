@@ -7,7 +7,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class QHAdam(BaseOptimizer):
-    """Quasi-hyperbolic momentum and Adam for deep learning.
+    """Adam with quasi-hyperbolic moment averaging.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

@@ -21,7 +21,7 @@ def update_ema(state: dict, loss: float | torch.Tensor) -> dict[str, float]:
 
 
 def compute_scalar(ema: dict[str, float]) -> float:
-    """Compute a bounded relative change between short- and long-term loss averages."""
+    """Compute a bounded relative change between short- and long term loss averages."""
     scale_base_l = max(ema['long'], 1e-5)
     scale_base_m = max(ema['medium'], 1e-5)
 
@@ -36,13 +36,13 @@ def compute_scalar(ema: dict[str, float]) -> float:
 
 
 def get_coef(scalar: float) -> float:
-    """Return a damping coefficient from the magnitude of the loss-trend scalar."""
+    """Return a damping coefficient from the magnitude of the loss trend scalar."""
     abs_scaler = abs(scalar)
     return 1.0 - abs_scaler if abs_scaler > 0.25 else 1.0
 
 
 def get_scalar_ratio(scalar: float, use_shadow: bool) -> float:
-    """Return the shadow-parameter mixing ratio from the loss-trend scalar."""
+    """Return the shadow parameter mixing ratio from the loss trend scalar."""
     if not use_shadow:
         return 0.0
 
@@ -70,16 +70,16 @@ def get_emo_drive(state: dict, loss: float | torch.Tensor, use_shadow: bool) -> 
 
 
 class EmoNavi(BaseOptimizer):
-    """Adam-style updates with loss-driven momentum scaling and optional shadow weights.
+    """Adam style updates with loss driven momentum scaling and optional shadow weights.
 
-    Supply a loss closure to `step()` to enable loss-driven scaling.
+    Supply a loss closure to `step()` to enable loss driven scaling.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
         betas: Decay rates for the first and second moments.
         use_shadow: Blend parameters with a running shadow copy based on loss trends.
-        shadow_weight: Interpolation weight for shadow-copy updates during a shadow correction.
+        shadow_weight: Interpolation weight for shadow copy updates during a shadow correction.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
@@ -208,16 +208,16 @@ class EmoNavi(BaseOptimizer):
 
 
 class EmoLynx(BaseOptimizer):
-    """Sign-based momentum updates with EmoNavi loss-driven scaling.
+    """Sign based momentum updates with EmoNavi loss driven scaling.
 
-    Supply a loss closure to `step()` to enable loss-driven scaling.
+    Supply a loss closure to `step()` to enable loss driven scaling.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
         betas: Decay rates for update interpolation and gradient momentum.
         use_shadow: Blend parameters with a running shadow copy based on loss trends.
-        shadow_weight: Interpolation weight for shadow-copy updates during a shadow correction.
+        shadow_weight: Interpolation weight for shadow copy updates during a shadow correction.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
@@ -339,16 +339,16 @@ class EmoLynx(BaseOptimizer):
 
 
 class EmoFact(BaseOptimizer):
-    """Factored adaptive updates with EmoNavi loss-driven scaling.
+    """Factored adaptive updates with EmoNavi loss driven scaling.
 
-    Supply a loss closure to `step()` to enable loss-driven scaling.
+    Supply a loss closure to `step()` to enable loss driven scaling.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
         betas: Decay rates for row/column gradient RMS averages and the vector second moment.
         use_shadow: Blend parameters with a running shadow copy based on loss trends.
-        shadow_weight: Interpolation weight for shadow-copy updates during a shadow correction.
+        shadow_weight: Interpolation weight for shadow copy updates during a shadow correction.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.

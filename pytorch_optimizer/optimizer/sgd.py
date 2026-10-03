@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 
 class AccSGD(BaseOptimizer):
-    """Accelerating Stochastic Gradient Descent For Least Squares Regression.
+    """Accelerated SGD with coupled short and long steps.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -114,7 +114,7 @@ class AccSGD(BaseOptimizer):
 
 
 class SGDW(BaseOptimizer):
-    """Decoupled Weight Decay Regularization.
+    """SGD with optional decoupled weight decay.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -282,7 +282,7 @@ class ASGD(BaseOptimizer):
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         theta: Initial ratio of consecutive learning rates, updated after each step.
-        dampening: Scale of the local-smoothness bound on the learning rate.
+        dampening: Scale of the local smoothness bound on the learning rate.
         eps: Term added to denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
 
@@ -399,12 +399,12 @@ class ASGD(BaseOptimizer):
 
 
 class SignSGD(BaseOptimizer):
-    """Compressed Optimisation for Non-Convex Problems.
+    """Sign based SGD with optional momentum.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        momentum: Momentum factor.
+        momentum: Momentum factor. `0` gives SignSGD. Positive values give Signum.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
@@ -546,7 +546,7 @@ class SignSGD(BaseOptimizer):
 
 
 class SGDSaI(BaseOptimizer):
-    """No More Adam: Learning Rate Scaling at Initialization is All You Need.
+    """SGD with learning rate scaling from the initial gradient signal-to-noise ratio.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -684,7 +684,7 @@ class SGDSaI(BaseOptimizer):
 
 
 class VSGD(BaseOptimizer):
-    """Variational Stochastic Gradient Descent for Deep Neural Networks.
+    """SGD with variational gradient estimates.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

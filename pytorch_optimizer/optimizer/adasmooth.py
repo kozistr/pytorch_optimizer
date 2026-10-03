@@ -6,12 +6,12 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class AdaSmooth(BaseOptimizer):
-    """An Adaptive Learning Rate Method based on Effective Ratio.
+    """Adaptive updates with effective ratio smoothing.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        betas: Lower and upper smoothing bounds for the effective-ratio adaptation.
+        betas: Lower and upper smoothing bounds for the effective ratio adaptation.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.

@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class PAdam(BaseOptimizer):
-    """Partially adaptive Adam with a configurable second-moment exponent.
+    """Partially adaptive Adam with a configurable second moment exponent.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

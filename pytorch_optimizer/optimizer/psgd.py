@@ -40,7 +40,7 @@ def precondition_update_prob_schedule(
 
 
 class Kron(BaseOptimizer):
-    """Preconditioned SGD with Kronecker-factored preconditioners.
+    """Preconditioned SGD with Kronecker factored preconditioners.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -52,7 +52,7 @@ class Kron(BaseOptimizer):
             uses the default decay schedule.
         max_size_triangular: Largest dimension that can use a triangular preconditioner.
         min_ndim_triangular: Minimum tensor dimensionality for triangular preconditioners.
-        memory_save_mode: Diagonal storage policy: `None`, `'one_diag'`, or `'all_diag'`.
+        memory_save_mode: Diagonal storage policy: `None`, `'one_diag'`, `'smart_one_diag'`, or `'all_diag'`.
         momentum_into_precondition_update: Use momentum instead of raw gradients when updating preconditioners.
         mu_dtype: Dtype of the momentum accumulator.
         precondition_dtype: Dtype of the preconditioner.
@@ -336,7 +336,7 @@ def get_a_and_conj_b(
 
 
 def get_q_terms(expr_gs: list[str], a: torch.Tensor, conj_b: torch.Tensor) -> list[tuple[torch.Tensor, torch.Tensor]]:
-    """Compute factor-wise terms for a Kronecker preconditioner update."""
+    """Compute factor wise terms for a Kronecker preconditioner update."""
     terms: list = []
     for expr_g in expr_gs:
         term1 = torch.einsum(expr_g, a, a.conj())
@@ -353,7 +353,7 @@ def update_precondition(
     step: int,
     eps: float,
 ) -> None:
-    """Update Kronecker preconditioner factors from a noise-gradient pair."""
+    """Update Kronecker preconditioner factors from a noise gradient pair."""
     expr_a, expr_gs, _ = expressions
 
     a, conj_b = get_a_and_conj_b(expr_a, g, qs, v)

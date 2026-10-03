@@ -24,8 +24,8 @@ class SPlus(BaseOptimizer):
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         ema_rate: Exponential moving average decay rate.
-        inverse_steps: Number of steps between inverse-root preconditioner updates.
-        nonstandard_constant: Scale factor for the learning rate in case of a non-linear layer.
+        inverse_steps: Number of steps between inverse root preconditioner updates.
+        nonstandard_constant: Scale factor for the learning rate in case of a nonlinear layer.
         max_dim: Largest tensor dimension to include in matrix preconditioning.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.

@@ -9,7 +9,7 @@ from pytorch_optimizer.optimizer.foreach_utils import foreach_rsqrt_
 
 
 class Amos(BaseOptimizer):
-    """An Adam-style Optimizer with Adaptive Weight Decay towards Model-Oriented Scale.
+    """Adaptive updates with weight decay toward a target parameter scale.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class NovoGrad(BaseOptimizer):
-    """Stochastic Gradient Methods with Layer-wise Adaptive Moments for Training of Deep Networks.
+    """Adaptive updates with layer wise squared gradient norms.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

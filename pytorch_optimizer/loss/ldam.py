@@ -10,7 +10,7 @@ class LDAMLoss(nn.Module):
     Args:
         num_class_list: List of the number of samples per class.
         max_m: Maximum margin (the `C` term in the paper).
-        weight: Optional class weights for re-weighting.
+        weight: Optional class weights for reweighting.
         s: Scaling factor for logits.
 
     """
@@ -36,7 +36,7 @@ class LDAMLoss(nn.Module):
             y_true: Class indices with shape `(N,)`.
 
         Returns:
-            torch.Tensor: Mean cross entropy after applying class-dependent margins.
+            torch.Tensor: Mean cross entropy after applying class dependent margins.
 
         """
         index = torch.zeros_like(y_pred, dtype=torch.bool)

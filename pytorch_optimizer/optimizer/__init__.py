@@ -504,7 +504,7 @@ def load_ao_optimizer(optimizer: str) -> OptimizerType:  # pragma: no cover
 def load_optimizer(optimizer: str) -> OptimizerType:
     """Return an optimizer class by name.
 
-    Names are case-insensitive. Use the `bnb`, `q_galore`, or `torchao` prefix for
+    Names are case insensitive. Use the `bnb`, `q_galore`, or `torchao` prefix for
     optional integrations, which require their dependencies and CUDA.
 
     Args:
@@ -557,7 +557,7 @@ def create_optimizer(
 
     Args:
         model: Model whose parameters to optimize.
-        optimizer_name: Case-insensitive name accepted by `load_optimizer()`.
+        optimizer_name: Case insensitive name accepted by `load_optimizer()`.
         lr: Learning rate. Compilation converts a float to a tensor on the model's device.
         weight_decay: Weight decay coefficient.
         wd_ban_list: Name patterns to exclude from weight decay. Matches parameter names and module class names.

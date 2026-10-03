@@ -173,7 +173,7 @@ class SOAP(BaseOptimizer):
         return matrices
 
     def get_orthogonal_matrix_qr(self, state, max_precondition_dim: int = 10000, merge_dims: bool = False):
-        """Compute the eigen-bases of the preconditioner using one round of power iteration."""
+        """Compute the eigenbases of the preconditioner using one round of power iteration."""
         original_shape = state['exp_avg_sq'].shape
         permuted_shape = original_shape
         if self.data_format == 'channels_last' and len(original_shape) == 4:

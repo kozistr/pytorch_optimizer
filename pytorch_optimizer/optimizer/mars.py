@@ -12,7 +12,7 @@ MARS_TYPE = Literal['adamw', 'lion', 'shampoo']
 
 
 class MARS(BaseOptimizer):
-    """Unleashing the Power of Variance Reduction for Training Large Models.
+    """Adaptive updates with variance reduced gradient corrections.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

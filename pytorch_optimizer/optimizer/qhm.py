@@ -6,7 +6,7 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 
 class QHM(BaseOptimizer):
-    """Quasi-hyperbolic momentum (QHM) optimization algorithm.
+    """SGD with quasi-hyperbolic momentum.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

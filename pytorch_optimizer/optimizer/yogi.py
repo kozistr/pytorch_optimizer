@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class Yogi(BaseOptimizer):
-    """Adaptive updates with sign-controlled second-moment accumulation.
+    """Adaptive updates with sign controlled second moment accumulation.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

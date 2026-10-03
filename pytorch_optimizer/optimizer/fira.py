@@ -9,7 +9,10 @@ from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
 
 
 class Fira(BaseOptimizer):
-    """AdamW with low-rank updates and full-rank gradient compensation.
+    """AdamW with low rank updates and full rank gradient compensation.
+
+    Add `rank`, `update_proj_gap`, `scale`, and `projection_type` to parameter groups
+    containing matrix weights to enable projection.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

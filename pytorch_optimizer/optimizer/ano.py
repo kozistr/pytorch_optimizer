@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class Ano(BaseOptimizer):
-    """Ano optimizer with adaptive momentum and sign-based updates.
+    """Ano optimizer with adaptive momentum and sign based updates.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

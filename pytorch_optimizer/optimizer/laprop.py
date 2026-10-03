@@ -8,13 +8,13 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class LaProp(BaseOptimizer):
-    """Separating Momentum and Adaptivity in Adam.
+    """Adaptive updates with momentum of preconditioned gradients.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
         betas: Decay rates for the first and second moments.
-        centered: Subtract the squared gradient mean from the second-moment estimate.
+        centered: Subtract the squared gradient mean from the second moment estimate.
         steps_before_using_centered: Number of steps to accumulate gradient means before applying centered updates.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.

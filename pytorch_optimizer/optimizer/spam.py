@@ -53,7 +53,7 @@ class CosineDecay:
 
 
 class SPAM(BaseOptimizer):
-    """Spike-Aware Adam with Momentum Reset for Stable LLM Training.
+    """Adam with sparse update masks, gradient spike clipping, and momentum resets.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -62,7 +62,7 @@ class SPAM(BaseOptimizer):
         density: Expected fraction of 2D parameter entries to update between mask resets.
         weight_decay: Weight decay coefficient.
         warmup_epoch: Number of steps to warm up after each momentum reset.
-        threshold: Squared-gradient to second-moment ratio above which to clip spikes.
+        threshold: Squared gradient to second moment ratio above which to clip spikes.
         grad_accu_steps: Steps after a reset before spike clipping begins.
         update_proj_gap: Number of steps between mask updates and momentum resets.
         eps: Term added to the denominator to improve numerical stability.
@@ -290,7 +290,7 @@ class StableSPAM(BaseOptimizer):
         gamma2: Decay rate for the squared gradient norm average.
         theta: Decay rate for the maximum absolute gradient average.
         t_max: Steps for cosine decay of momentum coefficients. `None` disables decay.
-        eta_min: Minimum multiplier for the cosine-decayed momentum coefficients.
+        eta_min: Minimum multiplier for the cosine decayed momentum coefficients.
         weight_decay: Weight decay coefficient.
         update_proj_gap: Steps between momentum resets.
         eps: Term added to the denominator to improve numerical stability.

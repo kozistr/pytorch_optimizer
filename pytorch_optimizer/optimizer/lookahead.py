@@ -13,7 +13,7 @@ class Lookahead(BaseOptimizer):
 
     Args:
         optimizer: Base optimizer.
-        k: Number of base optimizer steps between slow-weight updates.
+        k: Number of base optimizer steps between slow weight updates.
         alpha: Interpolation factor from slow weights toward fast weights.
         pullback_momentum: Momentum handling at interpolation: `'none'`, `'reset'`, or `'pullback'`.
 

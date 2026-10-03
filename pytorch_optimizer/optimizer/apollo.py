@@ -13,7 +13,7 @@ SCALE_TYPE = Literal['channel', 'tensor']
 
 
 class ApolloDQN(BaseOptimizer):
-    """An Adaptive Parameter-wise Diagonal Quasi-Newton Method for Nonconvex Stochastic Optimization.
+    """Adaptive updates with a diagonal quasi-Newton preconditioner.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -164,7 +164,7 @@ class ApolloDQN(BaseOptimizer):
 
 
 class APOLLO(BaseOptimizer):
-    """AdamW with low-rank gradient projection and norm-based update scaling.
+    """AdamW with low rank gradient projection and norm based update scaling.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

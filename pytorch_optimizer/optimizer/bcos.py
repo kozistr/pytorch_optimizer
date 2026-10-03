@@ -10,13 +10,13 @@ Mode = Literal['g', 'm', 'c']
 
 
 class BCOS(BaseOptimizer):
-    """Stochastic approximation with block-coordinate optimal step sizes.
+    """Stochastic approximation with block coordinate optimal step sizes.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        beta: Decay rate for momentum and its second-moment estimator.
-        beta2: Separate second-moment decay rate. `None` uses `beta`.
+        beta: Decay rate for momentum and its second moment estimator.
+        beta2: Separate second moment decay rate. `None` uses `beta`.
         mode: Search direction and estimator: `'g'` for gradients, `'m'` for momentum, or `'c'` for conditional
             momentum.
         simple_cond: Use the simplified conditional estimator in mode `c`.

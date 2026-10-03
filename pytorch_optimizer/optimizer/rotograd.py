@@ -21,7 +21,7 @@ def divide(numer: torch.Tensor, de_nom: torch.Tensor, eps: float = 1e-15) -> tor
 
 
 class VanillaMTL(nn.Module):
-    """Multitask model with a shared backbone and task-specific heads."""
+    """Multitask model with a shared backbone and task specific heads."""
 
     def __init__(self, backbone, heads):
         super().__init__()
@@ -158,14 +158,15 @@ class RotateModule(nn.Module):
 
 
 class RotateOnly(nn.Module):
-    """Learn task-specific rotations of a shared multitask representation.
+    """Learn task specific rotations of a shared multitask representation.
 
     Args:
         backbone: Shared model producing the latent representation.
-        heads: Task-specific models consuming the latent representation.
+        heads: Task specific models consuming the latent representation.
         latent_size: Number of features in the shared representation.
-        burn_in_period: Steps before refreshing the reference losses and gradient norms.
-        normalize_losses: Normalize losses when computing gradients for the task-specific heads.
+        *args (tuple): Additional positional arguments, accepted without effect.
+        burn_in_period: Steps before refreshing the reference task losses.
+        normalize_losses: Normalize losses when computing gradients for the task specific heads.
 
     """
 
@@ -237,7 +238,7 @@ class RotateOnly(nn.Module):
         return self.num_tasks
 
     def __getitem__(self, item) -> nn.Module:
-        """Get an end-to-end model for the selected task."""
+        """Get an end to end model for the selected task."""
         return nn.Sequential(self.backbone, self.heads[item])
 
     def _hook(self, index):
@@ -280,12 +281,10 @@ class RotateOnly(nn.Module):
     def backward(self, losses: Sequence[torch.Tensor], backbone_loss=None, **kwargs) -> None:
         """Backpropagate task losses and compute gradients for the rotation matrices.
 
-        It also computes the gradients for the rotation matrices.
-
         Args:
             losses: Scalar loss for each task.
-            backbone_loss: Optional additional loss for the shared representation.
-            **kwargs: Options for `torch.Tensor.backward`.
+            backbone_loss (torch.Tensor | None): Optional additional loss for the shared representation.
+            **kwargs (dict): Options for `torch.Tensor.backward`.
 
         """
         if not self.training:
@@ -347,10 +346,11 @@ class RotoGrad(RotateOnly):
 
     Args:
         backbone: Shared model producing the latent representation.
-        heads: Task-specific models consuming the latent representation.
+        heads: Task specific models consuming the latent representation.
         latent_size: Number of features in the shared representation.
-        burn_in_period: Steps before refreshing the reference losses and gradient norms.
-        normalize_losses: Normalize losses when computing gradients for the task-specific heads.
+        *args (tuple): Additional positional arguments, accepted without effect.
+        burn_in_period: Ignored. This variant uses the base default of 20 steps.
+        normalize_losses: Normalize losses when computing gradients for the task specific heads.
 
     """
 
@@ -396,11 +396,12 @@ class RotoGradNorm(RotoGrad):
 
     Args:
         backbone: Shared model producing the latent representation.
-        heads: Task-specific models consuming the latent representation.
+        heads: Task specific models consuming the latent representation.
         latent_size: Number of features in the shared representation.
+        *args (tuple): Additional positional arguments, accepted without effect.
         alpha: Exponent controlling the GradNorm target training rates.
-        burn_in_period: Steps before refreshing the reference losses and gradient norms.
-        normalize_losses: Normalize losses when computing gradients for the task-specific heads.
+        burn_in_period: Ignored. This variant uses the base default of 20 steps.
+        normalize_losses: Normalize losses when computing gradients for the task specific heads.
 
     """
 

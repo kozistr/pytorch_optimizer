@@ -18,7 +18,7 @@ def compute_normalization_fixed_point(activations: torch.Tensor, t: float, num_i
     """Return the normalization value for each example (t > 1.0).
 
     Args:
-        activations: A multi-dimensional tensor with the last dimension representing classes.
+        activations: A multidimensional tensor with the last dimension representing classes.
         t: Temperature value (> 1.0 for tail heaviness).
         num_iters: Number of iterations to run the method.
 
@@ -105,8 +105,8 @@ def compute_normalization(activations: torch.Tensor, t: float, num_iters: int = 
     """Compute the normalization constant for each example.
 
     Args:
-        activations: A multi-dimensional tensor with the last dimension `num_classes`.
-        t: Temperature parameter (> 1.0 for tail heaviness).
+        activations: A multidimensional tensor with the last dimension `num_classes`.
+        t: Temperature. Values above 1 give heavy tails. Values below 1 give finite support.
         num_iters: Number of iterations to run the method.
 
     """
@@ -118,7 +118,7 @@ def tempered_softmax(activations: torch.Tensor, t: float, num_iters: int = 5) ->
 
     Args:
         activations: A multidimensional tensor with last dimension `num_classes`.
-        t: Temperature parameter (> 1.0 for tail heaviness).
+        t: Temperature. `1` gives standard softmax. Other values use tempered normalization.
         num_iters: Number of iterations to run the method.
 
     """
@@ -222,7 +222,7 @@ class BiTemperedLogisticLoss(nn.Module):
             targets: Class indices or one-hot labels. Use class indices with `ignore_index`.
 
         Returns:
-            torch.Tensor: Per-example loss or the requested scalar reduction.
+            torch.Tensor: Per example loss or the requested scalar reduction.
 
         """
         loss = bi_tempered_logistic_loss(
@@ -275,10 +275,10 @@ class BinaryBiTemperedLogisticLoss(nn.Module):
             targets: Binary labels with the same shape as `predictions`.
 
         Returns:
-            torch.Tensor: Per-entry loss or the requested scalar reduction.
+            torch.Tensor: Per entry loss or the requested scalar reduction.
 
         Raises:
-            ValueError: Predictions or targets have more than one channel.
+            ValueError: Predictions or targets do not have exactly one channel.
 
         """
         if predictions.size(1) != 1 or targets.size(1) != 1:

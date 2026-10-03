@@ -7,10 +7,10 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 @torch.no_grad()
 def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
-    """Perform reduce-max along all dimensions except the given dim.
+    """Compute the maximum over all dimensions except `dim`.
 
     Args:
-        x: Tensor to reduce-max.
+        x: Tensor to reduce.
         dim: Dimension to exclude.
 
     """
@@ -28,7 +28,7 @@ def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
 
 
 class SM3(BaseOptimizer):
-    """Memory-Efficient Adaptive Optimization.
+    """Adaptive updates with memory efficient per dimension accumulators.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

@@ -8,12 +8,12 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class PNM(BaseOptimizer):
-    """Positive-Negative Momentum.
+    """SGD with alternating positive and negative momentum.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        betas: Momentum decay rate and positive-negative momentum mixing coefficient.
+        betas: Momentum decay rate and positive negative momentum mixing coefficient.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.

@@ -14,7 +14,7 @@ from pytorch_optimizer.optimizer.utils import has_overflow, is_deepspeed_zero3_e
 
 
 class LOMO(BaseOptimizer):
-    """Full Parameter Fine-tuning for Large Language Models with Limited Resources.
+    """SGD updates fused into backward to reduce optimizer memory.
 
     Reference: https://github.com/OpenLMLab/LOMO/blob/main/src/lomo.py
     Check usage: https://github.com/OpenLMLab/LOMO/blob/main/lomo/src/lomo_trainer.py
@@ -212,19 +212,19 @@ class LOMO(BaseOptimizer):
 
 
 class AdaLOMO(BaseOptimizer):
-    """Low-memory Optimization with Adaptive Learning Rate.
+    """Factored adaptive updates fused into backward.
 
     Args:
         model: PyTorch model.
         lr: Learning rate.
         weight_decay: Weight decay coefficient.
-        loss_scale: Loss scale.
+        loss_scale: Multiplier applied before backward and removed from gradients. `0` disables scaling.
         clip_threshold: Maximum root mean square of the preconditioned update.
-        decay_rate: Coefficient used to compute running averages of square gradient.
+        decay_rate: Exponent controlling the step-dependent second moment decay.
         clip_grad_norm: Clip gradient norm.
         clip_grad_value: Clip gradient value.
-        eps1: Term added to the denominator to improve numerical stability.
-        eps2: Term added to the denominator to improve numerical stability.
+        eps1: Stability constant added to squared gradients.
+        eps2: Lower bound for parameter RMS scaling of the learning rate.
 
     """
 

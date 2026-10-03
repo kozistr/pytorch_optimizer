@@ -9,9 +9,9 @@ from pytorch_optimizer.optimizer.utils import clip_grad_norm, has_overflow
 
 
 class DynamicLossScaler:
-    """Adjust the loss scale in response to low-precision gradient overflow.
+    """Adjust the loss scale in response to low precision gradient overflow.
 
-    Increase the scale after an overflow-free window and decrease it when the overflow
+    Increase the scale after an overflow free window and decrease it when the overflow
     fraction reaches the tolerance.
 
     References:
@@ -22,7 +22,7 @@ class DynamicLossScaler:
     Args:
         init_scale: Initial loss scale.
         scale_factor: Multiplier for increasing or decreasing the scale.
-        scale_window: Number of overflow-free iterations between scale increases.
+        scale_window: Number of overflow free iterations between scale increases.
         tolerance: Fraction of overflowing iterations that triggers a scale decrease.
         threshold: Optional lower bound for the scale.
 
@@ -91,7 +91,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
     `clip_main_grads()` to check for overflow before updating parameters.
 
     Args:
-        optimizer: Base optimizer instance with low-precision parameters.
+        optimizer: Base optimizer instance with low precision parameters.
         aggregate_g_norms: Aggregate squared gradient norms across distributed workers.
         min_loss_scale: Scale below which persistent overflow raises `FloatingPointError`.
 
@@ -166,7 +166,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
         """Restore the base optimizer state and loss scale from a checkpoint.
 
         Args:
-            state_dict: Checkpoint state, including saved parameter-group options.
+            state_dict: Checkpoint state, including saved parameter group options.
 
         """
         if 'loss_scaler' in state_dict and self.scaler is not None and isinstance(state_dict['loss_scaler'], float):
@@ -174,7 +174,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
         self.optimizer.load_state_dict(state_dict)
 
     def backward(self, loss, update_main_grads: bool = False):
-        """Scale the loss and compute low-precision parameter gradients.
+        """Scale the loss and compute low precision parameter gradients.
 
         Args:
             loss (torch.Tensor): Scalar loss tensor to backpropagate.
@@ -191,7 +191,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
             self.update_main_grads()
 
     def sync_fp16_grads_to_fp32(self, multiply_grads: float = 1.0) -> None:
-        """Copy and unscale low-precision gradients into float32 master buffers."""
+        """Copy and unscale low precision gradients into float32 master buffers."""
         if self.needs_sync:
             if self.scaler is not None:
                 multiply_grads /= self.scaler.loss_scale

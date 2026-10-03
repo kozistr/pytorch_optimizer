@@ -96,7 +96,7 @@ class PCGrad(BaseOptimizer):
         return grads, shapes, has_grads
 
     def project_conflicting(self, grads: list[torch.Tensor], has_grads: list[torch.Tensor]) -> torch.Tensor:
-        """Remove conflicting task-gradient components and combine task gradients.
+        """Remove conflicting task gradient components and combine task gradients.
 
         Args:
             grads: A list of the gradient of the parameters.

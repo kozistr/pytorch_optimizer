@@ -16,7 +16,7 @@ def power_iteration(w: torch.Tensor, steps: int = 50) -> tuple[torch.Tensor, tor
         steps: Number of power iterations, computed in bfloat16.
 
     Returns:
-        tuple[torch.Tensor, torch.Tensor]: Left and right singular-vector estimates, as column vectors.
+        tuple[torch.Tensor, torch.Tensor]: Left and right singular vector estimates, as column vectors.
 
     """
     w = w.to(torch.bfloat16)
@@ -74,7 +74,7 @@ def compute_f_tensor(
         x: Normalized momentum matrix.
         theta: Outer product of the leading left and right singular vectors.
         lambda_value: Lagrange multiplier for the constraint.
-        msign_steps: Number of matrix polar-factor iterations.
+        msign_steps: Number of matrix polar factor iterations.
 
     Returns:
         torch.Tensor: Scalar inner product of `theta` and `msign(x + lambda_value * theta)`.
@@ -205,7 +205,7 @@ def compute_spectral_ball_update(
     """Compute a momentum update tangent to the weight's leading singular direction.
 
     Normalize momentum, estimate the weight's leading singular vectors, and solve for
-    a multiplier that makes the polar-factor update orthogonal to their outer product.
+    a multiplier that makes the polar factor update orthogonal to their outer product.
 
     Args:
         weight: Current 2D weight matrix.
@@ -260,7 +260,7 @@ class SpectralSphere(BaseOptimizer):
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         nesterov: Use Nesterov momentum.
         power_iteration_steps: Number of power iteration steps for spectral norm computation.
-        msign_steps: Number of Newton-Schulz iterations for msign (uses Polar-Express).
+        msign_steps: Number of Newton-Schulz iterations for msign (uses Polar Express).
         solver_tolerance_f: Function value tolerance for solver.
         solver_max_iterations: Maximum iterations for solver.
         maximize: Maximize the objective instead of minimizing it.

@@ -13,7 +13,7 @@ class RACS(BaseOptimizer):
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        beta: Decay rate for row- and column-wise squared-gradient averages.
+        beta: Decay rate for row- and column wise squared gradient averages.
         alpha: Update scaling factor.
         gamma: Maximum multiplicative growth of the scaled update norm.
         weight_decay: Weight decay coefficient.
@@ -139,7 +139,7 @@ class RACS(BaseOptimizer):
 
 
 class Alice(BaseOptimizer):
-    """Adaptive low-dimensional subspace estimation.
+    """Adaptive subspace updates with full rank gradient compensation.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -149,7 +149,7 @@ class Alice(BaseOptimizer):
         alpha: Update scaling factor.
         alpha_c: Scaling factor for the compensation update.
         update_interval: Number of steps between subspace updates.
-        rank: Dimension of the low-rank subspace.
+        rank: Dimension of the low rank subspace.
         gamma: Maximum multiplicative growth of the scaled update norm.
         leading_basis: Number of leading subspace basis vectors to update.
         weight_decay: Weight decay coefficient.

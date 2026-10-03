@@ -29,7 +29,7 @@ def norm_lower_bound(a: torch.Tensor) -> torch.Tensor:
         a: Matrix to inspect. The function rescales it in place.
 
     Returns:
-        torch.Tensor: Lower-bound estimate of the spectral norm.
+        torch.Tensor: Lower bound estimate of the spectral norm.
 
     """
     max_abs = torch.max(torch.abs(a))
@@ -55,8 +55,8 @@ def woodbury_identity(inv_a: torch.Tensor, u: torch.Tensor, v: torch.Tensor) -> 
 
     Args:
         inv_a: Inverse of `A`, overwritten with the updated inverse.
-        u: Left factor of the low-rank update.
-        v: Right factor of the low-rank update.
+        u: Left factor of the low rank update.
+        v: Right factor of the low rank update.
 
     Note:
         Repeated updates can accumulate numerical error.
@@ -70,7 +70,7 @@ def woodbury_identity(inv_a: torch.Tensor, u: torch.Tensor, v: torch.Tensor) -> 
 
 
 def triu_with_diagonal_and_above(a: torch.Tensor) -> torch.Tensor:
-    """Return the diagonal plus twice the strictly upper-triangular entries.
+    """Return the diagonal plus twice the strictly upper triangular entries.
 
     Approximates the triangular correction in a QR decomposition of `I + A` for small `A`.
 
@@ -87,7 +87,7 @@ def triu_with_diagonal_and_above(a: torch.Tensor) -> torch.Tensor:
 def update_precondition_dense(
     q: torch.Tensor, dxs: list[torch.Tensor], dgs: list[torch.Tensor], step: float = 0.01, eps: float = 1.2e-38
 ) -> torch.Tensor:
-    """Update the Cholesky factor of a dense preconditioner from parameter-gradient perturbations.
+    """Update the Cholesky factor of a dense preconditioner from parameter gradient perturbations.
 
     Args:
         q: Cholesky factor of preconditioner with positive diagonal entries.

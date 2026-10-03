@@ -42,9 +42,9 @@ class JaccardLoss(_Loss):
     Reference: https://github.com/BloodAxe/pytorch-toolbelt
 
     Args:
-        mode: Loss mode, one of 'binary', 'multiclass', or 'multilabel'.
+        mode: Segmentation mode: `'binary'`, `'multiclass'`, or `'multilabel'`.
         classes: List of classes to include in the loss computation, defaults to all classes if None.
-        log_loss: If True, loss is computed as -log(jaccard); otherwise, 1 - jaccard.
+        log_loss: Compute `-log(jaccard)` instead of `1 - jaccard`.
         from_logits: If True, input is raw logits, which will be converted to probabilities.
         label_smooth: Additive smoothing constant for the Jaccard score.
         eps: Small number to prevent division by zero.
@@ -77,7 +77,7 @@ class JaccardLoss(_Loss):
 
         Args:
             y_pred: Predictions with shape `(N, C, ...)`. Use logits when `from_logits=True`.
-            y_true: Class indices with shape `(N, ...)` for multiclass mode; binary masks matching the predictions for
+            y_true: Class indices with shape `(N, ...)` for multiclass mode. Binary masks matching the predictions for
                 multilabel mode. Binary mode also accepts `(N, ...)`.
 
         Returns:

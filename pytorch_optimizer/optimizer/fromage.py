@@ -13,7 +13,7 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 
 class Fromage(BaseOptimizer):
-    """On the distance between two neural networks and the stability of learning.
+    """Gradient descent scaled by the ratio of parameter and gradient norms.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

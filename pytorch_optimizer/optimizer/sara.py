@@ -9,9 +9,9 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class SaRA(BaseOptimizer):
-    """High-Efficient Diffusion Model Fine-tuning with Progressive Sparse Low-Rank Adaptation.
+    """AdamW updates on progressively refined masks of small magnitude weights.
 
-    Implements the parameter-based reference in `sjtuplayer/SaRA/optim/adamw2.py`. Only weights with initial absolute
+    Implements the parameter based reference in `sjtuplayer/SaRA/optim/adamw2.py`. Only weights with initial absolute
     values below `threshold` receive AdamW updates, including weight decay. Moments are stored only for these weights.
     Mask refinement keeps their accumulated moments. This optimizer uses ordinary PyTorch backpropagation rather than
     the paper's model reparameterization for unstructured backpropagation.
@@ -22,7 +22,7 @@ class SaRA(BaseOptimizer):
         betas: Coefficients used for computing running averages of gradient and its square.
         threshold: Strict upper bound on the absolute values of initially trainable weights.
         progressive_iter: Refine the mask before update `progressive_iter + 1`. -1 disables refinement.
-        lambda_rank: Nuclear-norm penalty coefficient. Each step samples one matrix per parameter group with both
+        lambda_rank: Nuclear norm penalty coefficient. Each step samples one matrix per parameter group with both
             dimensions greater than 64 and applies the penalty if more than 100 weights are selected.
         weight_decay: Weight decay coefficient.
         ams_bound: Use the running maximum of the second moment to bound adaptive updates.
@@ -128,7 +128,7 @@ class SaRA(BaseOptimizer):
     def apply_rank_constraint(
         p: torch.Tensor, grad_mask: torch.Tensor, mask: torch.Tensor, lambda_rank: float
     ) -> None:
-        """Add the masked nuclear-norm subgradient to the selected gradient entries."""
+        """Add the masked nuclear norm subgradient to the selected gradient entries."""
         dtype = torch.float32 if p.dtype in (torch.float16, torch.bfloat16) else p.dtype
 
         matrix = torch.where(mask, p, 0.0).to(dtype=dtype)

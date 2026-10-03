@@ -8,12 +8,12 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class AdamG(BaseOptimizer):
-    """Parameter-free adaptive updates with gradient-dependent scaling.
+    """Parameter free adaptive updates with gradient dependent scaling.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        betas: Decay rates for scaled-gradient momentum, squared gradients, and the numerator scale.
+        betas: Decay rates for scaled gradient momentum, squared gradients, and the numerator scale.
         p: The p value in the numerator function `s(x) = p * x^q`.
         q: The q value in the numerator function `s(x) = p * x^q`.
         weight_decay: Weight decay coefficient.

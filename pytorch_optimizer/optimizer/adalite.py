@@ -7,7 +7,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class Adalite(BaseOptimizer):
-    """Adalite optimizer.
+    """Adaptive updates with factored moments and tensor wise trust ratios.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

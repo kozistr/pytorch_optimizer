@@ -19,7 +19,7 @@ from pytorch_optimizer.base.type import (
 
 
 class ScheduleFreeSGD(BaseOptimizer):
-    """Schedule-free SGD with weighted parameter averaging.
+    """Schedule free SGD with weighted parameter averaging.
 
     Call `train()` before training and `eval()` before evaluating averaged weights.
 
@@ -172,7 +172,7 @@ class ScheduleFreeSGD(BaseOptimizer):
 
 
 class ScheduleFreeAdamW(BaseOptimizer):
-    """Schedule-free AdamW with weighted parameter averaging.
+    """Schedule free AdamW with weighted parameter averaging.
 
     Call `train()` before training and `eval()` before evaluating averaged weights.
 
@@ -185,7 +185,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
         weight_lr_power: Exponent of the maximum learning rate seen so far in parameter averaging. `0` disables
             rate weighting.
         warmup_steps: Number of linear learning rate warmup steps.
-        decoupling_c: Proposed coefficient in Refined Schedule-Free AdamW optimizer; default around 200.
+        decoupling_c: Coefficient scaling the parameter averaging weight. `0` uses standard averaging.
         ams_bound: Use the running maximum of the second moment to bound adaptive updates.
         eps: Term added to denominator for numerical stability.
         maximize: Maximize the objective instead of minimizing it.
@@ -351,7 +351,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
 
 
 class ScheduleFreeRAdam(BaseOptimizer):
-    """Schedule-free RAdam with weighted parameter averaging.
+    """Schedule free RAdam with weighted parameter averaging.
 
     Call `train()` before training and `eval()` before evaluating averaged weights.
 
@@ -526,11 +526,11 @@ class ScheduleFreeRAdam(BaseOptimizer):
 
 
 class ScheduleFreeWrapper(BaseOptimizer):
-    """Wrap an optimizer with schedule-free parameter averaging.
+    """Wrap an optimizer with schedule free parameter averaging.
 
     Call `train()` before training and `eval()` before evaluation or saving evaluation
     weights. The wrapper supplies momentum, so you can disable the base optimizer's momentum.
-    Base optimizer weight decay acts on the fast iterate `z`; `weight_decay_at_y` applies
+    Base optimizer weight decay acts on the fast iterate `z`. `weight_decay_at_y` applies
     additional decay at the training iterate `y` using the group's current learning rate.
 
     Args:

@@ -15,13 +15,13 @@ class SophiaH(BaseOptimizer):
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        betas: Decay rates for gradient momentum and Hessian-diagonal estimates.
+        betas: Decay rates for gradient momentum and Hessian diagonal estimates.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
-        p: Clip effective (applied) gradient (p).
+        p: Maximum absolute entry of the preconditioned update.
         update_period: Number of steps after which to apply Hessian approximation.
-        num_samples: Number of noise samples for each Hessian-diagonal estimate.
+        num_samples: Number of noise samples for each Hessian diagonal estimate.
         hessian_distribution: Type of distribution to initialize Hessian.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.

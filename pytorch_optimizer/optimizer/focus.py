@@ -6,7 +6,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class FOCUS(BaseOptimizer):
-    """Sign-based updates with attraction toward the running parameter average.
+    """Sign based updates with attraction toward the running parameter average.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

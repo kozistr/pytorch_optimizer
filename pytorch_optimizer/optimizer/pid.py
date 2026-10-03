@@ -6,15 +6,15 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 
 class PID(BaseOptimizer):
-    """A PID Controller Approach for Stochastic Optimization of Deep Networks.
+    """SGD with proportional, integral, and derivative update terms.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
         momentum: Momentum factor.
         dampening: Dampening factor for momentum.
-        derivative: Weight of the gradient-difference term.
-        integral: Weight of the accumulated-gradient term.
+        derivative: Weight of the gradient difference term.
+        integral: Weight of the accumulated gradient term.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.

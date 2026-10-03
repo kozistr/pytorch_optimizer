@@ -19,14 +19,14 @@ def l2_projection(parameters: ParamsT, max_norm: float = 1e2) -> None:
 
 
 class AliG(BaseOptimizer):
-    """Adaptive Learning Rates for Interpolation with Gradients.
+    """Gradient steps scaled by loss with an optional learning rate cap.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         max_lr: Maximum learning rate.
         projection_fn: Projection function to enforce constraints.
         momentum: Momentum factor.
-        adjusted_momentum: If True, use PyTorch-like momentum instead of standard Nesterov momentum.
+        adjusted_momentum: If True, use PyTorch like momentum instead of standard Nesterov momentum.
         maximize: Maximize the objective instead of minimizing it.
 
     """
@@ -78,7 +78,7 @@ class AliG(BaseOptimizer):
 
     @torch.no_grad()
     def compute_step_size(self, loss: float) -> float:
-        """Compute the loss-to-squared-gradient-norm step size, capped by `max_lr`."""
+        """Divide the loss by the sum of squared gradient norms plus a stability term."""
         global_grad_norm = get_global_gradient_norm(self.param_groups)
         global_grad_norm.add_(1e-6)
 

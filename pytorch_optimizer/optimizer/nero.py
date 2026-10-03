@@ -32,12 +32,12 @@ def neuron_mean(x: torch.Tensor) -> torch.Tensor:
 
 
 class Nero(BaseOptimizer):
-    """Learning by Turning: Neural Architecture Aware Optimisation.
+    """Neuron wise adaptive updates with optional weight constraints.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        beta: Decay rate for squared neuron-wise gradient norms.
+        beta: Decay rate for squared neuron wise gradient norms.
         constraints: Center and normalize weights with more than one dimension after each update.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.

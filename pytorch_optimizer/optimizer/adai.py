@@ -9,12 +9,12 @@ from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradi
 
 
 class Adai(BaseOptimizer):
-    """Disentangling the Effects of Adaptive Learning Rate and Momentum.
+    """SGD with gradient dependent momentum and optional stable weight decay.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate.
-        betas: Adaptive momentum scaling coefficient and squared-gradient decay rate.
+        betas: Adaptive momentum scaling coefficient and squared gradient decay rate.
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.

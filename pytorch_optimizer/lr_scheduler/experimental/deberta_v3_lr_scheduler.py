@@ -12,7 +12,7 @@ def deberta_v3_large_lr_scheduler(
     head_lr: float = 1e-4,
     wd: float = 1e-2,
 ) -> ParamsT:
-    """Create layer-wise learning rate parameter groups for DeBERTa-v3 large.
+    """Create layer wise learning rate parameter groups for DeBERTa-v3 large.
 
     Reference: https://github.com/gilfernandes/commonlit
 

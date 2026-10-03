@@ -6,7 +6,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class EXAdam(BaseOptimizer):
-    """The Power of Adaptive Cross-Moments.
+    """Adam with adaptive cross moment corrections.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.

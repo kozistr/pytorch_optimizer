@@ -30,7 +30,7 @@ def get_chebyshev_permutation(num_epochs: int) -> np.ndarray:
         num_epochs: Requested number of indices.
 
     Returns:
-        np.ndarray: Zero-based indices, with length rounded up to a power of two.
+        np.ndarray: Zero based indices, with length rounded up to a power of two.
 
     """
     perm = np.array([0])
@@ -57,7 +57,7 @@ def get_chebyshev_lr_lambda(epoch: int, num_epochs: int, is_warmup: bool = False
     Args:
         epoch: Current epoch.
         num_epochs: Total number of epochs.
-        is_warmup: Whether it is the warm-up stage.
+        is_warmup: Whether it is the warmup stage.
 
     Returns:
         float: Learning rate ratio for the given epoch based on Chebyshev schedule.
@@ -88,7 +88,7 @@ def get_chebyshev_schedule(
     Args:
         optimizer: The optimizer for which to schedule the learning rate.
         num_epochs: Number of total epochs.
-        is_warmup: Whether it is the warm-up stage.
+        is_warmup: Whether it is the warmup stage.
         last_epoch: The index of the last epoch when resuming training.
 
     """

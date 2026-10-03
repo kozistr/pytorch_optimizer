@@ -140,7 +140,7 @@ class CompressDCT:
 
 
 def dct(x: torch.Tensor, norm: str | None = None) -> torch.Tensor:
-    """Compute the type-II discrete cosine transform along the last dimension.
+    """Compute the type II discrete cosine transform along the last dimension.
 
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
@@ -176,7 +176,7 @@ def dct(x: torch.Tensor, norm: str | None = None) -> torch.Tensor:
 
 
 def inverse_dct(x: torch.Tensor, norm: str | None = None) -> torch.Tensor:
-    """Compute the inverse type-II discrete cosine transform along the last dimension.
+    """Compute the inverse type II discrete cosine transform along the last dimension.
 
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
@@ -288,7 +288,7 @@ def get_smaller_split(n: int, close_to: int) -> int:
 
 
 class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
-    """Decoupled Momentum Optimization.
+    """SGD with compressed distributed momentum exchange.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -296,7 +296,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
         compression_decay: Decay rate for the residual momentum buffer.
         compression_top_k: Maximum DCT coefficients to retain per block.
         compression_chunk: Maximum size of each DCT block dimension.
-        process_group: Distributed process group for compressed-gradient exchange. `None` uses the default group.
+        process_group: Distributed process group for compressed gradient exchange. `None` uses the default group.
         weight_decay: Weight decay coefficient.
         maximize: Maximize the objective instead of minimizing it.
 

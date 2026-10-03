@@ -22,7 +22,7 @@ def closest_smaller_divisor_of_n_to_k(n: int, k: int) -> int:
 
 
 class AdamWSN(BaseOptimizer):
-    """Lean and Mean Adaptive Optimization via Subset-Norm and Subspace-Momentum with Convergence Guarantees.
+    """AdamW with subset norm and subspace momentum scaling.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -31,17 +31,22 @@ class AdamWSN(BaseOptimizer):
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
-        subset_size: Number of weights per second-moment subset. `-1` uses half the first tensor dimension for
+        subset_size: Number of weights per second moment subset. `-1` uses half the first tensor dimension for
             matrices and the full size for vectors.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
 
     Examples:
-        >>> sn_params = [module.weight for module in model.modules() if isinstance(module, nn.Linear)]
-        >>> sn_param_ids = [id(p) for p in sn_params]
-        >>> regular_params = [p for p in model.parameters() if id(p) not in sn_param_ids]
-        >>> param_groups = [{'params': regular_params, 'sn': False}, {'params': sn_params, 'sn': True}]
-        >>> optimizer = AdamWSN(param_groups, lr=args.lr, weight_decay=args.weight_decay, subset_size=args.subset_size)
+        ```python
+        from torch import nn
+        from pytorch_optimizer import AdamWSN
+
+        sn_params = [module.weight for module in model.modules() if isinstance(module, nn.Linear)]
+        sn_param_ids = {id(p) for p in sn_params}
+        regular_params = [p for p in model.parameters() if id(p) not in sn_param_ids]
+        param_groups = [{'params': regular_params, 'sn': False}, {'params': sn_params, 'sn': True}]
+        optimizer = AdamWSN(param_groups, lr=1e-3, weight_decay=1e-2, subset_size=-1)
+        ```
 
     """
 
