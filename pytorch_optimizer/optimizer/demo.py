@@ -140,7 +140,7 @@ class CompressDCT:
 
 
 def dct(x: torch.Tensor, norm: str | None = None) -> torch.Tensor:
-    """Discrete Cosine Transform, Type II (a.k.a. the DCT).
+    """Compute the type-II discrete cosine transform along the last dimension.
 
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html

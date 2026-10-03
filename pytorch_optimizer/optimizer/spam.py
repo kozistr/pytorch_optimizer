@@ -11,7 +11,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class CosineDecay:
-    """Applies cosine decay to a parameter (death_rate) using PyTorch's built-in `CosineAnnealingLR`.
+    """Cosine decay of a scalar value using PyTorch's `CosineAnnealingLR`.
 
     Args:
         death_rate: Initial value to be decayed.
@@ -28,7 +28,7 @@ class CosineDecay:
         self.eta_min = eta_min
 
     def step(self, current_step: int) -> None:
-        """One step of the cosine decay scheduler.
+        """Advance the cosine decay scheduler at the given step.
 
         Args:
             current_step: Current step index.

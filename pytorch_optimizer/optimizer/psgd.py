@@ -31,7 +31,7 @@ def precondition_update_prob_schedule(
     """
 
     def _schedule(n: int) -> torch.Tensor:
-        """Exponential anneal with flat start."""
+        """Compute the update probability with exponential decay after the initial constant period."""
         prob = max_prob * torch.exp(-decay * (torch.tensor(n, dtype=torch.float32) - flat_start))
         prob.clamp_(min=min_prob, max=max_prob)
         return prob

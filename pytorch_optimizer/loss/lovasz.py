@@ -16,7 +16,7 @@ def lovasz_grad(gt_sorted: torch.Tensor) -> torch.Tensor:
 
 
 def lovasz_hinge_flat(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
-    """Binary Lovasz hinge loss.
+    """Compute binary Lovasz hinge loss.
 
     Args:
         y_pred: Binary prediction logits, flattened to one dimension.
