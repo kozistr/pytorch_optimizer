@@ -452,6 +452,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.SaRA
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.ScalableShampoo
     :docstring:
     :members:

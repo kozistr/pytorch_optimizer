@@ -164,6 +164,7 @@ from pytorch_optimizer.optimizer import (
     RMSprop,
     RotoGrad,
     SafeFP16Optimizer,
+    SaRA,
     ScalableShampoo,
     ScheduleFreeAdamW,
     ScheduleFreeRAdam,
