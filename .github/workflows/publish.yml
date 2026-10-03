@@ -111,6 +111,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
       - name: Checkout release commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -145,9 +146,7 @@ jobs:
           fi
 
       - name: Publish package to PyPI
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        run: uv publish --check-url https://pypi.org/simple
+        run: uv publish --trusted-publishing always --check-url https://pypi.org/simple
 
   release:
     name: Create Release
