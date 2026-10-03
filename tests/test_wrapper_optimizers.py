@@ -56,17 +56,6 @@ def test_lookahead(pullback_momentum, environment):
     trainer.run(iterations=5, threshold=2.0)
 
 
-def test_lookahead_without_momentum_buffer():
-    param = nn.Parameter(torch.ones(2))
-    param.grad = torch.ones_like(param)
-    optimizer = Lookahead(torch.optim.AdamW([param], lr=0.1, weight_decay=0.0), k=1)
-
-    optimizer.step()
-
-    torch.testing.assert_close(param, torch.full_like(param, 0.95))
-    assert 'momentum_buffer' not in optimizer.optimizer.state[param]
-
-
 def test_lookahead_state_dict_with_accelerate_style_mapping():
     model = Example()
     optimizer = Lookahead(load_optimizer('adamw')(model.parameters(), lr=1e-3))

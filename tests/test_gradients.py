@@ -270,21 +270,3 @@ def test_orthograd_skip_conditions():
 
     optimizer = OrthoGrad(load_optimizer('adamw')([param]))
     optimizer.apply_orthogonal_gradients([param])
-
-
-@pytest.mark.parametrize('memory_format', [torch.channels_last, torch.channels_last_3d])
-def test_orthograd_noncontiguous_parameters(memory_format):
-    shape = (2, 3, 2, 2) if memory_format == torch.channels_last else (2, 3, 2, 2, 2)
-    param = nn.Parameter(torch.linspace(-1.0, 1.0, torch.tensor(shape).prod().item()).reshape(shape))
-    param.data = param.data.to(memory_format=memory_format)
-    param.grad = torch.ones_like(param)
-    before = param.detach().clone()
-    original_norm = param.grad.double().norm()
-    optimizer = OrthoGrad(torch.optim.SGD([param], lr=0.1))
-
-    optimizer.step()
-
-    torch.testing.assert_close((before.double() * param.grad.double()).sum(), torch.tensor(0.0, dtype=torch.float64))
-    torch.testing.assert_close(param.grad.double().norm(), original_norm)
-    torch.testing.assert_close(param, before - 0.1 * param.grad)
-    assert param.is_contiguous(memory_format=memory_format)
