@@ -18,7 +18,12 @@ from pytorch_optimizer.base.type import SchedulerClass
 from pytorch_optimizer.lr_scheduler.chebyshev import get_chebyshev_perm_steps, get_chebyshev_schedule
 from pytorch_optimizer.lr_scheduler.cosine_anealing import CosineAnnealingWarmupRestarts
 from pytorch_optimizer.lr_scheduler.experimental.deberta_v3_lr_scheduler import deberta_v3_large_lr_scheduler
-from pytorch_optimizer.lr_scheduler.linear_warmup import CosineScheduler, LinearScheduler, PolyScheduler
+from pytorch_optimizer.lr_scheduler.linear_warmup import (
+    CosineScheduler,
+    ExponentialScheduler,
+    LinearScheduler,
+    PolyScheduler,
+)
 from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from pytorch_optimizer.lr_scheduler.rex import REXScheduler
 from pytorch_optimizer.lr_scheduler.wsd import get_wsd_schedule
@@ -38,6 +43,7 @@ class SchedulerType(Enum):
     COSINE_ANNEALING = 'cosine_annealing'
     COSINE_ANNEALING_WITH_WARM_RESTART = 'cosine_annealing_with_warm_restart'
     COSINE_ANNEALING_WITH_WARMUP = 'cosine_annealing_with_warmup'
+    EXPONENTIAL = 'exponential'
     CHEBYSHEV = 'chebyshev'
     REX = 'rex'
     WARMUP_STABLE_DECAY = 'warmup_stable_decay'
@@ -60,6 +66,7 @@ LR_SCHEDULER_LIST: Dict = {
     SchedulerType.COSINE_ANNEALING: CosineAnnealingLR,
     SchedulerType.COSINE_ANNEALING_WITH_WARMUP: CosineAnnealingWarmupRestarts,
     SchedulerType.COSINE_ANNEALING_WITH_WARM_RESTART: CosineAnnealingWarmRestarts,
+    SchedulerType.EXPONENTIAL: ExponentialScheduler,
     SchedulerType.CHEBYSHEV: get_chebyshev_schedule,
     SchedulerType.REX: REXScheduler,
     SchedulerType.WARMUP_STABLE_DECAY: get_wsd_schedule,

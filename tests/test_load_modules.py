@@ -38,7 +38,7 @@ def test_get_supported_optimizers():
 
 
 def test_get_supported_lr_schedulers():
-    assert len(get_supported_lr_schedulers()) == 16
+    assert len(get_supported_lr_schedulers()) == 17
     assert len(get_supported_lr_schedulers('cosine*')) == 4
     assert len(get_supported_lr_schedulers(['cosine*', '*warm*'])) == 5
 
