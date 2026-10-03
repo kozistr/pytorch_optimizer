@@ -19,10 +19,9 @@ class TverskyLoss(nn.Module):
         self.smooth = smooth
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
-        y_pred = torch.sigmoid(y_pred)
-
-        y_pred = y_pred.view(-1)
-        y_true = y_true.view(-1)
+        dtype = torch.promote_types(torch.promote_types(y_pred.dtype, y_true.dtype), torch.float32)
+        y_pred = y_pred.to(dtype).sigmoid().view(-1)
+        y_true = y_true.to(dtype).view(-1)
 
         tp = (y_pred * y_true).sum()
         fp = ((1.0 - y_true) * y_pred).sum()
