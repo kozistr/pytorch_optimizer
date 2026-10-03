@@ -349,7 +349,7 @@ def create_optimizer(
     wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
     use_lookahead: bool = False,
     use_orthograd: bool = False,
-    compile_step: bool = False,
+    compile: bool = False,  # noqa: A002
     compile_kwargs: Optional[Dict] = None,
     **kwargs,
 ) -> Optimizer:
@@ -363,7 +363,7 @@ def create_optimizer(
         wd_ban_list (List[str]): weight decay ban list by layer.
         use_lookahead (bool): use Lookahead.
         use_orthograd (bool): use OrthoGrad.
-        compile_step (bool): Compile the optimizer step with torch.compile. Defaults to eager execution.
+        compile (bool): Compile the optimizer step with torch.compile. Defaults to eager execution.
         compile_kwargs (Optional[Dict]): Options forwarded to torch.compile. Dynamic tracing is enabled by default
             to avoid specializing on Python step counters. Lion, native AdamW, and StableAdamW are tested
             with compilation.
@@ -408,7 +408,7 @@ def create_optimizer(
                 pullback_momentum=kwargs.get('pullback_momentum', 'none'),
             )
 
-    if compile_step:
+    if compile:
         optimizer.step = MethodType(
             torch.compile(optimizer.step.__func__, **{'dynamic': True, **(compile_kwargs or {})}), optimizer
         )

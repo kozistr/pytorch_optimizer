@@ -1,7 +1,5 @@
 from typing import Any, Dict, List, Tuple, Union
 
-import torch
-
 from pytorch_optimizer.optimizer import (
     ADOPT,
     APOLLO,
@@ -867,7 +865,6 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'grad_averaging': True, 'weight_decouple': True}, 10),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (Lion, {'lr': 5e-1, 'betas': (0.75, 0.5), 'weight_decay': 1e-3}, 5),
-    (Lion, {'lr': torch.tensor(5e-1), 'weight_decay': 1e-3}, 5),
     (LoRARite, {'lr': 3e-2, 'betas': (0.9, 0.999), 'clip_unmagnified_grad': 1.0}, 10),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 10),
@@ -978,7 +975,6 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (GrokFastAdamW, {'lr': 5e0, 'weight_decay': 1e-3, 'grokfast_after_step': 1}, 5),
     (Kate, {'lr': 5e-2}, 10),
     (StableAdamW, {'lr': 1e0}, 5),
-    (StableAdamW, {'lr': torch.tensor(1e0), 'kahan_sum': False}, 5),
     (StableAdamW, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
     (AdamG, {'lr': 1e0, 'p': 0.5}, 60),
     (AdEMAMix, {'lr': 1e0}, 3),

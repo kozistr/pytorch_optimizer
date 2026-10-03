@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import pytest
 import torch
 from torch._dynamo.testing import CompileCounterWithBackend
@@ -48,6 +50,7 @@ def test_create_optimizer_with_lookahead(optimizer_name):
 
 @pytest.mark.parametrize('optimizer_config', COMPILE_SUPPORTED_OPTIMIZERS, ids=ids)
 @pytest.mark.parametrize('foreach', [False, True])
+@pytest.mark.skipif(not torch._dynamo.is_dynamo_supported(), reason='torch.compile is unavailable in this runtime')
 def test_create_compiled_optimizer(optimizer_config, foreach, environment):
     torch._dynamo.reset()
     counter = CompileCounterWithBackend('aot_eager')
@@ -56,6 +59,15 @@ def test_create_compiled_optimizer(optimizer_config, foreach, environment):
     x_data, y_data = environment
     model, loss_fn = build_model(device=x_data.device)
     lr = torch.tensor(config.pop('lr'), device=x_data.device)
+    eager_model = deepcopy(model)
+    eager_optimizer = create_optimizer(
+        eager_model,
+        optimizer_class.__name__,
+        lr=lr.clone(),
+        foreach=foreach if optimizer_class.__name__ != 'AdamW' else False,
+        **config,
+    )
+    eager_scheduler = StepLR(eager_optimizer, step_size=1, gamma=0.9)
     if optimizer_class.__name__ == 'AdamW':
         config['capturable'] = foreach
 
@@ -64,7 +76,7 @@ def test_create_compiled_optimizer(optimizer_config, foreach, environment):
         optimizer_class.__name__,
         lr=lr,
         foreach=foreach,
-        compile_step=True,
+        compile=True,
         compile_kwargs={'backend': counter},
         **config,
     )
@@ -75,8 +87,14 @@ def test_create_compiled_optimizer(optimizer_config, foreach, environment):
     for step in range(iterations):
         optimizer.zero_grad()
         trainer.compute_loss().backward()
+        for param, eager_param in zip(model.parameters(), eager_model.parameters()):
+            eager_param.grad = param.grad.clone()
         optimizer.step()
+        eager_optimizer.step()
         scheduler.step()
+        eager_scheduler.step()
+        for param, eager_param in zip(model.parameters(), eager_model.parameters()):
+            torch.testing.assert_close(param, eager_param, rtol=1e-5, atol=1e-5)
         if step == 1:
             frame_count = counter.frame_count
         elif step > 1:

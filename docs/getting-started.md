@@ -71,49 +71,22 @@ See the [optimizer reference](optimizer.md) for the available options and optimi
 
 ## Compile optimizer steps
 
-Compilation is optional and starts on the first step.
-Lion, native PyTorch AdamW, and StableAdamW are tested with compilation:
-
-Compiled steps work on CPU and GPU. The default Inductor backend generates C++ kernels on CPU and typically
-Triton kernels on CUDA. A supported compiler toolchain is required for the selected backend.
+Set `compile=True` to compile optimizer steps on CPU or GPU. We test Lion, native PyTorch AdamW, and StableAdamW:
 
 ```python
 lr = torch.tensor(1e-3, device=next(model.parameters()).device)
-optimizer = create_optimizer(model, 'lion', lr=lr, foreach=False, compile_step=True)
+optimizer = create_optimizer(model, 'lion', lr=lr, foreach=False, compile=True)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.9)
 ```
 
-Use `'adamw'` for native AdamW or `'stableadamw'` for StableAdamW.
-Keep the usual `optimizer.step()` and `scheduler.step()` calls, in that order.
-Eager execution remains the default. Set `compile_step=False` to use it.
-`compile_kwargs` forwards options such as `backend`, `mode`, and `fullgraph` to `torch.compile()`.
-Dynamic tracing is enabled by default so Python step counters do not force compilation at each step.
+Use a tensor learning rate to avoid recompilation as the scheduler changes it.
+Call `optimizer.step()` before `scheduler.step()`.
+For native AdamW on CUDA, set `capturable=True` if you use a tensor rate with `foreach=True`.
 
-Use a scalar tensor learning rate when a scheduler changes it. Replacing a Python float rate can trigger
-recompilation, depending on the PyTorch version. Tensor values can change without adding value guards.
-Native AdamW with `foreach=True` requires `capturable=True` for a tensor rate; use this combination on CUDA.
-Lion and StableAdamW accept tensor rates with either foreach setting.
-StableAdamW keeps its RMS scale and adaptive step sizes on-device, avoiding scalar extraction in both paths.
-
-The first steps may compile separate graphs for state initialization and steady training.
-Changes to parameter shapes, gradient availability, or optimizer options can require new graphs.
-Native AdamW inserts graph breaks around its gradient-mode wrapper; its tensor updates can still form one graph.
-Closures and optional wrappers may introduce additional breaks.
-
-Run training with `TORCH_LOGS=graph_breaks,recompiles` to inspect compilation decisions.
-For a class constructed directly, keep an eager step and compile a separate callable after attaching any scheduler:
-
-```python
-from pytorch_optimizer import Lion
-
-optimizer = Lion(model.parameters(), lr=lr, foreach=False)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.9)
-eager_step = optimizer.step
-compiled_step = torch.compile(eager_step, dynamic=True)
-```
-
-Measure steady step time after warmup on the target GPU. Compilation startup cost can outweigh savings in short runs,
-and performance depends on the installed compiler backend.
+Use `compile=False` (the default) for eager execution.
+Use eager execution on Python 3.15, where PyTorch disables compilation.
+Pass `torch.compile()` options through `compile_kwargs`.
+Run with `TORCH_LOGS=graph_breaks,recompiles` to inspect graph breaks and recompilation.
 
 ## Discover components
 

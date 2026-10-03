@@ -93,14 +93,11 @@ import torch
 from pytorch_optimizer import create_optimizer
 
 lr = torch.tensor(1e-3, device=next(model.parameters()).device)
-optimizer = create_optimizer(model, 'lion', lr=lr, foreach=False, compile_step=True)
+optimizer = create_optimizer(model, 'lion', lr=lr, foreach=False, compile=True)
 ```
 
-Use `'adamw'` for native AdamW or `'stableadamw'` for StableAdamW.
-Eager execution remains the default (`compile_step=False`).
-Pass compiler options through `compile_kwargs`, for example `{'backend': 'aot_eager'}` for graph validation.
-Dynamic tracing avoids specializing on changing Python step counters. A scalar tensor learning rate lets
-schedulers change its value without compiling a new graph for each rate.
+Use a tensor learning rate to avoid recompilation as a scheduler changes it.
+Use `compile=False` (the default) for eager execution.
 
 See the [compilation guide](https://pytorch-optimizers.readthedocs.io/en/latest/getting-started/#compile-optimizer-steps)
 for CUDA foreach settings and graph diagnostics.
