@@ -17,7 +17,7 @@ from pytorch_optimizer.base.type import Closure, Loss, ParamsT
 
 
 def parse_pytorch_version(version_string: str) -> list[int]:
-    """Parse a PyTorch version string."""
+    """Parse the major, minor, and patch numbers of a PyTorch version string."""
     match = re.match(r'(\d+\.\d+\.\d+)', version_string)
     if not match:
         raise ValueError(f'invalid version string format: {version_string}')
@@ -26,7 +26,7 @@ def parse_pytorch_version(version_string: str) -> list[int]:
 
 
 def compare_versions(v1: str, v2: str) -> bool:
-    """Compare two PyTorch versions."""
+    """Return whether PyTorch version `v1` is at least `v2`."""
     return parse_pytorch_version(v1) >= parse_pytorch_version(v2)
 
 
@@ -56,17 +56,17 @@ else:
 
 
 class CPUOffloadOptimizer:  # pragma: no cover
-    r"""Offload optimizer to CPU for single-GPU training. This will reduce GPU memory by the size of optimizer state.
+    """Offload optimizer states and updates to the CPU for single-GPU training.
+
+    Transfers gradients to pinned CPU memory and copies updated parameters back to the GPU.
 
     Reference: https://github.com/pytorch/ao/blob/main/torchao/prototype/low_bit_optim/cpu_offload.py
 
     Args:
-        params (ParamsT): A list of parameters or parameter groups.
-        optimizer_class (type[torch.optim.Optimizer]): Constructor of the base optimizer.
-            Defaults to :class:`torch.optim.AdamW`.
-        offload_gradients (bool, optional): Free GPU gradients once they are moved to CPU.
-            Not compatible with gradient accumulation. Defaults to False.
-        kwargs (dict): Other keyword arguments to be passed to the base optimizer, e.g. `lr`, `weight_decay`.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        optimizer_class: Base optimizer class. Defaults to `torch.optim.AdamW`.
+        offload_gradients: Free GPU gradients after transfer. Incompatible with gradient accumulation.
+        **kwargs (dict): Options for the base optimizer, such as `lr` and `weight_decay`.
 
     """
 
@@ -163,23 +163,21 @@ class CPUOffloadOptimizer:  # pragma: no cover
 
 
 class StochasticAccumulator:
-    """Stochastic accumulator.
+    """Accumulate bfloat16 gradients with stochastic rounding.
 
-    Example:
-        model = YourModel()
+    Attach hooks once, then restore the accumulated gradient buffers before each optimizer step.
 
-        # Apply stochastic gradient accumulator hooks
-        StochasticAccumulator.assign_hooks(model)
-
-        while True:
-            loss = model.loss(*your_model_input)
-            for _ in range(grad_accum_length):
-                loss.backward()
-
-            StochasticAccumulator.reassign_grad_buffer(model)
-
-            optimizer.step()
-            optimizer.zero_grad()
+    Examples:
+        ```python
+        hooks = StochasticAccumulator.assign_hooks(model)
+        optimizer.zero_grad()
+        for inputs, targets in microbatches:
+            loss = loss_fn(model(inputs), targets) / len(microbatches)
+            loss.backward()
+        StochasticAccumulator.reassign_grad_buffer(model)
+        optimizer.step()
+        optimizer.zero_grad()
+        ```
 
     """
 
@@ -214,27 +212,27 @@ class StochasticAccumulator:
 
 
 def is_valid_parameters(parameters: ParamsT) -> bool:
-    """Check where the parameters are valid."""
+    """Check for a nonempty list or tuple whose first entry is a parameter-group dictionary."""
     return isinstance(parameters, (list, tuple)) and len(parameters) > 0 and isinstance(parameters[0], dict)
 
 
 def has_overflow(grad_norm: torch.Tensor) -> bool:
-    """Detect inf and NaN in grad_norm."""
+    """Return whether a tensor contains NaN or infinite values."""
     return bool(torch.logical_or(torch.isnan(grad_norm), torch.isinf(grad_norm)).any())
 
 
 def to_real(x: torch.Tensor) -> torch.Tensor:
-    """Return real value of tensor."""
+    """Return the real part of a complex tensor, or the original real tensor."""
     return x.real if torch.is_complex(x) else x
 
 
 def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> None:
-    """Normalize gradient with stddev.
+    """Divide gradients by their standard deviation in place.
 
     Args:
-        x (torch.Tensor): Gradient tensor to normalize.
-        use_channels (bool): If True, perform channel-wise normalization.
-        epsilon (float): Small constant added for numerical stability.
+        x: Gradient tensor to normalize.
+        use_channels: If True, perform channel-wise normalization.
+        epsilon: Small constant added for numerical stability.
 
     """
     size: int = x.dim()
@@ -251,20 +249,15 @@ def clip_grad_norm(
     max_norm: float = 0.0,
     sync: bool = False,
 ) -> torch.Tensor | float:
-    """Clip gradient norms.
-
-    During combination with FSDP, will also ensure that grad norms are aggregated across all workers,
-    since each worker only stores their shard of the gradients.
+    """Compute the global L2 gradient norm and optionally clip gradients in place.
 
     Args:
-        parameters (ParamsT): ParamsT whose gradients we wish to clip.
-        max_norm (float): Maximum norm we wish the gradients to have. If non-positive,
-            then we will not perform clipping.
-        sync (bool): Boolean indicating whether we should aggregate across the distributed group.
-            Used only in combination with FSDP.
+        parameters: Tensor or iterable of tensors whose gradients to inspect.
+        max_norm: Maximum gradient norm. A nonpositive value disables clipping.
+        sync: Sum squared norms across the distributed process group for sharded gradients.
 
     Returns:
-        float: The gradient norm across all parameters, before clipping.
+        torch.Tensor | float: Global gradient norm before clipping.
 
     """
     if parameters is None:
@@ -296,7 +289,19 @@ def clip_grad_norm(
 
 
 def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
-    """Get norm of unit."""
+    """Compute parameter-unit norms for adaptive gradient clipping.
+
+    Uses the full norm for scalars and vectors, dimension 1 for 2D and 3D tensors,
+    and all dimensions after the first for tensors with four or more dimensions.
+
+    Args:
+        x: Parameter or gradient tensor.
+        norm: Order of the vector norm.
+
+    Returns:
+        torch.Tensor: Unit norms, with reduced dimensions retained for multidimensional inputs.
+
+    """
     keep_dim: bool = True
     dim: int | tuple[int, ...] | None = None
 
@@ -314,7 +319,7 @@ def unit_norm(x: torch.Tensor, norm: float = 2.0) -> torch.Tensor:
 
 
 def disable_running_stats(model: nn.Module):
-    """Disable running stats (momentum) of BatchNorm."""
+    """Pause BatchNorm running-statistic updates by setting momentum to zero."""
 
     def _disable(module):
         if isinstance(module, _BatchNorm):
@@ -325,7 +330,7 @@ def disable_running_stats(model: nn.Module):
 
 
 def enable_running_stats(model: nn.Module):
-    """Enable running stats (momentum) of BatchNorm."""
+    """Restore BatchNorm momentum after pausing running-statistic updates."""
 
     def _enable(module):
         if isinstance(module, _BatchNorm) and hasattr(module, 'backup_momentum'):
@@ -336,7 +341,15 @@ def enable_running_stats(model: nn.Module):
 
 @torch.no_grad()
 def get_global_gradient_norm(param_groups: list[dict]) -> torch.Tensor:
-    """Get global gradient norm."""
+    """Return the sum of squared L2 gradient norms across parameter groups.
+
+    Args:
+        param_groups: Nonempty optimizer parameter groups.
+
+    Returns:
+        torch.Tensor: Squared global norm as a single-element float32 tensor.
+
+    """
     global_grad_norm = torch.zeros(1, dtype=torch.float32, device=param_groups[0]['params'][0].device)
 
     for group in param_groups:
@@ -351,18 +364,18 @@ def get_global_gradient_norm(param_groups: list[dict]) -> torch.Tensor:
 def reg_noise(
     network1: nn.Module, network2: nn.Module, num_data: int, lr: float, eta: float = 8e-3, temperature: float = 1e-4
 ) -> torch.Tensor | float:
-    """Entropy-MCMC: Sampling from flat basins with ease.
+    """Compute the Entropy-MCMC coupling and noise term for two networks.
 
     Usage example and detailed implementation can be found at:
     https://github.com/lblaoke/EMCMC/blob/master/exp/cifar10_emcmc.py
 
     Args:
-        network1 (nn.Module): First neural network.
-        network2 (nn.Module): Second neural network.
-        num_data (int): Number of training data points.
-        lr (float): Learning rate.
-        eta (float): Eta parameter controlling auxiliary guiding variable.
-        temperature (float): Temperature parameter for sampling.
+        network1: First neural network.
+        network2: Second neural network.
+        num_data: Number of training data points.
+        lr: Learning rate.
+        eta: Eta parameter controlling auxiliary guiding variable.
+        temperature: Temperature parameter for sampling.
 
     """
     reg_coef: float = 0.5 / (eta * num_data)
@@ -383,13 +396,13 @@ def reg_noise(
 
 @torch.no_grad()
 def copy_stochastic(target: torch.Tensor, source: torch.Tensor) -> None:
-    r"""Copy stochastic.
+    """Copy float32 values to bfloat16 with stochastic rounding.
 
     reference: https://github.com/pytorch/pytorch/issues/120376#issuecomment-1974828905
 
     Args:
-        target (torch.Tensor): A tensor in bfloat16 format to copy to.
-        source (torch.Tensor): A tensor in float32 format to copy from.
+        target: A tensor in bfloat16 format to copy to.
+        source: A tensor in float32 format to copy from.
 
     """
     result = torch.randint_like(

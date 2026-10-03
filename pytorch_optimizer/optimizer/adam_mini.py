@@ -10,21 +10,21 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class AdamMini(BaseOptimizer):  # pragma: no cover
-    """Use Fewer Learning Rates To Gain More.
+    """Adam with shared second-moment estimates within parameter blocks.
 
     Args:
-        model (nn.Module): Model instance.
-        model_sharding (bool): Set to True if you are using model parallelism with more than 1 GPU, including FSDP
-            and zero_1, zero_2, zero_3 in DeepSpeed. Set to False otherwise.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        num_embeds (int): Number of embedding dimensions. Could be unspecified if training non-transformer models.
-        num_heads (int): Number of attention heads. Could be unspecified if training non-transformer models.
-        num_query_groups (int | None): Number of query groups in Group Query Attention (GQA).
-            If not specified, defaults to num_heads. Could be unspecified for non-transformer models.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        model: Model instance.
+        model_sharding: Set to True if you are using model parallelism with more than 1 GPU, including FSDP and
+            zero_1, zero_2, zero_3 in DeepSpeed. Set to False otherwise.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        weight_decay: Weight decay coefficient.
+        num_embeds: Number of embedding dimensions. Could be unspecified if training non-transformer models.
+        num_heads: Number of attention heads. Could be unspecified if training non-transformer models.
+        num_query_groups: Number of query groups in Group Query Attention (GQA). If not specified, defaults to
+            num_heads. Could be unspecified for non-transformer models.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

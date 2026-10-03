@@ -4,7 +4,7 @@ from torch.nn.functional import relu
 
 
 def lovasz_grad(gt_sorted: torch.Tensor) -> torch.Tensor:
-    """Compute gradient of the Lovasz extension w.r.t sorted errors."""
+    """Compute the gradient of the Lovasz extension with respect to sorted errors."""
     p = len(gt_sorted)
     gts = gt_sorted.sum()
     intersection = gts - gt_sorted.float().cumsum(0)
@@ -19,8 +19,8 @@ def lovasz_hinge_flat(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tenso
     """Binary Lovasz hinge loss.
 
     Args:
-        y_pred (torch.Tensor): Predictions.
-        y_true (torch.Tensor): Ground truth.
+        y_pred: Binary prediction logits, flattened to one dimension.
+        y_true: Binary target labels, flattened to one dimension.
 
     """
     y_pred = y_pred.reshape(-1)
@@ -37,10 +37,10 @@ def lovasz_hinge_flat(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tenso
 
 
 class LovaszHingeLoss(nn.Module):
-    r"""Binary Lovasz hinge loss.
+    """Binary Lovasz hinge loss.
 
     Args:
-        per_image (bool): compute the loss per image instead of per batch.
+        per_image: Compute the loss per image instead of per batch.
 
     """
 
@@ -49,6 +49,16 @@ class LovaszHingeLoss(nn.Module):
         self.per_image = per_image
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        """Compute the loss for predictions and targets.
+
+        Args:
+            y_pred: Binary segmentation logits.
+            y_true: Binary masks with the same shape as `y_pred`.
+
+        Returns:
+            torch.Tensor: Scalar loss, averaged over images when `per_image=True`.
+
+        """
         if not self.per_image:
             return lovasz_hinge_flat(y_pred, y_true)
 

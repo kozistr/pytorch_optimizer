@@ -21,25 +21,28 @@ def gradfilter_ma(
     filter_type: FILTER_TYPE = 'mean',
     warmup: bool = True,
 ) -> dict[str, deque]:
-    """Grokfast-MA.
+    """Amplify slow gradient components with a windowed moving-average filter.
 
     Args:
-        model (nn.Module): Model that contains every trainable parameters.
-        grads (dict[str, deque] | None): Running memory (queue for windowed moving average).
-            Initialize by setting  it to None.
-            Feed the output of the method recursively after one call.
-        window_size (int): The width of the filter window.
-            Additional memory requirements increase linearly with window size.
-        lamb (float): Amplifying factor hyperparameter of the filter.
-        filter_type (FILTER_TYPE): Aggregation method for the running queue.
-        warmup (bool): If true, the filter is not applied until the queue is filled.
+        model: Model whose gradients to modify in place after backward.
+        grads: Per-parameter gradient queues from the previous call. `None` creates the queues.
+        window_size: Number of gradients to retain per parameter.
+        lamb: Amplification factor for the filtered gradients.
+        filter_type: Queue reduction: `'mean'` or `'sum'`.
+        warmup: Wait until each queue is full before applying the filter.
 
-    Example:
-        loss.backwards()  # Calculate the gradients.
+    Returns:
+        dict[str, deque]: Gradient queues to pass into the next call.
 
-        grads = gradfilter_ma(model, grads=grads, window_size=window_size, lamb=lamb)
-
-        optimizer.step()  # Call the optimizer.
+    Examples:
+        ```python
+        grads = None
+        for inputs, targets in data:
+            optimizer.zero_grad()
+            loss_fn(model(inputs), targets).backward()
+            grads = gradfilter_ma(model, grads=grads)
+            optimizer.step()
+        ```
 
     """
     if grads is None:
@@ -69,21 +72,26 @@ def gradfilter_ema(
     alpha: float = 0.98,
     lamb: float = 2.0,
 ) -> dict[str, torch.Tensor]:
-    """Grokfast.
+    """Amplify slow gradient components with an exponential moving-average filter.
 
     Args:
-        model (nn.Module): Model that contains every trainable parameters.
-        grads (dict[str, deque] | None): Running memory (EMA). Initialize by setting it to None.
-            Feed the output of the method recursively after one call.
-        alpha (int): Momentum hyperparameter of the EMA.
-        lamb (float): Amplifying factor hyperparameter of the filter.
+        model: Model whose gradients to modify in place after backward.
+        grads: Per-parameter gradient averages from the previous call. `None` initializes them.
+        alpha: Decay rate for the gradient moving average.
+        lamb: Amplification factor for the averaged gradients.
 
-    Example:
-        loss.backwards()  # Calculate the gradients.
+    Returns:
+        dict[str, torch.Tensor]: Gradient averages to pass into the next call.
 
-        grads = gradfilter_ema(model, grads=grads, alpha=alpha, lamb=lamb)
-
-        optimizer.step()  # Call the optimizer.
+    Examples:
+        ```python
+        grads = None
+        for inputs, targets in data:
+            optimizer.zero_grad()
+            loss_fn(model(inputs), targets).backward()
+            grads = gradfilter_ema(model, grads=grads)
+            optimizer.step()
+        ```
 
     """
     if grads is None:
@@ -100,23 +108,23 @@ def gradfilter_ema(
 
 
 class GrokFastAdamW(BaseOptimizer):
-    """Accelerated Grokking by Amplifying Slow Gradients with AdamW.
+    """AdamW with amplification of slow gradient components.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        grokfast (bool): Whether to use grokfast.
-        grokfast_alpha (float): Momentum hyperparameter of the EMA.
-        grokfast_lamb (float): Amplifying factor hyperparameter of the filter.
-        grokfast_after_step (int): Warmup step for grokfast.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Fix weight decay.
-        eps (float): Term added to the denominator to improve numerical stability.
-        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
-            None means auto-detect based on device (True for CUDA, False otherwise).
-        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        grokfast: Whether to use grokfast.
+        grokfast_alpha: Momentum hyperparameter of the EMA.
+        grokfast_lamb: Amplifying factor hyperparameter of the filter.
+        grokfast_after_step: Warmup step for grokfast.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        normalize_lr: Divide the learning rate by `1 + grokfast_lamb` when Grokfast is enabled.
+        eps: Term added to the denominator to improve numerical stability.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

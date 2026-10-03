@@ -11,16 +11,16 @@ class RACS(BaseOptimizer):
     """Row and Column Scaled SGD.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
-        beta (float): momentum factor.
-        alpha (float): scaler.
-        gamma (float): limiter threshold.
-        weight_decay (float): weight decay (L2 penalty).
-        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): fix weight decay.
-        eps (float): term added to the denominator to improve numerical stability.
-        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        beta: Decay rate for row- and column-wise squared-gradient averages.
+        alpha: Update scaling factor.
+        gamma: Maximum multiplicative growth of the scaled update norm.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -142,21 +142,21 @@ class Alice(BaseOptimizer):
     """Adaptive low-dimensional subspace estimation.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
-        betas (Betas): coefficients used for computing running averages of gradient and the squared Hessian trace.
-            beta3=0 for Alice-0 optimizer.
-        alpha (float): scaler.
-        alpha_c (float): compensation scaler.
-        update_interval (int): update interval.
-        rank (int): rank.
-        gamma (float): limiter threshold.
-        leading_basis (int): leading basis.
-        weight_decay (float): weight decay (L2 penalty).
-        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): fix weight decay.
-        eps (float): term added to the denominator to improve numerical stability.
-        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for gradient momentum, squared gradients, and subspace statistics. Set the third value
+            to 0 for Alice-0.
+        alpha: Update scaling factor.
+        alpha_c: Scaling factor for the compensation update.
+        update_interval: Number of steps between subspace updates.
+        rank: Dimension of the low-rank subspace.
+        gamma: Maximum multiplicative growth of the scaled update norm.
+        leading_basis: Number of leading subspace basis vectors to update.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

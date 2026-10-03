@@ -10,16 +10,15 @@ class LARS(BaseOptimizer):
     """Layer-wise Adaptive Rate Scaling (no rate scaling or weight decay for parameters <= 1D).
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        weight_decay (float): Weight decay (L2 penalty).
-        momentum (float): Momentum.
-        dampening (float): Dampening for momentum.
-        trust_coefficient (float): Trust coefficient.
-        nesterov (bool): Enables Nesterov momentum.
-        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
-            None means auto-detect based on device (True for CUDA, False otherwise).
-        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        weight_decay: Weight decay coefficient.
+        momentum: Momentum factor.
+        dampening: Dampening factor for momentum.
+        trust_coefficient: Trust coefficient.
+        nesterov: Use Nesterov momentum.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -79,10 +78,9 @@ class LARS(BaseOptimizer):
                     state['momentum_buffer'] = torch.zeros_like(p)
 
     def _can_use_foreach(self, group: ParamGroup) -> bool:
-        """Check if foreach can be used for this group.
+        """Check tensor compatibility and options for batched updates.
 
-        Foreach is disabled when using features that require per-parameter handling:
-        - Nesterov momentum (requires per-parameter gradient modification)
+        Disable batched updates when using Nesterov momentum.
         """
         if group.get('foreach') is False:
             return False

@@ -10,11 +10,11 @@ class SRMM(BaseOptimizer):
     """Stochastic regularized majorization-minimization with weakly convex and multi-convex surrogates.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        beta (float): Adaptivity weight.
-        memory_length (int | None): Internal memory length for moving average. None for no refreshing.
-        maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        beta: Adaptivity weight.
+        memory_length: Internal memory length for moving average. None for no refreshing.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

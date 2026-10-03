@@ -58,10 +58,14 @@ LOSS_FUNCTIONS: dict[str, nn.Module] = {
 
 
 def get_supported_loss_functions(filters: str | list[str] | None = None) -> list[str]:
-    r"""Return list of available loss function names, sorted alphabetically.
+    """List registered loss function names in alphabetical order.
 
-    :param filters: str | list[str] | None. wildcard filter string that works with fmatch. if None, it will
-        return the whole list.
+    Args:
+        filters: Wildcard pattern or list of patterns, such as `'*adam*'`. `None` selects all names.
+
+    Returns:
+        list[str]: Matching names in lowercase, without duplicates.
+
     """
     if filters is None:
         return sorted(LOSS_FUNCTIONS.keys())

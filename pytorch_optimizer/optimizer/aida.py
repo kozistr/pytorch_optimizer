@@ -11,20 +11,20 @@ class Aida(BaseOptimizer):
     """A DNN Optimizer that Improves over AdaBelief by Suppression of the Adaptive Stepsize Range.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        k (int): Number of vectors projected per iteration.
-        xi (float): Term used in vector projections to avoid division by zero.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
-        fixed_decay (bool): Apply fixed weight decay instead of adaptive.
-        rectify (bool): Perform the rectified update similar to RAdam.
-        n_sma_threshold (int): Number of SMA threshold (recommended is 5).
-        degenerated_to_sgd (bool): Perform SGD update when variance of gradient is high.
-        ams_bound (bool): Whether to use the AMSBound variant.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for gradient momentum and the squared projected-gradient residual.
+        k: Number of alternating gradient and momentum projections per update.
+        xi: Term used in vector projections to avoid division by zero.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        rectify: Perform the rectified update similar to RAdam.
+        n_sma_threshold: Minimum effective simple moving average length for rectification.
+        degenerated_to_sgd: Use an SGD update before the moving average reaches the rectification threshold.
+        ams_bound: Use the running maximum of the second moment to bound adaptive updates.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

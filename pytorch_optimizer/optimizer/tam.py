@@ -10,15 +10,15 @@ class TAM(BaseOptimizer):
     """Torque-Aware Momentum.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        momentum (float): Coefficient used for computing running averages of gradient.
-        decay_rate (float): Smoothing decay rate.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): Whether the optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Whether to fix weight decay.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        momentum: Momentum factor.
+        decay_rate: Decay rate for the gradient-momentum alignment average.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -124,17 +124,19 @@ class TAM(BaseOptimizer):
 
 
 class AdaTAM(BaseOptimizer):
-    r"""Adaptive Torque-Aware Momentum.
+    """Adaptive Torque-Aware Momentum.
 
-    :param params: PARAMETERS. iterable of parameters to optimize or dicts defining parameter groups.
-    :param lr: float. learning rate.
-    :param betas: BETAS. coefficients used for computing running averages of gradient and the squared hessian trace.
-    :parma decay_rate: float. smoothing decay rate.
-    :param weight_decay: float. weight decay (L2 penalty).
-    :param weight_decouple: bool. the optimizer uses decoupled weight decay as in AdamW.
-    :param fixed_decay: bool. fix weight decay.
-    :param eps: float. term added to the denominator to improve numerical stability.
-    :param maximize: bool. maximize the objective with respect to the params, instead of minimizing.
+    Args:
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for gradient momentum and squared gradients.
+        decay_rate: Decay rate for the gradient-momentum alignment average.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
+
     """
 
     def __init__(

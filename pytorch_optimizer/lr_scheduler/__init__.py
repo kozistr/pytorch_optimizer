@@ -93,9 +93,16 @@ LR_SCHEDULERS: dict[str, SchedulerClass] = {
 
 
 def load_lr_scheduler(lr_scheduler_name: str) -> SchedulerClass:
-    r"""Load learning rate scheduler.
+    """Return a learning rate scheduler class by name.
 
-    :param lr_scheduler_name: learning rate scheduler name.
+    Args:
+        lr_scheduler_name: Case-insensitive name from `get_supported_lr_schedulers()`.
+
+    Returns:
+        Scheduler: Registered scheduler class.
+
+    Raises:
+        NotImplementedError: The scheduler name is unsupported.
     """
     lrs_name: str = lr_scheduler_name.lower()
 
@@ -106,10 +113,13 @@ def load_lr_scheduler(lr_scheduler_name: str) -> SchedulerClass:
 
 
 def get_supported_lr_schedulers(filters: str | list[str] | None = None) -> list[str]:
-    r"""Return list of available lr scheduler names, sorted alphabetically.
+    """List registered scheduler names in alphabetical order.
 
-    :param filters: str | list[str] | None. wildcard filter string that works with fmatch. if None, it will
-        return the whole list.
+    Args:
+        filters: Wildcard pattern or list of patterns, such as `'*adam*'`. `None` selects all names.
+
+    Returns:
+        list[str]: Matching names in lowercase, without duplicates.
     """
     if filters is None:
         return sorted(LR_SCHEDULERS.keys())

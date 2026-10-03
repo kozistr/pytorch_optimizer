@@ -9,20 +9,19 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class ADOPT(BaseOptimizer):
-    """Modified Adam Can Converge with Any β2 with the Optimal Rate.
+    """Adaptive updates using the previous second moment and gradient clipping.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        clip_lambda (Callable[[float], float]): Function to clip gradient. Default is `step ** 0.25`.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
-        fixed_decay (bool): Apply fixed weight decay instead of adaptive.
-        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
-            None means auto-detect based on device (True for CUDA, False otherwise).
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        clip_lambda: Function to clip gradient. Default is `step ** 0.25`.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

@@ -18,16 +18,16 @@ class DAdaptAdaGrad(BaseOptimizer):
     """AdaGrad with D-Adaptation. Leave LR set to 1 unless you encounter instability.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        momentum (float): Momentum factor.
-        d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-        growth_rate (float): Prevent the D estimate from growing faster than this multiplicative rate.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Fix weight decay.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        momentum: Momentum factor.
+        d0: Initial estimate of the distance to the optimum.
+        growth_rate: Maximum multiplicative growth of the distance estimate per step.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -256,17 +256,17 @@ class DAdaptAdam(BaseOptimizer):
     """Adam with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Betas.
-        d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-        growth_rate (float): Prevent the D estimate from growing faster than this multiplicative rate.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): Use AdamW style weight decay.
-        fixed_decay (bool): Fix weight decay.
-        bias_correction (bool): Turn on Adam's bias correction.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the gradient mean and squared gradients.
+        d0: Initial estimate of the distance to the optimum.
+        growth_rate: Maximum multiplicative growth of the distance estimate per step.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        bias_correction: Apply bias correction to the moment estimates.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -433,15 +433,15 @@ class DAdaptSGD(BaseOptimizer):
     """SGD with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        momentum (float): Momentum.
-        d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-        growth_rate (float): Prevent the D estimate from growing faster than this multiplicative rate.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Fix weight decay.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        momentum: Momentum factor.
+        d0: Initial estimate of the distance to the optimum.
+        growth_rate: Maximum multiplicative growth of the distance estimate per step.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -584,16 +584,15 @@ class DAdaptAdan(BaseOptimizer):
     """Adan with D-Adaptation. Leave LR set to 1 unless you encounter instability.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas: (Betas). coefficients used for computing running averages of gradient and the squared Hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): Decoupled weight decay.
-        d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-        growth_rate (float): Prevent the D estimate from growing faster than this multiplicative rate.
-            Default is inf, for unrestricted.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for gradients, gradient differences, and squared corrected gradients.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        d0: Initial estimate of the distance to the optimum.
+        growth_rate: Maximum multiplicative growth of the distance estimate per step.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -761,14 +760,14 @@ class DAdaptLion(BaseOptimizer):
     """Lion with D-Adaptation. Leave LR set to 1 unless you encounter instability. This implementation is based on V3.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas: (Betas). Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        d0 (float): Initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Fix weight decay.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for update interpolation and gradient momentum.
+        d0: Initial estimate of the distance to the optimum.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

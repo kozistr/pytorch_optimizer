@@ -11,16 +11,17 @@ class LaProp(BaseOptimizer):
     """Separating Momentum and Adaptivity in Adam.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        centered (bool): If True, use the centered variant of Adam.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Fix weight decay.
-        ams_bound (bool): Whether to use the AMSBound variant.
-        eps (float): Epsilon value for numerical stability.
-        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        centered: Subtract the squared gradient mean from the second-moment estimate.
+        steps_before_using_centered: Number of steps to accumulate gradient means before applying centered updates.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        ams_bound: Use the running maximum of the second moment to bound adaptive updates.
+        eps: Epsilon value for numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

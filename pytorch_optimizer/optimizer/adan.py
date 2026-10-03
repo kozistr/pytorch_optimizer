@@ -13,16 +13,15 @@ class Adan(BaseOptimizer):
     """Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): Decoupled weight decay.
-        max_grad_norm (float): Maximum gradient norm to clip.
-        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
-            None means auto-detect based on device (True for CUDA, False otherwise).
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for gradients, gradient differences, and squared corrected gradients.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        max_grad_norm: Maximum gradient norm to clip.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

@@ -10,11 +10,11 @@ class GaLoreProjector:
     """Memory-Efficient LLM Training by Gradient Low-Rank Projection.
 
     Args:
-        rank (int | None): Low rank to project. If None, the full matrix is used.
-        update_proj_gap (int): Number of steps between projection updates.
-        scale (float): Scale factor applied during projection.
-        projection_type (PROJECTION_TYPE): Type of projection. Supported types include 'std', 'reverse_std',
-            'right', 'left', 'full', and 'random'.
+        rank: Low rank to project. If None, the full matrix is used.
+        update_proj_gap: Number of steps between projection updates.
+        scale: Scale factor applied during projection.
+        projection_type: Type of projection. Supported types include 'std', 'reverse_std', 'right', 'left', 'full',
+            and 'random'.
 
     """
 

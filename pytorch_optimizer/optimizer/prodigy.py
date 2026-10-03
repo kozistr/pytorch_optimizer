@@ -13,22 +13,21 @@ class Prodigy(BaseOptimizer):
     Leave LR set to 1 unless you encounter instability.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
-        betas (Betas): betas.
-        beta3 (float): coefficients for computing the Prodigy step-size using running averages. If set to None,
-            uses the value of square root of beta2.
-        d0 (float): initial D estimate for D-adaptation (default 1e-6). Rarely needs changing.
-        d_coef (float): Coefficient in the expression for the estimate of d.
-        growth_rate (float): prevent the D estimate from growing faster than this multiplicative rate.
-        weight_decay (float): weight decay (L2 penalty).
-        weight_decouple (bool): use AdamW style weight decay.
-        fixed_decay (bool): fix weight decay.
-        bias_correction (bool): turn on Adam's bias correction.
-        safeguard_warmup (bool): remove lr from the denominator of D estimate to avoid issues during warm-up stage.
-        eps (float): term added to the denominator to improve numerical stability. when eps is None, use atan2 rather
-            than epsilon and division for parameter updates.
-        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the gradient mean and squared gradients.
+        beta3: Decay rate for the distance estimate. `None` uses the square root of `beta2`.
+        d0: Initial estimate of the distance to the optimum.
+        d_coef: Coefficient in the expression for the estimate of d.
+        growth_rate: Maximum multiplicative growth of the distance estimate per step.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        bias_correction: Apply bias correction to the moment estimates.
+        safeguard_warmup: Exclude the learning rate from the distance-estimate denominator during warmup.
+        eps: Term added to the denominator to improve numerical stability. when eps is None, use atan2 rather than
+            epsilon and division for parameter updates.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

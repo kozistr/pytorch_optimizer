@@ -7,12 +7,12 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 
 def channel_view(x: torch.Tensor) -> torch.Tensor:
-    """Do channel view."""
+    """Flatten a tensor to one row per output channel."""
     return x.view(x.size()[0], -1)
 
 
 def neuron_norm(x: torch.Tensor) -> torch.Tensor:
-    """Get norm of the tensor."""
+    """Compute the L2 norm of the weights for each output neuron."""
     if x.dim() <= 1:
         return x.abs()
 
@@ -22,7 +22,7 @@ def neuron_norm(x: torch.Tensor) -> torch.Tensor:
 
 
 def neuron_mean(x: torch.Tensor) -> torch.Tensor:
-    """Get mean of the tensor."""
+    """Compute the mean of the weights for each output neuron."""
     if x.dim() <= 1:
         raise ValueError('[-] neuron_mean not defined on 1D tensors.')
 
@@ -35,12 +35,12 @@ class Nero(BaseOptimizer):
     """Learning by Turning: Neural Architecture Aware Optimisation.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        beta (float): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        constraints (bool): Boolean flag indicating usage of constraints.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        beta: Decay rate for squared neuron-wise gradient norms.
+        constraints: Center and normalize weights with more than one dimension after each update.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

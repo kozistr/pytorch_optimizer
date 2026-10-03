@@ -12,7 +12,7 @@ if HAS_GEOTORCH:
 
 
 def divide(numer: torch.Tensor, de_nom: torch.Tensor, eps: float = 1e-15) -> torch.Tensor:
-    """Numerically stable division."""
+    """Divide tensors with a lower bound on the denominator magnitude."""
     return (
         torch.sign(numer)
         * torch.sign(de_nom)
@@ -21,7 +21,7 @@ def divide(numer: torch.Tensor, de_nom: torch.Tensor, eps: float = 1e-15) -> tor
 
 
 class VanillaMTL(nn.Module):
-    """VanillaMTL."""
+    """Multitask model with a shared backbone and task-specific heads."""
 
     def __init__(self, backbone, heads):
         super().__init__()
@@ -106,7 +106,7 @@ class VanillaMTL(nn.Module):
 
 
 def rotate(points: torch.Tensor, rotation: torch.Tensor, total_size: int) -> torch.Tensor:
-    """Rotate points with rotation."""
+    """Apply a rotation matrix to the latent representation."""
     if total_size != points.size(-1):
         points_lo, points_hi = points[:, : rotation.size(1)], points[:, rotation.size(1) :]
         point_lo = torch.einsum('ij,bj->bi', rotation, points_lo)
@@ -115,12 +115,12 @@ def rotate(points: torch.Tensor, rotation: torch.Tensor, total_size: int) -> tor
 
 
 def rotate_back(points: torch.Tensor, rotation: torch.Tensor, total_size: int) -> torch.Tensor:
-    """Rotate back."""
+    """Apply the inverse rotation to the latent representation."""
     return rotate(points, rotation.t(), total_size)
 
 
 class RotateModule(nn.Module):
-    """Base RotateModule."""
+    """Apply the learned rotation for one task."""
 
     def __init__(self, parent, item):
         super().__init__()
@@ -158,14 +158,14 @@ class RotateModule(nn.Module):
 
 
 class RotateOnly(nn.Module):
-    """Implementation of the rotating part of RotoGrad as described in the original paper.
+    """Learn task-specific rotations of a shared multitask representation.
 
     Args:
-        backbone (nn.Module): shared module.
-        heads (list[nn.Module]): task-specific modules.
-        latent_size (int): size of the shared representation, size of the output of the backbone.z.
-        normalized_losses (bool): Whether to use normalized losses to back-propagate through the task-specific
-            parameters as well.
+        backbone: Shared model producing the latent representation.
+        heads: Task-specific models consuming the latent representation.
+        latent_size: Number of features in the shared representation.
+        burn_in_period: Steps before refreshing the reference losses and gradient norms.
+        normalize_losses: Normalize losses when computing gradients for the task-specific heads.
 
     """
 
@@ -212,7 +212,7 @@ class RotateOnly(nn.Module):
 
     @property
     def rotation(self) -> Sequence[torch.Tensor]:
-        """List of rotations matrices, one per task. These are trainable, make sure to call `detach()`."""
+        """Return trainable rotation matrices, one per task. Detach them for inspection."""
         return [getattr(self, f'rotation_{i}') for i in range(self.num_tasks)]
 
     @property
@@ -247,7 +247,7 @@ class RotateOnly(nn.Module):
         return _hook_
 
     def forward(self, x: Any) -> Sequence[Any]:
-        """Forward the input through the backbone and all heads, returning a list with all the task predictions."""
+        """Run the shared backbone and return predictions from each task head."""
         out = self.backbone(x)
 
         if isinstance(out, (list, tuple)):
@@ -278,14 +278,14 @@ class RotateOnly(nn.Module):
         return preds if len(extra_out) == 0 else (preds, extra_out)
 
     def backward(self, losses: Sequence[torch.Tensor], backbone_loss=None, **kwargs) -> None:
-        """Compute the backward computations for the entire model.
+        """Backpropagate task losses and compute gradients for the rotation matrices.
 
         It also computes the gradients for the rotation matrices.
 
         Args:
-            losses (Sequence[torch.Tensor]): losses.
-            backbone_loss (torch.Tensor | None): backbone loss.
-            **kwargs: a keyword arguments.
+            losses: Scalar loss for each task.
+            backbone_loss: Optional additional loss for the shared representation.
+            **kwargs: Options for `torch.Tensor.backward`.
 
         """
         if not self.training:
@@ -343,19 +343,14 @@ class RotateOnly(nn.Module):
 
 
 class RotoGrad(RotateOnly):
-    r"""Implementation of RotoGrad as described in the original paper.
+    """Balance multitask gradient directions and magnitudes with learned rotations.
 
     Args:
-        backbone (nn.Module): shared module.
-        heads (Sequence[nn.Module]): task-specific modules.
-        latent_size (int): size of the shared representation, size of the output of the backbone.z.
-        burn_in_period (int): When back-propagating towards the shared parameters, each task loss is normalized
-            dividing by its initial value, \(L_k(t) / L_k(t_0=0)\). This parameter sets a number of iterations
-            after which the denominator will be replaced by the value of the loss at that iteration, that is,
-            \(t_0 = burn\_in\_period\). This is done to overcome problems with losses quickly changing
-            in the first iterations.
-        normalize_losses (bool): Whether to use these normalized losses to back-propagate through the task-specific
-            parameters as well.
+        backbone: Shared model producing the latent representation.
+        heads: Task-specific models consuming the latent representation.
+        latent_size: Number of features in the shared representation.
+        burn_in_period: Steps before refreshing the reference losses and gradient norms.
+        normalize_losses: Normalize losses when computing gradients for the task-specific heads.
 
     """
 
@@ -397,20 +392,15 @@ class RotoGrad(RotateOnly):
 
 
 class RotoGradNorm(RotoGrad):
-    r"""Implementation of RotoGrad as described in the original paper.
+    """Balance rotated multitask gradients with GradNorm task weights.
 
     Args:
-        backbone (nn.Module): shared module.
-        heads (Sequence[nn.Module]): task-specific modules.
-        latent_size (int): size of the shared representation, size of the output of the backbone.z.
-        alpha (float): \\(\alpha\\) hyper-parameter as described in GradNorm, used to compute the reference direction.
-        burn_in_period (int): When back-propagating towards the shared parameters, each task loss is normalized
-            dividing by its initial value, \\(L_k(t) / L_k(t_0=0)\\). This parameter sets a number of iterations
-            after which the denominator will be replaced by the value of the loss at that iteration,
-            \\(t_0 = burn\\_in\\_period\\).
-            This is done to overcome problems with losses quickly changing in the first iterations.
-        normalize_losses (bool): Whether to use these normalized losses to back-propagate through the task-specific
-            parameters as well.
+        backbone: Shared model producing the latent representation.
+        heads: Task-specific models consuming the latent representation.
+        latent_size: Number of features in the shared representation.
+        alpha: Exponent controlling the GradNorm target training rates.
+        burn_in_period: Steps before refreshing the reference losses and gradient norms.
+        normalize_losses: Normalize losses when computing gradients for the task-specific heads.
 
     """
 
@@ -432,7 +422,7 @@ class RotoGradNorm(RotoGrad):
 
     @property
     def weight(self) -> Sequence[torch.Tensor]:
-        """List of task weights, one per task. These are trainable, make sure to call `detach()`."""
+        """Return normalized positive task weights. Detach them for inspection."""
         ws = [w.exp() + 1e-15 for w in self.weight_]
         norm_coef = self.num_tasks / sum(ws)
         return [w * norm_coef for w in ws]

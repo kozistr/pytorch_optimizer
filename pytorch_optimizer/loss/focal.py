@@ -13,11 +13,11 @@ from pytorch_optimizer.loss.tversky import TverskyLoss
 
 
 class FocalLoss(nn.Module):
-    """Focal Loss function with logits input.
+    """Binary focal loss for logits.
 
     Args:
-        alpha (float): Weighting factor for class imbalance.
-        gamma (float): Focusing parameter to down-weight easy examples and focus training on hard negatives.
+        alpha: Multiplier applied to the loss for all examples.
+        gamma: Exponent that reduces the contribution of easy examples.
 
     """
 
@@ -27,6 +27,16 @@ class FocalLoss(nn.Module):
         self.gamma = gamma
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        """Compute the loss for predictions and targets.
+
+        Args:
+            y_pred: Binary logits, with the same shape as `y_true`.
+            y_true: Binary targets in `[0, 1]`.
+
+        Returns:
+            torch.Tensor: Mean focal loss over all entries.
+
+        """
         bce_loss = binary_cross_entropy_with_logits(y_pred, y_true, reduction='none')
         pt = torch.exp(-bce_loss)
         focal_loss = self.alpha * (1 - pt) ** self.gamma * bce_loss
@@ -34,13 +44,13 @@ class FocalLoss(nn.Module):
 
 
 class FocalCosineLoss(nn.Module):
-    """Focal Cosine Loss function with logits input.
+    """Combined cosine embedding and multiclass focal loss for logits.
 
     Args:
-        alpha (float): Weighting factor for class imbalance.
-        gamma (float): Focusing parameter to reduce loss contribution from easy examples.
-        focal_weight (float): Weight of the focal loss component in the combined loss.
-        reduction (str): Specifies the reduction to apply to the output: 'none', 'mean', or 'sum'.
+        alpha: Multiplier for the focal loss component.
+        gamma: Focusing parameter to reduce loss contribution from easy examples.
+        focal_weight: Weight of the focal loss component in the combined loss.
+        reduction: Specifies the reduction to apply to the output: 'none', 'mean', or 'sum'.
 
     """
 
@@ -52,6 +62,16 @@ class FocalCosineLoss(nn.Module):
         self.reduction = reduction
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        """Compute the loss for predictions and targets.
+
+        Args:
+            y_pred: Class logits with shape `(N, C)`.
+            y_true: Class indices with shape `(N,)`.
+
+        Returns:
+            torch.Tensor: Combined cosine and focal loss with the requested reduction.
+
+        """
         cosine_loss = cosine_embedding_loss(
             y_pred,
             one_hot(y_true, num_classes=y_pred.size(-1)),
@@ -71,7 +91,7 @@ class FocalCosineLoss(nn.Module):
 
 
 class BCEFocalLoss(nn.Module):
-    """BCEFocal loss function with probability input.
+    """Binary focal loss for probabilities, with optional label smoothing.
 
     Apply alpha to positive targets and 1 - alpha to negative targets.
     The focusing factor is (1 - p) ** gamma for positives and p ** gamma
@@ -81,11 +101,11 @@ class BCEFocalLoss(nn.Module):
         https://arxiv.org/abs/1708.02002
 
     Args:
-        alpha (float): Weighting factor for class imbalance, commonly set to 0.25.
-        gamma (float): Focusing parameter to reduce loss contribution of easy examples.
-        label_smooth (float): Smoothness constant to regularize target labels.
-        eps (float): Small epsilon to avoid numerical instability.
-        reduction (str): Specifies reduction type to apply to output: 'none', 'mean' or 'sum'.
+        alpha: Weighting factor for class imbalance, commonly set to 0.25.
+        gamma: Focusing parameter to reduce loss contribution of easy examples.
+        label_smooth: Smoothness constant to regularize target labels.
+        eps: Small epsilon to avoid numerical instability.
+        reduction: Specifies reduction type to apply to output: 'none', 'mean' or 'sum'.
 
     """
 
@@ -105,6 +125,16 @@ class BCEFocalLoss(nn.Module):
         self.bce = BCELoss(label_smooth=label_smooth, eps=eps, reduction='none')
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        """Compute the loss for predictions and targets.
+
+        Args:
+            y_pred: Binary probabilities, with the same shape as `y_true`.
+            y_true: Binary targets in `[0, 1]`.
+
+        Returns:
+            torch.Tensor: Elementwise loss or the requested scalar reduction.
+
+        """
         bce_loss = self.bce(y_pred, y_true)
         pt = y_true * y_pred + (1.0 - y_true) * (1.0 - y_pred)
         alpha_t = y_true * self.alpha + (1.0 - y_true) * (1.0 - self.alpha)
@@ -116,13 +146,13 @@ class BCEFocalLoss(nn.Module):
 
 
 class FocalTverskyLoss(nn.Module):
-    """Focal Tversky Loss with logits input.
+    """Focal Tversky loss for binary segmentation logits.
 
     Args:
-        alpha (float): Weight for false negatives in Tversky index.
-        beta (float): Weight for false positives in Tversky index.
-        gamma (float): Focusing parameter that shapes the loss to focus more on hard examples.
-        smooth (float): Smoothing factor to avoid division by zero.
+        alpha: Weight of false positives.
+        beta: Weight of false negatives.
+        gamma: Exponent applied to the Tversky loss.
+        smooth: Smoothing factor to avoid division by zero.
 
     """
 
@@ -133,4 +163,14 @@ class FocalTverskyLoss(nn.Module):
         self.tversky = TverskyLoss(alpha, beta, smooth)
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        """Compute the loss for predictions and targets.
+
+        Args:
+            y_pred: Binary segmentation logits.
+            y_true: Binary masks with the same shape as `y_pred`.
+
+        Returns:
+            torch.Tensor: Scalar Tversky loss raised to `gamma`.
+
+        """
         return self.tversky(y_pred, y_true) ** self.gamma

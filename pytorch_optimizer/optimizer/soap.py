@@ -10,24 +10,23 @@ from pytorch_optimizer.optimizer.shampoo_utils import merge_small_dims
 
 
 class SOAP(BaseOptimizer):
-    """Improving and Stabilizing Shampoo using Adam.
+    """Adam updates in Shampoo preconditioner eigenbases.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        shampoo_beta (float | None): If not None, use this beta for the pre-conditioner
-            (L and R in paper, state['GG'] below) moving average instead of betas.
-        weight_decay (float): Weight decay (L2 penalty).
-        precondition_frequency (int): How often to update the pre-conditioner.
-        max_precondition_dim (int): Maximum dimension of the pre-conditioner. Set to 10000, so that we exclude most
-            common vocab sizes while including layers.
-        merge_dims (bool): Whether to merge dimensions of the pre-conditioner.
-        precondition_1d (bool): Whether to precondition 1D gradients.
-        correct_bias (bool): Whether to correct bias in Adam.
-        normalize_gradient (bool): Whether to normalize the gradients.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        shampoo_beta: Decay rate for preconditioner statistics. `None` uses `beta2`.
+        weight_decay: Weight decay coefficient.
+        precondition_frequency: Number of steps between eigenbasis updates.
+        max_precondition_dim: Largest dimension to precondition. Larger dimensions use an identity transform.
+        merge_dims: Whether to merge dimensions of the preconditioner.
+        precondition_1d: Whether to precondition 1D gradients.
+        correct_bias: Whether to correct bias in Adam.
+        normalize_gradient: Whether to normalize the gradients.
+        data_format: Tensor layout for dimension merging: `'channels_first'` or `'channels_last'`.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -174,7 +173,7 @@ class SOAP(BaseOptimizer):
         return matrices
 
     def get_orthogonal_matrix_qr(self, state, max_precondition_dim: int = 10000, merge_dims: bool = False):
-        """Compute the eigen-bases of the pre-conditioner using one round of power iteration."""
+        """Compute the eigen-bases of the preconditioner using one round of power iteration."""
         original_shape = state['exp_avg_sq'].shape
         permuted_shape = original_shape
         if self.data_format == 'channels_last' and len(original_shape) == 4:

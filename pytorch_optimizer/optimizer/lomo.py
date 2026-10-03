@@ -20,11 +20,11 @@ class LOMO(BaseOptimizer):
     Check usage: https://github.com/OpenLMLab/LOMO/blob/main/lomo/src/lomo_trainer.py
 
     Args:
-        model (nn.Module): PyTorch model.
-        lr (float): Learning rate.
-        clip_grad_norm (float | None): Gradient norm clipping value.
-        clip_grad_value (float | None): Gradient value clipping threshold.
-        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+        model: PyTorch model.
+        lr: Learning rate.
+        clip_grad_norm: Gradient norm clipping value.
+        clip_grad_value: Gradient value clipping threshold.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -215,16 +215,16 @@ class AdaLOMO(BaseOptimizer):
     """Low-memory Optimization with Adaptive Learning Rate.
 
     Args:
-        model (nn.Module): PyTorch model.
-        lr (float): Learning rate.
-        weight_decay (float): Weight decay (L2 penalty).
-        loss_scale (float): Loss scale.
-        clip_threshold (float): Threshold of root-mean-square of final gradient update.
-        decay_rate (float): Coefficient used to compute running averages of square gradient.
-        clip_grad_norm (float | None): Clip gradient norm.
-        clip_grad_value (float | None): Clip gradient value.
-        eps1 (float): Term added to the denominator to improve numerical stability.
-        eps2 (float): Term added to the denominator to improve numerical stability.
+        model: PyTorch model.
+        lr: Learning rate.
+        weight_decay: Weight decay coefficient.
+        loss_scale: Loss scale.
+        clip_threshold: Maximum root mean square of the preconditioned update.
+        decay_rate: Coefficient used to compute running averages of square gradient.
+        clip_grad_norm: Clip gradient norm.
+        clip_grad_value: Clip gradient value.
+        eps1: Term added to the denominator to improve numerical stability.
+        eps2: Term added to the denominator to improve numerical stability.
 
     """
 

@@ -13,19 +13,19 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
 
 
 class Shampoo(BaseOptimizer):
-    """Preconditioned Stochastic Tensor Optimization.
+    """Stochastic tensor optimization with matrix preconditioning.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
-        momentum (float): momentum factor.
-        weight_decay (float): weight decay (L2 penalty).
-        weight_decouple (bool): optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): fix weight decay.
-        preconditioning_compute_steps (int): how often to compute the preconditioner,
-            tuning memory and compute requirements.
-        matrix_eps (float): term added to denominator to improve numerical stability.
-        maximize (bool): maximize the objective instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        momentum: Momentum factor.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        preconditioning_compute_steps: How often to compute the preconditioner, tuning memory and compute
+            requirements.
+        matrix_eps: Term added to denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -157,44 +157,36 @@ class Shampoo(BaseOptimizer):
 
 
 class ScalableShampoo(BaseOptimizer):
-    """Scalable Preconditioned Stochastic Tensor Optimization.
+    """Shampoo with blockwise preconditioning and optional gradient grafting.
 
-    This version of the Scalable Shampoo Optimizer targets single GPU environments,
-    computing pre-conditioners synchronously on GPU (which takes most of the optimization time).
-    It is faster than previous Shampoo implementations by using coupled Newton iteration
-    for matrix inverse powers instead of slow SVD calculations.
+    Compute matrix inverse roots with SVD or coupled Schur-Newton iteration on the
+    parameter device. Grafting uses the update norm of SGD, AdaGrad, or RMSProp.
 
-    Features include:
-    1. Various plug-ins (e.g., gradient grafting, preconditioning types),
-    2. Additional features beyond official PyTorch code,
-    3. Readable and well-organized implementation.
-
-    Reference:
-    https://github.com/google-research/google-research/blob/master/scalable_shampoo/pytorch/shampoo.py
+    Reference: https://github.com/google-research/google-research/blob/master/scalable_shampoo/pytorch/shampoo.py
 
     Args:
-        params (ParamsT): iterable or dicts defining parameter groups.
-        lr (float): learning rate.
-        betas (tuple): beta1 and beta2 for momentum.
-        moving_average_for_momentum (bool): whether to perform moving average for momentum (beta1).
-        weight_decay (float): weight decay (L2 penalty).
-        decoupled_weight_decay (bool): use decoupled weight decay.
-        decoupled_learning_rate (bool): use decoupled learning rate, otherwise coupled with preconditioned gradient.
-        inverse_exponent_override (int): fixed exponent for preconditioner if > 0.
-        start_preconditioning_step (int): step to start preconditioning.
-        preconditioning_compute_steps (int): frequency of preconditioner computation.
-        statistics_compute_steps (int): frequency of statistics computation.
-        block_size (int): block size for large layers; 1 means AdaGrad (inefficient).
-        skip_preconditioning_rank_lt (int): skip preconditioning for layers with rank below this.
-        no_preconditioning_for_layers_with_dim_gt (int): avoid preconditioning large layers.
-        shape_interpretation (bool): automatic shape interpretation for tensor dims.
-        graft_type (int): type of grafting (SGD, AdaGrad, RMSProp, etc.).
-        pre_conditioner_type (int): type of preconditioner.
-        nesterov (bool): enable Nesterov momentum.
-        diagonal_eps (float): epsilon for numerical stability in diagonal.
-        matrix_eps (float): epsilon for numerical stability in matrix.
-        use_svd (bool): whether to use SVD for matrix inverse powers (alternative is Schur-Newton).
-        maximize (bool): maximize the objective instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for momentum and preconditioner statistics.
+        moving_average_for_momentum: Whether to perform moving average for momentum (beta1).
+        weight_decay: Weight decay coefficient.
+        decoupled_weight_decay: Use decoupled weight decay.
+        decoupled_learning_rate: Use decoupled learning rate, otherwise coupled with preconditioned gradient.
+        inverse_exponent_override: Fixed exponent for preconditioner if > 0.
+        start_preconditioning_step: Step to start preconditioning.
+        preconditioning_compute_steps: Frequency of preconditioner computation.
+        statistics_compute_steps: Frequency of statistics computation.
+        block_size: Block size for large layers; 1 means AdaGrad (inefficient).
+        skip_preconditioning_rank_lt: Skip preconditioning for layers with rank below this.
+        no_preconditioning_for_layers_with_dim_gt: Avoid preconditioning large layers.
+        shape_interpretation: Automatic shape interpretation for tensor dims.
+        graft_type: Layer-wise scale reference from `LayerWiseGrafting`.
+        pre_conditioner_type: Dimensions to precondition, from `PreConditionerType`.
+        nesterov: Use Nesterov momentum.
+        diagonal_eps: Epsilon for numerical stability in diagonal.
+        matrix_eps: Epsilon for numerical stability in matrix.
+        use_svd: Whether to use SVD for matrix inverse powers (alternative is Schur-Newton).
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

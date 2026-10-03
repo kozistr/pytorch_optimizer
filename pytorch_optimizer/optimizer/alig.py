@@ -10,7 +10,7 @@ from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 @torch.no_grad()
 def l2_projection(parameters: ParamsT, max_norm: float = 1e2) -> None:
-    r"""Get l2 normalized parameter."""
+    """Project parameters onto an L2 ball in place."""
     global_norm = torch.sqrt(sum(p.norm().pow(2) for p in parameters or []))
     if global_norm > max_norm:
         ratio = max_norm / global_norm
@@ -22,12 +22,12 @@ class AliG(BaseOptimizer):
     """Adaptive Learning Rates for Interpolation with Gradients.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        max_lr (float | None): Maximum learning rate.
-        projection_fn (Callable): Projection function to enforce constraints.
-        momentum (float): Momentum factor.
-        adjusted_momentum (bool): If True, use PyTorch-like momentum instead of standard Nesterov momentum.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        max_lr: Maximum learning rate.
+        projection_fn: Projection function to enforce constraints.
+        momentum: Momentum factor.
+        adjusted_momentum: If True, use PyTorch-like momentum instead of standard Nesterov momentum.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -78,7 +78,7 @@ class AliG(BaseOptimizer):
 
     @torch.no_grad()
     def compute_step_size(self, loss: float) -> float:
-        r"""Compute step_size."""
+        """Compute the loss-to-squared-gradient-norm step size, capped by `max_lr`."""
         global_grad_norm = get_global_gradient_norm(self.param_groups)
         global_grad_norm.add_(1e-6)
 

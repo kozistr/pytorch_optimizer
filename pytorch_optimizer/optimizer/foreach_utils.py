@@ -6,18 +6,13 @@ from pytorch_optimizer.optimizer.utils import TORCH_VERSION_AT_LEAST_2_8
 
 
 def has_foreach_support(tensors: list[torch.Tensor]) -> bool:
-    """Check if foreach operations are supported for the given tensors.
-
-    Foreach operations require:
-    - All tensors on the same device
-    - All tensors have the same dtype
-    - No sparse tensors
+    """Check that a nonempty tensor list supports batched operations.
 
     Args:
-        tensors: List of tensors to check.
+        tensors: Tensors to inspect.
 
     Returns:
-        True if foreach operations are supported, False otherwise.
+        bool: `True` if all tensors are dense and share a device and data type.
 
     """
     if len(tensors) == 0:
@@ -42,22 +37,15 @@ def group_tensors_by_device_and_dtype(
     grads: list[torch.Tensor],
     state_lists: dict[str, list[torch.Tensor]] | None = None,
 ) -> list[dict]:
-    """Group tensors by device and dtype for efficient foreach operations.
-
-    This function organizes parameters, gradients, and state tensors into groups
-    where all tensors share the same device and dtype, enabling foreach operations.
+    """Group aligned tensor lists by the parameters' device and data type.
 
     Args:
-        params: List of parameter tensors.
-        grads: List of gradient tensors (corresponding to params).
-        state_lists: Optional dictionary mapping state names to lists of state tensors.
+        params: Parameter tensors.
+        grads: Corresponding gradients, in the same order as `params`.
+        state_lists: Optional state names mapped to aligned lists of state tensors.
 
     Returns:
-        List of dictionaries, each containing:
-        - 'params': List of parameters in this group
-        - 'grads': List of gradients in this group
-        - 'indices': Original indices of parameters in this group
-        - state_name: List of state tensors for each state in state_lists
+        list[dict]: Groups containing `params`, `grads`, original `indices`, and the requested state lists.
 
     """
     if state_lists is None:
@@ -89,9 +77,9 @@ def group_tensors_by_device_and_dtype(
 def foreach_rsqrt(
     tensors: list[torch.Tensor] | tuple[torch.Tensor, ...],
 ) -> Sequence[torch.Tensor]:  # pragma: no cover
-    """Version-aware ``foreach_rsqrt`` implementation.
+    """Compute reciprocal square roots with a fallback for PyTorch versions before 2.8.
 
-    ``torch._foreach_rsqrt`` was introduced in PyTorch 2.8.0, so earlier versions
+    `torch._foreach_rsqrt` was introduced in PyTorch 2.8.0, so earlier versions
     use a reciprocal-of-sqrt fallback.
     """
     if TORCH_VERSION_AT_LEAST_2_8:
@@ -101,9 +89,9 @@ def foreach_rsqrt(
 
 
 def foreach_rsqrt_(tensors: list[torch.Tensor] | tuple[torch.Tensor, ...]) -> None:  # pragma: no cover
-    """Version-aware in-place ``foreach_rsqrt_`` implementation.
+    """Compute reciprocal square roots in place with a fallback for PyTorch versions before 2.8.
 
-    ``torch._foreach_rsqrt_`` was introduced in PyTorch 2.8.0, so earlier versions
+    `torch._foreach_rsqrt_` was introduced in PyTorch 2.8.0, so earlier versions
     use in-place sqrt followed by reciprocal.
     """
     if TORCH_VERSION_AT_LEAST_2_8:

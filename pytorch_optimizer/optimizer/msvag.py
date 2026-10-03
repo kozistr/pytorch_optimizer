@@ -9,10 +9,10 @@ class MSVAG(BaseOptimizer):
     """Dissecting Adam: The Sign, Magnitude and Variance of Stochastic Gradients.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        beta (float): Moving average (momentum) constant (scalar tensor or float value).
-        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        beta: Moving average (momentum) constant (scalar tensor or float value).
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -57,7 +57,7 @@ class MSVAG(BaseOptimizer):
 
     @staticmethod
     def get_rho(beta_power: float, beta: float) -> float:
-        r"""Get rho."""
+        """Compute the finite-step variance correction for a moving average."""
         rho: float = (1.0 - beta_power ** 2) * (1.0 - beta) ** 2  # fmt: skip
         rho /= (1.0 - beta ** 2) * (1.0 - beta_power) ** 2  # fmt: skip
         return min(rho, 0.9999)

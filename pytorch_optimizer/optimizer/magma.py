@@ -29,21 +29,19 @@ class Magma(BaseOptimizer):
     including when a parameter update is masked.
 
     Args:
-        optimizer (OptimizerInstanceOrClass or ParamsT): Base optimizer instance/class,
-            or parameters to optimize with AdamW.
-        mask_prob (float): Probability of keeping an update.
-        tau (float): Temperature used by the alignment sigmoid.
-        momentum_beta (float): EMA coefficient for the fallback momentum.
-        alignment_ema (float): EMA coefficient for the alignment score.
-        moment_key (str | None): First-moment key in the base optimizer's
-            state. ``'auto'`` checks ``'exp_avg'`` and ``'momentum_buffer'``;
-            ``None`` always uses Magma's fallback momentum.
-        exclude (set[Tensor] | None): Parameters that bypass masking.
+        optimizer: Base optimizer instance/class, or parameters to optimize with AdamW.
+        mask_prob: Probability of keeping an update.
+        tau: Temperature used by the alignment sigmoid.
+        momentum_beta: EMA coefficient for the fallback momentum.
+        alignment_ema: EMA coefficient for the alignment score.
+        moment_key: First-moment key in the base optimizer's state. `'auto'` checks `'exp_avg'` and
+            `'momentum_buffer'`; `None` always uses Magma's fallback momentum.
+        exclude: Parameters that bypass masking.
 
     Magma reads the first moment from the base optimizer when it is available,
     so it adds no additional momentum state for optimizers such as Adam. For
     optimizers without a first-moment buffer, it maintains an EMA controlled
-    by ``momentum_beta``.
+    by `momentum_beta`.
 
     Reference:
         https://arxiv.org/abs/2602.15322

@@ -12,18 +12,17 @@ class Amos(BaseOptimizer):
     """An Adam-style Optimizer with Adaptive Weight Decay towards Model-Oriented Scale.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        beta (float): A float slightly less than 1. Recommended to set `1 - beta` approximately the same magnitude
-            as the learning rate, similar to beta2 in Adam.
-        momentum (float): Exponential decay rate for optional moving average of updates.
-        extra_l2 (float): Additional L2 regularization.
-        c_coef (float): Coefficient for decay_factor_c.
-        d_coef (float): Coefficient for decay_factor_d.
-        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
-            None means auto-detect based on device (True for CUDA, False otherwise).
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        beta: A float slightly less than 1. Recommended to set `1 - beta` approximately the same magnitude as the
+            learning rate, similar to beta2 in Adam.
+        momentum: Momentum factor.
+        extra_l2: Additional L2 regularization.
+        c_coef: Coefficient for decay_factor_c.
+        d_coef: Coefficient for decay_factor_d.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -94,7 +93,7 @@ class Amos(BaseOptimizer):
 
     @staticmethod
     def get_scale(p: torch.Tensor) -> float:
-        r"""Get expected scale for model weights."""
+        """Return the target weight scale from the parameter shape."""
         if len(p.shape) == 1:
             return 0.5
         if len(p.shape) == 2:

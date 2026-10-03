@@ -5,17 +5,17 @@ from torch.optim.lr_scheduler import LRScheduler
 
 
 class CosineAnnealingWarmupRestarts(LRScheduler):
-    r"""CosineAnnealingWarmupRestarts.
+    """Cosine learning rate decay with linear warmup and restarts.
 
     Args:
-        optimizer (Optimizer): Wrapped optimizer instance.
-        first_cycle_steps (int): Number of steps in the first cycle.
-        cycle_mult (float): Cycle steps magnification factor.
-        max_lr (float): Maximum learning rate.
-        min_lr (float): Minimum learning rate.
-        warmup_steps (int): Number of warmup steps.
-        gamma (float): Decrease rate of max learning rate by cycle.
-        last_epoch (int): The index of the last epoch for resuming training.
+        optimizer: Wrapped optimizer instance.
+        first_cycle_steps: Number of steps in the first cycle.
+        cycle_mult: Multiplier for the post-warmup duration of each new cycle.
+        max_lr: Maximum learning rate.
+        min_lr: Minimum learning rate.
+        warmup_steps: Number of warmup steps.
+        gamma: Multiplicative reduction of `max_lr` after each cycle.
+        last_epoch: The index of the last epoch for resuming training.
 
     """
 

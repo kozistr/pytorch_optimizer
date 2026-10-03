@@ -7,23 +7,24 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, HutchinsonG, L
 
 
 class SophiaH(BaseOptimizer):
-    r"""Second-order Clipped Stochastic Optimization.
+    """Clipped second-order updates using Hutchinson Hessian estimates.
 
-    Requires `loss.backward(create_graph=True)` in order to calculate hessians.
+    Use `loss.backward(create_graph=True)` for internal Hessian estimation, or supply
+    external estimates through `step(hessian=...)`.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Fix weight decay.
-        p (float): Clip effective (applied) gradient (p).
-        update_period (int): Number of steps after which to apply Hessian approximation.
-        num_samples (int): Times to sample z for the approximation of the Hessian trace.
-        hessian_distribution: HutchinsonG. Type of distribution to initialize Hessian.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for gradient momentum and Hessian-diagonal estimates.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        p: Clip effective (applied) gradient (p).
+        update_period: Number of steps after which to apply Hessian approximation.
+        num_samples: Number of noise samples for each Hessian-diagonal estimate.
+        hessian_distribution: Type of distribution to initialize Hessian.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

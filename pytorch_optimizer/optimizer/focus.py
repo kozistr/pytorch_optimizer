@@ -6,15 +6,15 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class FOCUS(BaseOptimizer):
-    """First Order Concentrated Updating Scheme.
+    """Sign-based updates with attraction toward the running parameter average.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared hessian trace.
-        gamma (float): Controls the strength of the attraction.
-        weight_decay (float): Weight decay (L2 penalty).
-        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for gradient momentum and the running parameter average.
+        gamma: Controls the strength of the attraction.
+        weight_decay: Weight decay coefficient.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

@@ -16,11 +16,11 @@ class Fromage(BaseOptimizer):
     """On the distance between two neural networks and the stability of learning.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        p_bound (float | None): Restricts the optimization to a bounded set. For example, a value of 2.0 restricts
-            parameter norms to lie within 2x their initial norms, which helps regularize the model class.
-        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        p_bound: Restricts the optimization to a bounded set. For example, a value of 2.0 restricts parameter norms
+            to lie within 2x their initial norms, which helps regularize the model class.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

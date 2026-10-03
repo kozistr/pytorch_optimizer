@@ -9,20 +9,19 @@ from pytorch_optimizer.optimizer.foreach_utils import group_tensors_by_device_an
 
 
 class StableAdamW(BaseOptimizer):
-    """Stable and low-precision training for large-scale vision-language models.
+    """AdamW with update clipping and optional low-precision Kahan summation.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float | torch.Tensor): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        kahan_sum (bool): Enables Kahan summation for more accurate parameter updates when training in low precision
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        kahan_sum: Enables Kahan summation for more accurate parameter updates when training in low precision
             (float16 or bfloat16).
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): Decoupled weight decay.
-        eps (float): Term added to the denominator to improve numerical stability.
-        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
-            None means auto-detect based on device (True for CUDA, False otherwise).
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        eps: Term added to the denominator to improve numerical stability.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

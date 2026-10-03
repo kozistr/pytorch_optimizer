@@ -6,7 +6,17 @@ from pytorch_optimizer.base.scheduler import BaseLinearWarmupScheduler
 
 
 class LinearScheduler(BaseLinearWarmupScheduler):
-    """Linear LR scheduler with linear warmup."""
+    """Linear learning rate decay after linear warmup.
+
+    Args:
+        optimizer: Optimizer whose learning rate to update.
+        t_max: Total scheduler steps, including warmup.
+        max_lr: Learning rate at the end of warmup.
+        min_lr: Final learning rate.
+        init_lr: Learning rate at the first warmup step.
+        warmup_steps: Number of linear warmup steps.
+
+    """
 
     def _step(self) -> float:
         return self.max_lr + (self.min_lr - self.max_lr) * (self.step_t - self.warmup_steps) / (
@@ -15,7 +25,17 @@ class LinearScheduler(BaseLinearWarmupScheduler):
 
 
 class CosineScheduler(BaseLinearWarmupScheduler):
-    """Cosine LR scheduler with linear warmup."""
+    """Cosine learning rate decay after linear warmup.
+
+    Args:
+        optimizer: Optimizer whose learning rate to update.
+        t_max: Total scheduler steps, including warmup.
+        max_lr: Learning rate at the end of warmup.
+        min_lr: Final learning rate.
+        init_lr: Learning rate at the first warmup step.
+        warmup_steps: Number of linear warmup steps.
+
+    """
 
     def _step(self) -> float:
         phase: float = (self.step_t - self.warmup_steps) / (self.total_steps - self.warmup_steps) * math.pi
@@ -23,10 +43,14 @@ class CosineScheduler(BaseLinearWarmupScheduler):
 
 
 class PolyScheduler(BaseLinearWarmupScheduler):
-    """Poly LR Scheduler.
+    """Polynomial learning rate schedule after linear warmup.
+
+    After warmup, compute `min_lr + (max_lr - min_lr) * elapsed_steps ** poly_order`.
 
     Args:
-        poly_order (float): lr scheduler decreases with steps.
+        optimizer (Optimizer): Optimizer whose learning rate to update.
+        poly_order: Positive exponent of the polynomial schedule.
+        **kwargs (dict): Options for `BaseLinearWarmupScheduler`, including `t_max` and `max_lr`.
 
     """
 
