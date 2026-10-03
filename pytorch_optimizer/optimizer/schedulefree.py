@@ -452,6 +452,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
             beta1, beta2 = group['betas']
 
             bias_correction2: float = self.debias(beta2, group['step'])
+            bias_correction2_sq: float = bias_correction2 ** 0.5
 
             lr, n_sma = self.get_rectify_step_size(
                 is_rectify=True,
@@ -463,6 +464,8 @@ class ScheduleFreeRAdam(BaseOptimizer):
             )
             if lr < 0.0:
                 lr = float(not group['silent_sgd_phase'])
+            elif n_sma > 4.0:
+                lr = lr / bias_correction2_sq
 
             lr_max = group['lr_max'] = max(lr, group['lr_max'])
 
@@ -490,7 +493,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 if n_sma > 4.0:
-                    de_nom = exp_avg_sq.sqrt().div_(bias_correction2).add_(group['eps'])
+                    de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
                     grad.div_(de_nom)
 
                 self.apply_weight_decay(
