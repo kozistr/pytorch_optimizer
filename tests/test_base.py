@@ -81,3 +81,14 @@ def test_can_use_foreach():
     assert len(params) == 0
     assert len(grads) == 0
     assert len(state_dict) == 0
+
+
+@pytest.mark.parametrize('dtype', [torch.float16, torch.bfloat16, torch.float32, torch.float64])
+@pytest.mark.parametrize('gradient', [0.0, 1e-4, 300.0])
+def test_stable_adamw_rms_precision(dtype, gradient):
+    grad = torch.full((2,), gradient, dtype=dtype)
+    second_moment = grad.double().square()
+    rms = BaseOptimizer.get_stable_adamw_rms(grad, second_moment)
+
+    torch.testing.assert_close(rms.double(), torch.tensor(1.0, dtype=torch.float64))
+    assert torch.isfinite(rms)

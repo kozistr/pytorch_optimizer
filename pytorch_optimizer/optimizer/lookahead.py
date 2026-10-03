@@ -139,10 +139,10 @@ class Lookahead(BaseOptimizer):
             p.lerp_(slow, weight=1.0 - self.alpha)
             slow.copy_(p)
 
-            if 'momentum_buffer' not in self.optimizer.state[p]:
-                self.optimizer.state[p]['momentum_buffer'] = torch.zeros_like(p)
-
             if self.pullback_momentum == 'pullback':
+                if 'momentum_buffer' not in self.optimizer.state[p]:
+                    self.optimizer.state[p]['momentum_buffer'] = torch.zeros_like(p)
+
                 internal_momentum = self.optimizer.state[p]['momentum_buffer']
                 internal_momentum.lerp_(state['slow_momentum'], weight=1.0 - self.alpha)
                 state['slow_momentum'].copy_(internal_momentum)

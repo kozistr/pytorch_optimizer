@@ -139,7 +139,7 @@ class Lamb(BaseOptimizer):
 
         if self.pre_norm:
             if isinstance(grad_norm, torch.Tensor):
-                grad_norm = grad_norm.item()
+                grad_norm = grad_norm.reshape(())
 
             torch._foreach_div_(grads, grad_norm)
 
@@ -172,20 +172,22 @@ class Lamb(BaseOptimizer):
 
         p_norms = torch._foreach_norm(updates)
 
-        for p, update, wn, pn in zip(params, updates, weight_norms, p_norms):
-            trust_ratio: float = 1.0
-            if wn != 0 and pn != 0:
-                trust_ratio = (wn / (pn + eps)).item()
+        trust_ratios = torch._foreach_div(weight_norms, torch._foreach_add(p_norms, eps))
+        trust_ratios = [
+            torch.where((wn != 0) & (pn != 0), ratio, torch.ones_like(ratio))
+            for wn, pn, ratio in zip(weight_norms, p_norms, trust_ratios)
+        ]
 
+        for p, wn, pn, trust_ratio in zip(params, weight_norms, p_norms, trust_ratios):
             state = self.state[p]
             state['weight_norm'] = wn
             state['adam_norm'] = pn
             state['trust_ratio'] = trust_ratio
 
-            if group['adam']:
-                trust_ratio = 1.0
+        if not group['adam']:
+            torch._foreach_mul_(updates, trust_ratios)
 
-            p.add_(update, alpha=-step_size * trust_ratio)
+        torch._foreach_add_(params, updates, alpha=-step_size)
 
     @torch.no_grad()
     def get_global_gradient_norm(self) -> torch.Tensor | float:
@@ -241,6 +243,9 @@ class Lamb(BaseOptimizer):
             weight_decouple=group['weight_decouple'],
             fixed_decay=group['fixed_decay'],
         )
+
+        if group['rectify'] and step_size <= 0:
+            return
 
         de_nom: torch.Tensor | None = None
 

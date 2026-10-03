@@ -338,3 +338,24 @@ def test_muon_invalid_ns_coeffs(optimizer_name):
         load_optimizer(optimizer_name)(
             [{'params': [nn.Parameter(torch.randn(2, 2))], 'use_muon': True}], ns_coeffs='invalid'
         )
+
+
+@pytest.mark.parametrize('projection_type', ['left', 'right', 'full'])
+def test_galore_projector_compact_storage(projection_type):
+    gradient = torch.arange(128.0).reshape(16, 8)
+    projector = GaLoreProjector(rank=2, projection_type=projection_type)
+    low_rank = projector.project(gradient, num_steps=1)
+    bases = projector.ortho_matrix if isinstance(projector.ortho_matrix, tuple) else (projector.ortho_matrix,)
+
+    for basis in bases:
+        assert basis.untyped_storage().nbytes() == basis.numel() * basis.element_size()
+
+    u, _, vh = torch.linalg.svd(gradient, full_matrices=False)
+    if projection_type == 'left':
+        expected = u[:, :2] @ u[:, :2].T @ gradient
+    elif projection_type == 'right':
+        expected = gradient @ vh[:2].T @ vh[:2]
+    else:
+        expected = u[:, :2] @ (u[:, :2].T @ gradient @ vh[:2].T) @ vh[:2]
+
+    torch.testing.assert_close(projector.project_back(low_rank), expected)

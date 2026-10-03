@@ -55,16 +55,16 @@ class GaLoreProjector:
 
         if projection_type == 'right':
             b = vh[:self.rank, :] if isinstance(self.rank, int) else vh  # fmt: skip
-            return b if is_float else b.to(original_device).type(original_type)
+            return b.clone() if is_float else b.to(original_device).type(original_type)
         if projection_type == 'left':
             a = u[:, :self.rank] if isinstance(self.rank, int) else u  # fmt: skip
-            return a if is_float else a.to(original_device).type(original_type)
+            return a.clone() if is_float else a.to(original_device).type(original_type)
 
         a = u[:, :self.rank] if isinstance(self.rank, int) else u  # fmt: skip
         b = vh[:self.rank, :] if isinstance(self.rank, int) else vh  # fmt: skip
 
         return (
-            (a, b)
+            (a.clone(), b.clone())
             if is_float
             else (a.to(original_device).type(original_type), b.to(original_device).type(original_type))
         )

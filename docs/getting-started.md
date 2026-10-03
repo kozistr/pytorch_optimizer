@@ -69,6 +69,9 @@ optimizer = create_optimizer(
 
 See the [optimizer reference](optimizer.md) for the available options and optimizer-specific arguments.
 
+For fp16 parameters, `StableAdamW` stores second moments in fp32 to avoid underflow and overflow when squaring gradients.
+This uses two additional bytes per parameter compared with fp16 second moments. Its bf16 second moments retain bf16 storage.
+
 ## Compile optimizer steps
 
 Set `compile=True` to compile optimizer steps on CPU or GPU. We test Lion, native PyTorch AdamW, and StableAdamW:
