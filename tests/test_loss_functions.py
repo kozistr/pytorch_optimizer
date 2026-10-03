@@ -69,14 +69,20 @@ class TestBinaryCE:
         assert float(loss) == pytest.approx(0.07848126, abs=1e-6)
 
     @torch.no_grad()
-    def test_focal_cosine_loss(self):
-        criterion = FocalCosineLoss(alpha=1.0, gamma=2.0, focal_weight=0.1)
-
+    @pytest.mark.parametrize(
+        ('reduction', 'expected_loss'),
+        [
+            ('none', [0.024584262909110033, 0.04368160706201334, 0.655790168737243]),
+            ('mean', 0.24135201290278882),
+            ('sum', 0.7240560387083664),
+        ],
+    )
+    def test_focal_cosine_loss(self, reduction, expected_loss):
+        criterion = FocalCosineLoss(reduction=reduction)
         y_pred = torch.FloatTensor([[0.9, 0.1, 0.1], [0.2, 0.9, 0.1], [0.2, 0.1, 0.1]])
         y_true = torch.LongTensor([0, 1, 2])
         loss = criterion(y_pred, y_true)
-
-        assert float(loss) == pytest.approx(0.2413520, abs=1e-6)
+        torch.testing.assert_close(loss, torch.tensor(expected_loss), atol=1e-6, rtol=0)
 
     @torch.no_grad()
     def test_soft_f1_loss(self, binary_predictions):
