@@ -4,9 +4,24 @@ import pytorch_optimizer
 from pytorch_optimizer.loss import LOSS_FUNCTION_LIST, LOSS_FUNCTIONS, get_supported_loss_functions
 from pytorch_optimizer.lr_scheduler import LR_SCHEDULER_LIST, get_supported_lr_schedulers, load_lr_scheduler
 from pytorch_optimizer.optimizer import OPTIMIZER_LIST, get_supported_optimizers, load_optimizer
-from tests.recipes import INVALID_OPTIMIZER_NAMES, VALID_OPTIMIZER_NAMES
+from tests.optimizer_cases import VALID_OPTIMIZER_NAMES
+
+INVALID_OPTIMIZER_NAMES: tuple[str, ...] = (
+    'asam',
+    'sam',
+    'gsam',
+    'wsam',
+    'looksam',
+    'friendlysam',
+    'pcgrad',
+    'lookahead',
+    'trac',
+)
+
 
 VALID_LR_SCHEDULER_NAMES = get_supported_lr_schedulers()
+
+
 INVALID_LR_SCHEDULER_NAMES = ['dummy']
 
 

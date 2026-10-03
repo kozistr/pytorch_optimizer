@@ -1,5 +1,6 @@
 import pytest
 import torch
+from torch import nn
 
 from pytorch_optimizer.loss import (
     BCEFocalLoss,
@@ -19,8 +20,15 @@ from pytorch_optimizer.loss import (
     soft_jaccard_score,
 )
 from pytorch_optimizer.loss.bi_tempered import bi_tempered_logistic_loss
-from tests.recipes import BINARY_DICE_RECIPES
-from tests.utils import MultiClassExample
+
+BINARY_DICE_RECIPES: tuple[tuple, ...] = (
+    ([1.0, 1.0, 1.0], [1, 1, 1], (1, 1, 1, -1), 0.0),
+    ([1.0, 0.0, 1.0], [1, 0, 1], (1, 1, 1, -1), 0.0),
+    ([0.0, 0.0, 0.0], [0, 0, 0], (1, 1, 1, -1), 0.0),
+    ([1.0, 1.0, 1.0], [0, 0, 0], (1, 1, -1), 0.0),
+    ([1.0, 0.0, 1.0], [0, 1, 0], (1, 1, -1), 0.996677),
+    ([0.0, 0.0, 0.0], [1, 1, 1], (1, 1, -1), 0.996677),
+)
 
 
 class TestBinaryCE:
@@ -225,7 +233,7 @@ def test_bi_tempered_log_loss_func():
 
 
 def test_bi_tempered_log_loss_bwd():
-    model = MultiClassExample(num_classes=4)
+    model = nn.Linear(1, 4)
 
     y_pred = model(torch.randn(4, 1))
     y_true = torch.LongTensor([0, 1, 2, 3])

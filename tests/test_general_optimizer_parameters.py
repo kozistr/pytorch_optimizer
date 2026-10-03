@@ -2,14 +2,14 @@ import pytest
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError, ZeroParameterSizeError
 from pytorch_optimizer.optimizer import PCGrad, load_optimizer
-from tests.recipes import (
+from tests.fixtures import make_parameter
+from tests.optimizer_cases import (
     BETA_OPTIMIZER_NAMES,
     SKIP_EPSILON,
     SKIP_LEARNING_RATE,
     SKIP_WEIGHT_DECAY,
     VALID_OPTIMIZER_NAMES,
 )
-from tests.utils import Example, simple_parameter
 
 
 def _config_for_optimizer(optimizer_name: str, **config):
@@ -82,7 +82,7 @@ class TestBetaParameterValidation:
         with pytest.raises(ValueError):
             optimizer(None, **config)
 
-    @pytest.mark.parametrize('optimizer_name', BETA_OPTIMIZER_NAMES)
+    @pytest.mark.parametrize('optimizer_name', sorted(BETA_OPTIMIZER_NAMES))
     def test_betas(self, optimizer_name):
         optimizer = load_optimizer(optimizer_name)
 
@@ -105,7 +105,7 @@ class TestBetaParameterValidation:
 
 class TestSpecialParameterValidation:
     def test_reduction(self):
-        optimizer = load_optimizer('adamp')(Example().parameters())
+        optimizer = load_optimizer('adamp')([make_parameter()])
         with pytest.raises(ValueError):
             PCGrad(optimizer, reduction='wrong')
 
@@ -130,7 +130,7 @@ class TestSpecialParameterValidation:
 
     @pytest.mark.parametrize('optimizer', ['ranger21', 'adai'])
     def test_size_of_parameter(self, optimizer):
-        param = simple_parameter(require_grad=False)
+        param = make_parameter(requires_grad=False)
         param.grad = None
 
         with pytest.raises(ZeroParameterSizeError):
@@ -142,10 +142,10 @@ class TestSpecialParameterValidation:
 
         if optimizer_name == 'qhadam':
             with pytest.raises(ValueError):
-                optimizer([simple_parameter(False)], nus=(-0.1, 0.1))
+                optimizer([make_parameter(requires_grad=False)], nus=(-0.1, 0.1))
 
             with pytest.raises(ValueError):
-                optimizer([simple_parameter(False)], nus=(0.1, -0.1))
+                optimizer([make_parameter(requires_grad=False)], nus=(0.1, -0.1))
         else:
             with pytest.raises(ValueError):
-                optimizer([simple_parameter(False)], nu=-0.1)
+                optimizer([make_parameter(requires_grad=False)], nu=-0.1)

@@ -1,10 +1,9 @@
-
 import numpy as np
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer import AdamW
-from tests.utils import Example, simple_parameter
+from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
 
 
 @pytest.fixture(scope='session')
@@ -38,13 +37,13 @@ def environment(
 
 
 @pytest.fixture
-def optimizer_factory():
-    return AdamW(Example().parameters())
+def scheduler_optimizer():
+    return build_optimizer('adamw', [make_parameter(grad=None)])
 
 
 @pytest.fixture
 def param_groups():
-    return [{'params': simple_parameter()}]
+    return [{'params': make_parameter()}]
 
 
 @pytest.fixture
