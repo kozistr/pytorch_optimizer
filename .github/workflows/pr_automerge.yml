@@ -16,7 +16,6 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      actions: write
       contents: write
       pull-requests: write
 
@@ -36,9 +35,6 @@ jobs:
           MERGE_DELETE_BRANCH: "true"
           MERGE_ERROR_FAIL: "true"
 
-      - name: Start CI on main after merging
+      - name: feedback
         if: ${{ steps.automerge.outputs.mergeResult == 'merged' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: gh workflow run ci.yml --ref main
+        run: echo "Pull request ${{ steps.automerge.outputs.pullRequestNumber }} merged!"
