@@ -1,5 +1,3 @@
-from inspect import signature
-
 import pytest
 import torch
 
@@ -20,13 +18,12 @@ from tests.utils import Trainer, build_model, build_optimizer_parameter, ids, si
     [
         (name, foreach)
         for name in sorted(MAXIMIZE_OPTIMIZERS)
+        if name != 'nadam'
         for foreach in ([False, True] if name in FOREACH_OPTIMIZERS else [False])
     ],
 )
 def test_maximize(optimizer_name, foreach):
     optimizer_class = load_optimizer(optimizer_name)
-    if optimizer_name == 'nadam' and 'maximize' not in signature(optimizer_class).parameters:
-        pytest.skip('this PyTorch version does not support NAdam maximization')
     params = [torch.full((2, 2), 2.0, requires_grad=True) for _ in range(2)]
     params[0].grad = torch.full_like(params[0], 0.5)
     params[1].grad = torch.full_like(params[1], -0.5)
