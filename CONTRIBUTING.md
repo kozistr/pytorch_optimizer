@@ -71,12 +71,6 @@ The `docs` and `docs-build` recipes install documentation dependencies in an iso
 
 ### Release notes
 
-Package uploads use PyPI Trusted Publishing through `.github/workflows/publish.yml`.
-The PyPI publisher must name repository `kozistr/pytorch_optimizer` and workflow `publish.yml`, with no environment
-restriction. The deployment job requests `id-token: write` and runs `uv publish --trusted-publishing always`.
-After a successful OIDC release, revoke the PyPI token used for this package and delete the GitHub `PYPI_TOKEN` secret.
-Keep `GH_TOKEN`, which is still used for repository changes, GitHub releases, and changelog pull requests.
-
 When a maintainer pushes a `vMAJOR.MINOR.PATCH` tag, the publish workflow asks GitHub to generate release notes from merged PRs.
 It creates the GitHub release, then opens a PR to sync that release's notes into `CHANGELOG.md`,
 `docs/changelogs/<tag>.md`, and the changelog index. The changelog PR uses the existing `automerge` label.
