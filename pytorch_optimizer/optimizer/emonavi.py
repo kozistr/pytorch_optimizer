@@ -196,7 +196,7 @@ class EmoNavi(BaseOptimizer):
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
@@ -331,7 +331,7 @@ class EmoLynx(BaseOptimizer):
                 exp_avg = state['exp_avg']
 
                 blended_grad = grad.mul(1.0 - beta1).add_(exp_avg, alpha=beta1).sign_()
-                exp_avg.mul_(beta2).add_(grad, alpha=1.0 - beta2)
+                exp_avg.lerp_(grad, weight=1.0 - beta2)
 
                 p.add_(blended_grad, alpha=-group['lr'] * emo_drive)
 
@@ -481,8 +481,8 @@ class EmoFact(BaseOptimizer):
                     )
                     c_sq = torch.mean(grad_p2, dim=0, keepdim=True).add_(group['eps']).sqrt_()
 
-                    exp_avg_r.mul_(beta1).add_(r_sq, alpha=1.0 - beta1)
-                    exp_avg_c.mul_(beta1).add_(c_sq, alpha=1.0 - beta1)
+                    exp_avg_r.lerp_(r_sq, weight=1.0 - beta1)
+                    exp_avg_c.lerp_(c_sq, weight=1.0 - beta1)
 
                     de_nom = (exp_avg_r * exp_avg_c).sqrt_().add_(group['eps'])
 
@@ -490,7 +490,7 @@ class EmoFact(BaseOptimizer):
                 else:
                     exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
-                    exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                    exp_avg.lerp_(grad, weight=1.0 - beta1)
                     exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                     de_nom = exp_avg_sq.sqrt().add_(group['eps'])

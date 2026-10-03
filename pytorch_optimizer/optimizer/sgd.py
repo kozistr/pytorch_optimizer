@@ -109,7 +109,7 @@ class AccSGD(BaseOptimizer):
                 buf = state['momentum_buffer']
                 buf.mul_((1.0 / beta) - 1.0).add_(grad, alpha=-large_lr).add_(p).mul_(beta)
 
-                p.add_(grad, alpha=-group['lr']).mul_(zeta).add_(buf, alpha=1.0 - zeta)
+                p.add_(grad, alpha=-group['lr']).lerp_(buf, weight=1.0 - zeta)
 
         return loss
 
@@ -668,7 +668,7 @@ class SGDSaI(BaseOptimizer):
 
                 if momentum > 0.0:
                     buf = state['momentum_buffer']
-                    buf.mul_(momentum).add_(grad, alpha=1.0 - momentum)
+                    buf.lerp_(grad, weight=1.0 - momentum)
                 else:
                     buf = grad
 
@@ -818,8 +818,8 @@ class VSGD(BaseOptimizer):
                 bg2 = pbg2 + mug_sq - 2.0 * mug * mug_prev + mug_prev.pow(2)
                 bhg2 = pbhg2 + mug_sq - 2.0 * grad * mug + grad.pow(2)
 
-                bg.mul_(1.0 - rho1).add_(bg2, alpha=rho1)
-                bhg.mul_(1.0 - rho2).add_(bhg2, alpha=rho2)
+                bg.lerp_(bg2, weight=rho1)
+                bhg.lerp_(bhg2, weight=rho2)
 
                 p.add_(group['lr'] / mug_sq.sqrt().add_(group['eps']) * mug, alpha=-1.0)
 

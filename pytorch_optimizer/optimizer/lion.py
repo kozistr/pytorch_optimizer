@@ -163,8 +163,8 @@ class Lion(BaseOptimizer):
 
             update = exp_avg.clone()
 
-            update.mul_(beta1).add_(grad, alpha=1.0 - beta1).sign_()
-            exp_avg.mul_(beta2).add_(s_grad, alpha=1.0 - beta2)
+            update.lerp_(grad, weight=1.0 - beta1).sign_()
+            exp_avg.lerp_(s_grad, weight=1.0 - beta2)
 
             if group.get('cautious'):
                 self.apply_cautious(update, grad)

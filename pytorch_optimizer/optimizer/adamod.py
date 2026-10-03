@@ -120,7 +120,7 @@ class AdaMod(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
@@ -128,7 +128,7 @@ class AdaMod(BaseOptimizer):
                 update = torch.full_like(de_nom, fill_value=step_size)
                 update.div_(de_nom)
 
-                exp_avg_lr.mul_(beta3).add_(update, alpha=1.0 - beta3)
+                exp_avg_lr.lerp_(update, weight=1.0 - beta3)
 
                 torch.min(update, exp_avg_lr, out=update)
                 update.mul_(exp_avg)

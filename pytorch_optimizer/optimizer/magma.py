@@ -214,7 +214,7 @@ class Magma(BaseOptimizer):
             if moment is None:
                 if 'momentum' not in parameter_state:
                     parameter_state['momentum'] = torch.zeros_like(parameter)
-                parameter_state['momentum'].mul_(self.momentum_beta).add_(gradient, alpha=1.0 - self.momentum_beta)
+                parameter_state['momentum'].lerp_(gradient, weight=1.0 - self.momentum_beta)
                 moment = parameter_state['momentum']
 
             cosine = torch.nn.functional.cosine_similarity(

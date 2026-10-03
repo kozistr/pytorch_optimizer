@@ -180,7 +180,7 @@ class AdaBelief(BaseOptimizer):
                 r=group.get('adanorm_r', None),
             )
 
-            exp_avg.mul_(beta1).add_(s_grad, alpha=1.0 - beta1)
+            exp_avg.lerp_(s_grad, weight=1.0 - beta1)
 
             grad_residual = grad - exp_avg
             exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2).add_(group['eps'])

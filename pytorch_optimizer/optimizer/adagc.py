@@ -145,9 +145,9 @@ class AdaGC(BaseOptimizer):
                     h_t = min(group['lambda_rel'] * gamma / grad.norm(), 1.0)
                     g_hat = grad.mul(h_t)
 
-                    gamma.mul_(group['beta']).add_(g_hat.norm(), alpha=1.0 - group['beta'])
+                    gamma.lerp_(g_hat.norm(), weight=1.0 - group['beta'])
 
-                exp_avg.mul_(beta1).add_(g_hat, alpha=1.0 - beta1)
+                exp_avg.lerp_(g_hat, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(g_hat, g_hat, value=1.0 - beta2)
 
                 update = (exp_avg / bias_correction1) / exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])

@@ -118,8 +118,8 @@ class RACS(BaseOptimizer):
                 s, q = state['s'], state['q']
 
                 grad_p2 = grad.pow(2)
-                s.mul_(beta).add_(grad_p2.mean(dim=1), alpha=1.0 - beta)
-                q.mul_(beta).add_(grad_p2.mean(dim=0), alpha=1.0 - beta)
+                s.lerp_(grad_p2.mean(dim=1), weight=1.0 - beta)
+                q.lerp_(grad_p2.mean(dim=0), weight=1.0 - beta)
 
                 s_sq = s.add(group['eps']).sqrt_().unsqueeze(1)
                 q_sq = q.add(group['eps']).sqrt_().unsqueeze(0)
@@ -254,7 +254,7 @@ class Alice(BaseOptimizer):
 
         sigma = u.T @ grad
 
-        p.mul_(decay_rate).add_(grad.pow(2).sum(dim=0) - sigma.pow(2).sum(dim=0), alpha=1.0 - decay_rate).clamp_min_(
+        p.lerp_(grad.pow(2).sum(dim=0) - sigma.pow(2).sum(dim=0), weight=1.0 - decay_rate).clamp_min_(
             1e-8
         )
 
@@ -335,9 +335,9 @@ class Alice(BaseOptimizer):
 
                 sigma = u.T @ grad
 
-                q.mul_(beta3).add_(sigma @ sigma.T, alpha=1.0 - beta3)
-                m.mul_(beta1).add_(sigma, alpha=1.0 - beta1)
-                v.mul_(beta2).add_(sigma.pow(2), alpha=1.0 - beta2)
+                q.lerp_(sigma @ sigma.T, weight=1.0 - beta3)
+                m.lerp_(sigma, weight=1.0 - beta1)
+                v.lerp_(sigma.pow(2), weight=1.0 - beta2)
 
                 c_t, phi = self.compensation(grad, u, state['p'], state['phi'], group['gamma'], beta1, rank)
 

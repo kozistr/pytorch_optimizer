@@ -144,7 +144,7 @@ class AdaPNM(BaseOptimizer):
                     r=group.get('adanorm_r', None),
                 )
 
-                exp_avg.mul_(beta1_p2).add_(s_grad, alpha=1.0 - beta1_p2)
+                exp_avg.lerp_(s_grad, weight=1.0 - beta1_p2)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 de_nom = self.apply_ams_bound(

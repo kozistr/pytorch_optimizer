@@ -119,7 +119,7 @@ class Yogi(BaseOptimizer):
                 grad_p2 = grad.mul(grad)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.addcmul_(
                     (
                         (exp_avg_sq - grad_p2).sign_()

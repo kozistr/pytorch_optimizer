@@ -159,8 +159,8 @@ class AdamWSN(BaseOptimizer):
                 else:
                     second_moment_update = grad.pow(2)
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
-                exp_avg_sq.mul_(beta2).add_(second_moment_update, alpha=1.0 - beta2)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
+                exp_avg_sq.lerp_(second_moment_update, weight=1.0 - beta2)
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 

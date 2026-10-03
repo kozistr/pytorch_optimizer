@@ -114,7 +114,7 @@ class PNM(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                pos_momentum.mul_(beta1_p2).add_(grad, alpha=1.0 - beta1_p2)
+                pos_momentum.lerp_(grad, weight=1.0 - beta1_p2)
 
                 delta_p = pos_momentum.mul(1.0 + beta2).add_(neg_momentum, alpha=-beta2).mul_(1.0 / noise_norm)
 

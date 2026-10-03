@@ -181,7 +181,7 @@ class Amos(BaseOptimizer):
             init_lr: float = group['lr'] * self.get_scale(p)
 
             exp_avg_sq = state['exp_avg_sq']
-            exp_avg_sq.mul_(beta).add_(g2, alpha=1.0 - beta)
+            exp_avg_sq.lerp_(g2, weight=1.0 - beta)
 
             r_v_hat = bias_correction / (exp_avg_sq + group['eps'])
 
@@ -200,7 +200,7 @@ class Amos(BaseOptimizer):
 
             if momentum > 0.0:
                 exp_avg = state['exp_avg']
-                exp_avg.mul_(momentum).add_(update, alpha=1.0 - momentum)
+                exp_avg.lerp_(update, weight=1.0 - momentum)
 
                 update.copy_(exp_avg)
 

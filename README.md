@@ -26,8 +26,8 @@ Highly inspired by [jettify/pytorch-optimizer](https://github.com/jettify/pytorc
 ## Installation
 
 Requirements:
-- Python `>=3.8`
-- PyTorch `>=1.10`
+- Python `>=3.10`
+- PyTorch `>=2.1`
 
 ```bash
 pip install pytorch-optimizer

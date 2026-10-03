@@ -119,7 +119,7 @@ class Ano(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
 
                 square_grad = grad.square()
                 sign_term = torch.sign(square_grad - exp_avg_sq)

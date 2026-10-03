@@ -340,13 +340,13 @@ class AdaLOMO(BaseOptimizer):
                     update = grad_fp32.pow(2).add_(self.eps1)
 
                     if len(p.shape) > 1:
-                        self.exp_avg_sq_row[n].mul_(beta2_t).add_(update.mean(dim=-1), alpha=1.0 - beta2_t)
-                        self.exp_avg_sq_col[n].mul_(beta2_t).add_(update.mean(dim=-2), alpha=1.0 - beta2_t)
+                        self.exp_avg_sq_row[n].lerp_(update.mean(dim=-1), weight=1.0 - beta2_t)
+                        self.exp_avg_sq_col[n].lerp_(update.mean(dim=-2), weight=1.0 - beta2_t)
 
                         self.approximate_sq_grad(self.exp_avg_sq_row[n], self.exp_avg_sq_col[n], update)
                         update.mul_(grad_fp32)
                     else:
-                        self.exp_avg_sq[n].mul_(beta2_t).add_(update, alpha=1.0 - beta2_t)
+                        self.exp_avg_sq[n].lerp_(update, weight=1.0 - beta2_t)
                         update = self.exp_avg_sq[n].rsqrt().mul_(grad_fp32)
 
                     factor = cast(torch.Tensor, self.get_rms(update)).div_(self.clip_threshold).clamp_min_(1.0)

@@ -166,7 +166,7 @@ class MADGRAD(BaseOptimizer):
                         p.copy_(x0.addcdiv(s, rms, value=-1))
                     else:
                         z = x0.addcdiv(s, rms, value=-1)
-                        p.mul_(momentum).add_(z, alpha=1.0 - momentum)
+                        p.lerp_(z, weight=1.0 - momentum)
 
                     if weight_decay > 0.0 and group['weight_decouple']:
                         p.add_(p_old, alpha=-lr * weight_decay)

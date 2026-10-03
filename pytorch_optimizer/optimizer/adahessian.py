@@ -143,7 +143,7 @@ class AdaHessian(BaseOptimizer):
                 )
 
                 exp_avg, exp_hessian_diag_sq = state['exp_avg'], state['exp_hessian_diag_sq']
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
 
                 if 'hessian' in state and (group['step'] % self.update_period == 0 or hessian is not None):
                     exp_hessian_diag_sq.mul_(beta2).addcmul_(state['hessian'], state['hessian'], value=1.0 - beta2)

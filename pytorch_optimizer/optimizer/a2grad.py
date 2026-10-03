@@ -116,7 +116,7 @@ class A2Grad(BaseOptimizer):
                 else:
                     v_kk = state['v_kk']
 
-                    v_kk.mul_(group['rho']).add_(delta_k_sq, alpha=1.0 - group['rho'])
+                    v_kk.lerp_(delta_k_sq, weight=1.0 - group['rho'])
                     torch.max(v_kk, v_k, out=v_k)
 
                 h_k = v_k.sqrt()
@@ -127,7 +127,7 @@ class A2Grad(BaseOptimizer):
 
                 x_k.add_(grad, alpha=coefficient)
 
-                p.mul_(1.0 - alpha_k_1).add_(x_k, alpha=alpha_k_1)
+                p.lerp_(x_k, weight=alpha_k_1)
                 p.add_(grad, alpha=(1.0 - alpha_k_1) * state['alpha_k'] * coefficient)
 
                 state['alpha_k'] = alpha_k_1

@@ -146,7 +146,7 @@ class SWATS(BaseOptimizer):
                     continue
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+                exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 de_nom = self.apply_ams_bound(
@@ -168,7 +168,7 @@ class SWATS(BaseOptimizer):
                     scaling = perturb_view.dot(perturb_view).div_(-pg)
 
                     exp_avg2 = state['exp_avg2']
-                    exp_avg2.mul_(beta2).add_(scaling, alpha=1.0 - beta2)
+                    exp_avg2.lerp_(scaling, weight=1.0 - beta2)
 
                     corrected_exp_avg = exp_avg2 / bias_correction2
 

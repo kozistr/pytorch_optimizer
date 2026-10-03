@@ -14,8 +14,8 @@ A clear and concise description of what the bug is.
 ## To Reproduce
 
 * OS : (e.g. Linux, Windows, MacOS)
-* PyTorch version : (e.g. 2.0.1, 1.13, >=1.8, <1.10)
-* Python version :  (e.g. 3.8, 3.11)
+* PyTorch version : (e.g. 2.1.0, 2.13.0)
+* Python version :  (e.g. 3.10, 3.12)
 * pytorch-optimizer version : (e.g. 3.3.0)
 * reproducible codes : please share your reproducible codes, scripts, or links. If sharing the code is complicated, you can manually write minimal code to reproduce bugs!
 

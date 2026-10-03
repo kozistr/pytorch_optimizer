@@ -134,7 +134,7 @@ class MARS(BaseOptimizer):
         if c_t_norm > 1.0:
             c_t.div_(c_t_norm)
 
-        exp_avg.mul_(beta1).add_(c_t, alpha=1.0 - beta1)
+        exp_avg.lerp_(c_t, weight=1.0 - beta1)
 
         update = exp_avg.clone()
         if cautious:
@@ -177,7 +177,7 @@ class MARS(BaseOptimizer):
         bias_correction1: float = self.debias(beta1, step)
         bias_correction2_sq: float = math.sqrt(self.debias(beta2, step))
 
-        exp_avg.mul_(beta1).add_(grad, alpha=1.0 - beta1)
+        exp_avg.lerp_(grad, weight=1.0 - beta1)
         exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
         update = exp_avg.clone()

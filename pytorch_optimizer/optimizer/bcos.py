@@ -139,7 +139,7 @@ class BCOS(BaseOptimizer):
 
                 if self.mode in ('m', 'c'):
                     m = state['m']
-                    m.mul_(beta).add_(grad, alpha=1.0 - beta)
+                    m.lerp_(grad, weight=1.0 - beta)
                     d = m
                 else:
                     d = grad
@@ -148,7 +148,7 @@ class BCOS(BaseOptimizer):
                     beta_v: float = beta if beta2 is None else beta2
 
                     v = state['v']
-                    v.mul_(beta_v).add_(d.square(), alpha=1.0 - beta_v)
+                    v.lerp_(d.square(), weight=1.0 - beta_v)
                 else:
                     v: torch.Tensor = self.compute_v(grad, old_m, beta, beta2)
 

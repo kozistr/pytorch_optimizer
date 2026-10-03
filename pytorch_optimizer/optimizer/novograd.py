@@ -106,7 +106,7 @@ class NovoGrad(BaseOptimizer):
                 if first_update:
                     state['grads_ema'] = grad_p2
                 else:
-                    state['grads_ema'].mul_(beta2).add_(grad_p2, alpha=1.0 - beta2)
+                    state['grads_ema'].lerp_(grad_p2, weight=1.0 - beta2)
 
                 de_nom = state['grads_ema'].sqrt().add_(group['eps'])
                 grad.div_(de_nom)

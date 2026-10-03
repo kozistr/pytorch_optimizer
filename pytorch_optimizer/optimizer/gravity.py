@@ -86,7 +86,7 @@ class Gravity(BaseOptimizer):
                 m = 1.0 / grad.abs().max()
                 zeta = grad / (1.0 + (grad / m) ** 2)
 
-                v.mul_(beta_t).add_(zeta, alpha=1.0 - beta_t)
+                v.lerp_(zeta, weight=1.0 - beta_t)
 
                 p.add_(v, alpha=-group['lr'])
 
