@@ -218,7 +218,7 @@ class SPlus(BaseOptimizer):
                 if group['weight_decouple']:
                     self.apply_weight_decay(
                         p=p,
-                        grad=None,
+                        grad=grad,
                         lr=scaled_lr,
                         weight_decay=group['weight_decay'],
                         weight_decouple=True,
