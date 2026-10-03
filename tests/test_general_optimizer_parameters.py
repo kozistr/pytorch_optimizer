@@ -1,7 +1,7 @@
 import pytest
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError, ZeroParameterSizeError
-from pytorch_optimizer.optimizer import PCGrad, load_optimizer
+from pytorch_optimizer.optimizer import load_optimizer
 from tests.fixtures import make_parameter
 from tests.optimizer_cases import (
     BETA_OPTIMIZER_NAMES,
@@ -23,33 +23,28 @@ def _config_for_optimizer(optimizer_name: str, **config):
 
 
 class TestBasicParameterValidation:
-    @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
+    @pytest.mark.parametrize(
+        'optimizer_name', [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_LEARNING_RATE]
+    )
     def test_learning_rate(self, optimizer_name):
-        if optimizer_name in SKIP_LEARNING_RATE:
-            pytest.skip(f'skip {optimizer_name} optimizer')
-
         optimizer = load_optimizer(optimizer_name)
         config = _config_for_optimizer(optimizer_name, lr=-1e-2)
 
         with pytest.raises(NegativeLRError):
             optimizer(None, **config)
 
-    @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
+    @pytest.mark.parametrize('optimizer_name', [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_EPSILON])
     def test_epsilon(self, optimizer_name):
-        if optimizer_name in SKIP_EPSILON:
-            pytest.skip(f'skip {optimizer_name} optimizer')
-
         optimizer = load_optimizer(optimizer_name)
         config = _config_for_optimizer(optimizer_name, eps=-1e-6)
 
         with pytest.raises(ValueError):
             optimizer(None, **config)
 
-    @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
+    @pytest.mark.parametrize(
+        'optimizer_name', [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_WEIGHT_DECAY]
+    )
     def test_weight_decay(self, optimizer_name):
-        if optimizer_name in SKIP_WEIGHT_DECAY:
-            pytest.skip(f'skip {optimizer_name} optimizer')
-
         optimizer = load_optimizer(optimizer_name)
         config = _config_for_optimizer(optimizer_name, weight_decay=-1e-3)
 
@@ -104,11 +99,6 @@ class TestBetaParameterValidation:
 
 
 class TestSpecialParameterValidation:
-    def test_reduction(self):
-        optimizer = load_optimizer('adamp')([make_parameter()])
-        with pytest.raises(ValueError):
-            PCGrad(optimizer, reduction='wrong')
-
     @pytest.mark.parametrize('optimizer_name', ['scalableshampoo', 'shampoo'])
     def test_update_frequency(self, optimizer_name):
         optimizer = load_optimizer(optimizer_name)

@@ -2,32 +2,32 @@ import pytest
 import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
-from pytorch_optimizer.optimizer import load_optimizer
 from tests.fixtures import make_parameter, make_sparse_parameters
 from tests.optimizer_cases import (
     COMPLEX_OPTIMIZERS,
     GRADIENT_OPTIONS,
-    SKIP_COMPLEX_NOT_SUPPORTED,
+    SKIP_CAPABILITY_PROBE,
     SKIP_NO_GRADIENT_TEST,
-    SKIP_SPARSE_NOT_SUPPORTED,
     SPARSE_OPTIMIZERS,
     VALID_OPTIMIZER_NAMES,
     optimizers_with_argument,
 )
 from tests.utils import build_optimizer, sphere_loss
 
-NO_SPARSE_OPTIMIZERS = [opt for opt in VALID_OPTIMIZER_NAMES if opt not in SPARSE_OPTIMIZERS]
-
-
-NO_COMPLEX_OPTIMIZERS = [opt for opt in VALID_OPTIMIZER_NAMES if opt not in COMPLEX_OPTIMIZERS]
+NO_SPARSE_OPTIMIZERS = [opt for opt in VALID_OPTIMIZER_NAMES if opt not in SPARSE_OPTIMIZERS | SKIP_CAPABILITY_PROBE]
+NO_COMPLEX_OPTIMIZERS = [opt for opt in VALID_OPTIMIZER_NAMES if opt not in COMPLEX_OPTIMIZERS | SKIP_CAPABILITY_PROBE]
 
 
 class TestGradientAvailability:
-    @pytest.mark.parametrize('optimizer_name', [*VALID_OPTIMIZER_NAMES, 'lookahead', 'trac', 'orthograd'])
+    @pytest.mark.parametrize(
+        'optimizer_name',
+        [
+            name
+            for name in (*VALID_OPTIMIZER_NAMES, 'lookahead', 'trac', 'orthograd')
+            if name not in SKIP_NO_GRADIENT_TEST
+        ],
+    )
     def test_no_gradients(self, optimizer_name):
-        if optimizer_name in SKIP_NO_GRADIENT_TEST:
-            pytest.skip(f'skip {optimizer_name} optimizer.')
-
         p1 = make_parameter(requires_grad=True)
         p2 = make_parameter(requires_grad=False)
         p3 = make_parameter(requires_grad=True)
@@ -47,9 +47,6 @@ class TestGradientAvailability:
 class TestSparseGradients:
     @pytest.mark.parametrize('no_sparse_optimizer', NO_SPARSE_OPTIMIZERS)
     def test_sparse_not_supported(self, no_sparse_optimizer):
-        if no_sparse_optimizer in SKIP_SPARSE_NOT_SUPPORTED:
-            pytest.skip(f'skip {no_sparse_optimizer} optimizer.')
-
         param = make_sparse_parameters()[1]
 
         optimizer = build_optimizer(no_sparse_optimizer, [param])
@@ -59,16 +56,14 @@ class TestSparseGradients:
 
     @pytest.mark.parametrize('sparse_optimizer', sorted(SPARSE_OPTIMIZERS))
     def test_sparse(self, sparse_optimizer):
-        opt = load_optimizer(optimizer=sparse_optimizer)
-
         weight, weight_sparse = make_sparse_parameters()
 
         params = {'lr': 1e-3, 'momentum': 0.0}
         if sparse_optimizer == 'sm3':
             params.update({'beta': 0.9})
 
-        opt_dense = opt([weight], **params)
-        opt_sparse = opt([weight_sparse], **params)
+        opt_dense = build_optimizer(sparse_optimizer, [weight], **params)
+        opt_sparse = build_optimizer(sparse_optimizer, [weight_sparse], **params)
 
         opt_dense.step()
         opt_sparse.step()
@@ -90,39 +85,38 @@ class TestSparseGradients:
         opt_sparse.step()
         assert torch.allclose(weight, weight_sparse)
 
-    @pytest.mark.parametrize('sparse_optimizer', sorted(SPARSE_OPTIMIZERS))
-    def test_sparse_supported(self, sparse_optimizer):
-        opt = load_optimizer(optimizer=sparse_optimizer)
-
-        optimizer = opt([make_sparse_parameters()[1]], momentum=0.0)
-        optimizer.zero_grad()
+    @pytest.mark.parametrize(
+        'sparse_optimizer',
+        [
+            pytest.param(
+                name,
+                marks=pytest.mark.xfail(
+                    strict=True, reason='MADGRAD divides its uninitialized sparse accumulator by zero when eps=0'
+                )
+                if name == 'madgrad'
+                else [],
+            )
+            for name in sorted(SPARSE_OPTIMIZERS & optimizers_with_argument('eps'))
+        ],
+    )
+    def test_zero_epsilon(self, sparse_optimizer):
+        param = make_sparse_parameters()[1]
+        optimizer = build_optimizer(sparse_optimizer, [param], momentum=0.0, eps=0.0)
         optimizer.step()
 
-        options = {'eps': 0.0} if sparse_optimizer in optimizers_with_argument('eps') else {}
-        optimizer = opt([make_sparse_parameters()[1]], momentum=0.0, **options)
-        optimizer.step()
+        assert torch.isfinite(param).all()
 
-        if sparse_optimizer == 'madgrad':
-            optimizer = opt([make_sparse_parameters()[1]], momentum=0.0, weight_decay=1e-3, weight_decouple=False)
-            with pytest.raises(NoSparseGradientError):
-                optimizer.step()
+    @pytest.mark.parametrize('options', [{'momentum': 0.9}, {'weight_decay': 1e-3, 'weight_decouple': False}])
+    def test_madgrad_unsupported_sparse_options(self, options):
+        optimizer = build_optimizer('madgrad', [make_sparse_parameters()[1]], **{'momentum': 0.0, **options})
 
-        if sparse_optimizer in ('madgrad', 'dadapt'):
-            optimizer = opt([make_sparse_parameters()[1]], momentum=0.9, weight_decay=1e-3)
-
-            if sparse_optimizer == 'madgrad':
-                with pytest.raises(NoSparseGradientError):
-                    optimizer.step()
-            else:
-                optimizer.step()
+        with pytest.raises(NoSparseGradientError):
+            optimizer.step()
 
 
 class TestComplexParameters:
     @pytest.mark.parametrize('no_complex_optimizer', NO_COMPLEX_OPTIMIZERS)
     def test_complex_not_supported(self, no_complex_optimizer):
-        if no_complex_optimizer in SKIP_COMPLEX_NOT_SUPPORTED:
-            pytest.skip(f'skip {no_complex_optimizer}.')
-
         param = make_parameter(dtype=torch.complex64, grad=1.0)
 
         use_muon: bool = no_complex_optimizer in ('muon', 'adamuon', 'adago', 'normuon')

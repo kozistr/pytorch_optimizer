@@ -1,13 +1,11 @@
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer import create_optimizer, load_optimizer
+from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, create_optimizer, load_optimizer
 from tests.fixtures import TrainingModel, build_model
 from tests.optimizer_cases import SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
 from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS
 from tests.utils import Trainer, ids
-
-WRAPPER_TEST_OPTIMIZERS = ['adamp', 'lion', 'lamb', 'adan', 'madgrad', 'ranger']
 
 
 def _get_optimizer_kwargs(optimizer_name):
@@ -20,11 +18,10 @@ def _get_optimizer_kwargs(optimizer_name):
 
 
 class TestCreateOptimizer:
-    @pytest.mark.parametrize('optimizer_name', VALID_OPTIMIZER_NAMES)
+    @pytest.mark.parametrize(
+        'optimizer_name', [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_CREATE_OPTIMIZER]
+    )
     def test_create_optimizer_basic(self, optimizer_name):
-        if optimizer_name in SKIP_CREATE_OPTIMIZER:
-            pytest.skip(f'skip {optimizer_name}')
-
         optimizer = create_optimizer(
             TrainingModel(),
             optimizer_name=optimizer_name,
@@ -35,9 +32,9 @@ class TestCreateOptimizer:
         assert optimizer.defaults.get('weight_decay', 0.0) == 0.0
         assert all(group.get('weight_decay', 0.0) == 0.0 for group in optimizer.param_groups)
 
-    @pytest.mark.parametrize('optimizer_name', WRAPPER_TEST_OPTIMIZERS)
+    @pytest.mark.parametrize('optimizer_name', ['adamp', 'ranger', 'ranger21', 'ranger25'])
     def test_create_optimizer_with_lookahead(self, optimizer_name):
-        create_optimizer(
+        optimizer = create_optimizer(
             TrainingModel(),
             optimizer_name=optimizer_name,
             use_lookahead=True,
@@ -45,15 +42,18 @@ class TestCreateOptimizer:
             **_get_optimizer_kwargs(optimizer_name),
         )
 
-    @pytest.mark.parametrize('optimizer_name', WRAPPER_TEST_OPTIMIZERS)
-    def test_create_optimizer_with_orthograd(self, optimizer_name):
-        create_optimizer(
+        assert isinstance(optimizer, Lookahead) == (optimizer_name == 'adamp')
+
+    def test_create_optimizer_with_orthograd(self):
+        optimizer = create_optimizer(
             TrainingModel(),
-            optimizer_name=optimizer_name,
+            optimizer_name='adamp',
             use_lookahead=False,
             use_orthograd=True,
-            **_get_optimizer_kwargs(optimizer_name),
+            **_get_optimizer_kwargs('adamp'),
         )
+
+        assert isinstance(optimizer, OrthoGrad)
 
     @pytest.mark.parametrize('optimizer_config', COMPILE_SUPPORTED_OPTIMIZERS, ids=ids)
     @pytest.mark.parametrize('foreach', [False, True])

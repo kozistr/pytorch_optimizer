@@ -1,9 +1,9 @@
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer import load_optimizer
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
 from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
 
 
 class TestScion:
@@ -14,8 +14,8 @@ class TestScion:
     def test_scion_lmo_types(self):
         params = [make_parameter(), make_parameter((1,))]
 
-        load_optimizer('scion')(params).init()
-        load_optimizer('scionlight')(params).init()
+        build_optimizer('scion', params).init()
+        build_optimizer('scionlight', params).init()
 
         grad_1d = torch.ones(1)
         grad_2d = torch.ones(1, 1)

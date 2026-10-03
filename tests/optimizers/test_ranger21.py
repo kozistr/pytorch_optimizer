@@ -1,5 +1,6 @@
 from pytorch_optimizer.optimizer import load_optimizer
 from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
 
 
 class TestRanger21:
@@ -12,8 +13,8 @@ class TestRanger21:
 
     def test_warm_up_and_down(self):
         lr: float = 1e-1
-        opt = load_optimizer('ranger21')(
-            [make_parameter(requires_grad=False)], num_iterations=500, lr=lr, warm_down_min_lr=3e-5
+        opt = build_optimizer(
+            'ranger21', [make_parameter(requires_grad=False)], num_iterations=500, lr=lr, warm_down_min_lr=3e-5
         )
 
         assert opt.warm_up_dampening(lr, 100) == 0.09090909090909091
@@ -24,7 +25,7 @@ class TestRanger21:
 
     def test_closure(self):
         param = make_parameter()
-        optimizer = load_optimizer('ranger21')([param], num_iterations=100, betas=(0.9, 1e-9))
+        optimizer = build_optimizer('ranger21', [param], num_iterations=100, betas=(0.9, 1e-9))
 
         def closure():
             loss = param.square().sum()

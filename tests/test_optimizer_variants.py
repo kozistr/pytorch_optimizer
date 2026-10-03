@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 import torch
 
@@ -5,7 +7,7 @@ from tests.fixtures import build_model, make_parameter
 from tests.optimizer_cases import FOREACH_OPTIMIZERS, GRADIENT_OPTIONS, MAXIMIZE_OPTIMIZERS, SKIP_CAPABILITY_PROBE
 from tests.utils import Trainer, build_optimizer, build_optimizer_parameters, ids
 
-ADANORM_SUPPORTED_OPTIMIZERS: list[tuple['any', dict[str, float | bool | int], int]] = [
+ADANORM_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('adabelief', {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     ('adamp', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     ('adams', {'lr': 7.5e-1, 'weight_decay': 1e-3}, 5),
@@ -20,7 +22,7 @@ ADANORM_SUPPORTED_OPTIMIZERS: list[tuple['any', dict[str, float | bool | int], i
     ('aida', {'lr': 1e0, 'weight_decay': 1e-3}, 5),
 ]
 
-ADAMD_SUPPORTED_OPTIMIZERS: list[tuple['any', dict[str, float | bool | int], int]] = [
+ADAMD_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('adabelief', {'lr': 1e1, 'weight_decay': 1e-3}, 5),
     ('adabound', {'lr': 1e0, 'gamma': 0.1, 'weight_decay': 1e-3}, 35),
     ('adamp', {'lr': 1e0, 'weight_decay': 1e-3}, 5),
@@ -42,7 +44,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: list[tuple['any', dict[str, float | bool | int], int
     ('aida', {'lr': 1e1, 'weight_decay': 1e-3, 'rectify': True}, 10),
 ]
 
-COPT_SUPPORTED_OPTIMIZERS: list[tuple['any', dict[str, float | bool | int], int]] = [
+COPT_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('adafactor', {'lr': 1e0, 'weight_decay': 1e-3, 'scale_parameter': False, 'relative_step': False}, 5),
     ('lion', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     ('ademamix', {'lr': 1e0}, 2),
@@ -71,7 +73,7 @@ COPT_SUPPORTED_OPTIMIZERS: list[tuple['any', dict[str, float | bool | int], int]
     ),
 ]
 
-STABLE_ADAMW_SUPPORTED_OPTIMIZERS: list[tuple['any', dict[str, float | bool | int], int]] = [
+STABLE_ADAMW_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('adopt', {'lr': 1e0, 'weight_decay': 1e-3, 'stable_adamw': True}, 5),
     ('ademamix', {'lr': 1e0, 'weight_decay': 1e-3, 'stable_adamw': True}, 10),
 ]

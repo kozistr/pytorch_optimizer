@@ -9,18 +9,15 @@ from torch import nn
 
 from pytorch_optimizer import (
     BSAM,
-    GSAM,
     SAM,
     TRAC,
     WSAM,
-    CosineScheduler,
     FriendlySAM,
     Lookahead,
     LookSAM,
     Magma,
     OrthoGrad,
     PCGrad,
-    ProportionScheduler,
     ScheduleFreeWrapper,
     load_optimizer,
 )
@@ -45,7 +42,7 @@ def accelerate_style_move_to_device(state, device):
 def test_load_wrapper_optimizer(wrapper_optimizer_instance):
     params = [make_parameter()]
 
-    _ = wrapper_optimizer_instance(load_optimizer('adamw')(params))
+    _ = wrapper_optimizer_instance(build_optimizer('adamw', params))
 
     optimizer = wrapper_optimizer_instance(load_optimizer('adamw'), params=params)
     optimizer.init_group({'params': []}, updates=[])
@@ -68,7 +65,7 @@ class TestLookahead:
         model, loss_fn = build_model(device=x_data.device)
 
         optimizer = Lookahead(
-            load_optimizer('adamw')(model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum
+            build_optimizer('adamw', model.parameters(), lr=5e-1), pullback_momentum=pullback_momentum
         )
         optimizer.init_group({})
 
@@ -77,7 +74,7 @@ class TestLookahead:
 
     def test_lookahead_state_dict_with_accelerate_style_mapping(self):
         model = TrainingModel()
-        optimizer = Lookahead(load_optimizer('adamw')(model.parameters(), lr=1e-3))
+        optimizer = Lookahead(build_optimizer('adamw', model.parameters(), lr=1e-3))
 
         for p in model.parameters():
             if p.requires_grad:
@@ -95,7 +92,9 @@ class TestLookahead:
     def test_lookahead_resume_with_new_parameters(self, pullback_momentum):
         parameters = [nn.Parameter(torch.tensor([1.0])), nn.Parameter(torch.tensor([2.0, -1.0]))]
         optimizer = Lookahead(
-            load_optimizer('sgd')([{'params': [p], 'lr': lr} for p, lr in zip(parameters, [0.1, 0.05])], momentum=0.9),
+            build_optimizer(
+                'sgd', [{'params': [p], 'lr': lr} for p, lr in zip(parameters, [0.1, 0.05])], momentum=0.9
+            ),
             k=2,
             pullback_momentum=pullback_momentum,
         )
@@ -105,7 +104,7 @@ class TestLookahead:
 
         restored_parameters = [nn.Parameter(p.detach().clone()) for p in parameters]
         restored = Lookahead(
-            load_optimizer('sgd')([{'params': [p]} for p in restored_parameters], lr=0.1, momentum=0.9),
+            build_optimizer('sgd', [{'params': [p]} for p in restored_parameters], lr=0.1, momentum=0.9),
             k=2,
             pullback_momentum=pullback_momentum,
         )
@@ -136,7 +135,7 @@ class TestLookahead:
     @pytest.mark.parametrize('mismatch', ['legacy', 'missing', 'extra'])
     def test_lookahead_rejects_mismatched_state(self, mismatch):
         parameters = [nn.Parameter(torch.tensor([1.0])), nn.Parameter(torch.tensor([2.0]))]
-        optimizer = Lookahead(load_optimizer('sgd')(parameters, lr=0.1))
+        optimizer = Lookahead(build_optimizer('sgd', parameters, lr=0.1))
         state_dict = deepcopy(optimizer.state_dict())
         if mismatch == 'legacy':
             state_dict['lookahead_state'] = {
@@ -179,7 +178,7 @@ class TestLookahead:
 
     def test_lookahead_load_legacy_defaultdict_state(self):
         parameter = make_parameter()
-        optimizer = load_optimizer('adamp')([parameter], lr=1e-2)
+        optimizer = build_optimizer('adamp', [parameter], lr=1e-2)
         lookahead = Lookahead(optimizer)
 
         parameter.grad = torch.randn_like(parameter)
@@ -205,14 +204,14 @@ class TestMagma:
         x_data, y_data = environment
         model, loss_fn = build_model(device=x_data.device)
 
-        optimizer = Magma(load_optimizer('adamw')(model.parameters(), lr=5e-1), mask_prob=1.0)
+        optimizer = Magma(build_optimizer('adamw', model.parameters(), lr=5e-1), mask_prob=1.0)
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
         trainer.run(iterations=5, threshold=2.0)
 
     def test_magma_str_and_closure(self):
         parameter = make_parameter()
-        optimizer = Magma(load_optimizer('sgd')([parameter], lr=1e-1), mask_prob=1.0)
+        optimizer = Magma(build_optimizer('sgd', [parameter], lr=1e-1), mask_prob=1.0)
 
         def closure():
             parameter.grad = torch.ones_like(parameter)
@@ -232,20 +231,20 @@ class TestMagma:
 
     def test_magma_loads_magma_state(self):
         parameter = make_parameter()
-        optimizer = Magma(load_optimizer('sgd')([parameter], lr=1e-1), mask_prob=1.0)
+        optimizer = Magma(build_optimizer('sgd', [parameter], lr=1e-1), mask_prob=1.0)
 
         parameter.grad = torch.ones_like(parameter)
         optimizer.step()
 
         new_parameter = make_parameter()
-        new_optimizer = Magma(load_optimizer('sgd')([new_parameter], lr=1e-1))
+        new_optimizer = Magma(build_optimizer('sgd', [new_parameter], lr=1e-1))
         new_optimizer.load_state_dict(optimizer.state_dict())
 
         assert {'alignment', 'momentum'} <= new_optimizer.state_dict()['magma_state'][(0, 0)].keys()
 
     def test_magma_moment_selection(self):
         parameter = make_parameter()
-        optimizer = Magma(load_optimizer('sgd')([parameter], lr=1e-1))
+        optimizer = Magma(build_optimizer('sgd', [parameter], lr=1e-1))
 
         assert optimizer._get_first_moment(parameter) is None
 
@@ -264,7 +263,7 @@ class TestMagma:
 
     def test_magma_masks_parameters_and_updates_base_state(self):
         parameter = make_parameter()
-        optimizer = Magma(load_optimizer('sgd')([parameter], lr=1e-1, momentum=0.9), mask_prob=0.0)
+        optimizer = Magma(build_optimizer('sgd', [parameter], lr=1e-1, momentum=0.9), mask_prob=0.0)
 
         parameter.grad = torch.ones_like(parameter)
         initial_parameter = parameter.detach().clone()
@@ -276,7 +275,7 @@ class TestMagma:
 
     def test_magma_excludes_parameters_and_loads_state_dict(self):
         parameter = make_parameter()
-        optimizer = Magma(load_optimizer('adamw')([parameter], lr=1e-1), mask_prob=0.0, exclude={parameter})
+        optimizer = Magma(build_optimizer('adamw', [parameter], lr=1e-1), mask_prob=0.0, exclude={parameter})
 
         parameter.grad = torch.ones_like(parameter)
         initial_parameter = parameter.detach().clone()
@@ -286,7 +285,7 @@ class TestMagma:
         state_dict = optimizer.state_dict()
 
         new_parameter = make_parameter()
-        new_optimizer = Magma(load_optimizer('adamw')([new_parameter], lr=1e-1))
+        new_optimizer = Magma(build_optimizer('adamw', [new_parameter], lr=1e-1))
         new_optimizer.load_state_dict(state_dict)
         assert new_optimizer.state[new_parameter].keys() == optimizer.state[parameter].keys()
 
@@ -407,42 +406,6 @@ class TestWSAM:
         optimizer.second_step(zero_grad=True)
 
 
-class TestGSAM:
-    @pytest.mark.parametrize('adaptive', [True, False])
-    def test_gsam_optimizer(self, adaptive, environment):
-        pytest.skip('skip GSAM optimizer')
-
-        x_data, y_data = environment
-        model, loss_fn = build_model(device=x_data.device)
-
-        lr: float = 5e-1
-        num_iterations: int = 25
-
-        base_optimizer = load_optimizer('adamp')(model.parameters(), lr=lr)
-        lr_scheduler = CosineScheduler(base_optimizer, t_max=num_iterations, max_lr=lr, min_lr=lr, init_lr=lr)
-        rho_scheduler = ProportionScheduler(lr_scheduler, max_lr=lr, min_lr=lr)
-        optimizer = GSAM(
-            model.parameters(),
-            base_optimizer=base_optimizer,
-            model=model,
-            rho_scheduler=rho_scheduler,
-            adaptive=adaptive,
-        )
-
-        init_loss, loss = np.inf, np.inf
-        for _ in range(num_iterations):
-            optimizer.set_closure(loss_fn, x_data, y_data)
-            _, loss = optimizer.step()
-
-            if init_loss == np.inf:
-                init_loss = loss
-
-            lr_scheduler.step()
-            optimizer.update_rho_t()
-
-        assert tensor_to_numpy(init_loss) > 1.2 * tensor_to_numpy(loss)
-
-
 class TestBSAM:
     @pytest.mark.parametrize('adaptive', [True, False])
     def test_bsam_optimizer(self, adaptive, environment, monkeypatch):
@@ -466,7 +429,7 @@ class TestBSAM:
 class TestScheduleFreeWrapper:
     def test_schedulefree_wrapper(self):
         params = [make_parameter(), make_parameter((1,)), make_parameter(grad=None)]
-        optimizer = ScheduleFreeWrapper(load_optimizer('adamw')(params, lr=1e-3, weight_decay=1e-3))
+        optimizer = ScheduleFreeWrapper(build_optimizer('adamw', params, lr=1e-3, weight_decay=1e-3))
 
         with pytest.raises(ValueError):
             optimizer.step()
@@ -482,7 +445,7 @@ class TestScheduleFreeWrapper:
 
         backup_state = optimizer.state_dict()
 
-        optimizer = ScheduleFreeWrapper(load_optimizer('adamw')(params, lr=1e-3, weight_decay=1e-3))
+        optimizer = ScheduleFreeWrapper(build_optimizer('adamw', params, lr=1e-3, weight_decay=1e-3))
         optimizer.zero_grad()
         optimizer.train()
 
@@ -498,17 +461,17 @@ class TestScheduleFreeWrapper:
 
     def test_schedulefree_wrapper_legacy_state_dict(self):
         parameter = make_parameter()
-        optimizer = ScheduleFreeWrapper(load_optimizer('sgd')([parameter], lr=0.1))
+        optimizer = ScheduleFreeWrapper(build_optimizer('sgd', [parameter], lr=0.1))
         optimizer.train()
         parameter.grad = torch.ones_like(parameter)
         optimizer.step()
 
         legacy_state = {'schedulefree_state': optimizer.state, 'base_optimizer': optimizer.optimizer.state_dict()}
-        same_parameter = ScheduleFreeWrapper(load_optimizer('sgd')([parameter], lr=0.1))
+        same_parameter = ScheduleFreeWrapper(build_optimizer('sgd', [parameter], lr=0.1))
         same_parameter.load_state_dict(legacy_state)
         torch.testing.assert_close(same_parameter.state[parameter]['z'], optimizer.state[parameter]['z'])
 
-        different_parameter = ScheduleFreeWrapper(load_optimizer('sgd')([make_parameter()], lr=0.1))
+        different_parameter = ScheduleFreeWrapper(build_optimizer('sgd', [make_parameter()], lr=0.1))
         with pytest.raises(ValueError, match='schedule-free state does not match'):
             different_parameter.load_state_dict(legacy_state)
 
@@ -533,7 +496,7 @@ class TestPCGrad:
         loss_fn_1: nn.Module = nn.BCEWithLogitsLoss()
         loss_fn_2: nn.Module = nn.L1Loss()
 
-        optimizer = PCGrad(load_optimizer('adamp')(model.parameters(), lr=1e-1), reduction=reduction)
+        optimizer = PCGrad(build_optimizer('adamp', model.parameters(), lr=1e-1), reduction=reduction)
         optimizer.init_group()
 
         init_loss, loss = np.inf, np.inf
@@ -558,7 +521,9 @@ class TestPCGrad:
         shared = nn.Parameter(torch.tensor([1.0]))
         task_specific = nn.Parameter(torch.tensor([2.0]))
         unused = nn.Parameter(torch.tensor([3.0]))
-        optimizer = PCGrad(load_optimizer('sgd')([shared, task_specific, unused], lr=0.1, weight_decay=0.2), reduction)
+        optimizer = PCGrad(
+            build_optimizer('sgd', [shared, task_specific, unused], lr=0.1, weight_decay=0.2), reduction
+        )
 
         optimizer.pc_backward([(shared - 1.0).square().sum() + task_specific.sum(), (shared - 1.0).square().sum()])
 
@@ -572,7 +537,7 @@ class TestPCGrad:
         torch.testing.assert_close(unused, torch.tensor([3.0]))
 
     def test_pcgrad_parameters(self):
-        opt = load_optimizer('adamw')([make_parameter()])
+        opt = build_optimizer('adamw', [make_parameter()])
 
         for reduction in ('mean', 'sum'):
             PCGrad(opt, reduction=reduction)
@@ -586,13 +551,13 @@ class TestTRAC:
         x_data, y_data = environment
         model, loss_fn = build_model(device=x_data.device)
 
-        optimizer = TRAC(load_optimizer('adamw')(model.parameters(), lr=1e0))
+        optimizer = TRAC(build_optimizer('adamw', model.parameters(), lr=1e0))
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
         trainer.run(iterations=3, threshold=2.0)
 
     def test_trac_optimizer_erf_imag(self):
-        optimizer = TRAC(load_optimizer('adamw')([make_parameter()]))
+        optimizer = TRAC(build_optimizer('adamw', [make_parameter()]))
         optimizer.zero_grad()
 
         complex_tensor = torch.complex(torch.tensor(0.0), torch.tensor(1.0))
@@ -604,7 +569,7 @@ class TestTRAC:
     def test_trac_checkpoint_resumes_with_new_parameters(self, checkpoint_format):
         parameters = [nn.Parameter(torch.tensor([1.0])), nn.Parameter(torch.tensor([-1.0, 2.0]))]
         optimizer = TRAC(
-            load_optimizer('sgd')([{'params': [p], 'lr': lr} for p, lr in zip(parameters, [0.1, 0.05])], momentum=0.9)
+            build_optimizer('sgd', [{'params': [p], 'lr': lr} for p, lr in zip(parameters, [0.1, 0.05])], momentum=0.9)
         )
         for gradient in (0.5, -0.25, 1.0):
             for p in parameters:
@@ -621,7 +586,7 @@ class TestTRAC:
         saved_state = torch.load(stream, weights_only=False)
 
         restored_parameters = [nn.Parameter(p.detach().clone()) for p in parameters]
-        restored = TRAC(load_optimizer('sgd')([{'params': [p]} for p in restored_parameters], lr=0.1, momentum=0.9))
+        restored = TRAC(build_optimizer('sgd', [{'params': [p]} for p in restored_parameters], lr=0.1, momentum=0.9))
         restored.load_state_dict(saved_state)
 
         for gradient in (-0.5, 0.25, 1.0):
@@ -644,7 +609,7 @@ class TestTRAC:
 
     def test_trac_rejects_missing_checkpoint_reference(self):
         parameter = nn.Parameter(torch.tensor([1.0]))
-        optimizer = TRAC(load_optimizer('sgd')([parameter], lr=0.1))
+        optimizer = TRAC(build_optimizer('sgd', [parameter], lr=0.1))
         parameter.grad = torch.ones_like(parameter)
         optimizer.step()
         state_dict = deepcopy(optimizer.state_dict())
@@ -659,5 +624,5 @@ class TestOrthoGrad:
         param = make_parameter(requires_grad=True)
         param.grad = None
 
-        optimizer = OrthoGrad(load_optimizer('adamw')([param]))
+        optimizer = OrthoGrad(build_optimizer('adamw', [param]))
         optimizer.apply_orthogonal_gradients([param])

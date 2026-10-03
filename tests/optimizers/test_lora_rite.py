@@ -1,8 +1,8 @@
 import torch
 
-from pytorch_optimizer.optimizer import load_optimizer
 from pytorch_optimizer.optimizer.lora_rite import LoRARiteHelper
 from tests.fixtures import make_lora_parameters, make_parameter
+from tests.utils import build_optimizer
 
 
 class TestLoraRite:
@@ -45,7 +45,8 @@ class TestLoraRite:
     def test_lora_rite_rich_options_and_existing_state(self):
         param_left, param_right = make_lora_parameters()
 
-        optimizer = load_optimizer('lorarite')(
+        optimizer = build_optimizer(
+            'lorarite',
             [param_left, param_right],
             lr=5e-3,
             betas=(0.5, 0.9),
@@ -71,8 +72,8 @@ class TestLoraRite:
         param_left, param_right = make_lora_parameters()
         initial_left = param_left.detach().clone()
         initial_right = param_right.detach().clone()
-        optimizer = load_optimizer('lorarite')(
-            [param_left, param_right], lr=1e-1, betas=(0.0, 0.0), update_skipping=1e-12
+        optimizer = build_optimizer(
+            'lorarite', [param_left, param_right], lr=1e-1, betas=(0.0, 0.0), update_skipping=1e-12
         )
         optimizer.step()
 
@@ -81,12 +82,12 @@ class TestLoraRite:
 
         orphan = make_parameter(requires_grad=True)
         orphan.grad = torch.ones_like(orphan)
-        no_pair_optimizer = load_optimizer('lorarite')([orphan])
+        no_pair_optimizer = build_optimizer('lorarite', [orphan])
         no_pair_optimizer.step()
         assert torch.allclose(orphan, torch.zeros_like(orphan))
 
         paired_left, paired_right = make_lora_parameters()
         paired_right.grad = None
-        missing_grad_optimizer = load_optimizer('lorarite')([paired_left, paired_right])
+        missing_grad_optimizer = build_optimizer('lorarite', [paired_left, paired_right])
         missing_grad_optimizer.step()
         assert torch.allclose(paired_left, torch.tensor([[1.0, 0.2, -0.3], [0.8, 0.5, -0.7]]))

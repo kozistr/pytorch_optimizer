@@ -1,8 +1,8 @@
 import torch
 from torch import nn
 
-from pytorch_optimizer.optimizer import load_optimizer
 from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
 
 
 def test_stableadamw_optimizer():
@@ -12,14 +12,14 @@ def test_stableadamw_optimizer():
         make_parameter((1, 2), dtype=torch.float16, grad=None),
         make_parameter((1,), grad=None),
     ]
-    optimizer = load_optimizer('stableadamw')([{'params': params[:1]}, {'params': params[1:]}])
+    optimizer = build_optimizer('stableadamw', [{'params': params[:1]}, {'params': params[1:]}])
     optimizer.step()
     params[0].grad = torch.full_like(params[0], 400.0)
     params[1].grad = torch.full_like(params[1], 2.0)
     optimizer.step()
 
     restored_params = [nn.Parameter(param.detach().clone()) for param in params]
-    restored = load_optimizer('stableadamw')([{'params': restored_params[:1]}, {'params': restored_params[1:]}])
+    restored = build_optimizer('stableadamw', [{'params': restored_params[:1]}, {'params': restored_params[1:]}])
     restored.load_state_dict(optimizer.state_dict())
 
     second_moment = restored.state[restored_params[0]]['exp_avg_sq']

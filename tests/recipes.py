@@ -1,6 +1,6 @@
 from typing import Any
 
-OPTIMIZER_RECIPES: list[tuple['any', dict[str, Any], int]] = [
+OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('lookahead', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     ('orthograd', {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     ('schedulefree', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
@@ -444,7 +444,7 @@ OPTIMIZER_RECIPES: list[tuple['any', dict[str, Any], int]] = [
     ('flashadamw', {'lr': 5e-1, 'weight_decay': 1e-3, 'check_numerics': True, 'master_weight_bits': None}, 5),
 ]
 
-COMPILE_SUPPORTED_OPTIMIZERS: list[tuple['any', dict[str, Any], int]] = [
+COMPILE_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('lion', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     ('adamw', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     ('stableadamw', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),

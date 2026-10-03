@@ -4,6 +4,8 @@ from torch import nn
 
 from pytorch_optimizer.optimizer import load_optimizer
 from pytorch_optimizer.optimizer.flash_adamw import compute_ecc_bits, reconstruct_fp32_param
+from tests.fixtures import TrainingModel
+from tests.utils import build_optimizer
 
 
 class TestFlashAdamw:
@@ -11,7 +13,7 @@ class TestFlashAdamw:
         param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
         param.grad = torch.tensor([0.2, -0.3, 0.4])
 
-        optimizer = load_optimizer('flashadamw')([param], lr=1e-2, weight_decay=0.0)
+        optimizer = build_optimizer('flashadamw', [param], lr=1e-2, weight_decay=0.0)
         optimizer.step()
 
         state = optimizer.state[param]
@@ -23,7 +25,7 @@ class TestFlashAdamw:
         assert optimizer.state_dict()['state'][0]['exp_avg::quantized'].dtype == torch.int8
 
         new_param = nn.Parameter(param.detach().clone())
-        new_optimizer = load_optimizer('flashadamw')([new_param], lr=1e-2, weight_decay=0.0)
+        new_optimizer = build_optimizer('flashadamw', [new_param], lr=1e-2, weight_decay=0.0)
         new_optimizer.load_state_dict(optimizer.state_dict())
         assert new_optimizer.state[new_param]['exp_avg::quantized'].dtype == torch.int8
 
@@ -36,7 +38,7 @@ class TestFlashAdamw:
         param = nn.Parameter(torch.empty(0))
         param.grad = torch.empty(0)
 
-        optimizer = load_optimizer('flashadamw')([param], lr=1e-2, weight_decay=0.0)
+        optimizer = build_optimizer('flashadamw', [param], lr=1e-2, weight_decay=0.0)
         optimizer.step()
 
         param.grad = torch.empty(0)
@@ -50,26 +52,26 @@ class TestFlashAdamw:
         param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
         param.grad = torch.tensor([0.2, -0.3, 0.4])
 
-        optimizer = load_optimizer('flashadamw')([param], lr=1e-2, weight_decay=0.0)
+        optimizer = build_optimizer('flashadamw', [param], lr=1e-2, weight_decay=0.0)
         optimizer.step()
 
         new_param = nn.Parameter(param.detach().clone())
         state_dict = optimizer.state_dict()
         state_dict['param_groups'][0]['quantize'] = False
 
-        new_optimizer = load_optimizer('flashadamw')([new_param], lr=1e-2, weight_decay=0.0, quantize=False)
+        new_optimizer = build_optimizer('flashadamw', [new_param], lr=1e-2, weight_decay=0.0, quantize=False)
         new_optimizer.load_state_dict(state_dict)
         new_state = new_optimizer.state[new_param]
         assert 'exp_avg' in new_state
         assert 'exp_avg::quantized' not in new_state
 
-        uncompressed_optimizer = load_optimizer('flashadamw')([nn.Parameter(param.detach().clone())], quantize=False)
+        uncompressed_optimizer = build_optimizer('flashadamw', [nn.Parameter(param.detach().clone())], quantize=False)
         uncompressed_optimizer.load_state_dict(uncompressed_optimizer.state_dict())
         assert list(uncompressed_optimizer.state_dict()['state'].values()) == [{}]
 
         raw_param = nn.Parameter(param.detach().clone())
         raw_param.grad = torch.zeros_like(raw_param)
-        raw_optimizer = load_optimizer('flashadamw')([raw_param], quantize=False, compress_state_dict=False)
+        raw_optimizer = build_optimizer('flashadamw', [raw_param], quantize=False, compress_state_dict=False)
         raw_optimizer.step()
         assert 'exp_avg' in raw_optimizer.state_dict()['state'][0]
 
@@ -77,7 +79,7 @@ class TestFlashAdamw:
         param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
         param.grad = torch.tensor([0.2, -0.3, 0.4])
 
-        optimizer = load_optimizer('flashadamw')([param], lr=1e-2, weight_decay=0.0, compress_state_dict=False)
+        optimizer = build_optimizer('flashadamw', [param], lr=1e-2, weight_decay=0.0, compress_state_dict=False)
         optimizer.step()
 
         state_dict = optimizer.state_dict()
@@ -85,7 +87,8 @@ class TestFlashAdamw:
         assert 'exp_avg' in saved_state
         assert 'exp_avg::quantized' not in saved_state
 
-        new_optimizer = load_optimizer('flashadamw')(
+        new_optimizer = build_optimizer(
+            'flashadamw',
             [nn.Parameter(param.detach().clone())],
             lr=1e-2,
             weight_decay=0.0,
@@ -97,12 +100,17 @@ class TestFlashAdamw:
 
     @pytest.mark.parametrize(('master_weight_bits', 'error_dtype'), [(24, torch.int8), (32, torch.int16)])
     def test_flash_adamw_master_weight_bits(self, master_weight_bits, error_dtype):
-        model = nn.Linear(2, 1).bfloat16()
+        model = TrainingModel(dtype=torch.bfloat16)
         for param in model.parameters():
             param.grad = torch.ones_like(param)
 
-        optimizer = load_optimizer('flashadamw')(
-            model.parameters(), lr=1e-2, weight_decay=0.0, quantize=False, master_weight_bits=master_weight_bits
+        optimizer = build_optimizer(
+            'flashadamw',
+            model.parameters(),
+            lr=1e-2,
+            weight_decay=0.0,
+            quantize=False,
+            master_weight_bits=master_weight_bits,
         )
         optimizer.step()
 
@@ -117,9 +125,10 @@ class TestFlashAdamw:
         assert all(torch.allclose(restored[name], updated[name], atol=1e-2) for name in updated)
 
     def test_flash_adamw_fresh_fp32_model_state_dict(self):
-        model = nn.Linear(2, 1).bfloat16()
+        model = TrainingModel(dtype=torch.bfloat16)
 
-        optimizer = load_optimizer('flashadamw')(
+        optimizer = build_optimizer(
+            'flashadamw',
             model.parameters(),
             lr=1e-2,
             weight_decay=0.0,
@@ -159,8 +168,8 @@ class TestFlashAdamw:
 
     def test_flash_adamw_numerics_guard_and_stats(self):
         param = nn.Parameter(torch.ones(1, dtype=torch.bfloat16))
-        optimizer = load_optimizer('flashadamw')(
-            [param], lr=1e-3, weight_decay=0.0, quantize=False, check_numerics=True
+        optimizer = build_optimizer(
+            'flashadamw', [param], lr=1e-3, weight_decay=0.0, quantize=False, check_numerics=True
         )
 
         optimizer.recompute_param_stats()
@@ -179,7 +188,7 @@ class TestFlashAdamw:
             optimizer.maybe_check_numerics(param, lr=1e-12, master_byte_width=2)
 
         empty_param = nn.Parameter(torch.empty(0, dtype=torch.bfloat16))
-        empty_optimizer = load_optimizer('flashadamw')([empty_param], lr=1e-3, weight_decay=0.0, quantize=False)
+        empty_optimizer = build_optimizer('flashadamw', [empty_param], lr=1e-3, weight_decay=0.0, quantize=False)
         empty_optimizer.recompute_param_stats()
         assert empty_optimizer.param_absmax[id(empty_param)] == 0.0
 

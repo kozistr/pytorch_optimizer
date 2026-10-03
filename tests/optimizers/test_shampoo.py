@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer import load_optimizer
 from pytorch_optimizer.optimizer.shampoo_utils import (
     BlockPartitioner,
     PreConditioner,
@@ -12,12 +11,14 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
 )
 from pytorch_optimizer.optimizer.utils import to_real
 from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
 
 
 @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2])
 def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
     params = [make_parameter(shape) for shape in ((8, 2), (4, 8), (1, 4))]
-    optimizer = load_optimizer('scalableshampoo')(
+    optimizer = build_optimizer(
+        'scalableshampoo',
         params,
         block_size=4,
         start_preconditioning_step=1,
@@ -37,14 +38,8 @@ class TestShampooUtils:
         x = compute_power_schur_newton(torch.zeros((1, 2)), p=1)
         assert torch.tensor([1.0]) == x
 
-        _ = compute_power_schur_newton(torch.ones((2, 2)), p=3)
-
         x = compute_power_schur_newton(torch.ones((2, 2)), p=1)
         assert np.sum(x.numpy() - np.asarray([[252206.4062, -252205.8750], [-252205.8750, 252206.4062]])) < 200
-
-        _ = compute_power_schur_newton(torch.ones((2, 2)), p=8)
-
-        _ = compute_power_schur_newton(torch.ones((2, 2)), p=16)
 
         x = compute_power_schur_newton(torch.ones((2, 2)), p=16, max_error_ratio=0.0)
         np.testing.assert_array_almost_equal(

@@ -1,7 +1,6 @@
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer import load_optimizer
 from pytorch_optimizer.optimizer.psgd import initialize_q_expressions
 from pytorch_optimizer.optimizer.psgd_utils import (
     damped_pair_vg,
@@ -11,11 +10,13 @@ from pytorch_optimizer.optimizer.psgd_utils import (
     woodbury_identity,
 )
 from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
 
 
 def test_kron_optimizer():
     params = [make_parameter(shape, grad=1.0) for shape in ((1, 1), (1,))]
-    optimizer = load_optimizer('kron')(
+    optimizer = build_optimizer(
+        'kron',
         params,
         weight_decay=1e-3,
         pre_conditioner_update_probability=1.0,

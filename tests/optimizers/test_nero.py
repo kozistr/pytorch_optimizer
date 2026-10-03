@@ -2,15 +2,15 @@ import numpy as np
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer import load_optimizer
 from pytorch_optimizer.optimizer.nero import neuron_mean, neuron_norm
 from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
 
 
 def test_nero_zero_scale():
     param = make_parameter()
 
-    optimizer = load_optimizer('nero')([param], constraints=False)
+    optimizer = build_optimizer('nero', [param], constraints=False)
     optimizer.zero_grad()
 
     param.grad = torch.zeros(1, 1)

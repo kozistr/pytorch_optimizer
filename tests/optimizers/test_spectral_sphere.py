@@ -1,13 +1,13 @@
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer import load_optimizer
 from pytorch_optimizer.optimizer.sso import solve_lambda_with_bisection
 from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
 
 
 def test_spectral_sphere_methods():
-    opt = load_optimizer('spectralsphere')([make_parameter(())])
+    opt = build_optimizer('spectralsphere', [make_parameter(())])
     with pytest.raises(ValueError):
         opt.step()
 

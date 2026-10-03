@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer import load_optimizer
 from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
 
 
 class TestDadapt:
@@ -11,7 +11,7 @@ class TestDadapt:
         param = make_parameter()
         param.grad = None
 
-        optimizer = load_optimizer(optimizer_name)([param])
+        optimizer = build_optimizer(optimizer_name, [param])
         optimizer.zero_grad()
         optimizer.step()
 
@@ -24,7 +24,7 @@ class TestDadapt:
         p3 = make_parameter(requires_grad=True)
         params = [{'params': [p1]}, {'params': [p2]}, {'params': [p3]}]
 
-        optimizer = load_optimizer(optimizer_name)(params)
+        optimizer = build_optimizer(optimizer_name, params)
         optimizer.zero_grad()
 
         p1.grad = None

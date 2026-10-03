@@ -2,14 +2,14 @@ import pytest
 import torch
 from torch import nn
 
-from pytorch_optimizer.optimizer import load_optimizer
+from tests.utils import build_optimizer
 
 
 class TestSignSgd:
     @pytest.mark.parametrize('foreach', [False, True])
     def test_sign_sgd_preserves_momentum_buffer(self, foreach):
         param = nn.Parameter(torch.tensor([0.0]))
-        optimizer = load_optimizer('signsgd')([param], lr=1.0, momentum=0.9, foreach=foreach)
+        optimizer = build_optimizer('signsgd', [param], lr=1.0, momentum=0.9, foreach=foreach)
 
         param.grad = torch.tensor([1.0])
         optimizer.step()
@@ -25,8 +25,14 @@ class TestSignSgd:
     )
     def test_sign_sgd_weight_decay(self, foreach, weight_decay, weight_decouple, expected):
         param = nn.Parameter(torch.tensor([2.0]))
-        optimizer = load_optimizer('signsgd')(
-            [param], lr=0.1, momentum=0.9, weight_decay=weight_decay, weight_decouple=weight_decouple, foreach=foreach
+        optimizer = build_optimizer(
+            'signsgd',
+            [param],
+            lr=0.1,
+            momentum=0.9,
+            weight_decay=weight_decay,
+            weight_decouple=weight_decouple,
+            foreach=foreach,
         )
 
         param.grad = torch.tensor([0.0])
@@ -38,7 +44,7 @@ class TestSignSgd:
     def test_sign_based_foreach_parity(self, optimizer_name, kwargs):
         def run(foreach):
             param = nn.Parameter(torch.tensor([2.0]))
-            optimizer = load_optimizer(optimizer_name)([param], lr=0.1, foreach=foreach, **kwargs)
+            optimizer = build_optimizer(optimizer_name, [param], lr=0.1, foreach=foreach, **kwargs)
             for grad in (1.0, -0.1):
                 param.grad = torch.tensor([grad])
                 optimizer.step()

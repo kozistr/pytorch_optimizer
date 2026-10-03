@@ -4,6 +4,7 @@ from torch import nn
 
 from pytorch_optimizer.optimizer import load_optimizer
 from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
 
 
 class TestMuon:
@@ -14,7 +15,7 @@ class TestMuon:
             {'params': matrices, 'use_muon': True},
             {'params': [make_parameter((1,), grad=None)], 'use_muon': False},
         ]
-        optimizer = load_optimizer(optimizer_name)(params)
+        optimizer = build_optimizer(optimizer_name, params)
         optimizer.step()
         assert all(torch.isfinite(param).all() for param in matrices)
 
@@ -26,8 +27,8 @@ class TestMuon:
     @pytest.mark.parametrize('optimizer_name', ['Muon', 'AdaMuon', 'AdaGO', 'NorMuon'])
     @pytest.mark.parametrize('ns_coeffs', ['original', 'quintic', 'polar_express', 'polar_express_safer'])
     def test_muon_ns_coeffs(self, optimizer_name, ns_coeffs):
-        opt = load_optimizer(optimizer_name)(
-            [{'params': [nn.Parameter(torch.randn(2, 2))], 'use_muon': True}], ns_coeffs=ns_coeffs
+        opt = build_optimizer(
+            optimizer_name, [{'params': [nn.Parameter(torch.randn(2, 2))], 'use_muon': True}], ns_coeffs=ns_coeffs
         )
         assert opt.param_groups[0]['ns_coeffs'] is not None
 
@@ -44,5 +45,5 @@ class TestMuon:
             {'params': [make_parameter(grad=None)], 'use_muon': True},
             {'params': [make_parameter((1,), grad=None)], 'use_muon': False},
         ]
-        optimizer = load_optimizer(optimizer)(params)
+        optimizer = build_optimizer(optimizer, params)
         optimizer.step()
