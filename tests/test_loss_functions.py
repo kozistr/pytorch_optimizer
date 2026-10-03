@@ -19,8 +19,16 @@ from pytorch_optimizer.loss import (
     soft_jaccard_score,
 )
 from pytorch_optimizer.loss.bi_tempered import bi_tempered_logistic_loss
-from tests.recipes import BINARY_DICE_RECIPES
-from tests.utils import MultiClassExample
+from tests.fixtures import make_parameter
+
+BINARY_DICE_RECIPES: tuple[tuple, ...] = (
+    ([1.0, 1.0, 1.0], [1, 1, 1], (1, 1, 1, -1), 0.0),
+    ([1.0, 0.0, 1.0], [1, 0, 1], (1, 1, 1, -1), 0.0),
+    ([0.0, 0.0, 0.0], [0, 0, 0], (1, 1, 1, -1), 0.0),
+    ([1.0, 1.0, 1.0], [0, 0, 0], (1, 1, -1), 0.0),
+    ([1.0, 0.0, 1.0], [0, 1, 0], (1, 1, -1), 0.996677),
+    ([0.0, 0.0, 0.0], [1, 1, 1], (1, 1, -1), 0.996677),
+)
 
 
 class TestBinaryCE:
@@ -225,13 +233,14 @@ def test_bi_tempered_log_loss_func():
 
 
 def test_bi_tempered_log_loss_bwd():
-    model = MultiClassExample(num_classes=4)
-
-    y_pred = model(torch.randn(4, 1))
+    y_pred = make_parameter((4, 4), grad=None)
     y_true = torch.LongTensor([0, 1, 2, 3])
 
     loss = bi_tempered_logistic_loss(y_pred, y_true, t1=0.5, t2=0.5, reduction='mean')
     loss.backward()
+
+    assert torch.isfinite(y_pred.grad).all()
+    assert y_pred.grad.abs().sum() > 0
 
 
 def test_binary_bi_tempered_log_loss_exception():

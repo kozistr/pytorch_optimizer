@@ -1,123 +1,46 @@
+from collections.abc import Iterable
 
 import numpy as np
 import torch
 from torch import nn
-from torch.nn.functional import relu
-from torch.optim import AdamW
+from torch.optim import Optimizer
 
-from pytorch_optimizer.base.type import Loss
+from pytorch_optimizer.base.type import Loss, ParamsT
 from pytorch_optimizer.optimizer import TRAC, Lookahead, OrthoGrad, ScheduleFreeWrapper, load_optimizer
 from pytorch_optimizer.optimizer.alig import l2_projection
 
 
-class LogisticRegression(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(2, 2)
-        self.fc2 = nn.Linear(2, 1)
+def build_optimizer(name: str, params: ParamsT | nn.Module, **options) -> Optimizer:
+    name = name.lower()
+    wrappers = {'lookahead': Lookahead, 'orthograd': OrthoGrad, 'schedulefree': ScheduleFreeWrapper, 'trac': TRAC}
+    if name in wrappers:
+        wrapper_options = {'k': options.pop('k')} if name == 'lookahead' and 'k' in options else {}
+        return wrappers[name](load_optimizer('adamw')(params, **options), **wrapper_options)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.fc1(x)
-        x = relu(x)
-        return self.fc2(x)
-
-
-class ComplexLogisticRegression(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(2, 2, dtype=torch.complex64)
-        self.fc2 = nn.Linear(2, 1, dtype=torch.complex64)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.fc1(x)
-        x = relu(x.real) + 1.0j * relu(x.imag)
-        return self.fc2(x).real
-
-
-class MultiHeadLogisticRegression(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(2, 2)
-        self.head1 = nn.Linear(2, 1)
-        self.head2 = nn.Linear(2, 1)
-
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        x = self.fc1(x)
-        x = relu(x)
-        return self.head1(x), self.head2(x)
-
-
-class Example(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Linear(1, 1)
-        self.norm1 = nn.LayerNorm(1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.norm1(self.fc1(x))
-
-
-class MultiClassExample(nn.Module):
-    def __init__(self, num_classes: int):
-        super().__init__()
-        self.fc = nn.Linear(1, num_classes)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.fc(x)
-
-
-def simple_zero_rank_parameter(require_grad: bool = True) -> torch.Tensor:
-    param = torch.tensor(0.0).requires_grad_(require_grad)
-    param.grad = torch.tensor(0.0)
-    return param
-
-
-def simple_parameter(require_grad: bool = True) -> torch.Tensor:
-    param = torch.zeros(1, 1).requires_grad_(require_grad)
-    param.grad = torch.zeros(1, 1)
-    return param
-
-
-def simple_complex_parameter(require_grad: bool = True) -> torch.Tensor:
-    param = torch.zeros(1, 1, dtype=torch.complex64).requires_grad_(require_grad)
-    param.grad = torch.randn(1, 1, dtype=torch.complex64)
-    return param
-
-
-def simple_sparse_parameter(require_grad: bool = True) -> tuple[torch.Tensor, torch.Tensor]:
-    weight = torch.randn(5, 1).requires_grad_(require_grad)
-    weight_sparse = weight.detach().requires_grad_(require_grad)
-
-    if require_grad:
-        weight.grad = torch.rand_like(weight)
-        weight.grad[0] = 0.0
-        weight_sparse.grad = weight.grad.to_sparse()
-
-    return weight, weight_sparse
+    defaults = {
+        'ranger21': {'num_iterations': 1},
+        'bsam': {'num_data': 1},
+        'sgd': {'lr': 1e-3},
+    }
+    options = {**defaults.get(name, {}), **options}
+    use_muon = options.pop('use_muon', False)
+    if name in ('muon', 'adamuon', 'adago', 'normuon'):
+        params = list(params) if isinstance(params, Iterable) else params
+        params = [
+            {**group, 'use_muon': group.get('use_muon', use_muon)}
+            if isinstance(group, dict)
+            else {'params': [group], 'use_muon': use_muon}
+            for group in params
+        ]
+    return load_optimizer(name)(params, **options)
 
 
 def dummy_closure() -> Loss:
     return 1.0
 
 
-def build_lookahead(*parameters, **kwargs):
-    return Lookahead(AdamW(*parameters, **kwargs))
-
-
-def build_orthograd(*parameters, **kwargs):
-    return OrthoGrad(AdamW(*parameters, **kwargs))
-
-
-def build_schedulefree(*parameters, **kwargs):
-    return ScheduleFreeWrapper(AdamW(*parameters, **kwargs))
-
-
 def ids(v) -> str:
-    return f'{v[0].__name__}_{v[1:]}'
-
-
-def names(v) -> str:
-    return v.__name__
+    return f'{v[0]}_{v[1:]}'
 
 
 def tensor_to_numpy(x: torch.Tensor) -> np.ndarray:
@@ -128,16 +51,15 @@ def sphere_loss(x: torch.Tensor) -> torch.Tensor:
     return x.pow(2).sum()
 
 
-def build_model(use_complex: bool = False, device: str | torch.device = 'cpu'):
-    torch.manual_seed(42)
-    model = ComplexLogisticRegression() if use_complex else LogisticRegression()
-    return model.to(device), nn.BCEWithLogitsLoss().to(device)
+def build_optimizer_parameters(parameters, optimizer_name, config):
+    config = config.copy()
+    if isinstance(parameters, nn.Module):
+        return parameters, config
 
-
-def build_optimizer_parameter(parameters, optimizer_name, config):
-    if optimizer_name == 'AliG':
+    parameters = list(parameters)
+    if optimizer_name == 'alig':
         config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
-    elif optimizer_name in ('Muon', 'AdaMuon', 'AdaGO', 'NorMuon'):
+    elif optimizer_name in ('muon', 'adamuon', 'adago', 'normuon'):
         hidden_weights = [p for p in parameters if p.ndim >= 2]
         hidden_gains_biases = [p for p in parameters if p.ndim < 2]
 
@@ -145,13 +67,13 @@ def build_optimizer_parameter(parameters, optimizer_name, config):
             {'params': hidden_weights, 'use_muon': True},
             {'params': hidden_gains_biases, 'use_muon': False},
         ]
-    elif optimizer_name in ('SpectralSphere',):
+    elif optimizer_name in ('spectralsphere',):
         parameters = [{'params': [p for p in parameters if p.ndim >= 2]}]
-    elif optimizer_name == 'AdamWSN':
+    elif optimizer_name == 'adamwsn':
         sn_params = [p for p in parameters if p.ndim == 2]
         regular_params = [p for p in parameters if p.ndim != 2]
         parameters = [{'params': sn_params, 'sn': True}, {'params': regular_params, 'sn': False}]
-    elif optimizer_name == 'AdamC':
+    elif optimizer_name == 'adamc':
         norm_params = [p for i, p in enumerate(parameters) if i == 1]
         regular_params = [p for i, p in enumerate(parameters) if i != 1]
         parameters = [{'params': norm_params, 'normalized': True}, {'params': regular_params}]
@@ -168,46 +90,6 @@ def make_closure(value):
 
 def should_use_create_graph(optimizer_name: str) -> bool:
     return optimizer_name.lower() in ('adahessian', 'sophiah')
-
-
-class OptimizerBuilder:
-    @staticmethod
-    def with_muon(params, use_muon: bool):
-        def with_flag(group):
-            if isinstance(group, dict):
-                return group if 'use_muon' in group else {**group, 'use_muon': use_muon}
-            return {'params': group, 'use_muon': use_muon}
-
-        return [with_flag(group) for group in params] if isinstance(params, list) else [with_flag(params)]
-
-    @classmethod
-    def create(cls, name: str, params: list, **overrides):
-        optimizer_name: str = name.lower()
-
-        if optimizer_name == 'lookahead':
-            return Lookahead(load_optimizer('adamw')(params), k=1)
-        if optimizer_name == 'trac':
-            return TRAC(load_optimizer('adamw')(params))
-        if optimizer_name == 'orthograd':
-            return OrthoGrad(load_optimizer('adamw')(params))
-
-        if optimizer_name == 'ranger21':
-            overrides.update({'num_iterations': 1, 'lookahead_merge_time': 1})
-        elif optimizer_name == 'bsam':
-            overrides.update({'num_data': 1})
-        elif optimizer_name in ('lamb', 'ralamb'):
-            overrides.update({'pre_norm': True})
-        elif optimizer_name == 'alice':
-            overrides.update({'rank': 2, 'leading_basis': 1})
-        elif optimizer_name == 'adahessian':
-            overrides.update({'update_period': 2})
-        elif optimizer_name == 'sgd':
-            overrides.setdefault('lr', 1e-3)
-
-        if optimizer_name in ('muon', 'adamuon', 'adago', 'normuon'):
-            params = cls.with_muon(params, use_muon=overrides.pop('use_muon', False))
-
-        return load_optimizer(optimizer_name)(params, **overrides)
 
 
 class Trainer:
@@ -243,9 +125,9 @@ class Trainer:
         init_loss_np = tensor_to_numpy(init_loss)
         final_loss_np = tensor_to_numpy(final_loss)
 
-        assert (
-            init_loss_np > threshold * final_loss_np
-        ), f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
+        assert init_loss_np > threshold * final_loss_np, (
+            f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
+        )
 
         return init_loss_np, final_loss_np
 
@@ -255,37 +137,13 @@ class Trainer:
         create_graph: bool = False,
         closure_fn=None,
         threshold: float = 1.5,
+        use_amp: bool = False,
     ) -> tuple[np.ndarray, np.ndarray]:
         init_loss, loss = None, None
         for _ in range(iterations):
             self.optimizer.zero_grad()
 
-            loss = self.compute_loss()
-            init_loss = init_loss or loss
-
-            loss.backward(create_graph=create_graph)
-
-            if closure_fn is not None:
-                self.optimizer.step(closure_fn(loss))
-            else:
-                self.optimizer.step()
-
-        return self.assert_loss_decreased(init_loss, loss, threshold)
-
-    def run_bf16(
-        self,
-        iterations: int = 5,
-        create_graph: bool = False,
-        closure_fn=None,
-        threshold: float = 1.5,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        context = torch.autocast(self.x_data.device.type, dtype=torch.bfloat16)
-
-        init_loss, loss = None, None
-        for _ in range(iterations):
-            self.optimizer.zero_grad()
-
-            with context:
+            with torch.autocast(self.x_data.device.type, dtype=torch.bfloat16, enabled=use_amp):
                 loss = self.compute_loss()
 
             init_loss = init_loss or loss
@@ -343,19 +201,6 @@ class Trainer:
             self.optimizer.zero_grad()
 
             init_loss = init_loss or loss
-
-        return self.assert_loss_decreased(init_loss, loss, threshold)
-
-    def run_trac_style(self, iterations: int = 3, threshold: float = 2.0) -> tuple[np.ndarray, np.ndarray]:
-        init_loss, loss = None, None
-        for _ in range(iterations):
-            loss = self.compute_loss()
-            init_loss = init_loss or loss
-
-            loss.backward()
-
-            self.optimizer.step()
-            self.optimizer.zero_grad()
 
         return self.assert_loss_decreased(init_loss, loss, threshold)
 

@@ -7,6 +7,7 @@ def test_update_docs_from_public_exports(tmp_path):
         'lr_scheduler': ['StepLR', 'CosineScheduler', 'get_wsd_schedule'],
         'loss': ['SoftF1Loss', 'BCELoss', 'bi_tempered_logistic_loss'],
     }
+
     for module, names in exports.items():
         module_dir = tmp_path / 'pytorch_optimizer' / module
         module_dir.mkdir(parents=True)

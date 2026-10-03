@@ -1,134 +1,85 @@
 # Contributing
 
-Contributions to `pytorch-optimizer` for code, documentation, and tests are always welcome!
+You can contribute code, tests, or documentation. Follow the existing implementations and keep your PR focused on
+the problem you are solving.
 
-## Setup
+## Setup and checks
 
-```bash
-# Clone the repository
-git clone https://github.com/kozistr/pytorch_optimizer.git
-cd pytorch_optimizer
+Install [uv](https://docs.astral.sh/uv/), clone the repository, and install its development dependencies:
 
-# Install dependencies using uv (recommended)
+```shell
 uv sync
 ```
 
-## Development Commands
+Before submitting a pull request, run:
 
-```bash
-# Format code
+```shell
 uv run just format
-
-# Lint code
-uv run just lint
-
-# Full check (lint + type checking)
 uv run just check
-
-# Run tests
 uv run just test
-
-# Run a specific test
-uv run pytest tests/test_optimizers.py::test_name -sv -vv
-
-# Serve documentation locally
-uv run just docs
-
-# Build documentation with warnings treated as errors
-uv run just docs-build
+uv run coverage report -m
 ```
 
-## Code Style
+Cover new and changed implementation code at **100%**. Run tests on CPU by default. For GPU testing, use
+`python -m pytest --device=cuda` with a CUDA-enabled PyTorch interpreter.
 
-- Line length: **119** characters
-- Use **single quotes** for strings (not double quotes)
-- Formatter and linter: **ruff**
-- Docstring style: **Google style** ([example](https://github.com/kozistr/pytorch_optimizer/blob/main/pytorch_optimizer/optimizer/adamp.py#L14))
+## Code
 
-Run `uv run just format` and `uv run just check` before submitting a PR.
+- Use single-quoted strings and a maximum line length of 119 characters. Separate logical steps with blank lines.
+- Follow the original paper when implementing an optimizer and reuse existing `BaseOptimizer` helpers.
+- Inherit from `BaseOptimizer` when adding an optimizer and register it in `OPTIMIZER_LIST`. Register new components
+  in the appropriate package exports and update their README tables.
 
-## Coding Agents and LLMs
+## Tests
 
-You can use coding agents and LLMs for code, tests, and documentation. Before opening a PR, review the generated
-changes and make sure you understand them. You are responsible for the changes you submit.
+Add `(optimizer_name, options, iterations)` to `OPTIMIZER_RECIPES` in [tests/recipes.py](tests/recipes.py)
+for optimizer convergence tests. Add focused cases in `tests/optimizers/test_<module>.py` for numerical updates,
+checkpoint restoration, or edge cases that the training recipes do not verify. Keep shared validation, variant,
+wrapper, loss, and scheduler cases in their existing `tests/test_*.py` modules.
 
-- Verify optimizer update rules against the original paper and explain differences from its reference implementation.
-- Check generated tests against the algorithm or a trusted reference and meet the project's coverage requirement.
-- Run the required checks and report the results in your PR, including checks you could not run.
+Reuse the model and parameter builders in [tests/fixtures.py](tests/fixtures.py) and helpers in
+[tests/utils.py](tests/utils.py). Use a parameter for tests that call optimizer methods; use the shared model for
+forward passes or model-based APIs. Group related cases in pytest classes where they share setup.
 
-Be ready to explain your implementation, edge cases, and tests during review.
+Use small, deterministic inputs and compare results with known values or a trusted reference. A focused update test
+can use a parameter:
+
+```python
+import torch
+
+from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
+
+
+def test_sgd_update():
+    param = make_parameter((2,), grad=1.0)
+    optimizer = build_optimizer('sgd', [param], lr=0.1)
+
+    optimizer.step()
+
+    torch.testing.assert_close(param, torch.tensor([-0.1, -0.1]))
+```
+
+Use `load_optimizer()` for constructor validation and `create_optimizer()` to test its public API. Check expected
+exceptions with `pytest.raises`, and parametrize the options each optimizer supports. Check existing cases before
+adding a test to avoid duplicating their assertions.
 
 ## Documentation
 
-We use [Zensical](https://zensical.org/) with `mkdocstrings` for the API reference.
-The `docs` and `docs-build` recipes install documentation dependencies in an isolated Python 3.12 environment.
+- Write API docstrings in Google style alongside the implementation.
+- Write documentation pages in `docs/`, with usage examples in [docs/getting-started.md](docs/getting-started.md).
+  Update `README.md` when adding components or changing public usage.
+- Run `uv run just docs-build` and resolve build errors and warnings before submitting changes to the site.
 
-- Edit navigation and theme settings in `zensical.toml`.
-- Keep the documentation home page in `docs/index.md` and usage examples in `docs/getting-started.md`.
-- Run `uv run just update-docs` after changing public exports to regenerate the optimizer, scheduler, and loss references.
-- Indent nested changelog bullets by four spaces per level. Use `#123` for issue and PR references; the site links them to GitHub.
-- Run `uv run just docs-build` before submitting documentation changes.
+## Pull requests
 
-### Release notes
+Describe the problem, the resulting behavior, and how you tested the change. Include the paper or reference
+implementation for new optimizers and explain any algorithm differences. Report checks you could not run.
 
-When a maintainer pushes a `vMAJOR.MINOR.PATCH` tag, the publish workflow asks GitHub to generate release notes from merged PRs.
-It creates the GitHub release, then opens a PR to sync that release's notes into `CHANGELOG.md`,
-`docs/changelogs/<tag>.md`, and the changelog index. The changelog PR uses the existing `automerge` label.
-Rerunning the workflow updates the existing version section instead of adding it twice.
+Start commit subjects with `feat:`, `fix:`, `perf:`, `style:`, `refactor:`, `docs:`, `chore:`, `build:`, or `update:`.
+Use concise, specific commit subjects and PR titles.
 
-Write PR titles that explain the change to users. You do not need to maintain a separate changelog entry before a release.
-If a maintainer edits the published release notes, rerun the changelog job to sync those edits.
+If you use a coding agent or LLM, review its output and make sure you understand the implementation and tests.
+You are responsible for the changes you submit.
 
-## Adding New Optimizers, Loss Functions, or LR Schedulers
-
-Reference existing implementations:
-- Optimizers: `pytorch_optimizer/optimizer/`
-- Loss functions: `pytorch_optimizer/loss/`
-- LR schedulers: `pytorch_optimizer/lr_scheduler/`
-
-### Checklist
-
-1. Create a new file in the appropriate directory
-2. For optimizers: inherit from `BaseOptimizer`, implement `init_group()` and `step()`
-3. Utilize existing `BaseOptimizer` methods instead of reimplementing:
-   - `apply_weight_decay()`, `apply_ams_bound()`, `apply_adam_debias()`
-   - `debias()`, `debias_beta()`, `get_rectify_step_size()`
-   - `apply_cautious()`, `get_adanorm_gradient()`
-   - `validate_learning_rate()`, `validate_betas()`, `validate_range()`
-4. Register in the corresponding `__init__.py` files
-5. Run `uv run just format` and `uv run just check`
-6. Add tests with **100% coverage** requirement
-7. For new optimizers: add a minimal training recipe to `tests/recipes.py` (see `OPTIMIZERS` list)
-8. Describe the user-visible change in the PR title and description for the generated release notes.
-9. Update `README.md`:
-   - Update the count of optimizers/loss functions/schedulers
-   - Add entry to the appropriate markdown table
-
-## Testing
-
-Tests are in `tests/` directory:
-- `test_optimizers.py` - Main optimizer tests
-- `test_optimizer_parameters.py` - Parameter validation tests
-- `test_optimizer_variants.py` - Variant tests (Cautious, AdamD, etc.)
-- `test_loss_functions.py` - Loss function tests
-- `test_lr_schedulers.py` - Scheduler tests
-
-100% test coverage is required.
-
-### GPU training tests
-
-The training tests use CPU by default. To run them on a local GPU, use a Python interpreter with a CUDA-enabled
-PyTorch installation:
-
-```bash
-python -m pytest --device=cuda
-```
-
-The `--device` option reports an error when CUDA is requested but unavailable. The default `uv.lock` uses CPU-only
-PyTorch, so use your existing CUDA interpreter for this check.
-
-## Questions
-
-If you have any questions about contribution, please ask in the Issues, Discussions, or just in PR :)
-
-Thank you!
+For questions, open an issue or discussion, or ask in your pull request.
