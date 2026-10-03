@@ -1,4 +1,5 @@
 import math
+import random
 from typing import Optional
 
 import torch
@@ -131,12 +132,12 @@ class SaRA(BaseOptimizer):
         """Add the masked nuclear-norm subgradient to the selected gradient entries."""
         dtype = torch.float32 if p.dtype in (torch.float16, torch.bfloat16) else p.dtype
 
-        matrix = torch.zeros_like(p, dtype=dtype)
-        matrix[mask] = p[mask].to(dtype=dtype)
+        matrix = torch.where(mask, p, 0.0).to(dtype=dtype)
 
         u, _, vh = torch.linalg.svd(matrix, full_matrices=False)
+        torch.mm(u, vh, out=matrix)
 
-        grad_mask.add_((u @ vh)[mask].to(dtype=grad_mask.dtype), alpha=lambda_rank)
+        grad_mask.add_(matrix[mask].to(dtype=grad_mask.dtype), alpha=lambda_rank)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -164,7 +165,7 @@ class SaRA(BaseOptimizer):
                 for p in group['params']
                 if group['lambda_rank'] > 0.0 and p.grad is not None and p.dim() == 2 and min(p.shape) > 64
             ]
-            rank_param = rank_params[int(torch.randint(len(rank_params), (1,)).item())] if rank_params else None
+            rank_param = random.choice(rank_params) if rank_params else None  # noqa: S311
 
             for p in group['params']:
                 if p.grad is None:
