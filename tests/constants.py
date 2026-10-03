@@ -202,6 +202,8 @@ COMPLEX_OPTIMIZERS: frozenset = frozenset(
 
 FOREACH_OPTIMIZERS: frozenset = frozenset(
     {
+        'ademamix',
+        'simplifiedademamix',
         'adabelief',
         'stableadamw',
         'adan',
@@ -979,7 +981,11 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (AdamG, {'lr': 1e0, 'p': 0.5}, 60),
     (AdEMAMix, {'lr': 1e0}, 3),
     (AdEMAMix, {'lr': 1e0, 't_alpha_beta3': 5}, 3),
+    (AdEMAMix, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True, 'fixed_decay': True}, 3),
+    (AdEMAMix, {'lr': 5e-1, 'cautious': True, 'stable_adamw': True, 'weight_decay': 1e-3}, 15),
+    (SimplifiedAdEMAMix, {'lr': 1e0}, 3),
     (SimplifiedAdEMAMix, {'lr': 1e0, 'beta1_warmup': 2, 'weight_decay': 1e-3}, 3),
+    (SimplifiedAdEMAMix, {'lr': 1e-1, 'alpha': 0.5, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
     (
         SOAP,
         {'lr': 1e0, 'shampoo_beta': 0.95, 'precondition_frequency': 1, 'merge_dims': False, 'precondition_1d': True},
