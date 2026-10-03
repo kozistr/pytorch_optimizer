@@ -52,8 +52,11 @@ def sphere_loss(x: torch.Tensor) -> torch.Tensor:
 
 
 def build_optimizer_parameters(parameters, optimizer_name, config):
-    parameters = list(parameters)
     config = config.copy()
+    if isinstance(parameters, nn.Module):
+        return parameters, config
+
+    parameters = list(parameters)
     if optimizer_name == 'alig':
         config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
     elif optimizer_name in ('muon', 'adamuon', 'adago', 'normuon'):

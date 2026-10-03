@@ -6,17 +6,6 @@ from tests.fixtures import make_parameter
 from tests.utils import build_optimizer
 
 
-@pytest.fixture(scope='session', autouse=True)
-def cpu_thread_count():
-    previous = torch.get_num_threads()
-    torch.set_num_threads(1)
-
-    try:
-        yield
-    finally:
-        torch.set_num_threads(previous)
-
-
 @pytest.fixture(scope='session')
 def device(pytestconfig) -> torch.device:
     device_name = pytestconfig.getoption('--device')

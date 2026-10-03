@@ -18,6 +18,7 @@ def optimizers_with_argument(argument: str) -> frozenset[str]:
 FOREACH_OPTIMIZERS = optimizers_with_argument('foreach')
 MAXIMIZE_OPTIMIZERS = optimizers_with_argument('maximize')
 BETA_OPTIMIZER_NAMES = optimizers_with_argument('betas')
+MODEL_OPTIMIZERS = optimizers_with_argument('model')
 
 
 GRADIENT_OPTIONS = {
@@ -29,20 +30,23 @@ GRADIENT_OPTIONS = {
 }
 
 
-# Model-based, distributed, and closure-driven optimizers have dedicated tests.
-SKIP_CAPABILITY_PROBE = frozenset({'lbfgs', 'lomo', 'adalomo', 'adammini', 'demo', 'distributedmuon', 'bsam'})
+# Model-based, distributed, and closure-driven optimizers cannot use a plain parameter probe.
+SKIP_CAPABILITY_PROBE = MODEL_OPTIMIZERS | {'lbfgs', 'demo', 'distributedmuon', 'bsam'}
 
 
 @cache
 def supports_gradient(optimizer_name: str, kind: str) -> bool:
     if kind not in ('complex', 'sparse'):
         raise ValueError(f'Unknown gradient kind: {kind}')
+
     if optimizer_name in SKIP_CAPABILITY_PROBE:
         return False
 
     with torch.random.fork_rng(devices=[]):
         torch.random.default_generator.manual_seed(42)
+
         dtype = torch.complex64 if kind == 'complex' else torch.float32
+
         param = torch.ones(2, 2, dtype=dtype, requires_grad=True)
         param.grad = torch.ones_like(param)
         if kind == 'sparse':
@@ -53,9 +57,12 @@ def supports_gradient(optimizer_name: str, kind: str) -> bool:
             options['momentum'] = 0.0
         if optimizer_name in ('muon', 'adamuon', 'adago', 'normuon'):
             options['use_muon'] = True
+
         optimizer = build_optimizer(optimizer_name, [param], **options)
         unsupported_error = NoComplexParameterError if kind == 'complex' else NoSparseGradientError
+
         rng_state = np.random.get_state()
+
         try:
             optimizer.step(lambda: 0.1)
         except unsupported_error:
@@ -68,6 +75,7 @@ def supports_gradient(optimizer_name: str, kind: str) -> bool:
             np.random.set_state(rng_state)
 
         assert torch.isfinite(param).all(), f'{optimizer_name} produced nonfinite {kind} updates'
+
         return True
 
 
@@ -78,6 +86,7 @@ SPARSE_OPTIMIZERS = frozenset(name for name in VALID_OPTIMIZER_NAMES if supports
 NATIVE_OPTIMIZERS = frozenset(name for name, cls in OPTIMIZERS.items() if cls.__module__.startswith('torch.optim'))
 SKIP_LEARNING_RATE = NATIVE_OPTIMIZERS | (frozenset(OPTIMIZERS) - optimizers_with_argument('lr')) | {'a2grad'}
 SKIP_EPSILON = frozenset(OPTIMIZERS) - optimizers_with_argument('eps') - {'distributedmuon'}
+
 # SCION variants expose weight decay but do not validate it in their constructors.
 SKIP_WEIGHT_DECAY = (frozenset(OPTIMIZERS) - optimizers_with_argument('weight_decay')) | {'scion', 'scionlight'}
 SKIP_CREATE_OPTIMIZER = NATIVE_OPTIMIZERS | {'demo', 'distributedmuon'}

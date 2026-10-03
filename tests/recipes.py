@@ -255,6 +255,7 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('pid', {'lr': 1e0, 'momentum': 0.9, 'dampening': 1.0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
     ('adamax', {'lr': 1e0, 'weight_decay': 1e-3}, 5),
     ('adamax', {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True}, 5),
+    ('adammini', {'lr': 5e-1, 'weight_decay': 1e-3, 'num_embeds': 2, 'num_heads': 1}, 5),
     ('gravity', {'lr': 1e0}, 5),
     ('adasmooth', {'lr': 5e-1}, 5),
     ('srmm', {'lr': 5e-1}, 5),

@@ -2,8 +2,8 @@ import pytest
 import torch
 
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
-from tests.fixtures import build_model, make_parameter
-from tests.optimizer_cases import COMPLEX_OPTIMIZERS, FOREACH_OPTIMIZERS, SKIP_BF16_OPTIMIZERS
+from tests.fixtures import TrainingModel, build_model, make_parameter
+from tests.optimizer_cases import COMPLEX_OPTIMIZERS, FOREACH_OPTIMIZERS, MODEL_OPTIMIZERS, SKIP_BF16_OPTIMIZERS
 from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS, OPTIMIZER_RECIPES
 from tests.utils import (
     Trainer,
@@ -38,7 +38,8 @@ class TestOptimizerTraining:
         if dtype == torch.complex64:
             x_data = x_data.to(dtype=dtype)
 
-        parameters, config = build_optimizer_parameters(model.parameters(), optimizer_name, config)
+        parameters = model if optimizer_name in MODEL_OPTIMIZERS else model.parameters()
+        parameters, config = build_optimizer_parameters(parameters, optimizer_name, config)
         if optimizer_name in FOREACH_OPTIMIZERS:
             config['foreach'] = foreach
 
@@ -85,15 +86,20 @@ class TestOptimizerInterface:
         [name for name in RECIPE_OPTIMIZER_NAMES if name not in ('lookahead', 'orthograd', 'schedulefree')],
     )
     def test_init_group(self, optimizer_name):
-        optimizer = build_optimizer(optimizer_name, [make_parameter()])
+        parameters = TrainingModel() if optimizer_name in MODEL_OPTIMIZERS else [make_parameter()]
+        optimizer = build_optimizer(optimizer_name, parameters)
         optimizer.init_group({'params': [], 'betas': (0.0, 0.0)})
 
     @pytest.mark.parametrize('optimizer_name', RECIPE_OPTIMIZER_NAMES)
     def test_closure(self, optimizer_name):
-        param = torch.tensor([1.0, 0.0], requires_grad=True) if optimizer_name == 'orthograd' else make_parameter()
-        param.grad = None
+        if optimizer_name in MODEL_OPTIMIZERS:
+            parameters = TrainingModel()
+        else:
+            param = torch.tensor([1.0, 0.0], requires_grad=True) if optimizer_name == 'orthograd' else make_parameter()
+            param.grad = None
+            parameters = [param]
 
-        optimizer = build_optimizer(optimizer_name, [param])
+        optimizer = build_optimizer(optimizer_name, parameters)
         optimizer.zero_grad()
         if optimizer_name == 'schedulefree':
             optimizer.train()
