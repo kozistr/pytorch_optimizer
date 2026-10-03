@@ -10,6 +10,7 @@ from pytorch_optimizer import (
     BSAM,
     GSAM,
     SAM,
+    SSAM,
     TRAC,
     WSAM,
     CosineScheduler,
@@ -23,6 +24,7 @@ from pytorch_optimizer import (
     ScheduleFreeWrapper,
     load_optimizer,
 )
+from pytorch_optimizer.base.exception import NoClosureError
 from tests.constants import PULLBACK_MOMENTUM
 from tests.utils import (
     Example,
@@ -252,6 +254,256 @@ def test_sam_optimizer_with_closure(adaptive, wrapper, environment):
 
     trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
     trainer.run_with_closure(iterations=3, threshold=2.0)
+
+
+def get_live_ratio(optimizer: SSAM) -> float:
+    mask = optimizer.get_flat_mask()
+    return mask.sum().item() / mask.numel()
+
+
+@pytest.mark.parametrize('mask_type', ['dynamic', 'fisher'])
+@pytest.mark.parametrize('drop_strategy', ['weight', 'gradient', 'random'])
+def test_ssam_optimizer(mask_type, drop_strategy, environment):
+    x_data, y_data = environment
+    model, loss_fn = build_model()
+
+    optimizer = SSAM(
+        model.parameters(),
+        load_optimizer('asgd'),
+        lr=5e-1,
+        sparsity=0.5,
+        mask_type=mask_type,
+        drop_strategy=drop_strategy,
+        growth_strategy='random',
+        update_freq=2,
+        total_steps=10,
+        use_gc=True,
+    )
+
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    if mask_type == 'fisher':
+
+        def sample_closure():
+            trainer.compute_loss(swap_args=True).backward()
+
+        optimizer.update_fisher_mask(sample_closure, num_samples=4)
+
+    trainer.run_sam_style(iterations=3, threshold=2.0)
+
+    assert get_live_ratio(optimizer) == pytest.approx(0.5, abs=0.25)
+
+
+def test_ssam_optimizer_with_closure(environment):
+    x_data, y_data = environment
+    model, loss_fn = build_model()
+
+    optimizer = SSAM(model.parameters(), load_optimizer('adamw'), lr=5e-1, sparsity=0.5)
+
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run_with_closure(iterations=3, threshold=2.0)
+
+
+def test_ssam_zero_sparsity_is_sam():
+    def run(optimizer_cls, **kwargs):
+        torch.manual_seed(0)
+        model = nn.Linear(4, 3)
+        x, y = torch.randn(8, 4), torch.randn(8, 3)
+        optimizer = optimizer_cls(model.parameters(), torch.optim.SGD, lr=0.1, rho=0.1, **kwargs)
+        for _ in range(3):
+            nn.functional.mse_loss(model(x), y).backward()
+            optimizer.first_step(zero_grad=True)
+            nn.functional.mse_loss(model(x), y).backward()
+            optimizer.second_step(zero_grad=True)
+        return [p.detach().clone() for p in model.parameters()]
+
+    for expected, actual in zip(run(SAM), run(SSAM, sparsity=0.0, mask_type='dynamic')):
+        torch.testing.assert_close(expected, actual)
+
+
+def test_ssam_full_sparsity_is_plain_base_optimizer():
+    torch.manual_seed(0)
+    model = nn.Linear(4, 3)
+    reference = nn.Linear(4, 3)
+    reference.load_state_dict(model.state_dict())
+    x, y = torch.randn(8, 4), torch.randn(8, 3)
+
+    optimizer = SSAM(model.parameters(), torch.optim.SGD, lr=0.1, rho=0.5, sparsity=1.0)
+    reference_optimizer = torch.optim.SGD(reference.parameters(), lr=0.1)
+
+    for _ in range(3):
+        nn.functional.mse_loss(model(x), y).backward()
+        optimizer.first_step(zero_grad=True)
+        nn.functional.mse_loss(model(x), y).backward()
+        optimizer.second_step(zero_grad=True)
+
+        nn.functional.mse_loss(reference(x), y).backward()
+        reference_optimizer.step()
+        reference_optimizer.zero_grad()
+
+    for p, q in zip(model.parameters(), reference.parameters()):
+        torch.testing.assert_close(p, q)
+
+
+def test_ssam_perturbs_only_live_weights():
+    parameter = nn.Parameter(torch.tensor([1.0, 2.0, 3.0, 4.0]))
+    optimizer = SSAM([parameter], torch.optim.SGD, lr=0.1, rho=0.5, sparsity=0.5, mask_type='fisher')
+    optimizer.set_masks(torch.tensor([True, False, True, False]))
+
+    parameter.grad = torch.tensor([3.0, 4.0, 0.0, 0.0])
+    optimizer.first_step()
+
+    # the norm comes from the full gradient (5.0), but only the first weight moves
+    torch.testing.assert_close(parameter.detach(), torch.tensor([1.3, 2.0, 3.0, 4.0]))
+
+    # the base optimizer step starts from the restored weights and uses the gradient from the perturbed point
+    optimizer.second_step()
+    torch.testing.assert_close(parameter.detach(), torch.tensor([1.0 - 0.3, 2.0 - 0.4, 3.0, 4.0]))
+
+
+def test_ssam_fisher_mask_keeps_largest_fisher():
+    weight = nn.Parameter(torch.zeros(6))
+    optimizer = SSAM([weight], torch.optim.SGD, lr=0.1, sparsity=0.5, mask_type='fisher')
+
+    grads = iter([torch.tensor([1.0, 0.0, 2.0, 0.0, 0.5, 0.1]), torch.tensor([1.0, 0.0, 2.0, 0.0, 0.5, 0.1])])
+
+    def closure():
+        weight.grad = next(grads).clone()
+
+    optimizer.update_fisher_mask(closure, num_samples=2)
+
+    assert optimizer.masks[weight].tolist() == [True, False, True, False, True, False]
+    assert weight.grad is None or weight.grad.abs().sum() == 0.0
+
+    with pytest.raises(ValueError):
+        optimizer.update_fisher_mask(closure, num_samples=0)
+
+    with pytest.raises(NoClosureError):
+        optimizer.update_fisher_mask(None)
+
+
+@pytest.mark.parametrize('sparsity', [0.0, 0.3, 0.75, 1.0])
+def test_ssam_dynamic_mask_keeps_live_count(sparsity):
+    torch.manual_seed(1)
+    params = [nn.Parameter(torch.randn(7, 5)), nn.Parameter(torch.randn(11))]
+    optimizer = SSAM(
+        params,
+        torch.optim.SGD,
+        lr=0.1,
+        sparsity=sparsity,
+        drop_rate=0.5,
+        update_freq=1,
+        total_steps=8,
+        mask_type='dynamic',
+    )
+
+    total = sum(p.numel() for p in params)
+    live = total - int(np.ceil(total * sparsity))
+    assert optimizer.get_flat_mask().sum().item() == live
+
+    for _ in range(10):
+        for p in params:
+            p.grad = torch.randn_like(p)
+        optimizer.first_step()
+        assert optimizer.get_flat_mask().sum().item() == live
+        optimizer.second_step(zero_grad=True)
+
+
+def test_ssam_dynamic_mask_strategies():
+    parameter = nn.Parameter(torch.tensor([1.0, 4.0, 2.0, 3.0]))
+    optimizer = SSAM(
+        [parameter],
+        torch.optim.SGD,
+        lr=0.1,
+        sparsity=0.5,
+        drop_rate=0.5,
+        drop_strategy='weight',
+        growth_strategy='gradient',
+        update_freq=100,
+    )
+    optimizer.set_masks(torch.tensor([True, True, False, False]))
+
+    parameter.grad = torch.tensor([0.0, 0.0, 0.1, 5.0])
+    optimizer.update_dynamic_mask(step=0)
+
+    # weight 1.0 is dropped (lowest |w| among live), the dead weight with the largest gradient is grown
+    assert optimizer.masks[parameter].tolist() == [False, True, False, True]
+
+
+def test_ssam_death_rate_schedule():
+    optimizer = SSAM([simple_parameter()], torch.optim.SGD, drop_rate=0.4, total_steps=10)
+
+    assert optimizer.get_death_rate(0) == pytest.approx(0.4)
+    assert optimizer.get_death_rate(5) == pytest.approx(0.2)
+    assert optimizer.get_death_rate(10) == pytest.approx(0.0, abs=1e-12)
+    assert optimizer.get_death_rate(100) == pytest.approx(0.0, abs=1e-12)
+
+    assert SSAM([simple_parameter()], torch.optim.SGD, drop_rate=0.4).get_death_rate(100) == 0.4
+
+
+def test_ssam_gradient_score_without_gradient():
+    parameter = nn.Parameter(torch.ones(4))
+    optimizer = SSAM([parameter], torch.optim.SGD, sparsity=0.5, drop_strategy='gradient')
+
+    assert optimizer.get_score(parameter, 'gradient').abs().sum() == 0.0
+
+
+def test_ssam_state_dict_round_trip():
+    def build():
+        torch.manual_seed(0)
+        parameter = nn.Parameter(torch.randn(20))
+        return parameter, SSAM([parameter], torch.optim.SGD, lr=0.1, sparsity=0.6, update_freq=3)
+
+    parameter, optimizer = build()
+    for _ in range(4):
+        parameter.grad = torch.randn_like(parameter)
+        optimizer.first_step()
+        optimizer.second_step(zero_grad=True)
+
+    new_parameter, new_optimizer = build()
+    new_optimizer.load_state_dict(deepcopy(optimizer.state_dict()))
+
+    assert new_optimizer.num_first_steps == optimizer.num_first_steps
+    assert torch.equal(new_optimizer.masks[new_parameter], optimizer.masks[parameter])
+
+
+def test_ssam_load_state_dict_without_masks():
+    parameter = nn.Parameter(torch.randn(4))
+    optimizer = SSAM([parameter], torch.optim.SGD, lr=0.1)
+    state_dict = optimizer.state_dict()
+    state_dict.pop('ssam')
+
+    optimizer.load_state_dict(state_dict)
+
+
+def test_ssam_no_gradient_parameter():
+    used, unused = nn.Parameter(torch.ones(3)), nn.Parameter(torch.ones(3))
+    optimizer = SSAM([used, unused], torch.optim.SGD, lr=0.1, sparsity=0.5)
+
+    used.sum().backward()
+    optimizer.first_step(zero_grad=True)
+    used.sum().backward()
+    optimizer.second_step(zero_grad=True)
+
+    torch.testing.assert_close(unused.detach(), torch.ones(3))
+
+
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        {'sparsity': -0.1},
+        {'sparsity': 1.1},
+        {'mask_type': 'unknown'},
+        {'drop_rate': 1.5},
+        {'drop_strategy': 'unknown'},
+        {'growth_strategy': 'unknown'},
+        {'update_freq': 0},
+        {'total_steps': 0},
+        {'rho': -1.0},
+    ],
+)
+def test_ssam_invalid_parameters(kwargs):
+    with pytest.raises(ValueError):
+        SSAM([simple_parameter()], torch.optim.SGD, **kwargs)
 
 
 @pytest.mark.parametrize('adaptive', [True, False])

@@ -532,6 +532,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.SSAM
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.StableAdamW
     :docstring:
     :members:

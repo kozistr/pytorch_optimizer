@@ -92,7 +92,7 @@ from pytorch_optimizer.optimizer.ranger import Ranger
 from pytorch_optimizer.optimizer.ranger21 import Ranger21
 from pytorch_optimizer.optimizer.rose import ROSE
 from pytorch_optimizer.optimizer.rotograd import RotoGrad
-from pytorch_optimizer.optimizer.sam import BSAM, GSAM, SAM, WSAM, FriendlySAM, LookSAM
+from pytorch_optimizer.optimizer.sam import BSAM, GSAM, SAM, SSAM, WSAM, FriendlySAM, LookSAM
 from pytorch_optimizer.optimizer.schedulefree import (
     ScheduleFreeAdamW,
     ScheduleFreeRAdam,
