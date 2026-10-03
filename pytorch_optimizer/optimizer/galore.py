@@ -9,15 +9,18 @@ from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
 
 
 class GaLore(BaseOptimizer):
-    """AdamW optimizer with GaLore projector.
+    """AdamW with low rank gradient projection.
+
+    Add `rank`, `update_proj_gap`, `scale`, and `projection_type` to parameter groups
+    containing matrix weights to enable projection.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        weight_decay: Weight decay coefficient.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

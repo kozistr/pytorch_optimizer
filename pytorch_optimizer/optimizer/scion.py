@@ -10,7 +10,7 @@ from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schu
 
 
 class LMONorm(IntEnum):
-    """normalization types."""
+    """Linear minimization oracle normalization types."""
 
     NONE = 0
     AUTO = 1
@@ -23,24 +23,24 @@ class LMONorm(IntEnum):
 
 
 class Norm:
-    """Base class to perform norm onto Scion. This class does no norm."""
+    """Identity linear minimization oracle and parameter initialization."""
 
     def init(self, x: torch.Tensor) -> torch.Tensor:
-        """Initialize parameter."""
+        """Initialize a parameter tensor."""
         return x
 
     def lmo(self, grad: torch.Tensor) -> torch.Tensor:
-        """Get LMO."""
+        """Return the linear minimization oracle direction."""
         return grad
 
 
 class Col(Norm):
-    """Col-wise normalization.
+    """Column wise normalization for a linear minimization oracle.
 
     Args:
-        normalized (bool): normalize by the input dimension; use for non-input layers.
-        transpose (bool): transpose input before normalization; use for embedding layers with shape
-            (vocab_size, embedding_dim).
+        normalized: Normalize by the input dimension. Use for non input layers.
+        transpose: Transpose input before normalization. Use for embedding layers with shape (vocab_size,
+            embedding_dim).
 
     """
 
@@ -84,12 +84,12 @@ class Col(Norm):
 
 
 class Row(Norm):
-    """Row-wise normalization.
+    """Row wise normalization for a linear minimization oracle.
 
     Args:
-        normalized (bool): normalize by the input dimension; use for non-input layers.
-        transpose (bool): transpose input before normalization; use for embedding layers with shape
-            (vocab_size, embedding_dim).
+        normalized: Normalize by the input dimension. Use for non input layers.
+        transpose: Transpose input before normalization. Use for embedding layers with shape (vocab_size,
+            embedding_dim).
 
     """
 
@@ -131,7 +131,7 @@ class Row(Norm):
 
 
 class BiasRMS(Norm):
-    """bias RMS."""
+    """Root mean square normalization for bias parameters."""
 
     def init(self, x: torch.Tensor) -> torch.Tensor:
         return torch.nn.init.zeros_(x)
@@ -143,10 +143,10 @@ class BiasRMS(Norm):
 
 
 class SpectralConv(Norm):
-    """Spectral-Convolution Normalization.
+    """Spectral normalization for convolutional weights.
 
     Args:
-        num_steps (int): number of steps of zero-power Newton-Schulz normalization, typically 5.
+        num_steps: Number of steps of zero power Newton-Schulz normalization, typically 5.
 
     """
 
@@ -180,9 +180,9 @@ class Spectral(Norm):
     """Spectral normalization.
 
     Args:
-        max_scale (bool): set upper bound (1.0) of the scale.
-        normalize (bool): normalize by the input dimension; use for non-input layers.
-        num_steps (int): number of zero-power Newton-Schulz normalization steps, typically 5.
+        max_scale: Set upper bound (1.0) of the scale.
+        normalize: Normalize by the input dimension. Use for non input layers.
+        num_steps: Number of zero power Newton-Schulz normalization steps, typically 5.
 
     """
 
@@ -224,8 +224,8 @@ class Sign(Norm):
     """Sign normalization.
 
     Args:
-        zero_init (bool): initialize with zero.
-        normalize (bool): normalize by the input dimension; use for non-input layers.
+        zero_init: Initialize with zero.
+        normalize: Normalize by the input dimension. Use for non input layers.
 
     """
 
@@ -251,7 +251,7 @@ class Sign(Norm):
 
 
 class Auto(Norm):
-    """choose Norm type automatically."""
+    """Choose a normalization from the parameter shape."""
 
     def init(self, x: torch.Tensor) -> torch.Tensor:
         ndim: int = x.ndim
@@ -275,7 +275,7 @@ class Auto(Norm):
 
 
 def build_lmo_norm(norm_type: int, **kwargs) -> Norm:  # noqa: PLR0911
-    """Build LMONorm by given norm_type."""
+    """Construct a linear minimization oracle normalization by type."""
     if norm_type == LMONorm.AUTO:
         return Auto()
     if norm_type == LMONorm.SPECTRAL:
@@ -294,40 +294,38 @@ def build_lmo_norm(norm_type: int, **kwargs) -> Norm:  # noqa: PLR0911
 
 
 class SCION(BaseOptimizer):
-    """Training Deep Learning Models with Norm-Constrained LMOs.
+    """Norm constrained updates using linear minimization oracles.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
-        momentum (float): momentum factor. 1.0 - usual momentum.
-        constraint (bool): whether to use a constraint SCG or not.
-        norm_type (int): supported LMO norm types. 0 stands for no normalization and 1 stands for AUTO. 0 to 7.
-            Please check LMONorm Enum class for the details.
-        norm_kwargs (dict | None): arguments for the Norm.
-        scale (float): scale factor. For Transformer block typical value is 50.0, and 3000.0 for others
-            (e.g., Embeddings, LM head).
-        weight_decay (float): weight decay (L2 penalty).
-        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
-        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
-            None means auto-detect based on device (True for CUDA, False otherwise).
-        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        momentum: Weight of the new gradient in the momentum average, equal to `1 - usual_momentum`.
+        constraint: Use conditional gradient updates within the selected norm radius.
+        norm_type: Linear minimization oracle type, as an `LMONorm` value or matching integer.
+        norm_kwargs: Options for the normalization class.
+        scale: Radius or update scale for the selected normalization.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
+        maximize: Maximize the objective instead of minimizing it.
 
-    Example:
-        >>> radius = 50.0
-        >>> parameter_groups = [{
-        ...     'params': model.transformer.h.parameters(),
-        ...     'norm_type': 'spectral',
-        ...     'norm_kwargs': {},
-        ...     'scale': radius,
-        ... }, {
-        ...     'params': model.lm_head.parameters(),
-        ...     'norm_type': 'sign',
-        ...     'norm_kwargs': {},
-        ...     'scale': radius * 60.0,
-        ... }]
-        >>> optimizer = SCION(parameter_groups)
+    Examples:
+        ```python
+        from pytorch_optimizer import SCION
+        from pytorch_optimizer.optimizer.scion import LMONorm
 
-        For more details, checkout here https://github.com/LIONS-EPFL/scion/tree/main?tab=readme-ov-file#examples
+        radius = 50.0
+        parameter_groups = [{
+            'params': model.transformer.h.parameters(),
+            'norm_type': LMONorm.SPECTRAL,
+            'scale': radius,
+        }, {
+            'params': model.lm_head.parameters(),
+            'norm_type': LMONorm.SIGN,
+            'scale': radius * 60.0,
+        }]
+        optimizer = SCION(parameter_groups)
+        ```
 
     """
 
@@ -491,40 +489,41 @@ class SCION(BaseOptimizer):
 
 
 class SCIONLight(BaseOptimizer):
-    r"""Memory-efficient variant of the Scion optimizer.
+    """Variant of SCION that stores momentum in gradient buffers.
+
+    Reuse gradient buffers between backward passes to retain momentum. Each `step()`
+    scales those buffers by `1 - momentum` after updating parameters.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
-        momentum (float): momentum factor. 1.0 - usual momentum.
-        constraint (bool): whether to use a constraint SCG or not.
-        norm_type (int): supported LMO norm types. 0 stands for no normalization and 1 stands for AUTO. 0 to 7.
-            Please check LMONorm Enum class for the details.
-        norm_kwargs (dict | None): arguments for the Norm.
-        scale (float): scale factor. For Transformer block typical value is 50.0, and 3000.0 for others
-            (e.g., Embeddings, LM head).
-        weight_decay (float): weight decay (L2 penalty).
-        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
-        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
-            None means auto-detect based on device (True for CUDA, False otherwise).
-        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        momentum: Complement of the factor retained in gradient buffers after each update.
+        constraint: Use conditional gradient updates within the selected norm radius.
+        norm_type: Linear minimization oracle type, as an `LMONorm` value or matching integer.
+        norm_kwargs: Options for the normalization class.
+        scale: Radius or update scale for the selected normalization.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
+        maximize: Maximize the objective instead of minimizing it.
 
-    Example:
-        >>> radius = 50.0
-        >>> parameter_groups = [{
-        ...     'params': model.transformer.h.parameters(),
-        ...     'norm_type': 'spectral',
-        ...     'norm_kwargs': {},
-        ...     'scale': radius,
-        ... }, {
-        ...     'params': model.lm_head.parameters(),
-        ...     'norm_type': 'sign',
-        ...     'norm_kwargs': {},
-        ...     'scale': radius * 60.0,
-        ... }]
-        >>> optimizer = SCIONLight(parameter_groups)
+    Examples:
+        ```python
+        from pytorch_optimizer import SCIONLight
+        from pytorch_optimizer.optimizer.scion import LMONorm
 
-        For more details, checkout here https://github.com/LIONS-EPFL/scion/tree/main?tab=readme-ov-file#examples
+        radius = 50.0
+        parameter_groups = [{
+            'params': model.transformer.h.parameters(),
+            'norm_type': LMONorm.SPECTRAL,
+            'scale': radius,
+        }, {
+            'params': model.lm_head.parameters(),
+            'norm_type': LMONorm.SIGN,
+            'scale': radius * 60.0,
+        }]
+        optimizer = SCIONLight(parameter_groups)
+        ```
 
     """
 

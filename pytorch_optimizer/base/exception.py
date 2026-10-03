@@ -1,9 +1,9 @@
 class NoSparseGradientError(Exception):
-    r"""Raised when the gradient is sparse.
+    """An optimizer received an unsupported sparse gradient.
 
     Args:
-        optimizer_name (str): The name of the optimizer where the error occurred.
-        note (str): Additional special conditions or notes (default is an empty string).
+        optimizer_name: Optimizer that rejected the input.
+        note: Additional context for the error.
 
     """
 
@@ -14,7 +14,7 @@ class NoSparseGradientError(Exception):
 
 
 class ZeroParameterSizeError(Exception):
-    """Raised when the parameter size is 0."""
+    """An optimizer received a parameter with no elements."""
 
     def __init__(self):
         self.message: str = 'parameter size is 0'
@@ -22,7 +22,7 @@ class ZeroParameterSizeError(Exception):
 
 
 class NoClosureError(Exception):
-    """Raised when no closure function is provided."""
+    """An optimizer that requires a closure received none."""
 
     def __init__(self, optimizer_name: str, note: str = ''):
         self.message: str = f'{optimizer_name} requires closure.{note}'
@@ -30,7 +30,7 @@ class NoClosureError(Exception):
 
 
 class NegativeLRError(Exception):
-    """Raised when the learning rate is negative."""
+    """A learning rate is negative."""
 
     def __init__(self, lr: float, lr_type: str = ''):
         self.note: str = lr_type if lr_type else 'learning rate'
@@ -39,7 +39,7 @@ class NegativeLRError(Exception):
 
 
 class NegativeStepError(Exception):
-    """Raised when the step is negative."""
+    """A step count is below the required minimum."""
 
     def __init__(self, num_steps: int, step_type: str = ''):
         self.note: str = step_type if step_type else 'step'
@@ -48,11 +48,11 @@ class NegativeStepError(Exception):
 
 
 class NoComplexParameterError(Exception):
-    r"""Raised when the dtype of the parameter is complex.
+    """An optimizer received an unsupported complex parameter.
 
     Args:
-        optimizer_name (str): The name of the optimizer where the error occurred.
-        note (str): Additional special conditions or notes (default is an empty string).
+        optimizer_name: Optimizer that rejected the input.
+        note: Additional context for the error.
 
     """
 

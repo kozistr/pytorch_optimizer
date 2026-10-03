@@ -19,19 +19,21 @@ from pytorch_optimizer.base.type import (
 
 
 class ScheduleFreeSGD(BaseOptimizer):
-    """Schedule-Free SGD.
+    """Schedule free SGD with weighted parameter averaging.
+
+    Call `train()` before training and `eval()` before evaluating averaged weights.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
-        momentum (float): momentum factor, must be between 0 and 1 exclusive.
-        weight_decay (float): weight decay (L2 penalty).
-        r (float): use polynomial weighting in the average with power r.
-        weight_lr_power (float): during warmup, weights in the average equal to lr raised to this power;
-            0 disables weighting.
-        warmup_steps (int): enables a linear learning rate warmup.
-        eps (float): term added to denominator to improve numerical stability.
-        maximize (bool): maximize the objective instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        momentum: Interpolation coefficient for the training iterate, strictly between 0 and 1.
+        weight_decay: Weight decay coefficient.
+        r: Exponent of the polynomial step weighting in parameter averaging.
+        weight_lr_power: Exponent of the maximum learning rate seen so far in parameter averaging. `0` disables
+            rate weighting.
+        warmup_steps: Number of linear learning rate warmup steps.
+        eps: Term added to denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -76,6 +78,7 @@ class ScheduleFreeSGD(BaseOptimizer):
         return 'ScheduleFreeSGD'
 
     def eval(self):
+        """Switch to averaged weights for evaluation."""
         for group in self.param_groups:
             momentum = group['momentum']
             if group['train_mode']:
@@ -86,6 +89,7 @@ class ScheduleFreeSGD(BaseOptimizer):
                 group['train_mode'] = False
 
     def train(self):
+        """Switch to training weights before forward and backward passes."""
         for group in self.param_groups:
             momentum = group['momentum']
             if not group['train_mode']:
@@ -168,21 +172,23 @@ class ScheduleFreeSGD(BaseOptimizer):
 
 
 class ScheduleFreeAdamW(BaseOptimizer):
-    """Schedule-Free AdamW.
+    """Schedule free AdamW with weighted parameter averaging.
+
+    Call `train()` before training and `eval()` before evaluating averaged weights.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
-        betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
-        weight_decay (float): weight decay (L2 penalty).
-        r (float): use polynomial weighting in the average with power r.
-        weight_lr_power (float): during warmup, weights in the average equal to lr raised to this power;
-            0 disables weighting.
-        warmup_steps (int): enables a linear learning rate warmup.
-        decoupling_c (int): proposed coefficient in Refined Schedule-Free AdamW optimizer; default around 200.
-        ams_bound (bool): whether to use the AMSBound variant.
-        eps (float): term added to denominator for numerical stability.
-        maximize (bool): maximize the objective instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Interpolation coefficient for the training iterate and decay rate for squared gradients.
+        weight_decay: Weight decay coefficient.
+        r: Exponent of the polynomial step weighting in parameter averaging.
+        weight_lr_power: Exponent of the maximum learning rate seen so far in parameter averaging. `0` disables
+            rate weighting.
+        warmup_steps: Number of linear learning rate warmup steps.
+        decoupling_c: Coefficient scaling the parameter averaging weight. `0` uses standard averaging.
+        ams_bound: Use the running maximum of the second moment to bound adaptive updates.
+        eps: Term added to denominator for numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -234,6 +240,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
         return 'ScheduleFreeAdamW'
 
     def eval(self):
+        """Switch to averaged weights for evaluation."""
         for group in self.param_groups:
             beta1, _ = group['betas']
             if group['train_mode']:
@@ -244,6 +251,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
                 group['train_mode'] = False
 
     def train(self):
+        """Switch to training weights before forward and backward passes."""
         for group in self.param_groups:
             beta1, _ = group['betas']
             if not group['train_mode']:
@@ -343,20 +351,22 @@ class ScheduleFreeAdamW(BaseOptimizer):
 
 
 class ScheduleFreeRAdam(BaseOptimizer):
-    """Schedule-Free RAdam.
+    """Schedule free RAdam with weighted parameter averaging.
+
+    Call `train()` before training and `eval()` before evaluating averaged weights.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
-        betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
-        weight_decay (float): weight decay (L2 penalty).
-        r (float): use polynomial weighting in the average with power r.
-        weight_lr_power (float): during warmup, weights in the average equal to lr raised to this power;
-            0 disables weighting.
-        silent_sgd_phase (bool): if True, disables updates in the early SGD phase, only updates momentum to
-            stabilize training.
-        eps (float): term added to denominator to improve numerical stability.
-        maximize (bool): maximize the objective instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Interpolation coefficient for the training iterate and decay rate for squared gradients.
+        weight_decay: Weight decay coefficient.
+        r: Exponent of the polynomial step weighting in parameter averaging.
+        weight_lr_power: Exponent of the maximum learning rate seen so far in parameter averaging. `0` disables
+            rate weighting.
+        silent_sgd_phase: If True, disables updates in the early SGD phase, only updates momentum to stabilize
+            training.
+        eps: Term added to denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -401,6 +411,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
         return 'ScheduleFreeRAdam'
 
     def eval(self):
+        """Switch to averaged weights for evaluation."""
         for group in self.param_groups:
             beta1, _ = group['betas']
             if group['train_mode']:
@@ -411,6 +422,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
                 group['train_mode'] = False
 
     def train(self):
+        """Switch to training weights before forward and backward passes."""
         for group in self.param_groups:
             beta1, _ = group['betas']
             if not group['train_mode']:
@@ -514,27 +526,21 @@ class ScheduleFreeRAdam(BaseOptimizer):
 
 
 class ScheduleFreeWrapper(BaseOptimizer):
-    r"""Schedule-Free Wrapper for any base optimizer.
+    """Wrap an optimizer with schedule free parameter averaging.
 
-    This version uses a memory-efficient swap operation but may be slower than the reference version. In most cases
-    the performance difference is negligible. For the best possible performance and memory-usage, Schedule-Free
-    needs to be directly integrated with the base optimizer.
-
-    When using this version, you can disable the base optimizer's momentum, as it's no longer necessary when using
-    our wrapper's momentum (although you can use both types of momentum if you want).
-
-    If you set weight decay on the base optimizer, it computes weight decay at $z$. We offer the option to compute
-    weight decay at $y$, via the `weight_decay_at_y` parameter, which seems to give better results in our
-    experiments. This approach to decay only works correctly if the base optimizer uses group['lr'] as the current
-    learning rate.
+    Call `train()` before training and `eval()` before evaluation or saving evaluation
+    weights. The wrapper supplies momentum, so you can disable the base optimizer's momentum.
+    Base optimizer weight decay acts on the fast iterate `z`. `weight_decay_at_y` applies
+    additional decay at the training iterate `y` using the group's current learning rate.
 
     Args:
-        optimizer (Optimizer): base optimizer instance or class to wrap.
-        momentum (float): momentum factor.
-        weight_decay (float): weight decay (L2 penalty).
-        r (float): use polynomial weighting in the average with power r.
-        weight_lr_power (float): during warmup, weights in average equal lr raised to this power; 0 disables weighting.
-        maximize (bool): maximize the objective instead of minimizing.
+        optimizer: Base optimizer instance or class to wrap.
+        momentum: Momentum factor.
+        weight_decay: Weight decay coefficient.
+        r: Exponent of the polynomial step weighting in parameter averaging.
+        weight_lr_power: Exponent of the maximum learning rate seen so far in parameter averaging. `0` disables
+            rate weighting.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -593,7 +599,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
         }
 
     def load_state_dict(self, state: State) -> None:
-        r"""Load state."""
+        """Restore the base optimizer state from a checkpoint."""
         saved_state = state['schedulefree_state']
         restored_state: State = {}
         for group_index, group in enumerate(self.param_groups):
@@ -616,6 +622,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
 
     @torch.no_grad()
     def eval(self):
+        """Switch to averaged weights for evaluation."""
         if not self.train_mode:
             return
 
@@ -629,6 +636,7 @@ class ScheduleFreeWrapper(BaseOptimizer):
 
     @torch.no_grad()
     def train(self):
+        """Switch to training weights before forward and backward passes."""
         if self.train_mode:
             return
 

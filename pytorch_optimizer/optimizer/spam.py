@@ -11,13 +11,13 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class CosineDecay:
-    """Applies cosine decay to a parameter (death_rate) using PyTorch's built-in `CosineAnnealingLR`.
+    """Cosine decay of a scalar value using PyTorch's `CosineAnnealingLR`.
 
     Args:
-        death_rate (float): Initial value to be decayed.
-        t_max (int): Maximum number of iterations for the decay.
-        eta_min (float | None): Minimum value of the parameter after decay. Defaults to 0.
-        last_epoch (int | None): The index of the last epoch. Defaults to -1.
+        death_rate: Initial value to be decayed.
+        t_max: Maximum number of iterations for the decay.
+        eta_min: Minimum value of the parameter after decay. Defaults to 0.
+        last_epoch: The index of the last epoch. Defaults to -1.
 
     """
 
@@ -28,10 +28,10 @@ class CosineDecay:
         self.eta_min = eta_min
 
     def step(self, current_step: int) -> None:
-        """One step of the cosine decay scheduler.
+        """Advance the cosine decay scheduler at the given step.
 
         Args:
-            current_step (int): Current step index.
+            current_step: Current step index.
 
         """
         self.cosine_stepper.last_epoch = current_step
@@ -41,7 +41,7 @@ class CosineDecay:
         """Get the updated rate (death_rate) at the given step.
 
         Args:
-            current_step (int): Current step index.
+            current_step: Current step index.
 
         """
         if current_step >= self.t_max:
@@ -53,20 +53,20 @@ class CosineDecay:
 
 
 class SPAM(BaseOptimizer):
-    r"""Spike-Aware Adam with Momentum Reset for Stable LLM Training.
+    """Adam with sparse update masks, gradient spike clipping, and momentum resets.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        density (float): Density parameter. Only used for 2D parameters (e.g., Linear).
-        weight_decay (float): Weight decay (L2 penalty).
-        warmup_epoch (int): Number of epochs to warm up. Defaults to 50.
-        threshold (int): Threshold for gradient masking. Defaults to 5000.
-        grad_accu_steps (int): Gradient accumulation steps before threshold-based masking applies. Defaults to 20.
-        update_proj_gap (int): Update projection gap.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        density: Expected fraction of 2D parameter entries to update between mask resets.
+        weight_decay: Weight decay coefficient.
+        warmup_epoch: Number of steps to warm up after each momentum reset.
+        threshold: Squared gradient to second moment ratio above which to clip spikes.
+        grad_accu_steps: Steps after a reset before spike clipping begins.
+        update_proj_gap: Number of steps between mask updates and momentum resets.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -115,12 +115,17 @@ class SPAM(BaseOptimizer):
 
     @staticmethod
     def initialize_random_rank_boolean_tensor(m: int, n: int, density: float, device: torch.device) -> torch.Tensor:
-        r"""Create an (m x n) boolean tensor with `density` fraction of True entries.
+        """Create a boolean matrix with an expected fraction of selected entries.
 
-        :param m: int. number of rows.
-        :param n: int. number of columns.
-        :param density: float. fraction of True entries. 1.0 means all True.
-        :param device: torch.device. device.
+        Args:
+            m: Number of rows.
+            n: Number of columns.
+            density: Probability of selecting each entry. `1` selects all entries.
+            device: Device for the matrix.
+
+        Returns:
+            torch.Tensor: Boolean mask with shape `(m, n)`.
+
         """
         total_elements: int = m * n
         non_zero_count: int = int(density * total_elements)
@@ -133,13 +138,15 @@ class SPAM(BaseOptimizer):
         return tensor.view(m, n)
 
     def update_mask_random(self, p: torch.Tensor, old_mask: torch.Tensor) -> torch.Tensor:
-        r"""Update a random mask.
+        """Resample a parameter mask and retain moments for entries in both masks.
 
-        Create a new random mask with the same density, compute overlap ratio with old_mask, and update the EMA for
-        the overlap region.
+        Args:
+            p: Parameter tensor to mask.
+            old_mask: Previous boolean mask.
 
-        :param p: torch.Tensor. parameter to which the mask is applied.
-        :param old_mask: torch.Tensor. previous binary mask.
+        Returns:
+            torch.Tensor: New boolean mask with the configured expected density.
+
         """
         new_mask: torch.Tensor = torch.rand_like(p) < self.density
 
@@ -160,10 +167,7 @@ class SPAM(BaseOptimizer):
         return new_mask
 
     def update_masks(self) -> None:
-        r"""Update masks in each parameter group that has 'density'.
-
-        The new mask is selected randomly, and the overlap ratio with the old mask is printed.
-        """
+        """Resample matrix masks and retain momentum entries shared with the old masks."""
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
@@ -172,7 +176,7 @@ class SPAM(BaseOptimizer):
                     p.mask = state['mask']
 
     def init_masks(self) -> None:
-        r"""Initialize random masks for each parameter group that has 'density'."""
+        """Initialize sparse update masks for 2D parameters."""
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
@@ -276,21 +280,21 @@ class SPAM(BaseOptimizer):
 
 
 class StableSPAM(BaseOptimizer):
-    r"""How to Train in 4-Bit More Stably than 16-Bit Adam.
+    """Adam with adaptive gradient scaling, spike clipping, and momentum resets.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        gamma1 (float): Gamma1 parameter.
-        gamma2 (float): Gamma2 parameter.
-        theta (float): Theta parameter.
-        t_max (int | None): Total number of steps.
-        eta_min (float): Eta_min of CosineDecay.
-        weight_decay (float): Weight decay (L2 penalty).
-        update_proj_gap (int): Update projection gap.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        gamma1: Decay rate for the gradient norm average. `-1` uses `beta1`.
+        gamma2: Decay rate for the squared gradient norm average.
+        theta: Decay rate for the maximum absolute gradient average.
+        t_max: Steps for cosine decay of momentum coefficients. `None` disables decay.
+        eta_min: Minimum multiplier for the cosine decayed momentum coefficients.
+        weight_decay: Weight decay coefficient.
+        update_proj_gap: Steps between momentum resets.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

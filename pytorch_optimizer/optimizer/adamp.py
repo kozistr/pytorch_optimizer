@@ -11,12 +11,12 @@ from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradi
 
 
 def channel_view(x: torch.Tensor) -> torch.Tensor:
-    """Do channel view."""
+    """Flatten a tensor to one row per output channel."""
     return x.view(x.size()[0], -1)
 
 
 def layer_view(x: torch.Tensor) -> torch.Tensor:
-    """Do layer view."""
+    """Flatten a tensor to a single row."""
     return x.view(1, -1)
 
 
@@ -29,10 +29,10 @@ def cosine_similarity_by_view(
     """Calculate cosine similarity by the view.
 
     Args:
-        x (torch.Tensor): Source tensor.
-        y (torch.Tensor): Destination tensor.
-        eps (float): Small constant epsilon added for numerical stability.
-        view_func (Callable): Function defining the view (e.g., per-channel or per-layer).
+        x: Source tensor.
+        y: Destination tensor.
+        eps: Small constant epsilon added for numerical stability.
+        view_func: Function defining the view (e.g., per channel or per layer).
 
     """
     x = view_func(x)
@@ -64,22 +64,22 @@ def projection(
 
 
 class SGDP(BaseOptimizer):
-    """SGD + Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights.
+    """SGD with projected updates for scale invariant weights.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        momentum (float): Momentum factor.
-        dampening (float): Dampening for momentum.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
-        fixed_decay (bool): Apply fixed weight decay instead of adaptive.
-        delta (float): Threshold that determines whether a set of parameters is scale-invariant or not.
-        wd_ratio (float): Relative weight decay applied on scale-invariant parameters compared to that applied
-            on scale-variant parameters.
-        nesterov (bool): Enables Nesterov momentum.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        momentum: Momentum factor.
+        dampening: Dampening factor for momentum.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        delta: Threshold that determines whether a set of parameters is scale invariant or not.
+        wd_ratio: Relative weight decay applied on scale invariant parameters compared to that applied on
+            scale-variant parameters.
+        nesterov: Use Nesterov momentum.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -200,21 +200,21 @@ class SGDP(BaseOptimizer):
 
 
 class AdamP(BaseOptimizer):
-    """Slowing Down the Slowdown for Momentum Optimizers on Scale-invariant Weights.
+    """Adam with projected updates for scale invariant weights.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
-        fixed_decay (bool): Apply fixed weight decay instead of adaptive.
-        delta (float): Threshold that determines whether a set of parameters is scale-invariant or not.
-        wd_ratio (float): Relative weight decay applied on scale-invariant parameters compared to that applied
-            on scale-variant parameters.
-        nesterov (bool): Enables Nesterov momentum.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        delta: Threshold that determines whether a set of parameters is scale invariant or not.
+        wd_ratio: Relative weight decay applied on scale invariant parameters compared to that applied on
+            scale-variant parameters.
+        nesterov: Use Nesterov momentum.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

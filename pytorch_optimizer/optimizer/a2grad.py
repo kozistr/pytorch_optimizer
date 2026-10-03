@@ -11,16 +11,16 @@ VARIANTS = Literal['uni', 'inc', 'exp']
 
 
 class A2Grad(BaseOptimizer):
-    """Optimal Adaptive and Accelerated Stochastic Gradient Descent.
+    """Adaptive accelerated stochastic gradient descent with three averaging variants.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float | None): Learning rate. No needed.
-        beta (float): Beta.
-        lips (float): Lipschitz constant.
-        rho (float): Represents the degree of weighting decrease, a constant smoothing factor between 0 and 1.
-        variant (str): Variant of A2Grad optimizer. One of 'uni', 'inc', or 'exp'.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate. No needed.
+        beta: Coefficient controlling the adaptive gradient scale.
+        lips: Lipschitz constant.
+        rho: Represents the degree of weighting decrease, a constant smoothing factor between 0 and 1.
+        variant: Variant of A2Grad optimizer. One of 'uni', 'inc', or 'exp'.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

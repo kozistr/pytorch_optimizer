@@ -36,7 +36,7 @@ def quantize_state(
     softsign: bool = True,
     group_size: int = GROUP_SIZE,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Quantize the states."""
+    """Quantize optimizer state in groups with per group scales."""
     numel = tensor.numel()
     target_dtype = torch.int8 if signed else torch.uint8
     if numel == 0:
@@ -72,7 +72,7 @@ def dequantize_state(
     softsign: bool = True,
     group_size: int = GROUP_SIZE,
 ) -> torch.Tensor:
-    """De-Quantize the states."""
+    """Reconstruct a floating point optimizer state from quantized values and scales."""
     numel = quantized.numel()
     if numel == 0:
         return torch.empty_like(quantized, dtype=torch.float32)
@@ -99,14 +99,14 @@ def _state_spec(name: str) -> tuple[bool, bool, bool]:
 
 
 def materialize_state(state: dict[str, Any], name: str) -> torch.Tensor:
-    """Materialize the states."""
+    """Return an optimizer state tensor, decompressing it if needed."""
     if _quantized_key(name) in state:
         return dequantize_state(state[_quantized_key(name)], state[_scales_key(name)], *_state_spec(name))
     return state[name].to(torch.float32)
 
 
 def store_state(state: dict[str, Any], name: str, tensor: torch.Tensor, quantize: bool, dtype: torch.dtype) -> None:
-    """Store the states."""
+    """Store an optimizer state tensor with optional quantization."""
     if quantize:
         quantized, scales = quantize_state(tensor, *_state_spec(name))
         state[_quantized_key(name)] = quantized
@@ -120,13 +120,13 @@ def store_state(state: dict[str, Any], name: str, tensor: torch.Tensor, quantize
 
 
 def ulp_scale(narrow: torch.Tensor) -> torch.Tensor:
-    """Scale the parameter."""
+    """Compute the spacing between adjacent values for low precision parameters."""
     next_values = torch.nextafter(narrow.abs(), torch.full_like(narrow, float('inf')))
     return next_values.sub(narrow.abs()).to(torch.float32).mul_(0.5).clamp_min_(torch.finfo(torch.float32).tiny)
 
 
 def compute_ecc_bits(fp32_param: torch.Tensor, narrow_param: torch.Tensor, master_byte_width: int) -> torch.Tensor:
-    """Compute ECC bits."""
+    """Encode master weight residuals as error correction bits."""
     if fp32_param.dtype != torch.float32:
         raise ValueError(f'fp32_param must be float32, got {fp32_param.dtype}')
     if narrow_param.dtype not in (torch.bfloat16, torch.float16):
@@ -145,7 +145,7 @@ def compute_ecc_bits(fp32_param: torch.Tensor, narrow_param: torch.Tensor, maste
 
 
 def reconstruct_fp32_param(param: torch.Tensor, error_bits: torch.Tensor) -> torch.Tensor:
-    """Reconstruct fp32 parameters."""
+    """Reconstruct float32 parameters from low precision weights and correction bits."""
     if param.dtype not in (torch.bfloat16, torch.float16):
         raise ValueError(f'param must be bf16 or fp16, got {param.dtype}')
     if error_bits.dtype == torch.int8:
@@ -159,26 +159,25 @@ def reconstruct_fp32_param(param: torch.Tensor, error_bits: torch.Tensor) -> tor
 
 
 class FlashAdamW(BaseOptimizer):
-    """FlashOptim-style AdamW with compressed optimizer states.
+    """AdamW with grouped 8-bit optimizer states and optional master weight error correction.
 
-    The optimizer mirrors FlashOptim's AdamW semantics while keeping the implementation portable for environments where
-    Triton kernels are not available. It supports grouped 8-bit optimizer-state compression, compressed state dicts,
-    optional low-precision master-weight error correction, and fully LR-decoupled weight decay.
+    Supports compressed checkpoints and low precision parameters through a portable
+    PyTorch implementation of FlashOptim style updates.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and squared gradient.
-        eps (float): Term added to the denominator to improve numerical stability.
-        weight_decay (float): Decoupled weight decay coefficient.
-        decouple_lr (bool): Scale weight decay by ``lr / initial_lr`` instead of ``lr``.
-        quantize (bool): Store Adam moments as grouped 8-bit values plus fp16 scales.
-        compress_state_dict (bool): Save quantized states in checkpoints when ``quantize`` is enabled.
-        master_weight_bits (int | None): Effective master-weight precision for bf16/fp16 parameters. Supports
-            ``None``, ``24``, and ``32``.
-        check_numerics (bool): Raise if low-precision parameter updates are unlikely to alter the master weight.
-        fused (bool): Placeholder for FlashOptim's Triton fused path. Currently unsupported in this portable backend.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Coefficients used for computing running averages of gradient and squared gradient.
+        eps: Term added to the denominator to improve numerical stability.
+        weight_decay: Weight decay coefficient.
+        decouple_lr: Scale weight decay by `lr / initial_lr` instead of `lr`.
+        quantize: Store Adam moments as grouped 8-bit values plus fp16 scales.
+        compress_state_dict: Save quantized states in checkpoints when `quantize` is enabled.
+        master_weight_bits: Effective master weight precision for bf16/fp16 parameters. Supports `None`, `24`, and
+            `32`.
+        check_numerics: Raise if low precision parameter updates are unlikely to alter the master weight.
+        fused: Placeholder for FlashOptim's Triton fused path. Currently unsupported in this portable backend.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

@@ -8,25 +8,21 @@ from pytorch_optimizer.optimizer.utils import copy_stochastic
 
 
 class ROSE(BaseOptimizer):
-    """Range-Of-Slice Equilibration optimizer.
+    """Gradient updates scaled by row and column ranges.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        weight_decay (float): Weight decay (L2 penalty).
-        wd_schedule (float | bool): Schedule-Coupled Weight Decay. If `False`, standard decoupled weight decay is
-            used. If `True`, `lr_ref` is the first available among `group['max_lr']`, `group['initial_lr']`, and the
-            learning-rate passed at construction time. If a float is provided, it is used directly as `lr_ref`.
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Fix weight decay.
-        centralize (bool): Gradient Centralization. Removes shared offsets from gradient slices before the range
-            computation. This can improve generalization and training stability. Biases and other 1D parameters are not
-            centralized.
-        stabilize (bool): Coefficient-of-Variation Trust Gating. Computes a trust factor from the coefficient of
-            variation of the per-slice range tensor, and then interpolates between the local range and a smoother
-            global mean denominator. This can smooth noisy gradients.
-        bf16_sr (bool): Stochastic Rounding for BFloat16.
-        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        weight_decay: Weight decay coefficient.
+        wd_schedule: Scale decoupled decay by `lr / lr_ref`. A float supplies `lr_ref`. `True` reads `max_lr` or
+            `initial_lr` from the group. `False` uses `lr`.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        centralize: Subtract the mean of each gradient slice for parameters with two or more dimensions.
+        stabilize: Blend local range scaling with the global mean range using coefficient of variation gating.
+        bf16_sr: Use stochastic rounding for bfloat16 parameter updates.
+        compute_dtype: Data type for gradient and parameter update arithmetic.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

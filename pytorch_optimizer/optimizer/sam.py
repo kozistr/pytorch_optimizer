@@ -17,7 +17,16 @@ from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_runn
 
 
 def get_global_gradient_norm(param_groups: ParamsT, device: torch.device) -> torch.Tensor:
-    """Get global gradient norm."""
+    """Compute the global L2 gradient norm for SAM perturbations.
+
+    Args:
+        param_groups: Optimizer groups. Adaptive groups weight gradients by the absolute parameter values.
+        device: Device for the returned norm.
+
+    Returns:
+        torch.Tensor: Scalar gradient norm, or zero if no gradients are present.
+
+    """
     norms: list[torch.Tensor] = []
     for group in param_groups or []:
         params: list[torch.Tensor] = group.get('params', []) or []
@@ -34,49 +43,34 @@ def get_global_gradient_norm(param_groups: ParamsT, device: torch.device) -> tor
 
 
 class SAM(BaseOptimizer):
-    """Sharpness-Aware Minimization for Efficiently Improving Generalization.
+    """Sharpness-aware minimization with a two pass parameter update.
+
+    Compute gradients at the current weights before calling `step()`. The closure
+    must recompute the loss and gradients at the perturbed weights.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        base_optimizer (Optimizer): base optimizer.
-        rho (float): size of the neighborhood for computing the max loss.
-        adaptive (bool): element-wise Adaptive SAM.
-        use_gc (bool): perform gradient centralization, GCSAM variant.
-        perturb_eps (float): eps for perturbation.
-        kwargs (Dict): parameters for optimizer.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        base_optimizer: Optimizer class to instantiate for the parameter update.
+        rho: Radius of the neighborhood used to perturb parameters.
+        use_gc: Centralize gradients before perturbing parameters.
+        adaptive: Scale perturbations by the squared parameter values.
+        perturb_eps: Stability constant for the perturbation norm.
+        **kwargs (dict): Options for the base optimizer.
 
-    Example:
+    Examples:
         ```python
-        model = YourModel()
-        base_optimizer = Ranger21
-        optimizer = SAM(model.parameters(), base_optimizer)
-        for input, output in data:
-            # first forward-backward pass
-            loss = loss_function(output, model(input))
-            loss.backward()
-            optimizer.first_step(zero_grad=True)
-
-            # second forward-backward pass
-            # make sure to do a full forward pass
-            loss_function(output, model(input)).backward()
-            optimizer.second_step(zero_grad=True)
-
-        Alternative example with a single closure-based step function::
-
-        model = YourModel()
-        base_optimizer = Ranger21
-        optimizer = SAM(model.parameters(), base_optimizer)
-
-        def closure():
-            loss = loss_function(output, model(input))
-            loss.backward()
-            return loss
-
-        for input, output in data:
-            loss = loss_function(output, model(input))
-            loss.backward()
-            optimizer.step(closure)
+        optimizer = SAM(model.parameters(), torch.optim.AdamW, lr=1e-3)
+        for inputs, targets in data:
             optimizer.zero_grad()
+
+            def closure():
+                optimizer.zero_grad()
+                loss = loss_fn(model(inputs), targets)
+                loss.backward()
+                return loss
+
+            closure()
+            optimizer.step(closure)
         ```
 
     """
@@ -152,6 +146,16 @@ class SAM(BaseOptimizer):
 
     @torch.no_grad()
     def step(self, closure: Closure = None):
+        """Perturb weights, recompute gradients, and apply the base optimizer update.
+
+        Args:
+            closure: Callable that clears gradients and recomputes the loss and gradients. Compute the initial
+                gradients before calling this method.
+
+        Raises:
+            NoClosureError: No closure is supplied.
+
+        """
         if closure is None:
             raise NoClosureError(str(self))
 
@@ -169,35 +173,20 @@ class SAM(BaseOptimizer):
 
 
 class GSAM(BaseOptimizer):  # pragma: no cover
-    """Surrogate Gap Guided Sharpness-Aware Minimization.
+    """Sharpness-aware minimization with surrogate gap gradient decomposition.
+
+    Use `set_closure()` to supply the loss and batch before each step. Advance the learning
+    rate scheduler and call `update_rho_t()` to update the perturbation radius.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        base_optimizer (Optimizer): base optimizer.
-        model (nn.Module): model.
-        alpha (float): rho alpha.
-        rho_scheduler (Scheduler): rho scheduler.
-        adaptive (bool): element-wise Adaptive SAM.
-        perturb_eps (float): epsilon for perturbation.
-        kwargs (Dict): parameters for optimizer.
-
-    Example:
-        ```python
-        model = YourModel()
-        base_optimizer = AdamP(model.parameters())
-        lr_scheduler = LinearScheduler(base_optimizer, t_max=num_total_steps)
-        rho_scheduler = ProportionScheduler(lr_scheduler, max_lr=max_lr)
-        optimizer = GSAM(model.parameters(), base_optimizer, model, rho_scheduler)
-
-        def loss_fn(predictions, targets):
-            return F.cross_entropy(predictions, targets)
-
-        for inputs, targets in data:
-            optimizer.set_closure(loss_fn, inputs, targets)
-            predictions, loss = optimizer.step()
-            lr_scheduler.step()
-            optimizer.update_rho_t()
-        ```
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        base_optimizer: Existing optimizer instance for parameter updates.
+        model: Model used for the forward passes.
+        rho_scheduler (ProportionScheduler): Scheduler that supplies the perturbation radius.
+        alpha: Weight of the surrogate gap gradient component.
+        adaptive: Scale perturbations by the squared parameter values.
+        perturb_eps: Stability constant for the perturbation norm.
+        **kwargs (dict): Additional parameter group options.
 
     """
 
@@ -331,17 +320,15 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
     @torch.no_grad()
     def set_closure(self, loss_fn: nn.Module, inputs: torch.Tensor, targets: torch.Tensor, **kwargs) -> None:
-        """Set closure.
+        """Store a forward backward closure for the current batch.
 
-        Create `self.forward_backward_func`, which is a function such that `self.forward_backward_func()`
-        automatically performs forward and backward passes. This function does not take any arguments,
-        and the inputs and targets data should be pre-set in the definition of partial-function.
+        The closure clears gradients, evaluates the model and loss, and runs backpropagation.
 
         Args:
-            loss_fn (nn.Module): loss function.
-            inputs (torch.Tensor): inputs.
-            targets (torch.Tensor): targets.
-            kwargs (Dict): keyword arguments.
+            loss_fn: Callable accepting model predictions and targets.
+            inputs: Model inputs for the current batch.
+            targets: Target values for the current batch.
+            **kwargs (dict): Additional arguments for the loss function.
 
         """
 
@@ -389,20 +376,19 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
 
 class WSAM(BaseOptimizer):
-    """Sharpness-Aware Minimization Revisited: Weighted Sharpness as a Regularization Term.
+    """Sharpness-aware minimization with weighted sharpness regularization.
 
     Args:
-        model (torch.nn.Module | torch.nn.DataParallel): the model instance. DDP model is recommended to make
-            `model.no_sync` to work.
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        base_optimizer (Optimizer): base optimizer.
-        rho (float): size of the neighborhood for computing the max loss.
-        gamma (float): weighted factor gamma / (1 - gamma) of the sharpness term. 0.8 ~ 0.95 is the optimal.
-        adaptive (bool): element-wise adaptive SAM.
-        decouple (bool): whether to perform a decoupled sharpness regularization.
-        max_norm (float | None): max norm of the gradients.
-        eps (float): term added to the denominator of WSAM to improve numerical stability.
-        kwargs (Dict): parameters for optimizer.
+        model: Model used for training. Supports DistributedDataParallel.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        base_optimizer: Optimizer class to instantiate for parameter updates.
+        rho: Size of the neighborhood for computing the max loss.
+        gamma: Sharpness mixing coefficient, used as `gamma / (1 - gamma)`.
+        adaptive: Elementwise adaptive SAM.
+        decouple: Apply the sharpness correction after the base optimizer update.
+        max_norm: Max norm of the gradients.
+        eps: Term added to the denominator of WSAM to improve numerical stability.
+        **kwargs (dict): Parameters for optimizer.
 
     """
 
@@ -536,36 +522,18 @@ class WSAM(BaseOptimizer):
 
 
 class BSAM(BaseOptimizer):
-    """SAM as an Optimal Relaxation of Bayes.
+    """Bayesian sharpness-aware minimization with noisy parameter perturbations.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        num_data (int): number of training data.
-        lr (float): learning rate.
-        betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
-        weight_decay (float): weight decay (L2 penalty).
-        rho (float): size of the neighborhood for computing the max loss.
-        adaptive (bool): element-wise Adaptive SAM.
-        damping (float): damping to stabilize the method.
-        kwargs (Dict): parameters for optimizer.
-
-    Example:
-        ```python
-        model = YourModel()
-        optimizer = BSAM(model.parameters(), ...)
-
-        def closure():
-            loss = loss_function(output, model(input))
-            loss.backward()
-            return loss
-
-        for input, output in data:
-            loss = loss_function(output, model(input))
-            loss.backward()
-
-            optimizer.step(closure)
-            optimizer.zero_grad()
-        ```
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        num_data: Number of training data.
+        lr: Learning rate.
+        betas: Decay rates for gradient momentum and the squared curvature estimate.
+        weight_decay: Weight decay coefficient.
+        rho: Size of the neighborhood for computing the max loss.
+        adaptive: Elementwise Adaptive SAM.
+        damping: Damping to stabilize the method.
+        **kwargs (dict): Parameters for optimizer.
 
     """
 
@@ -691,55 +659,36 @@ class BSAM(BaseOptimizer):
 
 
 class LookSAM(BaseOptimizer):
-    """An Expeditiously Adaptive Parameter-Free Learner.
+    """Sharpness-aware minimization with periodic perturbation updates.
 
-    Leave LR set to 1 unless you encounter instability.
+    Compute gradients at the current weights before calling `step()`. The closure
+    must recompute the loss and gradients at the perturbed weights.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        base_optimizer (Optimizer): Base optimizer.
-        rho (float): Size of the neighborhood for computing the max loss.
-        k (int): Lookahead step.
-        alpha (float): Lookahead blending alpha.
-        adaptive (bool): Element-wise Adaptive SAM.
-        use_gc (bool): Perform gradient centralization, GCSAM variant.
-        perturb_eps (float): Epsilon for perturbation.
-        kwargs (Dict): Additional parameters for optimizer.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        base_optimizer: Optimizer class to instantiate for the parameter update.
+        rho: Radius of the neighborhood used to perturb parameters.
+        k: Number of steps between full sharpness gradient updates.
+        alpha: Weight of the reused orthogonal sharpness gradient.
+        use_gc: Centralize gradients before perturbing parameters.
+        adaptive: Scale perturbations by the squared parameter values.
+        perturb_eps: Stability constant for the perturbation norm.
+        **kwargs (dict): Options for the base optimizer.
 
-    Example:
+    Examples:
         ```python
-        model = YourModel()
-        base_optimizer = Ranger21
-        optimizer = LookSAM(model.parameters(), base_optimizer)
-
-        for input, output in data:
-            # first forward-backward pass
-
-            loss = loss_function(output, model(input))
-            loss.backward()
-            optimizer.first_step(zero_grad=True)
-
-            # second forward-backward pass
-            # make sure to do a full forward pass
-            loss_function(output, model(input)).backward()
-            optimizer.second_step(zero_grad=True)
-
-        Alternative example with a single closure-based step function::
-
-        model = YourModel()
-        base_optimizer = Ranger21
-        optimizer = LookSAM(model.parameters(), base_optimizer)
-
-        def closure():
-            loss = loss_function(output, model(input))
-            loss.backward()
-            return loss
-
-        for input, output in data:
-            loss = loss_function(output, model(input))
-            loss.backward()
-            optimizer.step(closure)
+        optimizer = LookSAM(model.parameters(), torch.optim.AdamW, lr=1e-3)
+        for inputs, targets in data:
             optimizer.zero_grad()
+
+            def closure():
+                optimizer.zero_grad()
+                loss = loss_fn(model(inputs), targets)
+                loss.backward()
+                return loss
+
+            closure()
+            optimizer.step(closure)
         ```
 
     """
@@ -851,6 +800,16 @@ class LookSAM(BaseOptimizer):
 
     @torch.no_grad()
     def step(self, closure: Closure = None):
+        """Perturb weights, recompute gradients, and apply the base optimizer update.
+
+        Args:
+            closure: Callable that clears gradients and recomputes the loss and gradients. Compute the initial
+                gradients before calling this method.
+
+        Raises:
+            NoClosureError: No closure is supplied.
+
+        """
         if closure is None:
             raise NoClosureError(str(self))
 
@@ -867,52 +826,35 @@ class LookSAM(BaseOptimizer):
 
 
 class FriendlySAM(BaseOptimizer):
-    """Friendly Sharpness-Aware Minimization.
+    """Sharpness-aware minimization with momentum adjusted perturbations.
+
+    Compute gradients at the current weights before calling `step()`. The closure
+    must recompute the loss and gradients at the perturbed weights.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        base_optimizer (Optimizer): base optimizer.
-        rho (float): size of the neighborhood for computing the max loss.
-        sigma (float): sigma of FriendlySAM.
-        lmbda (float): lambda for FriendlySAM.
-        adaptive (bool): element-wise Adaptive SAM.
-        perturb_eps (float): eps for perturbation.
-        kwargs (Dict): parameters for optimizer.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        base_optimizer: Optimizer class to instantiate for the parameter update.
+        rho: Radius of the neighborhood used to perturb parameters.
+        sigma: Strength of the momentum subtraction in the perturbation gradient.
+        lmbda: Decay rate for perturbation gradient momentum.
+        adaptive: Scale perturbations by the squared parameter values.
+        perturb_eps: Stability constant for the perturbation norm.
+        **kwargs (dict): Options for the base optimizer.
 
-    Example:
+    Examples:
         ```python
-        model = YourModel()
-        base_optimizer = Ranger21
-        optimizer = FriendlySAM(model.parameters(), base_optimizer)
-
-        for input, output in data:
-            # first forward-backward pass
-
-            loss = loss_function(output, model(input))
-            loss.backward()
-            optimizer.first_step(zero_grad=True)
-
-            # second forward-backward pass
-            # make sure to do a full forward pass
-            loss_function(output, model(input)).backward()
-            optimizer.second_step(zero_grad=True)
-
-        Alternative example with a single closure-based step function::
-
-        model = YourModel()
-        base_optimizer = Ranger21
-        optimizer = FriendlySAM(model.parameters(), base_optimizer)
-
-        def closure():
-            loss = loss_function(output, model(input))
-            loss.backward()
-            return loss
-
-        for input, output in data:
-            loss = loss_function(output, model(input))
-            loss.backward()
-            optimizer.step(closure)
+        optimizer = FriendlySAM(model.parameters(), torch.optim.AdamW, lr=1e-3)
+        for inputs, targets in data:
             optimizer.zero_grad()
+
+            def closure():
+                optimizer.zero_grad()
+                loss = loss_fn(model(inputs), targets)
+                loss.backward()
+                return loss
+
+            closure()
+            optimizer.step(closure)
         ```
 
     """
@@ -1006,6 +948,16 @@ class FriendlySAM(BaseOptimizer):
 
     @torch.no_grad()
     def step(self, closure: Closure = None):
+        """Perturb weights, recompute gradients, and apply the base optimizer update.
+
+        Args:
+            closure: Callable that clears gradients and recomputes the loss and gradients. Compute the initial
+                gradients before calling this method.
+
+        Raises:
+            NoClosureError: No closure is supplied.
+
+        """
         if closure is None:
             raise NoClosureError(str(self))
 

@@ -17,18 +17,21 @@ MEMORY_SAVE_MODE_TYPE = Literal['one_diag', 'smart_one_diag', 'all_diag']
 def precondition_update_prob_schedule(
     max_prob: float = 1.0, min_prob: float = 0.03, decay: float = 0.001, flat_start: int = 500
 ) -> Callable[[int], torch.Tensor]:
-    """Anneal pre-conditioner update probability during beginning of training.
+    """Create an exponential decay schedule for preconditioner update frequency.
 
-    PSGD benefits from more pre-conditioner updates at the beginning of training, but once the pre-conditioner is
-    learned the update probability can drop low.
+    Args:
+        max_prob: Initial update frequency as a fraction of steps.
+        min_prob: Minimum update frequency.
+        decay: Exponential decay rate after the flat initial period.
+        flat_start: Number of steps to keep the initial frequency.
 
-    This schedule is an exponential anneal with a flat start. Default settings keep update probability at 1.0 for 200
-    steps then exponentially anneal down to `min_prob` by 4000 steps. Default settings work very well for most models
-    and training regimes.
+    Returns:
+        Callable: Function mapping the step index to an update frequency tensor.
+
     """
 
     def _schedule(n: int) -> torch.Tensor:
-        """Exponential anneal with flat start."""
+        """Compute the update probability with exponential decay after the initial constant period."""
         prob = max_prob * torch.exp(-decay * (torch.tensor(n, dtype=torch.float32) - flat_start))
         prob.clamp_(min=min_prob, max=max_prob)
         return prob
@@ -37,27 +40,24 @@ def precondition_update_prob_schedule(
 
 
 class Kron(BaseOptimizer):
-    """PSGD with the Kronecker product pre-conditioner.
+    """Preconditioned SGD with Kronecker factored preconditioners.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
-        momentum (float): momentum factor.
-        weight_decay (float): weight decay (L2 penalty).
-        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
-        pre_conditioner_update_probability (tuple[Callable, float] | None): Probability of updating the
-            pre-conditioner. If None, defaults to a schedule that anneals from 1.0 to 0.03 by 4000 steps.
-        max_size_triangular (int): max size for dim's pre-conditioner to be triangular.
-        min_ndim_triangular (int): minimum number of dimensions a layer needs to have triangular pre-conditioners.
-        memory_save_mode (str | None): None, 'one_diag', or 'all_diag'. None is default to set all
-            pre-conditioners to be triangular, 'one_diag' sets the largest or last dim to be diagonal per layer, and
-            'all_diag' sets all pre-conditioners to be diagonal.
-        momentum_into_precondition_update (bool): whether to send momentum into pre-conditioner update instead of
-            raw gradients.
-        mu_dtype (torch.dtype | None): dtype of the momentum accumulator.
-        precondition_dtype (torch.dtype): dtype of the pre-conditioner.
-        balance_prob (float): probability of performing balancing.
-        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        momentum: Momentum factor.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        pre_conditioner_update_probability: Update frequency as a fraction or a callable of the step index. `None`
+            uses the default decay schedule.
+        max_size_triangular: Largest dimension that can use a triangular preconditioner.
+        min_ndim_triangular: Minimum tensor dimensionality for triangular preconditioners.
+        memory_save_mode: Diagonal storage policy: `None`, `'one_diag'`, `'smart_one_diag'`, or `'all_diag'`.
+        momentum_into_precondition_update: Use momentum instead of raw gradients when updating preconditioners.
+        mu_dtype: Dtype of the momentum accumulator.
+        precondition_dtype: Dtype of the preconditioner.
+        balance_prob: Probability of performing balancing.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -217,10 +217,10 @@ def initialize_q_expressions(
     memory_save_mode: MEMORY_SAVE_MODE_TYPE | None,
     dtype: torch.dtype | None = None,
 ) -> tuple[list[torch.Tensor], tuple[str, list[str], str]]:
-    """Initialize Q expressions.
+    """Initialize Kronecker preconditioner factors and reusable einsum expressions.
 
-    For a scalar or tensor t, we initialize its pre-conditioner Q and reusable einsum expressions for updating Q and
-    pre-conditioning gradient.
+    For a scalar or tensor t, we initialize its preconditioner Q and reusable einsum expressions for updating Q and
+    preconditioning gradient.
     """
     letters: str = ascii_lowercase + ascii_uppercase
 
@@ -300,7 +300,7 @@ def initialize_q_expressions(
 
 
 def balance_q(q_in: list[torch.Tensor]) -> None:
-    """Balance Q."""
+    """Balance the norms of Kronecker preconditioner factors in place."""
     norms = torch.stack([q.norm(float('inf')) for q in q_in])
     geometric_mean = norms.prod() ** (1 / len(q_in))
     norms = geometric_mean / norms
@@ -309,7 +309,7 @@ def balance_q(q_in: list[torch.Tensor]) -> None:
 
 
 def solve_triangular_right(x: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
-    """Calculate X @ inv(A)."""
+    """Compute `X @ inv(A)` using a triangular solve."""
     orig_dtype: torch.dtype = x.dtype
     x = x.to(dtype=torch.float32, non_blocking=True)
     a = a.to(dtype=torch.float32, non_blocking=True)
@@ -320,7 +320,7 @@ def solve_triangular_right(x: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
 def get_a_and_conj_b(
     expr_a: list[str], g: torch.Tensor, qs: list[torch.Tensor], v: torch.Tensor
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Get A and b.conj."""
+    """Compute transformed gradient and noise terms for preconditioner updates."""
     a = torch.einsum(expr_a, *qs, g)
 
     order: int = g.dim()
@@ -336,7 +336,7 @@ def get_a_and_conj_b(
 
 
 def get_q_terms(expr_gs: list[str], a: torch.Tensor, conj_b: torch.Tensor) -> list[tuple[torch.Tensor, torch.Tensor]]:
-    """Get Q terms."""
+    """Compute factor wise terms for a Kronecker preconditioner update."""
     terms: list = []
     for expr_g in expr_gs:
         term1 = torch.einsum(expr_g, a, a.conj())
@@ -353,7 +353,7 @@ def update_precondition(
     step: int,
     eps: float,
 ) -> None:
-    """Update Kronecker product pre-conditioner Q with pair (V, G)."""
+    """Update Kronecker preconditioner factors from a noise gradient pair."""
     expr_a, expr_gs, _ = expressions
 
     a, conj_b = get_a_and_conj_b(expr_a, g, qs, v)
@@ -376,5 +376,5 @@ def update_precondition(
 
 
 def get_precondition_grad(qs: list[torch.Tensor], expressions: list[str], g: torch.Tensor) -> torch.Tensor:
-    """Precondition gradient G with pre-conditioner Q."""
+    """Apply Kronecker preconditioner factors to a gradient."""
     return torch.einsum(expressions[-1], *[x.conj() for x in qs], *qs, g)

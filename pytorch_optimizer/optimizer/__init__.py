@@ -434,7 +434,18 @@ BNB_OPTIMIZERS = (
 
 
 def load_bnb_optimizer(optimizer: str) -> OptimizerType:  # pragma: no cover
-    """Load bnb optimizer instance."""
+    """Return an optimizer class from bitsandbytes.
+
+    Args:
+        optimizer: Lowercase optimizer name, including the integration prefix.
+
+    Returns:
+        OptimizerType: Optimizer class from the optional integration.
+
+    Raises:
+        NotImplementedError: The optimizer name is unsupported.
+
+    """
     from bitsandbytes import optim  # noqa: PLC0415
 
     for name, cls_name in BNB_OPTIMIZERS:
@@ -445,7 +456,18 @@ def load_bnb_optimizer(optimizer: str) -> OptimizerType:  # pragma: no cover
 
 
 def load_q_galore_optimizer(optimizer: str) -> OptimizerType:  # pragma: no cover
-    """Load Q-GaLore optimizer instance."""
+    """Return an optimizer class from Q-GaLore.
+
+    Args:
+        optimizer: Lowercase optimizer name, including the integration prefix.
+
+    Returns:
+        OptimizerType: Optimizer class from the optional integration.
+
+    Raises:
+        NotImplementedError: The optimizer name is unsupported.
+
+    """
     import q_galore_torch  # noqa: PLC0415
 
     if 'adamw8bit' in optimizer:
@@ -455,7 +477,18 @@ def load_q_galore_optimizer(optimizer: str) -> OptimizerType:  # pragma: no cove
 
 
 def load_ao_optimizer(optimizer: str) -> OptimizerType:  # pragma: no cover
-    """Load TorchAO optimizer instance."""
+    """Return an optimizer class from TorchAO.
+
+    Args:
+        optimizer: Lowercase optimizer name, including the integration prefix.
+
+    Returns:
+        OptimizerType: Optimizer class from the optional integration.
+
+    Raises:
+        NotImplementedError: The optimizer name is unsupported.
+
+    """
     from torchao.prototype import low_bit_optim  # noqa: PLC0415
 
     if 'adamw8bit' in optimizer:
@@ -469,7 +502,22 @@ def load_ao_optimizer(optimizer: str) -> OptimizerType:  # pragma: no cover
 
 
 def load_optimizer(optimizer: str) -> OptimizerType:
-    """Load optimizers."""
+    """Return an optimizer class by name.
+
+    Names are case insensitive. Use the `bnb`, `q_galore`, or `torchao` prefix for
+    optional integrations, which require their dependencies and CUDA.
+
+    Args:
+        optimizer: Registered optimizer name.
+
+    Returns:
+        OptimizerType: Optimizer class to instantiate with parameters and options.
+
+    Raises:
+        ImportError: An optional integration or CUDA is unavailable.
+        NotImplementedError: The optimizer name is unsupported.
+
+    """
     optimizer_name: str = optimizer.lower()
 
     if optimizer_name.startswith('bnb'):
@@ -505,22 +553,22 @@ def create_optimizer(
     compile_kwargs: dict | None = None,
     **kwargs,
 ) -> Optimizer:
-    r"""Build optimizer.
+    """Create an optimizer for a model with optional wrappers and compilation.
 
     Args:
-        model (nn.Module): model.
-        optimizer_name (str): optimizer name.
-        lr (float | torch.Tensor): Learning rate. Compilation converts float rates to tensors
-            on the model's device.
-        weight_decay (float): weight decay.
-        wd_ban_list (list[str]): weight decay ban list by layer.
-        use_lookahead (bool): use Lookahead.
-        use_orthograd (bool): use OrthoGrad.
-        compile (bool): Compile the optimizer step with torch.compile. Defaults to eager execution.
-        compile_kwargs (dict | None): Options forwarded to torch.compile. Dynamic tracing is enabled by default
-            to avoid specializing on Python step counters. Lion, native AdamW, and StableAdamW are tested
-            with compilation.
-        **kwargs (dict): optimizer parameters.
+        model: Model whose parameters to optimize.
+        optimizer_name: Case insensitive name accepted by `load_optimizer()`.
+        lr: Learning rate. Compilation converts a float to a tensor on the model's device.
+        weight_decay: Weight decay coefficient.
+        wd_ban_list: Name patterns to exclude from weight decay. Matches parameter names and module class names.
+        use_lookahead: Wrap the optimizer with Lookahead, unless it already includes Lookahead.
+        use_orthograd: Project gradients with OrthoGrad before each update.
+        compile: Compile the optimizer step with `torch.compile`.
+        compile_kwargs: Options for `torch.compile`. Dynamic tracing defaults to `True`.
+        **kwargs (dict): Optimizer and wrapper options.
+
+    Returns:
+        Optimizer: Configured optimizer instance.
 
     """
     optimizer_name = optimizer_name.lower()
@@ -577,18 +625,19 @@ def get_optimizer_parameters(
     weight_decay: float,
     wd_ban_list: list[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
 ) -> ParamsT:
-    r"""Get optimizer parameters while filtering specified modules.
+    """Group trainable parameters by whether to apply weight decay.
 
-    Notice that, You can also ban by a module name level (e.g. LayerNorm) if you pass nn.Module instance.
-    You just only need to input `LayerNorm` to exclude weight decay from the layer norm layer(s).
+    With a model, patterns match parameter names and module class names. For example,
+    `LayerNorm` excludes all parameters of LayerNorm modules. With named parameters,
+    patterns match parameter names only.
 
     Args:
-        model_or_parameter (nn.Module | list): model or parameters.
-        weight_decay (float): weight decay.
-        wd_ban_list (list[str]): weight decay ban list.
+        model_or_parameter: Model or list of `(name, parameter)` pairs.
+        weight_decay: Weight decay coefficient for parameters outside the ban list.
+        wd_ban_list: Substrings identifying parameters to exclude from weight decay.
 
     Returns:
-        ParamsT: optimizer parameters.
+        ParamsT: Two parameter groups, with the requested weight decay and zero weight decay.
 
     """
     banned_parameter_patterns: set[str] = set()
@@ -627,11 +676,13 @@ def get_optimizer_parameters(
 
 
 def get_supported_optimizers(filters: str | list[str] | None = None) -> list[str]:
-    r"""Return list of available optimizer names, sorted alphabetically.
+    """List registered optimizer names in alphabetical order.
 
     Args:
-        filters (str | list[str] | None): wildcard filter string that works with fmatch.
-            if None, it will return the whole list.
+        filters: Wildcard pattern or list of patterns, such as `'*adam*'`. `None` selects all names.
+
+    Returns:
+        list[str]: Matching names in lowercase, without duplicates.
 
     """
     if filters is None:

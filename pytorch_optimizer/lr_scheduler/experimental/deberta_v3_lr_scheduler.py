@@ -12,18 +12,18 @@ def deberta_v3_large_lr_scheduler(
     head_lr: float = 1e-4,
     wd: float = 1e-2,
 ) -> ParamsT:
-    r"""DeBERTa-v3 large layer-wise learning rate scheduler.
+    """Create layer wise learning rate parameter groups for DeBERTa-v3 large.
 
     Reference: https://github.com/gilfernandes/commonlit
 
     Args:
-        model (nn.Module): Model based on Huggingface Transformers.
-        layer_low_threshold (int): Index where the lower 12 layers start.
-        layer_middle_threshold (int): Index where the middle 24 layers end.
-        head_param_start (int): Starting index of the head parameters (end of backbone).
-        base_lr (float): Base learning rate for backbone layers.
-        head_lr (float): Learning rate for head layers.
-        wd (float): Weight decay.
+        model: Model based on Huggingface Transformers.
+        layer_low_threshold: Index where the lower 12 layers start.
+        layer_middle_threshold: Index where the middle 24 layers end.
+        head_param_start: Starting index of the head parameters (end of backbone).
+        base_lr: Base learning rate for backbone layers.
+        head_lr: Learning rate for head layers.
+        wd: Weight decay.
 
     """
     named_parameters = list(model.named_parameters())

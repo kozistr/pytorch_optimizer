@@ -15,7 +15,7 @@ if HAS_EINOPS:  # pragma: ignore
 
 
 class TransformDCT:
-    """TransformDCT."""
+    """Encode and decode tensors with blockwise discrete cosine transforms."""
 
     @torch.no_grad()
     def __init__(self, param_groups, target_chunk, norm: str = 'ortho'):
@@ -92,7 +92,7 @@ class TransformDCT:
 
 
 class CompressDCT:
-    """CompressDCT."""
+    """Compress DCT coefficients by retaining the largest magnitudes."""
 
     @torch.no_grad()
     def __init__(self):
@@ -140,14 +140,14 @@ class CompressDCT:
 
 
 def dct(x: torch.Tensor, norm: str | None = None) -> torch.Tensor:
-    """Discrete Cosine Transform, Type II (a.k.a. the DCT).
+    """Compute the type II discrete cosine transform along the last dimension.
 
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
 
     Args:
-        x (torch.Tensor): The input signal.
-        norm (str | None): The normalization, either None or 'ortho'.
+        x: The input signal.
+        norm: The normalization, either None or 'ortho'.
 
     Returns:
         torch.Tensor: The DCT-II of the signal over the last dimension.
@@ -176,14 +176,14 @@ def dct(x: torch.Tensor, norm: str | None = None) -> torch.Tensor:
 
 
 def inverse_dct(x: torch.Tensor, norm: str | None = None) -> torch.Tensor:
-    """Get the inverse to DCT-II, which is a scaled Discrete Cosine Transform, Type III.
+    """Compute the inverse type II discrete cosine transform along the last dimension.
 
     For the meaning of the parameter `norm`, see:
     https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dct.html
 
     Args:
-        x (torch.Tensor): The input signal.
-        norm (str | None): The normalization, None or 'ortho'.
+        x: The input signal.
+        norm: The normalization, None or 'ortho'.
 
     Returns:
         torch.Tensor: The inverse DCT-II of the signal over the last dimension.
@@ -219,7 +219,7 @@ def inverse_dct(x: torch.Tensor, norm: str | None = None) -> torch.Tensor:
 
 
 def get_prime_divisors(n: int) -> list[int]:
-    """Get prime divisors."""
+    """Return prime factors, including repeated factors."""
     divisors = []
 
     while n % 2 == 0:
@@ -245,7 +245,7 @@ def get_prime_divisors(n: int) -> list[int]:
 
 
 def get_divisors(n: int) -> list[int]:
-    """Get divisors."""
+    """Return the sorted positive divisors of an integer."""
     divisors = []
 
     if n == 1:
@@ -275,7 +275,7 @@ def get_divisors(n: int) -> list[int]:
 
 
 def get_smaller_split(n: int, close_to: int) -> int:
-    """Get smaller split."""
+    """Return the largest divisor no greater than the requested split size."""
     all_divisors = get_divisors(n)
     for ix, val in enumerate(all_divisors):
         if val == close_to:
@@ -288,16 +288,17 @@ def get_smaller_split(n: int, close_to: int) -> int:
 
 
 class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
-    """Decoupled Momentum Optimization.
+    """SGD with compressed distributed momentum exchange.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        compression_decay (float): Compression decay.
-        compression_top_k (int): Compression top-k.
-        compression_chunk (int): Compression chunk size.
-        weight_decay (float): Weight decay (L2 penalty).
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        compression_decay: Decay rate for the residual momentum buffer.
+        compression_top_k: Maximum DCT coefficients to retain per block.
+        compression_chunk: Maximum size of each DCT block dimension.
+        process_group: Distributed process group for compressed gradient exchange. `None` uses the default group.
+        weight_decay: Weight decay coefficient.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -355,7 +356,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
         return 'DeMo'
 
     def find_dtype(self) -> torch.dtype:
-        r"""Return dtype of the parameter."""
+        """Return the data type of the first optimizer parameter."""
         for group in self.param_groups:
             for p in group['params']:
                 if p.requires_grad:

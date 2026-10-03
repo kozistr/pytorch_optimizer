@@ -2,12 +2,12 @@ import torch
 
 
 def centralize_gradient(grad: torch.Tensor, gc_conv_only: bool = False) -> None:
-    """Gradient Centralization (GC).
+    """Subtract the mean of each gradient channel in place.
 
     Args:
-        grad (torch.Tensor): Gradient tensor.
-        gc_conv_only (bool): If False, apply GC to both convolutional and fully connected layers; if True, apply only
-            to convolutional layers.
+        grad: Gradient tensor.
+        gc_conv_only: If False, apply GC to both convolutional and fully connected layers. If True, apply only to
+            convolutional layers.
 
     """
     size: int = grad.dim()

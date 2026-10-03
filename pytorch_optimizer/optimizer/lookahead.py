@@ -9,13 +9,13 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, OptimizerInstan
 
 
 class Lookahead(BaseOptimizer):
-    """k steps forward, 1 step back.
+    """Wrap an optimizer with periodic interpolation toward slow weights.
 
     Args:
-        optimizer (OptimizerInstanceOrClass): Base optimizer.
-        k (int): Number of lookahead steps.
-        alpha (float): Linear interpolation factor.
-        pullback_momentum (str): Change to inner optimizer momentum on interpolation update.
+        optimizer: Base optimizer.
+        k: Number of base optimizer steps between slow weight updates.
+        alpha: Interpolation factor from slow weights toward fast weights.
+        pullback_momentum: Momentum handling at interpolation: `'none'`, `'reset'`, or `'pullback'`.
 
     """
 
@@ -81,7 +81,7 @@ class Lookahead(BaseOptimizer):
             group['step'] = 0
 
     def backup_and_load_cache(self) -> None:
-        r"""Backup cache parameters."""
+        """Back up fast weights and load slow weights for evaluation."""
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
@@ -89,7 +89,7 @@ class Lookahead(BaseOptimizer):
                 p.data.copy_(state['slow_params'])
 
     def clear_and_load_backup(self) -> None:
-        r"""Load backup parameters."""
+        """Restore fast weights after evaluating slow weights."""
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
@@ -106,7 +106,7 @@ class Lookahead(BaseOptimizer):
         return {'lookahead_state': lookahead_state, 'base_optimizer': self.optimizer.state_dict()}
 
     def load_state_dict(self, state: State) -> None:
-        r"""Load state."""
+        """Restore optimizer state and slow weights from a checkpoint."""
         saved_state = state['lookahead_state']
         restored_state: State = {}
         for group_index, group in enumerate(self.param_groups):

@@ -3,12 +3,12 @@ from torch import nn
 
 
 class TverskyLoss(nn.Module):
-    """Tversky Loss with logits input.
+    """Tversky loss for binary segmentation logits.
 
     Args:
-        alpha (float): Weight of false positives.
-        beta (float): Weight of false negatives.
-        smooth (float): Small constant to avoid division by zero.
+        alpha: Weight of false positives.
+        beta: Weight of false negatives.
+        smooth: Small constant to avoid division by zero.
 
     """
 
@@ -19,6 +19,16 @@ class TverskyLoss(nn.Module):
         self.smooth = smooth
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        """Compute the loss for predictions and targets.
+
+        Args:
+            y_pred: Binary segmentation logits.
+            y_true: Binary masks with the same shape as `y_pred`.
+
+        Returns:
+            torch.Tensor: Scalar loss, `1 - tversky_score`.
+
+        """
         dtype = torch.promote_types(torch.promote_types(y_pred.dtype, y_true.dtype), torch.float32)
         y_pred = y_pred.to(dtype).sigmoid().view(-1)
         y_true = y_true.to(dtype).view(-1)

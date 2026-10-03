@@ -7,21 +7,23 @@ from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradi
 
 
 class Ranger(BaseOptimizer):
-    """A synergistic optimizer combining RAdam and LookAhead, and now GC in one optimizer.
+    """RAdam with Lookahead and optional gradient centralization.
 
     Args:
-        params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): learning rate.
-        betas (Betas): coefficients used for computing running averages of gradient and the squared hessian trace.
-        weight_decay (float): weight decay (L2 penalty).
-        weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): fix weight decay.
-        n_sma_threshold (int): recommended is 5.
-        degenerated_to_sgd (bool): perform SGD update when variance of gradient is high.
-        use_gc (bool): use Gradient Centralization (both convolution & fc layers).
-        gc_conv_only (bool): use Gradient Centralization (only convolution layer).
-        eps (float): term added to the denominator to improve numerical stability.
-        maximize (bool): maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        alpha: Lookahead interpolation factor from slow weights toward fast weights.
+        k: Number of steps between Lookahead updates.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        n_sma_threshold: Minimum effective simple moving average length for rectification.
+        degenerated_to_sgd: Use an SGD update before the moving average reaches the rectification threshold.
+        use_gc: Use Gradient Centralization (both convolution & fc layers).
+        gc_conv_only: Use Gradient Centralization (only convolution layer).
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

@@ -8,23 +8,22 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class AdaBelief(BaseOptimizer):
-    """Adapting Step-sizes by the Belief in Observed Gradients.
+    """Adaptive updates based on gradient prediction error.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Fix weight decay.
-        rectify (bool): Perform the rectified update similar to RAdam.
-        n_sma_threshold: Number of SMA threshold (recommended is 5).
-        degenerated_to_sgd (bool): Perform SGD update when variance of gradient is high.
-        ams_bound (bool): Whether to use the AMSBound variant.
-        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
-            None means auto-detect based on device (True for CUDA, False otherwise).
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the gradient mean and squared gradient prediction error.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        rectify: Perform the rectified update similar to RAdam.
+        n_sma_threshold: Minimum effective simple moving average length for rectification.
+        degenerated_to_sgd: Use an SGD update before the moving average reaches the rectification threshold.
+        ams_bound: Use the running maximum of the second moment to bound adaptive updates.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

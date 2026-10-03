@@ -3,11 +3,11 @@ from torch import nn
 
 
 class SoftF1Loss(nn.Module):
-    """Soft-F1 loss.
+    """Soft F-beta loss for binary prediction probabilities.
 
     Args:
-        beta (float): The beta parameter in the F-beta score, balancing precision vs recall.
-        eps (float): Small epsilon value to avoid division by zero during calculation.
+        beta: Precision recall balance. Values above 1 give recall more weight.
+        eps: Small epsilon value to avoid division by zero during calculation.
 
     """
 
@@ -17,6 +17,16 @@ class SoftF1Loss(nn.Module):
         self.eps = eps
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        """Compute the loss for predictions and targets.
+
+        Args:
+            y_pred: Binary probabilities, with the same shape as `y_true`.
+            y_true: Binary target labels.
+
+        Returns:
+            torch.Tensor: Scalar loss, `1 - soft_f_beta`.
+
+        """
         tp = (y_true * y_pred).sum().float()
         fp = ((1 - y_true) * y_pred).sum().float()
         fn = (y_true * (1 - y_pred)).sum().float()

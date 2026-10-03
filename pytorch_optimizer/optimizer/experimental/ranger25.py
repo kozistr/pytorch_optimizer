@@ -9,31 +9,27 @@ from pytorch_optimizer.optimizer.agc import agc
 
 
 class Ranger25(BaseOptimizer):
-    """Mixin' every fancy optimizer hacks.
+    """Adaptive updates combining ADOPT preconditioning, mixed momentum, and Lookahead.
 
-    Here's the components:
-        * ADOPT
-        * AdEMAMix
-        * Cautious
-        * StableAdamW or Adam-atan2
-        * OrthoGrad
-        * Adaptive gradient clipping
-        * Lookahead
-        * Cautious Weight Decay
+    Includes adaptive gradient clipping and cautious weight decay, with optional
+    cautious updates, OrthoGrad, and StableAdamW or Adam atan2 scaling.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        alpha (float): Usually between 4 and 10 works well.
-        t_alpha_beta3 (float | None): Total number of iterations is preferred when needed.
-        cautious (bool): Whether to use the Cautious variant.
-        stable_adamw (bool): Whether to use stable AdamW variant.
-        orthograd (bool): Whether to use OrthoGrad variant.
-        eps (float | None): Term added to the denominator to improve numerical stability.
-            When eps is None and stable_adamw is False, adam-atan2 feature will be used.
-        maximize (bool): Maximize the objective w.r.t the parameters instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for fast normalized gradient momentum, squared gradients, and slow normalized gradient
+            momentum.
+        weight_decay: Weight decay coefficient.
+        alpha: Weight of slow momentum relative to fast momentum.
+        t_alpha_beta3: Steps to warm up the slow momentum weight and decay rate. `None` disables warmup.
+        cautious: Whether to use the Cautious variant.
+        stable_adamw: Whether to use stable AdamW variant.
+        orthograd: Whether to use OrthoGrad variant.
+        eps: Term added to the denominator to improve numerical stability. When eps is None and stable_adamw is
+            False, adam-atan2 feature will be used.
+        maximize: Maximize the objective instead of minimizing it.
+        lookahead_merge_time: Number of steps between Lookahead slow weight updates.
+        lookahead_blending_alpha: Interpolation factor from slow weights toward fast weights.
 
     """
 

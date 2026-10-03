@@ -7,21 +7,21 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class Adalite(BaseOptimizer):
-    r"""Adalite optimizer.
+    """Adaptive updates with factored moments and tensor wise trust ratios.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Fix weight decay.
-        g_norm_min (float): Minimum gradient norm threshold.
-        ratio_min (float): Minimum ratio value for adaptive adjustment.
-        tau (float): Time constant controlling parameter smoothing or decay behavior.
-        eps1 (float): Term added to the denominator to improve numerical stability.
-        eps2 (float): Additional term added to the denominator for extra numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        g_norm_min: Lower bound for the gradient norm in the trust ratio.
+        ratio_min: Lower bound for the parameter-to-gradient norm ratio.
+        tau: Softmax temperature for row and column importance weights.
+        eps1: Stability constant for adaptive updates.
+        eps2: Lower bound for factored moment normalization denominators.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

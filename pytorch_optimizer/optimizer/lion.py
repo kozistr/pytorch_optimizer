@@ -8,18 +8,17 @@ from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradi
 
 
 class Lion(BaseOptimizer):
-    """Symbolic Discovery of Optimization Algorithms.
+    """Sign based updates from interpolated gradient momentum.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float | torch.Tensor): Learning rate. A scalar tensor avoids recompilation when the rate changes.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Fix weight decay.
-        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
-            None means auto-detect based on device (True for CUDA, False otherwise).
-        maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate. A scalar tensor avoids recompilation when the rate changes.
+        betas: Decay rates for update interpolation and gradient momentum.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 
@@ -78,12 +77,9 @@ class Lion(BaseOptimizer):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
     def _can_use_foreach(self, group: ParamGroup) -> bool:
-        """Check if foreach can be used for this group.
+        """Check tensor compatibility and options for batched updates.
 
-        Foreach is disabled when using features that require per-parameter handling:
-        - Gradient centralization
-        - AdaNorm
-        - Cautious updates
+        Disable batched updates when using gradient centralization, AdaNorm, or cautious updates.
         """
         if group.get('foreach') is False:
             return False

@@ -9,20 +9,20 @@ from pytorch_optimizer.optimizer.foreach_utils import group_tensors_by_device_an
 
 
 class AdEMAMix(BaseOptimizer):
-    """Better, Faster, Older.
+    """Adam with a mixture of fast and slow gradient momentum.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
-        fixed_decay (bool): Apply fixed weight decay instead of adaptive.
-        alpha (float): Usually between 4 and 10 would work well.
-        t_alpha_beta3 (float | None): Total number of iterations preferred when needed.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
-        foreach (bool | None): Use foreach operations. None selects foreach for supported parameter groups.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for fast gradient momentum, squared gradients, and slow gradient momentum.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        alpha: Weight of slow momentum relative to fast momentum.
+        t_alpha_beta3: Number of steps to warm up `alpha` and the slow momentum decay. `None` disables warmup.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
 
@@ -237,21 +237,21 @@ class AdEMAMix(BaseOptimizer):
 
 
 class SimplifiedAdEMAMix(BaseOptimizer):
-    """Connections between Schedule-Free Optimizers, AdEMAMix, and Accelerated SGD Variants.
+    """Adaptive updates that mix the current gradient with gradient momentum.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        alpha (float): Coefficient for mixing the current gradient and EMA.
-        beta1_warmup (int | None): Number of warmup steps used to increase beta1.
-        min_beta1 (float): Minimum value of beta1 to start from.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
-        fixed_decay (bool): Apply fixed weight decay instead of adaptive.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
-        foreach (bool | None): Use foreach operations. None selects foreach for supported parameter groups.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for gradient momentum and squared gradients.
+        alpha: Coefficient for mixing the current gradient and EMA.
+        beta1_warmup: Number of warmup steps used to increase beta1.
+        min_beta1: Minimum value of beta1 to start from.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
 

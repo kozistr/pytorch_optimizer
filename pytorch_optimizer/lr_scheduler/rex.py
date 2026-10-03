@@ -4,13 +4,13 @@ from torch.optim.lr_scheduler import LRScheduler
 
 
 class REXScheduler(LRScheduler):
-    """Revisiting Budgeted Training with an Improved Schedule.
+    """Rational learning rate decay for budgeted training.
 
     Args:
-        optimizer (Optimizer): Wrapped optimizer instance.
-        total_steps (int): Number of steps to optimize.
-        max_lr (float): Maximum learning rate.
-        min_lr (float): Minimum learning rate.
+        optimizer: Wrapped optimizer instance.
+        total_steps: Number of steps to optimize.
+        max_lr: Maximum learning rate.
+        min_lr: Minimum learning rate.
 
     """
 

@@ -6,18 +6,15 @@ from torch.optim.lr_scheduler import LambdaLR, LRScheduler
 
 
 def get_chebyshev_steps(num_epochs: int, small_m: float = 0.05, big_m: float = 1.0) -> np.ndarray:
-    r"""Chebyshev steps.
-
-    Computes Chebyshev step sizes according to the formula:
-        gamma_{t} = (M + m) / 2.0 - (M - m) * cos((t - 0.5) * pi / T) / 2, where t = 1, ..., T
+    """Compute reciprocal Chebyshev nodes as learning rate multipliers.
 
     Args:
-        num_epochs (int): Total number of steps T.
-        small_m (float): The lower bound m.
-        big_m (float): The upper bound M.
+        num_epochs: Number of Chebyshev nodes.
+        small_m: Lower bound of the spectral interval.
+        big_m: Upper bound of the spectral interval.
 
     Returns:
-        np.array: Array of Chebyshev step sizes of length num_epochs.
+        np.ndarray: Reciprocal nodes, with shape `(num_epochs,)`.
 
     """
     c, r = (big_m + small_m) / 2.0, (big_m - small_m) / 2.0
@@ -27,15 +24,13 @@ def get_chebyshev_steps(num_epochs: int, small_m: float = 0.05, big_m: float = 1
 
 
 def get_chebyshev_permutation(num_epochs: int) -> np.ndarray:
-    r"""Fractal Chebyshev permutation.
-
-    This permutation is defined recursively as:
-        sigma_{2T} := interlace(sigma_{T}, 2T + 1 - sigma_{T}),
-    where the interlace function is defined as:
-        interlace([a_1, ..., a_n], [b_1, ..., b_n]) := [a_1, b_1, a_2, b_2, ..., a_n, b_n]
+    """Construct a fractal permutation of Chebyshev node indices.
 
     Args:
-        num_epochs (int): Number of epochs (T).
+        num_epochs: Requested number of indices.
+
+    Returns:
+        np.ndarray: Zero based indices, with length rounded up to a power of two.
 
     """
     perm = np.array([0])
@@ -45,10 +40,10 @@ def get_chebyshev_permutation(num_epochs: int) -> np.ndarray:
 
 
 def get_chebyshev_perm_steps(num_epochs: int) -> np.ndarray:
-    r"""Get Chebyshev schedules.
+    """Return Chebyshev learning rate multipliers in fractal order.
 
     Args:
-        num_epochs (int): Number of total epochs.
+        num_epochs: Number of total epochs.
 
     """
     steps: np.ndarray = get_chebyshev_steps(num_epochs)
@@ -57,12 +52,12 @@ def get_chebyshev_perm_steps(num_epochs: int) -> np.ndarray:
 
 
 def get_chebyshev_lr_lambda(epoch: int, num_epochs: int, is_warmup: bool = False) -> float:
-    """Get Chebyshev learning rate ratio.
+    """Return the Chebyshev learning rate multiplier for an epoch.
 
     Args:
-        epoch (int): Current epoch.
-        num_epochs (int): Total number of epochs.
-        is_warmup (bool): Whether it is the warm-up stage.
+        epoch: Current epoch.
+        num_epochs: Total number of epochs.
+        is_warmup: Whether it is the warmup stage.
 
     Returns:
         float: Learning rate ratio for the given epoch based on Chebyshev schedule.
@@ -88,13 +83,13 @@ def get_chebyshev_lr_lambda(epoch: int, num_epochs: int, is_warmup: bool = False
 def get_chebyshev_schedule(
     optimizer: Optimizer, num_epochs: int, is_warmup: bool = False, last_epoch: int = -1
 ) -> LRScheduler:
-    """Get Chebyshev learning rate scheduler.
+    """Create a fractal Chebyshev learning rate scheduler.
 
     Args:
-        optimizer (Optimizer): The optimizer for which to schedule the learning rate.
-        num_epochs (int): Number of total epochs.
-        is_warmup (bool): Whether it is the warm-up stage.
-        last_epoch (int): The index of the last epoch when resuming training.
+        optimizer: The optimizer for which to schedule the learning rate.
+        num_epochs: Number of total epochs.
+        is_warmup: Whether it is the warmup stage.
+        last_epoch: The index of the last epoch when resuming training.
 
     """
     lr_scheduler = partial(get_chebyshev_lr_lambda, num_epochs=num_epochs, is_warmup=is_warmup)

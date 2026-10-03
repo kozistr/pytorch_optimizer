@@ -3,16 +3,16 @@ from torch.optim.lr_scheduler import LRScheduler
 
 
 class ProportionScheduler:
-    """ProportionScheduler (Rho Scheduler of GSAM).
+    """Map a learning rate schedule to a proportional value, such as GSAM rho.
 
-    This scheduler outputs a value that evolves proportionally to a given learning rate scheduler.
+    Call `step()` after advancing the learning rate scheduler to refresh the mapped value.
 
     Args:
-        lr_scheduler (LRScheduler): Learning rate scheduler.
-        max_lr (float): Maximum learning rate.
-        min_lr (float): Minimum learning rate.
-        max_value (float): Maximum value of rho.
-        min_value (float): Minimum value of rho.
+        lr_scheduler: Learning rate scheduler.
+        max_lr: Maximum learning rate.
+        min_lr: Minimum learning rate.
+        max_value: Value mapped to `max_lr`.
+        min_value: Value mapped to `min_lr`.
 
     """
 

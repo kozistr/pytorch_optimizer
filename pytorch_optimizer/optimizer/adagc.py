@@ -9,21 +9,21 @@ from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 
 
 class AdaGC(BaseOptimizer):
-    """Improving Training Stability for Large Language Model Pretraining.
+    """Adam with adaptive gradient clipping for stable training.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        beta (float): Smoothing coefficient for the exponential moving average (EMA).
-        lambda_abs (float): Absolute clipping threshold to prevent unstable updates from gradient explosions.
-        lambda_rel (float): Relative clipping threshold to prevent unstable updates from gradient explosions.
-        warmup_steps (int): Number of warmup steps.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Fix weight decay.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        beta: Smoothing coefficient for the exponential moving average (EMA).
+        lambda_abs: Absolute clipping threshold to prevent unstable updates from gradient explosions.
+        lambda_rel: Relative clipping threshold to prevent unstable updates from gradient explosions.
+        warmup_steps: Number of warmup steps.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

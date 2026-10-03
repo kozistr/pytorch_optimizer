@@ -9,13 +9,13 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, OptimizerInstan
 
 
 def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
-    r"""Implement Horner's scheme to evaluate a polynomial.
+    """Implement Horner's scheme to evaluate a polynomial.
 
     Taken from https://discuss.pytorch.org/t/polynomial-evaluation-by-horner-rule/67124
 
     Args:
-        x (torch.Tensor): Variable at which to evaluate the polynomial.
-        coef (torch.Tensor): Coefficients of the polynomial, ordered from highest degree to lowest.
+        x: Variable at which to evaluate the polynomial.
+        coef: Coefficients of the polynomial, ordered from highest degree to lowest.
 
     """
     result = coef[0].clone()
@@ -27,10 +27,10 @@ def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
 
 
 class ERF1994(nn.Module):
-    """Implementation of ERF1994.
+    """Approximate the complex error function using rational polynomials.
 
     Args:
-        num_coefs (int): The number of polynomial coefficients to use in the approximation.
+        num_coefs: The number of polynomial coefficients to use in the approximation.
 
     """
 
@@ -51,10 +51,10 @@ class ERF1994(nn.Module):
         self.a = torch.flipud(self.a[1:self.n + 1])  # fmt: skip
 
     def w_algorithm(self, z: torch.Tensor) -> torch.Tensor:
-        r"""Compute the Faddeeva function of a complex number.
+        """Compute the Faddeeva function of a complex number.
 
         Args:
-            z (torch.Tensor): A tensor of complex numbers.
+            z: A tensor of complex numbers.
 
         """
         self.l = self.l.to(z.device)
@@ -69,10 +69,10 @@ class ERF1994(nn.Module):
         return 2 * p / ln_iz.pow(2) + (1.0 / torch.sqrt(torch.tensor(torch.pi))) / ln_iz
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
-        r"""Compute the error function of a complex number.
+        """Compute the error function of a complex number.
 
         Args:
-            z (torch.Tensor): A tensor of complex numbers.
+            z: A tensor of complex numbers.
 
         """
         sign_r = torch.sign(z.real)
@@ -83,16 +83,17 @@ class ERF1994(nn.Module):
 
 
 class TRAC(BaseOptimizer):
-    """A Parameter-Free Optimizer for Lifelong Reinforcement Learning.
+    """Optimizer wrapper with parameter free scale adaptation.
 
     Args:
-        optimizer (OptimizerInstanceOrClass): Base optimizer.
-        betas (list[float]): List of beta values.
-        num_coefs (int): Number of polynomial coefficients to use in the approximation.
-        s_prev (float): Initial scale value.
-        eps (float): Term added to the denominator to improve numerical stability.
+        optimizer: Base optimizer.
+        betas: Decay rates for the online learners whose scale estimates are combined.
+        num_coefs: Number of polynomial coefficients to use in the approximation.
+        s_prev: Initial scale value.
+        eps: Term added to the denominator to improve numerical stability.
 
-    Example:
+    Examples:
+        ```python
         model = YourModel()
         optimizer = TRAC(AdamW(model.parameters()))
 
@@ -101,6 +102,7 @@ class TRAC(BaseOptimizer):
             loss = loss_fn(model(input), output)
             loss.backward()
             optimizer.step()
+        ```
 
     """
 

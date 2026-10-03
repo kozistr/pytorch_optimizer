@@ -7,11 +7,11 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, Par
 
 @torch.no_grad()
 def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
-    """Perform reduce-max along all dimensions except the given dim.
+    """Compute the maximum over all dimensions except `dim`.
 
     Args:
-        x (torch.Tensor): Tensor to reduce-max.
-        dim (int): Dimension to exclude.
+        x: Tensor to reduce.
+        dim: Dimension to exclude.
 
     """
     rank: int = len(x.shape)
@@ -28,16 +28,15 @@ def reduce_max_except_dim(x: torch.Tensor, dim: int) -> torch.Tensor:
 
 
 class SM3(BaseOptimizer):
-    r"""Memory-Efficient Adaptive Optimization.
+    """Adaptive updates with memory efficient per dimension accumulators.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        momentum (float): Coefficient used to scale prior updates before adding. This drastically increases
-            memory usage if momentum > 0.0. This is ignored if the parameter's gradient is sparse.
-        beta (float): Coefficient used for exponential moving averages.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        momentum: Momentum factor.
+        beta: Coefficient used for exponential moving averages.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 def closest_smaller_divisor_of_n_to_k(n: int, k: int) -> int:
-    """Get closest smaller divisor of n to k."""
+    """Return the largest divisor of `n` no greater than `k`."""
     if n % k == 0:
         return k
 
@@ -22,28 +22,31 @@ def closest_smaller_divisor_of_n_to_k(n: int, k: int) -> int:
 
 
 class AdamWSN(BaseOptimizer):
-    """Lean and Mean Adaptive Optimization via Subset-Norm and Subspace-Momentum with Convergence Guarantees.
+    """AdamW with subset norm and subspace momentum scaling.
 
     Args:
-        params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
-        weight_decay (float): Weight decay (L2 penalty).
-        weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
-        fixed_decay (bool): Fix weight decay.
-        subset_size (int): If you do not know what subset_size to set, a good rule of thumb is to set it as d/2 where
-            d is the hidden dimension of your transformer model. For example, the hidden dimension is 4096 for Llama 7B
-            and so a good subset_size could be 2048. You can leave the subset_size argument to its default value of -1
-            to use the recommended subset size as stated above.
-        eps (float): Term added to the denominator to improve numerical stability.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Decay rates for the first and second moments.
+        weight_decay: Weight decay coefficient.
+        weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
+        fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
+        subset_size: Number of weights per second moment subset. `-1` uses half the first tensor dimension for
+            matrices and the full size for vectors.
+        eps: Term added to the denominator to improve numerical stability.
+        maximize: Maximize the objective instead of minimizing it.
 
-    Example:
-        >>> sn_params = [module.weight for module in model.modules() if isinstance(module, nn.Linear)]
-        >>> sn_param_ids = [id(p) for p in sn_params]
-        >>> regular_params = [p for p in model.parameters() if id(p) not in sn_param_ids]
-        >>> param_groups = [{'params': regular_params, 'sn': False}, {'params': sn_params, 'sn': True}]
-        >>> optimizer = AdamWSN(param_groups, lr=args.lr, weight_decay=args.weight_decay, subset_size=args.subset_size)
+    Examples:
+        ```python
+        from torch import nn
+        from pytorch_optimizer import AdamWSN
+
+        sn_params = [module.weight for module in model.modules() if isinstance(module, nn.Linear)]
+        sn_param_ids = {id(p) for p in sn_params}
+        regular_params = [p for p in model.parameters() if id(p) not in sn_param_ids]
+        param_groups = [{'params': regular_params, 'sn': False}, {'params': sn_params, 'sn': True}]
+        optimizer = AdamWSN(param_groups, lr=1e-3, weight_decay=1e-2, subset_size=-1)
+        ```
 
     """
 

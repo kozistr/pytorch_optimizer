@@ -8,7 +8,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 
 
 class LoRARiteHelper:
-    """LoRARite Helper."""
+    """Matrix helpers for LoRA factor preconditioning."""
 
     def __init__(self, maybe_inf_to_nan: bool = True):
         self.maybe_inf_to_nan = maybe_inf_to_nan
@@ -144,28 +144,28 @@ class LoRARiteHelper:
 
 
 class LoRARite(BaseOptimizer):
-    """Robust Invariant Transformation Equilibration for LoRA optimization.
+    """LoRA factor optimization with matrix preconditioning and basis corrections.
 
-    This optimizer expects LoRA factors in alternating order, such as ``lora_a_1, lora_b_1, lora_a_2, lora_b_2``.
-    Unpaired parameters and pairs with missing gradients are skipped, matching common fine-tuning workflows where only
+    This optimizer expects LoRA factors in alternating order, such as `lora_a_1, lora_b_1, lora_a_2, lora_b_2`.
+    Unpaired parameters and pairs with missing gradients are skipped, matching common fine tuning workflows where only
     part of the model may receive gradients on a given step.
 
     Args:
-        params (ParamsT): Iterable of LoRA parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
-        betas (Betas): Coefficients used for first-moment and matrix second-moment estimates.
-        eps (float): Term added to the denominator to improve numerical stability.
-        relative_epsilon (bool): Scale the root epsilon by the largest matrix second-moment eigenvalue.
-        clip_unmagnified_grad (float): Global clipping threshold for unmagnified LoRA gradients. Disabled when 0.
-        update_capping (float): Per-update RMS capping threshold after preconditioning. Disabled when 0.
-        update_skipping (float): Skip unmagnified updates whose RMS is above this threshold. Disabled when 0.
-        weight_decay (float): Coupled weight decay coefficient.
-        apply_escape (bool): Apply the RITE escape correction when rotating second-moment bases.
-        lora_l_dim (int): LoRA rank dimension for left factors.
-        lora_r_dim (int): LoRA rank dimension for right factors.
-        maybe_inf_to_nan (bool): Convert infinite update statistics to NaN before threshold checks.
-        balance_param (bool): Balance the norms of each LoRA factor pair after applying the update.
-        maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
+        params: Parameters to optimize or dictionaries defining parameter groups.
+        lr: Learning rate.
+        betas: Coefficients used for first moment and matrix second moment estimates.
+        eps: Term added to the denominator to improve numerical stability.
+        relative_epsilon: Scale the root epsilon by the largest matrix second moment eigenvalue.
+        clip_unmagnified_grad: Global clipping threshold for unmagnified LoRA gradients. Disabled when 0.
+        update_capping: Per update RMS capping threshold after preconditioning. Disabled when 0.
+        update_skipping: Skip unmagnified updates whose RMS is above this threshold. Disabled when 0.
+        weight_decay: Weight decay coefficient.
+        apply_escape: Apply the RITE escape correction when rotating second moment bases.
+        lora_l_dim: LoRA rank dimension for left factors.
+        lora_r_dim: LoRA rank dimension for right factors.
+        maybe_inf_to_nan: Convert infinite update statistics to NaN before threshold checks.
+        balance_param: Balance the norms of each LoRA factor pair after applying the update.
+        maximize: Maximize the objective instead of minimizing it.
 
     """
 

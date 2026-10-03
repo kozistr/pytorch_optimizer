@@ -6,18 +6,17 @@ from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 
 
 class BaseLinearWarmupScheduler(ABC):
-    """BaseLinearWarmupScheduler class.
+    """Base scheduler for linear warmup followed by a learning rate schedule.
 
-    A learning rate scheduler class that implements a linear warmup strategy.
+    Each call to `step()` sets the same learning rate for all parameter groups.
 
     Args:
-        optimizer (Optimizer): The optimizer whose learning rate will be scheduled.
-            It will set the learning rate to all trainable parameters in the optimizer.
-        t_max (int): Total number of training steps (epochs or iterations).
-        max_lr (float): The maximum learning rate after warmup.
-        min_lr (float): The minimum learning rate to decay to (or start from if warmup).
-        init_lr (float): Initial learning rate at the start of warmup.
-        warmup_steps (int): Number of steps to warm up linearly from init_lr to max_lr.
+        optimizer: Optimizer whose learning rate to update.
+        t_max: Total number of scheduler steps, including warmup.
+        max_lr: Learning rate at the end of warmup.
+        min_lr: Baseline learning rate and initial rate before the first step.
+        init_lr: Learning rate at the first warmup step.
+        warmup_steps: Number of steps to increase the rate from `init_lr` to `max_lr`.
 
     """
 
@@ -70,6 +69,12 @@ class BaseLinearWarmupScheduler(ABC):
             self.base_lrs.append(self.min_lr)
 
     def step(self):
+        """Advance the schedule and update all parameter groups.
+
+        Returns:
+            float: Learning rate for this step.
+
+        """
         if self.step_t < self.warmup_steps:
             value = self.init_lr + (self.max_lr - self.init_lr) * self.step_t / self.warmup_steps
         elif self.step_t == self.warmup_steps:
@@ -92,4 +97,5 @@ class BaseLinearWarmupScheduler(ABC):
         raise NotImplementedError
 
     def get_lr(self) -> float:
+        """Return the learning rate from the most recent scheduler step."""
         return self.last_lr[0]

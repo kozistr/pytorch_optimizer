@@ -13,14 +13,17 @@ def soft_jaccard_score(
     eps: float = 1e-6,
     dims: tuple[int, ...] | None = None,
 ) -> torch.Tensor:
-    r"""Get soft Jaccard score.
+    """Compute the soft Jaccard score from probabilities and target masks.
 
     Args:
-        output (torch.Tensor): Predicted segments (probabilities or logits).
-        target (torch.Tensor): Ground truth segments.
-        label_smooth (float): Label smoothing factor to avoid zero denominators.
-        eps (float): Small epsilon for numerical stability.
-        dims (tuple[int, ...] | None): Dimensions to reduce over when computing the score.
+        output: Predicted segmentation probabilities.
+        target: Ground truth segments.
+        label_smooth: Additive smoothing constant for the numerator and denominator.
+        eps: Small epsilon for numerical stability.
+        dims: Dimensions to reduce over when computing the score.
+
+    Returns:
+        torch.Tensor: Score after reducing `dims`, or a scalar when `dims=None`.
 
     """
     if dims is not None:
@@ -34,19 +37,17 @@ def soft_jaccard_score(
 
 
 class JaccardLoss(_Loss):
-    r"""Jaccard loss for image segmentation.
+    """Jaccard loss for binary, multiclass, or multilabel segmentation.
 
     Reference: https://github.com/BloodAxe/pytorch-toolbelt
 
     Args:
-        mode (str): Loss mode, one of 'binary', 'multiclass', or 'multilabel'.
-        classes (list[int] | None): List of classes to include in the loss computation,
-            defaults to all classes if None.
-        log_loss (bool): If True, loss is computed as -log(jaccard);
-            otherwise, 1 - jaccard.
-        from_logits (bool): If True, input is raw logits, which will be converted to probabilities.
-        label_smooth (float): Label smoothing constant.
-        eps (float): Small number to prevent division by zero.
+        mode: Segmentation mode: `'binary'`, `'multiclass'`, or `'multilabel'`.
+        classes: List of classes to include in the loss computation, defaults to all classes if None.
+        log_loss: Compute `-log(jaccard)` instead of `1 - jaccard`.
+        from_logits: If True, input is raw logits, which will be converted to probabilities.
+        label_smooth: Additive smoothing constant for the Jaccard score.
+        eps: Small number to prevent division by zero.
 
     """
 
@@ -72,6 +73,17 @@ class JaccardLoss(_Loss):
         self.eps = eps
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        """Compute the segmentation loss, excluding channels with no target pixels.
+
+        Args:
+            y_pred: Predictions with shape `(N, C, ...)`. Use logits when `from_logits=True`.
+            y_true: Class indices with shape `(N, ...)` for multiclass mode. Binary masks matching the predictions for
+                multilabel mode. Binary mode also accepts `(N, ...)`.
+
+        Returns:
+            torch.Tensor: Scalar loss averaged over the selected channels.
+
+        """
         if self.from_logits:
             # Apply activations to get [0..1] class probabilities
             # Using Log-Exp as this gives more numerically stable result and does not cause vanishing gradient on
