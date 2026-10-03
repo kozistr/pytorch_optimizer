@@ -300,10 +300,11 @@ class SOAP(BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
+            step: int = group['step'] - 1
             step_size: float = group['lr']
             if group['correct_bias']:
-                bias_correction1: float = self.debias(beta1, group['step'])
-                bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
+                bias_correction1: float = self.debias(beta1, step)
+                bias_correction2_sq: float = math.sqrt(self.debias(beta2, step))
 
                 step_size *= bias_correction2_sq / bias_correction1
 
@@ -357,7 +358,7 @@ class SOAP(BaseOptimizer):
                 self.update_pre_conditioner(
                     grad,
                     state,
-                    step=group['step'],
+                    step=step,
                     max_precondition_dim=group['max_precondition_dim'],
                     merge_dims=group['merge_dims'],
                     precondition_1d=group['precondition_1d'],

@@ -245,7 +245,7 @@ class AdaFactor(BaseOptimizer):
 
         rms_values = self.get_rms(updates)
         torch._foreach_div_(rms_values, self.clip_threshold)
-        torch._foreach_clamp_max_(rms_values, 1.0)
+        torch._foreach_clamp_min_(rms_values, 1.0)
 
         torch._foreach_div_(updates, rms_values)
         torch._foreach_mul_(updates, lrs)
@@ -313,7 +313,7 @@ class AdaFactor(BaseOptimizer):
 
             update.mul_(grad)
 
-            factor = self.get_rms(update).div_(self.clip_threshold).clamp_max_(1.0)
+            factor = self.get_rms(update).div_(self.clip_threshold).clamp_min_(1.0)
             update.div_(factor).mul_(lr)
 
             if beta1 is not None:
