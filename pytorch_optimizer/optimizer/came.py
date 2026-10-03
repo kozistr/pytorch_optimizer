@@ -1,5 +1,4 @@
 import math
-from typing import Tuple
 
 import torch
 
@@ -85,7 +84,7 @@ class CAME(BaseOptimizer):
 
             state = self.state[p]
 
-            grad_shape: Tuple[int, ...] = grad.shape
+            grad_shape: tuple[int, ...] = grad.shape
             factored: bool = self.get_options(grad_shape)
 
             if len(state) == 0:
@@ -109,7 +108,7 @@ class CAME(BaseOptimizer):
                 state['RMS'] = 0.0
 
     @staticmethod
-    def get_options(shape: Tuple[int, ...]) -> bool:
+    def get_options(shape: tuple[int, ...]) -> bool:
         r"""Get `factored`."""
         return len(shape) >= 2
 
@@ -152,7 +151,7 @@ class CAME(BaseOptimizer):
 
                 state = self.state[p]
 
-                grad_shape: Tuple[int, ...] = grad.shape
+                grad_shape: tuple[int, ...] = grad.shape
                 factored: bool = self.get_options(grad_shape)
 
                 state['RMS'] = self.get_rms(p)

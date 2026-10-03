@@ -1,5 +1,4 @@
 import math
-from typing import Tuple
 
 import torch
 
@@ -220,7 +219,7 @@ class Alice(BaseOptimizer):
     @staticmethod
     def subspace_iteration(
         a: torch.Tensor, mat: torch.Tensor, num_steps: int = 1
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""Perform subspace iteration."""
         u = mat
         for _ in range(num_steps):
@@ -249,7 +248,7 @@ class Alice(BaseOptimizer):
         gamma: float,
         decay_rate: float,
         rank: int,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         m, n = grad.shape
 
         sigma = u.T @ grad

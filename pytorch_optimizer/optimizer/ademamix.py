@@ -1,5 +1,4 @@
 import math
-from typing import List, Optional
 
 import torch
 
@@ -20,10 +19,10 @@ class AdEMAMix(BaseOptimizer):
         weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
         fixed_decay (bool): Apply fixed weight decay instead of adaptive.
         alpha (float): Usually between 4 and 10 would work well.
-        t_alpha_beta3 (Optional[float]): Total number of iterations preferred when needed.
+        t_alpha_beta3 (float | None): Total number of iterations preferred when needed.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
-        foreach (Optional[bool]): Use foreach operations. None selects foreach for supported parameter groups.
+        foreach (bool | None): Use foreach operations. None selects foreach for supported parameter groups.
 
     """
 
@@ -36,10 +35,10 @@ class AdEMAMix(BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         alpha: float = 5.0,
-        t_alpha_beta3: Optional[float] = None,
+        t_alpha_beta3: float | None = None,
         eps: float = 1e-8,
         maximize: bool = False,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -93,11 +92,11 @@ class AdEMAMix(BaseOptimizer):
                 state['exp_avg_slow'] = torch.zeros_like(p)
 
     @staticmethod
-    def schedule_alpha(t_alpha_beta3: Optional[float], step: int, alpha: float) -> float:
+    def schedule_alpha(t_alpha_beta3: float | None, step: int, alpha: float) -> float:
         return alpha if t_alpha_beta3 is None else min(step * alpha / t_alpha_beta3, alpha)
 
     @staticmethod
-    def schedule_beta3(t_alpha_beta3: Optional[float], step: int, beta1: float, beta3: float) -> float:
+    def schedule_beta3(t_alpha_beta3: float | None, step: int, beta1: float, beta3: float) -> float:
         if t_alpha_beta3 is None:
             return beta3
 
@@ -113,11 +112,11 @@ class AdEMAMix(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        exp_avgs: List[torch.Tensor],
-        exp_avg_sqs: List[torch.Tensor],
-        exp_avg_slows: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
+        exp_avg_slows: list[torch.Tensor],
         bias_correction1: float,
         bias_correction2_sq: float,
         alpha_t: float,
@@ -245,14 +244,14 @@ class SimplifiedAdEMAMix(BaseOptimizer):
         lr (float): Learning rate.
         betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         alpha (float): Coefficient for mixing the current gradient and EMA.
-        beta1_warmup (Optional[int]): Number of warmup steps used to increase beta1.
+        beta1_warmup (int | None): Number of warmup steps used to increase beta1.
         min_beta1 (float): Minimum value of beta1 to start from.
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
         fixed_decay (bool): Apply fixed weight decay instead of adaptive.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
-        foreach (Optional[bool]): Use foreach operations. None selects foreach for supported parameter groups.
+        foreach (bool | None): Use foreach operations. None selects foreach for supported parameter groups.
 
     """
 
@@ -265,11 +264,11 @@ class SimplifiedAdEMAMix(BaseOptimizer):
         weight_decouple: bool = True,
         fixed_decay: bool = False,
         alpha: float = 0.0,
-        beta1_warmup: Optional[int] = None,
+        beta1_warmup: int | None = None,
         min_beta1: float = 0.9,
         eps: float = 1e-8,
         maximize: bool = False,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -341,10 +340,10 @@ class SimplifiedAdEMAMix(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        exp_avgs: List[torch.Tensor],
-        exp_avg_sqs: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
         beta1: float,
     ) -> None:
         beta2 = group['betas'][1]
@@ -360,7 +359,7 @@ class SimplifiedAdEMAMix(BaseOptimizer):
         torch._foreach_mul_(exp_avg_sqs, beta2)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
 
-        den_sums: List[float] = []
+        den_sums: list[float] = []
         for p in params:
             state = self.state[p]
             state['num_sum'] = beta1 * state['num_sum'] + 1.0

@@ -1,4 +1,3 @@
-from typing import List, Optional, Tuple
 
 import torch
 from torch.nn.functional import logsigmoid, one_hot
@@ -12,7 +11,7 @@ def soft_jaccard_score(
     target: torch.Tensor,
     label_smooth: float = 0.0,
     eps: float = 1e-6,
-    dims: Optional[Tuple[int, ...]] = None,
+    dims: tuple[int, ...] | None = None,
 ) -> torch.Tensor:
     r"""Get soft Jaccard score.
 
@@ -21,7 +20,7 @@ def soft_jaccard_score(
         target (torch.Tensor): Ground truth segments.
         label_smooth (float): Label smoothing factor to avoid zero denominators.
         eps (float): Small epsilon for numerical stability.
-        dims (Optional[Tuple[int, ...]]): Dimensions to reduce over when computing the score.
+        dims (tuple[int, ...] | None): Dimensions to reduce over when computing the score.
 
     """
     if dims is not None:
@@ -41,7 +40,7 @@ class JaccardLoss(_Loss):
 
     Args:
         mode (str): Loss mode, one of 'binary', 'multiclass', or 'multilabel'.
-        classes (Optional[List[int]]): List of classes to include in the loss computation,
+        classes (list[int] | None): List of classes to include in the loss computation,
             defaults to all classes if None.
         log_loss (bool): If True, loss is computed as -log(jaccard);
             otherwise, 1 - jaccard.
@@ -54,7 +53,7 @@ class JaccardLoss(_Loss):
     def __init__(
         self,
         mode: ClassMode,
-        classes: Optional[List[int]] = None,
+        classes: list[int] | None = None,
         log_loss: bool = False,
         from_logits: bool = True,
         label_smooth: float = 0.0,
@@ -82,7 +81,7 @@ class JaccardLoss(_Loss):
         bs: int = y_true.size(0)
         num_classes: int = y_pred.size(1)
 
-        dims: Tuple[int, ...] = (0, 2)
+        dims: tuple[int, ...] = (0, 2)
 
         if self.mode == 'binary':
             y_true = y_true.view(bs, 1, -1)

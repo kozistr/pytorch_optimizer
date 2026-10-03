@@ -1,10 +1,9 @@
-from typing import List, Tuple
 
 import torch
 from torch.linalg import vector_norm
 
 
-def damped_pair_vg(g: torch.Tensor, damp: float = 2 ** -13) -> Tuple[torch.Tensor, torch.Tensor]:  # fmt: skip
+def damped_pair_vg(g: torch.Tensor, damp: float = 2 ** -13) -> tuple[torch.Tensor, torch.Tensor]:  # fmt: skip
     """Get damped pair v and g.
 
     Instead of return (v, g), it returns pair (v, g + sqrt(eps)*mean(abs(g))*v)
@@ -73,14 +72,14 @@ def triu_with_diagonal_and_above(a: torch.Tensor) -> torch.Tensor:
 
 
 def update_precondition_dense(
-    q: torch.Tensor, dxs: List[torch.Tensor], dgs: List[torch.Tensor], step: float = 0.01, eps: float = 1.2e-38
+    q: torch.Tensor, dxs: list[torch.Tensor], dgs: list[torch.Tensor], step: float = 0.01, eps: float = 1.2e-38
 ) -> torch.Tensor:
     """Update dense pre-conditioner P = Q^T * Q.
 
     Args:
         q (torch.Tensor): Cholesky factor of pre-conditioner with positive diagonal entries.
-        dxs (List[torch.Tensor]): List of perturbations of parameters.
-        dgs (List[torch.Tensor]): List of perturbations of gradients.
+        dxs (list[torch.Tensor]): List of perturbations of parameters.
+        dgs (list[torch.Tensor]): List of perturbations of gradients.
         step (float): Update step size normalized to range [0, 1].
         eps (float): An offset to avoid division by zero.
 

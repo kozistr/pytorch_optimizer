@@ -1,4 +1,3 @@
-from typing import Tuple
 
 import numpy as np
 import pytest
@@ -17,7 +16,7 @@ from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from pytorch_optimizer.lr_scheduler.rex import REXScheduler
 from pytorch_optimizer.lr_scheduler.wsd import get_wsd_schedule
 from pytorch_optimizer.optimizer import AdamW
-from tests.constants import CAWR_RECIPES, LWC_RECIPE, LWL_RECIPE, LWP_RECIPE, PROPORTION_LEARNING_RATES
+from tests.recipes import CAWR_RECIPES, LWC_RECIPE, LWL_RECIPE, LWP_RECIPE, PROPORTION_LEARNING_RATES
 from tests.utils import Example, LRSchedulerAssertions
 
 
@@ -149,7 +148,7 @@ class TestWarmupSchedulers:
 
 
 @pytest.mark.parametrize('proportion_learning_rate', PROPORTION_LEARNING_RATES)
-def test_proportion_scheduler(proportion_learning_rate: Tuple[float, float, float], optimizer_factory):
+def test_proportion_scheduler(proportion_learning_rate: tuple[float, float, float], optimizer_factory):
     lr_scheduler = CosineScheduler(
         optimizer_factory,
         t_max=10,

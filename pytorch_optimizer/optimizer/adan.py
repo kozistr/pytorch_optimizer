@@ -1,5 +1,4 @@
 import math
-from typing import List, Optional, Union
 
 import torch
 
@@ -20,7 +19,7 @@ class Adan(BaseOptimizer):
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): Decoupled weight decay.
         max_grad_norm (float): Maximum gradient norm to clip.
-        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
@@ -35,7 +34,7 @@ class Adan(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         max_grad_norm: float = 0.0,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         eps: float = 1e-8,
         maximize: bool = False,
         **kwargs,
@@ -92,7 +91,7 @@ class Adan(BaseOptimizer):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
     @torch.no_grad()
-    def get_global_gradient_norm(self) -> Union[torch.Tensor, float]:
+    def get_global_gradient_norm(self) -> torch.Tensor | float:
         if self.defaults['max_grad_norm'] == 0.0:
             return 1.0
 
@@ -113,13 +112,13 @@ class Adan(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        exp_avgs: List[torch.Tensor],
-        exp_avg_sqs: List[torch.Tensor],
-        exp_avg_diffs: List[torch.Tensor],
-        prev_grads: List[torch.Tensor],
-        clip_global_grad_norm: Union[torch.Tensor, float],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
+        exp_avg_diffs: list[torch.Tensor],
+        prev_grads: list[torch.Tensor],
+        clip_global_grad_norm: torch.Tensor | float,
     ) -> None:
         beta1, beta2, beta3 = group['betas']
         lr = group['lr']
@@ -165,7 +164,7 @@ class Adan(BaseOptimizer):
 
         torch._foreach_copy_(prev_grads, torch._foreach_neg(grads))
 
-    def _step_per_param(self, group: ParamGroup, clip_global_grad_norm: Union[torch.Tensor, float]) -> None:
+    def _step_per_param(self, group: ParamGroup, clip_global_grad_norm: torch.Tensor | float) -> None:
         beta1, beta2, beta3 = group['betas']
 
         bias_correction1: float = self.debias(beta1, group['step'])

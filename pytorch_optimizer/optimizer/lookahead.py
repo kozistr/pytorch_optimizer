@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Callable, Dict
+from collections.abc import Callable
 
 import torch
 from torch.optim import Optimizer
@@ -33,8 +33,8 @@ class Lookahead(BaseOptimizer):
 
         self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
 
-        self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
-        self._optimizer_step_post_hooks: Dict[int, Callable] = {}
+        self._optimizer_step_pre_hooks: dict[int, Callable] = {}
+        self._optimizer_step_post_hooks: dict[int, Callable] = {}
 
         self.alpha = alpha
         self.k = k
@@ -127,7 +127,7 @@ class Lookahead(BaseOptimizer):
         self.state = defaultdict(dict, restored_state)
 
     @torch.no_grad()
-    def update(self, group: Dict):
+    def update(self, group: dict):
         for p in group['params']:
             if p.grad is None:
                 continue

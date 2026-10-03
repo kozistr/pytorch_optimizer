@@ -9,7 +9,7 @@ from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.lora_rite import LoRARiteHelper
 from pytorch_optimizer.optimizer.scion import build_lmo_norm
 from pytorch_optimizer.optimizer.sso import SpectralSphere, solve_lambda_with_bisection
-from tests.constants import (
+from tests.recipes import (
     COMPILE_SUPPORTED_OPTIMIZERS,
     COMPLEX_OPTIMIZERS,
     FOREACH_OPTIMIZERS,

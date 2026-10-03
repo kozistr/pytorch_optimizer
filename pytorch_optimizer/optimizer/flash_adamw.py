@@ -1,5 +1,5 @@
 import math
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import torch
 from torch import nn
@@ -9,9 +9,9 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 
 GROUP_SIZE: int = 32
-VALID_MASTER_WEIGHT_BITS: Tuple[Optional[int], ...] = (None, 24, 32)
-BITS_TO_BYTES: Dict[Optional[int], int] = {None: 0, 24: 3, 32: 4}
-DTYPE_WIDTHS: Dict[torch.dtype, int] = {
+VALID_MASTER_WEIGHT_BITS: tuple[int | None, ...] = (None, 24, 32)
+BITS_TO_BYTES: dict[int | None, int] = {None: 0, 24: 3, 32: 4}
+DTYPE_WIDTHS: dict[torch.dtype, int] = {
     torch.int8: 1,
     torch.int16: 2,
     torch.float16: 2,
@@ -35,7 +35,7 @@ def quantize_state(
     sqrt: bool = False,
     softsign: bool = True,
     group_size: int = GROUP_SIZE,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Quantize the states."""
     numel = tensor.numel()
     target_dtype = torch.int8 if signed else torch.uint8
@@ -92,20 +92,20 @@ def dequantize_state(
     return restored.pow(2) if sqrt else restored
 
 
-def _state_spec(name: str) -> Tuple[bool, bool, bool]:
+def _state_spec(name: str) -> tuple[bool, bool, bool]:
     if name == 'exp_avg_sq':
         return False, True, False
     return True, False, True
 
 
-def materialize_state(state: Dict[str, Any], name: str) -> torch.Tensor:
+def materialize_state(state: dict[str, Any], name: str) -> torch.Tensor:
     """Materialize the states."""
     if _quantized_key(name) in state:
         return dequantize_state(state[_quantized_key(name)], state[_scales_key(name)], *_state_spec(name))
     return state[name].to(torch.float32)
 
 
-def store_state(state: Dict[str, Any], name: str, tensor: torch.Tensor, quantize: bool, dtype: torch.dtype) -> None:
+def store_state(state: dict[str, Any], name: str, tensor: torch.Tensor, quantize: bool, dtype: torch.dtype) -> None:
     """Store the states."""
     if quantize:
         quantized, scales = quantize_state(tensor, *_state_spec(name))
@@ -174,7 +174,7 @@ class FlashAdamW(BaseOptimizer):
         decouple_lr (bool): Scale weight decay by ``lr / initial_lr`` instead of ``lr``.
         quantize (bool): Store Adam moments as grouped 8-bit values plus fp16 scales.
         compress_state_dict (bool): Save quantized states in checkpoints when ``quantize`` is enabled.
-        master_weight_bits (Optional[int]): Effective master-weight precision for bf16/fp16 parameters. Supports
+        master_weight_bits (int | None): Effective master-weight precision for bf16/fp16 parameters. Supports
             ``None``, ``24``, and ``32``.
         check_numerics (bool): Raise if low-precision parameter updates are unlikely to alter the master weight.
         fused (bool): Placeholder for FlashOptim's Triton fused path. Currently unsupported in this portable backend.
@@ -191,7 +191,7 @@ class FlashAdamW(BaseOptimizer):
         decouple_lr: bool = False,
         quantize: bool = True,
         compress_state_dict: bool = True,
-        master_weight_bits: Optional[int] = None,
+        master_weight_bits: int | None = None,
         check_numerics: bool = False,
         fused: bool = False,
         maximize: bool = False,
@@ -213,7 +213,7 @@ class FlashAdamW(BaseOptimizer):
         self.compress_state_dict = compress_state_dict
         self.check_numerics = check_numerics
         self.master_byte_width = BITS_TO_BYTES[master_weight_bits]
-        self.param_absmax: Dict[int, float] = {}
+        self.param_absmax: dict[int, float] = {}
 
         defaults: Defaults = {
             'lr': lr,
@@ -285,11 +285,11 @@ class FlashAdamW(BaseOptimizer):
                 state['error_bits'] = torch.zeros_like(p, dtype=error_dtype)
 
     @staticmethod
-    def get_param_fp32(p: torch.Tensor, state: Dict[str, Any]) -> torch.Tensor:
+    def get_param_fp32(p: torch.Tensor, state: dict[str, Any]) -> torch.Tensor:
         return reconstruct_fp32_param(p, state['error_bits']) if 'error_bits' in state else p.to(torch.float32)
 
     @staticmethod
-    def set_param_fp32(p: torch.Tensor, state: Dict[str, Any], value: torch.Tensor, master_byte_width: int) -> None:
+    def set_param_fp32(p: torch.Tensor, state: dict[str, Any], value: torch.Tensor, master_byte_width: int) -> None:
         p.copy_(value.to(p.dtype))
         if 'error_bits' in state:
             state['error_bits'].copy_(compute_ecc_bits(value, p, master_byte_width))
@@ -354,7 +354,7 @@ class FlashAdamW(BaseOptimizer):
 
         return loss
 
-    def state_dict(self) -> Dict[str, Any]:
+    def state_dict(self) -> dict[str, Any]:
         state_dict = super().state_dict()
         if self.compress_state_dict:
             return state_dict
@@ -371,7 +371,7 @@ class FlashAdamW(BaseOptimizer):
 
         return state_dict
 
-    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         super().load_state_dict(state_dict)
 
         for group in self.param_groups:
@@ -396,14 +396,14 @@ class FlashAdamW(BaseOptimizer):
                             state.pop(_quantized_key(name)), state.pop(_scales_key(name)), *_state_spec(name)
                         ).to(dtype=p.dtype)
 
-    def get_fp32_model_state_dict(self, model: nn.Module) -> Dict[str, torch.Tensor]:
+    def get_fp32_model_state_dict(self, model: nn.Module) -> dict[str, torch.Tensor]:
         return {
             name: self.get_param_fp32(param.detach(), self.state.get(param, {})).detach().clone()
             for name, param in model.named_parameters()
         }
 
     @torch.inference_mode()
-    def set_fp32_model_state_dict(self, model: nn.Module, state_dict: Dict[str, torch.Tensor]) -> None:
+    def set_fp32_model_state_dict(self, model: nn.Module, state_dict: dict[str, torch.Tensor]) -> None:
         for name, param in model.named_parameters():
             if name not in state_dict:
                 continue

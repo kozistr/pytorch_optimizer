@@ -1,4 +1,3 @@
-from typing import List, Optional, Union
 
 import torch
 
@@ -29,7 +28,7 @@ class Lamb(BaseOptimizer):
         adam (bool): Always use trust ratio = 1, which turns this into Adam. Useful for comparison purposes.
         pre_norm (bool): Perform pre-normalization of all gradients.
         eps (float): Term added to the denominator to improve numerical stability.
-        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
 
@@ -53,7 +52,7 @@ class Lamb(BaseOptimizer):
         adam: bool = False,
         pre_norm: bool = False,
         eps: float = 1e-6,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -128,11 +127,11 @@ class Lamb(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        grad_norm: Union[torch.Tensor, float],
-        exp_avgs: List[torch.Tensor],
-        exp_avg_sqs: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        grad_norm: torch.Tensor | float,
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
         step_size: float,
     ) -> None:
         beta1, beta2 = group['betas']
@@ -193,7 +192,7 @@ class Lamb(BaseOptimizer):
             p.add_(update, alpha=-step_size * trust_ratio)
 
     @torch.no_grad()
-    def get_global_gradient_norm(self) -> Union[torch.Tensor, float]:
+    def get_global_gradient_norm(self) -> torch.Tensor | float:
         if self.defaults['max_grad_norm'] == 0.0:
             return 1.0
 
@@ -206,7 +205,7 @@ class Lamb(BaseOptimizer):
         self,
         p: torch.Tensor,
         group: ParamGroup,
-        grad_norm: Union[torch.Tensor, float],
+        grad_norm: torch.Tensor | float,
         n_sma: float,
         step_size: float,
         beta1: float,
@@ -247,7 +246,7 @@ class Lamb(BaseOptimizer):
             fixed_decay=group['fixed_decay'],
         )
 
-        de_nom: Optional[torch.Tensor] = None
+        de_nom: torch.Tensor | None = None
 
         if group['rectify']:
             update = p.clone()

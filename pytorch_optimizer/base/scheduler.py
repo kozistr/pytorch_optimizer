@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List
 
 from torch.optim import Optimizer
 
@@ -39,10 +38,10 @@ class BaseLinearWarmupScheduler(ABC):
         self.warmup_steps = warmup_steps
 
         self.step_t: int = 0
-        self.base_lrs: List[float] = []
+        self.base_lrs: list[float] = []
 
         # record current value in self._last_lr to match API from torch.optim.lr_scheduler
-        self.last_lr: List[float] = [init_lr]
+        self.last_lr: list[float] = [init_lr]
 
         self.validate_parameters()
 

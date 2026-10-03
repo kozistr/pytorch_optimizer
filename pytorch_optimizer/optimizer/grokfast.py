@@ -1,6 +1,6 @@
 import math
 from collections import deque
-from typing import Dict, List, Literal, Optional, cast
+from typing import Literal, cast
 
 import torch
 from torch import nn
@@ -15,17 +15,17 @@ FILTER_TYPE = Literal['mean', 'sum']
 @torch.no_grad()
 def gradfilter_ma(
     model: nn.Module,
-    grads: Optional[Dict[str, deque]] = None,
+    grads: dict[str, deque] | None = None,
     window_size: int = 100,
     lamb: float = 5.0,
     filter_type: FILTER_TYPE = 'mean',
     warmup: bool = True,
-) -> Dict[str, deque]:
+) -> dict[str, deque]:
     """Grokfast-MA.
 
     Args:
         model (nn.Module): Model that contains every trainable parameters.
-        grads (Optional[Dict[str, deque]]): Running memory (queue for windowed moving average).
+        grads (dict[str, deque] | None): Running memory (queue for windowed moving average).
             Initialize by setting  it to None.
             Feed the output of the method recursively after one call.
         window_size (int): The width of the filter window.
@@ -65,15 +65,15 @@ def gradfilter_ma(
 @torch.no_grad()
 def gradfilter_ema(
     model: nn.Module,
-    grads: Optional[Dict[str, torch.Tensor]] = None,
+    grads: dict[str, torch.Tensor] | None = None,
     alpha: float = 0.98,
     lamb: float = 2.0,
-) -> Dict[str, torch.Tensor]:
+) -> dict[str, torch.Tensor]:
     """Grokfast.
 
     Args:
         model (nn.Module): Model that contains every trainable parameters.
-        grads (Optional[Dict[str, deque]]): Running memory (EMA). Initialize by setting it to None.
+        grads (dict[str, deque] | None): Running memory (EMA). Initialize by setting it to None.
             Feed the output of the method recursively after one call.
         alpha (int): Momentum hyperparameter of the EMA.
         lamb (float): Amplifying factor hyperparameter of the filter.
@@ -89,7 +89,7 @@ def gradfilter_ema(
     if grads is None:
         grads = {n: p.grad for n, p in model.named_parameters() if p.requires_grad and p.grad is not None}
 
-    grads = cast(Dict[str, torch.Tensor], grads)
+    grads = cast(dict[str, torch.Tensor], grads)
 
     for n, p in model.named_parameters():
         if p.requires_grad and p.grad is not None:
@@ -114,7 +114,7 @@ class GrokFastAdamW(BaseOptimizer):
         weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
         fixed_decay (bool): Fix weight decay.
         eps (float): Term added to the denominator to improve numerical stability.
-        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
 
@@ -134,7 +134,7 @@ class GrokFastAdamW(BaseOptimizer):
         fixed_decay: bool = False,
         normalize_lr: bool = True,
         eps: float = 1e-8,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -199,11 +199,11 @@ class GrokFastAdamW(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        exp_avgs: List[torch.Tensor],
-        exp_avg_sqs: List[torch.Tensor],
-        grok_exp_avgs: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
+        grok_exp_avgs: list[torch.Tensor],
         should_grokfast: bool,
     ) -> None:
         beta1, beta2 = group['betas']

@@ -1,5 +1,5 @@
 import math
-from typing import Literal, Optional
+from typing import Literal
 
 import numpy as np
 import torch
@@ -18,7 +18,7 @@ class ApolloDQN(BaseOptimizer):
     Args:
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        init_lr (Optional[float]): Initial learning rate (default lr / 1000).
+        init_lr (float | None): Initial learning rate (default lr / 1000).
         beta (float): Coefficient used for computing running averages of gradient.
         rebound (str): Rectified bound for diagonal Hessian. Options: 'constant', 'belief'.
         weight_decay (float): Weight decay (L2 penalty).
@@ -33,7 +33,7 @@ class ApolloDQN(BaseOptimizer):
         self,
         params: ParamsT,
         lr: float = 1e-2,
-        init_lr: Optional[float] = 1e-5,
+        init_lr: float | None = 1e-5,
         beta: float = 0.9,
         rebound: str = 'constant',
         weight_decay: float = 0.0,

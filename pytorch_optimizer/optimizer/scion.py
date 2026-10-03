@@ -1,6 +1,5 @@
 import math
 from enum import IntEnum
-from typing import Dict, List, Optional
 
 import torch
 
@@ -304,12 +303,12 @@ class SCION(BaseOptimizer):
         constraint (bool): whether to use a constraint SCG or not.
         norm_type (int): supported LMO norm types. 0 stands for no normalization and 1 stands for AUTO. 0 to 7.
             Please check LMONorm Enum class for the details.
-        norm_kwargs (Optional[Dict]): arguments for the Norm.
+        norm_kwargs (dict | None): arguments for the Norm.
         scale (float): scale factor. For Transformer block typical value is 50.0, and 3000.0 for others
             (e.g., Embeddings, LM head).
         weight_decay (float): weight decay (L2 penalty).
         weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
-        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): maximize the objective with respect to the params, instead of minimizing.
 
@@ -339,11 +338,11 @@ class SCION(BaseOptimizer):
         momentum: float = 0.1,
         constraint: bool = False,
         norm_type: int = LMONorm.AUTO,
-        norm_kwargs: Optional[Dict] = None,
+        norm_kwargs: dict | None = None,
         scale: float = 1.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -408,10 +407,10 @@ class SCION(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
         norm: Norm,
-        ds: List[torch.Tensor],
+        ds: list[torch.Tensor],
     ) -> None:
         if self.maximize:
             torch._foreach_neg_(grads)
@@ -501,12 +500,12 @@ class SCIONLight(BaseOptimizer):
         constraint (bool): whether to use a constraint SCG or not.
         norm_type (int): supported LMO norm types. 0 stands for no normalization and 1 stands for AUTO. 0 to 7.
             Please check LMONorm Enum class for the details.
-        norm_kwargs (Optional[Dict]): arguments for the Norm.
+        norm_kwargs (dict | None): arguments for the Norm.
         scale (float): scale factor. For Transformer block typical value is 50.0, and 3000.0 for others
             (e.g., Embeddings, LM head).
         weight_decay (float): weight decay (L2 penalty).
         weight_decouple (bool): the optimizer uses decoupled weight decay as in AdamW.
-        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): maximize the objective with respect to the params, instead of minimizing.
 
@@ -536,11 +535,11 @@ class SCIONLight(BaseOptimizer):
         momentum: float = 0.1,
         constraint: bool = False,
         norm_type: int = LMONorm.AUTO,
-        norm_kwargs: Optional[Dict] = None,
+        norm_kwargs: dict | None = None,
         scale: float = 1.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -591,8 +590,8 @@ class SCIONLight(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
         norm: Norm,
     ) -> None:
         momentum = group['momentum']

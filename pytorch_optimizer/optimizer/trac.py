@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Tuple
+from collections.abc import Callable
 
 import torch
 from torch import nn
@@ -87,7 +87,7 @@ class TRAC(BaseOptimizer):
 
     Args:
         optimizer (OptimizerInstanceOrClass): Base optimizer.
-        betas (List[float]): List of beta values.
+        betas (list[float]): List of beta values.
         num_coefs (int): Number of polynomial coefficients to use in the approximation.
         s_prev (float): Initial scale value.
         eps (float): Term added to the denominator to improve numerical stability.
@@ -107,7 +107,7 @@ class TRAC(BaseOptimizer):
     def __init__(
         self,
         optimizer: OptimizerInstanceOrClass,
-        betas: List[float] = (0.9, 0.99, 0.999, 0.9999, 0.99999, 0.999999),
+        betas: list[float] = (0.9, 0.99, 0.999, 0.9999, 0.99999, 0.999999),
         num_coefs: int = 128,
         s_prev: float = 1e-8,
         eps: float = 1e-8,
@@ -117,8 +117,8 @@ class TRAC(BaseOptimizer):
         self.validate_non_negative(s_prev, 's_prev')
         self.validate_non_negative(eps, 'eps')
 
-        self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
-        self._optimizer_step_post_hooks: Dict[int, Callable] = {}
+        self._optimizer_step_pre_hooks: dict[int, Callable] = {}
+        self._optimizer_step_post_hooks: dict[int, Callable] = {}
 
         self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
 
@@ -188,7 +188,7 @@ class TRAC(BaseOptimizer):
         if 'step' not in group:
             group['step'] = 0
 
-        updates: Dict[torch.Tensor, torch.Tensor] = kwargs.get('updates', {})
+        updates: dict[torch.Tensor, torch.Tensor] = kwargs.get('updates', {})
 
         for p in group['params']:
             self.state['trac'][p] = updates[p].clone()
@@ -207,7 +207,7 @@ class TRAC(BaseOptimizer):
         return self.erf(ix).imag
 
     @torch.no_grad()
-    def backup_params_and_grads(self) -> Tuple[Dict, Dict]:
+    def backup_params_and_grads(self) -> tuple[dict, dict]:
         updates, grads = {}, {}
 
         for group in self.param_groups:
@@ -218,7 +218,7 @@ class TRAC(BaseOptimizer):
         return updates, grads
 
     @torch.no_grad()
-    def trac_step(self, updates: Dict, grads: Dict) -> None:
+    def trac_step(self, updates: dict, grads: dict) -> None:
         self.state['trac']['step'] += 1
 
         deltas = {}

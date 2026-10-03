@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from pytorch_optimizer.optimizer import create_optimizer, load_optimizer
-from tests.constants import COMPILE_SUPPORTED_OPTIMIZERS, SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
+from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS, SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
 from tests.utils import Example, Trainer, build_model, ids
 
 WRAPPER_TEST_OPTIMIZERS = ['adamp', 'lion', 'lamb', 'adan', 'madgrad', 'ranger']

@@ -1,5 +1,4 @@
 import math
-from typing import Dict, Tuple, Union
 
 import torch
 
@@ -8,7 +7,7 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 
 
-def update_ema(state: Dict, loss: Union[float, torch.Tensor]) -> Dict[str, float]:
+def update_ema(state: dict, loss: float | torch.Tensor) -> dict[str, float]:
     """Update the EMA dictionary for the `short`, `medium`, and `long` terms."""
     if isinstance(loss, torch.Tensor):
         loss = loss.item()
@@ -21,7 +20,7 @@ def update_ema(state: Dict, loss: Union[float, torch.Tensor]) -> Dict[str, float
     return ema
 
 
-def compute_scalar(ema: Dict[str, float]) -> float:
+def compute_scalar(ema: dict[str, float]) -> float:
     """Compute the difference scalar."""
     scale_base_l = max(ema['long'], 1e-5)
     scale_base_m = max(ema['medium'], 1e-5)
@@ -51,7 +50,7 @@ def get_scalar_ratio(scalar: float, use_shadow: bool) -> float:
     return 1.0 - scalar if scalar > 0.625 else 0.0
 
 
-def get_emo_drive(state: Dict, loss: Union[float, torch.Tensor], use_shadow: bool) -> Tuple[float, float, float]:
+def get_emo_drive(state: dict, loss: float | torch.Tensor, use_shadow: bool) -> tuple[float, float, float]:
     """Get the EmoDrive factor."""
     ema = update_ema(state, loss)
     scalar = compute_scalar(ema)

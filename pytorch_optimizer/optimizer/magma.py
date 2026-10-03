@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Optional, Set, Tuple, Union
+from collections.abc import Callable
 
 import torch
 from torch import Tensor
@@ -35,10 +35,10 @@ class Magma(BaseOptimizer):
         tau (float): Temperature used by the alignment sigmoid.
         momentum_beta (float): EMA coefficient for the fallback momentum.
         alignment_ema (float): EMA coefficient for the alignment score.
-        moment_key (Optional[str]): First-moment key in the base optimizer's
+        moment_key (str | None): First-moment key in the base optimizer's
             state. ``'auto'`` checks ``'exp_avg'`` and ``'momentum_buffer'``;
             ``None`` always uses Magma's fallback momentum.
-        exclude (Optional[Set[Tensor]]): Parameters that bypass masking.
+        exclude (set[Tensor] | None): Parameters that bypass masking.
 
     Magma reads the first moment from the base optimizer when it is available,
     so it adds no additional momentum state for optimizers such as Adam. For
@@ -52,13 +52,13 @@ class Magma(BaseOptimizer):
 
     def __init__(
         self,
-        optimizer: Union[OptimizerInstanceOrClass, ParamsT],
+        optimizer: OptimizerInstanceOrClass | ParamsT,
         mask_prob: float = 0.5,
         tau: float = 2.0,
         momentum_beta: float = 0.9,
         alignment_ema: float = 0.9,
-        moment_key: Optional[str] = 'auto',
-        exclude: Optional[Set[Tensor]] = None,
+        moment_key: str | None = 'auto',
+        exclude: set[Tensor] | None = None,
         **kwargs,
     ) -> None:
         self.validate_range(mask_prob, 'mask_prob', 0.0, 1.0, range_type='[]')
@@ -66,8 +66,8 @@ class Magma(BaseOptimizer):
         self.validate_range(momentum_beta, 'momentum_beta', 0.0, 1.0, range_type='[]')
         self.validate_range(alignment_ema, 'alignment_ema', 0.0, 1.0, range_type='[]')
 
-        self._optimizer_step_pre_hooks: Dict[int, Callable] = {}
-        self._optimizer_step_post_hooks: Dict[int, Callable] = {}
+        self._optimizer_step_pre_hooks: dict[int, Callable] = {}
+        self._optimizer_step_post_hooks: dict[int, Callable] = {}
 
         if isinstance(optimizer, Optimizer):
             self.optimizer = optimizer
@@ -84,8 +84,8 @@ class Magma(BaseOptimizer):
         self.momentum_beta = momentum_beta
         self.alignment_ema = alignment_ema
         self.moment_key = moment_key
-        self._exclude_ids: Set[int] = {id(parameter) for parameter in (exclude or set())}
-        self._state: Dict[int, Dict[str, Tensor]] = {}
+        self._exclude_ids: set[int] = {id(parameter) for parameter in (exclude or set())}
+        self._state: dict[int, dict[str, Tensor]] = {}
 
         self.defaults: Defaults = self.optimizer.defaults
 
@@ -104,13 +104,13 @@ class Magma(BaseOptimizer):
         self.optimizer.add_param_group(param_group)
 
     def state_dict(self) -> State:
-        id_to_key: Dict[int, Tuple[int, int]] = {
+        id_to_key: dict[int, tuple[int, int]] = {
             id(parameter): (group_index, parameter_index)
             for group_index, group in enumerate(self.param_groups)
             for parameter_index, parameter in enumerate(group['params'])
         }
 
-        magma_state: Dict[Tuple[int, int], Dict[str, Tensor]] = {}
+        magma_state: dict[tuple[int, int], dict[str, Tensor]] = {}
         for parameter_id, parameter_state in self._state.items():
             key = id_to_key.get(parameter_id)
             if key is not None:
@@ -136,7 +136,7 @@ class Magma(BaseOptimizer):
         if 'moment_key' in state_dict:
             self.moment_key = state_dict['moment_key']
 
-        key_to_id: Dict[Tuple[int, int], int] = {
+        key_to_id: dict[tuple[int, int], int] = {
             (group_index, parameter_index): id(parameter)
             for group_index, group in enumerate(self.param_groups)
             for parameter_index, parameter in enumerate(group['params'])
@@ -152,7 +152,7 @@ class Magma(BaseOptimizer):
         if 'step' not in group:
             group['step'] = 0
 
-    def _get_first_moment(self, parameter: Tensor) -> Optional[Tensor]:
+    def _get_first_moment(self, parameter: Tensor) -> Tensor | None:
         if self.moment_key is None:
             return None
 
@@ -171,14 +171,14 @@ class Magma(BaseOptimizer):
 
         return None
 
-    def _capture_gradients(self, saved: List[Tuple[Tensor, Optional[Tensor], Tensor]]) -> None:
+    def _capture_gradients(self, saved: list[tuple[Tensor, Tensor | None, Tensor]]) -> None:
         for index, (parameter, _, snapshot) in enumerate(saved):
             if parameter.grad is not None:
                 saved[index] = (parameter, parameter.grad.detach().clone(), snapshot)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
-        saved: List[Tuple[Tensor, Optional[Tensor], Tensor]] = []
+        saved: list[tuple[Tensor, Tensor | None, Tensor]] = []
         for group in self.param_groups:
             for parameter in group['params']:
                 if torch.is_complex(parameter):
@@ -200,7 +200,7 @@ class Magma(BaseOptimizer):
         else:
             loss = self.optimizer.step()
 
-        mask_probabilities: Dict[torch.device, Tensor] = {}
+        mask_probabilities: dict[torch.device, Tensor] = {}
         for parameter, gradient, snapshot in saved:
             if gradient is None or gradient.is_sparse:
                 continue

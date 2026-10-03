@@ -1,5 +1,4 @@
 import math
-from typing import Optional
 
 import torch
 
@@ -38,7 +37,7 @@ class Prodigy(BaseOptimizer):
         params: ParamsT,
         lr: float = 1.0,
         betas: Betas = (0.9, 0.999),
-        beta3: Optional[float] = None,
+        beta3: float | None = None,
         d0: float = 1e-6,
         d_coef: float = 1.0,
         growth_rate: float = float('inf'),
@@ -47,7 +46,7 @@ class Prodigy(BaseOptimizer):
         fixed_decay: bool = False,
         bias_correction: bool = False,
         safeguard_warmup: bool = False,
-        eps: Optional[float] = 1e-8,
+        eps: float | None = 1e-8,
         maximize: bool = False,
         **kwargs,
     ):

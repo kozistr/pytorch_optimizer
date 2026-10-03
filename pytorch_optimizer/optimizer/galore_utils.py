@@ -1,5 +1,5 @@
 import math
-from typing import Literal, Optional, Tuple, Union
+from typing import Literal
 
 import torch
 
@@ -10,7 +10,7 @@ class GaLoreProjector:
     """Memory-Efficient LLM Training by Gradient Low-Rank Projection.
 
     Args:
-        rank (Optional[int]): Low rank to project. If None, the full matrix is used.
+        rank (int | None): Low rank to project. If None, the full matrix is used.
         update_proj_gap (int): Number of steps between projection updates.
         scale (float): Scale factor applied during projection.
         projection_type (PROJECTION_TYPE): Type of projection. Supported types include 'std', 'reverse_std',
@@ -20,7 +20,7 @@ class GaLoreProjector:
 
     def __init__(
         self,
-        rank: Optional[int] = 128,
+        rank: int | None = 128,
         update_proj_gap: int = 50,
         scale: float = 1.0,
         projection_type: PROJECTION_TYPE = 'std',
@@ -31,12 +31,12 @@ class GaLoreProjector:
         self.scale = scale
         self.projection_type = projection_type
 
-        self.ortho_matrix: Optional[Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]] = None
+        self.ortho_matrix: torch.Tensor | tuple[torch.Tensor, torch.Tensor] | None = None
         self.last_svd_step: int = -1
 
     def get_orthogonal_matrix(
         self, weights: torch.Tensor, projection_type: str, from_random_matrix: bool = False
-    ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         if projection_type not in ('right', 'left', 'full'):
             raise ValueError('`projection_type` should be one of left, right or full')
 
@@ -130,7 +130,7 @@ class GaLoreProjector:
         self,
         grad: torch.Tensor,
         num_steps: int,
-        svd_basis_matrix: Optional[torch.Tensor] = None,
+        svd_basis_matrix: torch.Tensor | None = None,
         from_random_matrix: bool = False,
     ) -> torch.Tensor:
         update_ortho_matrix: bool = self.ortho_matrix is None or num_steps % self.update_proj_gap == 0

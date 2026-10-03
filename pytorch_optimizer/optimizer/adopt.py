@@ -1,5 +1,5 @@
 import math
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
 import torch
 
@@ -19,7 +19,7 @@ class ADOPT(BaseOptimizer):
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): Whether to use decoupled weight decay as in AdamW.
         fixed_decay (bool): Apply fixed weight decay instead of adaptive.
-        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
@@ -35,7 +35,7 @@ class ADOPT(BaseOptimizer):
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         eps: float = 1e-6,
         maximize: bool = False,
         **kwargs,
@@ -95,10 +95,10 @@ class ADOPT(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        exp_avgs: List[torch.Tensor],
-        exp_avg_sqs: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
     ) -> None:
         beta1, beta2 = group['betas']
         lr = group['lr']

@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import torch
 
@@ -23,7 +23,7 @@ class AliG(BaseOptimizer):
 
     Args:
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        max_lr (Optional[float]): Maximum learning rate.
+        max_lr (float | None): Maximum learning rate.
         projection_fn (Callable): Projection function to enforce constraints.
         momentum (float): Momentum factor.
         adjusted_momentum (bool): If True, use PyTorch-like momentum instead of standard Nesterov momentum.
@@ -34,8 +34,8 @@ class AliG(BaseOptimizer):
     def __init__(
         self,
         params: ParamsT,
-        max_lr: Optional[float] = None,
-        projection_fn: Optional[Callable] = None,
+        max_lr: float | None = None,
+        projection_fn: Callable | None = None,
         momentum: float = 0.0,
         adjusted_momentum: bool = False,
         maximize: bool = False,

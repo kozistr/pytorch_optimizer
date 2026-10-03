@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, cast
+from typing import cast
 
 import torch
 from torch import nn
@@ -54,7 +54,7 @@ def compute_normalization_binary_search(activations: torch.Tensor, t: float, num
         activations.dtype
     )
 
-    shape_partition: Tuple[int, ...] = (*activations.shape[:-1], 1)
+    shape_partition: tuple[int, ...] = (*activations.shape[:-1], 1)
 
     lower = torch.zeros(shape_partition, dtype=activations.dtype, device=activations.device)
     upper = -log_t(1.0 / effective_dim, t) * torch.ones_like(lower)
@@ -191,7 +191,7 @@ class BiTemperedLogisticLoss(nn.Module):
         t1 (float): Temperature 1 (< 1.0 for boundedness).
         t2 (float): Temperature 2 (> 1.0 for tail heaviness, < 1.0 for finite support).
         label_smooth (float): Label smoothing parameter between 0 and 1.
-        ignore_index (Optional[int]): Index to ignore during loss calculation.
+        ignore_index (int | None): Index to ignore during loss calculation.
         reduction (str): Type of reduction to apply to output, e.g. 'mean', 'sum', or 'none'.
 
     """
@@ -201,7 +201,7 @@ class BiTemperedLogisticLoss(nn.Module):
         t1: float,
         t2: float,
         label_smooth: float = 0.0,
-        ignore_index: Optional[int] = None,
+        ignore_index: int | None = None,
         reduction: str = 'mean',
     ):
         super().__init__()
@@ -234,7 +234,7 @@ class BinaryBiTemperedLogisticLoss(nn.Module):
         t1 (float): Temperature 1 (< 1.0 for boundedness of the loss).
         t2 (float): Temperature 2 (> 1.0 for tail heaviness, < 1.0 for finite support).
         label_smooth (float): Label smoothing parameter between 0 and 1.
-        ignore_index (Optional[int]): Specifies a target value that is ignored and does not contribute
+        ignore_index (int | None): Specifies a target value that is ignored and does not contribute
             to the input gradient.
         reduction (str): Specifies the reduction to apply to the output: 'none', 'mean', or 'sum'.
 
@@ -245,7 +245,7 @@ class BinaryBiTemperedLogisticLoss(nn.Module):
         t1: float,
         t2: float,
         label_smooth: float = 0.0,
-        ignore_index: Optional[int] = None,
+        ignore_index: int | None = None,
         reduction: str = 'mean',
     ):
         super().__init__()

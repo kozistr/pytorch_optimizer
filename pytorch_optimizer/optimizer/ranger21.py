@@ -1,5 +1,4 @@
 import math
-from typing import Optional
 
 import torch
 from torch.nn.functional import softplus
@@ -39,9 +38,9 @@ class Ranger21(BaseOptimizer):
         use_softplus (bool): use softplus to smooth.
         beta_softplus (float): beta.
         disable_lr_scheduler (bool): whether to disable learning rate schedule.
-        num_warm_up_iterations (Optional[int]): number of warm-up iterations. Ranger21 performs linear learning rate
+        num_warm_up_iterations (int | None): number of warm-up iterations. Ranger21 performs linear learning rate
             warmup.
-        num_warm_down_iterations (Optional[int]): number of warm-down iterations. Ranger21 performs Explore-exploit
+        num_warm_down_iterations (int | None): number of warm-down iterations. Ranger21 performs Explore-exploit
             learning rate scheduling.
         agc_clipping_value (float):
         agc_eps (float): eps for AGC
@@ -68,8 +67,8 @@ class Ranger21(BaseOptimizer):
         use_softplus: bool = True,
         beta_softplus: float = 50.0,
         disable_lr_scheduler: bool = False,
-        num_warm_up_iterations: Optional[int] = None,
-        num_warm_down_iterations: Optional[int] = None,
+        num_warm_up_iterations: int | None = None,
+        num_warm_down_iterations: int | None = None,
         warm_down_min_lr: float = 3e-5,
         agc_clipping_value: float = 1e-2,
         agc_eps: float = 1e-3,

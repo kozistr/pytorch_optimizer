@@ -1,5 +1,5 @@
 import math
-from typing import Literal, Optional
+from typing import Literal
 
 import torch
 
@@ -15,7 +15,7 @@ class A2Grad(BaseOptimizer):
 
     Args:
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (Optional[float]): Learning rate. No needed.
+        lr (float | None): Learning rate. No needed.
         beta (float): Beta.
         lips (float): Lipschitz constant.
         rho (float): Represents the degree of weighting decrease, a constant smoothing factor between 0 and 1.
@@ -27,7 +27,7 @@ class A2Grad(BaseOptimizer):
     def __init__(
         self,
         params: ParamsT,
-        lr: Optional[float] = None,
+        lr: float | None = None,
         beta: float = 10.0,
         lips: float = 10.0,
         rho: float = 0.5,

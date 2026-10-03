@@ -1,5 +1,5 @@
 import math
-from typing import List, Optional, Sequence, Tuple, Union
+from collections.abc import Sequence
 
 import torch
 
@@ -17,7 +17,7 @@ class AdaFactor(BaseOptimizer):
     Args:
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
-        betas (Union[Tuple[None, float], Tuple[float, float], Tuple[float, float, float]]): Coefficients used for
+        betas (tuple[None, float] | tuple[float, float] | tuple[float, float, float]): Coefficients used for
             computing running averages of gradient and the squared Hessian trace.
             If beta1 is None, first momentum will be skipped. beta2 is an upper bound cap.
         decay_rate (float): Coefficient used to compute running averages of squared gradient.
@@ -35,7 +35,7 @@ class AdaFactor(BaseOptimizer):
         momentum_dtype (torch.dtype): Type of momentum variable. In the ViT paper, it was observed that storing
             momentum in half-precision (bfloat16 type) does not affect training dynamics and reduces optimizer
             overhead from 2-fold to 1.5-fold.
-        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
 
@@ -44,8 +44,8 @@ class AdaFactor(BaseOptimizer):
     def __init__(
         self,
         params: ParamsT,
-        lr: Optional[float] = 1e-3,
-        betas: Union[Tuple[None, float], Tuple[float, float], Tuple[float, float, float]] = (0.9, 0.999),
+        lr: float | None = 1e-3,
+        betas: tuple[None, float] | tuple[float, float] | tuple[float, float, float] = (0.9, 0.999),
         decay_rate: float = -0.8,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -58,7 +58,7 @@ class AdaFactor(BaseOptimizer):
         eps1: float = 1e-30,
         eps2: float = 1e-3,
         momentum_dtype: torch.dtype = torch.bfloat16,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -116,7 +116,7 @@ class AdaFactor(BaseOptimizer):
 
             state = self.state[p]
 
-            grad_shape: Tuple[int, ...] = grad.shape
+            grad_shape: tuple[int, ...] = grad.shape
             factored: bool = self.get_options(grad_shape)
 
             if len(state) == 0:
@@ -146,10 +146,10 @@ class AdaFactor(BaseOptimizer):
 
     def get_lr(
         self,
-        relative_step_size: Union[torch.Tensor, float],
-        rms: Union[List[torch.Tensor], torch.Tensor, float],
+        relative_step_size: torch.Tensor | float,
+        rms: list[torch.Tensor] | torch.Tensor | float,
         scale_parameter: bool,
-    ) -> Union[Sequence[torch.Tensor], torch.Tensor, float]:
+    ) -> Sequence[torch.Tensor] | torch.Tensor | float:
         r"""Get the learning rate(s)."""
         if not scale_parameter:
             return relative_step_size
@@ -163,7 +163,7 @@ class AdaFactor(BaseOptimizer):
         return lrs
 
     @staticmethod
-    def get_options(shape: Tuple[int, ...]) -> bool:
+    def get_options(shape: tuple[int, ...]) -> bool:
         r"""Get `factored`."""
         return len(shape) >= 2
 
@@ -179,13 +179,13 @@ class AdaFactor(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        exp_avgs: List[torch.Tensor],
-        exp_avg_sq_rows: List[torch.Tensor],
-        exp_avg_sq_cols: List[torch.Tensor],
-        exp_avg_sqs: List[torch.Tensor],
-        exp_avg_sq_hats: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sq_rows: list[torch.Tensor],
+        exp_avg_sq_cols: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
+        exp_avg_sq_hats: list[torch.Tensor],
         beta1: float,
         beta2_t: float,
         relative_step_size: float,

@@ -98,7 +98,7 @@ Reference existing implementations:
 4. Register in the corresponding `__init__.py` files
 5. Run `uv run just format` and `uv run just check`
 6. Add tests with **100% coverage** requirement
-7. For new optimizers: add a minimal training recipe to `tests/constants.py` (see `OPTIMIZERS` list)
+7. For new optimizers: add a minimal training recipe to `tests/recipes.py` (see `OPTIMIZERS` list)
 8. Describe the user-visible change in the PR title and description for the generated release notes.
 9. Update `README.md`:
    - Update the count of optimizers/loss functions/schedulers

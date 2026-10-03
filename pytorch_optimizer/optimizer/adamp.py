@@ -1,5 +1,5 @@
 import math
-from typing import Callable, List, Tuple
+from collections.abc import Callable
 
 import torch
 from torch.nn.functional import cosine_similarity
@@ -47,10 +47,10 @@ def projection(
     delta: float,
     wd_ratio: float,
     eps: float,
-) -> Tuple[torch.Tensor, float]:
+) -> tuple[torch.Tensor, float]:
     """Project to remove the radial component from the update vector."""
     wd: float = 1.0
-    expand_size: List[int] = [-1] + [1] * (len(p.shape) - 1)
+    expand_size: list[int] = [-1] + [1] * (len(p.shape) - 1)
     for view_func in (channel_view, layer_view):
         cosine_sim = cosine_similarity_by_view(grad, p, eps, view_func)
 

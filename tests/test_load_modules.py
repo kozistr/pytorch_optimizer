@@ -1,12 +1,25 @@
 import pytest
 
+import pytorch_optimizer
 from pytorch_optimizer.loss import LOSS_FUNCTION_LIST, LOSS_FUNCTIONS, get_supported_loss_functions
 from pytorch_optimizer.lr_scheduler import LR_SCHEDULER_LIST, get_supported_lr_schedulers, load_lr_scheduler
 from pytorch_optimizer.optimizer import OPTIMIZER_LIST, get_supported_optimizers, load_optimizer
-from tests.constants import INVALID_OPTIMIZER_NAMES, VALID_OPTIMIZER_NAMES
+from tests.recipes import INVALID_OPTIMIZER_NAMES, VALID_OPTIMIZER_NAMES
 
 VALID_LR_SCHEDULER_NAMES = get_supported_lr_schedulers()
 INVALID_LR_SCHEDULER_NAMES = ['dummy']
+
+
+@pytest.mark.parametrize('components', [OPTIMIZER_LIST, LOSS_FUNCTION_LIST, list(LR_SCHEDULER_LIST.values())])
+def test_top_level_component_exports(components):
+    namespace = {}
+    exec('from pytorch_optimizer import *', namespace)  # noqa: S102
+
+    for component in components:
+        assert getattr(pytorch_optimizer, component.__name__) is component
+        assert namespace[component.__name__] is component
+
+    assert not {'torch', 'fnmatch', 'Sequence', 'OptimizerType', 'ParamsT'} & namespace.keys()
 
 
 @pytest.mark.parametrize('valid_optimizer_names', VALID_OPTIMIZER_NAMES)

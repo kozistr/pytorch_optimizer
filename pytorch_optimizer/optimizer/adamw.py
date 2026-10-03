@@ -1,5 +1,4 @@
 import math
-from typing import List, Optional, Union
 
 import torch
 
@@ -14,14 +13,14 @@ class StableAdamW(BaseOptimizer):
 
     Args:
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (Union[float, torch.Tensor]): Learning rate.
+        lr (float | torch.Tensor): Learning rate.
         betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         kahan_sum (bool): Enables Kahan summation for more accurate parameter updates when training in low precision
             (float16 or bfloat16).
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): Decoupled weight decay.
         eps (float): Term added to the denominator to improve numerical stability.
-        foreach (Optional[bool]): Whether to use foreach (multi-tensor) operations for speed.
+        foreach (bool | None): Whether to use foreach (multi-tensor) operations for speed.
             None means auto-detect based on device (True for CUDA, False otherwise).
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
 
@@ -30,13 +29,13 @@ class StableAdamW(BaseOptimizer):
     def __init__(
         self,
         params: ParamsT,
-        lr: Union[float, torch.Tensor] = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.99),
         kahan_sum: bool = True,
         weight_decay: float = 1e-2,
         weight_decouple: bool = True,
         eps: float = 1e-8,
-        foreach: Optional[bool] = None,
+        foreach: bool | None = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -97,11 +96,11 @@ class StableAdamW(BaseOptimizer):
     def _step_foreach(
         self,
         group: ParamGroup,
-        params: List[torch.Tensor],
-        grads: List[torch.Tensor],
-        exp_avgs: List[torch.Tensor],
-        exp_avg_sqs: List[torch.Tensor],
-        kahan_comps: List[torch.Tensor],
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
+        kahan_comps: list[torch.Tensor],
     ) -> None:
         beta1, beta2 = group['betas']
         eps = group['eps']
@@ -125,7 +124,7 @@ class StableAdamW(BaseOptimizer):
         torch._foreach_mul_(exp_avg_sqs, beta2_hat)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2_hat)
 
-        step_sizes: List[torch.Tensor] = [
+        step_sizes: list[torch.Tensor] = [
             -lr / self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
             for grad, exp_avg_sq in zip(grads, exp_avg_sqs)
         ]

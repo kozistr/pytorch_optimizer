@@ -1,6 +1,7 @@
 import math
 import os
-from typing import Any, Callable, List, Optional, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import torch
 from torch import nn
@@ -21,8 +22,8 @@ class LOMO(BaseOptimizer):
     Args:
         model (nn.Module): PyTorch model.
         lr (float): Learning rate.
-        clip_grad_norm (Optional[float]): Gradient norm clipping value.
-        clip_grad_value (Optional[float]): Gradient value clipping threshold.
+        clip_grad_norm (float | None): Gradient norm clipping value.
+        clip_grad_value (float | None): Gradient value clipping threshold.
         maximize (bool): Maximize the objective with respect to the params, instead of minimizing.
 
     """
@@ -31,8 +32,8 @@ class LOMO(BaseOptimizer):
         self,
         model: nn.Module,
         lr: float = 1e-3,
-        clip_grad_norm: Optional[float] = None,
-        clip_grad_value: Optional[float] = None,
+        clip_grad_norm: float | None = None,
+        clip_grad_value: float | None = None,
         maximize: bool = False,
         **kwargs,
     ):
@@ -49,8 +50,8 @@ class LOMO(BaseOptimizer):
         self.local_rank: int = int(os.environ.get('LOCAL_RANK', '0'))
 
         self.gather_norm: bool = False
-        self.grad_norms: List[torch.Tensor] = []
-        self.clip_coef: Optional[float] = None
+        self.grad_norms: list[torch.Tensor] = []
+        self.clip_coef: float | None = None
 
         p0: torch.Tensor = next(iter(self.model.parameters()))
 
@@ -58,7 +59,7 @@ class LOMO(BaseOptimizer):
             self.fuse_update_zero3() if hasattr(p0, 'ds_tensor') else self.fuse_update()
         )
 
-        self.loss_scaler: Optional[DynamicLossScaler] = None
+        self.loss_scaler: DynamicLossScaler | None = None
         if p0.dtype == torch.float16:
             if clip_grad_norm is None:
                 raise ValueError('loss scaling is recommended to be used with grad norm to get better performance.')
@@ -220,8 +221,8 @@ class AdaLOMO(BaseOptimizer):
         loss_scale (float): Loss scale.
         clip_threshold (float): Threshold of root-mean-square of final gradient update.
         decay_rate (float): Coefficient used to compute running averages of square gradient.
-        clip_grad_norm (Optional[float]): Clip gradient norm.
-        clip_grad_value (Optional[float]): Clip gradient value.
+        clip_grad_norm (float | None): Clip gradient norm.
+        clip_grad_value (float | None): Clip gradient value.
         eps1 (float): Term added to the denominator to improve numerical stability.
         eps2 (float): Term added to the denominator to improve numerical stability.
 
@@ -235,8 +236,8 @@ class AdaLOMO(BaseOptimizer):
         loss_scale: float = 2.0 ** 10,
         clip_threshold: float = 1.0,
         decay_rate: float = -0.8,
-        clip_grad_norm: Optional[float] = None,
-        clip_grad_value: Optional[float] = None,
+        clip_grad_norm: float | None = None,
+        clip_grad_value: float | None = None,
         eps1: float = 1e-30,
         eps2: float = 1e-3,
         **kwargs,
@@ -263,8 +264,8 @@ class AdaLOMO(BaseOptimizer):
 
         self.num_steps: int = 0
         self.gather_norm: bool = False
-        self.grad_norms: List[torch.Tensor] = []
-        self.clip_coef: Optional[float] = None
+        self.grad_norms: list[torch.Tensor] = []
+        self.clip_coef: float | None = None
 
         self.local_rank: int = int(os.environ.get('LOCAL_RANK', '0'))
         self.zero3_enabled: bool = is_deepspeed_zero3_enabled()

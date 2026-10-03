@@ -1,4 +1,3 @@
-from typing import Union
 
 import torch
 
@@ -15,7 +14,7 @@ class ROSE(BaseOptimizer):
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         weight_decay (float): Weight decay (L2 penalty).
-        wd_schedule (Union[float, bool]): Schedule-Coupled Weight Decay. If `False`, standard decoupled weight decay is
+        wd_schedule (float | bool): Schedule-Coupled Weight Decay. If `False`, standard decoupled weight decay is
             used. If `True`, `lr_ref` is the first available among `group['max_lr']`, `group['initial_lr']`, and the
             learning-rate passed at construction time. If a float is provided, it is used directly as `lr_ref`.
         weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
@@ -36,7 +35,7 @@ class ROSE(BaseOptimizer):
         params: ParamsT,
         lr: float = 1e-3,
         weight_decay: float = 1e-4,
-        wd_schedule: Union[bool, float] = False,
+        wd_schedule: bool | float = False,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         centralize: bool = True,

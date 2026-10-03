@@ -1,11 +1,11 @@
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from collections.abc import Sequence
 
 import torch
 
 from pytorch_optimizer.optimizer.utils import TORCH_VERSION_AT_LEAST_2_8
 
 
-def has_foreach_support(tensors: List[torch.Tensor]) -> bool:
+def has_foreach_support(tensors: list[torch.Tensor]) -> bool:
     """Check if foreach operations are supported for the given tensors.
 
     Foreach operations require:
@@ -38,10 +38,10 @@ def has_foreach_support(tensors: List[torch.Tensor]) -> bool:
 
 
 def group_tensors_by_device_and_dtype(
-    params: List[torch.Tensor],
-    grads: List[torch.Tensor],
-    state_lists: Optional[Dict[str, List[torch.Tensor]]] = None,
-) -> List[Dict]:
+    params: list[torch.Tensor],
+    grads: list[torch.Tensor],
+    state_lists: dict[str, list[torch.Tensor]] | None = None,
+) -> list[dict]:
     """Group tensors by device and dtype for efficient foreach operations.
 
     This function organizes parameters, gradients, and state tensors into groups
@@ -63,7 +63,7 @@ def group_tensors_by_device_and_dtype(
     if state_lists is None:
         state_lists = {}
 
-    groups: Dict[Tuple[torch.device, torch.dtype], Dict] = {}
+    groups: dict[tuple[torch.device, torch.dtype], dict] = {}
 
     for idx, (p, g) in enumerate(zip(params, grads)):
         key = (p.device, p.dtype)
@@ -87,7 +87,7 @@ def group_tensors_by_device_and_dtype(
 
 
 def foreach_rsqrt(
-    tensors: Union[List[torch.Tensor], Tuple[torch.Tensor, ...]],
+    tensors: list[torch.Tensor] | tuple[torch.Tensor, ...],
 ) -> Sequence[torch.Tensor]:  # pragma: no cover
     """Version-aware ``foreach_rsqrt`` implementation.
 
@@ -100,7 +100,7 @@ def foreach_rsqrt(
     return torch._foreach_reciprocal(torch._foreach_sqrt(tensors))
 
 
-def foreach_rsqrt_(tensors: Union[List[torch.Tensor], Tuple[torch.Tensor, ...]]) -> None:  # pragma: no cover
+def foreach_rsqrt_(tensors: list[torch.Tensor] | tuple[torch.Tensor, ...]) -> None:  # pragma: no cover
     """Version-aware in-place ``foreach_rsqrt_`` implementation.
 
     ``torch._foreach_rsqrt_`` was introduced in PyTorch 2.8.0, so earlier versions

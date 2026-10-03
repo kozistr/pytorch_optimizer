@@ -19,7 +19,7 @@ from pytorch_optimizer.loss import (
     soft_jaccard_score,
 )
 from pytorch_optimizer.loss.bi_tempered import bi_tempered_logistic_loss
-from tests.constants import BINARY_DICE_RECIPES
+from tests.recipes import BINARY_DICE_RECIPES
 from tests.utils import MultiClassExample
 
 

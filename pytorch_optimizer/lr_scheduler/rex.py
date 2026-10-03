@@ -1,4 +1,3 @@
-from typing import List, Optional
 
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
@@ -27,10 +26,10 @@ class REXScheduler(LRScheduler):
         self.min_lr = min_lr
 
         self.step_t: int = 0
-        self.base_lrs: List[float] = []
+        self.base_lrs: list[float] = []
 
         # record current value in self._last_lr to match API from torch.optim.lr_scheduler
-        self.last_lr: List[float] = [self.max_lr]
+        self.last_lr: list[float] = [self.max_lr]
 
         super().__init__(optimizer)
 
@@ -53,7 +52,7 @@ class REXScheduler(LRScheduler):
 
         return self.min_lr + (self.max_lr - self.min_lr) * ((1.0 - progress) / (1.0 - progress / 2.0))
 
-    def step(self, epoch: Optional[int] = None) -> float:
+    def step(self, epoch: int | None = None) -> float:
         value: float = self.get_linear_lr()
 
         self.step_t += 1

@@ -1,4 +1,3 @@
-from typing import List
 
 import torch
 
@@ -17,7 +16,7 @@ def neuron_norm(x: torch.Tensor) -> torch.Tensor:
     if x.dim() <= 1:
         return x.abs()
 
-    view_shape: List[int] = [x.shape[0]] + [1] * (x.dim() - 1)
+    view_shape: list[int] = [x.shape[0]] + [1] * (x.dim() - 1)
 
     return channel_view(x).norm(dim=1).view(*view_shape)
 
@@ -27,7 +26,7 @@ def neuron_mean(x: torch.Tensor) -> torch.Tensor:
     if x.dim() <= 1:
         raise ValueError('[-] neuron_mean not defined on 1D tensors.')
 
-    view_shape: List[int] = [x.shape[0]] + [1] * (x.dim() - 1)
+    view_shape: list[int] = [x.shape[0]] + [1] * (x.dim() - 1)
 
     return channel_view(x).mean(dim=1).view(*view_shape)
 

@@ -1,4 +1,3 @@
-from typing import Tuple
 
 import numpy as np
 import pytest
@@ -23,7 +22,7 @@ def pytest_addoption(parser):
 @pytest.fixture(scope='session')
 def environment(
     device: torch.device, num_samples: int = 100, dims: int = 2, seed: int = 42
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     torch.manual_seed(42)
     rng = np.random.RandomState(seed)
 

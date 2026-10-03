@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from contextlib import ExitStack
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, cast
 
 import torch
 from torch import nn
@@ -17,9 +18,9 @@ from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_runn
 
 def get_global_gradient_norm(param_groups: ParamsT, device: torch.device) -> torch.Tensor:
     """Get global gradient norm."""
-    norms: List[torch.Tensor] = []
+    norms: list[torch.Tensor] = []
     for group in param_groups or []:
-        params: List[torch.Tensor] = group.get('params', []) or []
+        params: list[torch.Tensor] = group.get('params', []) or []
         adaptive: bool = group.get('adaptive', False)
         for p in params:
             if p.grad is not None:
@@ -161,7 +162,7 @@ class SAM(BaseOptimizer):
 
         self.second_step()
 
-    def load_state_dict(self, state_dict: Dict):
+    def load_state_dict(self, state_dict: dict):
         super().load_state_dict(state_dict)
         self.base_optimizer.param_groups = self.param_groups
         self.base_optimizer.state = self.state
@@ -220,7 +221,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         self.perturb_eps = perturb_eps
 
         self.rho_t: float = 0.0
-        self.forward_backward_func: Optional[Callable] = None
+        self.forward_backward_func: Callable | None = None
 
         if hasattr(ReduceOp, 'AVG'):
             self.grad_reduce = ReduceOp.AVG
@@ -312,7 +313,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
                         p.grad.div_(float(get_world_size()))
 
     @torch.no_grad()
-    def grad_norm(self, by: Optional[str] = None, weight_adaptive: bool = False) -> torch.Tensor:
+    def grad_norm(self, by: str | None = None, weight_adaptive: bool = False) -> torch.Tensor:
         return torch.norm(
             torch.stack(
                 [
@@ -344,7 +345,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
         """
 
-        def get_grad() -> Tuple[Any, torch.Tensor]:
+        def get_grad() -> tuple[Any, torch.Tensor]:
             self.base_optimizer.zero_grad()
 
             with torch.enable_grad():
@@ -358,8 +359,8 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         self.forward_backward_func = get_grad
 
     @torch.no_grad()
-    def step(self, closure: Closure = None) -> Tuple[Any, torch.Tensor]:
-        get_grad = cast(Callable[[], Tuple[Any, torch.Tensor]], closure or self.forward_backward_func)
+    def step(self, closure: Closure = None) -> tuple[Any, torch.Tensor]:
+        get_grad = cast(Callable[[], tuple[Any, torch.Tensor]], closure or self.forward_backward_func)
 
         with self.maybe_no_sync():
             outputs, loss = get_grad()
@@ -382,7 +383,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
         return outputs, loss
 
-    def load_state_dict(self, state_dict: Dict):
+    def load_state_dict(self, state_dict: dict):
         super().load_state_dict(state_dict)
         self.base_optimizer.param_groups = self.param_groups
 
@@ -391,7 +392,7 @@ class WSAM(BaseOptimizer):
     """Sharpness-Aware Minimization Revisited: Weighted Sharpness as a Regularization Term.
 
     Args:
-        model (Union[torch.nn.Module, torch.nn.DataParallel]): the model instance. DDP model is recommended to make
+        model (torch.nn.Module | torch.nn.DataParallel): the model instance. DDP model is recommended to make
             `model.no_sync` to work.
         params (ParamsT): iterable of parameters to optimize or dicts defining parameter groups.
         base_optimizer (Optimizer): base optimizer.
@@ -399,7 +400,7 @@ class WSAM(BaseOptimizer):
         gamma (float): weighted factor gamma / (1 - gamma) of the sharpness term. 0.8 ~ 0.95 is the optimal.
         adaptive (bool): element-wise adaptive SAM.
         decouple (bool): whether to perform a decoupled sharpness regularization.
-        max_norm (Optional[float]): max norm of the gradients.
+        max_norm (float | None): max norm of the gradients.
         eps (float): term added to the denominator of WSAM to improve numerical stability.
         kwargs (Dict): parameters for optimizer.
 
@@ -407,14 +408,14 @@ class WSAM(BaseOptimizer):
 
     def __init__(
         self,
-        model: Union[nn.Module, DistributedDataParallel],
+        model: nn.Module | DistributedDataParallel,
         params: ParamsT,
         base_optimizer: OptimizerType,
         rho: float = 0.05,
         gamma: float = 0.9,
         adaptive: bool = False,
         decouple: bool = True,
-        max_norm: Optional[float] = None,
+        max_norm: float | None = None,
         eps: float = 1e-12,
         **kwargs,
     ):
@@ -529,7 +530,7 @@ class WSAM(BaseOptimizer):
 
         return loss
 
-    def load_state_dict(self, state_dict: Dict):
+    def load_state_dict(self, state_dict: dict):
         super().load_state_dict(state_dict)
         self.base_optimizer.param_groups = self.param_groups
 
@@ -860,7 +861,7 @@ class LookSAM(BaseOptimizer):
 
         self.second_step()
 
-    def load_state_dict(self, state_dict: Dict):
+    def load_state_dict(self, state_dict: dict):
         super().load_state_dict(state_dict)
         self.base_optimizer.param_groups = self.param_groups
 
@@ -1015,6 +1016,6 @@ class FriendlySAM(BaseOptimizer):
 
         self.second_step()
 
-    def load_state_dict(self, state_dict: Dict):
+    def load_state_dict(self, state_dict: dict):
         super().load_state_dict(state_dict)
         self.base_optimizer.param_groups = self.param_groups

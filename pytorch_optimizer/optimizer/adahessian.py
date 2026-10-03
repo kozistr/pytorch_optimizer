@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
@@ -93,7 +91,7 @@ class AdaHessian(BaseOptimizer):
                 state['exp_hessian_diag_sq'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self, closure: Closure = None, hessian: Optional[List[torch.Tensor]] = None) -> Loss:
+    def step(self, closure: Closure = None, hessian: list[torch.Tensor] | None = None) -> Loss:
         loss: Loss = None
         if closure is not None:
             with torch.enable_grad():

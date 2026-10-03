@@ -1,4 +1,3 @@
-from typing import List, Tuple, Union
 
 import numpy as np
 import torch
@@ -42,7 +41,7 @@ class MultiHeadLogisticRegression(nn.Module):
         self.head1 = nn.Linear(2, 1)
         self.head2 = nn.Linear(2, 1)
 
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         x = self.fc1(x)
         x = relu(x)
         return self.head1(x), self.head2(x)
@@ -85,7 +84,7 @@ def simple_complex_parameter(require_grad: bool = True) -> torch.Tensor:
     return param
 
 
-def simple_sparse_parameter(require_grad: bool = True) -> Tuple[torch.Tensor, torch.Tensor]:
+def simple_sparse_parameter(require_grad: bool = True) -> tuple[torch.Tensor, torch.Tensor]:
     weight = torch.randn(5, 1).requires_grad_(require_grad)
     weight_sparse = weight.detach().requires_grad_(require_grad)
 
@@ -129,7 +128,7 @@ def sphere_loss(x: torch.Tensor) -> torch.Tensor:
     return x.pow(2).sum()
 
 
-def build_model(use_complex: bool = False, device: Union[str, torch.device] = 'cpu'):
+def build_model(use_complex: bool = False, device: str | torch.device = 'cpu'):
     torch.manual_seed(42)
     model = ComplexLogisticRegression() if use_complex else LogisticRegression()
     return model.to(device), nn.BCEWithLogitsLoss().to(device)
@@ -182,7 +181,7 @@ class OptimizerBuilder:
         return [with_flag(group) for group in params] if isinstance(params, list) else [with_flag(params)]
 
     @classmethod
-    def create(cls, name: str, params: List, **overrides):
+    def create(cls, name: str, params: list, **overrides):
         optimizer_name: str = name.lower()
 
         if optimizer_name == 'lookahead':
@@ -237,7 +236,7 @@ class Trainer:
         init_loss: torch.Tensor,
         final_loss: torch.Tensor,
         threshold: float,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         for p in self.model.parameters():
             assert torch.isfinite(p).all(), 'Model parameters became nonfinite during training'
 
@@ -256,7 +255,7 @@ class Trainer:
         create_graph: bool = False,
         closure_fn=None,
         threshold: float = 1.5,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         init_loss, loss = None, None
         for _ in range(iterations):
             self.optimizer.zero_grad()
@@ -279,7 +278,7 @@ class Trainer:
         create_graph: bool = False,
         closure_fn=None,
         threshold: float = 1.5,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         context = torch.autocast(self.x_data.device.type, dtype=torch.bfloat16)
 
         init_loss, loss = None, None
@@ -300,7 +299,7 @@ class Trainer:
 
         return self.assert_loss_decreased(init_loss, loss, threshold)
 
-    def run_sam_style(self, iterations: int = 3, threshold: float = 2.0) -> Tuple[np.ndarray, np.ndarray]:
+    def run_sam_style(self, iterations: int = 3, threshold: float = 2.0) -> tuple[np.ndarray, np.ndarray]:
         init_loss, loss = None, None
         for _ in range(iterations):
             loss = self.compute_loss(swap_args=True)
@@ -314,7 +313,7 @@ class Trainer:
 
         return self.assert_loss_decreased(init_loss, loss, threshold)
 
-    def run_with_closure(self, iterations: int = 3, threshold: float = 2.0) -> Tuple[np.ndarray, np.ndarray]:
+    def run_with_closure(self, iterations: int = 3, threshold: float = 2.0) -> tuple[np.ndarray, np.ndarray]:
         def closure():
             first_loss = self.compute_loss(swap_args=True)
             first_loss.backward()
@@ -332,7 +331,7 @@ class Trainer:
 
         return self.assert_loss_decreased(init_loss, loss, threshold)
 
-    def run_wsam_with_closure(self, iterations: int = 10, threshold: float = 1.5) -> Tuple[np.ndarray, np.ndarray]:
+    def run_wsam_with_closure(self, iterations: int = 10, threshold: float = 1.5) -> tuple[np.ndarray, np.ndarray]:
         def closure():
             _loss = self.compute_loss()
             _loss.backward()
@@ -347,7 +346,7 @@ class Trainer:
 
         return self.assert_loss_decreased(init_loss, loss, threshold)
 
-    def run_trac_style(self, iterations: int = 3, threshold: float = 2.0) -> Tuple[np.ndarray, np.ndarray]:
+    def run_trac_style(self, iterations: int = 3, threshold: float = 2.0) -> tuple[np.ndarray, np.ndarray]:
         init_loss, loss = None, None
         for _ in range(iterations):
             loss = self.compute_loss()

@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from importlib.util import find_spec
-from typing import Any, List, Optional, Sequence
+from typing import Any
 
 import torch
 from torch import nn
@@ -28,7 +29,7 @@ class VanillaMTL(nn.Module):
         self.heads = heads
 
         self.rep = None
-        self.grads: List = [None for _ in range(len(heads))]
+        self.grads: list = [None for _ in range(len(heads))]
 
     @property
     def backbone(self):
@@ -66,7 +67,7 @@ class VanillaMTL(nn.Module):
         if self.training:
             self.rep = rep
 
-        preds: List[torch.Tensor] = []
+        preds: list[torch.Tensor] = []
         for i, head in enumerate(self.heads):
             rep_i = rep
             if self.training:
@@ -161,7 +162,7 @@ class RotateOnly(nn.Module):
 
     Args:
         backbone (nn.Module): shared module.
-        heads (List[nn.Module]): task-specific modules.
+        heads (list[nn.Module]): task-specific modules.
         latent_size (int): size of the shared representation, size of the output of the backbone.z.
         normalized_losses (bool): Whether to use normalized losses to back-propagate through the task-specific
             parameters as well.
@@ -171,7 +172,7 @@ class RotateOnly(nn.Module):
     num_tasks: int
     backbone: nn.Module
     heads: Sequence[nn.Module]
-    rep: Optional[torch.Tensor]
+    rep: torch.Tensor | None
 
     def __init__(
         self,
@@ -283,7 +284,7 @@ class RotateOnly(nn.Module):
 
         Args:
             losses (Sequence[torch.Tensor]): losses.
-            backbone_loss (Optional[torch.Tensor]): backbone loss.
+            backbone_loss (torch.Tensor | None): backbone loss.
             **kwargs: a keyword arguments.
 
         """

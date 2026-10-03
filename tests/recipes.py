@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 from pytorch_optimizer.optimizer import (
     ADOPT,
@@ -121,9 +121,9 @@ from pytorch_optimizer.optimizer import (
 )
 from tests.utils import build_lookahead, build_orthograd, build_schedulefree
 
-VALID_OPTIMIZER_NAMES: List[str] = list(OPTIMIZERS.keys())
+VALID_OPTIMIZER_NAMES: list[str] = list(OPTIMIZERS.keys())
 
-INVALID_OPTIMIZER_NAMES: Tuple[str, ...] = (
+INVALID_OPTIMIZER_NAMES: tuple[str, ...] = (
     'asam',
     'sam',
     'gsam',
@@ -529,7 +529,7 @@ SKIP_COMPLEX_NOT_SUPPORTED: frozenset = frozenset(
 
 SKIP_BF16_OPTIMIZERS: frozenset = frozenset({'adai', 'prodigy', 'nero', 'lorarite'})
 
-CAWR_RECIPES: Tuple[Tuple, ...] = (
+CAWR_RECIPES: tuple[tuple, ...] = (
     (
         10,
         1.0,
@@ -594,7 +594,7 @@ CAWR_RECIPES: Tuple[Tuple, ...] = (
     ),
 )
 
-LWL_RECIPE: Tuple[float, ...] = (
+LWL_RECIPE: tuple[float, ...] = (
     0.001,
     0.0028,
     0.0046,
@@ -606,7 +606,7 @@ LWL_RECIPE: Tuple[float, ...] = (
     0.00406,
     0.00208,
 )
-LWC_RECIPE: Tuple[float, ...] = (
+LWC_RECIPE: tuple[float, ...] = (
     0.001,
     0.00280,
     0.00460,
@@ -618,7 +618,7 @@ LWC_RECIPE: Tuple[float, ...] = (
     0.00352,
     0.00105,
 )
-LWP_RECIPE: Tuple[float, ...] = (
+LWP_RECIPE: tuple[float, ...] = (
     0.001,
     0.002800,
     0.004600,
@@ -630,12 +630,12 @@ LWP_RECIPE: Tuple[float, ...] = (
     0.017247,
     0.019900,
 )
-PROPORTION_LEARNING_RATES: Tuple[Tuple[float, float, float], ...] = (
+PROPORTION_LEARNING_RATES: tuple[tuple[float, float, float], ...] = (
     (1e-1, 1e-1, 2.0),
     (1e-1, 1e-3, 1.090909),
 )
 
-BINARY_DICE_RECIPES: Tuple[Tuple, ...] = (
+BINARY_DICE_RECIPES: tuple[tuple, ...] = (
     ([1.0, 1.0, 1.0], [1, 1, 1], (1, 1, 1, -1), 0.0),
     ([1.0, 0.0, 1.0], [1, 0, 1], (1, 1, 1, -1), 0.0),
     ([0.0, 0.0, 0.0], [0, 0, 0], (1, 1, 1, -1), 0.0),
@@ -644,9 +644,9 @@ BINARY_DICE_RECIPES: Tuple[Tuple, ...] = (
     ([0.0, 0.0, 0.0], [1, 1, 1], (1, 1, -1), 0.996677),
 )
 
-PULLBACK_MOMENTUM: Tuple[str, ...] = ('none', 'reset', 'pullback')
+PULLBACK_MOMENTUM: tuple[str, ...] = ('none', 'reset', 'pullback')
 
-OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
+OPTIMIZERS: list[tuple[Any, dict[str, Any], int]] = [
     (build_lookahead, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (build_orthograd, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (build_schedulefree, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
@@ -1086,13 +1086,13 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (FlashAdamW, {'lr': 5e-1, 'weight_decay': 1e-3, 'check_numerics': True, 'master_weight_bits': None}, 5),
 ]
 
-COMPILE_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
+COMPILE_SUPPORTED_OPTIMIZERS: list[tuple[Any, dict[str, Any], int]] = [
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (AdamW, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (StableAdamW, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
 ]
 
-ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
+ADANORM_SUPPORTED_OPTIMIZERS: list[tuple[Any, dict[str, float | bool | int], int]] = [
     (AdaBelief, {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     (AdamP, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (AdamS, {'lr': 7.5e-1, 'weight_decay': 1e-3}, 5),
@@ -1107,7 +1107,7 @@ ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]]
     (Aida, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
 ]
 
-ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
+ADAMD_SUPPORTED_OPTIMIZERS: list[tuple[Any, dict[str, float | bool | int], int]] = [
     (AdaBelief, {'lr': 1e1, 'weight_decay': 1e-3}, 5),
     (AdaBound, {'lr': 1e0, 'gamma': 0.1, 'weight_decay': 1e-3}, 35),
     (AdamP, {'lr': 1e0, 'weight_decay': 1e-3}, 5),
@@ -1129,7 +1129,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], 
     (Aida, {'lr': 1e1, 'weight_decay': 1e-3, 'rectify': True}, 10),
 ]
 
-COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
+COPT_SUPPORTED_OPTIMIZERS: list[tuple[Any, dict[str, float | bool | int], int]] = [
     (AdaFactor, {'lr': 1e0, 'weight_decay': 1e-3, 'scale_parameter': False, 'relative_step': False}, 5),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     (AdEMAMix, {'lr': 1e0}, 2),
@@ -1154,7 +1154,7 @@ COPT_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], i
     (AdaGO, {'lr': 5e-1, 'use_adjusted_lr': True, 'adamw_lr': 5e-1, 'adamw_betas': (0.9, 0.98), 'adamw_wd': 1e-2}, 7),
 ]
 
-STABLE_ADAMW_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [
+STABLE_ADAMW_SUPPORTED_OPTIMIZERS: list[tuple[Any, dict[str, float | bool | int], int]] = [
     (ADOPT, {'lr': 1e0, 'weight_decay': 1e-3, 'stable_adamw': True}, 5),
     (AdEMAMix, {'lr': 1e0, 'weight_decay': 1e-3, 'stable_adamw': True}, 10),
 ]

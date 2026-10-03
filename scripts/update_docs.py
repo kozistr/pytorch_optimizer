@@ -1,6 +1,6 @@
 """Automatically update documentation files with new optimizers, schedulers, and losses."""
 
-import re
+import ast
 import sys
 from pathlib import Path
 
@@ -30,20 +30,21 @@ LR_SCHEDULER_HEADER = [
 LOSS_HEADER = ['pytorch_optimizer.bi_tempered_logistic_loss']
 
 
-def parse_init_imports(init_content: str) -> dict[str, list[str]]:
-    """Parse __init__.py to extract imports by module."""
-    imports: dict[str, list[str]] = {'loss': [], 'lr_scheduler': [], 'optimizer': [], 'optimizer.utils': []}
-    pattern = re.compile(r'from pytorch_optimizer\.(\w+(?:\.\w+)?)\s+import\s+\(([^)]+)\)', re.DOTALL)
+def parse_init_exports(root_dir: Path) -> dict[str, list[str]]:
+    """Read public exports without importing the package or its dependencies."""
+    exports: dict[str, list[str]] = {}
+    for module in ('loss', 'lr_scheduler', 'optimizer'):
+        init_path = root_dir / 'pytorch_optimizer' / module / '__init__.py'
+        tree = ast.parse(init_path.read_text(encoding='utf-8'))
+        value = next(
+            node.value
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == '__all__' for target in node.targets)
+        )
+        exports[module] = ast.literal_eval(value)
 
-    for match in pattern.finditer(init_content):
-        module, items_str = match.group(1), match.group(2)
-        if module in imports:
-            for item in items_str.split(','):
-                name = item.split('#')[0].strip()
-                if name:
-                    imports[module].append(name)
-
-    return imports
+    return exports
 
 
 def generate_docs(title: str, header: list[str], items: list[str], excludes: set[str]) -> str:
@@ -70,20 +71,19 @@ def write_if_changed(file_path: Path, content: str) -> bool:
 
 def update_docs(root_dir: Path) -> list[str]:
     """Update all documentation files. Returns list of changed files."""
-    init_content = (root_dir / 'pytorch_optimizer' / '__init__.py').read_text(encoding='utf-8')
-    imports = parse_init_imports(init_content)
+    exports = parse_init_exports(root_dir)
     docs_dir = root_dir / 'docs'
 
     configs = [
-        ('optimizer.md', 'Optimizers', OPTIMIZER_HEADER, imports['optimizer'], OPTIMIZER_EXCLUDES),
+        ('optimizer.md', 'Optimizers', OPTIMIZER_HEADER, exports['optimizer'], OPTIMIZER_EXCLUDES),
         (
             'lr_scheduler.md',
             'Learning Rate Scheduler',
             LR_SCHEDULER_HEADER,
-            imports['lr_scheduler'],
+            exports['lr_scheduler'],
             LR_SCHEDULER_EXCLUDES,
         ),
-        ('loss.md', 'Loss Function', LOSS_HEADER, imports['loss'], LOSS_EXCLUDES),
+        ('loss.md', 'Loss Function', LOSS_HEADER, exports['loss'], LOSS_EXCLUDES),
     ]
 
     return [

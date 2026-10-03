@@ -1,7 +1,7 @@
 import fnmatch
+from collections.abc import Sequence
 from importlib.util import find_spec
 from types import MethodType
-from typing import Dict, List, Optional, Sequence, Set, Union
 from warnings import warn
 
 import torch
@@ -118,11 +118,163 @@ from pytorch_optimizer.optimizer.tiger import Tiger
 from pytorch_optimizer.optimizer.trac import TRAC
 from pytorch_optimizer.optimizer.yogi import Yogi
 
+__all__ = [
+    'ADOPT',
+    'APOLLO',
+    'ASGD',
+    'BCOS',
+    'BSAM',
+    'CAME',
+    'FOCUS',
+    'FTRL',
+    'GSAM',
+    'LARS',
+    'LBFGS',
+    'LOMO',
+    'MADGRAD',
+    'MARS',
+    'MSVAG',
+    'PID',
+    'PNM',
+    'QHM',
+    'RACS',
+    'ROSE',
+    'SAM',
+    'SCION',
+    'SGD',
+    'SGDP',
+    'SGDW',
+    'SM3',
+    'SOAP',
+    'SPAM',
+    'SRMM',
+    'SWATS',
+    'TAM',
+    'TRAC',
+    'VSGD',
+    'WSAM',
+    'A2Grad',
+    'AccSGD',
+    'AdEMAMix',
+    'AdaBelief',
+    'AdaBound',
+    'AdaDelta',
+    'AdaFactor',
+    'AdaGC',
+    'AdaGO',
+    'AdaHessian',
+    'AdaLOMO',
+    'AdaMax',
+    'AdaMod',
+    'AdaMuon',
+    'AdaNorm',
+    'AdaPNM',
+    'AdaShift',
+    'AdaSmooth',
+    'AdaTAM',
+    'Adai',
+    'Adalite',
+    'Adam',
+    'AdamC',
+    'AdamG',
+    'AdamMini',
+    'AdamP',
+    'AdamS',
+    'AdamW',
+    'AdamWSN',
+    'Adan',
+    'AggMo',
+    'Aida',
+    'AliG',
+    'Alice',
+    'Amos',
+    'Ano',
+    'ApolloDQN',
+    'AvaGrad',
+    'Conda',
+    'DAdaptAdaGrad',
+    'DAdaptAdam',
+    'DAdaptAdan',
+    'DAdaptLion',
+    'DAdaptSGD',
+    'DeMo',
+    'DiffGrad',
+    'DistributedMuon',
+    'DualAdam',
+    'DynamicLossScaler',
+    'EXAdam',
+    'EmoFact',
+    'EmoLynx',
+    'EmoNavi',
+    'FAdam',
+    'Fira',
+    'FlashAdamW',
+    'FriendlySAM',
+    'Fromage',
+    'GaLore',
+    'Grams',
+    'Gravity',
+    'GrokFastAdamW',
+    'Kate',
+    'Kron',
+    'LaProp',
+    'Lamb',
+    'Lion',
+    'LoRARite',
+    'LookSAM',
+    'Lookahead',
+    'Magma',
+    'Muon',
+    'NAdam',
+    'Nero',
+    'NorMuon',
+    'NovoGrad',
+    'OrthoGrad',
+    'PAdam',
+    'PCGrad',
+    'Prodigy',
+    'QHAdam',
+    'RAdam',
+    'RMSprop',
+    'Ranger',
+    'Ranger21',
+    'Ranger25',
+    'RotoGrad',
+    'SCIONLight',
+    'SGDSaI',
+    'SPlus',
+    'SaRA',
+    'SafeFP16Optimizer',
+    'ScalableShampoo',
+    'ScheduleFreeAdamW',
+    'ScheduleFreeRAdam',
+    'ScheduleFreeSGD',
+    'ScheduleFreeWrapper',
+    'Shampoo',
+    'SignSGD',
+    'SimplifiedAdEMAMix',
+    'SophiaH',
+    'SpectralSphere',
+    'StableAdamW',
+    'StableSPAM',
+    'Tiger',
+    'Yogi',
+    'agc',
+    'centralize_gradient',
+    'create_optimizer',
+    'get_optimizer_parameters',
+    'get_supported_optimizers',
+    'load_ao_optimizer',
+    'load_bnb_optimizer',
+    'load_optimizer',
+    'load_q_galore_optimizer',
+]
+
 HAS_BNB: bool = find_spec('bitsandbytes') is not None
 HAS_Q_GALORE: bool = find_spec('q-galore-torch') is not None
 HAS_TORCHAO: bool = find_spec('torchao') is not None
 
-OPTIMIZER_LIST: List[OptimizerType] = [
+OPTIMIZER_LIST: list[OptimizerType] = [
     LBFGS,
     SGD,
     Adam,
@@ -251,7 +403,7 @@ OPTIMIZER_LIST: List[OptimizerType] = [
     Yogi,
     SpectralSphere,
 ]
-OPTIMIZERS: Dict[str, OptimizerType] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
+OPTIMIZERS: dict[str, OptimizerType] = {str(optimizer.__name__).lower(): optimizer for optimizer in OPTIMIZER_LIST}
 
 BNB_OPTIMIZERS = (
     ('paged_ademamix8bit', 'PagedAdEMAMix8bit'),
@@ -344,13 +496,13 @@ def load_optimizer(optimizer: str) -> OptimizerType:
 def create_optimizer(
     model: nn.Module,
     optimizer_name: str,
-    lr: Union[float, torch.Tensor] = 1e-3,
+    lr: float | torch.Tensor = 1e-3,
     weight_decay: float = 0.0,
-    wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
+    wd_ban_list: list[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
     use_lookahead: bool = False,
     use_orthograd: bool = False,
     compile: bool = False,  # noqa: A002
-    compile_kwargs: Optional[Dict] = None,
+    compile_kwargs: dict | None = None,
     **kwargs,
 ) -> Optimizer:
     r"""Build optimizer.
@@ -358,14 +510,14 @@ def create_optimizer(
     Args:
         model (nn.Module): model.
         optimizer_name (str): optimizer name.
-        lr (Union[float, torch.Tensor]): Learning rate. Compilation converts float rates to tensors
+        lr (float | torch.Tensor): Learning rate. Compilation converts float rates to tensors
             on the model's device.
         weight_decay (float): weight decay.
-        wd_ban_list (List[str]): weight decay ban list by layer.
+        wd_ban_list (list[str]): weight decay ban list by layer.
         use_lookahead (bool): use Lookahead.
         use_orthograd (bool): use OrthoGrad.
         compile (bool): Compile the optimizer step with torch.compile. Defaults to eager execution.
-        compile_kwargs (Optional[Dict]): Options forwarded to torch.compile. Dynamic tracing is enabled by default
+        compile_kwargs (dict | None): Options forwarded to torch.compile. Dynamic tracing is enabled by default
             to avoid specializing on Python step counters. Lion, native AdamW, and StableAdamW are tested
             with compilation.
         **kwargs (dict): optimizer parameters.
@@ -421,9 +573,9 @@ def create_optimizer(
 
 
 def get_optimizer_parameters(
-    model_or_parameter: Union[nn.Module, List],
+    model_or_parameter: nn.Module | list,
     weight_decay: float,
-    wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
+    wd_ban_list: list[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
 ) -> ParamsT:
     r"""Get optimizer parameters while filtering specified modules.
 
@@ -431,15 +583,15 @@ def get_optimizer_parameters(
     You just only need to input `LayerNorm` to exclude weight decay from the layer norm layer(s).
 
     Args:
-        model_or_parameter (Union[nn.Module, List]): model or parameters.
+        model_or_parameter (nn.Module | list): model or parameters.
         weight_decay (float): weight decay.
-        wd_ban_list (List[str]): weight decay ban list.
+        wd_ban_list (list[str]): weight decay ban list.
 
     Returns:
         ParamsT: optimizer parameters.
 
     """
-    banned_parameter_patterns: Set[str] = set()
+    banned_parameter_patterns: set[str] = set()
 
     if isinstance(model_or_parameter, nn.Module):
         for module_name, module in model_or_parameter.named_modules():
@@ -474,11 +626,11 @@ def get_optimizer_parameters(
     ]
 
 
-def get_supported_optimizers(filters: Optional[Union[str, List[str]]] = None) -> List[str]:
+def get_supported_optimizers(filters: str | list[str] | None = None) -> list[str]:
     r"""Return list of available optimizer names, sorted alphabetically.
 
     Args:
-        filters (Optional[Union[str, List[str]]]): wildcard filter string that works with fmatch.
+        filters (str | list[str] | None): wildcard filter string that works with fmatch.
             if None, it will return the whole list.
 
     """
@@ -487,7 +639,7 @@ def get_supported_optimizers(filters: Optional[Union[str, List[str]]] = None) ->
 
     include_filters: Sequence[str] = filters if isinstance(filters, (tuple, list)) else [filters]
 
-    filtered_list: Set[str] = set()
+    filtered_list: set[str] = set()
     for include_filter in include_filters:
         filtered_list.update(fnmatch.filter(OPTIMIZERS.keys(), include_filter))
 

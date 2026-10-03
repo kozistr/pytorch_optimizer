@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal
 
 import torch
 
@@ -16,7 +16,7 @@ class BCOS(BaseOptimizer):
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
         lr (float): Learning rate.
         beta (float): smoothing factor in computing the momentum and EMA estimators.
-        beta2 (Optional[float]):
+        beta2 (float | None):
         mode (Mode): algorithmic mode of BCOS, must be one of the three choices.
             'g': use gradient as search direction and EMA estimator for its 2nd moment (equivalent to RMSprop).
             'm': use momentum as search direction and EMA estimator for its 2nd moment (using same beta).
@@ -34,7 +34,7 @@ class BCOS(BaseOptimizer):
         params: ParamsT,
         lr: float = 1e-3,
         beta: float = 0.9,
-        beta2: Optional[float] = None,
+        beta2: float | None = None,
         mode: Mode = 'c',
         simple_cond: bool = False,
         weight_decay: float = 0.1,
@@ -90,7 +90,7 @@ class BCOS(BaseOptimizer):
             if self.mode in ('g', 'm') and 'v' not in state:
                 state['v'] = grad.square()
 
-    def compute_v(self, grad: torch.Tensor, m: torch.Tensor, beta: float, beta2: Optional[float]) -> torch.Tensor:
+    def compute_v(self, grad: torch.Tensor, m: torch.Tensor, beta: float, beta2: float | None) -> torch.Tensor:
         g2 = grad.square()
 
         if self.simple_cond:
@@ -135,7 +135,7 @@ class BCOS(BaseOptimizer):
                     fixed_decay=False,
                 )
 
-                old_m: Optional[torch.Tensor] = state.get('m', None)
+                old_m: torch.Tensor | None = state.get('m', None)
 
                 if self.mode in ('m', 'c'):
                     m = state['m']

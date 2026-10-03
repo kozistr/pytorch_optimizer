@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import torch
 
@@ -16,7 +16,7 @@ class AdaShift(BaseOptimizer):
         lr (float): Learning rate.
         betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         keep_num (int): Number of gradients used to compute first moment estimation.
-        reduce_func (Optional[Callable]): Function applied to squared gradients to reduce correlation.
+        reduce_func (Callable | None): Function applied to squared gradients to reduce correlation.
             If None, no function is applied.
         eps (float): Term added to the denominator to improve numerical stability.
         maximize (bool): Maximize the objective with respect to the parameters, instead of minimizing.
@@ -29,7 +29,7 @@ class AdaShift(BaseOptimizer):
         lr: float = 1e-3,
         betas: Betas = (0.9, 0.999),
         keep_num: int = 10,
-        reduce_func: Optional[Callable] = torch.max,
+        reduce_func: Callable | None = torch.max,
         eps: float = 1e-10,
         maximize: bool = False,
         **kwargs,

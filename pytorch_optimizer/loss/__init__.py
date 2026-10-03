@@ -1,5 +1,5 @@
 import fnmatch
-from typing import Dict, List, Optional, Sequence, Set, Union
+from collections.abc import Sequence
 
 from torch import nn
 
@@ -17,7 +17,27 @@ from pytorch_optimizer.loss.ldam import LDAMLoss
 from pytorch_optimizer.loss.lovasz import LovaszHingeLoss
 from pytorch_optimizer.loss.tversky import TverskyLoss
 
-LOSS_FUNCTION_LIST: List = [
+__all__ = [
+    'BCEFocalLoss',
+    'BCELoss',
+    'BiTemperedLogisticLoss',
+    'BinaryBiTemperedLogisticLoss',
+    'DiceLoss',
+    'FocalCosineLoss',
+    'FocalLoss',
+    'FocalTverskyLoss',
+    'JaccardLoss',
+    'LDAMLoss',
+    'LovaszHingeLoss',
+    'SoftF1Loss',
+    'TverskyLoss',
+    'bi_tempered_logistic_loss',
+    'get_supported_loss_functions',
+    'soft_dice_score',
+    'soft_jaccard_score',
+]
+
+LOSS_FUNCTION_LIST: list = [
     BCELoss,
     BCEFocalLoss,
     FocalLoss,
@@ -32,15 +52,15 @@ LOSS_FUNCTION_LIST: List = [
     FocalTverskyLoss,
     LovaszHingeLoss,
 ]
-LOSS_FUNCTIONS: Dict[str, nn.Module] = {
+LOSS_FUNCTIONS: dict[str, nn.Module] = {
     str(loss_function.__name__).lower(): loss_function for loss_function in LOSS_FUNCTION_LIST
 }
 
 
-def get_supported_loss_functions(filters: Optional[Union[str, List[str]]] = None) -> List[str]:
+def get_supported_loss_functions(filters: str | list[str] | None = None) -> list[str]:
     r"""Return list of available loss function names, sorted alphabetically.
 
-    :param filters: Optional[Union[str, List[str]]]. wildcard filter string that works with fmatch. if None, it will
+    :param filters: str | list[str] | None. wildcard filter string that works with fmatch. if None, it will
         return the whole list.
     """
     if filters is None:
@@ -48,7 +68,7 @@ def get_supported_loss_functions(filters: Optional[Union[str, List[str]]] = None
 
     include_filters: Sequence[str] = filters if isinstance(filters, (tuple, list)) else [filters]
 
-    filtered_list: Set[str] = set()
+    filtered_list: set[str] = set()
     for include_filter in include_filters:
         filtered_list.update(fnmatch.filter(LOSS_FUNCTIONS.keys(), include_filter))
 
