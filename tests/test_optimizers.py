@@ -1,9 +1,17 @@
+import copy
+
 import pytest
 import torch
 from torch import nn
 
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from pytorch_optimizer.optimizer import DynamicLossScaler, load_optimizer
+from pytorch_optimizer.optimizer.dash import (
+    get_block_layout,
+    matrix_inverse_fourth_root,
+    stack_blocks,
+    unstack_blocks,
+)
 from pytorch_optimizer.optimizer.flash_adamw import compute_ecc_bits, reconstruct_fp32_param
 from pytorch_optimizer.optimizer.grokfast import gradfilter_ema, gradfilter_ma
 from pytorch_optimizer.optimizer.lora_rite import LoRARiteHelper
@@ -978,3 +986,253 @@ def test_flash_adamw_parameters():
 
     with pytest.raises(ValueError):
         load_optimizer('flashadamw')([nn.Parameter(torch.ones(1))], master_weight_bits=24)
+
+
+@pytest.mark.parametrize('shape', [(8, 8), (10, 8), (8, 10), (10, 7), (3, 2), (9, 1)])
+def test_dash_block_layout(shape):
+    x = torch.randn(*shape)
+    layout = get_block_layout(*shape, block_size=4)
+
+    assert sum(nr * rh * nc * cw for _, nr, rh, _, nc, cw in layout) == x.numel()
+
+    out = torch.zeros_like(x)
+    for spec in layout:
+        blocks = stack_blocks(x, spec)
+        assert blocks.shape == (spec[1] * spec[4], spec[2], spec[5])
+        unstack_blocks(blocks, spec, out)
+
+    torch.testing.assert_close(out, x)
+
+
+@pytest.mark.parametrize(
+    ('kwargs', 'tolerance'),
+    [
+        ({'method': 'evd'}, 1e-4),
+        ({'method': 'newton_db', 'scaling': 'fro', 'newton_steps': 40}, 1e-2),
+        ({'method': 'newton_db', 'scaling': 'power_iter', 'newton_steps': 12}, 1e-3),
+        ({'method': 'newton_db', 'scaling': 'power_iter_multi', 'newton_steps': 12}, 1e-3),
+    ],
+)
+def test_dash_inverse_fourth_root(kwargs, tolerance):
+    torch.manual_seed(42)
+    a = torch.randn(3, 16, 32)
+    matrix = a @ a.transpose(1, 2) / 32.0 + 0.1 * torch.eye(16)
+
+    inv_root = matrix_inverse_fourth_root(matrix, eps=1e-10, **kwargs)
+
+    torch.testing.assert_close(
+        inv_root @ inv_root @ inv_root @ inv_root @ matrix, torch.eye(16).expand(3, 16, 16), atol=tolerance, rtol=0.0
+    )
+
+
+@pytest.mark.parametrize('heuristic', ['shampoo', 'abs', 'abs_add', 'relu'])
+def test_dash_evd_heuristics_on_low_rank_matrix(heuristic):
+    torch.manual_seed(0)
+    v = torch.randn(1, 8, 2, dtype=torch.float64)
+    inv_root = matrix_inverse_fourth_root(v @ v.transpose(1, 2), method='evd', eps=1e-6, evd_heuristic=heuristic)
+
+    assert torch.isfinite(inv_root).all()
+    if heuristic == 'relu':
+        assert torch.linalg.matrix_rank(inv_root, tol=1e-3).item() == 2
+
+
+def naive_dash_step(
+    p,
+    grad,
+    state,
+    step,
+    lr,
+    block_size,
+    beta1=0.9,
+    beta2=0.95,
+    shampoo_beta=0.95,
+    eps=1e-10,
+    mu=0.0,
+    nesterov=True,
+    freq=3,
+):
+    r"""Block-by-block Shampoo with Adam grafting written without any stacking."""
+    rows, cols = p.shape
+    if step == 1:
+        state['A'], state['G'], state['M'] = torch.zeros_like(p), torch.zeros_like(p), torch.zeros_like(p)
+        state['L'], state['R'], state['Li'], state['Ri'] = {}, {}, {}, {}
+
+    state['A'] = beta2 * state['A'] + (1 - beta2) * grad * grad
+    state['G'] = beta1 * state['G'] + (1 - beta1) * grad
+
+    direction = torch.zeros_like(p)
+    for r in range(0, rows, block_size):
+        for c in range(0, cols, block_size):
+            key = (r, c)
+            g = grad[r : r + block_size, c : c + block_size]
+            gt = state['G'][r : r + block_size, c : c + block_size]
+            if step == 1:
+                state['L'][key], state['R'][key] = torch.zeros_like(g @ g.T), torch.zeros_like(g.T @ g)
+            state['L'][key] = shampoo_beta * state['L'][key] + (1 - shampoo_beta) * g @ g.T
+            state['R'][key] = shampoo_beta * state['R'][key] + (1 - shampoo_beta) * g.T @ g
+
+            if step == 1 or step % freq == 0:
+                for name in ('L', 'R'):
+                    m = state[name][key]
+                    w, q = torch.linalg.eigh(m + eps * torch.eye(m.shape[0], dtype=m.dtype))
+                    w = w + (eps - w.min().clamp(max=0.0))
+                    state[name + 'i'][key] = q @ torch.diag(w.pow(-0.25)) @ q.T
+
+            graft = (gt / (1 - beta1**step)) / (
+                1e-8 + (state['A'][r : r + block_size, c : c + block_size] / (1 - beta2**step)).sqrt()
+            )
+            u = state['Li'][key] @ gt @ state['Ri'][key]
+            direction[r : r + block_size, c : c + block_size] = u * graft.norm() / (u.norm() + 1e-16)
+
+    if mu > 0.0:
+        state['M'] = mu * state['M'] + direction
+        direction = direction + mu * state['M'] if nesterov else state['M']
+
+    p.sub_(lr * direction)
+
+
+@pytest.mark.parametrize('shape', [(8, 8), (10, 8), (8, 10), (10, 7)])
+@pytest.mark.parametrize(('momentum', 'nesterov'), [(0.0, True), (0.9, False), (0.9, True)])
+def test_dash_matches_blockwise_reference(shape, momentum, nesterov):
+    torch.manual_seed(7)
+    param = nn.Parameter(torch.randn(*shape, dtype=torch.float64))
+    reference = param.detach().clone()
+
+    optimizer = load_optimizer('dash')(
+        [param],
+        lr=1e-2,
+        weight_decay=0.0,
+        block_size=4,
+        preconditioning_frequency=3,
+        momentum=momentum,
+        use_nesterov=nesterov,
+    )
+    state = {}
+
+    for step in range(1, 9):
+        grad = torch.randn(*shape, dtype=torch.float64)
+        param.grad = grad.clone()
+        optimizer.step()
+        naive_dash_step(reference, grad, state, step, 1e-2, 4, mu=momentum, nesterov=nesterov)
+
+        torch.testing.assert_close(param, reference, atol=1e-8, rtol=1e-8)
+
+
+def test_dash_batches_inverse_roots_across_parameters():
+    torch.manual_seed(3)
+    shapes = [(8, 8), (4, 12), (6, 8)]
+    params = [nn.Parameter(torch.randn(*s)) for s in shapes]
+    singles = [nn.Parameter(p.detach().clone()) for p in params]
+
+    joint = load_optimizer('dash')(params, lr=1e-2, block_size=4, preconditioning_frequency=2)
+    separate = [load_optimizer('dash')([p], lr=1e-2, block_size=4, preconditioning_frequency=2) for p in singles]
+
+    for _ in range(5):
+        for p, q in zip(params, singles):
+            p.grad = torch.randn_like(p)
+            q.grad = p.grad.clone()
+        joint.step()
+        for optimizer in separate:
+            optimizer.step()
+
+    for p, q in zip(params, singles):
+        torch.testing.assert_close(p, q, atol=1e-5, rtol=1e-5)
+
+
+def test_dash_vectors_follow_adamw():
+    torch.manual_seed(5)
+    param = nn.Parameter(torch.randn(6))
+    bias = nn.Parameter(param.detach().clone().view(1, 6))
+    reference = nn.Parameter(param.detach().clone())
+
+    dash = load_optimizer('dash')([param, bias], lr=1e-2, weight_decay=1e-2)
+    adamw = torch.optim.AdamW([reference], lr=1e-2, betas=(0.9, 0.95), weight_decay=1e-2)
+
+    for _ in range(5):
+        grad = torch.randn(6)
+        param.grad, bias.grad, reference.grad = grad.clone(), grad.view(1, 6).clone(), grad.clone()
+        dash.step()
+        adamw.step()
+
+    torch.testing.assert_close(param, reference, atol=1e-6, rtol=1e-5)
+    torch.testing.assert_close(bias.view(-1), reference, atol=1e-6, rtol=1e-5)
+
+
+@pytest.mark.parametrize('start_step', [1, 4, 5])
+def test_dash_starts_preconditioning_after_start_step(start_step):
+    torch.manual_seed(1)
+    param = nn.Parameter(torch.randn(8, 8))
+    optimizer = load_optimizer('dash')(
+        [param], lr=1e-2, block_size=4, preconditioning_frequency=10, start_preconditioning_step=start_step
+    )
+
+    for _ in range(start_step + 2):
+        previous = param.detach().clone()
+        param.grad = torch.randn_like(param)
+        optimizer.step()
+
+        assert (param - previous).abs().max() > 0.0
+
+
+@pytest.mark.parametrize('method', ['evd', 'newton_db'])
+def test_dash_zero_gradient_is_finite(method):
+    param = nn.Parameter(torch.ones(8, 4, 1, 3))
+    optimizer = load_optimizer('dash')([param], lr=1e-2, block_size=4, inv_root_method=method, momentum=0.9)
+
+    for _ in range(3):
+        param.grad = torch.zeros_like(param)
+        optimizer.step()
+
+        assert torch.isfinite(param).all()
+
+
+def test_dash_state_dict_roundtrip():
+    torch.manual_seed(9)
+    param = nn.Parameter(torch.randn(8, 6))
+    optimizer = load_optimizer('dash')([param], lr=1e-2, block_size=4, momentum=0.9)
+
+    grads = [torch.randn(8, 6) for _ in range(6)]
+    for grad in grads[:3]:
+        param.grad = grad.clone()
+        optimizer.step()
+
+    restored_param = nn.Parameter(param.detach().clone())
+    restored = load_optimizer('dash')([restored_param], lr=1e-2, block_size=4, momentum=0.9)
+    restored.load_state_dict(copy.deepcopy(optimizer.state_dict()))
+
+    for grad in grads[3:]:
+        param.grad, restored_param.grad = grad.clone(), grad.clone()
+        optimizer.step()
+        restored.step()
+
+    torch.testing.assert_close(param, restored_param)
+
+
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        {'inv_root_method': 'cholesky'},
+        {'evd_heuristic': 'dummy'},
+        {'matrix_scaling': 'dummy'},
+        {'block_size': 0},
+        {'preconditioning_frequency': 0},
+        {'shampoo_beta': 1.5},
+        {'momentum': 1.0},
+    ],
+)
+def test_dash_invalid_parameters(kwargs):
+    with pytest.raises(ValueError):
+        load_optimizer('dash')([nn.Parameter(torch.ones(2, 2))], **kwargs)
+
+
+def test_dash_accumulates_factors_without_decay():
+    param = nn.Parameter(torch.zeros(4, 4))
+    optimizer = load_optimizer('dash')([param], lr=1e-2, block_size=4, shampoo_beta=1.0)
+
+    grads = [torch.randn(4, 4) for _ in range(3)]
+    for grad in grads:
+        param.grad = grad.clone()
+        optimizer.step()
+
+    torch.testing.assert_close(optimizer.state[param]['left_0'][0], sum(g @ g.T for g in grads))
+    torch.testing.assert_close(optimizer.state[param]['right_0'][0], sum(g.T @ g for g in grads))
