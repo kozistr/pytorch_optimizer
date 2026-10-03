@@ -562,15 +562,16 @@ def compute_power_schur_newton(
     prev_error = torch.dist(mat_m, identity, p=torch.inf)
 
     mat_m_i = torch.empty_like(mat_m)
+    new_mat_m = torch.empty_like(mat_m)
     new_mat_root = torch.empty_like(mat_root)
 
     for _ in range(max_iters):
         torch.add(alpha_identity, alpha * mat_m, out=mat_m_i)
         torch.matmul(mat_root, mat_m_i, out=new_mat_root)
 
-        torch.matmul(torch.linalg.matrix_power(mat_m_i, p), mat_m, out=mat_m)
+        torch.matmul(torch.linalg.matrix_power(mat_m_i, p), mat_m, out=new_mat_m)
 
-        error = torch.dist(mat_m, identity, p=torch.inf)
+        error = torch.dist(new_mat_m, identity, p=torch.inf)
 
         # NOTE
         # This is the main bottleneck that slows Scalable Shampoo.
@@ -580,6 +581,7 @@ def compute_power_schur_newton(
             break
 
         mat_root.copy_(new_mat_root)
+        mat_m, new_mat_m = new_mat_m, mat_m
         prev_error = error
 
     return mat_root

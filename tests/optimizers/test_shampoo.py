@@ -31,8 +31,11 @@ def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
 
 
 class TestShampooUtils:
-    def test_compute_power_converges(self):
-        matrix = torch.tensor([[4.0, 1.0], [1.0, 3.0]], dtype=torch.float64)
+    @pytest.mark.parametrize('size', [2, 8])
+    def test_compute_power_converges(self, size):
+        matrix = 3.0 * torch.eye(size, dtype=torch.float64) + 1.0
+        matrix[-1, -1] = 3.0
+
         eigenvalues, eigenvectors = torch.linalg.eigh(matrix)
         expected = (eigenvectors * eigenvalues.rsqrt()) @ eigenvectors.T
 
