@@ -1,5 +1,7 @@
 from typing import Any, Dict, List, Tuple, Union
 
+import torch
+
 from pytorch_optimizer.optimizer import (
     ADOPT,
     APOLLO,
@@ -46,6 +48,7 @@ from pytorch_optimizer.optimizer import (
     AdamP,
     AdamS,
     AdaMuon,
+    AdamW,
     AdamWSN,
     Adan,
     AdaNorm,
@@ -863,6 +866,8 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (ApolloDQN, {'lr': 1e-2, 'weight_decay': 1e-6, 'weight_decay_type': 'stable', 'warmup_steps': 0}, 5),
     (NovoGrad, {'lr': 5e-1, 'weight_decay': 1e-3, 'grad_averaging': True, 'weight_decouple': True}, 10),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
+    (Lion, {'lr': 5e-1, 'betas': (0.75, 0.5), 'weight_decay': 1e-3}, 5),
+    (Lion, {'lr': torch.tensor(5e-1), 'weight_decay': 1e-3}, 5),
     (LoRARite, {'lr': 3e-2, 'betas': (0.9, 0.999), 'clip_unmagnified_grad': 1.0}, 10),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
     (Lion, {'lr': 5e-1, 'weight_decay': 1e-3, 'use_gc': True}, 10),
@@ -973,6 +978,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (GrokFastAdamW, {'lr': 5e0, 'weight_decay': 1e-3, 'grokfast_after_step': 1}, 5),
     (Kate, {'lr': 5e-2}, 10),
     (StableAdamW, {'lr': 1e0}, 5),
+    (StableAdamW, {'lr': torch.tensor(1e0), 'kahan_sum': False}, 5),
     (StableAdamW, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
     (AdamG, {'lr': 1e0, 'p': 0.5}, 60),
     (AdEMAMix, {'lr': 1e0}, 3),
@@ -1061,6 +1067,7 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (EmoFact, {'lr': 1e-1, 'use_shadow': True}, 5),
     (Ranger25, {'lr': 1e-1}, 3),
     (Ranger25, {'lr': 1e-1, 't_alpha_beta3': 5}, 3),
+    (Ranger25, {'lr': 1e-2, 'stable_adamw': False}, 10),
     (Ranger25, {'lr': 5e-2, 'stable_adamw': False, 'orthograd': False, 'eps': None, 'lookahead_merge_time': 2}, 3),
     (Conda, {'lr': 1e0, 'weight_decay': 1e-3, 'scale': 1.0, 'update_proj_gap': 1, 'projection_type': 'std'}, 5),
     (BCOS, {'lr': 1e0, 'mode': 'm'}, 5),
@@ -1075,6 +1082,12 @@ OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
     (DualAdam, {'lr': 1e0, 'weight_decay': 1e-3, 'weight_decouple': True, 'switch_rate': 0.5}, 5),
     (LoRARite, {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': True, 'update_capping': 0.1}, 5),
     (FlashAdamW, {'lr': 5e-1, 'weight_decay': 1e-3, 'check_numerics': True, 'master_weight_bits': None}, 5),
+]
+
+COMPILE_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Any], int]] = [
+    (Lion, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
+    (AdamW, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
+    (StableAdamW, {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
 ]
 
 ADANORM_SUPPORTED_OPTIMIZERS: List[Tuple[Any, Dict[str, Union[float, bool, int]], int]] = [

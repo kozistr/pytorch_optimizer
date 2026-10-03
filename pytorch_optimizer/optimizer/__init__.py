@@ -1,5 +1,6 @@
 import fnmatch
 from importlib.util import find_spec
+from types import MethodType
 from typing import Dict, List, Optional, Sequence, Set, Union
 from warnings import warn
 
@@ -343,11 +344,13 @@ def load_optimizer(optimizer: str) -> OptimizerType:
 def create_optimizer(
     model: nn.Module,
     optimizer_name: str,
-    lr: float = 1e-3,
+    lr: Union[float, torch.Tensor] = 1e-3,
     weight_decay: float = 0.0,
     wd_ban_list: List[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
     use_lookahead: bool = False,
     use_orthograd: bool = False,
+    compile_step: bool = False,
+    compile_kwargs: Optional[Dict] = None,
     **kwargs,
 ) -> Optimizer:
     r"""Build optimizer.
@@ -355,11 +358,15 @@ def create_optimizer(
     Args:
         model (nn.Module): model.
         optimizer_name (str): optimizer name.
-        lr (float): learning rate.
+        lr (Union[float, torch.Tensor]): Learning rate. Use a scalar tensor with compiled steps and changing rates.
         weight_decay (float): weight decay.
         wd_ban_list (List[str]): weight decay ban list by layer.
         use_lookahead (bool): use Lookahead.
         use_orthograd (bool): use OrthoGrad.
+        compile_step (bool): Compile the optimizer step with torch.compile. Defaults to eager execution.
+        compile_kwargs (Optional[Dict]): Options forwarded to torch.compile. Dynamic tracing is enabled by default
+            to avoid specializing on Python step counters. Lion, native AdamW, and StableAdamW are tested
+            with compilation.
         **kwargs (dict): optimizer parameters.
 
     """
@@ -393,13 +400,17 @@ def create_optimizer(
     if use_lookahead:
         if optimizer_name in ('ranger', 'ranger21', 'ranger25'):
             warn(f'{optimizer} already has a Lookahead variant.', UserWarning, stacklevel=1)
-            return optimizer
+        else:
+            optimizer = Lookahead(
+                optimizer,
+                k=kwargs.get('k', 5),
+                alpha=kwargs.get('alpha', 0.5),
+                pullback_momentum=kwargs.get('pullback_momentum', 'none'),
+            )
 
-        optimizer = Lookahead(
-            optimizer,
-            k=kwargs.get('k', 5),
-            alpha=kwargs.get('alpha', 0.5),
-            pullback_momentum=kwargs.get('pullback_momentum', 'none'),
+    if compile_step:
+        optimizer.step = MethodType(
+            torch.compile(optimizer.step.__func__, **{'dynamic': True, **(compile_kwargs or {})}), optimizer
         )
 
     return optimizer

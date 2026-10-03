@@ -157,11 +157,10 @@ class AdEMAMix(BaseOptimizer):
 
                 update.div_(bias_correction1).add_(exp_avg_slow, alpha=alpha_t).div_(de_nom)
 
-                step_size: float = group['lr']
                 if group.get('stable_adamw'):
-                    step_size /= self.get_stable_adamw_rms(grad, exp_avg_sq)
+                    update.div_(self.get_stable_adamw_rms(grad, exp_avg_sq))
 
-                p.add_(update, alpha=-step_size)
+                p.add_(update, alpha=-group['lr'])
 
         return loss
 

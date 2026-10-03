@@ -135,7 +135,7 @@ class BaseOptimizer(ABC, Optimizer):
     def apply_weight_decay(
         p: torch.Tensor,
         grad: Optional[torch.Tensor],
-        lr: float,
+        lr: Union[float, torch.Tensor],
         weight_decay: float,
         weight_decouple: bool,
         fixed_decay: bool,
@@ -146,7 +146,7 @@ class BaseOptimizer(ABC, Optimizer):
         Args:
             p (torch.Tensor): Parameter tensor to apply weight decay to.
             grad (torch.Tensor): Gradient tensor of parameter p.
-            lr (float): Learning rate to scale the update.
+            lr (Union[float, torch.Tensor]): Learning rate to scale the update.
             weight_decay (float): Weight decay coefficient (L2 penalty).
             weight_decouple (bool): If True, applies decoupled weight decay as in AdamW.
             fixed_decay (bool): If True, fixes weight decay to not depend on learning rate.
@@ -227,7 +227,7 @@ class BaseOptimizer(ABC, Optimizer):
             step (int): Current optimization step number.
 
         """
-        beta_n: float = math.pow(beta, step)
+        beta_n: float = beta ** step
         return (beta_n - beta) / (beta_n - 1.0)  # fmt: skip
 
     @staticmethod
@@ -498,16 +498,20 @@ class BaseOptimizer(ABC, Optimizer):
         torch._foreach_mul_(params, factor)
 
     @staticmethod
-    def get_stable_adamw_rms(grad: torch.Tensor, exp_avg_sq: torch.Tensor, eps: float = 1e-16) -> float:
-        """Get StableAdamW RMS.
+    def get_stable_adamw_rms(grad: torch.Tensor, exp_avg_sq: torch.Tensor, eps: float = 1e-16) -> torch.Tensor:
+        """Get StableAdamW RMS as a scalar tensor on the gradient's device.
 
         Args:
             grad (torch.Tensor): gradient.
             exp_avg_sq (torch.Tensor): Exponential moving average of squared gradient.
             eps (float): Small value to prevent division by zero.
 
+        Returns:
+            torch.Tensor: RMS scale, promoted to float32 for float16 and bfloat16 step-size arithmetic.
+
         """
-        return grad.pow(2).div_(exp_avg_sq.clip(min=eps)).mean().sqrt_().clip_(min=1.0).item()
+        rms = grad.pow(2).div_(exp_avg_sq.clip(min=eps)).mean().sqrt_().clip_(min=1.0)
+        return rms.float() if rms.dtype in (torch.float16, torch.bfloat16) else rms
 
     @staticmethod
     def validate_range(x: float, name: str, low: float, high: float, range_type: str = '[)') -> None:

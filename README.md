@@ -84,6 +84,27 @@ opt_cls = torch.hub.load('kozistr/pytorch_optimizer', 'adamp')
 optimizer = opt_cls(model.parameters(), lr=1e-3)
 ```
 
+### 5) Optional: compile optimizer steps
+
+Enable `torch.compile()` through `create_optimizer()` for Lion, native PyTorch AdamW, or StableAdamW:
+
+```python
+import torch
+from pytorch_optimizer import create_optimizer
+
+lr = torch.tensor(1e-3, device=next(model.parameters()).device)
+optimizer = create_optimizer(model, 'lion', lr=lr, foreach=False, compile_step=True)
+```
+
+Use `'adamw'` for native AdamW or `'stableadamw'` for StableAdamW.
+Eager execution remains the default (`compile_step=False`).
+Pass compiler options through `compile_kwargs`, for example `{'backend': 'aot_eager'}` for graph validation.
+Dynamic tracing avoids specializing on changing Python step counters. A scalar tensor learning rate lets
+schedulers change its value without compiling a new graph for each rate.
+
+See the [compilation guide](https://pytorch-optimizers.readthedocs.io/en/latest/getting-started/#compile-optimizer-steps)
+for CUDA foreach settings and graph diagnostics.
+
 ## Discover Available Components
 
 ### Optimizers

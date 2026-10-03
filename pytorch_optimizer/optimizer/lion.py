@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import torch
 
@@ -13,7 +13,7 @@ class Lion(BaseOptimizer):
 
     Args:
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
+        lr (Union[float, torch.Tensor]): Learning rate. A scalar tensor avoids recompilation when the rate changes.
         betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         weight_decay (float): Weight decay (L2 penalty).
         weight_decouple (bool): The optimizer uses decoupled weight decay as in AdamW.
@@ -27,7 +27,7 @@ class Lion(BaseOptimizer):
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-4,
+        lr: Union[float, torch.Tensor] = 1e-4,
         betas: Betas = (0.9, 0.99),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -116,14 +116,16 @@ class Lion(BaseOptimizer):
             fixed_decay=group['fixed_decay'],
         )
 
-        updates = torch._foreach_mul(exp_avgs, beta1)
-        torch._foreach_add_(updates, grads, alpha=1.0 - beta1)
+        updates = torch._foreach_lerp(exp_avgs, grads, weight=1.0 - beta1)
         torch._foreach_sign_(updates)
 
-        torch._foreach_mul_(exp_avgs, beta2)
-        torch._foreach_add_(exp_avgs, grads, alpha=1.0 - beta2)
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta2)
 
-        torch._foreach_add_(params, updates, alpha=-lr)
+        if isinstance(lr, torch.Tensor):
+            torch._foreach_mul_(updates, -lr)
+            torch._foreach_add_(params, updates)
+        else:
+            torch._foreach_add_(params, updates, alpha=-lr)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         beta1, beta2 = group['betas']
@@ -169,7 +171,10 @@ class Lion(BaseOptimizer):
             if group.get('cautious'):
                 self.apply_cautious(update, grad)
 
-            p.add_(update, alpha=-group['lr'])
+            if isinstance(group['lr'], torch.Tensor):
+                p.add_(update * -group['lr'])
+            else:
+                p.add_(update, alpha=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

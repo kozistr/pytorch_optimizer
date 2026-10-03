@@ -1,5 +1,5 @@
 import math
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import torch
 
@@ -14,7 +14,7 @@ class StableAdamW(BaseOptimizer):
 
     Args:
         params (ParamsT): Iterable of parameters to optimize or dicts defining parameter groups.
-        lr (float): Learning rate.
+        lr (Union[float, torch.Tensor]): Learning rate.
         betas (Betas): Coefficients used for computing running averages of gradient and the squared Hessian trace.
         kahan_sum (bool): Enables Kahan summation for more accurate parameter updates when training in low precision
             (float16 or bfloat16).
@@ -30,7 +30,7 @@ class StableAdamW(BaseOptimizer):
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: Union[float, torch.Tensor] = 1e-3,
         betas: Betas = (0.9, 0.99),
         kahan_sum: bool = True,
         weight_decay: float = 1e-2,
@@ -125,7 +125,7 @@ class StableAdamW(BaseOptimizer):
         torch._foreach_mul_(exp_avg_sqs, beta2_hat)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2_hat)
 
-        step_sizes: List[float] = [
+        step_sizes: List[torch.Tensor] = [
             -lr / self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
             for grad, exp_avg_sq in zip(grads, exp_avg_sqs)
         ]
@@ -136,12 +136,11 @@ class StableAdamW(BaseOptimizer):
 
         de_noms = torch._foreach_sqrt(exp_avg_sqs)
         torch._foreach_add_(de_noms, eps)
+        de_noms = [de_nom.to(dtype=step_size.dtype) for de_nom, step_size in zip(de_noms, step_sizes)]
+        torch._foreach_div_(de_noms, step_sizes)
 
         if group['kahan_sum'] and params[0].dtype in (torch.float16, torch.bfloat16):
-            de_noms = torch._foreach_sqrt(exp_avg_sqs)
-            torch._foreach_add_(de_noms, group['eps'])
-
-            torch._foreach_addcdiv_(kahan_comps, exp_avgs, de_noms, step_sizes)
+            torch._foreach_addcdiv_(kahan_comps, exp_avgs, de_noms)
 
             with torch.no_grad():
                 torch._foreach_copy_(grads, params)
@@ -151,7 +150,7 @@ class StableAdamW(BaseOptimizer):
             torch._foreach_sub_(grads, params)
             torch._foreach_add_(kahan_comps, grads)
         else:
-            torch._foreach_addcdiv_(params, exp_avgs, de_noms, step_sizes)
+            torch._foreach_addcdiv_(params, exp_avgs, de_noms)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         beta1, beta2 = group['betas']
@@ -183,7 +182,7 @@ class StableAdamW(BaseOptimizer):
             exp_avg.lerp_(grad, weight=beta1_comp)
             exp_avg_sq.mul_(beta2_hat).addcmul_(grad, grad, value=1.0 - beta2_hat)
 
-            lr: float = group['lr'] / self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
+            lr = group['lr'] / self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
 
             if group['weight_decouple']:
                 self.apply_weight_decay(
@@ -195,16 +194,18 @@ class StableAdamW(BaseOptimizer):
                     fixed_decay=False,
                 )
 
+            de_nom = exp_avg_sq.sqrt().add_(group['eps']).to(dtype=lr.dtype).div_(-lr)
+
             if group['kahan_sum'] and p.dtype in (torch.float16, torch.bfloat16):
                 kahan_comp = state['kahan_comp']
-                kahan_comp.addcdiv_(exp_avg, exp_avg_sq.sqrt().add_(group['eps']), value=-lr)
+                kahan_comp.addcdiv_(exp_avg, de_nom)
 
                 grad.copy_(p.detach())
                 p.add_(kahan_comp)
 
                 kahan_comp.add_(grad.sub_(p))
             else:
-                p.addcdiv_(exp_avg, exp_avg_sq.sqrt().add_(group['eps']), value=-lr)
+                p.addcdiv_(exp_avg, de_nom)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
