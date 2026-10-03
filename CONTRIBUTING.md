@@ -49,16 +49,14 @@ Run `uv run just format` and `uv run just check` before submitting a PR.
 
 ## Coding Agents and LLMs
 
-You are welcome to use coding agents and LLMs for code, tests, and documentation. You are responsible for the
-changes you submit and must understand and review the generated code before opening a PR.
+You can use coding agents and LLMs for code, tests, and documentation. Before opening a PR, review the generated
+changes and make sure you understand them. You are responsible for the changes you submit.
 
-- Check optimizer update rules against the original paper, including bias correction, update ordering, and state handling.
-  Explain any differences from the paper or its reference implementation.
-- Review generated tests and verify their expected results against the algorithm or a trusted reference.
-  Add regression tests for the behavior you change and meet the project's coverage requirement.
-- Run the required checks and describe your validation in the PR. Be clear about any checks you could not run.
+- Verify optimizer update rules against the original paper and explain differences from its reference implementation.
+- Check generated tests against the algorithm or a trusted reference and meet the project's coverage requirement.
+- Run the required checks and report the results in your PR, including checks you could not run.
 
-Be prepared to explain your implementation, its edge cases, and the test results during review.
+Be ready to explain your implementation, edge cases, and tests during review.
 
 ## Documentation
 

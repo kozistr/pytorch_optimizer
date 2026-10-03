@@ -9,10 +9,9 @@
   - `uv run just check`
   - `uv run just test`
 - New or changed implementation code should have 100% test coverage. Check it with `uv run coverage report -m`.
-- For optimizer changes, use the existing training tests first. Add or update a minimal training recipe in
-  `tests/constants.py`, including the relevant variant recipes. The parametrized tests run these configurations.
-- After running the tests, use `uv run coverage report -m` to find uncovered implementation lines. Add focused cases
-  in `tests/test_*.py` for those gaps, following nearby tests. Avoid standalone tests that duplicate recipe coverage.
+- For optimizer changes, add or update minimal training recipes in `tests/constants.py`, including affected variants.
+- Use `uv run coverage report -m` to find uncovered lines, then add focused cases in `tests/test_*.py`.
+- Follow nearby test patterns and avoid duplicating coverage from training recipes.
 - Run a focused test with `uv run pytest tests/test_optimizers.py::test_name -sv -vv`.
 - Use `uv run just docs` to serve the Zensical documentation and `uv run just docs-build` to build it with strict validation.
 - Run `uv run just update-docs` after changing public exports to regenerate the API reference.
@@ -48,8 +47,7 @@
 - Add the implementation under `pytorch_optimizer/optimizer/`.
 - Export it from the optimizer package and register it in `OPTIMIZER_LIST` so it is available through `OPTIMIZERS` and `load_optimizer()`.
 - Add a training recipe to `tests/constants.py`; the parametrized tests in `tests/test_optimizers.py` will exercise it.
-- Add focused tests for optimizer-specific behavior, state handling, validation, wrappers, and edge cases when the
-  training recipes leave implementation lines uncovered.
+- Add focused tests for uncovered optimizer behavior, state handling, validation, wrappers, and edge cases.
 - Update the relevant documentation and algorithm table in `README.md`.
 - Write clear PR titles and descriptions; the release workflow generates notes from merged PRs and syncs them to
   `CHANGELOG.md`, `docs/changelogs/<tag>.md`, and the changelog index through an automated PR.
