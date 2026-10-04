@@ -98,8 +98,10 @@ class TestLookahead:
             k=2,
             pullback_momentum=pullback_momentum,
         )
+
         for p in parameters:
             p.grad = torch.ones_like(p)
+
         optimizer.step()
 
         restored_parameters = [nn.Parameter(p.detach().clone()) for p in parameters]
@@ -114,6 +116,7 @@ class TestLookahead:
             for p, restored_p in zip(parameters, restored_parameters):
                 p.grad = torch.full_like(p, gradient)
                 restored_p.grad = p.grad.clone()
+
             optimizer.step()
             restored.step()
 
@@ -124,9 +127,11 @@ class TestLookahead:
                         optimizer.state[p]['slow_momentum'].data_ptr()
                         != optimizer.optimizer.state[p]['momentum_buffer'].data_ptr()
                     )
+
                 torch.testing.assert_close(
                     restored.state[restored_p]['slow_params'], optimizer.state[p]['slow_params']
                 )
+
                 torch.testing.assert_close(
                     restored.optimizer.state[restored_p]['momentum_buffer'],
                     optimizer.optimizer.state[p]['momentum_buffer'],
@@ -137,6 +142,7 @@ class TestLookahead:
         parameters = [nn.Parameter(torch.tensor([1.0])), nn.Parameter(torch.tensor([2.0]))]
         optimizer = Lookahead(build_optimizer('sgd', parameters, lr=0.1))
         state_dict = deepcopy(optimizer.state_dict())
+
         if mismatch == 'legacy':
             state_dict['lookahead_state'] = {
                 nn.Parameter(p.detach().clone()): dict(optimizer.state[p]) for p in parameters
@@ -149,6 +155,7 @@ class TestLookahead:
         original_state = optimizer.state
         with pytest.raises(ValueError, match='lookahead state does not match the current parameters'):
             optimizer.load_state_dict(state_dict)
+
         assert optimizer.state is original_state
 
     def test_lookahead_parameters(self):
@@ -158,10 +165,12 @@ class TestLookahead:
         for pullback_momentum in ('none', 'reset', 'pullback'):
             opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
             assert not opt.state[optimizer.param_groups[0]['params'][0]]['slow_params'].requires_grad
+
             opt.load_state_dict(opt.state_dict())
 
         opt = Lookahead(optimizer, pullback_momentum=pullback_momentum)
         opt.backup_and_load_cache()
+
         assert not opt.state[optimizer.param_groups[0]['params'][0]]['backup_params'].requires_grad
         opt.clear_and_load_backup()
 
@@ -307,12 +316,14 @@ class TestSAM:
         restored_param = param.detach().clone().requires_grad_()
         restored = build([restored_param])
         restored.load_state_dict(deepcopy(optimizer.state_dict()))
+
         for gradient in (0.25, -0.5):
             for current, parameter in ((optimizer, param), (restored, restored_param)):
                 parameter.grad = torch.full_like(parameter, gradient)
                 current.first_step(zero_grad=True)
                 parameter.grad = torch.full_like(parameter, gradient * 0.5)
                 current.second_step(zero_grad=True)
+
             torch.testing.assert_close(restored_param, param)
             torch.testing.assert_close(
                 restored.base_optimizer.state[restored_param]['exp_avg'],
@@ -379,6 +390,7 @@ class TestSAM:
         optimizer.first_step(zero_grad=True)
         always_active.sum().backward()
         optimizer.second_step(zero_grad=True)
+
         torch.testing.assert_close(parameter, expected)
         torch.testing.assert_close(always_active, torch.tensor([1.8]))
 
@@ -392,6 +404,7 @@ class TestSAM:
         opt.init_group({'params': []})
         state = opt.state_dict()
         opt.load_state_dict(state)
+
         if 'base_optimizer' in state:
             opt.load_state_dict({key: value for key, value in state.items() if key != 'base_optimizer'})
             assert opt.param_groups is opt.base_optimizer.param_groups
@@ -503,6 +516,7 @@ class TestScheduleFreeWrapper:
         optimizer.step()
 
         legacy_state = {'schedulefree_state': optimizer.state, 'base_optimizer': optimizer.optimizer.state_dict()}
+
         same_parameter = ScheduleFreeWrapper(build_optimizer('sgd', [parameter], lr=0.1))
         same_parameter.load_state_dict(legacy_state)
         torch.testing.assert_close(same_parameter.state[parameter]['z'], optimizer.state[parameter]['z'])
@@ -557,6 +571,7 @@ class TestPCGrad:
         shared = nn.Parameter(torch.tensor([1.0]))
         task_specific = nn.Parameter(torch.tensor([2.0]))
         unused = nn.Parameter(torch.tensor([3.0]))
+
         optimizer = PCGrad(
             build_optimizer('sgd', [shared, task_specific, unused], lr=0.1, weight_decay=0.2), reduction
         )
@@ -607,6 +622,7 @@ class TestTRAC:
         optimizer = TRAC(
             build_optimizer('sgd', [{'params': [p], 'lr': lr} for p, lr in zip(parameters, [0.1, 0.05])], momentum=0.9)
         )
+
         for gradient in (0.5, -0.25, 1.0):
             for p in parameters:
                 p.grad = torch.full_like(p, gradient)
@@ -615,7 +631,9 @@ class TestTRAC:
         state_dict = optimizer.state_dict() if checkpoint_format == 'indexed' else optimizer.optimizer.state_dict()
         if checkpoint_format == 'indexed':
             assert all(isinstance(key, (str, int)) for key in state_dict['state']['trac'])
+
         assert all(p in optimizer.state['trac'] for p in parameters)
+
         stream = BytesIO()
         torch.save(state_dict, stream)
         stream.seek(0)
@@ -629,6 +647,7 @@ class TestTRAC:
             for p, restored_p in zip(parameters, restored_parameters):
                 p.grad = torch.full_like(p, gradient)
                 restored_p.grad = p.grad.clone()
+
             optimizer.step()
             restored.step()
 
@@ -639,8 +658,10 @@ class TestTRAC:
                     restored.optimizer.state[restored_p]['momentum_buffer'],
                     optimizer.optimizer.state[p]['momentum_buffer'],
                 )
+
             for key in ('s', 'variance', 'sigma'):
                 torch.testing.assert_close(restored.state['trac'][key], optimizer.state['trac'][key])
+
             assert restored.state['trac']['step'] == optimizer.state['trac']['step']
 
     def test_trac_rejects_missing_checkpoint_reference(self):
@@ -648,6 +669,7 @@ class TestTRAC:
         optimizer = TRAC(build_optimizer('sgd', [parameter], lr=0.1))
         parameter.grad = torch.ones_like(parameter)
         optimizer.step()
+
         state_dict = deepcopy(optimizer.state_dict())
         del state_dict['state']['trac'][0]
 
