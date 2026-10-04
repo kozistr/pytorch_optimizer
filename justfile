@@ -9,10 +9,10 @@ lint:
     ruff check {{files}}
 
 check: lint
-    pyright pytorch_optimizer examples
+    ty check
 
 test:
-    pytest -p no:pastebin -p no:nose -p no:doctest --disable-warnings --cov=pytorch_optimizer --cov-report=xml ./tests
+    pytest
 
 requirements:
     uv export --no-dev > requirements.txt

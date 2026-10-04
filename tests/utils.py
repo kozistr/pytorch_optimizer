@@ -1,13 +1,17 @@
 from collections.abc import Iterable
+from contextlib import nullcontext
 
 import numpy as np
+import pytest
 import torch
 from torch import nn
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 
 from pytorch_optimizer.base.type import Loss, ParamsT
 from pytorch_optimizer.optimizer import TRAC, Lookahead, OrthoGrad, ScheduleFreeWrapper, load_optimizer
 from pytorch_optimizer.optimizer.alig import l2_projection
+from pytorch_optimizer.optimizer.utils import HAS_TRANSFORMERS
 
 
 def build_optimizer(name: str, params: ParamsT | nn.Module, **options) -> Optimizer:
@@ -32,7 +36,13 @@ def build_optimizer(name: str, params: ParamsT | nn.Module, **options) -> Optimi
             else {'params': [group], 'use_muon': use_muon}
             for group in params
         ]
-    return load_optimizer(name)(params, **options)
+    warning = (
+        pytest.warns(ImportWarning, match='you need to install `transformers`')
+        if name == 'adalomo' and not HAS_TRANSFORMERS
+        else nullcontext()
+    )
+    with warning:
+        return load_optimizer(name)(params, **options)
 
 
 def dummy_closure() -> Loss:
@@ -148,7 +158,13 @@ class Trainer:
 
             init_loss = init_loss or loss
 
-            loss.backward(create_graph=create_graph)
+            if create_graph:
+                parameters = [p for p in self.model.parameters() if p.requires_grad]
+                gradients = torch.autograd.grad(loss, parameters, create_graph=True)
+                for param, grad in zip(parameters, gradients):
+                    param.grad = grad
+            else:
+                loss.backward()
 
             if closure_fn is not None:
                 self.optimizer.step(closure_fn(loss))
@@ -209,5 +225,8 @@ class LRSchedulerAssertions:
     @staticmethod
     def assert_lr_sequence(scheduler, expected_lrs, decimals: int = 7) -> None:
         for expected_lr in expected_lrs:
+            if isinstance(scheduler, LRScheduler):
+                scheduler.optimizer.step()
             scheduler.step()
-            np.testing.assert_almost_equal(expected_lr, scheduler.get_lr(), decimals)
+            lr = scheduler.get_lr() if hasattr(scheduler, 'last_lr') else scheduler.get_last_lr()
+            np.testing.assert_almost_equal(expected_lr, lr, decimals)

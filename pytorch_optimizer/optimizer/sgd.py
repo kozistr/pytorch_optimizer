@@ -625,8 +625,6 @@ class SGDSaI(BaseOptimizer):
 
                 grad = p.grad
 
-                self.maximize_gradient(grad, maximize=self.maximize)
-
                 sigma = grad.std().nan_to_num_() if grad.ndim > 1 and grad.size(0) != 1 else 0
                 grad_norm = grad.norm()
 

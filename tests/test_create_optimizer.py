@@ -1,7 +1,10 @@
+from contextlib import nullcontext
+
 import pytest
 import torch
 
 from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, create_optimizer, load_optimizer
+from pytorch_optimizer.optimizer.utils import HAS_TRANSFORMERS
 from tests.fixtures import TrainingModel, build_model
 from tests.optimizer_cases import SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
 from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS
@@ -22,25 +25,37 @@ class TestCreateOptimizer:
         'optimizer_name', [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_CREATE_OPTIMIZER]
     )
     def test_create_optimizer_basic(self, optimizer_name):
-        optimizer = create_optimizer(
-            TrainingModel(),
-            optimizer_name=optimizer_name,
-            use_lookahead=False,
-            use_orthograd=False,
-            **_get_optimizer_kwargs(optimizer_name),
-        )
+        warning = nullcontext()
+        if optimizer_name in ('muon', 'adamuon', 'adago', 'normuon'):
+            warning = pytest.warns(UserWarning, match=f'manually create the {optimizer_name}')
+        elif optimizer_name == 'adalomo' and not HAS_TRANSFORMERS:
+            warning = pytest.warns(ImportWarning, match='you need to install `transformers`')
+        with warning:
+            optimizer = create_optimizer(
+                TrainingModel(),
+                optimizer_name=optimizer_name,
+                use_lookahead=False,
+                use_orthograd=False,
+                **_get_optimizer_kwargs(optimizer_name),
+            )
         assert optimizer.defaults.get('weight_decay', 0.0) == 0.0
         assert all(group.get('weight_decay', 0.0) == 0.0 for group in optimizer.param_groups)
 
     @pytest.mark.parametrize('optimizer_name', ['adamp', 'ranger', 'ranger21', 'ranger25'])
     def test_create_optimizer_with_lookahead(self, optimizer_name):
-        optimizer = create_optimizer(
-            TrainingModel(),
-            optimizer_name=optimizer_name,
-            use_lookahead=True,
-            use_orthograd=False,
-            **_get_optimizer_kwargs(optimizer_name),
+        warning = (
+            pytest.warns(UserWarning, match='already has a Lookahead variant')
+            if optimizer_name != 'adamp'
+            else nullcontext()
         )
+        with warning:
+            optimizer = create_optimizer(
+                TrainingModel(),
+                optimizer_name=optimizer_name,
+                use_lookahead=True,
+                use_orthograd=False,
+                **_get_optimizer_kwargs(optimizer_name),
+            )
 
         assert isinstance(optimizer, Lookahead) == (optimizer_name == 'adamp')
 

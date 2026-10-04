@@ -334,7 +334,7 @@ class BaseOptimizer(ABC, Optimizer):
         norms = torch._foreach_norm(x, ord=2)
         torch._foreach_div_(norms, factors)
 
-        return norms  # pyright: ignore[reportReturnType]
+        return norms  # ty: ignore[invalid-return-type]
 
     @staticmethod
     def approximate_sq_grad(

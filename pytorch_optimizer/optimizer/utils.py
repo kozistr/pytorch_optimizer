@@ -114,7 +114,7 @@ class CPUOffloadOptimizer:  # pragma: no cover
                 p_cuda.grad = None
 
         for param_group in param_groups:
-            params = param_group.get('params', None)  # type: ignore
+            params = param_group.get('params', None)
             if params is None:
                 continue
 
@@ -126,7 +126,7 @@ class CPUOffloadOptimizer:  # pragma: no cover
                 self.param_cuda2cpu_map[p_cuda] = p_cpu
 
                 p_cuda.register_post_accumulate_grad_hook(backward_hook)
-                self.optim_dict[p_cuda] = optimizer_class([{'params': p_cpu, **param_group}], **kwargs)  # type: ignore
+                self.optim_dict[p_cuda] = optimizer_class([{'params': p_cpu, **param_group}], **kwargs)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

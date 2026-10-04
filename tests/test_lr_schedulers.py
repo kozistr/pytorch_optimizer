@@ -206,6 +206,7 @@ def test_get_chebyshev_lr():
 
     lr_scheduler = get_chebyshev_schedule(optimizer, num_epochs=16, is_warmup=True)
     lr_scheduler.last_epoch = 0
+    optimizer.step()
     lr_scheduler.step()
 
     np.testing.assert_almost_equal(lr_scheduler.get_last_lr(), 1e-3)
@@ -217,6 +218,7 @@ def test_get_chebyshev_lr():
     lr_scheduler.last_epoch = 0
 
     for expected_lr in recipes:
+        optimizer.step()
         lr_scheduler.step()
         np.testing.assert_almost_equal(lr_scheduler.get_last_lr(), expected_lr)
 

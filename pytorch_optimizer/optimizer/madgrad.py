@@ -83,6 +83,15 @@ class MADGRAD(BaseOptimizer):
             if group['momentum'] > 0.0:
                 state['x0'] = p.clone()
 
+    @staticmethod
+    def compute_rms(grad_sum_sq: torch.Tensor, eps: float) -> torch.Tensor:
+        """Compute the cube root accumulator, treating zero denominators as inactive coordinates."""
+        rms = grad_sum_sq.pow(1.0 / 3.0).add_(eps)
+        if eps == 0.0:
+            rms[rms == 0] = float('inf')
+
+        return rms
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -123,16 +132,14 @@ class MADGRAD(BaseOptimizer):
                     grad_sum_sq_masked = grad_sum_sq.sparse_mask(grad)
                     s_masked = s.sparse_mask(grad)
 
-                    rms_masked_values = grad_sum_sq_masked._values().pow(1 / 3).add_(eps)
+                    rms_masked_values = self.compute_rms(grad_sum_sq_masked._values(), eps)
                     x0_masked_values = p_masked._values().addcdiv(s_masked._values(), rms_masked_values, value=1)
 
                     grad_sq = grad * grad
                     grad_sum_sq.add_(grad_sq, alpha=_lambda)
                     grad_sum_sq_masked.add_(grad_sq, alpha=_lambda)
 
-                    rms_masked_values = grad_sum_sq_masked._values().pow_(1 / 3).add_(eps)
-                    if eps == 0.0:
-                        rms_masked_values[rms_masked_values == 0] = float('inf')
+                    rms_masked_values = self.compute_rms(grad_sum_sq_masked._values(), eps)
 
                     s.add_(grad, alpha=_lambda)
                     s_masked._values().add_(grad._values(), alpha=_lambda)
@@ -143,16 +150,13 @@ class MADGRAD(BaseOptimizer):
                     p.data.add_(p_masked, alpha=-1)
                 else:
                     if momentum == 0.0:
-                        rms = grad_sum_sq.pow(1 / 3).add_(eps)
+                        rms = self.compute_rms(grad_sum_sq, eps)
                         x0 = p.addcdiv(s, rms, value=1)
                     else:
                         x0 = state['x0']
 
                     grad_sum_sq.addcmul_(grad, grad, value=_lambda)
-                    rms = grad_sum_sq.pow(1 / 3).add_(eps)
-
-                    if eps == 0.0:
-                        rms[rms == 0] = float('inf')
+                    rms = self.compute_rms(grad_sum_sq, eps)
 
                     s.add_(grad, alpha=_lambda)
 

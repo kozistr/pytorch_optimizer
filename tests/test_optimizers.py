@@ -34,9 +34,10 @@ class TestOptimizerTraining:
 
         x_data, y_data = environment
         model, loss_fn = build_model(use_complex=dtype == torch.complex64, device=x_data.device)
-        model = model.to(dtype=dtype)
         if dtype == torch.complex64:
             x_data = x_data.to(dtype=dtype)
+        else:
+            model = model.to(dtype=dtype)
 
         parameters = model if optimizer_name in MODEL_OPTIMIZERS else model.parameters()
         parameters, config = build_optimizer_parameters(parameters, optimizer_name, config)

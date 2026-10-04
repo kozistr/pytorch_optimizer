@@ -75,6 +75,7 @@ class TAM(BaseOptimizer):
             if len(state) == 0:
                 state['s'] = torch.zeros_like(grad)
                 state['momentum_buffer'] = grad.clone()
+                self.maximize_gradient(state['momentum_buffer'], maximize=self.maximize)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

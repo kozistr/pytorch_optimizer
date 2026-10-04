@@ -42,7 +42,7 @@ class MARS(BaseOptimizer):
         gamma: float = 0.025,
         mars_type: MARS_TYPE = 'adamw',
         optimize_1d: bool = False,
-        lr_1d: bool = 3e-3,
+        lr_1d: float = 3e-3,
         betas_1d: Betas = (0.9, 0.95),
         weight_decay: float = 0.0,
         weight_decay_1d: float = 1e-1,

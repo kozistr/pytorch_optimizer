@@ -25,7 +25,7 @@ class TestHasForeachSupport:
         assert not has_foreach_support(tensors)
 
     def test_sparse_tensors(self):
-        sparse_tensor = torch.sparse_coo_tensor([[0, 1]], [1.0, 2.0], (3,))
+        sparse_tensor = torch.sparse_coo_tensor([[0, 1]], [1.0, 2.0], (3,), check_invariants=True)
         tensors = [torch.randn(3), sparse_tensor]
         assert not has_foreach_support(tensors)
 

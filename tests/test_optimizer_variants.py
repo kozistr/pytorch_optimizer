@@ -79,22 +79,11 @@ STABLE_ADAMW_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
 ]
 
 
-MAXIMIZE_ISSUES = {
-    'bcos': 'Initial momentum is captured before the gradient is negated',
-    'sgdsai': 'The first gradient is negated in both warmup_step and step',
-    'tam': 'Initial momentum is captured before the gradient is negated',
-}
-
-
 class TestMaximize:
     @pytest.mark.parametrize(
         ('optimizer_name', 'foreach'),
         [
-            pytest.param(
-                name,
-                foreach,
-                marks=pytest.mark.xfail(strict=True, reason=MAXIMIZE_ISSUES[name]) if name in MAXIMIZE_ISSUES else [],
-            )
+            (name, foreach)
             for name in sorted(MAXIMIZE_OPTIMIZERS)
             if name not in SKIP_CAPABILITY_PROBE
             for foreach in ([False, True] if name in FOREACH_OPTIMIZERS else [False])
@@ -123,6 +112,38 @@ class TestMaximize:
                 optimizer.step(lambda: 0.1)
 
         torch.testing.assert_close(params[0], params[1])
+
+    @pytest.mark.parametrize(
+        ('optimizer_name', 'options'),
+        [('bcos', {'mode': mode}) for mode in ('g', 'm', 'c')]
+        + [('tam', {}), ('sgdsai', {'momentum': 0.0}), ('sgdsai', {'momentum': 0.9})],
+    )
+    def test_initialized_momentum_matches_negated_objective(self, optimizer_name, options):
+        params = [make_parameter((2, 2), grad=None) for _ in range(2)]
+        ascent = build_optimizer(optimizer_name, [params[0]], maximize=True, **options)
+        descent = build_optimizer(optimizer_name, [params[1]], **options)
+
+        for scale in (1.0, 2.0, 0.5):
+            grad = torch.tensor([[0.5, 1.0], [1.5, 2.0]]) * scale
+            params[0].grad = grad.clone()
+            params[1].grad = -grad
+
+            ascent.step()
+            descent.step()
+
+            torch.testing.assert_close(params[0], params[1])
+            assert (params[0] > 0.0).all()
+
+    def test_sgdsai_warmup_preserves_gradient(self):
+        param = make_parameter((2, 2), grad=0.5)
+        optimizer = build_optimizer('sgdsai', [param], maximize=True)
+        grad = param.grad.clone()
+
+        optimizer.warmup_step()
+        torch.testing.assert_close(param.grad, grad)
+
+        optimizer.step()
+        assert (param > 0.0).all()
 
 
 class TestAdaNorm:

@@ -505,12 +505,12 @@ class WSAM(BaseOptimizer):
         closure = torch.enable_grad()(closure)
 
         enable_running_stats(self.model)
-        loss = closure()  # pyright: ignore[reportOptionalCall]
+        loss = closure()
 
         self.first_step(zero_grad=True)
 
         disable_running_stats(self.model)
-        closure()  # pyright: ignore[reportOptionalCall]
+        closure()
 
         self.second_step()
 

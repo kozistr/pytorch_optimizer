@@ -337,7 +337,7 @@ class PreConditioner:
         self.w2: float = 1.0 if self.beta2 == 1.0 else (1.0 - self.beta2)
 
         self.original_shape: torch.Size = var.shape
-        self.transformed_shape: list[int] = (
+        self.transformed_shape: list[int] | torch.Size = (
             merge_small_dims(self.original_shape, block_size) if shape_interpretation else var.shape
         )
 

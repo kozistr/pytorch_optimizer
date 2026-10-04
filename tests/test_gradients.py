@@ -87,17 +87,7 @@ class TestSparseGradients:
 
     @pytest.mark.parametrize(
         'sparse_optimizer',
-        [
-            pytest.param(
-                name,
-                marks=pytest.mark.xfail(
-                    strict=True, reason='MADGRAD divides its uninitialized sparse accumulator by zero when eps=0'
-                )
-                if name == 'madgrad'
-                else [],
-            )
-            for name in sorted(SPARSE_OPTIMIZERS & optimizers_with_argument('eps'))
-        ],
+        sorted(SPARSE_OPTIMIZERS & optimizers_with_argument('eps')),
     )
     def test_zero_epsilon(self, sparse_optimizer):
         param = make_sparse_parameters()[1]

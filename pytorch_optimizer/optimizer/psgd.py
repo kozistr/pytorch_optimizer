@@ -68,7 +68,7 @@ class Kron(BaseOptimizer):
         momentum: float = 0.9,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
-        pre_conditioner_update_probability: Callable[[int], torch.Tensor] | None = None,
+        pre_conditioner_update_probability: float | Callable[[int], torch.Tensor] | None = None,
         max_size_triangular: int = 8192,
         min_ndim_triangular: int = 2,
         memory_save_mode: MEMORY_SAVE_MODE_TYPE | None = None,
@@ -124,12 +124,12 @@ class Kron(BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        update_prob: float | Callable = self.param_groups[0]['pre_conditioner_update_probability']
+        update_prob = self.param_groups[0]['pre_conditioner_update_probability']
         if callable(update_prob):
-            update_prob = update_prob(self.prob_step)  # pyright: ignore[reportAssignmentType]
+            update_prob = update_prob(self.prob_step)
 
         self.update_counter += 1
-        do_update: bool = self.update_counter >= 1 / update_prob  # pyright: ignore[reportOperatorIssue]
+        do_update: bool = self.update_counter >= 1 / update_prob
         if do_update:
             self.update_counter = 0
         self.prob_step += 1

@@ -546,7 +546,7 @@ def create_optimizer(
     optimizer_name: str,
     lr: float | torch.Tensor = 1e-3,
     weight_decay: float = 0.0,
-    wd_ban_list: list[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
+    wd_ban_list: Sequence[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
     use_lookahead: bool = False,
     use_orthograd: bool = False,
     compile: bool = False,  # noqa: A002
@@ -623,7 +623,7 @@ def create_optimizer(
 def get_optimizer_parameters(
     model_or_parameter: nn.Module | list,
     weight_decay: float,
-    wd_ban_list: list[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
+    wd_ban_list: Sequence[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
 ) -> ParamsT:
     """Group trainable parameters by whether to apply weight decay.
 

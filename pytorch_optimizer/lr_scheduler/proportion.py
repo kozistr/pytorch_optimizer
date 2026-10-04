@@ -1,4 +1,6 @@
 
+from typing import cast
+
 from torch.optim.lr_scheduler import LRScheduler
 
 
@@ -42,7 +44,7 @@ class ProportionScheduler:
         self.step_t += 1
 
         if hasattr(self.lr_scheduler, 'last_lr'):
-            lr = self.lr_scheduler.last_lr[0]
+            lr = cast(list[float], self.lr_scheduler.last_lr)[0]
         else:
             lr = self.lr_scheduler.optimizer.param_groups[0]['lr']
 

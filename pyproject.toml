@@ -58,7 +58,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     'ruff==0.16.10',
-    'pyright==1.1.414',
+    'ty==0.0.84',
     'pytest==9.1.1',
     'pytest-cov==7.1.0',
 ]
@@ -131,26 +131,48 @@ max-positional-args = 23
 [tool.ruff.format]
 quote-style = "single"
 
-[tool.pyright]
+[tool.ty.src]
 include = ["pytorch_optimizer", "examples"]
 exclude = [
     "./pytorch_optimizer/optimizer/adam_mini.py",
     "./pytorch_optimizer/optimizer/demo.py",
     "./pytorch_optimizer/optimizer/rotograd.py",
 ]
-reportArgumentType = false
-reportAttributeAccessIssue = false
-reportCallIssue = false
-reportIncompatibleMethodOverride = false
-reportIncompatibleVariableOverride = false
-reportMissingImports = false
-reportOptionalMemberAccess = false
-pythonVersion = "3.12"
-pythonPlatform = "Linux"
+
+[tool.ty.environment]
+python-version = "3.12"
+python-platform = "linux"
+
+[tool.ty.analysis]
+allowed-unresolved-imports = [
+    "bitsandbytes.**", "datasets.**", "hyperopt.**", "matplotlib.**", "pytorch_lightning.**", "q_galore_torch.**",
+    "torchao.**", "torchvision.**", "transformers.**", "trl.**",
+]
+
+[tool.ty.rules]
+# Preserve the diagnostic categories disabled in the previous type checker.
+invalid-argument-type = "ignore"
+unresolved-attribute = "ignore"
+call-non-callable = "ignore"
+no-matching-overload = "ignore"
+unknown-argument = "ignore"
+invalid-method-override = "ignore"
+
+[[tool.ty.overrides]]
+# PyTorch's annotations do not describe the metadata stored in optimizer state and attached by hooks.
+include = [
+    "pytorch_optimizer/optimizer/__init__.py", "pytorch_optimizer/optimizer/lomo.py",
+    "pytorch_optimizer/optimizer/madgrad.py", "pytorch_optimizer/optimizer/spam.py",
+    "pytorch_optimizer/optimizer/utils.py",
+]
+
+[tool.ty.overrides.rules]
+invalid-assignment = "ignore"
 
 [tool.pytest.ini_options]
 testpaths = "tests"
-addopts = "-p no:pastebin -p no:nose -p no:doctest --disable-warnings --cov=pytorch_optimizer --cov-report=xml"
+addopts = "-p no:pastebin -p no:nose -p no:doctest --cov=pytorch_optimizer --cov-report=xml"
+filterwarnings = ["error"]
 
 [tool.coverage.run]
 omit = [
