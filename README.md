@@ -3,7 +3,7 @@
 ![CI](https://img.shields.io/github/actions/workflow/status/kozistr/pytorch_optimizer/ci.yml?branch=main&style=for-the-badge&logo=github)
 [![Docs](https://img.shields.io/readthedocs/pytorch-optimizers?style=for-the-badge&logo=readthedocs)](https://pytorch-optimizers.readthedocs.io/en/latest/?badge=latest)
 [![PyPI](https://img.shields.io/pypi/v/pytorch-optimizer?style=for-the-badge&logo=pypi)](https://pypi.org/project/pytorch-optimizer/)
-[![Python](https://img.shields.io/pypi/pyversions/pytorch-optimizer?style=for-the-badge&logo=python)](https://pypi.org/project/pytorch-optimizer/)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue?style=for-the-badge&logo=python)](https://pypi.org/project/pytorch-optimizer/)
 [![Codecov](https://img.shields.io/codecov/c/github/kozistr/pytorch_optimizer?style=for-the-badge&logo=codecov)](https://codecov.io/gh/kozistr/pytorch_optimizer)
 [![License](https://img.shields.io/badge/license-Apache%202.0-brightgreen?style=for-the-badge)](https://opensource.org/licenses/Apache-2.0)
 ![Total Downloads](https://img.shields.io/pepy/dt/pytorch_optimizer?style=for-the-badge&label=Total%20Downloads)
