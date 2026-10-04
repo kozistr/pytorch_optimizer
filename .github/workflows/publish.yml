@@ -194,6 +194,7 @@ jobs:
           python scripts/update_changelog.py "$RELEASE_TAG" "$RUNNER_TEMP/release-notes.md"
 
       - name: Create changelog pull request
+        id: changelog_pr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           branch: docs/changelog-update-${{ needs.prepare.outputs.tag }}
@@ -211,3 +212,14 @@ jobs:
           delete-branch: true
           labels: automerge
           token: ${{ github.token }}
+
+      - name: Merge changelog pull request
+        if: >-
+          steps.changelog_pr.outputs.pull-request-number != '' &&
+          steps.changelog_pr.outputs.pull-request-operation != 'closed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.changelog_pr.outputs.pull-request-number }}
+          PR_HEAD_SHA: ${{ steps.changelog_pr.outputs.pull-request-head-sha }}
+        run: gh pr merge "$PR_NUMBER" --squash --delete-branch --match-head-commit "$PR_HEAD_SHA"
