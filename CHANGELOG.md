@@ -1,3 +1,35 @@
+# v4.0.0
+
+## What's Changed
+* docs: update changelogs for v3.11.0 by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/588
+* [Fix] Trigger automerge when label is added by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/590
+* [Fix] un-swap false positives and false negatives in SoftF1Loss by @plox-sumit in https://github.com/kozistr/pytorch_optimizer/pull/593
+* [Feature] Implement NorMuon optimizer by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/589
+* [Fix] Support strided inputs in Lovasz hinge loss by @AHMETHAKANBEZIR1 in https://github.com/kozistr/pytorch_optimizer/pull/597
+* [Fix] Prevent Tversky overflow on large half-precision masks by @AHMETHAKANBEZIR1 in https://github.com/kozistr/pytorch_optimizer/pull/599
+* [Feature] Support reduction modes in `FocalCosineLoss` by @AHMETHAKANBEZIR1 in https://github.com/kozistr/pytorch_optimizer/pull/595
+* Track the GRAMS first moment and debias its denominator by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/537
+* [Fix] put the Schedule-Free RAdam bias correction under the square root by @shaneraphel in https://github.com/kozistr/pytorch_optimizer/pull/545
+* [Fix] Correct DiffGrad, AdaFactor, SPlus, and SOAP updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/601
+* [Feature] Implement SaRA optimizer by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/602
+* [Build] Require Python 3.10 / PyTorch 2.1 and use lerp for moving averages by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/603
+* [Feature] Compile optimizer steps, batch AdEMAMix, and adopt Trusted Publishing by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/604
+* [Refactor] Modernize type hints and centralize package exports by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/605
+* Standardize and correct API docstrings by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/606
+* Fix optimizer updates, checkpoint precision, and memory overhead by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/607
+* Consolidate test fixtures and streamline optimizer tests by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/608
+* Fix pytest xfails and warnings and replace Pyright with ty by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/609
+* Fix optimizer updates, checkpoints, losses, and schedulers by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/610
+* Show Python 3.10+ in the README badge by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/611
+* Merge release changelog PRs using GITHUB_TOKEN by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/612
+* Fix release version preparation on protected main by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/613
+* Prepare versions and changelogs in one PR before publishing by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/614
+
+## New Contributors
+* @plox-sumit made their first contribution in https://github.com/kozistr/pytorch_optimizer/pull/593
+
+**Full Changelog**: https://github.com/kozistr/pytorch_optimizer/compare/v3.11.0...v4.0.0
+
 # v3.11.0
 
 ## What's Changed
