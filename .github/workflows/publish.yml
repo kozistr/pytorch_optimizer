@@ -47,6 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       ref: ${{ steps.commit.outputs.ref }}
@@ -78,6 +79,10 @@ jobs:
           if [[ "$GITHUB_EVENT_NAME" == 'workflow_dispatch' ]]; then
             version="$(uv version --bump "$BUMP" --no-sync --short)"
             tag="v$version"
+            if git rev-parse --verify --quiet "refs/tags/$tag"; then
+              echo "Tag $tag already exists" >&2
+              exit 1
+            fi
           else
             tag="$GITHUB_REF_NAME"
             if [[ "$tag" != "v$current" ]]; then
@@ -87,23 +92,59 @@ jobs:
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-      - name: Commit and push version bump
+      - name: Create version pull request
+        if: github.event_name == 'workflow_dispatch'
+        id: version_pr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: release/prepare-${{ steps.version.outputs.tag }}
+          commit-message: 'build: prepare version ${{ steps.version.outputs.tag }}'
+          title: 'build: prepare version ${{ steps.version.outputs.tag }}'
+          body: >-
+            Prepare the package version and lockfile for ${{ steps.version.outputs.tag }}.
+            The release workflow publishes the merged commit after this pull request is merged.
+          base: main
+          add-paths: |
+            pyproject.toml
+            uv.lock
+          delete-branch: true
+          token: ${{ github.token }}
+
+      - name: Merge version pull request and resolve release commit
         id: commit
         env:
-          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.version_pr.outputs.pull-request-number }}
+          PR_HEAD_SHA: ${{ steps.version_pr.outputs.pull-request-head-sha }}
         run: |
           if [[ "$GITHUB_EVENT_NAME" == 'workflow_dispatch' ]]; then
-            if git rev-parse --verify --quiet "refs/tags/$RELEASE_TAG"; then
-              echo "Tag $RELEASE_TAG already exists" >&2
+            if [[ -z "$PR_NUMBER" || -z "$PR_HEAD_SHA" ]]; then
+              echo 'No version pull request was created' >&2
               exit 1
             fi
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add pyproject.toml uv.lock
-            git commit -m "build: prepare version ${RELEASE_TAG#v} [skip ci]"
-            git push origin HEAD:main
+            for attempt in {1..10}; do
+              mergeable="$(gh pr view "$PR_NUMBER" --json mergeable --jq .mergeable)"
+              if [[ "$mergeable" != 'UNKNOWN' ]]; then
+                break
+              fi
+              sleep 3
+            done
+            if [[ "$mergeable" == 'UNKNOWN' ]]; then
+              echo 'GitHub has not finished calculating PR mergeability' >&2
+              exit 1
+            fi
+            gh pr merge "$PR_NUMBER" --squash --delete-branch --match-head-commit "$PR_HEAD_SHA"
+            ref="$(gh pr view "$PR_NUMBER" --json state,mergeCommit \
+              --jq 'if .state == "MERGED" then .mergeCommit.oid else empty end')"
+            if [[ -z "$ref" ]]; then
+              echo 'The version pull request must be merged before publishing' >&2
+              exit 1
+            fi
+          else
+            ref="$GITHUB_SHA"
           fi
-          echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
 
   deploy:
     name: Publish Package
