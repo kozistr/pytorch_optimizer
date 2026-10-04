@@ -133,8 +133,7 @@ class Prodigy(BaseOptimizer):
         d_numerator.mul_(beta3)
 
         for group in self.param_groups:
-            if group['step'] == 1:
-                self.init_group(group)
+            self.init_group(group)
 
             group['step'] += 1
 

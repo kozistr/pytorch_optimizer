@@ -121,9 +121,10 @@ class Lookahead(BaseOptimizer):
             raise ValueError('lookahead state does not match the current parameters')
 
         self.optimizer.load_state_dict(state['base_optimizer'])
-        for parameter_state in restored_state.values():
-            if 'slow_momentum' in parameter_state:
-                parameter_state['slow_momentum'] = parameter_state['slow_momentum'].clone()
+        for p, parameter_state in restored_state.items():
+            for key, value in parameter_state.items():
+                if isinstance(value, torch.Tensor):
+                    parameter_state[key] = value.to(device=p.device, dtype=p.dtype).clone()
         self.state = defaultdict(dict, restored_state)
 
     @torch.no_grad()

@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import pytest
 import torch
 
@@ -82,6 +84,46 @@ class TestOptimizerTraining:
 
 
 class TestOptimizerInterface:
+    @pytest.mark.parametrize(
+        ('optimizer_name', 'options'),
+        [
+            ('adafactor', {'relative_step': False, 'scale_parameter': False, 'momentum_dtype': torch.bfloat16}),
+            ('ranger21', {'num_iterations': 10, 'lookahead_merge_time': 3}),
+            ('sgdsai', {}),
+            ('spam', {'density': 0.5, 'update_proj_gap': 3, 'warmup_epoch': 2, 'grad_accu_steps': 0}),
+            ('stablespam', {'update_proj_gap': 3, 't_max': 10}),
+            ('kron', {'balance_prob': 0.0}),
+            ('adashift', {'keep_num': 1}),
+        ],
+    )
+    def test_checkpoint_resume(self, optimizer_name, options):
+        param = make_parameter((2, 2), grad=1.0)
+        with torch.no_grad():
+            param.fill_(1.0)
+        optimizer = build_optimizer(optimizer_name, [param], lr=0.01, **options)
+        optimizer.step()
+        param.grad = torch.tensor([[0.5, -1.0], [1.5, 2.0]])
+        optimizer.step()
+
+        checkpoint = BytesIO()
+        torch.save(optimizer.state_dict(), checkpoint)
+        checkpoint.seek(0)
+        saved_state = torch.load(checkpoint, weights_only=False)
+        restored_param = param.detach().clone().requires_grad_()
+        restored = build_optimizer(optimizer_name, [restored_param], lr=0.01, **options)
+        restored.load_state_dict(saved_state)
+
+        if optimizer_name == 'adafactor':
+            torch.testing.assert_close(restored.state[restored_param]['exp_avg'], optimizer.state[param]['exp_avg'])
+        for gradient in (0.25, -0.5, 1.0):
+            for current, parameter in ((optimizer, param), (restored, restored_param)):
+                parameter.grad = torch.full_like(parameter, gradient)
+                with torch.random.fork_rng(devices=[]):
+                    torch.manual_seed(42)
+                    current.step()
+            torch.testing.assert_close(restored_param, param)
+            assert restored.param_groups[0]['step'] == optimizer.param_groups[0]['step']
+
     @pytest.mark.parametrize(
         'optimizer_name',
         [name for name in RECIPE_OPTIMIZER_NAMES if name not in ('lookahead', 'orthograd', 'schedulefree')],

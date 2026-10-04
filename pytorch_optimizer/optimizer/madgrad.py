@@ -77,11 +77,12 @@ class MADGRAD(BaseOptimizer):
 
             state = self.state[p]
 
-            state['grad_sum_sq'] = torch.zeros_like(p)
-            state['s'] = torch.zeros_like(p)
+            if 'grad_sum_sq' not in state:
+                state['grad_sum_sq'] = torch.zeros_like(p)
+                state['s'] = torch.zeros_like(p)
 
-            if group['momentum'] > 0.0:
-                state['x0'] = p.clone()
+                if group['momentum'] > 0.0:
+                    state['x0'] = p.clone()
 
     @staticmethod
     def compute_rms(grad_sum_sq: torch.Tensor, eps: float) -> torch.Tensor:
@@ -103,8 +104,7 @@ class MADGRAD(BaseOptimizer):
             self.state['k'] = torch.tensor([0], dtype=torch.long, requires_grad=False)
 
         for group in self.param_groups:
-            if self.state['k'] == 0:
-                self.init_group(group)
+            self.init_group(group)
 
             weight_decay, momentum, eps = group['weight_decay'], group['momentum'], group['eps']
             lr: float = group['lr'] + eps if group['lr'] != 0.0 else 0.0

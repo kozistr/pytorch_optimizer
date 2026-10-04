@@ -177,7 +177,9 @@ class Ranger25(BaseOptimizer):
                     self.apply_cautious(update, grad)
 
                 if self.stable_adamw:
-                    step_size /= self.get_stable_adamw_rms(grad, exp_avg_sq)
+                    param_step_size = step_size / self.get_stable_adamw_rms(grad, exp_avg_sq)
+                else:
+                    param_step_size = step_size
 
                 update.add_(exp_avg_slow, alpha=alpha_t)
 
@@ -186,12 +188,12 @@ class Ranger25(BaseOptimizer):
                 if group['eps'] is not None:
                     de_nom.add_(group['eps'])
                     if self.stable_adamw:
-                        de_nom = de_nom.to(dtype=step_size.dtype).div_(-step_size)
+                        de_nom = de_nom.to(dtype=param_step_size.dtype).div_(-param_step_size)
                         p.addcdiv_(update, de_nom)
                     else:
-                        p.addcdiv_(update, de_nom, value=-step_size)
+                        p.addcdiv_(update, de_nom, value=-param_step_size)
                 else:
-                    p.add_(update.atan2_(de_nom), alpha=-step_size)
+                    p.add_(update.atan2_(de_nom), alpha=-param_step_size)
 
                 if group['step'] % self.lookahead_merge_time == 0:
                     slow_p = state['slow_momentum']

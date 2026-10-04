@@ -90,7 +90,7 @@ class SophiaH(BaseOptimizer):
 
             state = self.state[p]
 
-            if len(state) == 0:
+            if 'momentum' not in state:
                 state['momentum'] = torch.zeros_like(grad)
                 state['hessian_moment'] = torch.zeros_like(grad)
 
@@ -101,11 +101,15 @@ class SophiaH(BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        step: int = self.param_groups[0].get('step', 1)
+        for group in self.param_groups:
+            self.init_group(group)
+
+        step: int = self.param_groups[0]['step'] + 1
+        update_hessian = hessian is not None or (step - 1) % self.update_period == 0
 
         if hessian is not None:
             self.set_hessian(self.param_groups, self.state, hessian)
-        elif step % self.update_period == 0:
+        elif update_hessian:
             self.zero_hessian(self.param_groups, self.state)
             self.compute_hutchinson_hessian(
                 param_groups=self.param_groups,
@@ -115,7 +119,6 @@ class SophiaH(BaseOptimizer):
             )
 
         for group in self.param_groups:
-            self.init_group(group)
             group['step'] += 1
 
             beta1, beta2 = group['betas']
@@ -142,7 +145,7 @@ class SophiaH(BaseOptimizer):
                 momentum, hessian_moment = state['momentum'], state['hessian_moment']
                 momentum.lerp_(grad, weight=1.0 - beta1)
 
-                if 'hessian' in state and (group['step'] % self.update_period == 0 or hessian is not None):
+                if 'hessian' in state and update_hessian:
                     hessian_moment.lerp_(state['hessian'], weight=1.0 - beta2)
 
                 update = (momentum / torch.clip(hessian_moment, min=group['eps'])).clamp_(-group['p'], group['p'])

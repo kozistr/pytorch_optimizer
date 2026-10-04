@@ -52,6 +52,13 @@ class CosineDecay:
 
         return self.sgd.param_groups[0]['lr']
 
+    def state_dict(self) -> dict:
+        return {'optimizer': self.sgd.state_dict(), 'scheduler': self.cosine_stepper.state_dict()}
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.sgd.load_state_dict(state_dict['optimizer'])
+        self.cosine_stepper.load_state_dict(state_dict['scheduler'])
+
 
 class SPAM(BaseOptimizer):
     """Adam with sparse update masks, gradient spike clipping, and momentum resets.
@@ -192,6 +199,16 @@ class SPAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'SPAM'
 
+    def state_dict(self) -> dict:
+        state = super().state_dict()
+        state['warmup'] = self.warmup.state_dict()
+        return state
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        if 'warmup' in state_dict:
+            self.warmup.load_state_dict(state_dict['warmup'])
+
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
             group['step'] = 0
@@ -246,7 +263,7 @@ class SPAM(BaseOptimizer):
                         self.update_proj_gap == 0 or current_step % self.update_proj_gap >= self.grad_accu_steps
                     ):
                         mask = grad.pow(2) > (self.threshold * exp_avg_sq)
-                        grad[mask].sign_().mul_(torch.sqrt(exp_avg_sq[mask] * self.threshold))
+                        grad[mask] = grad[mask].sign() * torch.sqrt(exp_avg_sq[mask] * self.threshold)
 
                 exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
@@ -260,14 +277,17 @@ class SPAM(BaseOptimizer):
                 else:
                     p.addcdiv_(exp_avg, de_nom, value=-step_size * scale_factor)
 
+                decay_param = p[state['mask']] if 'mask' in state else p
                 self.apply_weight_decay(
-                    p[state['mask']] if 'mask' in state else p,
+                    decay_param,
                     grad=None,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
                     weight_decouple=True,
                     fixed_decay=False,
                 )
+                if 'mask' in state:
+                    p[state['mask']] = decay_param
 
         self.state['total_step'] += 1
         self.state['current_step'] += 1
@@ -338,6 +358,19 @@ class StableSPAM(BaseOptimizer):
     def __str__(self) -> str:
         return 'StableSPAM'
 
+    def state_dict(self) -> dict:
+        state = super().state_dict()
+        state['total_step'] = self.total_step
+        if self.warmup is not None:
+            state['warmup'] = self.warmup.state_dict()
+        return state
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        self.total_step = state_dict.get('total_step', 0)
+        if self.warmup is not None and 'warmup' in state_dict:
+            self.warmup.load_state_dict(state_dict['warmup'])
+
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
             group['step'] = 0
@@ -375,7 +408,14 @@ class StableSPAM(BaseOptimizer):
 
         for group in self.param_groups:
             self.init_group(group)
-            group['step'] += 1
+            if self.total_step % self.update_proj_gap == 0:
+                group['step'] = 1
+                for p in group['params']:
+                    if 'exp_avg' in self.state[p]:
+                        self.state[p]['exp_avg'].zero_()
+                        self.state[p]['exp_avg_sq'].zero_()
+            else:
+                group['step'] += 1
 
             beta1, beta2 = group['betas']
             beta1 *= scale
@@ -386,7 +426,7 @@ class StableSPAM(BaseOptimizer):
 
             step_size: float = group['lr'] / bias_correction1
 
-            theta_t: float = 1.0 - self.theta ** group['step']
+            theta_t: float = 1.0 - self.theta ** self.total_step
 
             for p in group['params']:
                 if p.grad is None:
@@ -417,7 +457,7 @@ class StableSPAM(BaseOptimizer):
 
                 mask = grad.abs() > m_max_hat
                 if mask.sum() > 0:
-                    grad[mask].div_(max_grad).mul_(m_max_hat)
+                    grad[mask] = grad[mask] / max_grad * m_max_hat
 
                 grad_norm = torch.linalg.norm(grad)
                 if grad_norm == 0:
@@ -427,17 +467,12 @@ class StableSPAM(BaseOptimizer):
                 m_norm_t.lerp_(grad_norm, weight=1.0 - self.gamma1 * scale)
                 v_norm_t.lerp_(grad_norm.pow(2), weight=1.0 - self.gamma2)
 
-                m_norm_hat = m_norm_t / (1.0 - (self.gamma1 * scale) ** group['step'])
-                v_norm_hat = v_norm_t / (1.0 - self.gamma2 ** group['step'])
+                m_norm_hat = m_norm_t / (1.0 - (self.gamma1 * scale) ** self.total_step)
+                v_norm_hat = v_norm_t / (1.0 - self.gamma2 ** self.total_step)
 
                 c_norm_t = m_norm_hat.div_(v_norm_hat.sqrt_().add_(group['eps']))
 
                 grad.div_(grad_norm).mul_(c_norm_t)
-
-                if self.update_proj_gap > 0 and self.total_step % self.update_proj_gap == 0:
-                    state['exp_avg'] = torch.zeros_like(grad)
-                    state['exp_avg_sq'] = torch.zeros_like(grad)
-                    group['step'] = 1
 
                 exp_avg.lerp_(grad, weight=1.0 - beta1)
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)

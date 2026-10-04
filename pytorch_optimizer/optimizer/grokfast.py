@@ -45,21 +45,21 @@ def gradfilter_ma(
         ```
 
     """
+    if filter_type not in ('mean', 'sum'):
+        raise NotImplementedError(f'not supported filter_type {filter_type}')
+
     if grads is None:
         grads = {n: deque(maxlen=window_size) for n, p in model.named_parameters() if p.requires_grad}
 
     for n, p in model.named_parameters():
-        if p.requires_grad:
-            grads[n].append(p.grad)
+        if p.requires_grad and p.grad is not None:
+            grads.setdefault(n, deque(maxlen=window_size)).append(p.grad.clone())
 
             if not warmup or len(grads[n]) == window_size:
                 if filter_type == 'mean':
                     avg = sum(grads[n]) / len(grads[n])
                 elif filter_type == 'sum':
                     avg = sum(grads[n])
-                else:
-                    raise NotImplementedError(f'not supported filter_type {filter_type}')
-
                 p.grad.add_(avg, alpha=lamb)
 
     return grads
@@ -95,11 +95,14 @@ def gradfilter_ema(
 
     """
     if grads is None:
-        grads = {n: p.grad for n, p in model.named_parameters() if p.requires_grad and p.grad is not None}
+        grads = {}
 
     for n, p in model.named_parameters():
         if p.requires_grad and p.grad is not None:
-            grads[n].mul_(alpha).add_(p.grad, alpha=1.0 - alpha)
+            if n not in grads:
+                grads[n] = p.grad.clone()
+            else:
+                grads[n].lerp_(p.grad, weight=1.0 - alpha)
             p.grad.add_(grads[n], alpha=lamb)
 
     return grads

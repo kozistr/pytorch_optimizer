@@ -116,7 +116,7 @@ class ROSE(BaseOptimizer):
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 self.apply_weight_decay(
-                    p,
+                    param,
                     grad,
                     lr=wd_lr,
                     weight_decay=weight_decay,

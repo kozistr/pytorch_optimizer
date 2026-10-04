@@ -127,6 +127,19 @@ class Ranger21(BaseOptimizer):
     def __str__(self) -> str:
         return 'Ranger21'
 
+    def state_dict(self) -> dict:
+        state = super().state_dict()
+        state['lookahead_step'] = self.lookahead_step
+        state['starting_lr'] = self.starting_lr
+        state['current_lr'] = self.current_lr
+        return state
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        self.lookahead_step = state_dict.get('lookahead_step', 0)
+        self.starting_lr = state_dict.get('starting_lr', self.starting_lr)
+        self.current_lr = state_dict.get('current_lr', self.current_lr)
+
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
             group['step'] = 0

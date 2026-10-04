@@ -11,7 +11,8 @@ from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
 @torch.no_grad()
 def l2_projection(parameters: Iterable[torch.Tensor], max_norm: float = 1e2) -> None:
     """Project parameters onto an L2 ball in place."""
-    global_norm = torch.sqrt(sum(p.norm().pow(2) for p in parameters or []))
+    parameters = list(parameters or [])
+    global_norm = torch.sqrt(sum(p.norm().pow(2) for p in parameters))
     if global_norm > max_norm:
         ratio = max_norm / global_norm
         for param in parameters or []:

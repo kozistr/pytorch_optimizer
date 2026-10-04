@@ -98,11 +98,15 @@ class AdaHessian(BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        step: int = self.param_groups[0].get('step', 1)
+        for group in self.param_groups:
+            self.init_group(group)
+
+        step: int = self.param_groups[0]['step'] + 1
+        update_hessian = hessian is not None or (step - 1) % self.update_period == 0
 
         if hessian is not None:
             self.set_hessian(self.param_groups, self.state, hessian)
-        elif step % self.update_period == 0:
+        elif update_hessian:
             self.zero_hessian(self.param_groups, self.state)
             self.compute_hutchinson_hessian(
                 param_groups=self.param_groups,
@@ -112,7 +116,6 @@ class AdaHessian(BaseOptimizer):
             )
 
         for group in self.param_groups:
-            self.init_group(group)
             group['step'] += 1
 
             beta1, beta2 = group['betas']
@@ -144,7 +147,7 @@ class AdaHessian(BaseOptimizer):
                 exp_avg, exp_hessian_diag_sq = state['exp_avg'], state['exp_hessian_diag_sq']
                 exp_avg.lerp_(grad, weight=1.0 - beta1)
 
-                if 'hessian' in state and (group['step'] % self.update_period == 0 or hessian is not None):
+                if 'hessian' in state and update_hessian:
                     exp_hessian_diag_sq.mul_(beta2).addcmul_(state['hessian'], state['hessian'], value=1.0 - beta2)
 
                 de_nom = (exp_hessian_diag_sq / bias_correction2).pow_(group['hessian_power'] / 2).add_(group['eps'])

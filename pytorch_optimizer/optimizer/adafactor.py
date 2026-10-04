@@ -90,6 +90,14 @@ class AdaFactor(BaseOptimizer):
     def __str__(self) -> str:
         return 'AdaFactor'
 
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        for group, saved_group in zip(self.param_groups, state_dict['param_groups']):
+            for p, key in zip(group['params'], saved_group['params']):
+                saved_state = state_dict['state'].get(key, {})
+                if 'exp_avg' in saved_state:
+                    self.state[p]['exp_avg'] = saved_state['exp_avg'].to(device=p.device, dtype=self.momentum_dtype)
+
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
             group['step'] = 0

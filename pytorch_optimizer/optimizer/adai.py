@@ -136,7 +136,7 @@ class Adai(BaseOptimizer):
         if param_size == 0:
             raise ZeroParameterSizeError
 
-        exp_avg_sq_hat_mean = exp_avg_sq_hat_sum / param_size
+        exp_avg_sq_hat_mean = (exp_avg_sq_hat_sum / param_size).clamp_min_(self.defaults['eps'])
 
         for group in self.param_groups:
             beta0, beta2 = group['betas']

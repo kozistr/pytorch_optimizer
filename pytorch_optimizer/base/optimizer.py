@@ -1,5 +1,6 @@
 import math
 from abc import ABC, abstractmethod
+from collections import deque
 from collections.abc import Iterable, Sequence
 
 import torch
@@ -27,6 +28,31 @@ class BaseOptimizer(ABC, Optimizer):
 
     def __init__(self, params: ParamsT, defaults: Defaults) -> None:
         super().__init__(params, defaults)
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        """Restore state while preserving non-floating tensor types and container metadata."""
+        super().load_state_dict(state_dict)
+        for group, saved_group in zip(self.param_groups, state_dict['param_groups']):
+            for p, key in zip(group['params'], saved_group['params']):
+                if key in state_dict['state']:
+                    self.state[p] = self._restore_state_types(self.state[p], state_dict['state'][key])
+
+    @staticmethod
+    def _restore_state_types(value, saved_value):
+        if isinstance(saved_value, torch.Tensor):
+            if not saved_value.is_floating_point() and not saved_value.is_complex():
+                return saved_value.to(device=value.device)
+            return value
+        if isinstance(saved_value, str):
+            return saved_value
+        if isinstance(saved_value, dict):
+            return {key: BaseOptimizer._restore_state_types(value[key], saved) for key, saved in saved_value.items()}
+        if isinstance(saved_value, (tuple, list, deque)):
+            restored = [BaseOptimizer._restore_state_types(item, saved) for item, saved in zip(value, saved_value)]
+            return deque(restored, maxlen=saved_value.maxlen) if isinstance(saved_value, deque) else type(saved_value)(
+                restored
+            )
+        return value
 
     @staticmethod
     def load_optimizer(optimizer: OptimizerInstanceOrClass, **kwargs) -> Optimizer:

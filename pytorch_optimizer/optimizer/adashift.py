@@ -87,7 +87,7 @@ class AdaShift(BaseOptimizer):
             first_grad_weight: float = beta1 ** (group['keep_num'] - 1) / exp_weight_sum
             last_grad_weight: float = 1.0 / exp_weight_sum
 
-            bias_correction: float = self.debias(beta2, group['step'] - group['keep_num'])
+            bias_correction: float = self.debias(beta2, max(1, group['step'] - group['keep_num']))
 
             for p in group['params']:
                 if p.grad is None:
@@ -100,17 +100,17 @@ class AdaShift(BaseOptimizer):
                 state = self.state[p]
 
                 grad_queue = state['grad_queue']
+                offset_grad = grad_queue[0] if len(grad_queue) == group['keep_num'] else None
                 grad_queue.append(grad.clone())
 
-                if len(grad_queue) != group['keep_num']:
+                exp_avg = state['exp_avg']
+                if offset_grad is None:
+                    exp_avg.mul_(beta1).add_(grad, alpha=last_grad_weight)
                     continue
 
-                offset_grad = grad_queue[0]
-
-                exp_avg = state['exp_avg']
                 exp_avg.sub_(offset_grad, alpha=first_grad_weight).mul_(beta1).add_(grad, alpha=last_grad_weight)
 
-                reduced_grad_sq = self.reduce_func(offset_grad.pow_(2))
+                reduced_grad_sq = self.reduce_func(offset_grad.square())
 
                 exp_avg_sq = state['exp_avg_sq']
                 exp_avg_sq.lerp_(reduced_grad_sq, weight=1.0 - beta2)

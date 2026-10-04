@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import pytest
 import torch
 
@@ -7,6 +9,27 @@ from tests.utils import build_optimizer, sphere_loss
 
 
 class TestLomo:
+    def test_adalomo_checkpoint_resume(self):
+        model = TrainingModel()
+        optimizer = build_optimizer('adalomo', model)
+        loss = sum(sphere_loss(p) for p in model.parameters())
+        optimizer.fused_backward(loss, lr=0.01)
+
+        restored_model = TrainingModel()
+        restored_model.load_state_dict(model.state_dict())
+        restored = build_optimizer('adalomo', restored_model)
+        restored.load_state_dict(deepcopy(optimizer.state_dict()))
+        assert restored.num_steps == optimizer.num_steps
+        for name in ('exp_avg_sq', 'exp_avg_sq_row', 'exp_avg_sq_col'):
+            for key, value in getattr(optimizer, name).items():
+                torch.testing.assert_close(getattr(restored, name)[key], value)
+
+        for current, current_model in ((optimizer, model), (restored, restored_model)):
+            loss = sum(sphere_loss(p) for p in current_model.parameters())
+            current.fused_backward(loss, lr=0.01)
+        for param, restored_param in zip(model.parameters(), restored_model.parameters()):
+            torch.testing.assert_close(restored_param, param)
+
     @pytest.mark.parametrize('optimizer_name', ['lomo', 'adalomo'])
     def test_lomo_deepspeed_zero3(self, optimizer_name):
         model = TrainingModel()

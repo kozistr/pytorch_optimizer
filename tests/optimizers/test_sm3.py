@@ -17,6 +17,18 @@ class TestSM3Utils:
 
 
 class TestSm3:
+    def test_hybrid_sparse_update(self):
+        param = make_parameter((5, 3), grad=None)
+        optimizer = build_optimizer('sm3', [param], lr=0.1)
+        indices = torch.tensor([[0, 2]])
+        for _ in range(2):
+            param.grad = torch.sparse_coo_tensor(indices, torch.ones(2, 3), param.shape)
+            optimizer.step()
+
+        expected = torch.zeros_like(param)
+        expected[[0, 2]] = -0.1 * (1.0 + 2.0**-0.5)
+        torch.testing.assert_close(param, expected)
+
     def test_sm3_make_sparse(self):
         _, weight_sparse = make_sparse_parameters()
 

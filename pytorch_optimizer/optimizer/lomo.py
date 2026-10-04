@@ -294,6 +294,21 @@ class AdaLOMO(BaseOptimizer):
     def __str__(self) -> str:
         return 'AdaLOMO'
 
+    def state_dict(self) -> dict:
+        state = super().state_dict()
+        state['num_steps'] = self.num_steps
+        for name in ('exp_avg_sq', 'exp_avg_sq_row', 'exp_avg_sq_col'):
+            state[name] = getattr(self, name)
+        return state
+
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        self.num_steps = state_dict.get('num_steps', 0)
+        with torch.no_grad():
+            for name in ('exp_avg_sq', 'exp_avg_sq_row', 'exp_avg_sq_col'):
+                for key, value in state_dict.get(name, {}).items():
+                    getattr(self, name)[key].copy_(value)
+
     def initialize_states(self) -> None:
         for n, p in self.model.named_parameters():
             if self.zero3_enabled:  # pragma: no cover
@@ -361,7 +376,7 @@ class AdaLOMO(BaseOptimizer):
                     lr = self.lr * max(self.eps2, p_rms)
 
                     self.apply_weight_decay(
-                        p,
+                        p_fp32,
                         grad_fp32,
                         lr,
                         self.weight_decay,
@@ -369,7 +384,7 @@ class AdaLOMO(BaseOptimizer):
                         fixed_decay=False,
                     )
 
-                    p_fp32.add_(grad_fp32, alpha=-lr)
+                    p_fp32.add_(update, alpha=-lr)
                     p.copy_(p_fp32)
 
             return x

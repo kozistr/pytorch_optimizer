@@ -337,7 +337,7 @@ class AdamP(BaseOptimizer):
                     self.apply_cautious(perturb, grad)
 
                 if group['nesterov']:
-                    perturb.mul_(beta1).addcmul_(grad, inv_de_nom, value=1.0 - beta1)
+                    perturb.mul_(beta1).add_(grad, alpha=1.0 - beta1).mul_(inv_de_nom)
                 else:
                     perturb.mul_(inv_de_nom)
 

@@ -132,6 +132,9 @@ class SM3(BaseOptimizer):
 
                     acc = state['accumulator_0']
                     update_values = torch.gather(acc, 0, grad._indices()[0])
+                    update_values = update_values.reshape([-1] + [1] * (grad._values().ndim - 1))
+                    if update_values.shape != grad._values().shape:
+                        update_values = update_values.expand_as(grad._values()).clone()
                     if beta > 0.0:
                         update_values.mul_(beta)
                     update_values.addcmul_(grad._values(), grad._values(), value=1.0 - beta)
@@ -154,6 +157,9 @@ class SM3(BaseOptimizer):
                     if beta > 0.0:
                         update.mul_(beta)
                     update.addcmul_(grad, grad, value=1.0 - beta)
+
+                    if rank == 0:
+                        state['accumulator_0'].copy_(update)
 
                     for i in range(rank):
                         acc = state[f'accumulator_{i}']

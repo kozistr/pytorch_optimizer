@@ -291,6 +291,34 @@ class TestMagma:
 
 
 class TestSAM:
+    @pytest.mark.parametrize('wrapper', [WSAM, LookSAM, FriendlySAM])
+    def test_checkpoint_resume(self, wrapper):
+        param = make_parameter((2,), grad=1.0)
+
+        def build(parameters):
+            options = {'model': TrainingModel()} if wrapper is WSAM else {}
+            return wrapper(params=parameters, base_optimizer=load_optimizer('adamw'), lr=0.01, **options)
+
+        optimizer = build([param])
+        optimizer.first_step(zero_grad=True)
+        param.grad = torch.full_like(param, 0.5)
+        optimizer.second_step(zero_grad=True)
+
+        restored_param = param.detach().clone().requires_grad_()
+        restored = build([restored_param])
+        restored.load_state_dict(deepcopy(optimizer.state_dict()))
+        for gradient in (0.25, -0.5):
+            for current, parameter in ((optimizer, param), (restored, restored_param)):
+                parameter.grad = torch.full_like(parameter, gradient)
+                current.first_step(zero_grad=True)
+                parameter.grad = torch.full_like(parameter, gradient * 0.5)
+                current.second_step(zero_grad=True)
+            torch.testing.assert_close(restored_param, param)
+            torch.testing.assert_close(
+                restored.base_optimizer.state[restored_param]['exp_avg'],
+                optimizer.base_optimizer.state[param]['exp_avg'],
+            )
+
     @pytest.mark.parametrize('adaptive', [True, False])
     @pytest.mark.parametrize('wrapper', [SAM, FriendlySAM, LookSAM])
     @pytest.mark.parametrize(('base_optimizer_name', 'use_closure'), [('asgd', False), ('adamw', True)])
@@ -326,10 +354,14 @@ class TestSAM:
         optimizer.second_step(zero_grad=True)
 
     @pytest.mark.parametrize(('first_pass_active', 'second_pass_active'), [(True, False), (False, True), (True, True)])
-    def test_sam_changing_gradient_availability(self, first_pass_active, second_pass_active):
+    @pytest.mark.parametrize('wrapper', [SAM, WSAM, LookSAM, FriendlySAM])
+    def test_sam_changing_gradient_availability(self, first_pass_active, second_pass_active, wrapper):
         parameter = nn.Parameter(torch.tensor([1.0]))
         always_active = nn.Parameter(torch.tensor([2.0]))
-        optimizer = SAM([parameter, always_active], load_optimizer('sgd'), lr=0.1, rho=0.1)
+        options = {'model': TrainingModel(), 'gamma': 0.5} if wrapper is WSAM else {}
+        optimizer = wrapper(
+            params=[parameter, always_active], base_optimizer=load_optimizer('sgd'), lr=0.1, rho=0.1, **options
+        )
 
         first_loss = always_active.sum() + (parameter.sum() if first_pass_active else 0.0)
         first_loss.backward()
@@ -358,7 +390,11 @@ class TestSAM:
         opt.zero_grad()
 
         opt.init_group({'params': []})
-        opt.load_state_dict(opt.state_dict())
+        state = opt.state_dict()
+        opt.load_state_dict(state)
+        if 'base_optimizer' in state:
+            opt.load_state_dict({key: value for key, value in state.items() if key != 'base_optimizer'})
+            assert opt.param_groups is opt.base_optimizer.param_groups
 
         with pytest.raises(NoClosureError):
             opt.step()

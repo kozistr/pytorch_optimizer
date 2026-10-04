@@ -378,8 +378,7 @@ class DAdaptAdam(BaseOptimizer):
         numerator_weighted = group['numerator_weighted']
 
         for group in self.param_groups:
-            if group['step'] == 0:
-                self.init_group(group)
+            self.init_group(group)
 
             group['step'] += 1
 
@@ -541,8 +540,7 @@ class DAdaptSGD(BaseOptimizer):
         d_lr: float = d * lr / g0_norm
 
         for group in self.param_groups:
-            if group['step'] == 0:
-                self.init_group(group)
+            self.init_group(group)
 
             for p in group['params']:
                 if p.grad is None:
@@ -692,9 +690,7 @@ class DAdaptAdan(BaseOptimizer):
         gsq_weighted = group['gsq_weighted']
 
         for group in self.param_groups:
-            if 'step' not in group:
-                self.init_group(group)
-                group['step'] = 0
+            self.init_group(group)
 
             for p in group['params']:
                 if p.grad is None:
@@ -862,8 +858,7 @@ class DAdaptLion(BaseOptimizer):
         d_lr: float = d * lr
 
         for group in self.param_groups:
-            if group['step'] == 0:
-                self.init_group(group)
+            self.init_group(group)
 
             for p in group['params']:
                 if p.grad is None:

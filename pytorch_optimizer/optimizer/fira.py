@@ -97,6 +97,8 @@ class Fira(BaseOptimizer):
 
                 state = self.state[p]
 
+                full_grad = grad
+
                 if 'rank' in group and p.dim() == 2:
                     if 'projector' not in state:
                         state['projector'] = GaLoreProjector(
@@ -129,7 +131,7 @@ class Fira(BaseOptimizer):
                     if norm_dim == 1:
                         scaling_factor = scaling_factor.unsqueeze(1)
 
-                    scaling_grad = grad.sub(sub_grad).mul_(scaling_factor)
+                    scaling_grad = full_grad.sub(sub_grad).mul_(scaling_factor)
 
                     if 'scaling_grad' in state:
                         scaling_grad_norm = torch.norm(scaling_grad)

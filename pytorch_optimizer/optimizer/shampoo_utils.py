@@ -403,8 +403,8 @@ class PreConditioner:
         partitioned_grads: list[torch.Tensor] = self.partitioner.partition(reshaped_grad)
 
         for j, partitioned_grad in enumerate(partitioned_grads):
-            for i in range(self.rank):
-                axes: list[int] = [ax for ax in range(partitioned_grad.ndim) if ax != i]
+            for i, axis in enumerate(ax for ax, selected in enumerate(self.should_precondition_dims) if selected):
+                axes: list[int] = [ax for ax in range(partitioned_grad.ndim) if ax != axis]
                 stat: torch.Tensor = torch.tensordot(partitioned_grad, partitioned_grad, dims=[axes, axes])
                 self.statistics[j * self.rank + i].mul_(self.beta2).add_(stat, alpha=self.w2)
 

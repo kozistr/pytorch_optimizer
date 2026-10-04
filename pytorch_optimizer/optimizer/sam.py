@@ -372,9 +372,18 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
         return outputs, loss
 
+    def state_dict(self) -> dict:
+        state = super().state_dict()
+        state['base_optimizer'] = self.base_optimizer.state_dict()
+        return state
+
     def load_state_dict(self, state_dict: dict):
         super().load_state_dict(state_dict)
-        self.base_optimizer.param_groups = self.param_groups
+        if 'base_optimizer' in state_dict:
+            self.base_optimizer.load_state_dict(state_dict['base_optimizer'])
+            self.param_groups = self.base_optimizer.param_groups
+        else:
+            self.base_optimizer.param_groups = self.param_groups
 
 
 class WSAM(BaseOptimizer):
@@ -452,6 +461,7 @@ class WSAM(BaseOptimizer):
 
         for group in self.param_groups:
             for p in group['params']:
+                self.state[p].pop('grad', None)
                 if p.grad is None:
                     continue
 
@@ -464,27 +474,30 @@ class WSAM(BaseOptimizer):
     def second_step(self, zero_grad: bool = False):
         for group in self.param_groups:
             for p in group['params']:
+                if 'e_w' in self.state[p]:
+                    p.sub_(self.state[p].pop('e_w'))
                 if p.grad is None:
                     continue
 
                 if is_initialized():  # pragma: no cover
                     all_reduce(p.grad, ReduceOp.AVG)
 
-                p.add_(self.state[p]['e_w'], alpha=-1.0)
-
         if self.max_norm is not None:
             clip_grad_norm_(self.model.parameters(), self.max_norm)
 
         for group in self.param_groups:
             for p in group['params']:
+                old_grad = self.state[p].pop('grad', None)
                 if p.grad is None:
                     continue
 
+                if old_grad is None:
+                    old_grad = torch.zeros_like(p.grad)
                 if not self.decouple:
-                    p.grad.lerp_(self.state[p]['grad'], weight=1.0 - group['alpha'])
+                    p.grad.lerp_(old_grad, weight=1.0 - group['alpha'])
                 else:
-                    self.state[p]['sharpness'] = p.grad.clone() - self.state[p]['grad']
-                    p.grad.mul_(0.0).add_(self.state[p]['grad'], alpha=1.0)
+                    self.state[p]['sharpness'] = p.grad.clone() - old_grad
+                    p.grad.copy_(old_grad)
 
         self.base_optimizer.step()
 
@@ -518,9 +531,18 @@ class WSAM(BaseOptimizer):
 
         return loss
 
+    def state_dict(self) -> dict:
+        state = super().state_dict()
+        state['base_optimizer'] = self.base_optimizer.state_dict()
+        return state
+
     def load_state_dict(self, state_dict: dict):
         super().load_state_dict(state_dict)
-        self.base_optimizer.param_groups = self.param_groups
+        if 'base_optimizer' in state_dict:
+            self.base_optimizer.load_state_dict(state_dict['base_optimizer'])
+            self.param_groups = self.base_optimizer.param_groups
+        else:
+            self.base_optimizer.param_groups = self.param_groups
 
 
 class BSAM(BaseOptimizer):
@@ -747,10 +769,11 @@ class LookSAM(BaseOptimizer):
 
         grad_norm = get_global_gradient_norm(self.param_groups, device).add_(self.perturb_eps)
 
-        for i, group in enumerate(self.param_groups):
+        for group in self.param_groups:
             scale = group['rho'] / grad_norm
 
-            for j, p in enumerate(group['params']):
+            for p in group['params']:
+                self.state[p].pop('old_grad_p', None)
                 if p.grad is None:
                     continue
 
@@ -759,7 +782,7 @@ class LookSAM(BaseOptimizer):
                     centralize_gradient(grad, gc_conv_only=False)
 
                 self.state[p]['old_p'] = p.clone()
-                self.state[f'old_grad_p_{i}{j}']['old_grad_p'] = grad.clone()
+                self.state[p]['old_grad_p'] = grad.clone()
 
                 e_w = (torch.pow(p, 2) if group['adaptive'] else 1.0) * grad * scale.to(p)
 
@@ -772,28 +795,27 @@ class LookSAM(BaseOptimizer):
     def second_step(self, zero_grad: bool = False):
         step = self.get_step()
 
-        for i, group in enumerate(self.param_groups):
-            for j, p in enumerate(group['params']):
+        for group in self.param_groups:
+            for p in group['params']:
+                if 'old_p' in self.state[p]:
+                    p.copy_(self.state[p].pop('old_p'))
+                old_grad_p = self.state[p].pop('old_grad_p', None)
                 if p.grad is None:
                     continue
 
                 grad = p.grad
                 grad_norm = grad.norm(p=2)
 
-                if step % self.k == 0:
-                    old_grad_p = self.state[f'old_grad_p_{i}{j}']['old_grad_p']
+                if step % self.k == 0 and old_grad_p is not None:
+                    g_grad_norm = old_grad_p / old_grad_p.norm(p=2).clamp_min(self.perturb_eps)
+                    g_s_grad_norm = grad / grad_norm.clamp_min(self.perturb_eps)
 
-                    g_grad_norm = old_grad_p / old_grad_p.norm(p=2)
-                    g_s_grad_norm = grad / grad_norm
-
-                    self.state[f'gv_{i}{j}']['gv'] = torch.sub(
+                    self.state[p]['gv'] = torch.sub(
                         grad, grad_norm * torch.sum(g_grad_norm * g_s_grad_norm) * g_grad_norm
                     )
-                else:
-                    gv = self.state[f'gv_{i}{j}']['gv']
+                elif step % self.k != 0 and 'gv' in self.state[p]:
+                    gv = self.state[p]['gv']
                     grad.add_(grad_norm / (gv.norm(p=2) + 1e-8) * gv, alpha=self.alpha)
-
-                p.data = self.state[p]['old_p']
 
         self.base_optimizer.step()
 
@@ -822,9 +844,18 @@ class LookSAM(BaseOptimizer):
 
         self.second_step()
 
+    def state_dict(self) -> dict:
+        state = super().state_dict()
+        state['base_optimizer'] = self.base_optimizer.state_dict()
+        return state
+
     def load_state_dict(self, state_dict: dict):
         super().load_state_dict(state_dict)
-        self.base_optimizer.param_groups = self.param_groups
+        if 'base_optimizer' in state_dict:
+            self.base_optimizer.load_state_dict(state_dict['base_optimizer'])
+            self.param_groups = self.base_optimizer.param_groups
+        else:
+            self.base_optimizer.param_groups = self.param_groups
 
 
 class FriendlySAM(BaseOptimizer):
@@ -938,10 +969,8 @@ class FriendlySAM(BaseOptimizer):
     def second_step(self, zero_grad: bool = False):
         for group in self.param_groups:
             for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                p.data = self.state[p]['old_p']
+                if 'old_p' in self.state[p]:
+                    p.copy_(self.state[p].pop('old_p'))
 
         self.base_optimizer.step()
 
@@ -970,6 +999,15 @@ class FriendlySAM(BaseOptimizer):
 
         self.second_step()
 
+    def state_dict(self) -> dict:
+        state = super().state_dict()
+        state['base_optimizer'] = self.base_optimizer.state_dict()
+        return state
+
     def load_state_dict(self, state_dict: dict):
         super().load_state_dict(state_dict)
-        self.base_optimizer.param_groups = self.param_groups
+        if 'base_optimizer' in state_dict:
+            self.base_optimizer.load_state_dict(state_dict['base_optimizer'])
+            self.param_groups = self.base_optimizer.param_groups
+        else:
+            self.base_optimizer.param_groups = self.param_groups
