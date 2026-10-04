@@ -93,8 +93,6 @@ class AdaGC(BaseOptimizer):
             if 'exp_avg' not in state:
                 state['exp_avg'] = torch.zeros_like(grad)
                 state['exp_avg_sq'] = torch.zeros_like(grad)
-                state['gamma'] = torch.zeros((), device=grad.device, dtype=grad.dtype)
-                state['gamma_initialized'] = False
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -131,9 +129,10 @@ class AdaGC(BaseOptimizer):
                     fixed_decay=group['fixed_decay'],
                 )
 
-                exp_avg, exp_avg_sq, gamma = state['exp_avg'], state['exp_avg_sq'], state['gamma']
+                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+                gamma = state.get('gamma')
 
-                if not state['gamma_initialized'] or group['step'] < group['warmup_steps']:
+                if gamma is None or group['step'] < group['warmup_steps']:
                     grad_norm = get_global_gradient_norm(self.param_groups).sqrt_().add_(group['eps'])
 
                     h_t = min(group['lambda_abs'] / grad_norm, 1.0)
@@ -141,8 +140,7 @@ class AdaGC(BaseOptimizer):
 
                     g_hat_norm = g_hat.norm()
 
-                    gamma.copy_(g_hat_norm if not state['gamma_initialized'] else min(gamma, g_hat_norm))
-                    state['gamma_initialized'] = True
+                    state['gamma'] = g_hat_norm if gamma is None else gamma.copy_(min(gamma, g_hat_norm))
                 else:
                     h_t = (
                         group['lambda_rel'] * gamma.clamp_min(group['eps']) / grad.norm().clamp_min(group['eps'])
