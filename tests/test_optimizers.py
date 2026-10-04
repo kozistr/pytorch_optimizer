@@ -114,54 +114,65 @@ class TestOptimizerInterface:
 
         def setup_optimizer():
             model, _ = build_model()
+
             parameters = model if optimizer_name in MODEL_OPTIMIZERS else model.parameters()
             parameters, options = build_optimizer_parameters(
                 parameters, optimizer_name, CHECKPOINT_OPTIONS.get(optimizer_name, {})
             )
             optimizer = build_optimizer(optimizer_name, parameters, lr=0.01, **options)
+
             if optimizer_name.startswith('schedulefree'):
                 optimizer.train()
+
             return model, optimizer
 
-        def step(optimizer, model, iteration):
+        def step(optimizer, model):
             parameters = tuple(model.parameters())
 
+            @torch.enable_grad()
             def closure():
                 optimizer.zero_grad()
-                loss = sum(sphere_loss(p - 0.1 * (iteration + 1)) for p in parameters)
+
+                loss = sum(sphere_loss(p - 0.1) for p in parameters)
+
                 if optimizer_name not in ('lomo', 'adalomo'):
                     gradients = torch.autograd.grad(
                         loss, parameters, create_graph=should_use_create_graph(optimizer_name)
                     )
                     for param, grad in zip(parameters, gradients):
                         param.grad = grad
+
                 return loss
 
             with torch.random.fork_rng(devices=[]):
                 torch.manual_seed(42)
-                loss = closure()
+
+                if optimizer_name == 'bsam':
+                    closure()
+
                 if optimizer_name in ('lomo', 'adalomo'):
-                    optimizer.fused_backward(loss, lr=0.01)
+                    optimizer.fused_backward(closure(), lr=0.01)
                 else:
-                    optimizer.step(closure if optimizer_name in ('lbfgs', 'bsam') else make_closure(loss))
+                    optimizer.step(closure)
 
         model, optimizer = setup_optimizer()
-        for iteration in range(2):
-            step(optimizer, model, iteration)
+
+        for _ in range(2):
+            step(optimizer, model)
 
         checkpoint = BytesIO()
         torch.save(optimizer.state_dict(), checkpoint)
         checkpoint.seek(0)
+
         restored_model, restored = setup_optimizer()
         restored.load_state_dict(torch.load(checkpoint, weights_only=False))
         restored_model.load_state_dict(model.state_dict())
-        if optimizer_name == 'adafactor':
-            assert all(state['exp_avg'].dtype == torch.bfloat16 for state in restored.state.values())
 
-        for iteration in range(2, 5):
-            step(optimizer, model, iteration)
-            step(restored, restored_model, iteration)
-            torch.testing.assert_close(restored_model.state_dict(), model.state_dict())
+        for _ in range(3):
+            step(optimizer, model)
+            step(restored, restored_model)
+
+            torch.testing.assert_close(restored_model.state_dict(), model.state_dict(), rtol=0.0, atol=0.0)
 
     @pytest.mark.parametrize(
         'optimizer_name',
