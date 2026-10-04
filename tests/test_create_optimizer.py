@@ -10,6 +10,12 @@ from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS
 from tests.utils import Trainer, ids
 
 
+@pytest.fixture(autouse=True)
+def ignore_factory_warnings():
+    warnings.simplefilter('ignore', UserWarning)
+    warnings.simplefilter('ignore', ImportWarning)
+
+
 def _get_optimizer_kwargs(optimizer_name):
     kwargs = {'eps': 1e-8, 'k': 7}
     if optimizer_name == 'ranger21':
@@ -21,35 +27,30 @@ def _get_optimizer_kwargs(optimizer_name):
 
 class TestCreateOptimizer:
     @pytest.mark.parametrize(
-        'optimizer_name', [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_CREATE_OPTIMIZER]
+        'optimizer_name',
+        [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_CREATE_OPTIMIZER],
     )
     def test_create_optimizer_basic(self, optimizer_name):
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', UserWarning)
-            warnings.simplefilter('ignore', ImportWarning)
+        optimizer = create_optimizer(
+            TrainingModel(),
+            optimizer_name=optimizer_name,
+            use_lookahead=False,
+            use_orthograd=False,
+            **_get_optimizer_kwargs(optimizer_name),
+        )
 
-            optimizer = create_optimizer(
-                TrainingModel(),
-                optimizer_name=optimizer_name,
-                use_lookahead=False,
-                use_orthograd=False,
-                **_get_optimizer_kwargs(optimizer_name),
-            )
         assert optimizer.defaults.get('weight_decay', 0.0) == 0.0
         assert all(group.get('weight_decay', 0.0) == 0.0 for group in optimizer.param_groups)
 
     @pytest.mark.parametrize('optimizer_name', ['adamp', 'ranger', 'ranger21', 'ranger25'])
     def test_create_optimizer_with_lookahead(self, optimizer_name):
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', UserWarning)
-
-            optimizer = create_optimizer(
-                TrainingModel(),
-                optimizer_name=optimizer_name,
-                use_lookahead=True,
-                use_orthograd=False,
-                **_get_optimizer_kwargs(optimizer_name),
-            )
+        optimizer = create_optimizer(
+            TrainingModel(),
+            optimizer_name=optimizer_name,
+            use_lookahead=True,
+            use_orthograd=False,
+            **_get_optimizer_kwargs(optimizer_name),
+        )
 
         assert isinstance(optimizer, Lookahead) == (optimizer_name == 'adamp')
 
