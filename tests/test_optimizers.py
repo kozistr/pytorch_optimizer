@@ -1,6 +1,5 @@
 from io import BytesIO
 
-import numpy as np
 import pytest
 import torch
 
@@ -113,7 +112,8 @@ class TestOptimizerInterface:
         if optimizer_name in ('demo', 'distributedmuon'):
             pytest.skip('Requires a distributed process group and optional integrations')
 
-        def setup_optimizer(model):
+        def setup_optimizer():
+            model, _ = build_model()
             parameters = model if optimizer_name in MODEL_OPTIMIZERS else model.parameters()
             parameters, options = build_optimizer_parameters(
                 parameters, optimizer_name, CHECKPOINT_OPTIONS.get(optimizer_name, {})
@@ -121,47 +121,39 @@ class TestOptimizerInterface:
             optimizer = build_optimizer(optimizer_name, parameters, lr=0.01, **options)
             if optimizer_name.startswith('schedulefree'):
                 optimizer.train()
-            return optimizer
+            return model, optimizer
 
         def step(optimizer, model, iteration):
+            parameters = tuple(model.parameters())
+
             def closure():
                 optimizer.zero_grad()
-                loss = sum(sphere_loss(p - 0.1 * (iteration + 1)) for p in model.parameters())
-                if optimizer_name in ('lomo', 'adalomo'):
-                    return loss
-                if should_use_create_graph(optimizer_name):
-                    gradients = torch.autograd.grad(loss, tuple(model.parameters()), create_graph=True)
-                    for param, grad in zip(model.parameters(), gradients):
+                loss = sum(sphere_loss(p - 0.1 * (iteration + 1)) for p in parameters)
+                if optimizer_name not in ('lomo', 'adalomo'):
+                    gradients = torch.autograd.grad(
+                        loss, parameters, create_graph=should_use_create_graph(optimizer_name)
+                    )
+                    for param, grad in zip(parameters, gradients):
                         param.grad = grad
-                else:
-                    loss.backward()
                 return loss
 
-            rng_state = np.random.get_state()
-            try:
-                with torch.random.fork_rng(devices=[]):
-                    torch.manual_seed(42)
-                    np.random.seed(42)
-                    loss = closure()
-                    if optimizer_name in ('lomo', 'adalomo'):
-                        optimizer.fused_backward(loss, lr=0.01)
-                    else:
-                        optimizer.step(closure if optimizer_name in ('lbfgs', 'bsam') else make_closure(loss))
-            finally:
-                np.random.set_state(rng_state)
+            with torch.random.fork_rng(devices=[]):
+                torch.manual_seed(42)
+                loss = closure()
+                if optimizer_name in ('lomo', 'adalomo'):
+                    optimizer.fused_backward(loss, lr=0.01)
+                else:
+                    optimizer.step(closure if optimizer_name in ('lbfgs', 'bsam') else make_closure(loss))
 
-        model, _ = build_model()
-        optimizer = setup_optimizer(model)
+        model, optimizer = setup_optimizer()
         for iteration in range(2):
             step(optimizer, model, iteration)
 
         checkpoint = BytesIO()
         torch.save(optimizer.state_dict(), checkpoint)
         checkpoint.seek(0)
-        saved_state = torch.load(checkpoint, weights_only=False)
-        restored_model, _ = build_model()
-        restored = setup_optimizer(restored_model)
-        restored.load_state_dict(saved_state)
+        restored_model, restored = setup_optimizer()
+        restored.load_state_dict(torch.load(checkpoint, weights_only=False))
         restored_model.load_state_dict(model.state_dict())
         if optimizer_name == 'adafactor':
             assert all(state['exp_avg'].dtype == torch.bfloat16 for state in restored.state.values())

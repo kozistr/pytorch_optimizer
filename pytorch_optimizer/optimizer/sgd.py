@@ -579,7 +579,6 @@ class SGDSaI(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
-        self.has_warmup: bool = False
         self.maximize = maximize
 
         defaults: Defaults = {
@@ -594,15 +593,6 @@ class SGDSaI(BaseOptimizer):
 
     def __str__(self) -> str:
         return 'SGDSaI'
-
-    def state_dict(self) -> dict:
-        state = super().state_dict()
-        state['has_warmup'] = self.has_warmup
-        return state
-
-    def load_state_dict(self, state_dict: dict) -> None:
-        super().load_state_dict(state_dict)
-        self.has_warmup = state_dict.get('has_warmup', False)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -627,25 +617,7 @@ class SGDSaI(BaseOptimizer):
                 state['gsnr'] = grad_norm / (sigma + group['eps']) if sigma != 0.0 else grad_norm
 
     @torch.no_grad()
-    def warmup_step(self, closure: Closure = None) -> Loss:
-        loss: Loss = None
-        if closure is not None:
-            with torch.enable_grad():
-                loss = closure()
-
-        for group in self.param_groups:
-            self.init_group(group)
-            group['step'] += 1
-
-        self.has_warmup = True
-
-        return loss
-
-    @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
-        if not self.has_warmup:
-            self.warmup_step(closure)
-
         loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
