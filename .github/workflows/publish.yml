@@ -103,9 +103,9 @@ jobs:
           gh api --method POST "repos/$GH_REPO/releases/generate-notes" \
             -f tag_name="$RELEASE_TAG" -f target_commitish="$GITHUB_SHA" \
             --jq .body > "$RUNNER_TEMP/release-notes.md"
-          uv run --no-project --python 3.12 python scripts/update_changelog.py \
-            "$RELEASE_TAG" "$RUNNER_TEMP/release-notes.md"
-          delimiter="$(uv run --no-project --python 3.12 python -c 'import uuid; print(uuid.uuid4())')"
+          uv run --no-project python scripts/update_changelog.py "$RELEASE_TAG" "$RUNNER_TEMP/release-notes.md"
+
+          delimiter="release_notes_${RANDOM}_${RANDOM}_${RANDOM}"
           {
             echo "body<<$delimiter"
             cat "$RUNNER_TEMP/release-notes.md"
