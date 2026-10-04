@@ -297,17 +297,22 @@ class AdaLOMO(BaseOptimizer):
     def state_dict(self) -> dict:
         state = super().state_dict()
         state['num_steps'] = self.num_steps
-        for name in ('exp_avg_sq', 'exp_avg_sq_row', 'exp_avg_sq_col'):
-            state[name] = getattr(self, name)
+        state['exp_avg_sq'] = self.exp_avg_sq
+        state['exp_avg_sq_row'] = self.exp_avg_sq_row
+        state['exp_avg_sq_col'] = self.exp_avg_sq_col
         return state
 
     def load_state_dict(self, state_dict: dict) -> None:
         super().load_state_dict(state_dict)
         self.num_steps = state_dict.get('num_steps', 0)
         with torch.no_grad():
-            for name in ('exp_avg_sq', 'exp_avg_sq_row', 'exp_avg_sq_col'):
+            for name, accumulators in (
+                ('exp_avg_sq', self.exp_avg_sq),
+                ('exp_avg_sq_row', self.exp_avg_sq_row),
+                ('exp_avg_sq_col', self.exp_avg_sq_col),
+            ):
                 for key, value in state_dict.get(name, {}).items():
-                    getattr(self, name)[key].copy_(value)
+                    accumulators[key].copy_(value)
 
     def initialize_states(self) -> None:
         for n, p in self.model.named_parameters():

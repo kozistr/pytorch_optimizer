@@ -186,11 +186,10 @@ class SGDW(BaseOptimizer):
         self,
         group: ParamGroup,
         params: list[torch.Tensor],
-        grads: list[torch.Tensor],
-        momentum_buffers: list[torch.Tensor],
+        grads: list[torch.Tensor] | tuple[torch.Tensor, ...],
+        buffers: list[torch.Tensor],
     ) -> None:
-        lr = group['lr']
-        dampening = group['dampening']
+        lr, momentum, dampening = group['lr'], group['momentum'], group['dampening']
 
         if self.maximize:
             torch._foreach_neg_(grads)
@@ -204,28 +203,23 @@ class SGDW(BaseOptimizer):
             fixed_decay=False,
         )
 
-        updates = grads
-        if group['momentum'] > 0.0:
-            if len(momentum_buffers) == len(params):
-                torch._foreach_mul_(momentum_buffers, group['momentum'])
-                torch._foreach_add_(momentum_buffers, grads, alpha=1.0 - dampening)
+        if momentum > 0.0:
+            if len(buffers) == len(params):
+                torch._foreach_mul_(buffers, momentum)
+                torch._foreach_add_(buffers, grads, alpha=1.0 - dampening)
             else:
-                momentum_buffers = []
+                buffers = []
                 for p, grad in zip(params, grads):
                     buf = self.state[p].get('momentum_buffer')
                     if buf is None:
                         self.state[p]['momentum_buffer'] = buf = grad.clone()
                     else:
-                        buf.mul_(group['momentum']).add_(grad, alpha=1.0 - dampening)
-                    momentum_buffers.append(buf)
+                        buf.mul_(momentum).add_(grad, alpha=1.0 - dampening)
+                    buffers.append(buf)
 
-            updates = (
-                torch._foreach_add(grads, momentum_buffers, alpha=group['momentum'])
-                if group['nesterov']
-                else momentum_buffers
-            )
+            grads = torch._foreach_add(grads, buffers, alpha=momentum) if group['nesterov'] else buffers
 
-        torch._foreach_add_(params, updates, alpha=-lr)
+        torch._foreach_add_(params, grads, alpha=-lr)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         momentum = group['momentum']
