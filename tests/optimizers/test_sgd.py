@@ -8,20 +8,25 @@ from tests.utils import build_optimizer
 @pytest.mark.parametrize('foreach', [False, True])
 def test_sgdw_delayed_momentum(foreach):
     parameters = [make_parameter((2,)), make_parameter((2,), grad=None)]
-    references = [make_parameter((2,)), make_parameter((2,), grad=None)]
-    options = {'lr': 0.1, 'momentum': 0.9, 'dampening': 0.2, 'foreach': foreach}
-    optimizer = build_optimizer('sgdw', parameters, **options)
-    reference = torch.optim.SGD(references, **options)
+    optimizer = build_optimizer('sgdw', parameters, lr=0.1, momentum=0.9, dampening=0.2, foreach=foreach)
 
-    for iteration, gradient in enumerate((0.0, 1.0, -2.0)):
-        for index, (param, expected) in enumerate(zip(parameters, references)):
+    steps = [
+        (0.0, (0.0, 0.0), (0.0, None)),
+        (1.0, (-0.08, -0.1), (0.8, 1.0)),
+        (-2.0, (0.008, -0.03), (-0.88, -0.7)),
+    ]
+
+    for iteration, (gradient, expected_params, expected_momentum) in enumerate(steps):
+        for index, param in enumerate(parameters):
             param.grad = None if index == 1 and iteration == 0 else torch.full_like(param, gradient)
-            expected.grad = None if param.grad is None else param.grad.clone()
+
         optimizer.step()
-        reference.step()
-        for param, expected in zip(parameters, references):
-            torch.testing.assert_close(param, expected)
-            if param.grad is not None:
+
+        for param, expected, momentum in zip(parameters, expected_params, expected_momentum):
+            torch.testing.assert_close(param, torch.full_like(param, expected))
+            if momentum is None:
+                assert 'momentum_buffer' not in optimizer.state[param]
+            else:
                 torch.testing.assert_close(
-                    optimizer.state[param]['momentum_buffer'], reference.state[expected]['momentum_buffer']
+                    optimizer.state[param]['momentum_buffer'], torch.full_like(param, momentum)
                 )
