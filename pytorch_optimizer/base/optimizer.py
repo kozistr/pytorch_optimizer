@@ -37,8 +37,7 @@ class BaseOptimizer(ABC, Optimizer):
                 if key in state_dict['state']:
                     self.state[p] = self._restore_state_types(self.state[p], state_dict['state'][key])
 
-    @staticmethod
-    def _restore_state_types(value, saved_value):
+    def _restore_state_types(self, value, saved_value):
         if isinstance(saved_value, torch.Tensor):
             if not saved_value.is_floating_point() and not saved_value.is_complex():
                 return saved_value.to(device=value.device)
@@ -46,9 +45,9 @@ class BaseOptimizer(ABC, Optimizer):
         if isinstance(saved_value, str):
             return saved_value
         if isinstance(saved_value, dict):
-            return {key: BaseOptimizer._restore_state_types(value[key], saved) for key, saved in saved_value.items()}
+            return {key: self._restore_state_types(value[key], saved) for key, saved in saved_value.items()}
         if isinstance(saved_value, (tuple, list, deque)):
-            restored = [BaseOptimizer._restore_state_types(item, saved) for item, saved in zip(value, saved_value)]
+            restored = [self._restore_state_types(item, saved) for item, saved in zip(value, saved_value)]
             return deque(restored, maxlen=saved_value.maxlen) if isinstance(saved_value, deque) else type(saved_value)(
                 restored
             )
