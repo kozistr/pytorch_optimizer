@@ -279,7 +279,6 @@ class Alice(BaseOptimizer):
             group['step'] += 1
 
             beta1, beta2, beta3 = group['betas']
-            rank, leading_basis = group['rank'], group['leading_basis']
 
             for p in group['params']:
                 if p.grad is None:
@@ -305,7 +304,6 @@ class Alice(BaseOptimizer):
                 if not has_state:
                     m, n = grad.shape
                     rank = min(group['rank'], m)
-                    state['rank'] = rank
 
                     state['U'] = torch.zeros((m, rank), dtype=p.dtype, device=p.device)
                     state['Q'] = torch.zeros((rank, rank), dtype=p.dtype, device=p.device)
@@ -316,7 +314,7 @@ class Alice(BaseOptimizer):
                     state['p'] = torch.zeros((n,), dtype=p.dtype, device=p.device)
                     state['phi'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
-                rank = state['rank']
+                rank = state['U'].size(1)
                 leading_basis = min(group['leading_basis'], rank)
 
                 self.apply_weight_decay(
