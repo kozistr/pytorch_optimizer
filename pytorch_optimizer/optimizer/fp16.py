@@ -158,6 +158,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
     def state_dict(self) -> dict:
         """Return the optimizer state dict."""
         state_dict = self.optimizer.state_dict()
+        state_dict['fp32_params'] = [p.detach().clone() for p in self.fp32_params]
         if self.scaler is not None:
             state_dict['loss_scaler'] = self.scaler.loss_scale
         return state_dict
@@ -172,6 +173,12 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
         if 'loss_scaler' in state_dict and self.scaler is not None and isinstance(state_dict['loss_scaler'], float):
             self.scaler.loss_scale = state_dict['loss_scaler']
         self.optimizer.load_state_dict(state_dict)
+        if 'fp32_params' in state_dict:
+            if len(state_dict['fp32_params']) != len(self.fp32_params):
+                raise ValueError('master weights do not match the current parameters')
+            with torch.no_grad():
+                for p, saved in zip(self.fp32_params, state_dict['fp32_params']):
+                    p.copy_(saved)
 
     def backward(self, loss, update_main_grads: bool = False):
         """Scale the loss and compute low precision parameter gradients.

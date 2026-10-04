@@ -134,17 +134,22 @@ class Magma(BaseOptimizer):
         if 'moment_key' in state_dict:
             self.moment_key = state_dict['moment_key']
 
-        key_to_id: dict[tuple[int, int], int] = {
-            (group_index, parameter_index): id(parameter)
+        key_to_parameter: dict[tuple[int, int], Tensor] = {
+            (group_index, parameter_index): parameter
             for group_index, group in enumerate(self.param_groups)
             for parameter_index, parameter in enumerate(group['params'])
         }
 
         self._state = {}
         for key, parameter_state in state_dict.get('magma_state', {}).items():
-            parameter_id = key_to_id.get(key)
-            if parameter_id is not None:
-                self._state[parameter_id] = {name: value.clone() for name, value in parameter_state.items()}
+            parameter = key_to_parameter.get(key)
+            if parameter is not None:
+                self._state[id(parameter)] = {
+                    name: value.to(
+                        device=parameter.device, dtype=torch.float32 if name == 'alignment' else parameter.dtype
+                    ).clone()
+                    for name, value in parameter_state.items()
+                }
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:

@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer.psgd import initialize_q_expressions
+from pytorch_optimizer.optimizer.psgd import initialize_q_expressions, precondition_update_prob_schedule
 from pytorch_optimizer.optimizer.psgd_utils import (
     damped_pair_vg,
     norm_lower_bound,
@@ -13,17 +13,21 @@ from tests.fixtures import make_parameter
 from tests.utils import build_optimizer
 
 
-def test_kron_optimizer():
+@pytest.mark.parametrize('probability', [1.0, precondition_update_prob_schedule()])
+def test_kron_optimizer(probability):
     params = [make_parameter(shape, grad=1.0) for shape in ((1, 1), (1,))]
     optimizer = build_optimizer(
         'kron',
         params,
         weight_decay=1e-3,
-        pre_conditioner_update_probability=1.0,
+        pre_conditioner_update_probability=probability,
         balance_prob=1.0,
         mu_dtype=torch.bfloat16,
     )
     optimizer.step()
+    for param in params:
+        assert torch.isfinite(param).all()
+        assert torch.count_nonzero(param) == param.numel()
 
 
 class TestPSGDUtils:

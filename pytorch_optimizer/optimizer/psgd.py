@@ -1,7 +1,7 @@
 import math
 from collections.abc import Callable
 from string import ascii_lowercase, ascii_uppercase
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 import torch
@@ -83,13 +83,8 @@ class Kron(BaseOptimizer):
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
         self.validate_non_negative(weight_decay, 'weight_decay')
 
-        if pre_conditioner_update_probability is None:
-            pre_conditioner_update_probability = precondition_update_prob_schedule()
-
         self.balance_prob: float = balance_prob
         self.eps: float = torch.finfo(torch.bfloat16).tiny
-        self.prob_step: int = 0
-        self.update_counter: int = 0
         self.maximize = maximize
 
         defaults = {
@@ -124,15 +119,16 @@ class Kron(BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
-        update_prob = self.param_groups[0]['pre_conditioner_update_probability']
+        first_group = self.param_groups[0]
+        update_prob = first_group['pre_conditioner_update_probability']
+        if update_prob is None:
+            update_prob = precondition_update_prob_schedule()(first_group.get('step', 0))
         if callable(update_prob):
-            update_prob = update_prob(self.prob_step)
+            update_prob = cast(torch.Tensor, update_prob(first_group.get('step', 0)))
 
-        self.update_counter += 1
-        do_update: bool = self.update_counter >= 1 / update_prob
-        if do_update:
-            self.update_counter = 0
-        self.prob_step += 1
+        update_counter = first_group.get('update_counter', 0) + 1
+        do_update: bool = update_counter >= 1 / update_prob
+        first_group['update_counter'] = 0 if do_update else update_counter
 
         balance: bool = np.random.random() < self.balance_prob and do_update
 

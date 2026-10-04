@@ -418,7 +418,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
 
                         p.add_(update.reshape(p.shape), alpha=-lr)
 
-                    all_gather(padded_params[i:i + self.world_size], padded_params[i:i + self.rank])  # fmt: skip
+                    all_gather(padded_params[i:i + self.world_size], padded_params[i + self.rank])  # fmt: skip
             else:
                 for p in group['params']:
                     grad = p.grad
@@ -829,7 +829,7 @@ class AdaGO(BaseOptimizer):
 
                     p.add_(
                         update.reshape(p.shape),
-                        alpha=-max(group['eps'], lr * min(grad.norm(2), group['gamma']) / v).item(),
+                        alpha=-max(group['eps'], (lr * min(grad.norm(2), group['gamma']) / v).item()),
                     )
                 else:
                     exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']

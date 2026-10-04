@@ -81,6 +81,14 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
     def __str__(self) -> str:
         return 'AdamMini'
 
+    def load_state_dict(self, state_dict: dict) -> None:
+        super().load_state_dict(state_dict)
+        for group, saved_group in zip(self.param_groups, state_dict['param_groups']):
+            for p, key in zip(group['params'], saved_group['params']):
+                for name, value in state_dict['state'].get(key, {}).items():
+                    if isinstance(value, torch.Tensor) and value.is_floating_point():
+                        self.state[p][name] = value.to(device=p.device, dtype=torch.float32)
+
     def get_optimizer_groups(self, weight_decay: float):
         groups = []
         for name, param in self.model.named_parameters():

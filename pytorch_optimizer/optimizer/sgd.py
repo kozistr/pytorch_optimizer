@@ -176,11 +176,6 @@ class SGDW(BaseOptimizer):
             if grad.is_sparse:
                 raise NoSparseGradientError(str(self))
 
-            state = self.state[p]
-
-            if len(state) == 0:
-                state['momentum_buffer'] = p.clone()
-
     def _can_use_foreach(self, group: ParamGroup) -> bool:
         if group.get('foreach') is False:
             return False
@@ -191,11 +186,9 @@ class SGDW(BaseOptimizer):
         self,
         group: ParamGroup,
         params: list[torch.Tensor],
-        grads: list[torch.Tensor],
-        momentum_buffers: list[torch.Tensor],
+        grads: list[torch.Tensor] | tuple[torch.Tensor, ...],
     ) -> None:
-        lr = group['lr']
-        dampening = group['dampening']
+        lr, momentum, dampening = group['lr'], group['momentum'], group['dampening']
 
         if self.maximize:
             torch._foreach_neg_(grads)
@@ -209,11 +202,25 @@ class SGDW(BaseOptimizer):
             fixed_decay=False,
         )
 
-        torch._foreach_lerp_(momentum_buffers, grads, weight=1.0 - dampening)
-        if group['nesterov']:
-            torch._foreach_add_(grads, momentum_buffers, alpha=group['momentum'])
+        if momentum > 0.0:
+            buffers, existing_buffers, existing_grads = [], [], []
+            for p, grad in zip(params, grads):
+                state = self.state[p]
+                buf = state.get('momentum_buffer')
+                if buf is None:
+                    state['momentum_buffer'] = buf = grad.clone()
+                else:
+                    existing_buffers.append(buf)
+                    existing_grads.append(grad)
+                buffers.append(buf)
 
-        torch._foreach_add_(params, momentum_buffers, alpha=-lr)
+            if existing_buffers:
+                torch._foreach_mul_(existing_buffers, momentum)
+                torch._foreach_add_(existing_buffers, existing_grads, alpha=1.0 - dampening)
+
+            grads = torch._foreach_add(grads, buffers, alpha=momentum) if group['nesterov'] else buffers
+
+        torch._foreach_add_(params, grads, alpha=-lr)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         momentum = group['momentum']
@@ -226,17 +233,6 @@ class SGDW(BaseOptimizer):
 
             self.maximize_gradient(grad, maximize=self.maximize)
 
-            state = self.state[p]
-
-            if momentum > 0.0:
-                buf = state['momentum_buffer']
-                buf.mul_(momentum).add_(grad, alpha=1.0 - group['dampening'])
-
-                if group['nesterov']:
-                    grad.add_(buf, alpha=momentum)
-                else:
-                    grad = buf
-
             self.apply_weight_decay(
                 p,
                 grad=grad,
@@ -245,6 +241,16 @@ class SGDW(BaseOptimizer):
                 weight_decouple=group['weight_decouple'],
                 fixed_decay=False,
             )
+
+            if momentum > 0.0:
+                state = self.state[p]
+                buf = state.get('momentum_buffer')
+                if buf is None:
+                    state['momentum_buffer'] = buf = grad.clone()
+                else:
+                    buf.mul_(momentum).add_(grad, alpha=1.0 - group['dampening'])
+
+                grad = grad.add_(buf, alpha=momentum) if group['nesterov'] else buf
 
             p.add_(grad, alpha=-group['lr'])
 
@@ -260,11 +266,9 @@ class SGDW(BaseOptimizer):
             group['step'] += 1
 
             if self._can_use_foreach(group):
-                params, grads, state_dict = self.collect_trainable_params(
-                    group, self.state, state_keys=['momentum_buffer']
-                )
+                params, grads, _ = self.collect_trainable_params(group, self.state)
                 if params:
-                    self._step_foreach(group, params, grads, state_dict['momentum_buffer'])
+                    self._step_foreach(group, params, grads)
             else:
                 self._step_per_param(group)
 
@@ -575,7 +579,6 @@ class SGDSaI(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
 
-        self.has_warmup: bool = False
         self.maximize = maximize
 
         defaults: Defaults = {
@@ -605,11 +608,16 @@ class SGDSaI(BaseOptimizer):
 
             state = self.state[p]
 
-            if group['momentum'] > 0.0:
+            if group['momentum'] > 0.0 and 'momentum_buffer' not in state:
                 state['momentum_buffer'] = torch.zeros_like(p)
 
+            if 'gsnr' not in state:
+                sigma = grad.std().nan_to_num_() if grad.ndim > 1 and grad.size(0) != 1 else 0
+                grad_norm = grad.norm()
+                state['gsnr'] = grad_norm / (sigma + group['eps']) if sigma != 0.0 else grad_norm
+
     @torch.no_grad()
-    def warmup_step(self, closure: Closure = None) -> Loss:
+    def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
@@ -617,36 +625,6 @@ class SGDSaI(BaseOptimizer):
 
         for group in self.param_groups:
             self.init_group(group)
-            group['step'] += 1
-
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                grad = p.grad
-
-                sigma = grad.std().nan_to_num_() if grad.ndim > 1 and grad.size(0) != 1 else 0
-                grad_norm = grad.norm()
-
-                g_snr = grad_norm.div_(sigma.add_(group['eps'])) if sigma != 0.0 else grad_norm
-
-                self.state[p]['gsnr'] = g_snr
-
-        self.has_warmup = True
-
-        return loss
-
-    @torch.no_grad()
-    def step(self, closure: Closure = None) -> Loss:
-        if not self.has_warmup:
-            self.warmup_step(closure)
-
-        loss: Loss = None
-        if closure is not None:
-            with torch.enable_grad():
-                loss = closure()
-
-        for group in self.param_groups:
             group['step'] += 1
 
             momentum: float = group['momentum']
@@ -755,8 +733,8 @@ class VSGD(BaseOptimizer):
 
             if len(state) == 0:
                 state['mug'] = torch.zeros_like(p)
-                state['bg'] = torch.zeros_like(p)
-                state['bhg'] = torch.zeros_like(p)
+                state['bg'] = torch.full_like(p, group['pbg2'])
+                state['bhg'] = torch.full_like(p, group['pbhg2'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

@@ -46,9 +46,12 @@ def get_chebyshev_perm_steps(num_epochs: int) -> np.ndarray:
         num_epochs: Number of total epochs.
 
     """
+    if num_epochs < 1:
+        raise IndexError('num_epochs must be positive')
+
     steps: np.ndarray = get_chebyshev_steps(num_epochs)
     perm: np.ndarray = get_chebyshev_permutation(num_epochs - 2)
-    return steps[perm]
+    return steps[perm[perm < num_epochs]]
 
 
 def get_chebyshev_lr_lambda(epoch: int, num_epochs: int, is_warmup: bool = False) -> float:

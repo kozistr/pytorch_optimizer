@@ -128,7 +128,7 @@ class CPUOffloadOptimizer:  # pragma: no cover
                 self.param_cuda2cpu_map[p_cuda] = p_cpu
 
                 p_cuda.register_post_accumulate_grad_hook(backward_hook)
-                self.optim_dict[p_cuda] = optimizer_class([{'params': p_cpu, **param_group}], **kwargs)
+                self.optim_dict[p_cuda] = optimizer_class([{**param_group, 'params': [p_cpu]}], **kwargs)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -362,7 +362,6 @@ def get_global_gradient_norm(param_groups: list[dict]) -> torch.Tensor:
     return global_grad_norm
 
 
-@torch.no_grad()
 def reg_noise(
     network1: nn.Module, network2: nn.Module, num_data: int, lr: float, eta: float = 8e-3, temperature: float = 1e-4
 ) -> torch.Tensor | float:

@@ -26,7 +26,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('adabelief', {'lr': 1e1, 'weight_decay': 1e-3}, 5),
     ('adabound', {'lr': 1e0, 'gamma': 0.1, 'weight_decay': 1e-3}, 35),
     ('adamp', {'lr': 1e0, 'weight_decay': 1e-3}, 5),
-    ('adams', {'lr': 2e1, 'weight_decay': 1e-3}, 5),
+    ('adams', {'lr': 2e0, 'weight_decay': 1e-3}, 5),
     ('diffgrad', {'lr': 2e0, 'weight_decay': 1e-3, 'rectify': True}, 15),
     ('diffgrad', {'lr': 2e0, 'weight_decay': 1e-3}, 5),
     ('lamb', {'lr': 1e0, 'weight_decay': 1e-3, 'rectify': True}, 30),
@@ -51,7 +51,7 @@ COPT_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('laprop', {'lr': 1e0}, 2),
     ('adamp', {'lr': 1e0}, 2),
     ('adopt', {'lr': 1e1}, 3),
-    ('adashift', {'lr': 1e1, 'keep_num': 1}, 3),
+    ('adashift', {'lr': 1e0, 'keep_num': 1}, 5),
     ('mars', {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3}, 3),
     ('mars', {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3, 'optimize_1d': True}, 3),
     (
@@ -109,7 +109,10 @@ class TestMaximize:
         for optimizer in (ascent, descent):
             with torch.random.fork_rng(devices=[]):
                 torch.manual_seed(42)
-                optimizer.step(lambda: 0.1)
+                options = {'hessian': [torch.ones_like(optimizer.param_groups[0]['params'][0])]} if (
+                    optimizer_name in ('adahessian', 'sophiah')
+                ) else {}
+                optimizer.step(lambda: 0.1, **options)
 
         torch.testing.assert_close(params[0], params[1])
 

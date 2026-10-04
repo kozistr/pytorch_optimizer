@@ -143,21 +143,28 @@ def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param,
         expected_lrs,
     ) = cosine_annealing_warmup_restart_param
 
-    lr_scheduler = CosineAnnealingWarmupRestarts(
-        optimizer=scheduler_optimizer,
-        first_cycle_steps=first_cycle_steps,
-        cycle_mult=cycle_mult,
-        max_lr=max_lr,
-        min_lr=min_lr,
-        warmup_steps=warmup_steps,
-        gamma=gamma,
-    )
+    options = {
+        'first_cycle_steps': first_cycle_steps,
+        'cycle_mult': cycle_mult,
+        'max_lr': max_lr,
+        'min_lr': min_lr,
+        'warmup_steps': warmup_steps,
+        'gamma': gamma,
+    }
+    lr_scheduler = CosineAnnealingWarmupRestarts(scheduler_optimizer, **options)
+    incremental = CosineAnnealingWarmupRestarts(build_optimizer('sgd', [make_parameter()]), **options)
 
     if warmup_steps > 0:
         np.testing.assert_almost_equal(min_lr, round(lr_scheduler.get_lr()[0], 6))
 
     for epoch in range(max_epochs):
         lr_scheduler.step(epoch)
+        if epoch > 0:
+            incremental.step()
+
+        assert lr_scheduler.get_last_lr() == pytest.approx(incremental.get_last_lr())
+        assert lr_scheduler.cur_cycle_steps == incremental.cur_cycle_steps
+        assert lr_scheduler.cycle == incremental.cycle
 
         lr: float = round(lr_scheduler.get_lr()[0], 6)
         np.testing.assert_almost_equal(expected_lrs[epoch], lr)

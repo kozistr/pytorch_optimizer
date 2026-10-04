@@ -119,13 +119,10 @@ class QHAdam(BaseOptimizer):
                 beta1_weight.mul_(beta1).add_(1.0)
                 beta2_weight.mul_(beta2).add_(1.0)
 
-                beta1_adj = 1.0 - (1.0 / beta1_weight)
-                beta2_adj = 1.0 - (1.0 / beta2_weight)
-
                 grad_p2 = grad.pow(2)
 
-                exp_avg.mul_(beta1_adj).add_((1.0 - beta1_adj) * grad)
-                exp_avg_sq.mul_(beta2_adj).add_(1.0 - beta2_adj * grad_p2)
+                exp_avg.lerp_(grad, weight=beta1_weight.reciprocal().to(dtype=grad.dtype))
+                exp_avg_sq.lerp_(grad_p2, weight=beta2_weight.reciprocal().to(dtype=grad.dtype))
 
                 avg_grad = exp_avg.mul(nu1)
                 if nu1 != 1.0:

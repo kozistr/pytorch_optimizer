@@ -141,7 +141,7 @@ class Lamb(BaseOptimizer):
             if isinstance(grad_norm, torch.Tensor):
                 grad_norm = grad_norm.reshape(())
 
-            torch._foreach_div_(grads, grad_norm)
+            torch._foreach_mul_(grads, grad_norm)
 
         if group['weight_decouple']:
             self.apply_weight_decay_foreach(
@@ -215,7 +215,7 @@ class Lamb(BaseOptimizer):
             return
 
         if self.pre_norm:
-            grad.div_(grad_norm)
+            grad.mul_(grad_norm)
 
         self.maximize_gradient(grad, maximize=self.maximize)
 

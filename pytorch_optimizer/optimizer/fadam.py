@@ -118,7 +118,7 @@ class FAdam(BaseOptimizer):
                 fim.mul_(curr_beta2).addcmul_(grad, grad, value=1.0 - curr_beta2)
 
                 rms_grad = grad.pow(2).mean().sqrt_()
-                curr_eps = min(group['eps'], group['eps_2'] * rms_grad)
+                curr_eps = min(group['eps'], group['eps_2'] * rms_grad) if rms_grad > 0 else group['eps']
 
                 fim_base = fim.pow(group['p']).add_(curr_eps ** (2.0 * group['p']))
                 grad_nat = grad / fim_base

@@ -31,7 +31,7 @@ class Norm:
 
     def lmo(self, grad: torch.Tensor) -> torch.Tensor:
         """Return the linear minimization oracle direction."""
-        return grad
+        return grad.clone()
 
 
 class Col(Norm):
@@ -75,7 +75,7 @@ class Col(Norm):
         if self.normalized:
             rms_value.mul_(d_out)
 
-        grad /= rms_value.add_(eps)
+        grad = grad / rms_value.add_(eps)
 
         if self.transpose:
             grad = grad.transpose(0, 1)
@@ -122,7 +122,7 @@ class Row(Norm):
         if self.normalized:
             rms_value.mul_(math.sqrt(grad.size(-1)))
 
-        grad /= rms_value.add_(eps)
+        grad = grad / rms_value.add_(eps)
 
         if self.transpose:
             grad = grad.transpose(0, 1)
@@ -137,9 +137,8 @@ class BiasRMS(Norm):
         return torch.nn.init.zeros_(x)
 
     def lmo(self, grad: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
-        rms_value = torch.sqrt(torch.sum(grad.pow(2), dim=0, keepdim=True))
-        grad /= rms_value.add_(eps)
-        return grad
+        rms_value = torch.sqrt(torch.mean(grad.pow(2), dim=0, keepdim=True))
+        return grad / rms_value.add_(eps)
 
 
 class SpectralConv(Norm):
@@ -154,24 +153,24 @@ class SpectralConv(Norm):
         self.num_steps = num_steps
 
     def init(self, x: torch.Tensor) -> torch.Tensor:
-        x_fp64 = x.double()
+        x_fp64 = x.double().contiguous()
 
-        d_out, d_in, kernel_size, *_ = x_fp64.size()
+        d_out, d_in, *kernel_shape = x_fp64.size()
+        kernel_volume = math.prod(kernel_shape)
+        kernels = x_fp64.reshape(d_out, d_in, kernel_volume)
+        for i in range(kernel_volume):
+            torch.nn.init.orthogonal_(kernels[:, :, i])
 
-        for i in range(kernel_size):
-            for j in range(kernel_size):
-                torch.nn.init.orthogonal_(x_fp64[..., i, j])
-
-        x_fp64.mul_(math.sqrt(d_out / d_in) / (kernel_size**2))
+        x_fp64.mul_(math.sqrt(d_out / d_in) / kernel_volume)
 
         return x_fp64.to(dtype=x.dtype)
 
     def lmo(self, grad: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
         grad = zero_power_via_newton_schulz_5(grad.view(len(grad), -1), self.num_steps).view(grad.shape)
 
-        d_out, d_in, kernel_size, *_ = grad.size()
+        d_out, d_in, *kernel_shape = grad.size()
 
-        grad *= math.sqrt(d_out / d_in) / (kernel_size**2)
+        grad *= math.sqrt(d_out / d_in) / math.prod(kernel_shape)
 
         return grad
 
@@ -396,7 +395,7 @@ class SCION(BaseOptimizer):
         for group in self.param_groups:
             norm = build_lmo_norm(group['norm_type'], **group['norm_kwargs'])
             for p in group['params']:
-                norm.init(p)
+                p.copy_(norm.init(p))
                 p.mul_(group['scale'])
 
     def _can_use_foreach(self, group: ParamGroup) -> bool:
@@ -416,14 +415,6 @@ class SCION(BaseOptimizer):
         if self.maximize:
             torch._foreach_neg_(grads)
 
-        torch._foreach_lerp_(ds, grads, group['momentum'])
-
-        updates = [norm.lmo(d) for d in ds]
-        torch._foreach_mul_(updates, group['scale'])
-
-        if group['constraint']:
-            torch._foreach_mul_(params, 1.0 - group['lr'])
-
         if not group['constraint'] and group['weight_decay'] > 0.0:
             self.apply_weight_decay_foreach(
                 params,
@@ -433,6 +424,14 @@ class SCION(BaseOptimizer):
                 weight_decouple=group['weight_decouple'],
                 fixed_decay=False,
             )
+
+        torch._foreach_lerp_(ds, grads, group['momentum'])
+
+        updates = [norm.lmo(d) for d in ds]
+        torch._foreach_mul_(updates, group['scale'])
+
+        if group['constraint']:
+            torch._foreach_mul_(params, 1.0 - group['lr'])
 
         torch._foreach_add_(params, updates, alpha=-group['lr'])
 
@@ -449,13 +448,6 @@ class SCION(BaseOptimizer):
 
             d = state['d']
 
-            d.lerp_(grad, weight=group['momentum'])
-
-            update = norm.lmo(d).mul_(group['scale'])
-
-            if group['constraint']:
-                p.mul_(1.0 - group['lr'])
-
             if not group['constraint'] and group['weight_decay'] > 0.0:
                 self.apply_weight_decay(
                     p,
@@ -465,6 +457,13 @@ class SCION(BaseOptimizer):
                     weight_decouple=group['weight_decouple'],
                     fixed_decay=False,
                 )
+
+            d.lerp_(grad, weight=group['momentum'])
+
+            update = norm.lmo(d).mul_(group['scale'])
+
+            if group['constraint']:
+                p.mul_(1.0 - group['lr'])
 
             p.add_(update, alpha=-group['lr'])
 
@@ -580,7 +579,7 @@ class SCIONLight(BaseOptimizer):
         for group in self.param_groups:
             norm = build_lmo_norm(group['norm_type'], **group['norm_kwargs'])
             for p in group['params']:
-                norm.init(p)
+                p.copy_(norm.init(p))
                 p.mul_(group['scale'])
 
     def _can_use_foreach(self, group: ParamGroup) -> bool:

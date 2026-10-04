@@ -100,10 +100,11 @@ class RACS(BaseOptimizer):
                 elif grad.ndim > 2:
                     grad = grad.reshape(len(grad), -1)
 
-                if len(state) == 0:
+                has_state = 's' in state
+                if not has_state:
                     state['s'] = torch.zeros(grad.size(0), dtype=grad.dtype, device=grad.device)
                     state['q'] = torch.ones(grad.size(1), dtype=grad.dtype, device=grad.device)
-                    state['theta'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
+                    state['theta'] = torch.zeros((), dtype=grad.dtype, device=grad.device)
 
                 self.apply_weight_decay(
                     p=p,
@@ -128,7 +129,7 @@ class RACS(BaseOptimizer):
                 grad_hat_norm = torch.norm(grad_hat)
                 threshold = (
                     group['gamma'] / max(grad_hat_norm / (state['theta'] + group['eps']), group['gamma'])
-                    if group['step'] > 1
+                    if has_state
                     else 1.0
                 )
                 state['theta'] = grad_hat_norm.mul_(threshold)
@@ -249,7 +250,7 @@ class Alice(BaseOptimizer):
         decay_rate: float,
         rank: int,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        m, n = grad.shape
+        m = grad.size(0)
 
         sigma = u.T @ grad
 
@@ -257,11 +258,7 @@ class Alice(BaseOptimizer):
             1e-8
         )
 
-        d = torch.zeros_like(grad)
-        diag_len: int = min(m, n)
-        d[torch.arange(diag_len), torch.arange(diag_len)] = 1.0 / p.sqrt()[:diag_len]
-
-        c_t = math.sqrt(m - rank) * (grad - u @ sigma) * d if m >= rank else torch.zeros_like(grad)
+        c_t = math.sqrt(m - rank) * (grad - u @ sigma) / p.sqrt() if m >= rank else torch.zeros_like(grad)
 
         n = gamma / max(torch.norm(c_t) / phi, gamma) if phi.item() > 0 else torch.ones_like(phi)
 
@@ -282,7 +279,6 @@ class Alice(BaseOptimizer):
             group['step'] += 1
 
             beta1, beta2, beta3 = group['betas']
-            rank, leading_basis = group['rank'], group['leading_basis']
 
             for p in group['params']:
                 if p.grad is None:
@@ -304,8 +300,10 @@ class Alice(BaseOptimizer):
                 elif grad.ndim > 2:
                     grad = grad.reshape(len(grad), -1)
 
-                if len(state) == 0:
+                has_state = 'U' in state
+                if not has_state:
                     m, n = grad.shape
+                    rank = min(group['rank'], m)
 
                     state['U'] = torch.zeros((m, rank), dtype=p.dtype, device=p.device)
                     state['Q'] = torch.zeros((rank, rank), dtype=p.dtype, device=p.device)
@@ -315,6 +313,9 @@ class Alice(BaseOptimizer):
 
                     state['p'] = torch.zeros((n,), dtype=p.dtype, device=p.device)
                     state['phi'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
+
+                rank = state['U'].size(1)
+                leading_basis = min(group['leading_basis'], rank)
 
                 self.apply_weight_decay(
                     p=p,
@@ -327,7 +328,7 @@ class Alice(BaseOptimizer):
 
                 q, u, m, v = state['Q'], state['U'], state['m'], state['v']
 
-                if group['step'] == 1 or group['step'] % group['update_interval'] == 0:
+                if not has_state or group['step'] % group['update_interval'] == 0:
                     q_t = beta3 * (u @ q @ u.T) + (1.0 - beta3) * (grad @ grad.T)
                     u = self.switch(q_t, u, rank, leading_basis)
                     state['U'] = u
@@ -340,7 +341,7 @@ class Alice(BaseOptimizer):
 
                 c_t, phi = self.compensation(grad, u, state['p'], state['phi'], group['gamma'], beta1, rank)
 
-                update = u @ (m / v.sqrt())
+                update = u @ (m / v.sqrt().add_(group['eps']))
                 update.add_(c_t, alpha=group['alpha_c'])
 
                 p.add_(update.view_as(p), alpha=-group['lr'] * group['alpha'])

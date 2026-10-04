@@ -614,6 +614,10 @@ class ScheduleFreeWrapper(BaseOptimizer):
             raise ValueError('schedule-free state does not match the current parameters')
 
         self.optimizer.load_state_dict(state['base_optimizer'])
+        for p, parameter_state in restored_state.items():
+            for key, value in parameter_state.items():
+                if isinstance(value, torch.Tensor):
+                    parameter_state[key] = value.to(device=p.device, dtype=p.dtype)
         self.state = defaultdict(dict, restored_state)
         self.train_mode = state.get('train_mode', self.train_mode)
 

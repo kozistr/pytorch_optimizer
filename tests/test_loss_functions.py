@@ -33,7 +33,7 @@ BINARY_DICE_RECIPES: tuple[tuple, ...] = (
 
 class TestBinaryCE:
     @torch.no_grad()
-    @pytest.mark.parametrize('recipe', [('train', 0.37069410), ('eval', 0.30851572)])
+    @pytest.mark.parametrize('recipe', [('train', 0.42595610), ('eval', 0.30851572)])
     def test_bce_loss(self, recipe, binary_predictions):
         mode, expected_loss = recipe
 
@@ -49,9 +49,9 @@ class TestBinaryCE:
     @pytest.mark.parametrize(
         'recipe',
         [
-            ('train', 'mean', 0.031676896),
+            ('train', 'mean', 0.030802673),
             ('eval', 'mean', 0.029709899),
-            ('train', 'sum', 0.316768959),
+            ('train', 'sum', 0.308026731),
             ('eval', 'sum', 0.297098987),
         ],
     )

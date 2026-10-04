@@ -21,4 +21,9 @@ class TestGrokfast:
         model = TrainingModel()
         for param in model.parameters():
             param.grad = torch.ones_like(param)
-        gradfilter_ema(model, None)
+        grads = gradfilter_ema(model, None, alpha=0.5)
+        for param in model.parameters():
+            param.grad.fill_(3.0)
+        gradfilter_ema(model, grads, alpha=0.5)
+        for name, param in model.named_parameters():
+            torch.testing.assert_close(grads[name], torch.full_like(param, 2.0))

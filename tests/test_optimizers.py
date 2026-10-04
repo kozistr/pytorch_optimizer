@@ -1,9 +1,17 @@
+from io import BytesIO
+
 import pytest
 import torch
 
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from tests.fixtures import TrainingModel, build_model, make_parameter
-from tests.optimizer_cases import COMPLEX_OPTIMIZERS, FOREACH_OPTIMIZERS, MODEL_OPTIMIZERS, SKIP_BF16_OPTIMIZERS
+from tests.optimizer_cases import (
+    COMPLEX_OPTIMIZERS,
+    FOREACH_OPTIMIZERS,
+    MODEL_OPTIMIZERS,
+    SKIP_BF16_OPTIMIZERS,
+    VALID_OPTIMIZER_NAMES,
+)
 from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS, OPTIMIZER_RECIPES
 from tests.utils import (
     Trainer,
@@ -13,6 +21,7 @@ from tests.utils import (
     ids,
     make_closure,
     should_use_create_graph,
+    sphere_loss,
 )
 
 TRAINING_CASES = [
@@ -25,6 +34,22 @@ TRAINING_CASES = [
     for foreach in ([False, True] if dtype != torch.complex64 and recipe[0] in FOREACH_OPTIMIZERS else [False])
 ]
 RECIPE_OPTIMIZER_NAMES = sorted({recipe[0] for recipe in OPTIMIZER_RECIPES})
+CHECKPOINT_OPTIONS = {
+    'adafactor': {'relative_step': False, 'scale_parameter': False, 'momentum_dtype': torch.bfloat16},
+    'ranger21': {'num_iterations': 10, 'lookahead_merge_time': 3},
+    'spam': {'density': 0.5, 'update_proj_gap': 3, 'warmup_epoch': 2, 'grad_accu_steps': 0},
+    'stablespam': {'update_proj_gap': 3, 't_max': 10},
+    'kron': {'balance_prob': 0.0},
+    'adashift': {'keep_num': 1},
+    'sgdw': {'momentum': 0.9},
+    'scalableshampoo': {
+        'start_preconditioning_step': 1,
+        'preconditioning_compute_steps': 1,
+        'shape_interpretation': False,
+    },
+    'lbfgs': {'max_iter': 3},
+    'bsam': {'num_data': 100},
+}
 
 
 class TestOptimizerTraining:
@@ -82,6 +107,73 @@ class TestOptimizerTraining:
 
 
 class TestOptimizerInterface:
+    @pytest.mark.parametrize('optimizer_name', sorted(set(VALID_OPTIMIZER_NAMES) | set(RECIPE_OPTIMIZER_NAMES)))
+    def test_checkpoint_resume(self, optimizer_name):
+        if optimizer_name in ('demo', 'distributedmuon'):
+            pytest.skip('Requires a distributed process group and optional integrations')
+
+        def setup_optimizer():
+            model, _ = build_model()
+
+            parameters = model if optimizer_name in MODEL_OPTIMIZERS else model.parameters()
+            parameters, options = build_optimizer_parameters(
+                parameters, optimizer_name, CHECKPOINT_OPTIONS.get(optimizer_name, {})
+            )
+            optimizer = build_optimizer(optimizer_name, parameters, lr=0.01, **options)
+
+            if optimizer_name.startswith('schedulefree'):
+                optimizer.train()
+
+            return model, optimizer
+
+        def step(optimizer, model):
+            parameters = tuple(model.parameters())
+
+            @torch.enable_grad()
+            def closure():
+                optimizer.zero_grad()
+
+                loss = sum(sphere_loss(p - 0.1) for p in parameters)
+
+                if optimizer_name not in ('lomo', 'adalomo'):
+                    gradients = torch.autograd.grad(
+                        loss, parameters, create_graph=should_use_create_graph(optimizer_name)
+                    )
+                    for param, grad in zip(parameters, gradients):
+                        param.grad = grad
+
+                return loss
+
+            with torch.random.fork_rng(devices=[]):
+                torch.manual_seed(42)
+
+                if optimizer_name == 'bsam':
+                    closure()
+
+                if optimizer_name in ('lomo', 'adalomo'):
+                    optimizer.fused_backward(closure(), lr=0.01)
+                else:
+                    optimizer.step(closure)
+
+        model, optimizer = setup_optimizer()
+
+        for _ in range(2):
+            step(optimizer, model)
+
+        checkpoint = BytesIO()
+        torch.save(optimizer.state_dict(), checkpoint)
+        checkpoint.seek(0)
+
+        restored_model, restored = setup_optimizer()
+        restored.load_state_dict(torch.load(checkpoint, weights_only=False))
+        restored_model.load_state_dict(model.state_dict())
+
+        for _ in range(3):
+            step(optimizer, model)
+            step(restored, restored_model)
+
+            torch.testing.assert_close(restored_model.state_dict(), model.state_dict(), rtol=0.0, atol=0.0)
+
     @pytest.mark.parametrize(
         'optimizer_name',
         [name for name in RECIPE_OPTIMIZER_NAMES if name not in ('lookahead', 'orthograd', 'schedulefree')],

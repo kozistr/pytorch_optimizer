@@ -156,6 +156,15 @@ class CAME(BaseOptimizer):
 
                 state['RMS'] = self.get_rms(p)
 
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
+
                 update = torch.mul(grad, grad).add_(self.eps1)
 
                 if factored:
@@ -180,7 +189,7 @@ class CAME(BaseOptimizer):
                 update.div_((self.get_rms(update) / self.clip_threshold).clamp_(min=1.0))
 
                 exp_avg = state['exp_avg']
-                exp_avg.mul_(beta1).add_(update, alpha=1.0 - beta1)
+                exp_avg.lerp_(update, weight=1.0 - beta1)
 
                 res = update - exp_avg
                 res.pow_(2).add_(self.eps2)
@@ -196,17 +205,6 @@ class CAME(BaseOptimizer):
                 else:
                     update = exp_avg
 
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
-
-                update.mul_(group['lr'])
-
-                p.add_(-update)
+                p.add_(update, alpha=-group['lr'])
 
         return loss

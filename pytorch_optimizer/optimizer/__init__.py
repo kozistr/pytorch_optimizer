@@ -272,7 +272,7 @@ __all__ = [
 ]
 
 HAS_BNB: bool = find_spec('bitsandbytes') is not None
-HAS_Q_GALORE: bool = find_spec('q-galore-torch') is not None
+HAS_Q_GALORE: bool = find_spec('q_galore_torch') is not None
 HAS_TORCHAO: bool = find_spec('torchao') is not None
 
 OPTIMIZER_LIST: list[OptimizerType] = [
@@ -639,7 +639,7 @@ def get_optimizer_parameters(
         wd_ban_list: Substrings identifying parameters to exclude from weight decay.
 
     Returns:
-        ParamsT: Two parameter groups, with the requested weight decay and zero weight decay.
+        ParamsT: Nonempty parameter groups with the requested weight decay or zero weight decay.
 
     """
     banned_parameter_patterns: set[str] = set()
@@ -649,7 +649,9 @@ def get_optimizer_parameters(
             for param_name, _ in module.named_parameters(recurse=False):
                 full_param_name: str = f'{module_name}.{param_name}' if module_name else param_name
                 if any(
-                    banned in pattern for banned in wd_ban_list for pattern in (full_param_name, module._get_name())
+                    banned in pattern
+                    for banned in wd_ban_list
+                    for pattern in (full_param_name, module._get_name(), f'{module._get_name()}.{param_name}')
                 ):
                     banned_parameter_patterns.add(full_param_name)
 
@@ -657,7 +659,7 @@ def get_optimizer_parameters(
     else:
         banned_parameter_patterns.update(wd_ban_list)
 
-    return [
+    groups = [
         {
             'params': [
                 p
@@ -675,6 +677,7 @@ def get_optimizer_parameters(
             'weight_decay': 0.0,
         },
     ]
+    return [group for group in groups if group['params']]
 
 
 def get_supported_optimizers(filters: str | list[str] | None = None) -> list[str]:

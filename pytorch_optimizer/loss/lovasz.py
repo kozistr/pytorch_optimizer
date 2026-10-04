@@ -31,7 +31,7 @@ def lovasz_hinge_flat(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tenso
     errors = 1.0 - y_pred * signs
     errors_sorted, perm = torch.sort(errors, dim=0, descending=True)
 
-    grad = lovasz_grad(y_true[perm])
+    grad = lovasz_grad(y_true[perm]).to(dtype=errors_sorted.dtype)
 
     return torch.dot(relu(errors_sorted), grad)
 

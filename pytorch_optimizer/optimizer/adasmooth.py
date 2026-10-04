@@ -69,7 +69,7 @@ class AdaSmooth(BaseOptimizer):
             state = self.state[p]
 
             if len(state) == 0:
-                state['prev_param'] = torch.zeros_like(p)
+                state['prev_param'] = p.clone()
                 state['s'] = torch.zeros_like(p)
                 state['n'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
@@ -115,18 +115,18 @@ class AdaSmooth(BaseOptimizer):
                 s.add_(p_diff)
                 n.add_(p_diff.abs())
 
-                c = s.sum().abs_().div_(n.sum().add_(group['eps']))  # e_t
+                c = s.abs().div_(n.add(group['eps']))
                 c.mul_(beta2 - beta1).add_(1.0 - beta2)
 
                 c_p2 = c.pow(2)
 
-                exp_avg_sq.mul_(1.0 - c_p2).addcmul_(grad, grad, value=c_p2)
+                exp_avg_sq.lerp_(grad.square(), weight=c_p2)
 
                 step_size = torch.full_like(exp_avg_sq, fill_value=group['lr'])
                 step_size.div_((exp_avg_sq + group['eps']).sqrt()).mul_(grad)
 
-                p.add_(-step_size)
-
                 state['prev_param'].copy_(torch.view_as_complex(p) if torch.is_complex(state['prev_param']) else p)
+
+                p.add_(-step_size)
 
         return loss
