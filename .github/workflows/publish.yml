@@ -222,4 +222,16 @@ jobs:
           GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ steps.changelog_pr.outputs.pull-request-number }}
           PR_HEAD_SHA: ${{ steps.changelog_pr.outputs.pull-request-head-sha }}
-        run: gh pr merge "$PR_NUMBER" --squash --delete-branch --match-head-commit "$PR_HEAD_SHA"
+        run: |
+          for attempt in {1..10}; do
+            mergeable="$(gh pr view "$PR_NUMBER" --json mergeable --jq .mergeable)"
+            if [[ "$mergeable" != 'UNKNOWN' ]]; then
+              break
+            fi
+            sleep 3
+          done
+          if [[ "$mergeable" == 'UNKNOWN' ]]; then
+            echo 'GitHub has not finished calculating PR mergeability' >&2
+            exit 1
+          fi
+          gh pr merge "$PR_NUMBER" --squash --delete-branch --match-head-commit "$PR_HEAD_SHA"
