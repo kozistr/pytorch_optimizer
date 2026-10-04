@@ -154,7 +154,10 @@ class DAdaptAdaGrad(BaseOptimizer):
 
                     alpha_k_delta_masked = alpha_k_p1_masked - alpha_k_masked._values()
                     alpha_k_delta = torch.sparse_coo_tensor(
-                        grad.indices(), alpha_k_delta_masked, grad.shape, check_invariants=False
+                        grad.indices(),
+                        alpha_k_delta_masked,
+                        grad.shape,
+                        check_invariants=False,
                     )
                     alpha_k.add_(alpha_k_delta)
 
@@ -170,7 +173,10 @@ class DAdaptAdaGrad(BaseOptimizer):
 
                     weighted_sk_p1_delta_masked = weighted_sk_p1_masked - weighted_sk_masked._values()
                     weighted_sk_p1_delta = torch.sparse_coo_tensor(
-                        grad.indices(), weighted_sk_p1_delta_masked, grad.shape, check_invariants=False
+                        grad.indices(),
+                        weighted_sk_p1_delta_masked,
+                        grad.shape,
+                        check_invariants=False,
                     )
                     weighted_sk.add_(weighted_sk_p1_delta)
 
@@ -240,7 +246,10 @@ class DAdaptAdaGrad(BaseOptimizer):
 
                     loc_delta_masked = loc_masked - p_masked
                     loc_delta = torch.sparse_coo_tensor(
-                        grad.indices(), loc_delta_masked, grad.shape, check_invariants=False
+                        grad.indices(),
+                        loc_delta_masked,
+                        grad.shape,
+                        check_invariants=False,
                     )
                     p.add_(loc_delta)
                 else:

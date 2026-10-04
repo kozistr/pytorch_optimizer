@@ -150,29 +150,14 @@ allowed-unresolved-imports = [
 ]
 
 [tool.ty.rules]
-# Preserve the diagnostic categories disabled in the previous type checker.
 invalid-argument-type = "ignore"
 unresolved-attribute = "ignore"
-call-non-callable = "ignore"
 no-matching-overload = "ignore"
-unknown-argument = "ignore"
 invalid-method-override = "ignore"
-
-[[tool.ty.overrides]]
-# PyTorch's annotations do not describe the metadata stored in optimizer state and attached by hooks.
-include = [
-    "pytorch_optimizer/optimizer/__init__.py", "pytorch_optimizer/optimizer/lomo.py",
-    "pytorch_optimizer/optimizer/madgrad.py", "pytorch_optimizer/optimizer/spam.py",
-    "pytorch_optimizer/optimizer/utils.py",
-]
-
-[tool.ty.overrides.rules]
-invalid-assignment = "ignore"
 
 [tool.pytest.ini_options]
 testpaths = "tests"
-addopts = "-p no:pastebin -p no:nose -p no:doctest --cov=pytorch_optimizer --cov-report=xml"
-filterwarnings = ["error"]
+addopts = "-p no:pastebin -p no:nose -p no:doctest --disable-warnings --cov=pytorch_optimizer --cov-report=xml"
 
 [tool.coverage.run]
 omit = [

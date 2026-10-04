@@ -12,7 +12,7 @@ check: lint
     ty check
 
 test:
-    pytest
+    pytest -p no:pastebin -p no:nose -p no:doctest --disable-warnings --cov=pytorch_optimizer --cov-report=xml ./tests
 
 requirements:
     uv export --no-dev > requirements.txt

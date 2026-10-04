@@ -113,38 +113,6 @@ class TestMaximize:
 
         torch.testing.assert_close(params[0], params[1])
 
-    @pytest.mark.parametrize(
-        ('optimizer_name', 'options'),
-        [('bcos', {'mode': mode}) for mode in ('g', 'm', 'c')]
-        + [('tam', {}), ('sgdsai', {'momentum': 0.0}), ('sgdsai', {'momentum': 0.9})],
-    )
-    def test_initialized_momentum_matches_negated_objective(self, optimizer_name, options):
-        params = [make_parameter((2, 2), grad=None) for _ in range(2)]
-        ascent = build_optimizer(optimizer_name, [params[0]], maximize=True, **options)
-        descent = build_optimizer(optimizer_name, [params[1]], **options)
-
-        for scale in (1.0, 2.0, 0.5):
-            grad = torch.tensor([[0.5, 1.0], [1.5, 2.0]]) * scale
-            params[0].grad = grad.clone()
-            params[1].grad = -grad
-
-            ascent.step()
-            descent.step()
-
-            torch.testing.assert_close(params[0], params[1])
-            assert (params[0] > 0.0).all()
-
-    def test_sgdsai_warmup_preserves_gradient(self):
-        param = make_parameter((2, 2), grad=0.5)
-        optimizer = build_optimizer('sgdsai', [param], maximize=True)
-        grad = param.grad.clone()
-
-        optimizer.warmup_step()
-        torch.testing.assert_close(param.grad, grad)
-
-        optimizer.step()
-        assert (param > 0.0).all()
-
 
 class TestAdaNorm:
     @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)

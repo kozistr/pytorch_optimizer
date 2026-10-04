@@ -318,7 +318,10 @@ def solve_triangular_right(x: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
 
 
 def get_a_and_conj_b(
-    expr_a: list[str], g: torch.Tensor, qs: list[torch.Tensor], v: torch.Tensor
+    expr_a: str,
+    g: torch.Tensor,
+    qs: list[torch.Tensor],
+    v: torch.Tensor,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Compute transformed gradient and noise terms for preconditioner updates."""
     a = torch.einsum(expr_a, *qs, g)
@@ -347,7 +350,7 @@ def get_q_terms(expr_gs: list[str], a: torch.Tensor, conj_b: torch.Tensor) -> li
 
 def update_precondition(
     qs: list[torch.Tensor],
-    expressions: list[tuple[str, list[str], str]],
+    expressions: tuple[str, list[str], str],
     v: torch.Tensor,
     g: torch.Tensor,
     step: int,
