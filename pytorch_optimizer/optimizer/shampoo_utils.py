@@ -232,16 +232,20 @@ class BlockPartitioner:
             split_sizes.append(sizes)
 
         self.num_splits: int = len(split_sizes)
-        self.pre_conditioner_shapes: list[list[torch.Tensor]] = self.build_pre_conditioner_shapes(
-            split_sizes, pre_conditioner_type, rank
+        self.pre_conditioner_shapes: list[list[torch.Tensor] | None] = self.build_pre_conditioner_shapes(
+            split_sizes,
+            pre_conditioner_type,
+            rank,
         )
 
     @staticmethod
     def build_pre_conditioner_shapes(
-        split_sizes: list[torch.Tensor], pre_conditioner_type: int, rank: int
-    ) -> list[list[torch.Tensor]]:
+        split_sizes: list[torch.Tensor],
+        pre_conditioner_type: int,
+        rank: int,
+    ) -> list[list[torch.Tensor] | None]:
         """Build matrix shapes for each block preconditioner."""
-        pre_conditioner_shapes: list[list[torch.Tensor]] = []
+        pre_conditioner_shapes: list[list[torch.Tensor] | None] = []
         for t in itertools.product(*split_sizes):
             t_shape: list[list[torch.Tensor] | None] = [[d, d] for d in t]
             if pre_conditioner_type == PreConditionerType.INPUT:
@@ -251,7 +255,7 @@ class BlockPartitioner:
             pre_conditioner_shapes.extend(t_shape)
         return pre_conditioner_shapes
 
-    def shapes_for_pre_conditioners(self) -> list[list[torch.Tensor]]:
+    def shapes_for_pre_conditioners(self) -> list[list[torch.Tensor] | None]:
         """Return the matrix shapes of the block preconditioners."""
         return self.pre_conditioner_shapes
 
@@ -337,7 +341,7 @@ class PreConditioner:
         self.w2: float = 1.0 if self.beta2 == 1.0 else (1.0 - self.beta2)
 
         self.original_shape: torch.Size = var.shape
-        self.transformed_shape: list[int] = (
+        self.transformed_shape: list[int] | torch.Size = (
             merge_small_dims(self.original_shape, block_size) if shape_interpretation else var.shape
         )
 

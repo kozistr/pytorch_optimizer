@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import torch
 from torch import nn
@@ -109,7 +109,7 @@ class TRAC(BaseOptimizer):
     def __init__(
         self,
         optimizer: OptimizerInstanceOrClass,
-        betas: list[float] = (0.9, 0.99, 0.999, 0.9999, 0.99999, 0.999999),
+        betas: Sequence[float] = (0.9, 0.99, 0.999, 0.9999, 0.99999, 0.999999),
         num_coefs: int = 128,
         s_prev: float = 1e-8,
         eps: float = 1e-8,

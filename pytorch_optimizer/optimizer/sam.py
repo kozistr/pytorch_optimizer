@@ -16,7 +16,7 @@ from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradi
 from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_running_stats
 
 
-def get_global_gradient_norm(param_groups: ParamsT, device: torch.device) -> torch.Tensor:
+def get_global_gradient_norm(param_groups: list[ParamGroup], device: torch.device) -> torch.Tensor:
     """Compute the global L2 gradient norm for SAM perturbations.
 
     Args:
@@ -169,7 +169,7 @@ class SAM(BaseOptimizer):
     def load_state_dict(self, state_dict: dict):
         super().load_state_dict(state_dict)
         self.base_optimizer.param_groups = self.param_groups
-        self.base_optimizer.state = self.state
+        self.base_optimizer.state = self.state  # ty: ignore[invalid-assignment]
 
 
 class GSAM(BaseOptimizer):  # pragma: no cover
@@ -316,7 +316,9 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         )
 
     def maybe_no_sync(self):
-        return self.model.no_sync() if is_initialized() and hasattr(self.model, 'no_sync') else ExitStack()
+        if is_initialized() and hasattr(self.model, 'no_sync'):
+            return self.model.no_sync()  # ty: ignore[call-non-callable]
+        return ExitStack()
 
     @torch.no_grad()
     def set_closure(self, loss_fn: nn.Module, inputs: torch.Tensor, targets: torch.Tensor, **kwargs) -> None:
@@ -505,12 +507,12 @@ class WSAM(BaseOptimizer):
         closure = torch.enable_grad()(closure)
 
         enable_running_stats(self.model)
-        loss = closure()  # pyright: ignore[reportOptionalCall]
+        loss = closure()
 
         self.first_step(zero_grad=True)
 
         disable_running_stats(self.model)
-        closure()  # pyright: ignore[reportOptionalCall]
+        closure()
 
         self.second_step()
 

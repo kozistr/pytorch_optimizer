@@ -1,7 +1,8 @@
 import fnmatch
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from importlib.util import find_spec
 from types import MethodType
+from typing import cast
 from warnings import warn
 
 import torch
@@ -546,7 +547,7 @@ def create_optimizer(
     optimizer_name: str,
     lr: float | torch.Tensor = 1e-3,
     weight_decay: float = 0.0,
-    wd_ban_list: list[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
+    wd_ban_list: Sequence[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
     use_lookahead: bool = False,
     use_orthograd: bool = False,
     compile: bool = False,  # noqa: A002
@@ -585,7 +586,7 @@ def create_optimizer(
         else [{'params': model.parameters(), 'weight_decay': weight_decay}]
     )
 
-    optimizer_class: OptimizerType = load_optimizer(optimizer_name)
+    optimizer_class = cast(Callable[..., Optimizer], load_optimizer(optimizer_name))
 
     if optimizer_name == 'alig':
         optimizer = optimizer_class(parameters, max_lr=lr, **kwargs)
@@ -613,8 +614,9 @@ def create_optimizer(
             )
 
     if compile:
-        optimizer.step = MethodType(
-            torch.compile(optimizer.step.__func__, **{'dynamic': True, **(compile_kwargs or {})}), optimizer
+        optimizer.step = MethodType(  # ty: ignore[invalid-assignment]
+            torch.compile(optimizer.step.__func__, **{'dynamic': True, **(compile_kwargs or {})}),
+            optimizer,
         )
 
     return optimizer
@@ -623,7 +625,7 @@ def create_optimizer(
 def get_optimizer_parameters(
     model_or_parameter: nn.Module | list,
     weight_decay: float,
-    wd_ban_list: list[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
+    wd_ban_list: Sequence[str] = ('bias', 'LayerNorm.bias', 'LayerNorm.weight'),
 ) -> ParamsT:
     """Group trainable parameters by whether to apply weight decay.
 

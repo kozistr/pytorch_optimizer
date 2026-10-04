@@ -23,6 +23,8 @@ from pytorch_optimizer.optimizer.foreach_utils import foreach_rsqrt_
 class BaseOptimizer(ABC, Optimizer):
     """Shared update, validation, and state helpers for optimizers."""
 
+    state: State
+
     def __init__(self, params: ParamsT, defaults: Defaults) -> None:
         super().__init__(params, defaults)
 
@@ -52,7 +54,7 @@ class BaseOptimizer(ABC, Optimizer):
 
     @staticmethod
     @torch.no_grad()
-    def set_hessian(param_groups: ParamsT, state: State, hessian: list[torch.Tensor]) -> None:
+    def set_hessian(param_groups: list[ParamGroup], state: State, hessian: list[torch.Tensor]) -> None:
         """Store externally computed Hessian estimates in the optimizer state.
 
         Args:
@@ -81,7 +83,7 @@ class BaseOptimizer(ABC, Optimizer):
                 i += 1
 
     @staticmethod
-    def zero_hessian(param_groups: ParamsT, state: State, pre_zero: bool = True) -> None:
+    def zero_hessian(param_groups: list[ParamGroup], state: State, pre_zero: bool = True) -> None:
         """Initialize Hessian buffers and optionally clear existing estimates.
 
         Args:
@@ -101,7 +103,7 @@ class BaseOptimizer(ABC, Optimizer):
     @staticmethod
     @torch.no_grad()
     def compute_hutchinson_hessian(
-        param_groups: ParamsT,
+        param_groups: list[ParamGroup],
         state: State,
         num_samples: int = 1,
         alpha: float = 1.0,
@@ -325,7 +327,7 @@ class BaseOptimizer(ABC, Optimizer):
         return grad
 
     @staticmethod
-    def get_rms(x: list[torch.Tensor] | torch.Tensor) -> list[torch.Tensor] | torch.Tensor:
+    def get_rms(x: Sequence[torch.Tensor] | torch.Tensor) -> Sequence[torch.Tensor] | torch.Tensor:
         """Compute the root mean square of a tensor or each tensor in a list."""
         if isinstance(x, torch.Tensor):
             return x.norm(2).div_(math.sqrt(x.numel()))
@@ -334,7 +336,7 @@ class BaseOptimizer(ABC, Optimizer):
         norms = torch._foreach_norm(x, ord=2)
         torch._foreach_div_(norms, factors)
 
-        return norms  # pyright: ignore[reportReturnType]
+        return norms
 
     @staticmethod
     def approximate_sq_grad(
@@ -482,7 +484,7 @@ class BaseOptimizer(ABC, Optimizer):
     def apply_weight_decay_foreach(
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
-        lr: list[float] | list[torch.Tensor] | float | torch.Tensor,
+        lr: list[float] | list[torch.Tensor] | tuple[torch.Tensor, ...] | float | torch.Tensor,
         weight_decay: float,
         weight_decouple: bool,
         fixed_decay: bool,
@@ -585,7 +587,7 @@ class BaseOptimizer(ABC, Optimizer):
             raise ValueError(f'{name} {x} must be one of ({opts})')
 
     @staticmethod
-    def validate_learning_rate(learning_rate: float | None) -> None:
+    def validate_learning_rate(learning_rate: float | torch.Tensor | None) -> None:
         """Raise `NegativeLRError` for a negative learning rate. Accept `None`."""
         if learning_rate is not None and learning_rate < 0.0:
             raise NegativeLRError(learning_rate)

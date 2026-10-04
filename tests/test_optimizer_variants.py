@@ -79,22 +79,11 @@ STABLE_ADAMW_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
 ]
 
 
-MAXIMIZE_ISSUES = {
-    'bcos': 'Initial momentum is captured before the gradient is negated',
-    'sgdsai': 'The first gradient is negated in both warmup_step and step',
-    'tam': 'Initial momentum is captured before the gradient is negated',
-}
-
-
 class TestMaximize:
     @pytest.mark.parametrize(
         ('optimizer_name', 'foreach'),
         [
-            pytest.param(
-                name,
-                foreach,
-                marks=pytest.mark.xfail(strict=True, reason=MAXIMIZE_ISSUES[name]) if name in MAXIMIZE_ISSUES else [],
-            )
+            (name, foreach)
             for name in sorted(MAXIMIZE_OPTIMIZERS)
             if name not in SKIP_CAPABILITY_PROBE
             for foreach in ([False, True] if name in FOREACH_OPTIMIZERS else [False])

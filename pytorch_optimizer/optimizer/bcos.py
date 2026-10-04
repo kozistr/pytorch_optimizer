@@ -84,6 +84,7 @@ class BCOS(BaseOptimizer):
 
             if self.mode in ('m', 'c') and 'm' not in state:
                 state['m'] = grad.clone()
+                self.maximize_gradient(state['m'], maximize=self.maximize)
 
             if self.mode in ('g', 'm') and 'v' not in state:
                 state['v'] = grad.square()

@@ -140,7 +140,7 @@ class AdaFactor(BaseOptimizer):
     def get_lr(
         self,
         relative_step_size: torch.Tensor | float,
-        rms: list[torch.Tensor] | torch.Tensor | float,
+        rms: Sequence[torch.Tensor] | torch.Tensor | float,
         scale_parameter: bool,
     ) -> Sequence[torch.Tensor] | torch.Tensor | float:
         """Compute effective learning rates with optional parameter RMS scaling."""

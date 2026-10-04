@@ -35,6 +35,7 @@ class CosineDecay:
 
         """
         self.cosine_stepper.last_epoch = current_step
+        self.sgd.step()
         self.cosine_stepper.step()
 
     def get_death_rate(self, current_step: int) -> float:

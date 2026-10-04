@@ -1,6 +1,6 @@
 import math
 from collections import deque
-from typing import Literal, cast
+from typing import Literal
 
 import torch
 from torch import nn
@@ -96,8 +96,6 @@ def gradfilter_ema(
     """
     if grads is None:
         grads = {n: p.grad for n, p in model.named_parameters() if p.requires_grad and p.grad is not None}
-
-    grads = cast(dict[str, torch.Tensor], grads)
 
     for n, p in model.named_parameters():
         if p.requires_grad and p.grad is not None:

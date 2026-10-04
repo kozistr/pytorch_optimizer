@@ -13,7 +13,7 @@ from torch.nn.modules.batchnorm import _BatchNorm
 from torch.nn.utils import clip_grad_norm_
 from torch.optim.optimizer import Optimizer
 
-from pytorch_optimizer.base.type import Closure, Loss, ParamsT
+from pytorch_optimizer.base.type import Closure, Loss, ParamGroup, ParamsT
 
 
 def parse_pytorch_version(version_string: str) -> list[int]:
@@ -88,6 +88,8 @@ class CPUOffloadOptimizer:  # pragma: no cover
         if not isinstance(param_groups[0], dict):
             param_groups = [{'params': param_groups}]
 
+        param_groups = cast(list[ParamGroup], param_groups)
+
         self.param_cuda2cpu_map: dict[torch.Tensor, torch.Tensor] = {}
         self.optim_dict: dict[torch.Tensor, Optimizer] = {}
         self.stream = torch.cuda.Stream()
@@ -114,11 +116,11 @@ class CPUOffloadOptimizer:  # pragma: no cover
                 p_cuda.grad = None
 
         for param_group in param_groups:
-            params = param_group.get('params', None)  # type: ignore
-            if params is None:
+            group_params = param_group.get('params', None)
+            if group_params is None:
                 continue
 
-            for p_cuda in params:
+            for p_cuda in group_params:
                 p_cpu = torch.empty_like(p_cuda, device='cpu', pin_memory=True)
                 p_cpu.grad = torch.empty_like(p_cpu, pin_memory=True)
 
@@ -126,7 +128,7 @@ class CPUOffloadOptimizer:  # pragma: no cover
                 self.param_cuda2cpu_map[p_cuda] = p_cpu
 
                 p_cuda.register_post_accumulate_grad_hook(backward_hook)
-                self.optim_dict[p_cuda] = optimizer_class([{'params': p_cpu, **param_group}], **kwargs)  # type: ignore
+                self.optim_dict[p_cuda] = optimizer_class([{'params': p_cpu, **param_group}], **kwargs)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -191,7 +193,7 @@ class StochasticAccumulator:
 
             del acc_grad_fp32
         else:
-            p.acc_grad = p.grad.clone().to(torch.bfloat16)
+            p.acc_grad = p.grad.clone().to(torch.bfloat16)  # ty: ignore[invalid-assignment]
 
         del p.grad
 
@@ -199,7 +201,7 @@ class StochasticAccumulator:
     def reassign_grad_buffer(model: nn.Module) -> None:
         for _, p in model.named_parameters():
             if p.requires_grad and hasattr(p, 'acc_grad'):
-                p.grad = p.acc_grad
+                p.grad = p.acc_grad  # ty: ignore[invalid-assignment]
                 del p.acc_grad
 
     @staticmethod

@@ -39,6 +39,7 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('madgrad', {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     ('madgrad', {'lr': 5e-1, 'weight_decay': 1e-3, 'eps': 0.0}, 10),
     ('madgrad', {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.0}, 10),
+    ('madgrad', {'lr': 1e-1, 'weight_decay': 1e-3, 'momentum': 0.0, 'eps': 0.0}, 10),
     ('madgrad', {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': True}, 10),
     ('magma', {'lr': 5e-1, 'mask_prob': 1.0}, 5),
     ('radam', {'lr': 5e0, 'weight_decay': 1e-3}, 10),

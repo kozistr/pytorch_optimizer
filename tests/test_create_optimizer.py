@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 import torch
 
@@ -6,6 +8,12 @@ from tests.fixtures import TrainingModel, build_model
 from tests.optimizer_cases import SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
 from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS
 from tests.utils import Trainer, ids
+
+
+@pytest.fixture(autouse=True)
+def ignore_factory_warnings():
+    warnings.simplefilter('ignore', UserWarning)
+    warnings.simplefilter('ignore', ImportWarning)
 
 
 def _get_optimizer_kwargs(optimizer_name):
@@ -19,7 +27,8 @@ def _get_optimizer_kwargs(optimizer_name):
 
 class TestCreateOptimizer:
     @pytest.mark.parametrize(
-        'optimizer_name', [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_CREATE_OPTIMIZER]
+        'optimizer_name',
+        [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_CREATE_OPTIMIZER],
     )
     def test_create_optimizer_basic(self, optimizer_name):
         optimizer = create_optimizer(
@@ -29,6 +38,7 @@ class TestCreateOptimizer:
             use_orthograd=False,
             **_get_optimizer_kwargs(optimizer_name),
         )
+
         assert optimizer.defaults.get('weight_decay', 0.0) == 0.0
         assert all(group.get('weight_decay', 0.0) == 0.0 for group in optimizer.param_groups)
 

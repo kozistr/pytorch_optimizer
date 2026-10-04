@@ -14,7 +14,7 @@ def test_hessian_optimizer(optimizer_name):
     optimizer = build_optimizer(optimizer_name, [param], **parameters)
     optimizer.zero_grad(set_to_none=True)
 
-    sphere_loss(param).backward(create_graph=True)
+    (param.grad,) = torch.autograd.grad(sphere_loss(param), param, create_graph=True)
     optimizer.step()
     optimizer.zero_grad(set_to_none=True)
 

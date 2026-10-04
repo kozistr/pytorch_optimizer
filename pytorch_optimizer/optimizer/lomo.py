@@ -51,7 +51,7 @@ class LOMO(BaseOptimizer):
 
         self.gather_norm: bool = False
         self.grad_norms: list[torch.Tensor] = []
-        self.clip_coef: float | None = None
+        self.clip_coef: float | torch.Tensor | None = None
 
         p0: torch.Tensor = next(iter(self.model.parameters()))
 
@@ -90,7 +90,8 @@ class LOMO(BaseOptimizer):
 
                 if (self.loss_scaler and self.loss_scaler.has_overflow_serial) or has_overflow(p.grad):
                     p.grad = None
-                    self.loss_scaler.has_overflow_serial = True
+                    if self.loss_scaler is not None:
+                        self.loss_scaler.has_overflow_serial = True
                     break
 
                 grad_fp32 = p.grad.to(torch.float32)
@@ -128,7 +129,8 @@ class LOMO(BaseOptimizer):
 
                 if (self.loss_scaler and self.loss_scaler.has_overflow_serial) or has_overflow(p.grad):
                     p.grad = None
-                    self.loss_scaler.has_overflow_serial = True
+                    if self.loss_scaler is not None:
+                        self.loss_scaler.has_overflow_serial = True
                     break
 
                 grad_fp32 = p.grad.to(torch.float32)
@@ -203,9 +205,9 @@ class LOMO(BaseOptimizer):
             return
 
         with torch.no_grad():
-            self.grad_norms = torch.stack(self.grad_norms)
+            grad_norms = torch.stack(self.grad_norms)
 
-            total_norm = torch.norm(self.grad_norms, 2.0)
+            total_norm = torch.norm(grad_norms, 2.0)
             self.clip_coef = torch.clamp(float(self.clip_grad_norm) / (total_norm + 1e-6), max=1.0)
 
         self.gather_norm = False
@@ -265,7 +267,7 @@ class AdaLOMO(BaseOptimizer):
         self.num_steps: int = 0
         self.gather_norm: bool = False
         self.grad_norms: list[torch.Tensor] = []
-        self.clip_coef: float | None = None
+        self.clip_coef: float | torch.Tensor | None = None
 
         self.local_rank: int = int(os.environ.get('LOCAL_RANK', '0'))
         self.zero3_enabled: bool = is_deepspeed_zero3_enabled()
@@ -475,9 +477,9 @@ class AdaLOMO(BaseOptimizer):
         self.grad_func(0)
 
         with torch.no_grad():
-            self.grad_norms = torch.stack(self.grad_norms)
+            grad_norms = torch.stack(self.grad_norms)
 
-            total_norm = torch.norm(self.grad_norms, 2.0)
+            total_norm = torch.norm(grad_norms, 2.0)
             self.clip_coef = torch.clamp(float(self.clip_grad_norm) / (total_norm + 1e-6), max=1.0)
 
         self.gather_norm = False

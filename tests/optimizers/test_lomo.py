@@ -57,6 +57,16 @@ class TestLomo:
         optimizer.grad_norm(loss)
         optimizer.fused_backward(loss, lr=0.1)
 
+        if optimizer_name == 'lomo':
+            param = next(model.parameters())
+            previous = param.detach().clone()
+            param.grad = torch.full_like(param, torch.inf)
+
+            optimizer.grad_func(0)
+
+            assert param.grad is None
+            torch.testing.assert_close(param, previous)
+
     def test_dynamic_scaler(self):
         scaler = DynamicLossScaler(init_scale=2.0 ** 15, scale_window=1, threshold=1e-2)  # fmt: skip
         scaler.decrease_loss_scale()

@@ -1069,7 +1069,7 @@ class NorMuon(BaseOptimizer):
 def prepare_muon_parameters(
     model: nn.Module,
     optimizer_name: str,
-    lr: float,
+    lr: float | torch.Tensor,
     weight_decay: float,
     adamw_lr: float = 3e-4,
     adamw_wd: float = 0.0,
@@ -1093,8 +1093,8 @@ def prepare_muon_parameters(
         Optimizer: Optimizer with orthogonal update and AdamW parameter groups.
 
     """
-    muon_parameters: list[str] = []
-    non_muon_params: list[str] = []
+    muon_parameters: list[torch.Tensor] = []
+    non_muon_params: list[torch.Tensor] = []
 
     for _, module in model.named_modules():
         for name, param in module.named_parameters(recurse=False):

@@ -180,7 +180,7 @@ class Visualizer:
 
     def __init__(
         self,
-        optimizers: tuple[tuple[Optimizer, dict[str, Any]], ...],
+        optimizers: tuple[tuple[type[Optimizer], dict[str, Any]], ...],
         output_dir: Path,
         seed: int = SETTINGS.seed,
     ) -> None:
@@ -312,7 +312,7 @@ def rastrigin(
 def execute_steps(
     func: Callable,
     initial_state: tuple[float, float],
-    optimizer_class: Optimizer,
+    optimizer_class: type[Optimizer],
     optimizer_config: dict[str, Any],
     num_iters: int = 500,
 ) -> tuple[torch.Tensor, list[float]]:
@@ -361,7 +361,8 @@ def execute_steps(
         optimizer_config['num_data'] = 1
 
     optimizer = optimizer_class(
-        model if optimizer_name in OPTIMIZERS_MODEL_INPUT_NEEDED else parameters, **optimizer_config
+        model if optimizer_name in OPTIMIZERS_MODEL_INPUT_NEEDED else parameters,
+        **optimizer_config,
     )
 
     steps = torch.zeros((2, num_iters + 1), dtype=torch.float32)
@@ -389,7 +390,7 @@ def execute_steps(
 def objective(
     params: dict[str, Any],
     criterion: Callable,
-    optimizer_class: Optimizer,
+    optimizer_class: type[Optimizer],
     initial_state: tuple[float, float],
     minimum: tuple[float, float],
     x_bounds: tuple[float, float],
