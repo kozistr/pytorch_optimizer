@@ -58,6 +58,7 @@ class CosineAnnealingWarmupRestarts(LRScheduler):
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.min_lr
             self.base_lrs.append(self.min_lr)
+        self._last_lr = [group['lr'] for group in self.optimizer.param_groups]
 
     def get_lr(self) -> list[float]:
         if self.step_in_cycle == -1:
@@ -89,20 +90,24 @@ class CosineAnnealingWarmupRestarts(LRScheduler):
                 self.cycle += 1
                 self.step_in_cycle = self.step_in_cycle - self.cur_cycle_steps
                 self.cur_cycle_steps = (
-                    int((self.cur_cycle_steps - self.warmup_steps) * self.cycle_mult) + self.warmup_steps
+                    max(1, int((self.cur_cycle_steps - self.warmup_steps) * self.cycle_mult)) + self.warmup_steps
                 )
         elif epoch >= self.first_cycle_steps:
             if self.cycle_mult == 1.0:
                 self.step_in_cycle = epoch % self.first_cycle_steps
                 self.cycle = epoch // self.first_cycle_steps
             else:
-                n: int = int(math.log((epoch / self.first_cycle_steps * (self.cycle_mult - 1) + 1), self.cycle_mult))
-                self.cycle = n
-                self.step_in_cycle = epoch - int(
-                    self.first_cycle_steps * (self.cycle_mult ** n - 1) / (self.cycle_mult - 1)
-                )  # fmt: skip
-                self.cur_cycle_steps = self.first_cycle_steps * self.cycle_mult ** n  # fmt: skip
+                self.cycle = 0
+                self.cur_cycle_steps = self.first_cycle_steps
+                self.step_in_cycle = epoch
+                while self.step_in_cycle >= self.cur_cycle_steps:
+                    self.step_in_cycle -= self.cur_cycle_steps
+                    self.cycle += 1
+                    self.cur_cycle_steps = (
+                        max(1, int((self.cur_cycle_steps - self.warmup_steps) * self.cycle_mult)) + self.warmup_steps
+                    )
         else:
+            self.cycle = 0
             self.cur_cycle_steps = self.first_cycle_steps
             self.step_in_cycle = epoch
 
@@ -111,3 +116,4 @@ class CosineAnnealingWarmupRestarts(LRScheduler):
 
         for param_group, lr in zip(self.optimizer.param_groups, self.get_lr()):
             param_group['lr'] = lr
+        self._last_lr = [param_group['lr'] for param_group in self.optimizer.param_groups]

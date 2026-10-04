@@ -24,8 +24,8 @@ class LDAMLoss(nn.Module):
         m_list: torch.Tensor = 1.0 / cls_num_list.sqrt_().sqrt_()
         m_list *= max_m / max(m_list)
 
-        self.m_list = m_list.unsqueeze(0)
-        self.weight = weight
+        self.register_buffer('m_list', m_list.unsqueeze(0))
+        self.register_buffer('weight', weight)
         self.s = s
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
@@ -42,7 +42,7 @@ class LDAMLoss(nn.Module):
         index = torch.zeros_like(y_pred, dtype=torch.bool)
         index.scatter_(1, y_true.view(-1, 1), 1)
 
-        batch_m = torch.matmul(self.m_list.to(index.device), index.float().transpose(0, 1))
+        batch_m = torch.matmul(self.m_list.to(y_pred), index.to(dtype=y_pred.dtype).transpose(0, 1))
         batch_m = batch_m.view((-1, 1))
         x_m = y_pred - batch_m
 

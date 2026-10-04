@@ -40,6 +40,7 @@ class REXScheduler(LRScheduler):
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = self.min_lr
             self.base_lrs.append(self.min_lr)
+        self._last_lr = [group['lr'] for group in self.optimizer.param_groups]
 
     def get_lr(self) -> float:
         return self.last_lr[0]
@@ -62,5 +63,6 @@ class REXScheduler(LRScheduler):
                 param_group['lr'] = value
 
         self.last_lr = [value]
+        self._last_lr = [param_group['lr'] for param_group in self.optimizer.param_groups]
 
         return value

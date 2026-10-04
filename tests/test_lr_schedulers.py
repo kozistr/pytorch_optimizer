@@ -163,6 +163,22 @@ def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param,
         np.testing.assert_almost_equal(expected_lrs[epoch], lr)
 
 
+@pytest.mark.parametrize('cycle_mult', [0.5, 2.0])
+def test_cosine_restart_explicit_epoch(cycle_mult):
+    incremental = CosineAnnealingWarmupRestarts(
+        build_optimizer('sgd', [make_parameter()]), first_cycle_steps=10, warmup_steps=2, cycle_mult=cycle_mult
+    )
+    explicit = CosineAnnealingWarmupRestarts(
+        build_optimizer('sgd', [make_parameter()]), first_cycle_steps=10, warmup_steps=2, cycle_mult=cycle_mult
+    )
+    for epoch in range(1, 45):
+        incremental.step()
+        explicit.step(epoch)
+        assert explicit.get_last_lr() == pytest.approx(incremental.get_last_lr())
+        assert explicit.cur_cycle_steps == incremental.cur_cycle_steps
+        assert explicit.cycle == incremental.cycle
+
+
 def test_get_chebyshev_scheduler():
     recipes = {
         2: np.asarray([0, 1]),

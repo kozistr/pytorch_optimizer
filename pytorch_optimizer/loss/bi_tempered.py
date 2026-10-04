@@ -157,7 +157,7 @@ def bi_tempered_logistic_loss(
     """
     if len(labels.shape) < len(activations.shape):
         labels_onehot = torch.zeros_like(activations)
-        labels_onehot.scatter_(1, labels[..., None], 1)
+        labels_onehot.scatter_(-1, labels[..., None], 1)
     else:
         labels_onehot = labels
 
@@ -225,16 +225,21 @@ class BiTemperedLogisticLoss(nn.Module):
             torch.Tensor: Per example loss or the requested scalar reduction.
 
         """
+        mask = (
+            ~targets.eq(self.ignore_index)
+            if self.ignore_index is not None
+            else torch.ones_like(targets, dtype=torch.bool)
+        )
+        labels = targets.masked_fill(~mask, 0) if self.ignore_index is not None else targets
         loss = bi_tempered_logistic_loss(
-            predictions, targets, t1=self.t1, t2=self.t2, label_smooth=self.label_smooth, reduction='none'
+            predictions, labels, t1=self.t1, t2=self.t2, label_smooth=self.label_smooth, reduction='none'
         )
 
         if self.ignore_index is not None:
-            mask = ~targets.eq(self.ignore_index)
             loss *= mask
 
         if self.reduction == 'mean':
-            loss = loss.mean()
+            loss = loss.sum() / mask.sum().clamp_min(1) if self.ignore_index is not None else loss.mean()
         elif self.reduction == 'sum':
             loss = loss.sum()
         return loss
