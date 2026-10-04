@@ -187,7 +187,6 @@ class SGDW(BaseOptimizer):
         group: ParamGroup,
         params: list[torch.Tensor],
         grads: list[torch.Tensor] | tuple[torch.Tensor, ...],
-        buffers: list[torch.Tensor],
     ) -> None:
         lr, momentum, dampening = group['lr'], group['momentum'], group['dampening']
 
@@ -204,18 +203,20 @@ class SGDW(BaseOptimizer):
         )
 
         if momentum > 0.0:
-            if len(buffers) == len(params):
-                torch._foreach_mul_(buffers, momentum)
-                torch._foreach_add_(buffers, grads, alpha=1.0 - dampening)
-            else:
-                buffers = []
-                for p, grad in zip(params, grads):
-                    buf = self.state[p].get('momentum_buffer')
-                    if buf is None:
-                        self.state[p]['momentum_buffer'] = buf = grad.clone()
-                    else:
-                        buf.mul_(momentum).add_(grad, alpha=1.0 - dampening)
-                    buffers.append(buf)
+            buffers, existing_buffers, existing_grads = [], [], []
+            for p, grad in zip(params, grads):
+                state = self.state[p]
+                buf = state.get('momentum_buffer')
+                if buf is None:
+                    state['momentum_buffer'] = buf = grad.clone()
+                else:
+                    existing_buffers.append(buf)
+                    existing_grads.append(grad)
+                buffers.append(buf)
+
+            if existing_buffers:
+                torch._foreach_mul_(existing_buffers, momentum)
+                torch._foreach_add_(existing_buffers, existing_grads, alpha=1.0 - dampening)
 
             grads = torch._foreach_add(grads, buffers, alpha=momentum) if group['nesterov'] else buffers
 
@@ -232,8 +233,6 @@ class SGDW(BaseOptimizer):
 
             self.maximize_gradient(grad, maximize=self.maximize)
 
-            state = self.state[p]
-
             self.apply_weight_decay(
                 p,
                 grad=grad,
@@ -244,16 +243,14 @@ class SGDW(BaseOptimizer):
             )
 
             if momentum > 0.0:
+                state = self.state[p]
                 buf = state.get('momentum_buffer')
                 if buf is None:
                     state['momentum_buffer'] = buf = grad.clone()
                 else:
                     buf.mul_(momentum).add_(grad, alpha=1.0 - group['dampening'])
 
-                if group['nesterov']:
-                    grad.add_(buf, alpha=momentum)
-                else:
-                    grad = buf
+                grad = grad.add_(buf, alpha=momentum) if group['nesterov'] else buf
 
             p.add_(grad, alpha=-group['lr'])
 
@@ -269,11 +266,9 @@ class SGDW(BaseOptimizer):
             group['step'] += 1
 
             if self._can_use_foreach(group):
-                params, grads, state_dict = self.collect_trainable_params(
-                    group, self.state, state_keys=['momentum_buffer']
-                )
+                params, grads, _ = self.collect_trainable_params(group, self.state)
                 if params:
-                    self._step_foreach(group, params, grads, state_dict['momentum_buffer'])
+                    self._step_foreach(group, params, grads)
             else:
                 self._step_per_param(group)
 
