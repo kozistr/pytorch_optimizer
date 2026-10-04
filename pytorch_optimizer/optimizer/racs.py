@@ -100,8 +100,8 @@ class RACS(BaseOptimizer):
                 elif grad.ndim > 2:
                     grad = grad.reshape(len(grad), -1)
 
-                first_gradient = 's' not in state
-                if first_gradient:
+                has_state = 's' in state
+                if not has_state:
                     state['s'] = torch.zeros(grad.size(0), dtype=grad.dtype, device=grad.device)
                     state['q'] = torch.ones(grad.size(1), dtype=grad.dtype, device=grad.device)
                     state['theta'] = torch.zeros((), dtype=grad.dtype, device=grad.device)
@@ -129,7 +129,7 @@ class RACS(BaseOptimizer):
                 grad_hat_norm = torch.norm(grad_hat)
                 threshold = (
                     group['gamma'] / max(grad_hat_norm / (state['theta'] + group['eps']), group['gamma'])
-                    if not first_gradient
+                    if has_state
                     else 1.0
                 )
                 state['theta'] = grad_hat_norm.mul_(threshold)
@@ -301,8 +301,8 @@ class Alice(BaseOptimizer):
                 elif grad.ndim > 2:
                     grad = grad.reshape(len(grad), -1)
 
-                first_gradient = 'U' not in state
-                if first_gradient:
+                has_state = 'U' in state
+                if not has_state:
                     m, n = grad.shape
                     rank = min(group['rank'], m)
                     state['rank'] = rank
@@ -330,7 +330,7 @@ class Alice(BaseOptimizer):
 
                 q, u, m, v = state['Q'], state['U'], state['m'], state['v']
 
-                if first_gradient or group['step'] % group['update_interval'] == 0:
+                if not has_state or group['step'] % group['update_interval'] == 0:
                     q_t = beta3 * (u @ q @ u.T) + (1.0 - beta3) * (grad @ grad.T)
                     u = self.switch(q_t, u, rank, leading_basis)
                     state['U'] = u

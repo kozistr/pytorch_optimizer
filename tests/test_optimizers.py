@@ -1,20 +1,29 @@
 from io import BytesIO
 
+import numpy as np
 import pytest
 import torch
 
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from tests.fixtures import TrainingModel, build_model, make_parameter
-from tests.optimizer_cases import COMPLEX_OPTIMIZERS, FOREACH_OPTIMIZERS, MODEL_OPTIMIZERS, SKIP_BF16_OPTIMIZERS
+from tests.optimizer_cases import (
+    COMPLEX_OPTIMIZERS,
+    FOREACH_OPTIMIZERS,
+    MODEL_OPTIMIZERS,
+    SKIP_BF16_OPTIMIZERS,
+    VALID_OPTIMIZER_NAMES,
+)
 from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS, OPTIMIZER_RECIPES
 from tests.utils import (
     Trainer,
+    assert_state_equal,
     build_optimizer,
     build_optimizer_parameters,
     dummy_closure,
     ids,
     make_closure,
     should_use_create_graph,
+    sphere_loss,
 )
 
 TRAINING_CASES = [
@@ -27,6 +36,17 @@ TRAINING_CASES = [
     for foreach in ([False, True] if dtype != torch.complex64 and recipe[0] in FOREACH_OPTIMIZERS else [False])
 ]
 RECIPE_OPTIMIZER_NAMES = sorted({recipe[0] for recipe in OPTIMIZER_RECIPES})
+CHECKPOINT_OPTIONS = {
+    'adafactor': {'relative_step': False, 'scale_parameter': False, 'momentum_dtype': torch.bfloat16},
+    'ranger21': {'num_iterations': 10, 'lookahead_merge_time': 3},
+    'spam': {'density': 0.5, 'update_proj_gap': 3, 'warmup_epoch': 2, 'grad_accu_steps': 0},
+    'stablespam': {'update_proj_gap': 3, 't_max': 10},
+    'kron': {'balance_prob': 0.0},
+    'adashift': {'keep_num': 1},
+    'sgdw': {'momentum': 0.9},
+    'lbfgs': {'max_iter': 3},
+    'bsam': {'num_data': 100},
+}
 
 
 class TestOptimizerTraining:
@@ -84,45 +104,68 @@ class TestOptimizerTraining:
 
 
 class TestOptimizerInterface:
-    @pytest.mark.parametrize(
-        ('optimizer_name', 'options'),
-        [
-            ('adafactor', {'relative_step': False, 'scale_parameter': False, 'momentum_dtype': torch.bfloat16}),
-            ('ranger21', {'num_iterations': 10, 'lookahead_merge_time': 3}),
-            ('sgdsai', {}),
-            ('spam', {'density': 0.5, 'update_proj_gap': 3, 'warmup_epoch': 2, 'grad_accu_steps': 0}),
-            ('stablespam', {'update_proj_gap': 3, 't_max': 10}),
-            ('kron', {'balance_prob': 0.0}),
-            ('adashift', {'keep_num': 1}),
-        ],
-    )
-    def test_checkpoint_resume(self, optimizer_name, options):
-        param = make_parameter((2, 2), grad=1.0)
-        with torch.no_grad():
-            param.fill_(1.0)
-        optimizer = build_optimizer(optimizer_name, [param], lr=0.01, **options)
-        optimizer.step()
-        param.grad = torch.tensor([[0.5, -1.0], [1.5, 2.0]])
-        optimizer.step()
+    @pytest.mark.parametrize('optimizer_name', sorted(set(VALID_OPTIMIZER_NAMES) | set(RECIPE_OPTIMIZER_NAMES)))
+    def test_checkpoint_resume(self, optimizer_name):
+        if optimizer_name in ('demo', 'distributedmuon'):
+            pytest.skip('Requires a distributed process group and optional integrations')
+
+        def setup_optimizer(model):
+            parameters = model if optimizer_name in MODEL_OPTIMIZERS else model.parameters()
+            parameters, options = build_optimizer_parameters(
+                parameters, optimizer_name, CHECKPOINT_OPTIONS.get(optimizer_name, {})
+            )
+            optimizer = build_optimizer(optimizer_name, parameters, lr=0.01, **options)
+            if optimizer_name.startswith('schedulefree'):
+                optimizer.train()
+            return optimizer
+
+        def step(optimizer, model, iteration):
+            def closure():
+                optimizer.zero_grad()
+                loss = sum(sphere_loss(p - 0.1 * (iteration + 1)) for p in model.parameters())
+                if optimizer_name in ('lomo', 'adalomo'):
+                    return loss
+                if should_use_create_graph(optimizer_name):
+                    gradients = torch.autograd.grad(loss, tuple(model.parameters()), create_graph=True)
+                    for param, grad in zip(model.parameters(), gradients):
+                        param.grad = grad
+                else:
+                    loss.backward()
+                return loss
+
+            rng_state = np.random.get_state()
+            try:
+                with torch.random.fork_rng(devices=[]):
+                    torch.manual_seed(42)
+                    np.random.seed(42)
+                    loss = closure()
+                    if optimizer_name in ('lomo', 'adalomo'):
+                        optimizer.fused_backward(loss, lr=0.01)
+                    else:
+                        optimizer.step(closure if optimizer_name in ('lbfgs', 'bsam') else make_closure(loss))
+            finally:
+                np.random.set_state(rng_state)
+
+        model, _ = build_model()
+        optimizer = setup_optimizer(model)
+        for iteration in range(2):
+            step(optimizer, model, iteration)
 
         checkpoint = BytesIO()
         torch.save(optimizer.state_dict(), checkpoint)
         checkpoint.seek(0)
         saved_state = torch.load(checkpoint, weights_only=False)
-        restored_param = param.detach().clone().requires_grad_()
-        restored = build_optimizer(optimizer_name, [restored_param], lr=0.01, **options)
+        restored_model, _ = build_model()
+        restored = setup_optimizer(restored_model)
         restored.load_state_dict(saved_state)
+        restored_model.load_state_dict(model.state_dict())
+        assert_state_equal(restored.state_dict(), optimizer.state_dict())
 
-        if optimizer_name == 'adafactor':
-            torch.testing.assert_close(restored.state[restored_param]['exp_avg'], optimizer.state[param]['exp_avg'])
-        for gradient in (0.25, -0.5, 1.0):
-            for current, parameter in ((optimizer, param), (restored, restored_param)):
-                parameter.grad = torch.full_like(parameter, gradient)
-                with torch.random.fork_rng(devices=[]):
-                    torch.manual_seed(42)
-                    current.step()
-            torch.testing.assert_close(restored_param, param)
-            assert restored.param_groups[0]['step'] == optimizer.param_groups[0]['step']
+        for iteration in range(2, 5):
+            step(optimizer, model, iteration)
+            step(restored, restored_model, iteration)
+            torch.testing.assert_close(restored_model.state_dict(), model.state_dict())
+            assert_state_equal(restored.state_dict(), optimizer.state_dict())
 
     @pytest.mark.parametrize(
         'optimizer_name',

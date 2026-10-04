@@ -176,12 +176,6 @@ class SGDW(BaseOptimizer):
             if grad.is_sparse:
                 raise NoSparseGradientError(str(self))
 
-            state = self.state[p]
-
-            if len(state) == 0:
-                state['momentum_buffer'] = torch.zeros_like(p)
-                state['momentum_initialized'] = False
-
     def _can_use_foreach(self, group: ParamGroup) -> bool:
         if group.get('foreach') is False:
             return False
@@ -212,12 +206,18 @@ class SGDW(BaseOptimizer):
 
         updates = grads
         if group['momentum'] > 0.0:
-            torch._foreach_mul_(momentum_buffers, group['momentum'])
-            torch._foreach_add_(momentum_buffers, grads, alpha=1.0 - dampening)
-            for p, grad, buf in zip(params, grads, momentum_buffers):
-                if not self.state[p]['momentum_initialized']:
-                    buf.copy_(grad)
-                    self.state[p]['momentum_initialized'] = True
+            if len(momentum_buffers) == len(params):
+                torch._foreach_mul_(momentum_buffers, group['momentum'])
+                torch._foreach_add_(momentum_buffers, grads, alpha=1.0 - dampening)
+            else:
+                momentum_buffers = []
+                for p, grad in zip(params, grads):
+                    buf = self.state[p].get('momentum_buffer')
+                    if buf is None:
+                        self.state[p]['momentum_buffer'] = buf = grad.clone()
+                    else:
+                        buf.mul_(group['momentum']).add_(grad, alpha=1.0 - dampening)
+                    momentum_buffers.append(buf)
 
             updates = (
                 torch._foreach_add(grads, momentum_buffers, alpha=group['momentum'])
@@ -250,12 +250,11 @@ class SGDW(BaseOptimizer):
             )
 
             if momentum > 0.0:
-                buf = state['momentum_buffer']
-                if state['momentum_initialized']:
-                    buf.mul_(momentum).add_(grad, alpha=1.0 - group['dampening'])
+                buf = state.get('momentum_buffer')
+                if buf is None:
+                    state['momentum_buffer'] = buf = grad.clone()
                 else:
-                    buf.copy_(grad)
-                    state['momentum_initialized'] = True
+                    buf.mul_(momentum).add_(grad, alpha=1.0 - group['dampening'])
 
                 if group['nesterov']:
                     grad.add_(buf, alpha=momentum)

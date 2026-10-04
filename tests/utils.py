@@ -1,3 +1,4 @@
+from collections import deque
 from collections.abc import Iterable
 from contextlib import nullcontext
 
@@ -59,6 +60,25 @@ def tensor_to_numpy(x: torch.Tensor) -> np.ndarray:
 
 def sphere_loss(x: torch.Tensor) -> torch.Tensor:
     return x.pow(2).sum()
+
+
+def assert_state_equal(actual, expected) -> None:
+    if isinstance(expected, (torch.Tensor, np.ndarray)):
+        torch.testing.assert_close(actual, expected)
+    elif isinstance(expected, dict):
+        assert actual.keys() == expected.keys()
+        for key in expected:
+            assert_state_equal(actual[key], expected[key])
+    elif isinstance(expected, (list, tuple, deque)):
+        assert type(actual) is type(expected)
+        assert len(actual) == len(expected)
+        for actual_value, expected_value in zip(actual, expected):
+            assert_state_equal(actual_value, expected_value)
+    elif hasattr(expected, '__dict__'):
+        assert type(actual) is type(expected)
+        assert_state_equal(vars(actual), vars(expected))
+    else:
+        assert actual == expected
 
 
 def build_optimizer_parameters(parameters, optimizer_name, config):
