@@ -72,8 +72,7 @@ Check the [optimizer reference](optimizer.md) for options and arguments specific
 ## Compile optimizer steps
 
 Set `compile=True` to compile optimizer steps on CPU or GPU.
-The tests cover supported foreach optimizers, including Muon, AdaMuon, AdaGO, and NorMuon,
-as well as Lion, native PyTorch AdamW, and StableAdamW:
+The tests cover Lion, native PyTorch AdamW, and StableAdamW:
 
 ```python
 optimizer = create_optimizer(model, 'lion', lr=1e-3, foreach=False, compile=True)
@@ -87,28 +86,6 @@ Use `compile=False` (the default) for eager execution.
 Use eager execution on Python 3.15 because PyTorch disables compilation for that version.
 Pass `torch.compile()` options through `compile_kwargs`.
 Run with `TORCH_LOGS=graph_breaks,recompiles` to inspect graph breaks and recompilation.
-
-### Muon family
-
-Muon, AdaMuon, AdaGO, and NorMuon accept `foreach=True` to batch momentum, weight decay,
-and AdamW updates. Equal-shaped matrices on the same device and with the same dtype also
-share a batched Newton-Schulz orthogonalization. Individual updates remain the default.
-Set `foreach=True` or `foreach=None` to enable batching, or override it in a parameter group.
-
-```python
-optimizer = create_optimizer(model, 'muon', lr=0.02, foreach=True, compile=True)
-```
-
-The compiled path keeps state initialization, shape grouping, and step counters eager.
-It passes changing learning rates and bias corrections as tensors to avoid recompilation.
-The factory enables foreach automatically with `compile=True` unless you pass `foreach=False`.
-For model-specific parameter grouping, construct the optimizer directly using its API example.
-DistributedMuon retains its distributed update path.
-
-Batching needs temporary storage for the stacked matrices. Low-precision batched or compiled
-operations can round differently from individual updates. Measure optimizer updates and full
-training steps on your CUDA workload using the [benchmark](benchmark.md).
-Large matrix workloads can run slower with eager foreach; compilation can still improve their training speed.
 
 ## Discover components
 

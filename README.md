@@ -86,16 +86,12 @@ optimizer = opt_cls(model.parameters(), lr=1e-3)
 
 ### 5) Optional: compile optimizer steps
 
-Enable `torch.compile()` through `create_optimizer()` for supported optimizers, including Muon, AdaMuon, AdaGO,
-NorMuon, Lion, native PyTorch AdamW, and StableAdamW:
+Enable `torch.compile()` through `create_optimizer()` for Lion, native PyTorch AdamW, or StableAdamW:
 
 ```python
 from pytorch_optimizer import create_optimizer
 
 optimizer = create_optimizer(model, 'lion', lr=1e-3, foreach=False, compile=True)
-
-# Batch Muon updates and compile the tensor operations.
-optimizer = create_optimizer(model, 'muon', lr=0.02, foreach=True, compile=True)
 ```
 
 The factory converts the learning rate to a tensor to avoid recompilation when it changes.

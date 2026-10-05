@@ -48,7 +48,7 @@ def get_adjusted_lr(
     return lr * ratio
 
 
-class _MuonBase(BaseOptimizer):
+class MuonBase(BaseOptimizer):
     """Shared batched updates for local Muon optimizers."""
 
     _supports_compiled_foreach = True
@@ -140,7 +140,7 @@ class _MuonBase(BaseOptimizer):
         foreach_add_(params, updates, alpha=-lr)
 
 
-class Muon(_MuonBase):
+class Muon(MuonBase):
     """Momentum updates with Newton-Schulz matrix orthogonalization.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
@@ -560,7 +560,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
         return loss
 
 
-class AdaMuon(_MuonBase):
+class AdaMuon(MuonBase):
     """Adaptive momentum updates with Newton-Schulz matrix orthogonalization.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
@@ -793,7 +793,7 @@ class AdaMuon(_MuonBase):
         return loss
 
 
-class AdaGO(_MuonBase):
+class AdaGO(MuonBase):
     """Orthogonal momentum updates with AdaGrad step size adaptation.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
@@ -1045,7 +1045,7 @@ class AdaGO(_MuonBase):
         return loss
 
 
-class NorMuon(_MuonBase):
+class NorMuon(MuonBase):
     """Muon updates with row wise second moment normalization.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
