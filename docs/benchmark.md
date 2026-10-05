@@ -1,81 +1,71 @@
 # Optimizer benchmark
 
-Compare per-parameter, foreach, compiled, and fused updates while training
+Compare per-parameter, foreach, compiled, and fused updates with Transformers `Trainer` on
 [`tomaarsen/Qwen3-Reranker-0.6B-seq-cls`](https://huggingface.co/tomaarsen/Qwen3-Reranker-0.6B-seq-cls)
-with Transformers `Trainer`. Train all 595,777,536 parameters for binary relevance classification:
-BF16 parameters, gradients, and moments; FP32 BCE-with-logits loss.
+(595,777,536 trainable parameters, BF16, FP32 BCE loss).
 
 ## Run
 
-Use a Python environment with CUDA PyTorch, Transformers, Accelerate, and FlashAttention 2.
-Compiled foreach also needs a working CUDA `torch.compile` toolchain and uses
-`create_optimizer(model, name, foreach=True, compile=True)`.
-Provide query/document pairs in JSONL with binary labels:
+Requires CUDA PyTorch, Transformers, Accelerate, FlashAttention 2, and a CUDA `torch.compile` toolchain.
+Input: JSONL query/document pairs with binary labels.
 
 ```json
 {"query": "What causes rainfall?", "document": "Rain forms when atmospheric water condenses.", "label": 1}
-{"query": "What causes rainfall?", "document": "Copper conducts electricity.", "label": 0}
 ```
 
 ```bash
-python -m examples.benchmark \
-    --pairs-file train-pairs.jsonl \
-    --batch-size 16 \
-    --gradient-checkpointing \
-    --full-length-only \
-    --warmup-steps 10 \
-    --steps 20
+python -m examples.benchmark --pairs-file train-pairs.jsonl \
+    --batch-size 16 --full-length-only --gradient-checkpointing --steps 20
 ```
 
-Select optimizers with `--optimizers radam yogi adamw` and modes with `--modes per_param foreach compiled fused`.
-Defaults come from registered optimizers with compiled foreach support, plus native AdamW as a fused reference.
-Unsupported modes are recorded explicitly. Compiled mode uses foreach where available.
-Increase the effective batch size with `--accumulation-steps 4`.
-Omit `--full-length-only` to include shorter, padded examples. The loader preserves queries and scoring suffixes
-while truncating documents. Trainer drops incomplete effective batches.
-
-Each run starts from the same weights and seed. The timer excludes warmup, records CUDA events for forward,
-backward, optimizer, and full-step time, and synchronizes after each update. Wall time includes data loading and
-Trainer work. Inspect `.cache/optimizer-benchmark.json` for timing distributions, pairs/second, GPU memory, and losses.
-Compilation is included in warmup time. Graph counts show whether compilation also occurred during measurement.
+Optional: `--optimizers radam yogi adamw`, `--modes per_param foreach compiled fused`.
+Output: `.cache/optimizer-benchmark.json`.
 
 ## Results
 
-We measured on an RTX 5060 (8 GB) with local Python 3.12, PyTorch 2.14.1+cu132, Transformers 5.18.0,
-and FlashAttention 2.8.3. Model revision: `6a5829f5079c66e78d911e06fe21931cc00232f7`.
+RTX 5060 (8 GB), Python 3.12, PyTorch 2.14.1+cu132, Transformers 5.18.0, FlashAttention 2.8.3.
+256 tokens, learning rate 1e-4, gradient checkpointing, 10 warmup updates, 20 timed updates.
+SciFact train pairs: 1,680 at batch 16; 1,664 at batch 64. Each case starts from the same weights and seed.
 
-Setup: batch 16, 256 tokens, learning rate 1e-4, checkpointing with `use_reentrant=False`, 10 warmup updates,
-and 20 timed updates. Data: 1,680 full-length SciFact train pairs with judged positives and seeded unjudged negatives.
+Cells show median GPU milliseconds (**speedup vs per-parameter**). Per-parameter is **1×**; `—` is unsupported.
+Compiled mode compiles foreach updates. Full-step time includes forward, backward, and optimizer work.
 
-Values are median GPU milliseconds after warmup. Full-step time includes forward, backward, and optimizer work.
-The JSON also records means and standard deviations; a long forward pass inflated DiffGrad's compiled mean.
-Yogi was rerun after extending its compiled update.
+### Optimizer update
 
-| Optimizer | Per-param update | Foreach update | Compiled update | Per-param step | Foreach step | Compiled step |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| AdaBound | 60.77 | 86.21 | 22.63 | 798.88 | 825.39 | 763.62 |
-| AdaMax | 36.81 | 51.12 | 22.33 | 779.80 | 794.74 | 764.96 |
-| AdaMod | 64.97 | 85.64 | 28.89 | 809.30 | 831.62 | 773.09 |
-| DiffGrad | 70.19 | 96.49 | 28.51 | 814.72 | 841.44 | 755.75 |
-| PAdam | 39.66 | 56.56 | 21.61 | 769.09 | 785.62 | 738.70 |
-| RAdam | 43.11 | 51.11 | 22.70 | 789.18 | 794.40 | 777.67 |
-| Yogi | 57.49 | 78.60 | 34.19 | 802.17 | 832.20 | 761.53 |
-| Native AdamW | 40.82 | 58.45 | 22.20 | 789.94 | 808.53 | 751.42 |
+| Optimizer | Batch | Per-param (ms) | Foreach (ms, ×) | Compiled (ms, ×) | Fused (ms, ×) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| AdaBound | 16 | 60.77 | 86.21 (0.70×) | 22.63 (2.69×) | — |
+| AdaMax | 16 | 36.81 | 51.12 (0.72×) | 22.33 (1.65×) | — |
+| AdaMod | 16 | 64.97 | 85.64 (0.76×) | 28.89 (2.25×) | — |
+| DiffGrad | 16 | 70.19 | 96.49 (0.73×) | 28.51 (2.46×) | — |
+| PAdam | 16 | 39.66 | 56.56 (0.70×) | 21.61 (1.84×) | — |
+| RAdam | 16 | 43.11 | 51.11 (0.84×) | 22.70 (1.90×) | — |
+| Yogi | 16 | 57.49 | 78.60 (0.73×) | 34.19 (1.68×) | — |
+| Native AdamW | 16 | 40.82 | 58.45 (0.70×) | 22.20 (1.84×) | 22.08 (1.85×) |
+| RAdam | 64 | 44.62 | 56.38 (0.79×) | 24.30 (1.84×) | — |
 
-Native fused AdamW measured 22.08 ms per update and 751.61 ms per full step. The seven package optimizers expose
-foreach and compiled updates; their fused mode is recorded as unsupported. Compilation reduced their update times
-by 2.3–3.8× versus eager foreach. Forward and backward limited the full-step improvement.
+### Full training step
 
-At batch 64, RAdam used 1,664 pairs with the same 256-token setup:
+| Optimizer | Batch | Per-param (ms) | Foreach (ms, ×) | Compiled (ms, ×) | Fused (ms, ×) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| AdaBound | 16 | 798.88 | 825.39 (0.968×) | 763.62 (1.046×) | — |
+| AdaMax | 16 | 779.80 | 794.74 (0.981×) | 764.96 (1.019×) | — |
+| AdaMod | 16 | 809.30 | 831.62 (0.973×) | 773.09 (1.047×) | — |
+| DiffGrad | 16 | 814.72 | 841.44 (0.968×) | 755.75 (1.078×) | — |
+| PAdam | 16 | 769.09 | 785.62 (0.979×) | 738.70 (1.041×) | — |
+| RAdam | 16 | 789.18 | 794.40 (0.993×) | 777.67 (1.015×) | — |
+| Yogi | 16 | 802.17 | 832.20 (0.964×) | 761.53 (1.053×) | — |
+| Native AdamW | 16 | 789.94 | 808.53 (0.977×) | 751.42 (1.051×) | 751.61 (1.051×) |
+| RAdam | 64 | 3,380.85 | 3,410.31 (0.991×) | 3,372.96 (1.002×) | — |
 
-| Mode | Update (ms) | Full step (ms) |
-| --- | ---: | ---: |
-| Per-param | 44.62 | 3,380.85 |
-| Foreach | 56.38 | 3,410.31 |
-| Compiled | 24.30 | 3,372.96 |
+### Gradient checkpointing
 
-Compiled updates keep scalar bookkeeping eager and cache FP32 scalar tensors. Yogi rounds gradient squares before
-its compiled sign and moment updates. Fused floating-point intermediates can change rounding relative to eager
-low-precision updates. All measured losses were finite, with no graph compilation during timed updates.
-Ranking quality and convergence require separate evaluation. Cases ran sequentially with unlocked GPU clocks;
-compare small differences with the JSON variability.
+AdaMod foreach, batch 16, 256 tokens; 2 warmup updates, 3 timed updates on the same 8 GB GPU.
+
+| Checkpointing | Full step (ms) | Peak allocated (GiB) | Speedup vs off |
+| --- | ---: | ---: | ---: |
+| Off | 28,541.34 | 12.27 | 1.00× |
+| On | 822.56 | 6.72 | 34.70× |
+
+GPU clocks were unlocked; small differences vary between runs. Compiled low-precision updates can change rounding.
+Model revision: `6a5829f5079c66e78d911e06fe21931cc00232f7`.
