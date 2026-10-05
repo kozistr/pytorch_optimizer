@@ -127,6 +127,7 @@ class DiffGrad(BaseOptimizer):
         )
 
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+
         torch._foreach_mul_(exp_avg_sqs, beta2)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
 
@@ -144,6 +145,7 @@ class DiffGrad(BaseOptimizer):
         else:
             if group['ams_bound']:
                 torch._foreach_maximum_(state_dict['max_exp_avg_sq'], exp_avg_sqs)
+
             if step_size > 0:
                 torch._foreach_add_(params, exp_avgs, alpha=-step_size)
 
@@ -185,6 +187,7 @@ class DiffGrad(BaseOptimizer):
             )
 
             exp_avg.lerp_(s_grad, weight=1.0 - beta1)
+
             exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
             de_nom = self.apply_ams_bound(
@@ -196,6 +199,7 @@ class DiffGrad(BaseOptimizer):
 
             dfc = previous_grad.clone()
             dfc.sub_(grad).abs_().sigmoid_().mul_(exp_avg)
+
             state['previous_grad'].copy_(
                 torch.view_as_complex(grad) if torch.is_complex(state['previous_grad']) else grad
             )
@@ -244,9 +248,12 @@ class DiffGrad(BaseOptimizer):
 
             if self._can_use_foreach(group):
                 state_keys = ['exp_avg', 'exp_avg_sq', 'previous_grad']
+
                 if group['ams_bound']:
                     state_keys.append('max_exp_avg_sq')
+
                 params, grads, state_dict = self.collect_trainable_params(group, self.state, state_keys=state_keys)
+
                 for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
                     self._step_foreach(group, tensors['params'], tensors['grads'], tensors, step_size, n_sma)
             else:

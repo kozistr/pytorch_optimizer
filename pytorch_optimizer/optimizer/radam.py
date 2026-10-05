@@ -115,12 +115,14 @@ class RAdam(BaseOptimizer):
             )
 
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+
         torch._foreach_mul_(exp_avg_sqs, beta2)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
 
         if n_sma >= self.n_sma_threshold:
             de_noms = torch._foreach_sqrt(exp_avg_sqs)
             torch._foreach_add_(de_noms, group['eps'])
+
             torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
         elif step_size > 0:
             torch._foreach_add_(params, exp_avgs, alpha=-step_size)
@@ -160,6 +162,7 @@ class RAdam(BaseOptimizer):
             )
 
             exp_avg.lerp_(s_grad, weight=1.0 - beta1)
+
             exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
             if n_sma >= self.n_sma_threshold:
@@ -202,6 +205,7 @@ class RAdam(BaseOptimizer):
                 params, grads, state_dict = self.collect_trainable_params(
                     group, self.state, state_keys=['exp_avg', 'exp_avg_sq']
                 )
+
                 for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
                     self._step_foreach(
                         group,

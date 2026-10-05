@@ -268,6 +268,7 @@ class BaseOptimizer(ABC, Optimizer):
 
         torch._foreach_sqrt_(de_noms)
         torch._foreach_add_(de_noms, eps)
+
         return de_noms
 
     @staticmethod

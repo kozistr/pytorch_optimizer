@@ -106,6 +106,7 @@ class PAdam(BaseOptimizer):
         )
 
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+
         torch._foreach_mul_(exp_avg_sqs, beta2)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
 
@@ -145,6 +146,7 @@ class PAdam(BaseOptimizer):
             )
 
             exp_avg.lerp_(grad, weight=1.0 - beta1)
+
             exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
             de_nom = exp_avg_sq.sqrt().add_(group['eps'])
@@ -173,6 +175,7 @@ class PAdam(BaseOptimizer):
                 params, grads, state_dict = self.collect_trainable_params(
                     group, self.state, state_keys=['exp_avg', 'exp_avg_sq']
                 )
+
                 for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
                     self._step_foreach(
                         group,

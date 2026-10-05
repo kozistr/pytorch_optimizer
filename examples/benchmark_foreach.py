@@ -21,41 +21,51 @@ OPTIMIZERS = ['adabound', 'adamax', 'adamod', 'diffgrad', 'padam', 'radam', 'yog
 
 def prepare_dataset(tokenizer, pairs_file: Path, sequence_length: int, full_length_only: bool):
     pairs = [json.loads(line) for line in pairs_file.read_text(encoding='utf-8').splitlines() if line.strip()]
+
     prefix = (
         '<|im_start|>system\nDecide whether the document is relevant to the query. Answer yes or no.'
         '<|im_end|>\n<|im_start|>user\n'
     )
     suffix = '<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n'
     suffix_ids = tokenizer.encode(suffix, add_special_tokens=False)
+
     dataset = []
+
     for pair in pairs:
         query_ids = tokenizer.encode(
             f'{prefix}<Instruct>: Find relevant scientific abstracts.\n<Query>: {pair["query"]}\n<Document>: ',
             add_special_tokens=False,
         )
+
         available = sequence_length - len(query_ids) - len(suffix_ids)
         if available <= 0:
             raise ValueError('Sequence length must leave room for the query, document, and scoring suffix.')
+
         document_ids = tokenizer.encode(pair['document'], add_special_tokens=False)[:available]
         if full_length_only and len(document_ids) < available:
             continue
+
         dataset.append({'input_ids': query_ids + document_ids + suffix_ids, 'labels': float(pair['label'])})
+
     return dataset
 
 
 class StepTimer(TrainerCallback):
     def __init__(self, warmup_steps: int, accumulation_steps: int):
         self.warmup_steps = warmup_steps
+
         self.micro_events = [
             [torch.cuda.Event(enable_timing=True) for _ in range(3)] for _ in range(accumulation_steps)
         ]
         self.start, self.optimizer_start, self.optimizer_end, self.end = [
             torch.cuda.Event(enable_timing=True) for _ in range(4)
         ]
+
         self.timings = {'forward_ms': [], 'backward_ms': [], 'optimizer_ms': [], 'total_ms': [], 'wall_ms': []}
         self.losses = []
         self.step_losses = []
         self.micro_step = 0
+
         self.warmup_seconds = 0.0
         self.started = self.previous_end = 0.0
 
@@ -65,6 +75,7 @@ class StepTimer(TrainerCallback):
     def on_step_begin(self, args, state, control, **kwargs):
         self.micro_step = 0
         self.step_losses.clear()
+
         self.start.record()
 
     def on_pre_optimizer_step(self, args, state, control, **kwargs):
@@ -77,12 +88,15 @@ class StepTimer(TrainerCallback):
         self.end.record()
         torch.cuda.synchronize()
         finished = time.perf_counter()
+
         loss = torch.stack(self.step_losses).mean().item()
         if not math.isfinite(loss):
             raise FloatingPointError(f'Non-finite loss at step {state.global_step}: {loss}')
+
         if state.global_step == self.warmup_steps:
             self.warmup_seconds = finished - self.started
             torch.cuda.reset_peak_memory_stats()
+
         if state.global_step > self.warmup_steps:
             events = self.micro_events[: self.micro_step]
             self.timings['forward_ms'].append(sum(start.elapsed_time(end) for start, end, _ in events))
@@ -91,41 +105,50 @@ class StepTimer(TrainerCallback):
             self.timings['total_ms'].append(self.start.elapsed_time(self.end))
             self.timings['wall_ms'].append((finished - self.previous_end) * 1000.0)
             self.losses.append(loss)
+
         self.previous_end = time.perf_counter()
 
 
 class BenchmarkTrainer(Trainer):
     def __init__(self, *args, timer: StepTimer, **kwargs):
         super().__init__(*args, callbacks=[timer], **kwargs)
+
         self.timer = timer
         self.model_accepts_loss_kwargs = False
 
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
         start, end, _ = self.timer.micro_events[self.timer.micro_step]
         start.record()
+
         labels = inputs.pop('labels')
         outputs = model(**inputs, use_cache=False)
         loss = binary_cross_entropy_with_logits(outputs.logits.flatten().float(), labels.float())
+
         end.record()
         self.timer.step_losses.append(loss.detach())
+
         return (loss, outputs) if return_outputs else loss
 
     def training_step(self, model, inputs, num_items_in_batch=None):
         loss = super().training_step(model, inputs, num_items_in_batch)
         self.timer.micro_events[self.timer.micro_step][2].record()
         self.timer.micro_step += 1
+
         return loss
 
 
 def benchmark_case(model, tokenizer, dataset, optimizer_cls, foreach: bool, args):
     def collate(features):
         batch = tokenizer.pad(features, padding='max_length', max_length=args.sequence_length, return_tensors='pt')
+
         if args.full_length_only:
             batch.pop('attention_mask', None)
+
         return batch
 
     optimizer = optimizer_cls(model.parameters(), lr=args.lr, foreach=foreach)
     timer = StepTimer(args.warmup_steps, args.accumulation_steps)
+
     training_args = TrainingArguments(
         output_dir=str(args.output.parent / 'foreach-training'),
         per_device_train_batch_size=args.batch_size,
@@ -146,6 +169,7 @@ def benchmark_case(model, tokenizer, dataset, optimizer_cls, foreach: bool, args
         seed=42,
         data_seed=42,
     )
+
     trainer = BenchmarkTrainer(
         model=model,
         args=training_args,
@@ -154,11 +178,15 @@ def benchmark_case(model, tokenizer, dataset, optimizer_cls, foreach: bool, args
         optimizers=(optimizer, None),
         timer=timer,
     )
+
     trainer.train()
     trainer.accelerator.unwrap_model(model, keep_fp32_wrapper=False)
+
     if len(timer.losses) != args.steps:
         raise RuntimeError('Trainer did not complete the requested number of measured optimizer updates.')
+
     tensor_states = [value for state in optimizer.state.values() for value in state.values() if torch.is_tensor(value)]
+
     return {
         'optimizer': optimizer_cls.__name__,
         'mode': 'foreach' if foreach else 'per_param',
@@ -201,29 +229,38 @@ def main():
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--gradient-checkpointing', action='store_true')
     parser.add_argument('--output', type=Path, default=Path('.cache/foreach-qwen.json'))
+
     args = parser.parse_args()
+
     if not torch.cuda.is_available():
         raise RuntimeError('This benchmark requires CUDA.')
+
     if min(args.batch_size, args.accumulation_steps, args.steps, args.warmup_steps) < 1:
         raise ValueError('Batch size, accumulation, timed steps, and warmup steps must be positive.')
 
     logging.disable_progress_bar()
+
     tokenizer = AutoTokenizer.from_pretrained(
         args.model, revision=args.revision, cache_dir=args.cache_dir, padding_side='left',
         local_files_only=args.local_files_only,
     )
+
     model = AutoModelForSequenceClassification.from_pretrained(
         args.model, revision=args.revision, cache_dir=args.cache_dir, dtype=torch.bfloat16,
         attn_implementation='flash_attention_2', local_files_only=args.local_files_only,
     )
+
     initial_state = {name: value.detach().clone() for name, value in model.state_dict().items()}
     model.cuda()
+
     dataset = prepare_dataset(tokenizer, args.pairs_file, args.sequence_length, args.full_length_only)
     effective_batch_size = args.batch_size * args.accumulation_steps
     pairs_used = len(dataset) // effective_batch_size * effective_batch_size
     if pairs_used == 0:
         raise ValueError('The pairs file must contain at least one complete effective batch.')
+
     dataset = dataset[:pairs_used]
+
     report = {
         'model': args.model,
         'revision': args.revision,
@@ -245,16 +282,21 @@ def main():
         'pairs_file': str(args.pairs_file),
         'results': [],
     }
+
     print(json.dumps({key: value for key, value in report.items() if key != 'results'}), flush=True)
+
     for optimizer_name in args.optimizers:
         for mode in args.modes:
             model.zero_grad(set_to_none=True)
             model.load_state_dict(initial_state)
+
             gc.collect()
             torch.cuda.empty_cache()
             torch.cuda.reset_peak_memory_stats()
+
             row = benchmark_case(model, tokenizer, dataset, load_optimizer(optimizer_name), mode == 'foreach', args)
             report['results'].append(row)
+
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(json.dumps(report, indent=2), encoding='utf-8')
             print(json.dumps({key: value for key, value in row.items() if key != 'losses'}), flush=True)

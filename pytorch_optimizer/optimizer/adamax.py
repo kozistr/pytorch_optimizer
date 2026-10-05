@@ -107,6 +107,7 @@ class AdaMax(BaseOptimizer):
         )
 
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+
         torch._foreach_mul_(exp_infs, beta2)
 
         grad_abs = torch._foreach_abs(grads)
@@ -179,6 +180,7 @@ class AdaMax(BaseOptimizer):
                 params, grads, state_dict = self.collect_trainable_params(
                     group, self.state, state_keys=['exp_avg', 'exp_inf']
                 )
+
                 for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
                     self._step_foreach(
                         group, tensors['params'], tensors['grads'], tensors['exp_avg'], tensors['exp_inf'], step_size

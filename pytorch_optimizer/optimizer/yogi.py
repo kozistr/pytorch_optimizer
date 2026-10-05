@@ -86,8 +86,10 @@ class Yogi(BaseOptimizer):
         self, exp_avg_sqs: list[torch.Tensor], grads: list[torch.Tensor], beta2: float
     ) -> None:
         grad_p2 = torch._foreach_mul(grads, grads)
+
         signs = torch._foreach_sub(exp_avg_sqs, grad_p2)
         torch._foreach_sign_(signs)
+
         torch._foreach_addcmul_(exp_avg_sqs, signs, grad_p2, value=-(1.0 - beta2))
 
     def _step_foreach(
@@ -115,6 +117,7 @@ class Yogi(BaseOptimizer):
         )
 
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+
         self._update_second_moment_foreach(exp_avg_sqs, grads, beta2)
 
         de_noms = torch._foreach_sqrt(exp_avg_sqs)
@@ -148,7 +151,9 @@ class Yogi(BaseOptimizer):
             grad_p2 = grad.mul(grad)
 
             exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
             exp_avg.lerp_(grad, weight=1.0 - beta1)
+
             exp_avg_sq.addcmul_(
                 (
                     (exp_avg_sq - grad_p2).sign_()
@@ -187,6 +192,7 @@ class Yogi(BaseOptimizer):
                 params, grads, state_dict = self.collect_trainable_params(
                     group, self.state, state_keys=['exp_avg', 'exp_avg_sq']
                 )
+
                 for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
                     self._step_foreach(
                         group,

@@ -83,6 +83,7 @@ def foreach_scalar_div_(tensors: Sequence[torch.Tensor], scalar: float) -> None:
 
     """
     numerator = torch.full((), fill_value=scalar, dtype=tensors[0].dtype, device=tensors[0].device)
+
     for tensor in tensors:
         torch.div(numerator, tensor, out=tensor)
 

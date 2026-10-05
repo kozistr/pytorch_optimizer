@@ -212,10 +212,12 @@ FOREACH_NAMES = sorted({name for name, _ in FOREACH_CASES})
 def assert_optimizer_matches(optimizer, reference):
     for group, reference_group in zip(optimizer.param_groups, reference.param_groups):
         assert group['step'] == reference_group['step']
+
         for param, reference_param in zip(group['params'], reference_group['params']):
             tolerances = (
                 {'atol': 1e-5, 'rtol': 4 * torch.finfo(param.dtype).eps} if param.dtype == torch.float16 else {}
             )
+
             if param.dtype == torch.bfloat16:
                 torch.testing.assert_close(param, reference_param, atol=torch.finfo(param.dtype).eps, rtol=0.016)
             elif param.dtype == torch.float16:
@@ -224,6 +226,7 @@ def assert_optimizer_matches(optimizer, reference):
                 )
             else:
                 torch.testing.assert_close(param, reference_param)
+
             torch.testing.assert_close(param.grad, reference_param.grad, **tolerances)
             torch.testing.assert_close(
                 optimizer.state.get(param, {}), reference.state.get(reference_param, {}), **tolerances
@@ -247,9 +250,11 @@ class TestForeach:
             make_parameter((2, 3), dtype=dtype, device=device, grad=None).t().detach().requires_grad_(),
             make_parameter(device=device, grad=None),
         ]
+
         with torch.no_grad():
             for param in params:
                 param.fill_(0.5)
+
         reference_params = [param.detach().clone().requires_grad_() for param in params]
 
         config = {
@@ -277,9 +282,11 @@ class TestForeach:
 
                 optimizer.step()
                 reference.step()
+
                 assert_optimizer_matches(optimizer, reference)
 
             assert batched_step.call_count > 0
+
             for call in batched_step.call_args_list:
                 assert len({param.dtype for param in call.args[1]}) == 1
 
@@ -314,6 +321,7 @@ class TestForeach:
         with patch.object(optimizer, '_step_foreach', wraps=optimizer._step_foreach) as batched_step:
             optimizer.step()
             reference.step()
+
             batched_step.assert_not_called()
 
         assert_optimizer_matches(optimizer, reference)
@@ -328,8 +336,10 @@ class TestForeach:
             for grad in (0.2, 0.01):
                 param.grad.fill_(grad)
                 reference_param.grad.fill_(grad)
+
                 optimizer.step()
                 reference.step()
+
             batched_step.assert_not_called()
 
         assert_optimizer_matches(optimizer, reference)
@@ -339,6 +349,7 @@ class TestForeach:
     def test_checkpoint_switch(self, optimizer_name, foreach):
         params = [make_parameter((2,), grad=0.2), make_parameter(grad=None)]
         optimizer = build_optimizer(optimizer_name, params, foreach=foreach)
+
         for _ in range(6):
             optimizer.step()
 
@@ -351,8 +362,10 @@ class TestForeach:
             for param, restored_param in zip(params, restored_params):
                 param.grad = torch.full_like(param, 0.1 if step % 2 else -0.2)
                 restored_param.grad = param.grad.clone()
+
             optimizer.step()
             restored.step()
+
             assert_optimizer_matches(restored, optimizer)
 
     def test_yogi_releases_scratch_before_denominator(self, device, monkeypatch):
@@ -360,6 +373,7 @@ class TestForeach:
         reference_param = make_parameter((2,), grad=0.2, device=device)
         optimizer = build_optimizer('yogi', [param], foreach=True)
         reference = build_optimizer('yogi', [reference_param], foreach=False)
+
         scratch_refs = []
         original_sqrt = torch._foreach_sqrt
 
@@ -367,6 +381,7 @@ class TestForeach:
             def tracked(*args, **kwargs):
                 result = operation(*args, **kwargs)
                 scratch_refs.extend(ref(tensor) for tensor in result)
+
                 return result
 
             return tracked
@@ -374,12 +389,17 @@ class TestForeach:
         def check_scratch_released(tensors):
             assert len(scratch_refs) == 2
             assert all(tensor_ref() is None for tensor_ref in scratch_refs)
+
             return original_sqrt(tensors)
 
         monkeypatch.setattr(torch, '_foreach_mul', track_scratch(torch._foreach_mul))
         monkeypatch.setattr(torch, '_foreach_sub', track_scratch(torch._foreach_sub))
+
         with patch('torch._foreach_sqrt', side_effect=check_scratch_released) as square_root:
             optimizer.step()
+
             square_root.assert_called_once()
+
         reference.step()
+
         assert_optimizer_matches(optimizer, reference)
