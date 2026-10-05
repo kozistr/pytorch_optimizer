@@ -585,6 +585,9 @@ def create_optimizer(
         and not use_lookahead
     )
 
+    if use_compiled_foreach:
+        kwargs.setdefault('foreach', True)
+
     if compile and not use_compiled_foreach and not isinstance(lr, torch.Tensor):
         lr = torch.tensor(lr, device=next(model.parameters()).device)
 

@@ -15,7 +15,7 @@ class TestMuon:
             {'params': matrices, 'use_muon': True},
             {'params': [make_parameter((1,), grad=None)], 'use_muon': False},
         ]
-        optimizer = build_optimizer(optimizer_name, params)
+        optimizer = build_optimizer(optimizer_name, params, cautious=optimizer_name in ('Muon', 'AdaGO'))
         optimizer.step()
         assert all(torch.isfinite(param).all() for param in matrices)
 

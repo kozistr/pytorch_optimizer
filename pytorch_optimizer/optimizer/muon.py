@@ -9,6 +9,11 @@ from torch.optim import Optimizer
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.foreach_utils import (
+    foreach_add_,
+    foreach_addcdiv_,
+    group_tensors_by_device_and_dtype,
+)
 from pytorch_optimizer.optimizer.shampoo_utils import (
     NewtonSchulzWeights,
     get_newton_schulz_weights,
@@ -16,7 +21,9 @@ from pytorch_optimizer.optimizer.shampoo_utils import (
 )
 
 
-def get_adjusted_lr(lr: float, param_shape: tuple[float, ...], use_adjusted_lr: bool = False) -> float:
+def get_adjusted_lr(
+    lr: float | torch.Tensor, param_shape: tuple[int, ...], use_adjusted_lr: bool = False
+) -> float | torch.Tensor:
     """Scale the learning rate for an orthogonal matrix update.
 
     Args:
@@ -26,7 +33,7 @@ def get_adjusted_lr(lr: float, param_shape: tuple[float, ...], use_adjusted_lr: 
             sqrt(max(output, input))`.
 
     Returns:
-        float: Shape adjusted learning rate.
+        float | torch.Tensor: Shape adjusted learning rate.
 
     """
     output_shape, *input_shape = param_shape
@@ -41,7 +48,108 @@ def get_adjusted_lr(lr: float, param_shape: tuple[float, ...], use_adjusted_lr: 
     return lr * ratio
 
 
-class Muon(BaseOptimizer):
+class MuonBase(BaseOptimizer):
+    """Shared batched updates for local Muon optimizers."""
+
+    _supports_compiled_foreach = True
+    _muon_state_keys: tuple[str, ...]
+
+    def _step_foreach_group(self, group: ParamGroup) -> None:
+        keys = list(self._muon_state_keys) if group['use_muon'] else ['exp_avg', 'exp_avg_sq']
+        params, grads, state_dict = self.collect_trainable_params(group, self.state, state_keys=keys)
+
+        beta1, beta2 = group.get('betas', (0.0, 0.0))
+        bias_correction1 = self.debias(beta1, group['step'])
+        bias_correction2 = self.debias(beta2, group['step'])
+
+        for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
+            if group['use_muon']:
+                shapes: dict[tuple[int, ...], list[int]] = {}
+                for index, p in enumerate(tensors['params']):
+                    shapes.setdefault(tuple(p.shape), []).append(index)
+
+                batches = [
+                    {key: [values[index] for index in indices] for key, values in tensors.items() if key != 'indices'}
+                    for indices in shapes.values()
+                ]
+            else:
+                batches = [tensors]
+
+            for batch in batches:
+                self._step_foreach(
+                    group,
+                    batch['params'],
+                    batch['grads'],
+                    {key: batch[key] for key in keys},
+                    bias_correction1,
+                    bias_correction2,
+                )
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state_dict: dict[str, list[torch.Tensor]],
+        bias_correction1: float | torch.Tensor,
+        bias_correction2: float | torch.Tensor,
+    ) -> None:
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], fixed_decay=False
+        )
+
+        if group['use_muon']:
+            self._step_muon_foreach(group, params, grads, state_dict, bias_correction2)
+        else:
+            beta1, beta2 = group['betas']
+            exp_avgs, exp_avg_sqs = state_dict['exp_avg'], state_dict['exp_avg_sq']
+
+            torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+            torch._foreach_lerp_(exp_avg_sqs, torch._foreach_mul(grads, grads), weight=1.0 - beta2)
+
+            de_noms = torch._foreach_sqrt(exp_avg_sqs)
+            torch._foreach_add_(de_noms, group['eps'])
+            torch._foreach_div_(de_noms, bias_correction2**0.5)
+
+            foreach_addcdiv_(params, torch._foreach_div(exp_avgs, bias_correction1), de_noms, -group['lr'])
+
+    @staticmethod
+    def _orthogonalize(group: ParamGroup, updates: list[torch.Tensor]) -> list[torch.Tensor]:
+        matrices = [update.reshape(update.size(0), -1) for update in updates]
+        matrix = matrices[0] if len(matrices) == 1 else torch.stack(matrices)
+
+        result = zero_power_via_newton_schulz_5(matrix, num_steps=group['ns_steps'], weights=group['ns_coeffs'])
+
+        return [result] if len(matrices) == 1 else list(result.unbind())
+
+    def _momentum_updates(
+        self, group: ParamGroup, grads: list[torch.Tensor], buffers: list[torch.Tensor]
+    ) -> list[torch.Tensor]:
+        torch._foreach_lerp_(buffers, grads, weight=1.0 - group['momentum'])
+
+        if group['nesterov']:
+            torch._foreach_lerp_(grads, buffers, weight=group['momentum'])
+            return self._orthogonalize(group, grads)
+
+        return self._orthogonalize(group, buffers)
+
+    def _apply_muon_updates(
+        self, group: ParamGroup, params: list[torch.Tensor], grads: list[torch.Tensor], updates: list[torch.Tensor]
+    ) -> None:
+        updates = [update.reshape(p.shape) for p, update in zip(params, updates)]
+
+        if group.get('cautious'):
+            for update, grad in zip(updates, grads):
+                self.apply_cautious(update, grad)
+
+        lr = get_adjusted_lr(group['lr'], params[0].shape, use_adjusted_lr=group['use_adjusted_lr'])
+        foreach_add_(params, updates, alpha=-lr)
+
+
+class Muon(MuonBase):
     """Momentum updates with Newton-Schulz matrix orthogonalization.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
@@ -63,6 +171,7 @@ class Muon(BaseOptimizer):
         adamw_wd: Weight decay for parameters in the AdamW groups.
         adamw_eps: Numerical stability constant for the AdamW groups.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch tensor updates and equal-shaped orthogonalization. `False` disables batching; `None` enables it.
 
     Examples:
         ```python
@@ -88,6 +197,8 @@ class Muon(BaseOptimizer):
 
     """
 
+    _muon_state_keys = ('momentum_buffer',)
+
     def __init__(
         self,
         params: ParamsT,
@@ -104,6 +215,7 @@ class Muon(BaseOptimizer):
         adamw_wd: float = 0.0,
         adamw_eps: float = 1e-10,
         maximize: bool = False,
+        foreach: bool | None = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -117,6 +229,7 @@ class Muon(BaseOptimizer):
         ns_coeffs = get_newton_schulz_weights(ns_coeffs)
 
         self.maximize = maximize
+        self.foreach = foreach
 
         for group in params:
             group = cast(ParamGroup, group)
@@ -139,7 +252,7 @@ class Muon(BaseOptimizer):
 
             group['weight_decouple'] = group.get('weight_decouple', weight_decouple)
 
-        super().__init__(params, kwargs)
+        super().__init__(params, {'foreach': foreach, **kwargs})
 
     def __str__(self) -> str:
         return 'Muon'
@@ -168,6 +281,17 @@ class Muon(BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
+    def _step_muon_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state_dict: dict[str, list[torch.Tensor]],
+        bias_correction2: float | torch.Tensor,
+    ) -> None:
+        updates = self._momentum_updates(group, grads, state_dict['momentum_buffer'])
+        self._apply_muon_updates(group, params, grads, updates)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -178,6 +302,10 @@ class Muon(BaseOptimizer):
         for group in self.param_groups:
             self.init_group(group)
             group['step'] += 1
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                self._step_foreach_group(group)
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -211,9 +339,9 @@ class Muon(BaseOptimizer):
                     )
 
                     if group.get('cautious'):
-                        self.apply_cautious(update, grad)
+                        self.apply_cautious(update.reshape(p.shape), grad)
 
-                    lr: float = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
+                    lr = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
 
                     p.add_(update.reshape(p.shape), alpha=-lr)
                 else:
@@ -414,7 +542,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
                         if group.get('cautious'):
                             self.apply_cautious(update, grad)
 
-                        lr: float = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
+                        lr = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
 
                         p.add_(update.reshape(p.shape), alpha=-lr)
 
@@ -441,7 +569,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
         return loss
 
 
-class AdaMuon(BaseOptimizer):
+class AdaMuon(MuonBase):
     """Adaptive momentum updates with Newton-Schulz matrix orthogonalization.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
@@ -462,6 +590,7 @@ class AdaMuon(BaseOptimizer):
         adamw_wd: Weight decay for parameters in the AdamW groups.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch tensor updates and equal-shaped orthogonalization. `False` disables batching; `None` enables it.
 
     Examples:
         ```python
@@ -487,6 +616,8 @@ class AdaMuon(BaseOptimizer):
 
     """
 
+    _muon_state_keys = ('m', 'v')
+
     def __init__(
         self,
         params: ParamsT,
@@ -502,6 +633,7 @@ class AdaMuon(BaseOptimizer):
         adamw_wd: float = 0.0,
         eps: float = 1e-10,
         maximize: bool = False,
+        foreach: bool | None = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -515,6 +647,7 @@ class AdaMuon(BaseOptimizer):
         ns_coeffs = get_newton_schulz_weights(ns_coeffs)
 
         self.maximize = maximize
+        self.foreach = foreach
 
         for group in params:
             group = cast(ParamGroup, group)
@@ -536,7 +669,7 @@ class AdaMuon(BaseOptimizer):
             group['weight_decouple'] = group.get('weight_decouple', weight_decouple)
             group['eps'] = group.get('eps', eps)
 
-        super().__init__(params, kwargs)
+        super().__init__(params, {'foreach': foreach, **kwargs})
 
     def __str__(self) -> str:
         return 'AdaMuon'
@@ -566,6 +699,36 @@ class AdaMuon(BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
+    def _step_muon_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state_dict: dict[str, list[torch.Tensor]],
+        bias_correction2: float | torch.Tensor,
+    ) -> None:
+        beta1, beta2 = group['betas']
+        moments, variances = state_dict['m'], state_dict['v']
+
+        torch._foreach_lerp_(moments, grads, weight=1.0 - beta1)
+
+        updates = [update.flatten() for update in self._orthogonalize(group, moments)]
+
+        torch._foreach_mul_(variances, beta2)
+        torch._foreach_addcmul_(variances, updates, updates, value=1.0 - beta2)
+
+        de_noms = torch._foreach_sqrt(torch._foreach_div(variances, bias_correction2))
+        torch._foreach_add_(de_noms, group['eps'])
+        torch._foreach_div_(updates, de_noms)
+
+        torch._foreach_mul_(updates, 0.2 * math.sqrt(params[0].numel()))
+        norms = [update.norm().add_(group['eps']) for update in updates]
+        torch._foreach_div_(updates, norms)
+
+        updates = [update.reshape(p.shape) for p, update in zip(params, updates)]
+        lr = get_adjusted_lr(group['lr'], params[0].shape, use_adjusted_lr=group['use_adjusted_lr'])
+        foreach_add_(params, updates, alpha=-lr)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -581,6 +744,10 @@ class AdaMuon(BaseOptimizer):
 
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2: float = self.debias(beta2, group['step'])
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                self._step_foreach_group(group)
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -605,7 +772,7 @@ class AdaMuon(BaseOptimizer):
                     m = state['m']
                     m.lerp_(grad, weight=1.0 - beta1)
 
-                    update = m.clone()
+                    update = m
 
                     if update.ndim > 2:
                         update = update.view(len(update), -1)
@@ -622,7 +789,7 @@ class AdaMuon(BaseOptimizer):
 
                     update.mul_(0.2 * math.sqrt(p.numel())).div_(update.norm().add_(group['eps']))
 
-                    lr: float = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
+                    lr = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
 
                     p.add_(update, alpha=-lr)
                 else:
@@ -638,7 +805,7 @@ class AdaMuon(BaseOptimizer):
         return loss
 
 
-class AdaGO(BaseOptimizer):
+class AdaGO(MuonBase):
     """Orthogonal momentum updates with AdaGrad step size adaptation.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
@@ -663,6 +830,7 @@ class AdaGO(BaseOptimizer):
         adamw_wd: Weight decay for parameters in the AdamW groups.
         adamw_eps: Numerical stability constant for the AdamW groups.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch tensor updates and equal-shaped orthogonalization. `False` disables batching; `None` enables it.
 
     Examples:
         ```python
@@ -688,6 +856,8 @@ class AdaGO(BaseOptimizer):
 
     """
 
+    _muon_state_keys = ('momentum_buffer', 'v')
+
     def __init__(
         self,
         params: ParamsT,
@@ -707,6 +877,7 @@ class AdaGO(BaseOptimizer):
         adamw_wd: float = 0.0,
         adamw_eps: float = 1e-10,
         maximize: bool = False,
+        foreach: bool | None = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -723,6 +894,7 @@ class AdaGO(BaseOptimizer):
         ns_coeffs = get_newton_schulz_weights(ns_coeffs)
 
         self.maximize = maximize
+        self.foreach = foreach
 
         for group in params:
             group = cast(ParamGroup, group)
@@ -748,7 +920,7 @@ class AdaGO(BaseOptimizer):
 
             group['weight_decouple'] = group.get('weight_decouple', weight_decouple)
 
-        super().__init__(params, kwargs)
+        super().__init__(params, {'foreach': foreach, **kwargs})
 
     def __str__(self) -> str:
         return 'AdaGO'
@@ -778,6 +950,44 @@ class AdaGO(BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
+    def _step_muon_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state_dict: dict[str, list[torch.Tensor]],
+        bias_correction2: float | torch.Tensor,
+    ) -> None:
+        buffers, variances = state_dict['momentum_buffer'], state_dict['v']
+
+        torch._foreach_lerp_(buffers, grads, weight=1.0 - group['momentum'])
+
+        grad_norms = torch._foreach_norm(grads, ord=2)
+        squared_norms = torch._foreach_mul(grad_norms, grad_norms)
+        torch._foreach_clamp_max_(squared_norms, group['gamma'] ** 2)
+        torch._foreach_add_(variances, squared_norms)
+
+        if group['nesterov']:
+            torch._foreach_lerp_(grads, buffers, weight=group['momentum'])
+
+        updates = self._orthogonalize(group, grads if group['nesterov'] else buffers)
+        updates = [update.reshape(p.shape) for p, update in zip(params, updates)]
+
+        if group.get('cautious'):
+            for update, grad in zip(updates, grads):
+                self.apply_cautious(update, grad)
+
+        # Nesterov modifies gradients before the adaptive step size is computed.
+        step_sizes = torch._foreach_norm(grads, ord=2) if group['nesterov'] else grad_norms
+        torch._foreach_clamp_max_(step_sizes, group['gamma'])
+
+        lr = get_adjusted_lr(group['lr'], params[0].shape, use_adjusted_lr=group['use_adjusted_lr'])
+        torch._foreach_mul_(step_sizes, lr)
+        torch._foreach_div_(step_sizes, variances)
+        torch._foreach_clamp_min_(step_sizes, group['eps'])
+
+        torch._foreach_addcmul_(params, [update.to(params[0].dtype) for update in updates], step_sizes, value=-1.0)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -788,6 +998,10 @@ class AdaGO(BaseOptimizer):
         for group in self.param_groups:
             self.init_group(group)
             group['step'] += 1
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                self._step_foreach_group(group)
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -812,7 +1026,8 @@ class AdaGO(BaseOptimizer):
                     buf, v = state['momentum_buffer'], state['v']
                     buf.lerp_(grad, weight=1.0 - group['momentum'])
 
-                    v.add_(min(grad.norm(p=2.0).pow(2), group['gamma'] ** 2))
+                    grad_norm = grad.norm(p=2.0)
+                    v.add_(grad_norm.square().clamp_max_(group['gamma'] ** 2))
 
                     update = grad.lerp_(buf, weight=group['momentum']) if group['nesterov'] else buf
                     if update.ndim > 2:
@@ -823,14 +1038,12 @@ class AdaGO(BaseOptimizer):
                     )
 
                     if group.get('cautious'):
-                        self.apply_cautious(update, grad)
+                        self.apply_cautious(update.reshape(p.shape), grad)
 
-                    lr: float = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
+                    lr = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
 
-                    p.add_(
-                        update.reshape(p.shape),
-                        alpha=-max(group['eps'], (lr * min(grad.norm(2), group['gamma']) / v).item()),
-                    )
+                    step_size = (lr * grad.norm(2).clamp_max_(group['gamma']) / v).clamp_min_(group['eps'])
+                    p.addcmul_(update.reshape(p.shape).to(p.dtype), step_size, value=-1.0)
                 else:
                     exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
@@ -849,7 +1062,7 @@ class AdaGO(BaseOptimizer):
         return loss
 
 
-class NorMuon(BaseOptimizer):
+class NorMuon(MuonBase):
     """Muon updates with row wise second moment normalization.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
@@ -876,6 +1089,7 @@ class NorMuon(BaseOptimizer):
         adamw_eps: Numerical stability constant for the AdamW groups.
         eps: Term added to the denominator of the row wise normalization.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch tensor updates and equal-shaped orthogonalization. `False` disables batching; `None` enables it.
 
     Examples:
         ```python
@@ -901,6 +1115,8 @@ class NorMuon(BaseOptimizer):
 
     """
 
+    _muon_state_keys = ('momentum_buffer', 'second_momentum_buffer')
+
     def __init__(
         self,
         params: ParamsT,
@@ -920,6 +1136,7 @@ class NorMuon(BaseOptimizer):
         adamw_eps: float = 1e-10,
         eps: float = 1e-10,
         maximize: bool = False,
+        foreach: bool | None = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -936,6 +1153,7 @@ class NorMuon(BaseOptimizer):
         ns_coeffs = get_newton_schulz_weights(ns_coeffs)
 
         self.maximize = maximize
+        self.foreach = foreach
 
         for group in params:
             group = cast(ParamGroup, group)
@@ -961,7 +1179,7 @@ class NorMuon(BaseOptimizer):
 
             group['weight_decouple'] = group.get('weight_decouple', weight_decouple)
 
-        super().__init__(params, kwargs)
+        super().__init__(params, {'foreach': foreach, **kwargs})
 
     def __str__(self) -> str:
         return 'NorMuon'
@@ -991,6 +1209,40 @@ class NorMuon(BaseOptimizer):
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
 
+    def _step_muon_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state_dict: dict[str, list[torch.Tensor]],
+        bias_correction2: float | torch.Tensor,
+    ) -> None:
+        updates = self._momentum_updates(group, grads, state_dict['momentum_buffer'])
+        updates = [update.to(grads[0].dtype) for update in updates]
+        original_norms = torch._foreach_norm(updates, ord=2)
+
+        second_moments = state_dict['second_momentum_buffer']
+        row_means = [update.square().mean(dim=-1, keepdim=True) for update in updates]
+        torch._foreach_lerp_(second_moments, row_means, weight=1.0 - group['beta2'])
+
+        de_noms = torch._foreach_sqrt(second_moments)
+        torch._foreach_add_(de_noms, group['eps'])
+        torch._foreach_div_(updates, de_noms)
+
+        norms = torch._foreach_norm(updates, ord=2)
+        torch._foreach_add_(norms, group['eps'])
+
+        if group['update_scale'] == 'preserve_norm':
+            torch._foreach_mul_(updates, torch._foreach_div(original_norms, norms))
+            lr = get_adjusted_lr(group['lr'], params[0].shape, use_adjusted_lr=group['use_adjusted_lr'])
+        else:
+            scales = [0.2 * math.sqrt(update.numel()) / norm for update, norm in zip(updates, norms)]
+            torch._foreach_mul_(updates, scales)
+            lr = group['lr']
+
+        updates = [update.reshape(p.shape) for p, update in zip(params, updates)]
+        foreach_add_(params, updates, alpha=-lr)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -1001,6 +1253,10 @@ class NorMuon(BaseOptimizer):
         for group in self.param_groups:
             self.init_group(group)
             group['step'] += 1
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                self._step_foreach_group(group)
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -1042,7 +1298,7 @@ class NorMuon(BaseOptimizer):
 
                     if group['update_scale'] == 'preserve_norm':
                         update.mul_(original_norm / update.norm().add_(group['eps']))
-                        lr: float = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
+                        lr = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
                     else:
                         update.mul_(0.2 * math.sqrt(update.numel()) / update.norm().add_(group['eps']))
                         lr = group['lr']
