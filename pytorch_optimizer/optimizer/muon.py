@@ -962,7 +962,7 @@ class AdaGO(MuonBase):
                 self.apply_cautious(update, grad)
 
         # Nesterov modifies gradients before the adaptive step size is computed.
-        step_sizes = list(torch._foreach_norm(grads, ord=2)) if group['nesterov'] else list(grad_norms)
+        step_sizes = torch._foreach_norm(grads, ord=2) if group['nesterov'] else grad_norms
         torch._foreach_clamp_max_(step_sizes, group['gamma'])
         lr = get_adjusted_lr(group['lr'], params[0].shape, use_adjusted_lr=group['use_adjusted_lr'])
         torch._foreach_mul_(step_sizes, lr)
@@ -1211,7 +1211,7 @@ class NorMuon(MuonBase):
         torch._foreach_add_(de_noms, group['eps'])
         torch._foreach_div_(updates, de_noms)
 
-        norms = list(torch._foreach_norm(updates, ord=2))
+        norms = torch._foreach_norm(updates, ord=2)
         torch._foreach_add_(norms, group['eps'])
         if group['update_scale'] == 'preserve_norm':
             torch._foreach_mul_(updates, torch._foreach_div(original_norms, norms))
