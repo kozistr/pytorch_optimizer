@@ -1,7 +1,8 @@
 # pytorch-optimizer
 
-Use more than 100 optimizers, learning rate schedulers, and loss functions with PyTorch.
-Start with a named optimizer, or use `create_optimizer()` to combine weight decay, gradient centralization, and Lookahead.
+Choose from more than 100 optimizers, plus learning rate schedulers and loss functions for PyTorch.
+Use an optimizer class or select an optimizer by name.
+Use `create_optimizer()` to configure weight decay, gradient centralization, and Lookahead.
 
 ```python
 from torch import nn
@@ -13,9 +14,10 @@ optimizer = create_optimizer(model, 'adamp', lr=1e-3)
 
 ## Start training
 
-Follow the [getting started guide](getting-started.md) for installation, a training step, and component discovery.
-For algorithm descriptions and links to papers, browse the
-[supported algorithms](https://github.com/kozistr/pytorch_optimizer#supported-optimizers).
+Follow the [getting started guide](getting-started.md) to install the package and run a training step.
+The guide also shows how to find component names.
+Read the [supported algorithms](https://github.com/kozistr/pytorch_optimizer#supported-optimizers) for descriptions and
+links to papers.
 
 ## API reference
 
@@ -29,13 +31,14 @@ For algorithm descriptions and links to papers, browse the
 
 ## Compare and troubleshoot
 
-- Compare runtime and memory in the [foreach benchmarks](benchmark.md).
-- Inspect optimizer paths in the [visualizations](visualization.md).
+- Compare execution time and memory use in the [optimizer benchmarks](benchmark.md).
+- Compare optimizer paths in the [visualizations](visualization.md).
 - Check the [FAQ](qa.md) for Hessian computation and memory issues.
 - Read the [changelog](changelogs/index.md) for release notes.
 
 ## Contribute
 
-See the [contributing guide](https://github.com/kozistr/pytorch_optimizer/blob/main/CONTRIBUTING.md)
-to add an optimizer, improve the docs, or report a bug.
-Check the [license notes](https://github.com/kozistr/pytorch_optimizer#license-notes) before using code with additional terms.
+Follow the [contributing guide](https://github.com/kozistr/pytorch_optimizer/blob/main/CONTRIBUTING.md) to add an
+optimizer, revise documentation, or report a bug.
+Check the [license notes](https://github.com/kozistr/pytorch_optimizer#license-notes) before you use code with
+additional terms.

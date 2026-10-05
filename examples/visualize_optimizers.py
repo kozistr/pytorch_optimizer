@@ -3,6 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
+from textwrap import fill
 from typing import Any
 from warnings import filterwarnings
 
@@ -31,6 +32,8 @@ OPTIMIZERS_IGNORE: tuple[str, ...] = (
     'adamuon',
     'adago',
     'distributedmuon',
+    'normuon',
+    'spectralsphere',
     'splus',
     'lbfgs',
 )
@@ -123,14 +126,12 @@ class Settings:
         default_factory=lambda: {'convergence': 0.2, 'oscillations': 0.1, 'average': 0.4},
     )
     loss_min_threshold: float = 0.0
-    fig_size: tuple[int, int] = (6, 6)
+    fig_size: tuple[float, float] = (5.12, 5.12)
     grid_points: int = 150
     savefig_kwargs: dict[str, Any] = field(
         default_factory=lambda: {
-            'dpi': 120,
-            'bbox_inches': 'tight',
-            'pad_inches': 0.05,
-            'pil_kwargs': {'quality': 75, 'optimize': True, 'subsampling': 2},
+            'dpi': 100,
+            'pil_kwargs': {'quality': 70, 'optimize': True, 'subsampling': 2},
         }
     )
     seed: int = 42
@@ -473,15 +474,23 @@ def plot_function(
     ax = fig.add_subplot(1, 1, 1)
 
     ax.contour(x_grid.numpy(), y_grid.numpy(), z.numpy(), 20, cmap='jet')
-    ax.plot(optimization_steps[0], optimization_steps[1], color='r', marker='x', markersize=3)
+    ax.plot(
+        optimization_steps[0],
+        optimization_steps[1],
+        color='r',
+        marker='x',
+        markersize=3,
+        markevery=max(1, iterations // 30),
+    )
 
     plt.plot(*minimum, 'gD', label='Global Minimum')
     plt.plot(optimization_steps[0, -1], optimization_steps[1, -1], 'bD', label='Final Position')
 
     config: str = ', '.join(f'{k}={round(v, 4)}' for k, v in params.items())
-    ax.set_title(f'{func.__name__} func: {optimizer_name} with {iterations} iterations\n{config}')
+    ax.set_title(f'{func.__name__}: {optimizer_name}, {iterations} steps\n{fill(config, width=60)}', fontsize=9)
 
     plt.legend()
+    fig.tight_layout()
     plt.savefig(str(output_path), **SETTINGS.savefig_kwargs)
     plt.close()
 

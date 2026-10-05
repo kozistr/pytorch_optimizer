@@ -1,22 +1,24 @@
-## Problem (Why?)
+## Problem
 
-_What problem are you trying to solve?_
+Describe the problem this change addresses.
 
-## Solution (What/How?)
+## Solution
 
-_How did you solve the problem? Please provide a complete description and explanation!_
+Describe the resulting behavior and how the implementation produces it.
+Include a paper or reference implementation for a new algorithm.
 
-## Other changes (bug fixes, small refactors)
+## Other changes
 
-_Are there any small changes?_
+List related fixes or refactors that reviewers should check.
 
 ## Notes
 
-_Please note any questions, helps or contexts what maintainer(s) should know_
+Add context, questions, or checks you could not run.
 
 ## Checklist
 
-- [ ] Make sure to run `just format` before commit
-- [ ] My code adheres to the style guidelines of this project (`just check` shows no errors)
-- [ ] Both new and existing unit tests pass successfully on my local environment by running `just test`
-- [ ] I have made the necessary changes to the documentation
+- [ ] Run `uv run just format` before committing.
+- [ ] Run `uv run just check` and resolve errors.
+- [ ] Run `uv run just test` and check that new and existing tests pass.
+- [ ] Check 100% coverage for new and changed implementation code with `uv run coverage report -m`.
+- [ ] Update the documentation for the change.

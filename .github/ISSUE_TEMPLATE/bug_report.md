@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Report a bug with steps to reproduce it
 title: ''
 labels: bug
 assignees: kozistr
@@ -9,26 +9,29 @@ assignees: kozistr
 
 ## Describe the bug
 
-A clear and concise description of what the bug is.
+Describe the bug and its effect on your training or other use of the package.
 
-## To Reproduce
+## Reproduce the bug
 
-* OS : (e.g. Linux, Windows, MacOS)
-* PyTorch version : (e.g. 2.1.0, 2.13.0)
-* Python version :  (e.g. 3.10, 3.12)
-* pytorch-optimizer version : (e.g. 3.3.0)
-* reproducible codes : please share your reproducible codes, scripts, or links. If sharing the code is complicated, you can manually write minimal code to reproduce bugs!
+- Operating system: Linux, Windows, or macOS, including the version.
+- PyTorch version:
+- Python version:
+- pytorch-optimizer version:
+- Code or script that reproduces the bug:
 
-Here's an [example](https://github.com/kozistr/pytorch_optimizer/issues/305#issue-2721453417).
+Include the steps to run your code.
+If you cannot share the original code, write a minimal example that reproduces the bug.
+See this [example report](https://github.com/kozistr/pytorch_optimizer/issues/305#issue-2721453417).
 
 ## Log
 
-attach the complete log here! (highlighted texts or screenshots are welcome)
+Attach the complete log.
+You can highlight relevant text or include screenshots.
 
 ## Expected behavior
 
-A clear and concise description of what you expected to happen.
+Describe the behavior you expected.
 
 ## Additional context
 
-Add any other context about the problem here.
+Add context that helps reproduce or explain the problem.
