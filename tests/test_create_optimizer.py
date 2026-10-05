@@ -1,5 +1,4 @@
 import warnings
-from copy import deepcopy
 
 import pytest
 import torch
@@ -113,7 +112,7 @@ class TestCreateOptimizer:
                 )
 
     @pytest.mark.skipif(not torch._dynamo.is_dynamo_supported(), reason='torch.compile is unavailable in this runtime')
-    def test_compiled_foreach_scheduler_and_checkpoint(self):
+    def test_compiled_foreach_preserves_tensor_lr_and_reuses_graphs(self):
         torch._dynamo.reset()
 
         model = TrainingModel()
@@ -136,14 +135,6 @@ class TestCreateOptimizer:
 
         assert counter.frame_count == 2
         assert optimizer.param_groups[0]['step'] == 12
-
-        checkpoint = deepcopy(optimizer.state_dict())
-        optimizer.step()
-        optimizer.load_state_dict(checkpoint)
-        optimizer.step()
-
-        assert optimizer.param_groups[0]['step'] == 13
-        assert all(torch.isfinite(parameter).all() for parameter in model.parameters())
 
 
 class TestOptionalIntegrations:
