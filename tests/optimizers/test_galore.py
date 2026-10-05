@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer.galore_utils import GaLoreProjector
+from pytorch_optimizer.optimizer.utils.galore import GaLoreProjector
 
 
 class TestGaLoreProjector:

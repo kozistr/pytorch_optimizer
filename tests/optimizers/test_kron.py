@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from pytorch_optimizer.optimizer.psgd import initialize_q_expressions, precondition_update_prob_schedule
-from pytorch_optimizer.optimizer.psgd_utils import (
+from pytorch_optimizer.optimizer.utils.psgd import (
     damped_pair_vg,
     norm_lower_bound,
     triu_with_diagonal_and_above,

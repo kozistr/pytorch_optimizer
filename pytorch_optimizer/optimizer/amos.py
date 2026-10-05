@@ -5,7 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.foreach_utils import foreach_rsqrt_
+from pytorch_optimizer.optimizer.utils.foreach import foreach_rsqrt_
 
 
 class Amos(BaseOptimizer):

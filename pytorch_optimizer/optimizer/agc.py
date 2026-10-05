@@ -1,6 +1,6 @@
 import torch
 
-from pytorch_optimizer.optimizer.utils import unit_norm
+from pytorch_optimizer.optimizer.utils.gradient import unit_norm
 
 
 def agc(

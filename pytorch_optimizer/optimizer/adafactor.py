@@ -6,7 +6,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.foreach_utils import foreach_rsqrt
+from pytorch_optimizer.optimizer.utils.foreach import foreach_rsqrt
 
 
 class AdaFactor(BaseOptimizer):

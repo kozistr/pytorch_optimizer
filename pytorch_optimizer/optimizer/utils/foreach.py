@@ -4,7 +4,7 @@ from functools import wraps
 import torch
 from torch.utils._foreach_utils import _group_tensors_by_device_and_dtype
 
-from pytorch_optimizer.optimizer.utils import TORCH_VERSION_AT_LEAST_2_8
+from pytorch_optimizer.base.compatibility import TORCH_VERSION_AT_LEAST_2_8
 
 
 def has_foreach_support(tensors: list[torch.Tensor]) -> bool:

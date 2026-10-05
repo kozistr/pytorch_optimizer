@@ -8,7 +8,7 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
-from pytorch_optimizer.optimizer.utils import normalize_gradient, unit_norm
+from pytorch_optimizer.optimizer.utils.gradient import normalize_gradient, unit_norm
 
 
 class Ranger21(BaseOptimizer):

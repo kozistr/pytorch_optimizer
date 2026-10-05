@@ -18,7 +18,7 @@ from pytorch_optimizer.base.type import (
     ParamsT,
     State,
 )
-from pytorch_optimizer.optimizer.foreach_utils import compile_foreach_step, foreach_rsqrt_
+from pytorch_optimizer.optimizer.utils.foreach import compile_foreach_step, foreach_rsqrt_
 
 
 class BaseOptimizer(ABC, Optimizer):

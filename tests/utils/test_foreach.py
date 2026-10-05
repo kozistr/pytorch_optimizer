@@ -1,6 +1,6 @@
 import torch
 
-from pytorch_optimizer.optimizer.foreach_utils import (
+from pytorch_optimizer.optimizer.utils.foreach import (
     foreach_rsqrt,
     foreach_rsqrt_,
     group_tensors_by_device_and_dtype,

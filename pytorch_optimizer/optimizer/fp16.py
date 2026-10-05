@@ -5,7 +5,8 @@ from torch import nn
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.type import Closure, ParamsT
-from pytorch_optimizer.optimizer.utils import clip_grad_norm, has_overflow
+from pytorch_optimizer.optimizer.utils.gradient import clip_grad_norm
+from pytorch_optimizer.optimizer.utils.precision import has_overflow
 
 
 class DynamicLossScaler:
