@@ -1,7 +1,11 @@
+from unittest.mock import patch
+
 import pytest
 import torch
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
+from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
 
 
 class TestValidationMethods:
@@ -81,3 +85,15 @@ def test_can_use_foreach():
     assert len(params) == 0
     assert len(grads) == 0
     assert len(state_dict) == 0
+
+
+def test_compile_foreach():
+    optimizer = build_optimizer('radam', [make_parameter()])
+    step = optimizer._step_foreach
+    compile_kwargs = {'dynamic': False}
+
+    with patch('pytorch_optimizer.base.optimizer.compile_foreach_step') as compile_step:
+        optimizer._compile_foreach(compile_kwargs)
+
+    compile_step.assert_called_once_with(step, compile_kwargs)
+    assert optimizer._step_foreach is compile_step.return_value
