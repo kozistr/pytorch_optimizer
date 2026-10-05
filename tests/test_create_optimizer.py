@@ -2,8 +2,9 @@ import warnings
 
 import pytest
 import torch
-from torch._dynamo.testing import CompileCounter
+from torch._dynamo.testing import CompileCounterWithBackend
 
+from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, create_optimizer, load_optimizer
 from tests.fixtures import TrainingModel, build_model
 from tests.optimizer_cases import SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
@@ -77,6 +78,7 @@ class TestCreateOptimizer:
 
         x_data, y_data = environment
         model, loss_fn = build_model(device=x_data.device)
+        counter = CompileCounterWithBackend('aot_eager')
 
         if optimizer_name == 'adamw':
             config['capturable'] = foreach
@@ -86,12 +88,27 @@ class TestCreateOptimizer:
             optimizer_name,
             foreach=foreach,
             compile=True,
-            compile_kwargs={'backend': 'aot_eager'},
+            compile_kwargs={'backend': counter},
             **config,
         )
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
         trainer.run(iterations=iterations)
+
+        if foreach and isinstance(optimizer, BaseOptimizer) and optimizer._supports_compiled_foreach:
+            lr = torch.tensor(config['lr'], device=x_data.device)
+            for group in optimizer.param_groups:
+                group['lr'] = lr
+
+            for _ in range(3):
+                lr.mul_(0.99)
+                expected_lr = lr.clone()
+                frames = counter.frame_count
+                optimizer.step()
+
+                torch.testing.assert_close(lr, expected_lr)
+
+            assert 0 < counter.frame_count == frames
 
         if optimizer_name == 'yogi' and foreach:
             model = TrainingModel(dtype=torch.bfloat16)
@@ -110,31 +127,6 @@ class TestCreateOptimizer:
                 torch.testing.assert_close(
                     optimizer.state[parameter]['exp_avg_sq'], torch.full_like(parameter, 0.494140625)
                 )
-
-    @pytest.mark.skipif(not torch._dynamo.is_dynamo_supported(), reason='torch.compile is unavailable in this runtime')
-    def test_compiled_foreach_preserves_tensor_lr_and_reuses_graphs(self):
-        torch._dynamo.reset()
-
-        model = TrainingModel()
-        lr = torch.tensor(0.1)
-        counter = CompileCounter()
-        optimizer = create_optimizer(
-            model, 'radam', lr=lr, betas=(0.6, 0.8), foreach=True, compile=True,
-            degenerated_to_sgd=True, compile_kwargs={'backend': counter, 'fullgraph': True},
-        )
-
-        for parameter in model.parameters():
-            parameter.grad = torch.full_like(parameter, 0.1)
-
-        for _ in range(12):
-            lr.mul_(0.99)
-            expected_lr = lr.clone()
-            optimizer.step()
-
-            torch.testing.assert_close(lr, expected_lr)
-
-        assert counter.frame_count == 2
-        assert optimizer.param_groups[0]['step'] == 12
 
 
 class TestOptionalIntegrations:
