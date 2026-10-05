@@ -1,13 +1,15 @@
 # Optimizer benchmark
 
-Compare per-parameter, foreach, compiled, and fused updates with Transformers `Trainer` on
-[`tomaarsen/Qwen3-Reranker-0.6B-seq-cls`](https://huggingface.co/tomaarsen/Qwen3-Reranker-0.6B-seq-cls)
-(595,777,536 trainable parameters, BF16, FP32 BCE loss).
+Compare per-parameter, foreach, compiled, and fused optimizer updates with Transformers `Trainer`.
+The benchmark uses
+[`tomaarsen/Qwen3-Reranker-0.6B-seq-cls`](https://huggingface.co/tomaarsen/Qwen3-Reranker-0.6B-seq-cls), which has
+595,777,536 trainable parameters.
+It trains in BF16 and computes binary cross-entropy (BCE) loss in FP32.
 
 ## Run
 
-Requires CUDA PyTorch, Transformers, Accelerate, FlashAttention 2, and a CUDA `torch.compile` toolchain.
-Input: JSONL query/document pairs with binary labels.
+Install CUDA-enabled PyTorch, Transformers, Accelerate, FlashAttention 2, and a CUDA toolchain for `torch.compile`.
+Prepare a JSONL file with query/document pairs and binary labels:
 
 ```json
 {"query": "What causes rainfall?", "document": "Rain forms when atmospheric water condenses.", "label": 1}
@@ -18,17 +20,27 @@ python -m examples.benchmark --pairs-file train-pairs.jsonl \
     --batch-size 16 --full-length-only --gradient-checkpointing --steps 20
 ```
 
-Optional: `--optimizers radam yogi adamw`, `--modes per_param foreach compiled fused`.
-Output: `.cache/optimizer-benchmark.json`.
+Select optimizers with `--optimizers radam yogi adamw`.
+Select update modes with `--modes per_param foreach compiled fused`.
+Read the results in `.cache/optimizer-benchmark.json`.
 
 ## Results
 
-RTX 5060 (8 GB), Python 3.12, PyTorch 2.14.1+cu132, Transformers 5.18.0, FlashAttention 2.8.3.
-256 tokens, learning rate 1e-4, gradient checkpointing, 10 warmup updates, 20 timed updates.
-SciFact train pairs: 1,680 at batch 16; 1,664 at batch 64. Each case starts from the same weights and seed.
+The recorded runs use these settings:
 
-Cells show median GPU milliseconds (**speedup vs per-parameter**). Per-parameter is **1×**; `—` is unsupported.
-Compiled mode compiles foreach updates. Full-step time includes forward, backward, and optimizer work.
+- Hardware: RTX 5060 with 8 GB of memory.
+- Software: Python 3.12, PyTorch 2.14.1+cu132, Transformers 5.18.0, and FlashAttention 2.8.3.
+- Training: 256 tokens, a learning rate of 1e-4, and gradient checkpointing.
+- Timing: 10 warmup updates and 20 timed updates.
+- SciFact training pairs: 1,680 for batch size 16 and 1,664 for batch size 64.
+
+Each case starts from the same weights and random seed.
+
+Each cell lists the median GPU time in milliseconds and the **speedup relative to per-parameter updates**.
+The per-parameter baseline is **1×**.
+A dash (`—`) marks an unsupported mode.
+Compiled mode compiles foreach updates.
+The full training step includes the forward pass, backward pass, and optimizer update.
 
 ### Optimizer update
 
@@ -60,12 +72,14 @@ Compiled mode compiles foreach updates. Full-step time includes forward, backwar
 
 ### Gradient checkpointing
 
-AdaMod foreach, batch 16, 256 tokens; 2 warmup updates, 3 timed updates on the same 8 GB GPU.
+This comparison uses AdaMod foreach updates, batch size 16, and 256 tokens on the same 8 GB GPU.
+Each run includes 2 warmup updates and 3 timed updates.
 
 | Checkpointing | Full step (ms) | Peak allocated (GiB) | Speedup vs off |
 | --- | ---: | ---: | ---: |
 | Off | 28,541.34 | 12.27 | 1.00× |
 | On | 822.56 | 6.72 | 34.70× |
 
-GPU clocks were unlocked; small differences vary between runs. Compiled low-precision updates can change rounding.
-Model revision: `6a5829f5079c66e78d911e06fe21931cc00232f7`.
+The runs use unlocked GPU clocks, so small timing differences vary between runs.
+Compiled updates in low precision can change rounding.
+The model revision is `6a5829f5079c66e78d911e06fe21931cc00232f7`.

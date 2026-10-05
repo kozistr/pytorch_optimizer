@@ -1,5 +1,7 @@
 # Utilities
 
+Use these helpers to find registered components, manage gradients, and offload optimizer work to the CPU.
+
 ::: pytorch_optimizer.get_supported_optimizers
     :docstring:
     :members:

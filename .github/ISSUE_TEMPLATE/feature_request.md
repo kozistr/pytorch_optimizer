@@ -1,12 +1,16 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Request a feature or an algorithm
 title: ''
 labels: feature request
 assignees: kozistr
 
 ---
 
-## Paper or Code
+## Feature
 
-here!
+Describe the feature and how you would use it.
+
+## Paper or code
+
+Link to the paper or reference implementation, if available.

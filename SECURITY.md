@@ -2,8 +2,8 @@
 
 ## Supported Versions
 
-all versions maybe.
+The project may provide security support for all versions.
 
 ## Reporting a Vulnerability
 
-this project heavily depends on the `torch` package.
+The project depends on the `torch` package.
