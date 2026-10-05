@@ -1,5 +1,8 @@
 from typing import Any
 
+from pytorch_optimizer.base.optimizer import BaseOptimizer
+from pytorch_optimizer.optimizer import OPTIMIZERS
+
 OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('lookahead', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     ('orthograd', {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
@@ -450,4 +453,11 @@ COMPILE_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('lion', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     ('adamw', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     ('stableadamw', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
+    *{
+        name: (name, options.copy(), iterations)
+        for name, options, iterations in OPTIMIZER_RECIPES
+        if name in OPTIMIZERS
+        and issubclass(OPTIMIZERS[name], BaseOptimizer)
+        and OPTIMIZERS[name]._supports_compiled_foreach
+    }.values(),
 ]

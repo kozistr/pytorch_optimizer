@@ -3,7 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.foreach_utils import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.foreach_utils import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class AdaMax(BaseOptimizer):
@@ -21,6 +21,8 @@ class AdaMax(BaseOptimizer):
         foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -90,7 +92,7 @@ class AdaMax(BaseOptimizer):
         grads: list[torch.Tensor],
         exp_avgs: list[torch.Tensor],
         exp_infs: list[torch.Tensor],
-        step_size: float,
+        step_size: float | torch.Tensor,
     ) -> None:
         beta1, beta2 = group['betas']
 
@@ -114,7 +116,7 @@ class AdaMax(BaseOptimizer):
         torch._foreach_add_(grad_abs, group['eps'])
         torch._foreach_maximum_(exp_infs, grad_abs)
 
-        torch._foreach_addcdiv_(params, exp_avgs, exp_infs, value=-step_size)
+        foreach_addcdiv_(params, exp_avgs, exp_infs, value=-step_size)
 
     def _step_per_param(self, group: ParamGroup, step_size: float) -> None:
         beta1, beta2 = group['betas']

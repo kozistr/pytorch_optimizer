@@ -5,7 +5,11 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.foreach_utils import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.foreach_utils import (
+    compile_foreach_step,
+    foreach_addcdiv_,
+    group_tensors_by_device_and_dtype,
+)
 
 
 class Yogi(BaseOptimizer):
@@ -24,6 +28,8 @@ class Yogi(BaseOptimizer):
         foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -46,6 +52,7 @@ class Yogi(BaseOptimizer):
 
         self.maximize = maximize
         self.foreach = foreach
+        self._compiled_foreach = False
 
         defaults: Defaults = {
             'lr': lr,
@@ -63,6 +70,13 @@ class Yogi(BaseOptimizer):
 
     def __str__(self) -> str:
         return 'Yogi'
+
+    def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        # Keep rounded gradient squares for the second-moment sign comparison.
+        self._apply_update_foreach = compile_foreach_step(  # ty: ignore[invalid-assignment]
+            self._apply_update_foreach, compile_kwargs
+        )
+        self._compiled_foreach = True
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -82,11 +96,10 @@ class Yogi(BaseOptimizer):
                 state['exp_avg'] = torch.full_like(grad, fill_value=group['initial_accumulator'])
                 state['exp_avg_sq'] = torch.full_like(grad, fill_value=group['initial_accumulator'])
 
+    @staticmethod
     def _update_second_moment_foreach(
-        self, exp_avg_sqs: list[torch.Tensor], grads: list[torch.Tensor], beta2: float
+        exp_avg_sqs: list[torch.Tensor], grad_p2: list[torch.Tensor], beta2: float
     ) -> None:
-        grad_p2 = torch._foreach_mul(grads, grads)
-
         signs = torch._foreach_sub(exp_avg_sqs, grad_p2)
         torch._foreach_sign_(signs)
 
@@ -99,8 +112,8 @@ class Yogi(BaseOptimizer):
         grads: list[torch.Tensor],
         exp_avgs: list[torch.Tensor],
         exp_avg_sqs: list[torch.Tensor],
-        step_size: float,
-        bias_correction2_sq: float,
+        step_size: float | torch.Tensor,
+        bias_correction2_sq: float | torch.Tensor,
     ) -> None:
         beta1, beta2 = group['betas']
 
@@ -118,13 +131,32 @@ class Yogi(BaseOptimizer):
 
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
 
-        self._update_second_moment_foreach(exp_avg_sqs, grads, beta2)
+        grad_p2 = None
+        if self._compiled_foreach:
+            grad_p2 = torch._foreach_mul(grads, grads)
+        else:
+            self._update_second_moment_foreach(exp_avg_sqs, torch._foreach_mul(grads, grads), beta2)
+
+        self._apply_update_foreach(group, params, exp_avgs, exp_avg_sqs, step_size, bias_correction2_sq, grad_p2)
+
+    @staticmethod
+    def _apply_update_foreach(
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
+        step_size: float | torch.Tensor,
+        bias_correction2_sq: float | torch.Tensor,
+        grad_p2: list[torch.Tensor] | None,
+    ) -> None:
+        if grad_p2 is not None:
+            Yogi._update_second_moment_foreach(exp_avg_sqs, grad_p2, group['betas'][1])
 
         de_noms = torch._foreach_sqrt(exp_avg_sqs)
         torch._foreach_div_(de_noms, bias_correction2_sq)
         torch._foreach_add_(de_noms, group['eps'])
 
-        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
+        foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
 
     def _step_per_param(self, group: ParamGroup, step_size: float, bias_correction2_sq: float) -> None:
         beta1, beta2 = group['betas']

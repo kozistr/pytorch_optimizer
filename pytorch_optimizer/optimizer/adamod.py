@@ -24,6 +24,8 @@ class AdaMod(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
@@ -88,7 +90,7 @@ class AdaMod(BaseOptimizer):
         exp_avgs: list[torch.Tensor],
         exp_avg_sqs: list[torch.Tensor],
         exp_avg_lrs: list[torch.Tensor],
-        step_size: float,
+        step_size: float | torch.Tensor,
     ) -> None:
         beta1, beta2, beta3 = group['betas']
 
@@ -152,15 +154,15 @@ class AdaMod(BaseOptimizer):
 
             de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
-            update = torch.full_like(de_nom, fill_value=step_size)
-            update.div_(de_nom)
+            update = de_nom
+            foreach_scalar_div_([update], step_size)
 
             exp_avg_lr.lerp_(update, weight=1.0 - beta3)
 
             torch.min(update, exp_avg_lr, out=update)
             update.mul_(exp_avg)
 
-            p.add_(-update)
+            p.sub_(update)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

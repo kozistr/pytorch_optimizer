@@ -5,7 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.foreach_utils import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.foreach_utils import foreach_add_, foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class DiffGrad(BaseOptimizer):
@@ -27,6 +27,8 @@ class DiffGrad(BaseOptimizer):
         foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -107,8 +109,9 @@ class DiffGrad(BaseOptimizer):
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
         state_dict: dict[str, list[torch.Tensor]],
-        step_size: float,
-        n_sma: float,
+        step_size: float | torch.Tensor,
+        is_rectified: bool,
+        apply_update: bool,
     ) -> None:
         beta1, beta2 = group['betas']
         exp_avgs, exp_avg_sqs = state_dict['exp_avg'], state_dict['exp_avg_sq']
@@ -131,23 +134,28 @@ class DiffGrad(BaseOptimizer):
         torch._foreach_mul_(exp_avg_sqs, beta2)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
 
-        if not group['rectify'] or n_sma >= self.n_sma_threshold:
+        if not group['rectify'] or is_rectified:
             de_noms = self.apply_ams_bound_foreach(
                 group['ams_bound'], exp_avg_sqs, state_dict.get('max_exp_avg_sq', []), group['eps']
             )
 
             torch._foreach_sub_(previous_grads, grads)
             torch._foreach_abs_(previous_grads)
-            torch._foreach_sigmoid_(previous_grads)
+            if isinstance(step_size, torch.Tensor):
+                # Inductor cannot fuse the native foreach sigmoid.
+                for previous_grad in previous_grads:
+                    previous_grad.sigmoid_()
+            else:
+                torch._foreach_sigmoid_(previous_grads)
             torch._foreach_mul_(previous_grads, exp_avgs)
 
-            torch._foreach_addcdiv_(params, previous_grads, de_noms, value=-step_size)
+            foreach_addcdiv_(params, previous_grads, de_noms, value=-step_size)
         else:
             if group['ams_bound']:
                 torch._foreach_maximum_(state_dict['max_exp_avg_sq'], exp_avg_sqs)
 
-            if step_size > 0:
-                torch._foreach_add_(params, exp_avgs, alpha=-step_size)
+            if apply_update:
+                foreach_add_(params, exp_avgs, alpha=-step_size)
 
         torch._foreach_copy_(previous_grads, grads)
 
@@ -197,21 +205,17 @@ class DiffGrad(BaseOptimizer):
                 eps=group['eps'],
             )
 
-            dfc = previous_grad.clone()
+            dfc = previous_grad
             dfc.sub_(grad).abs_().sigmoid_().mul_(exp_avg)
+
+            if not group['rectify'] or n_sma >= self.n_sma_threshold:
+                p.addcdiv_(dfc, de_nom, value=-step_size)
+            elif step_size > 0:
+                p.add_(exp_avg, alpha=-step_size)
 
             state['previous_grad'].copy_(
                 torch.view_as_complex(grad) if torch.is_complex(state['previous_grad']) else grad
             )
-
-            if not group['rectify']:
-                p.addcdiv_(dfc, de_nom, value=-step_size)
-                continue
-
-            if n_sma >= self.n_sma_threshold:
-                p.addcdiv_(dfc, de_nom, value=-step_size)
-            elif step_size > 0:
-                p.add_(exp_avg, alpha=-step_size)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -238,7 +242,7 @@ class DiffGrad(BaseOptimizer):
             )
 
             if not group['rectify']:
-                step_size *= math.sqrt(self.debias(beta2, group['step']))
+                step_size = step_size * math.sqrt(self.debias(beta2, group['step']))
 
             step_size = self.apply_adam_debias(
                 adam_debias=group.get('adam_debias', False),
@@ -255,7 +259,15 @@ class DiffGrad(BaseOptimizer):
                 params, grads, state_dict = self.collect_trainable_params(group, self.state, state_keys=state_keys)
 
                 for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
-                    self._step_foreach(group, tensors['params'], tensors['grads'], tensors, step_size, n_sma)
+                    self._step_foreach(
+                        group,
+                        tensors['params'],
+                        tensors['grads'],
+                        tensors,
+                        step_size,
+                        n_sma >= self.n_sma_threshold,
+                        bool(step_size > 0),
+                    )
             else:
                 self._step_per_param(group, step_size, n_sma)
 

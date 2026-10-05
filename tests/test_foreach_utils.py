@@ -31,6 +31,9 @@ class TestHasForeachSupport:
 
 
 class TestGroupTensorsByDeviceAndDtype:
+    def test_empty_parameters(self):
+        assert group_tensors_by_device_and_dtype([], []) == []
+
     def test_single_group(self):
         params = [torch.randn(1), torch.randn(2)]
         grads = [torch.randn(1), torch.randn(2)]
@@ -43,12 +46,22 @@ class TestGroupTensorsByDeviceAndDtype:
         assert groups[0]['indices'] == [0, 1]
 
     def test_multiple_groups_by_dtype(self):
-        params = [torch.randn(1, dtype=torch.float32), torch.randn(2, dtype=torch.float16)]
-        grads = [torch.randn(1, dtype=torch.float32), torch.randn(2, dtype=torch.float16)]
+        params = [
+            torch.empty(1, device=device, dtype=dtype)
+            for device, dtype in [('cpu', torch.float32), ('meta', torch.float16), ('cpu', torch.float32)]
+        ]
+        grads = [torch.empty_like(parameter) for parameter in params]
+        state_lists = {'exp_avg': [torch.empty_like(parameter, dtype=torch.bfloat16) for parameter in params]}
 
-        groups = group_tensors_by_device_and_dtype(params, grads)
+        groups = group_tensors_by_device_and_dtype(params, grads, state_lists)
 
-        assert len(groups) == 2
+        assert [group['indices'] for group in groups] == [[0, 2], [1]]
+
+        for group in groups:
+            for position, index in enumerate(group['indices']):
+                assert group['params'][position] is params[index]
+                assert group['grads'][position] is grads[index]
+                assert group['exp_avg'][position] is state_lists['exp_avg'][index]
 
     def test_with_state_lists(self):
         params = [torch.randn(1), torch.randn(2)]
@@ -62,14 +75,6 @@ class TestGroupTensorsByDeviceAndDtype:
         assert 'exp_avg_sq' in groups[0]
         assert len(groups[0]['exp_avg']) == 2
         assert len(groups[0]['exp_avg_sq']) == 2
-
-    def test_empty_state_lists(self):
-        params = [torch.randn(1)]
-        grads = [torch.randn(1)]
-
-        groups = group_tensors_by_device_and_dtype(params, grads, None)
-
-        assert len(groups) == 1
 
 
 class TestForeachOperations:

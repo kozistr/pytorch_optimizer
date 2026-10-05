@@ -5,7 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.foreach_utils import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.foreach_utils import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class PAdam(BaseOptimizer):
@@ -24,6 +24,8 @@ class PAdam(BaseOptimizer):
         foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -89,9 +91,10 @@ class PAdam(BaseOptimizer):
         grads: list[torch.Tensor],
         exp_avgs: list[torch.Tensor],
         exp_avg_sqs: list[torch.Tensor],
-        step_size: float,
+        step_size: float | torch.Tensor,
     ) -> None:
         beta1, beta2 = group['betas']
+        exponent = group['partial'] * 2
 
         if self.maximize:
             torch._foreach_neg_(grads)
@@ -113,11 +116,10 @@ class PAdam(BaseOptimizer):
         de_noms = torch._foreach_sqrt(exp_avg_sqs)
         torch._foreach_add_(de_noms, group['eps'])
 
-        exponent = group['partial'] * 2
         if exponent != 1.0:
             torch._foreach_pow_(de_noms, exponent)
 
-        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
+        foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
 
     def _step_per_param(self, group: ParamGroup, step_size: float) -> None:
         beta1, beta2 = group['betas']
@@ -151,7 +153,11 @@ class PAdam(BaseOptimizer):
 
             de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
-            p.addcdiv_(exp_avg, de_nom ** (group['partial'] * 2), value=-step_size)
+            exponent = group['partial'] * 2
+            if exponent != 1.0:
+                de_nom.pow_(exponent)
+
+            p.addcdiv_(exp_avg, de_nom, value=-step_size)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

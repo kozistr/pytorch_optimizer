@@ -3,7 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.foreach_utils import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.foreach_utils import foreach_add_, foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class RAdam(BaseOptimizer):
@@ -23,6 +23,8 @@ class RAdam(BaseOptimizer):
         foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -96,15 +98,16 @@ class RAdam(BaseOptimizer):
         grads: list[torch.Tensor],
         exp_avgs: list[torch.Tensor],
         exp_avg_sqs: list[torch.Tensor],
-        step_size: float,
-        n_sma: float,
+        step_size: float | torch.Tensor,
+        is_rectified: bool,
+        apply_update: bool,
     ) -> None:
         beta1, beta2 = group['betas']
 
         if self.maximize:
             torch._foreach_neg_(grads)
 
-        if group['weight_decouple'] and (step_size > 0 or n_sma >= self.n_sma_threshold):
+        if group['weight_decouple'] and apply_update:
             self.apply_weight_decay_foreach(
                 params=params,
                 grads=grads,
@@ -119,13 +122,13 @@ class RAdam(BaseOptimizer):
         torch._foreach_mul_(exp_avg_sqs, beta2)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
 
-        if n_sma >= self.n_sma_threshold:
+        if is_rectified:
             de_noms = torch._foreach_sqrt(exp_avg_sqs)
             torch._foreach_add_(de_noms, group['eps'])
 
-            torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
-        elif step_size > 0:
-            torch._foreach_add_(params, exp_avgs, alpha=-step_size)
+            foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
+        elif apply_update:
+            foreach_add_(params, exp_avgs, alpha=-step_size)
 
     def _step_per_param(self, group: ParamGroup, step_size: float, n_sma: float) -> None:
         beta1, beta2 = group['betas']
@@ -214,7 +217,8 @@ class RAdam(BaseOptimizer):
                         tensors['exp_avg'],
                         tensors['exp_avg_sq'],
                         step_size,
-                        n_sma,
+                        n_sma >= self.n_sma_threshold,
+                        n_sma >= self.n_sma_threshold or bool(step_size > 0),
                     )
             else:
                 self._step_per_param(group, step_size, n_sma)

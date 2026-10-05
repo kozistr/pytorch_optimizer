@@ -9,6 +9,7 @@ import torch
 from torch import nn
 from torch.optim import LBFGS, SGD, Adam, AdamW, NAdam, Optimizer, RMSprop
 
+from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import OptimizerType, ParamsT
 from pytorch_optimizer.optimizer.a2grad import A2Grad
 from pytorch_optimizer.optimizer.adabelief import AdaBelief
@@ -559,12 +560,12 @@ def create_optimizer(
     Args:
         model: Model whose parameters to optimize.
         optimizer_name: Case insensitive name accepted by `load_optimizer()`.
-        lr: Learning rate. Compilation converts a float to a tensor on the model's device.
+        lr: Learning rate. Compiled updates use scalar tensors on the parameter device.
         weight_decay: Weight decay coefficient.
         wd_ban_list: Name patterns to exclude from weight decay. Matches parameter names and module class names.
         use_lookahead: Wrap the optimizer with Lookahead, unless it already includes Lookahead.
         use_orthograd: Project gradients with OrthoGrad before each update.
-        compile: Compile the optimizer step with `torch.compile`.
+        compile: Compile optimizer updates with `torch.compile`. Supported foreach paths keep scalar bookkeeping eager.
         compile_kwargs: Options for `torch.compile`. Dynamic tracing defaults to `True`.
         **kwargs (dict): Optimizer and wrapper options.
 
@@ -573,8 +574,18 @@ def create_optimizer(
 
     """
     optimizer_name = optimizer_name.lower()
+    optimizer_type = load_optimizer(optimizer_name)
 
-    if compile and not isinstance(lr, torch.Tensor):
+    use_compiled_foreach = (
+        compile
+        and issubclass(optimizer_type, BaseOptimizer)
+        and optimizer_type._supports_compiled_foreach
+        and kwargs.get('foreach') is not False
+        and not use_orthograd
+        and not use_lookahead
+    )
+
+    if compile and not use_compiled_foreach and not isinstance(lr, torch.Tensor):
         lr = torch.tensor(lr, device=next(model.parameters()).device)
 
     if optimizer_name != 'lbfgs':
@@ -586,7 +597,7 @@ def create_optimizer(
         else [{'params': model.parameters(), 'weight_decay': weight_decay}]
     )
 
-    optimizer_class = cast(Callable[..., Optimizer], load_optimizer(optimizer_name))
+    optimizer_class = cast(Callable[..., Optimizer], optimizer_type)
 
     if optimizer_name == 'alig':
         optimizer = optimizer_class(parameters, max_lr=lr, **kwargs)
@@ -613,7 +624,9 @@ def create_optimizer(
                 pullback_momentum=kwargs.get('pullback_momentum', 'none'),
             )
 
-    if compile:
+    if use_compiled_foreach:
+        cast(BaseOptimizer, optimizer)._compile_foreach(compile_kwargs)
+    elif compile:
         optimizer.step = MethodType(  # ty: ignore[invalid-assignment]
             torch.compile(optimizer.step.__func__, **{'dynamic': True, **(compile_kwargs or {})}),
             optimizer,

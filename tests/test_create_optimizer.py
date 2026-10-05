@@ -1,7 +1,9 @@
 import warnings
+from copy import deepcopy
 
 import pytest
 import torch
+from torch._dynamo.testing import CompileCounter
 
 from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, create_optimizer, load_optimizer
 from tests.fixtures import TrainingModel, build_model
@@ -91,6 +93,57 @@ class TestCreateOptimizer:
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
         trainer.run(iterations=iterations)
+
+        if optimizer_name == 'yogi' and foreach:
+            model = TrainingModel(dtype=torch.bfloat16)
+            optimizer = create_optimizer(
+                model, 'yogi', lr=0.01, betas=(0.5, 0.5), initial_accumulator=0.494140625,
+                foreach=True, compile=True, compile_kwargs={'disable': True},
+            )
+
+            for parameter in model.parameters():
+                parameter.grad = torch.full_like(parameter, 0.703125)
+
+            optimizer.step()
+
+            # Rounded gradient squares match the stored moments, so their sign updates are zero.
+            for parameter in model.parameters():
+                torch.testing.assert_close(
+                    optimizer.state[parameter]['exp_avg_sq'], torch.full_like(parameter, 0.494140625)
+                )
+
+    @pytest.mark.skipif(not torch._dynamo.is_dynamo_supported(), reason='torch.compile is unavailable in this runtime')
+    def test_compiled_foreach_scheduler_and_checkpoint(self):
+        torch._dynamo.reset()
+
+        model = TrainingModel()
+        lr = torch.tensor(0.1)
+        counter = CompileCounter()
+        optimizer = create_optimizer(
+            model, 'radam', lr=lr, betas=(0.6, 0.8), foreach=True, compile=True,
+            degenerated_to_sgd=True, compile_kwargs={'backend': counter, 'fullgraph': True},
+        )
+
+        for parameter in model.parameters():
+            parameter.grad = torch.full_like(parameter, 0.1)
+
+        for _ in range(12):
+            lr.mul_(0.99)
+            expected_lr = lr.clone()
+            optimizer.step()
+
+            torch.testing.assert_close(lr, expected_lr)
+
+        assert counter.frame_count == 2
+        assert optimizer.param_groups[0]['step'] == 12
+
+        checkpoint = deepcopy(optimizer.state_dict())
+        optimizer.step()
+        optimizer.load_state_dict(checkpoint)
+        optimizer.step()
+
+        assert optimizer.param_groups[0]['step'] == 13
+        assert all(torch.isfinite(parameter).all() for parameter in model.parameters())
 
 
 class TestOptionalIntegrations:

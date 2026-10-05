@@ -1,7 +1,7 @@
 import math
 from abc import ABC, abstractmethod
 from collections import deque
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 
 import torch
 from torch.optim import Optimizer
@@ -18,16 +18,21 @@ from pytorch_optimizer.base.type import (
     ParamsT,
     State,
 )
-from pytorch_optimizer.optimizer.foreach_utils import foreach_rsqrt_
+from pytorch_optimizer.optimizer.foreach_utils import compile_foreach_step, foreach_rsqrt_
 
 
 class BaseOptimizer(ABC, Optimizer):
     """Shared update, validation, and state helpers for optimizers."""
 
     state: State
+    _supports_compiled_foreach: bool = False
+    _step_foreach: Callable
 
     def __init__(self, params: ParamsT, defaults: Defaults) -> None:
         super().__init__(params, defaults)
+
+    def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        self._step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
 
     def load_state_dict(self, state_dict: dict) -> None:
         """Restore state while preserving non-floating tensor types and container metadata."""
@@ -348,7 +353,7 @@ class BaseOptimizer(ABC, Optimizer):
             else:
                 rt = -1.0
 
-            step_size *= rt
+            step_size = step_size * rt
 
         return step_size, n_sma
 

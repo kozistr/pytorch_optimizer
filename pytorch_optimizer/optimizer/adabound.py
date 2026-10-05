@@ -27,6 +27,8 @@ class AdaBound(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
@@ -99,9 +101,9 @@ class AdaBound(BaseOptimizer):
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
         state_dict: dict[str, list[torch.Tensor]],
-        step_size: float,
-        lower_bound: float,
-        upper_bound: float,
+        step_size: float | torch.Tensor,
+        lower_bound: float | torch.Tensor,
+        upper_bound: float | torch.Tensor,
     ) -> None:
         beta1, beta2 = group['betas']
         exp_avgs, exp_avg_sqs = state_dict['exp_avg'], state_dict['exp_avg_sq']
@@ -129,8 +131,12 @@ class AdaBound(BaseOptimizer):
 
         updates = de_noms
         foreach_scalar_div_(updates, step_size)
-        torch._foreach_clamp_min_(updates, lower_bound)
-        torch._foreach_clamp_max_(updates, upper_bound)
+        if isinstance(lower_bound, torch.Tensor):
+            for update in updates:
+                update.clamp_(min=lower_bound, max=upper_bound)
+        else:
+            torch._foreach_clamp_min_(updates, lower_bound)
+            torch._foreach_clamp_max_(updates, upper_bound)
         torch._foreach_mul_(updates, exp_avgs)
 
         torch._foreach_sub_(params, updates)
@@ -171,10 +177,11 @@ class AdaBound(BaseOptimizer):
                 eps=group['eps'],
             )
 
-            update = torch.full_like(de_nom, fill_value=step_size)
-            update.div_(de_nom).clamp_(min=lower_bound, max=upper_bound).mul_(exp_avg)
+            update = de_nom
+            foreach_scalar_div_([update], step_size)
+            update.clamp_(min=lower_bound, max=upper_bound).mul_(exp_avg)
 
-            p.add_(-update)
+            p.sub_(update)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
