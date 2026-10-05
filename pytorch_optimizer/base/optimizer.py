@@ -1,7 +1,7 @@
 import math
 from abc import ABC, abstractmethod
 from collections import deque
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 
 import torch
 from torch.optim import Optimizer
@@ -18,16 +18,21 @@ from pytorch_optimizer.base.type import (
     ParamsT,
     State,
 )
-from pytorch_optimizer.optimizer.foreach_utils import foreach_rsqrt_
+from pytorch_optimizer.optimizer.foreach_utils import compile_foreach_step, foreach_rsqrt_
 
 
 class BaseOptimizer(ABC, Optimizer):
     """Shared update, validation, and state helpers for optimizers."""
 
     state: State
+    _supports_compiled_foreach: bool = False
+    _step_foreach: Callable
 
     def __init__(self, params: ParamsT, defaults: Defaults) -> None:
         super().__init__(params, defaults)
+
+    def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        self._step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
 
     def load_state_dict(self, state_dict: dict) -> None:
         """Restore state while preserving non-floating tensor types and container metadata."""
@@ -243,6 +248,35 @@ class BaseOptimizer(ABC, Optimizer):
         return de_nom.sqrt_().add_(eps)
 
     @staticmethod
+    def apply_ams_bound_foreach(
+        ams_bound: bool,
+        exp_avg_sqs: list[torch.Tensor],
+        max_exp_avg_sqs: list[torch.Tensor],
+        eps: float,
+        exp_avg_sq_eps: float = 1e-15,
+    ) -> Sequence[torch.Tensor]:
+        """Compute batched adaptive denominators with optional running maximum second moments.
+
+        Args:
+            ams_bound: Whether to apply the AMSBound variant.
+            exp_avg_sqs: Exponential moving averages of squared gradients.
+            max_exp_avg_sqs: Running elementwise maxima, updated in place for AMSBound.
+            eps: Small epsilon value for numerical stability.
+            exp_avg_sq_eps: Epsilon added to second moments before taking square roots.
+
+        """
+        if ams_bound:
+            torch._foreach_maximum_(max_exp_avg_sqs, exp_avg_sqs)
+            de_noms = torch._foreach_add(max_exp_avg_sqs, exp_avg_sq_eps)
+        else:
+            de_noms = torch._foreach_add(exp_avg_sqs, exp_avg_sq_eps)
+
+        torch._foreach_sqrt_(de_noms)
+        torch._foreach_add_(de_noms, eps)
+
+        return de_noms
+
+    @staticmethod
     def debias(beta: float, step: int) -> float:
         """Return the moment bias correction factor `1 - beta ** step`.
 
@@ -319,7 +353,7 @@ class BaseOptimizer(ABC, Optimizer):
             else:
                 rt = -1.0
 
-            step_size *= rt
+            step_size = step_size * rt
 
         return step_size, n_sma
 

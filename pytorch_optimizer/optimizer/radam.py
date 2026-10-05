@@ -3,6 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.foreach_utils import foreach_add_, foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class RAdam(BaseOptimizer):
@@ -19,8 +20,11 @@ class RAdam(BaseOptimizer):
         degenerated_to_sgd: Use an SGD update before the moving average reaches the rectification threshold.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -34,6 +38,7 @@ class RAdam(BaseOptimizer):
         degenerated_to_sgd: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -44,6 +49,7 @@ class RAdam(BaseOptimizer):
         self.n_sma_threshold = n_sma_threshold
         self.degenerated_to_sgd = degenerated_to_sgd
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
@@ -52,6 +58,7 @@ class RAdam(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'eps': eps,
+            'foreach': foreach,
             **kwargs,
         }
 
@@ -80,6 +87,92 @@ class RAdam(BaseOptimizer):
 
                 if group.get('adanorm'):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
+
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
+        return not group.get('adanorm') and self.can_use_foreach(group, group.get('foreach'))
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
+        step_size: float | torch.Tensor,
+        is_rectified: bool,
+        apply_update: bool,
+    ) -> None:
+        beta1, beta2 = group['betas']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        if group['weight_decouple'] and apply_update:
+            self.apply_weight_decay_foreach(
+                params=params,
+                grads=grads,
+                lr=group['lr'],
+                weight_decay=group['weight_decay'],
+                weight_decouple=True,
+                fixed_decay=group['fixed_decay'],
+            )
+
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+
+        torch._foreach_mul_(exp_avg_sqs, beta2)
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
+
+        if is_rectified:
+            de_noms = torch._foreach_sqrt(exp_avg_sqs)
+            torch._foreach_add_(de_noms, group['eps'])
+
+            foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
+        elif apply_update:
+            foreach_add_(params, exp_avgs, alpha=-step_size)
+
+    def _step_per_param(self, group: ParamGroup, step_size: float, n_sma: float) -> None:
+        beta1, beta2 = group['betas']
+
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+
+            self.maximize_gradient(grad, maximize=self.maximize)
+
+            state = self.state[p]
+
+            exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+
+            p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
+
+            if step_size > 0 or n_sma >= self.n_sma_threshold:
+                self.apply_weight_decay(
+                    p=p,
+                    grad=None,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
+
+            s_grad = self.get_adanorm_gradient(
+                grad=grad,
+                adanorm=group.get('adanorm', False),
+                exp_grad_norm=state.get('exp_grad_adanorm', None),
+                r=group.get('adanorm_r', None),
+            )
+
+            exp_avg.lerp_(s_grad, weight=1.0 - beta1)
+
+            exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+
+            if n_sma >= self.n_sma_threshold:
+                de_nom = exp_avg_sq.sqrt().add_(group['eps'])
+                p.addcdiv_(exp_avg, de_nom, value=-step_size)
+            elif step_size > 0:
+                p.add_(exp_avg, alpha=-step_size)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -111,44 +204,23 @@ class RAdam(BaseOptimizer):
                 bias_correction1=bias_correction1,
             )
 
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                grad = p.grad
-
-                self.maximize_gradient(grad, maximize=self.maximize)
-
-                state = self.state[p]
-
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-
-                p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
-
-                if step_size > 0 or n_sma >= self.n_sma_threshold:
-                    self.apply_weight_decay(
-                        p=p,
-                        grad=None,
-                        lr=group['lr'],
-                        weight_decay=group['weight_decay'],
-                        weight_decouple=group['weight_decouple'],
-                        fixed_decay=group['fixed_decay'],
-                    )
-
-                s_grad = self.get_adanorm_gradient(
-                    grad=grad,
-                    adanorm=group.get('adanorm', False),
-                    exp_grad_norm=state.get('exp_grad_adanorm', None),
-                    r=group.get('adanorm_r', None),
+            if self._can_use_foreach(group):
+                params, grads, state_dict = self.collect_trainable_params(
+                    group, self.state, state_keys=['exp_avg', 'exp_avg_sq']
                 )
 
-                exp_avg.lerp_(s_grad, weight=1.0 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
-
-                if n_sma >= self.n_sma_threshold:
-                    de_nom = exp_avg_sq.sqrt().add_(group['eps'])
-                    p.addcdiv_(exp_avg, de_nom, value=-step_size)
-                elif step_size > 0:
-                    p.add_(exp_avg, alpha=-step_size)
+                for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    self._step_foreach(
+                        group,
+                        tensors['params'],
+                        tensors['grads'],
+                        tensors['exp_avg'],
+                        tensors['exp_avg_sq'],
+                        step_size,
+                        n_sma >= self.n_sma_threshold,
+                        n_sma >= self.n_sma_threshold or bool(step_size > 0),
+                    )
+            else:
+                self._step_per_param(group, step_size, n_sma)
 
         return loss

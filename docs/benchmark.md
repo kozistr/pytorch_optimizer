@@ -1,60 +1,71 @@
-# PyTorch Optimizer Foreach Benchmark
+# Optimizer benchmark
 
-**Environment**
-- Device: `cuda`
-- GPU: NVIDIA GeForce GTX 1060 6GB
-- CUDA Version: 12.8
-- PyTorch Version: 2.8.0+cu128
+Compare per-parameter, foreach, compiled, and fused updates with Transformers `Trainer` on
+[`tomaarsen/Qwen3-Reranker-0.6B-seq-cls`](https://huggingface.co/tomaarsen/Qwen3-Reranker-0.6B-seq-cls)
+(595,777,536 trainable parameters, BF16, FP32 BCE loss).
 
-## MLP Model (Batch size: 64)
+## Run
 
-Parameters: 29,375,488
+Requires CUDA PyTorch, Transformers, Accelerate, FlashAttention 2, and a CUDA `torch.compile` toolchain.
+Input: JSONL query/document pairs with binary labels.
 
-| Optimizer     | Foreach | Avg Time  | Std      | Peak Mem   | Loss     |
-|---------------|---------|-----------|----------|------------|----------|
-| AdaFactor     | No      | 35.421 ms | 8.907 ms | 329.58 MB  | 0.000321 |
-| AdaFactor     | Yes     | 27.109 ms | 0.247 ms | 577.85 MB  | 0.003894 |
-| GrokFastAdamW | No      | 30.360 ms | 0.110 ms | 609.55 MB  | 0.000673 |
-| GrokFastAdamW | Yes     | 27.240 ms | 0.159 ms | 801.66 MB  | 0.000565 |
-| Amos          | No      | 22.081 ms | 0.239 ms | 273.39 MB  | 0.419085 |
-| Amos          | Yes     | 20.077 ms | 0.217 ms | 465.53 MB  | 0.369267 |
-| Lion          | No      | 20.296 ms | 0.108 ms | 369.43 MB  | 0.006918 |
-| Lion          | Yes     | 17.292 ms | 0.096 ms | 465.48 MB  | 0.006869 |
-| Tiger         | No      | 14.876 ms | 0.092 ms | 369.43 MB  | 0.629746 |
-| Tiger         | Yes     | 13.438 ms | 0.099 ms | 465.48 MB  | 0.556300 |
-| Adan          | No      | 40.456 ms | 0.363 ms | 705.61 MB  | 0.447540 |
-| Adan          | Yes     | 40.706 ms | 6.065 ms | 1025.78 MB | 0.438211 |
-| ADOPT         | No      | 21.104 ms | 0.085 ms | 497.49 MB  | 0.005070 |
-| ADOPT         | Yes     | 22.725 ms | 0.160 ms | 689.60 MB  | 0.001950 |
-| AdaBelief     | No      | 28.131 ms | 0.109 ms | 497.49 MB  | 0.000009 |
-| AdaBelief     | Yes     | 21.932 ms | 0.284 ms | 689.60 MB  | 0.000006 |
-| StableAdamW   | No      | 30.821 ms | 0.787 ms | 497.48 MB  | 0.121176 |
-| StableAdamW   | Yes     | 28.764 ms | 0.388 ms | 577.54 MB  | 0.000000 |
-| Lamb          | No      | 31.722 ms | 1.081 ms | 497.51 MB  | 0.692506 |
-| Lamb          | Yes     | 28.144 ms | 0.428 ms | 577.58 MB  | 0.700553 |
-| LARS          | No      | 20.467 ms | 0.231 ms | 353.93 MB  | 0.977978 |
-| LARS          | Yes     | 18.902 ms | 0.094 ms | 353.93 MB  | 0.978091 |
-| SignSGD       | No      | 14.069 ms | 0.112 ms | 369.43 MB  | 0.679428 |
-| SignSGD       | Yes     | 12.682 ms | 0.123 ms | 465.48 MB  | 0.661502 |
-| SGDW          | No      | 13.339 ms | 0.148 ms | 353.93 MB  | 0.994222 |
-| SGDW          | Yes     | 10.332 ms | 0.119 ms | 353.93 MB  | 0.996546 |
+```json
+{"query": "What causes rainfall?", "document": "Rain forms when atmospheric water condenses.", "label": 1}
+```
 
-## Foreach vs Regular Summary (CUDA)
+```bash
+python -m examples.benchmark --pairs-file train-pairs.jsonl \
+    --batch-size 16 --full-length-only --gradient-checkpointing --steps 20
+```
 
-| Optimizer     | Speedup      | Time (foreach) | Time (regular) | Memory Diff | Mem Diff % |
-|---------------|--------------|----------------|----------------|-------------|------------|
-| AdaFactor     | 1.31x        | 27.109 ms      | 35.421 ms      | +248.27 MB  | +75.3%     |
-| GrokFastAdamW | 1.11x        | 27.240 ms      | 30.360 ms      | +192.11 MB  | +31.5%     |
-| Amos          | 1.10x        | 20.077 ms      | 22.081 ms      | +192.15 MB  | +70.3%     |
-| Lion          | 1.17x        | 17.292 ms      | 20.296 ms      | +96.05 MB   | +26.0%     |
-| Tiger         | 1.11x        | 13.438 ms      | 14.876 ms      | +96.06 MB   | +26.0%     |
-| Adan          | 1.01x slower | 40.706 ms      | 40.456 ms      | +320.17 MB  | +45.4%     |
-| ADOPT         | 1.08x slower | 22.725 ms      | 21.104 ms      | +192.11 MB  | +38.6%     |
-| AdaBelief     | 1.28x        | 21.932 ms      | 28.131 ms      | +192.11 MB  | +38.6%     |
-| StableAdamW   | 1.07x        | 28.764 ms      | 30.821 ms      | +80.06 MB   | +16.1%     |
-| Lamb          | 1.13x        | 28.144 ms      | 31.722 ms      | +80.07 MB   | +16.1%     |
-| LARS          | 1.08x        | 18.902 ms      | 20.467 ms      | +0.00 MB    | +0.0%      |
-| SignSGD       | 1.11x        | 12.682 ms      | 14.069 ms      | +96.06 MB   | +26.0%     |
-| SGDW          | 1.29x        | 10.332 ms      | 13.339 ms      | +0.00 MB    | +0.0%      |
+Optional: `--optimizers radam yogi adamw`, `--modes per_param foreach compiled fused`.
+Output: `.cache/optimizer-benchmark.json`.
 
-Average speedup (foreach vs regular): **1.13x**
+## Results
+
+RTX 5060 (8 GB), Python 3.12, PyTorch 2.14.1+cu132, Transformers 5.18.0, FlashAttention 2.8.3.
+256 tokens, learning rate 1e-4, gradient checkpointing, 10 warmup updates, 20 timed updates.
+SciFact train pairs: 1,680 at batch 16; 1,664 at batch 64. Each case starts from the same weights and seed.
+
+Cells show median GPU milliseconds (**speedup vs per-parameter**). Per-parameter is **1×**; `—` is unsupported.
+Compiled mode compiles foreach updates. Full-step time includes forward, backward, and optimizer work.
+
+### Optimizer update
+
+| Optimizer | Batch | Per-param (ms) | Foreach (ms, ×) | Compiled (ms, ×) | Fused (ms, ×) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| AdaBound | 16 | 60.77 | 86.21 (0.70×) | 22.63 (2.69×) | — |
+| AdaMax | 16 | 36.81 | 51.12 (0.72×) | 22.33 (1.65×) | — |
+| AdaMod | 16 | 64.97 | 85.64 (0.76×) | 28.89 (2.25×) | — |
+| DiffGrad | 16 | 70.19 | 96.49 (0.73×) | 28.51 (2.46×) | — |
+| PAdam | 16 | 39.66 | 56.56 (0.70×) | 21.61 (1.84×) | — |
+| RAdam | 16 | 43.11 | 51.11 (0.84×) | 22.70 (1.90×) | — |
+| Yogi | 16 | 57.49 | 78.60 (0.73×) | 34.19 (1.68×) | — |
+| Native AdamW | 16 | 40.82 | 58.45 (0.70×) | 22.20 (1.84×) | 22.08 (1.85×) |
+| RAdam | 64 | 44.62 | 56.38 (0.79×) | 24.30 (1.84×) | — |
+
+### Full training step
+
+| Optimizer | Batch | Per-param (ms) | Foreach (ms, ×) | Compiled (ms, ×) | Fused (ms, ×) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| AdaBound | 16 | 798.88 | 825.39 (0.968×) | 763.62 (1.046×) | — |
+| AdaMax | 16 | 779.80 | 794.74 (0.981×) | 764.96 (1.019×) | — |
+| AdaMod | 16 | 809.30 | 831.62 (0.973×) | 773.09 (1.047×) | — |
+| DiffGrad | 16 | 814.72 | 841.44 (0.968×) | 755.75 (1.078×) | — |
+| PAdam | 16 | 769.09 | 785.62 (0.979×) | 738.70 (1.041×) | — |
+| RAdam | 16 | 789.18 | 794.40 (0.993×) | 777.67 (1.015×) | — |
+| Yogi | 16 | 802.17 | 832.20 (0.964×) | 761.53 (1.053×) | — |
+| Native AdamW | 16 | 789.94 | 808.53 (0.977×) | 751.42 (1.051×) | 751.61 (1.051×) |
+| RAdam | 64 | 3,380.85 | 3,410.31 (0.991×) | 3,372.96 (1.002×) | — |
+
+### Gradient checkpointing
+
+AdaMod foreach, batch 16, 256 tokens; 2 warmup updates, 3 timed updates on the same 8 GB GPU.
+
+| Checkpointing | Full step (ms) | Peak allocated (GiB) | Speedup vs off |
+| --- | ---: | ---: | ---: |
+| Off | 28,541.34 | 12.27 | 1.00× |
+| On | 822.56 | 6.72 | 34.70× |
+
+GPU clocks were unlocked; small differences vary between runs. Compiled low-precision updates can change rounding.
+Model revision: `6a5829f5079c66e78d911e06fe21931cc00232f7`.
