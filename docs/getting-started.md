@@ -2,8 +2,7 @@
 
 ## Installation
 
-Use Python 3.10 or later with PyTorch 2.1 or later. The package installer selects dependencies that support your Python
-version.
+Use Python 3.10 or later with PyTorch 2.1 or later. The package installer selects dependencies that support your Python version.
 
 ```bash
 pip install pytorch-optimizer

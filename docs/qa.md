@@ -3,8 +3,8 @@
 ## Hessian computation fails with a gradient error
 
 SophiaH and AdaHessian need the gradient graph to compute the Hessian.
-Pass `create_graph=True` to `backward()` if `compute_hutchinson_hessian()` reports that tensors do not require
-gradients:
+
+Pass `create_graph=True` to `backward()` if `compute_hutchinson_hessian()` reports that tensors do not require gradients:
 
 ```python
 loss.backward(create_graph=True)

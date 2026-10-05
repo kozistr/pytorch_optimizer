@@ -27,15 +27,11 @@
 - Use `load_optimizer()` to load a class by name.
 - Use `create_optimizer()` to configure an optimizer with common options and wrappers.
 - Optional integrations include `bitsandbytes`, `q-galore-torch`, and `torchao`.
-- `tests/test_optimizers.py` runs shared training and interface tests using `OPTIMIZER_RECIPES` from
-  `tests/recipes.py`. Focused optimizer and algorithm-helper cases live in `tests/optimizers/test_<module>.py`.
-  Parameter validation, variants, wrappers, losses, and schedulers have separate shared test modules.
+- `tests/test_optimizers.py` runs shared training and interface tests using `OPTIMIZER_RECIPES` from `tests/recipes.py`. Focused optimizer and algorithm-helper cases live in `tests/optimizers/test_<module>.py`. Parameter validation, variants, wrappers, losses, and schedulers have separate shared test modules.
 - `tests/fixtures.py` contains the shared training model and parameter builders.
 - `tests/utils.py` contains helpers to construct optimizers and run training.
 - `tests/conftest.py` contains pytest fixtures, including training data.
-- `tests/optimizer_cases.py` derives constructor options and APIs that accept models from signatures.
-  It detects sparse and complex support with cached CPU step probes.
-  Explicit exclusions cover specialized protocols and numerical limitations.
+- `tests/optimizer_cases.py` derives constructor options and APIs that accept models from signatures. It detects sparse and complex support with cached CPU step probes. Explicit exclusions cover specialized protocols and numerical limitations.
 - `zensical.toml` defines documentation navigation and theme settings.
 - Keep the home page separate from `README.md`.
 
@@ -54,20 +50,16 @@
 - Reuse the base class validation and update helpers where applicable.
 - All optimizer implementations must follow the algorithms and update rules in their original papers.
 - Follow Google-style docstrings.
-- Reuse helpers before you add update or validation logic.
-  Examples include `apply_weight_decay()`, `apply_cautious()`, `debias()`, `validate_learning_rate()`,
-  `validate_betas()`, and `validate_range()`.
+- Reuse helpers before you add update or validation logic. Examples include `apply_weight_decay()`, `apply_cautious()`, `debias()`, `validate_learning_rate()`, `validate_betas()`, and `validate_range()`.
 - Keep implementations focused.
 - Remove redundant compatibility layers and abstractions.
 
 ## Testing
 
-- Add or update minimal recipes in `OPTIMIZER_RECIPES` for optimizer changes, including affected variants.
-  Each recipe contains an optimizer name, options, and an iteration count.
+- Add or update minimal recipes in `OPTIMIZER_RECIPES` for optimizer changes, including affected variants. Each recipe contains an optimizer name, options, and an iteration count.
 - Use the shared runner for optimizers that accept models if their update protocol fits.
 - Avoid separate training or smoke tests that a recipe can replace.
-- Add focused cases for behavior that training recipes do not check.
-  Examples include numerical updates, checkpoint restoration, validation, wrappers, and edge cases.
+- Add focused cases for behavior that training recipes do not check. Examples include numerical updates, checkpoint restoration, validation, wrappers, and edge cases.
 - Follow nearby patterns and preserve 100% implementation coverage.
 - Give focused cases an observable assertion.
 - Compare numerical results with `torch.testing.assert_close()`.
@@ -99,9 +91,7 @@
 - Register it in `OPTIMIZER_LIST` to make it available through `OPTIMIZERS` and `load_optimizer()`.
 - Add a training recipe and focused cases following the testing guidance above.
 - Update the relevant documentation and the algorithm table in `README.md`.
-- Write clear pull request titles and descriptions.
-  The release workflow generates notes from merged pull requests.
-  It updates `CHANGELOG.md`, `docs/changelogs/<tag>.md`, and the changelog index through an automated pull request.
+- Write clear pull request titles and descriptions. The release workflow generates notes from merged pull requests. It updates `CHANGELOG.md`, `docs/changelogs/<tag>.md`, and the changelog index through an automated pull request.
 - Register new loss functions and schedulers in their package exports.
 - Add the components to the corresponding tests and README tables.
 - Leave the root `CHANGELOG.md` to the release automation.
@@ -122,8 +112,7 @@ Start commit subjects with one of these prefixes:
 | `build:` | Change build, packaging, or dependency configuration. |
 | `update:` | Refresh project content or metadata when no more specific prefix applies. |
 
-Keep the text after the prefix imperative, concise, and specific to the committed change.
-Do not use commit prefixes outside this list.
+Keep the text after the prefix imperative, concise, and specific to the committed change. Do not use commit prefixes outside this list.
 
 - Write concise, specific pull request titles that describe the actual change.
 - Use a title tag only if it adds useful context and matches the work.
