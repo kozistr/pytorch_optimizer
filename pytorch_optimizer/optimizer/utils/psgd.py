@@ -1,4 +1,3 @@
-
 import torch
 from torch.linalg import vector_norm
 
