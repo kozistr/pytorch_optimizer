@@ -113,6 +113,8 @@ jobs:
       if: success() && !inputs.skip_coverage_upload
       uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
       with:
+        use_pypi: true
+        version: v11.3.1
         token: ${{ secrets.CODECOV_TOKEN }}
         directory: ./
         files: ./coverage.xml
