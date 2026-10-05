@@ -67,6 +67,7 @@ class MuonBase(BaseOptimizer):
                 shapes: dict[tuple[int, ...], list[int]] = {}
                 for index, p in enumerate(tensors['params']):
                     shapes.setdefault(tuple(p.shape), []).append(index)
+
                 batches = [
                     {key: [values[index] for index in indices] for key, values in tensors.items() if key != 'indices'}
                     for indices in shapes.values()
@@ -105,37 +106,45 @@ class MuonBase(BaseOptimizer):
         else:
             beta1, beta2 = group['betas']
             exp_avgs, exp_avg_sqs = state_dict['exp_avg'], state_dict['exp_avg_sq']
+
             torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
             torch._foreach_lerp_(exp_avg_sqs, torch._foreach_mul(grads, grads), weight=1.0 - beta2)
 
             de_noms = torch._foreach_sqrt(exp_avg_sqs)
             torch._foreach_add_(de_noms, group['eps'])
             torch._foreach_div_(de_noms, bias_correction2**0.5)
+
             foreach_addcdiv_(params, torch._foreach_div(exp_avgs, bias_correction1), de_noms, -group['lr'])
 
     @staticmethod
     def _orthogonalize(group: ParamGroup, updates: list[torch.Tensor]) -> list[torch.Tensor]:
         matrices = [update.reshape(update.size(0), -1) for update in updates]
         matrix = matrices[0] if len(matrices) == 1 else torch.stack(matrices)
+
         result = zero_power_via_newton_schulz_5(matrix, num_steps=group['ns_steps'], weights=group['ns_coeffs'])
+
         return [result] if len(matrices) == 1 else list(result.unbind())
 
     def _momentum_updates(
         self, group: ParamGroup, grads: list[torch.Tensor], buffers: list[torch.Tensor]
     ) -> list[torch.Tensor]:
         torch._foreach_lerp_(buffers, grads, weight=1.0 - group['momentum'])
+
         if group['nesterov']:
             torch._foreach_lerp_(grads, buffers, weight=group['momentum'])
             return self._orthogonalize(group, grads)
+
         return self._orthogonalize(group, buffers)
 
     def _apply_muon_updates(
         self, group: ParamGroup, params: list[torch.Tensor], grads: list[torch.Tensor], updates: list[torch.Tensor]
     ) -> None:
         updates = [update.reshape(p.shape) for p, update in zip(params, updates)]
+
         if group.get('cautious'):
             for update, grad in zip(updates, grads):
                 self.apply_cautious(update, grad)
+
         lr = get_adjusted_lr(group['lr'], params[0].shape, use_adjusted_lr=group['use_adjusted_lr'])
         foreach_add_(params, updates, alpha=-lr)
 
@@ -700,11 +709,14 @@ class AdaMuon(MuonBase):
     ) -> None:
         beta1, beta2 = group['betas']
         moments, variances = state_dict['m'], state_dict['v']
+
         torch._foreach_lerp_(moments, grads, weight=1.0 - beta1)
+
         updates = [update.flatten() for update in self._orthogonalize(group, moments)]
 
         torch._foreach_mul_(variances, beta2)
         torch._foreach_addcmul_(variances, updates, updates, value=1.0 - beta2)
+
         de_noms = torch._foreach_sqrt(torch._foreach_div(variances, bias_correction2))
         torch._foreach_add_(de_noms, group['eps'])
         torch._foreach_div_(updates, de_noms)
@@ -947,7 +959,9 @@ class AdaGO(MuonBase):
         bias_correction2: float | torch.Tensor,
     ) -> None:
         buffers, variances = state_dict['momentum_buffer'], state_dict['v']
+
         torch._foreach_lerp_(buffers, grads, weight=1.0 - group['momentum'])
+
         grad_norms = torch._foreach_norm(grads, ord=2)
         squared_norms = torch._foreach_mul(grad_norms, grad_norms)
         torch._foreach_clamp_max_(squared_norms, group['gamma'] ** 2)
@@ -955,8 +969,10 @@ class AdaGO(MuonBase):
 
         if group['nesterov']:
             torch._foreach_lerp_(grads, buffers, weight=group['momentum'])
+
         updates = self._orthogonalize(group, grads if group['nesterov'] else buffers)
         updates = [update.reshape(p.shape) for p, update in zip(params, updates)]
+
         if group.get('cautious'):
             for update, grad in zip(updates, grads):
                 self.apply_cautious(update, grad)
@@ -964,6 +980,7 @@ class AdaGO(MuonBase):
         # Nesterov modifies gradients before the adaptive step size is computed.
         step_sizes = torch._foreach_norm(grads, ord=2) if group['nesterov'] else grad_norms
         torch._foreach_clamp_max_(step_sizes, group['gamma'])
+
         lr = get_adjusted_lr(group['lr'], params[0].shape, use_adjusted_lr=group['use_adjusted_lr'])
         torch._foreach_mul_(step_sizes, lr)
         torch._foreach_div_(step_sizes, variances)
@@ -1207,12 +1224,14 @@ class NorMuon(MuonBase):
         second_moments = state_dict['second_momentum_buffer']
         row_means = [update.square().mean(dim=-1, keepdim=True) for update in updates]
         torch._foreach_lerp_(second_moments, row_means, weight=1.0 - group['beta2'])
+
         de_noms = torch._foreach_sqrt(second_moments)
         torch._foreach_add_(de_noms, group['eps'])
         torch._foreach_div_(updates, de_noms)
 
         norms = torch._foreach_norm(updates, ord=2)
         torch._foreach_add_(norms, group['eps'])
+
         if group['update_scale'] == 'preserve_norm':
             torch._foreach_mul_(updates, torch._foreach_div(original_norms, norms))
             lr = get_adjusted_lr(group['lr'], params[0].shape, use_adjusted_lr=group['use_adjusted_lr'])
