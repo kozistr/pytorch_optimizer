@@ -624,8 +624,8 @@ def create_optimizer(
                 pullback_momentum=kwargs.get('pullback_momentum', 'none'),
             )
 
-    if use_compiled_foreach:
-        cast(BaseOptimizer, optimizer)._compile_foreach(compile_kwargs)
+    if use_compiled_foreach and isinstance(optimizer, BaseOptimizer):
+        optimizer._compile_foreach(compile_kwargs)
     elif compile:
         optimizer.step = MethodType(  # ty: ignore[invalid-assignment]
             torch.compile(optimizer.step.__func__, **{'dynamic': True, **(compile_kwargs or {})}),
