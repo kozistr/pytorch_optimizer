@@ -77,6 +77,8 @@ def group_tensors_by_device_and_dtype(
 def foreach_scalar_div_(tensors: Sequence[torch.Tensor], scalar: float) -> None:
     """Divide a scalar by tensors in place without allocating full-size numerators.
 
+    Direct division avoids overflowing an intermediate FP16 reciprocal.
+
     Args:
         tensors: Nonempty tensors sharing a device and dtype, overwritten with their quotients.
         scalar: Numerator, rounded to the tensors' dtype before division.
