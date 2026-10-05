@@ -1,596 +1,263 @@
-"""Benchmark foreach vs non-foreach optimizer variants.
-
-This script measures the performance difference between foreach (multi-tensor)
-operations and standard per-parameter operations in optimizers.
-
-Foreach operations batch tensor computations together, which can provide
-significant speedups on CUDA GPUs by:
-- Reducing Python loop overhead
-- Enabling better kernel fusion
-- Improving GPU utilization through batched operations
-
-Usage:
-    python examples/benchmark_foreach.py
-    python examples/benchmark_foreach.py --device cuda --num-steps 200
-    python examples/benchmark_foreach.py --model-type conv --batch-size 32
-
-Note:
-    Real speedups (1.1x-1.5x) are primarily observed on CUDA GPUs.
-    On CPU, foreach operations fall back to regular loops with minimal difference.
-"""
-
 import argparse
 import gc
+import json
+import math
+import statistics
+import sys
 import time
-from collections.abc import Callable
-from dataclasses import dataclass
+from pathlib import Path
 
 import torch
-from torch import nn
+from torch.nn.functional import binary_cross_entropy_with_logits
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainerCallback, TrainingArguments
+from transformers.utils import logging
 
-from pytorch_optimizer import (
-    ADOPT,
-    LARS,
-    SGDW,
-    AdaBelief,
-    AdaBound,
-    AdaFactor,
-    AdaMax,
-    AdaMod,
-    Adan,
-    Amos,
-    DiffGrad,
-    GrokFastAdamW,
-    Lamb,
-    Lion,
-    PAdam,
-    RAdam,
-    SignSGD,
-    StableAdamW,
-    Tiger,
-    Yogi,
-)
+from pytorch_optimizer import load_optimizer
 
-OPTIMIZERS_CONFIG = [
-    (AdaFactor, {'lr': 1e-3}),
-    (GrokFastAdamW, {'lr': 1e-4, 'grokfast_after_step': 1}),
-    (Amos, {'lr': 1e-3}),
-    (Lion, {'lr': 1e-4}),
-    (Tiger, {'lr': 1e-3}),
-    (Adan, {'lr': 1e-3}),
-    (ADOPT, {'lr': 1e-3}),
-    (AdaBelief, {'lr': 1e-3}),
-    (StableAdamW, {'lr': 1e-3}),
-    (Lamb, {'lr': 1e-3}),
-    (LARS, {'lr': 1e-2}),
-    (SignSGD, {'lr': 1e-2, 'momentum': 0.9}),
-    (SGDW, {'lr': 1e-2, 'momentum': 0.9}),
-    (AdaBound, {'lr': 1e-3}),
-    (AdaMax, {'lr': 1e-3}),
-    (AdaMod, {'lr': 1e-3}),
-    (DiffGrad, {'lr': 1e-3}),
-    (PAdam, {'lr': 1e-3}),
-    (RAdam, {'lr': 1e-3}),
-    (Yogi, {'lr': 1e-3}),
-]
+MODEL_ID = 'tomaarsen/Qwen3-Reranker-0.6B-seq-cls'
+MODEL_REVISION = '6a5829f5079c66e78d911e06fe21931cc00232f7'
+OPTIMIZERS = ['adabound', 'adamax', 'adamod', 'diffgrad', 'padam', 'radam', 'yogi']
 
 
-@dataclass
-class BenchmarkResult:
-    """Results from a single benchmark run."""
-
-    optimizer_name: str
-    foreach: bool
-    avg_step_time_ms: float
-    std_step_time_ms: float
-    total_time_ms: float
-    peak_memory_mb: float
-    allocated_memory_mb: float
-    final_loss: float
-
-
-@dataclass
-class ComparisonResult:
-    """Comparison between foreach and non-foreach variants."""
-
-    optimizer_name: str
-    speedup: float
-    time_foreach_ms: float
-    time_no_foreach_ms: float
-    memory_foreach_mb: float
-    memory_no_foreach_mb: float
-    memory_diff_mb: float
-    memory_diff_pct: float
-
-
-def get_memory_stats(device: torch.device) -> dict[str, float]:
-    """Get current memory statistics for the device."""
-    if device.type == 'cuda':
-        torch.cuda.synchronize()
-        return {
-            'allocated_mb': torch.cuda.memory_allocated(device) / 1024 / 1024,
-            'peak_mb': torch.cuda.max_memory_allocated(device) / 1024 / 1024,
-            'reserved_mb': torch.cuda.memory_reserved(device) / 1024 / 1024,
-        }
-    return {'allocated_mb': 0.0, 'peak_mb': 0.0, 'reserved_mb': 0.0}
-
-
-def reset_memory_stats(device: torch.device) -> None:
-    """Reset memory statistics and clear caches."""
-    gc.collect()
-    if device.type == 'cuda':
-        torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats(device)
-        torch.cuda.synchronize()
-
-
-class SimpleMLP(nn.Module):
-    """Simple MLP for benchmarking with configurable size."""
-
-    def __init__(
-        self,
-        input_dim: int = 1024,
-        hidden_dim: int = 2048,
-        num_layers: int = 8,
-        output_dim: int | None = None,
-    ):
-        super().__init__()
-        output_dim = output_dim or input_dim
-
-        layers = []
-        for i in range(num_layers):
-            in_features = input_dim if i == 0 else hidden_dim
-            out_features = hidden_dim if i < num_layers - 1 else output_dim
-            layers.append(nn.Linear(in_features, out_features))
-            if i < num_layers - 1:
-                layers.append(nn.ReLU())
-
-        self.model = nn.Sequential(*layers)
-        self._num_params = sum(p.numel() for p in self.parameters())
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.model(x)
-
-    @property
-    def num_params(self) -> int:
-        return self._num_params
-
-
-class ConvNet(nn.Module):
-    """VGG-style ConvNet for benchmarking."""
-
-    def __init__(self, num_classes: int = 10):
-        super().__init__()
-        self.features = nn.Sequential(
-            nn.Conv2d(3, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2),
-            nn.Conv2d(64, 128, 3, padding=1),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(128, 128, 3, padding=1),
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2),
-            nn.Conv2d(128, 256, 3, padding=1),
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, 3, padding=1),
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, 3, padding=1),
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, 2),
-            nn.Conv2d(256, 512, 3, padding=1),
-            nn.BatchNorm2d(512),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(512, 512, 3, padding=1),
-            nn.BatchNorm2d(512),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(512, 512, 3, padding=1),
-            nn.BatchNorm2d(512),
-            nn.ReLU(inplace=True),
-        )
-        self.classifier = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Flatten(),
-            nn.Linear(512, 512),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.5),
-            nn.Linear(512, num_classes),
-        )
-        self._num_params = sum(p.numel() for p in self.parameters())
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.features(x)
-        return self.classifier(x)
-
-    @property
-    def num_params(self) -> int:
-        return self._num_params
-
-
-class TransformerBlock(nn.Module):
-    """Simple Transformer block for benchmarking."""
-
-    def __init__(self, d_model: int = 512, num_heads: int = 8, dim_feedforward: int = 2048):
-        super().__init__()
-        self.self_attn = nn.MultiheadAttention(d_model, num_heads, batch_first=True)
-        self.linear1 = nn.Linear(d_model, dim_feedforward)
-        self.linear2 = nn.Linear(dim_feedforward, d_model)
-        self.norm1 = nn.LayerNorm(d_model)
-        self.norm2 = nn.LayerNorm(d_model)
-        self.activation = nn.GELU()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        attn_out, _ = self.self_attn(x, x, x)
-        x = self.norm1(x + attn_out)
-        ff_out = self.linear2(self.activation(self.linear1(x)))
-        return self.norm2(x + ff_out)
-
-
-class SimpleTransformer(nn.Module):
-    """Simple Transformer model for benchmarking."""
-
-    def __init__(
-        self,
-        d_model: int = 512,
-        num_heads: int = 8,
-        num_layers: int = 6,
-        dim_feedforward: int = 2048,
-    ):
-        super().__init__()
-        self.embedding = nn.Linear(d_model, d_model)
-        self.layers = nn.ModuleList([TransformerBlock(d_model, num_heads, dim_feedforward) for _ in range(num_layers)])
-        self.head = nn.Linear(d_model, d_model)
-
-        self._num_params = sum(p.numel() for p in self.parameters())
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.embedding(x)
-        for layer in self.layers:
-            x = layer(x)
-        return self.head(x.mean(dim=1))
-
-    @property
-    def num_params(self) -> int:
-        return self._num_params
-
-
-def create_model_and_data(
-    model_type: str, batch_size: int, device: torch.device
-) -> tuple[nn.Module, torch.Tensor, torch.Tensor, Callable]:
-    """Create model, data, and loss function for benchmarking."""
-    if model_type == 'mlp':
-        model = SimpleMLP(input_dim=1024, hidden_dim=2048, num_layers=8).to(device)
-        data = torch.randn(batch_size, 1024, device=device)
-        target = torch.randn(batch_size, 1024, device=device)
-        criterion = nn.MSELoss()
-    elif model_type == 'mlp_large':
-        model = SimpleMLP(input_dim=2048, hidden_dim=4096, num_layers=12).to(device)
-        data = torch.randn(batch_size, 2048, device=device)
-        target = torch.randn(batch_size, 2048, device=device)
-        criterion = nn.MSELoss()
-    elif model_type == 'conv':
-        model = ConvNet(num_classes=10).to(device)
-        data = torch.randn(batch_size, 3, 32, 32, device=device)
-        target = torch.randint(0, 10, (batch_size,), device=device)
-        criterion = nn.CrossEntropyLoss()
-    elif model_type == 'transformer':
-        model = SimpleTransformer(d_model=512, num_layers=6).to(device)
-        data = torch.randn(batch_size, 128, 512, device=device)
-        target = torch.randn(batch_size, 512, device=device)
-        criterion = nn.MSELoss()
-    else:
-        raise ValueError(f'Unknown model type: {model_type}')
-
-    return model, data, target, criterion
-
-
-def benchmark_optimizer(
-    optimizer_cls: type,
-    model_factory: Callable,
-    data: torch.Tensor,
-    target: torch.Tensor,
-    criterion: Callable,
-    foreach: bool,
-    device: torch.device,
-    num_steps: int = 100,
-    warmup_steps: int = 10,
-    **opt_kwargs,
-) -> BenchmarkResult | None:
-    """Benchmark a single optimizer configuration."""
-    reset_memory_stats(device)
-
-    model = model_factory()
-
-    try:
-        optimizer = optimizer_cls(model.parameters(), foreach=foreach, **opt_kwargs)
-    except TypeError as e:
-        if 'foreach' in str(e):
-            return None
-        raise
-
-    for _ in range(warmup_steps):
-        optimizer.zero_grad()
-        output = model(data)
-        loss = criterion(output, target)
-        loss.backward()
-        optimizer.step()
-
-    if device.type == 'cuda':
-        torch.cuda.synchronize()
-
-    reset_memory_stats(device)
-
-    step_times = []
-    final_loss = 0.0
-
-    if device.type == 'cuda':
-        start_event = torch.cuda.Event(enable_timing=True)
-        end_event = torch.cuda.Event(enable_timing=True)
-
-        for _ in range(num_steps):
-            start_event.record()
-
-            optimizer.zero_grad()
-            output = model(data)
-            loss = criterion(output, target)
-            loss.backward()
-            optimizer.step()
-
-            end_event.record()
-            torch.cuda.synchronize()
-            step_times.append(start_event.elapsed_time(end_event))
-            final_loss = loss.item()
-    else:
-        for _ in range(num_steps):
-            start_step = time.perf_counter()
-
-            optimizer.zero_grad()
-            output = model(data)
-            loss = criterion(output, target)
-            loss.backward()
-            optimizer.step()
-
-            step_times.append((time.perf_counter() - start_step) * 1000)
-            final_loss = loss.item()
-
-    mem_stats = get_memory_stats(device)
-    total_time = sum(step_times)
-    avg_time = total_time / len(step_times)
-    std_time = (sum((t - avg_time) ** 2 for t in step_times) / len(step_times)) ** 0.5
-
-    del model, optimizer
-    reset_memory_stats(device)
-
-    return BenchmarkResult(
-        optimizer_name=optimizer_cls.__name__,
-        foreach=foreach,
-        avg_step_time_ms=avg_time,
-        std_step_time_ms=std_time,
-        total_time_ms=total_time,
-        peak_memory_mb=mem_stats['peak_mb'],
-        allocated_memory_mb=mem_stats['allocated_mb'],
-        final_loss=final_loss,
+def prepare_dataset(tokenizer, pairs_file: Path, sequence_length: int, full_length_only: bool):
+    pairs = [json.loads(line) for line in pairs_file.read_text(encoding='utf-8').splitlines() if line.strip()]
+    prefix = (
+        '<|im_start|>system\nDecide whether the document is relevant to the query. Answer yes or no.'
+        '<|im_end|>\n<|im_start|>user\n'
     )
-
-
-def run_benchmarks(
-    device: torch.device,
-    model_type: str = 'mlp',
-    num_steps: int = 100,
-    warmup_steps: int = 10,
-    batch_size: int = 64,
-    verbose: bool = True,
-) -> tuple[list[BenchmarkResult], list[ComparisonResult]]:
-    """Run benchmarks for all optimizers."""
-    results = []
-    comparisons = []
-
-    base_model, data, target, criterion = create_model_and_data(model_type, batch_size, device)
-    num_params = base_model.num_params
-    del base_model
-    reset_memory_stats(device)
-
-    def model_factory():
-        model, *_ = create_model_and_data(model_type, batch_size, device)
-        return model
-
-    if verbose:
-        print(f'\nModel: {model_type}, Parameters: {num_params:,}, Batch size: {batch_size}')
-        print('-' * 100)
-        header = f'{"Optimizer":15} {"Foreach":>8} {"Avg Time":>12} {"Std":>10} {"Peak Mem":>12} {"Loss":>12}'
-        print(header)
-        print('-' * 100)
-
-    for opt_cls, opt_kwargs in OPTIMIZERS_CONFIG:
-        opt_results = {}
-
-        for foreach in [False, True]:
-            result = benchmark_optimizer(
-                opt_cls,
-                model_factory,
-                data,
-                target,
-                criterion,
-                foreach=foreach,
-                device=device,
-                num_steps=num_steps,
-                warmup_steps=warmup_steps,
-                **opt_kwargs,
-            )
-
-            if result:
-                results.append(result)
-                opt_results[foreach] = result
-
-                if verbose:
-                    foreach_str = 'Yes' if foreach else 'No'
-                    print(
-                        f'{result.optimizer_name:15} {foreach_str:>8} '
-                        f'{result.avg_step_time_ms:>9.3f} ms '
-                        f'{result.std_step_time_ms:>7.3f} ms '
-                        f'{result.peak_memory_mb:>9.2f} MB '
-                        f'{result.final_loss:>12.6f}'
-                    )
-
-        if True in opt_results and False in opt_results:
-            r_foreach = opt_results[True]
-            r_no_foreach = opt_results[False]
-
-            speedup = r_no_foreach.avg_step_time_ms / r_foreach.avg_step_time_ms
-            mem_diff = r_foreach.peak_memory_mb - r_no_foreach.peak_memory_mb
-            mem_diff_pct = (mem_diff / r_no_foreach.peak_memory_mb * 100) if r_no_foreach.peak_memory_mb > 0 else 0
-
-            comparisons.append(
-                ComparisonResult(
-                    optimizer_name=opt_cls.__name__,
-                    speedup=speedup,
-                    time_foreach_ms=r_foreach.avg_step_time_ms,
-                    time_no_foreach_ms=r_no_foreach.avg_step_time_ms,
-                    memory_foreach_mb=r_foreach.peak_memory_mb,
-                    memory_no_foreach_mb=r_no_foreach.peak_memory_mb,
-                    memory_diff_mb=mem_diff,
-                    memory_diff_pct=mem_diff_pct,
-                )
-            )
-
-        if verbose:
-            print()
-
-    return results, comparisons
-
-
-def print_summary(comparisons: list[ComparisonResult], device_name: str) -> None:
-    if not comparisons:
-        print('No comparison results available.')
-        return
-
-    print('\n' + '=' * 100)
-    print(f'SUMMARY: Foreach vs Non-Foreach Performance Comparison ({device_name})')
-    print('=' * 100)
-
-    header = (
-        f'{"Optimizer":15} {"Speedup":>10} {"Time (foreach)":>15} '
-        f'{"Time (regular)":>15} {"Memory Diff":>12} {"Mem Diff %":>10}'
-    )
-    print(header)
-    print('-' * 100)
-
-    avg_speedup = 0.0
-    for comp in comparisons:
-        speedup_str = f'{comp.speedup:.2f}x' if comp.speedup >= 1 else f'{1/comp.speedup:.2f}x slower'
-        mem_diff_str = f'{comp.memory_diff_mb:+.2f} MB'
-        mem_pct_str = f'{comp.memory_diff_pct:+.1f}%'
-
-        print(
-            f'{comp.optimizer_name:15} {speedup_str:>10} '
-            f'{comp.time_foreach_ms:>12.3f} ms '
-            f'{comp.time_no_foreach_ms:>12.3f} ms '
-            f'{mem_diff_str:>12} {mem_pct_str:>10}'
+    suffix = '<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n'
+    suffix_ids = tokenizer.encode(suffix, add_special_tokens=False)
+    dataset = []
+    for pair in pairs:
+        query_ids = tokenizer.encode(
+            f'{prefix}<Instruct>: Find relevant scientific abstracts.\n<Query>: {pair["query"]}\n<Document>: ',
+            add_special_tokens=False,
         )
-        avg_speedup += comp.speedup
+        available = sequence_length - len(query_ids) - len(suffix_ids)
+        if available <= 0:
+            raise ValueError('Sequence length must leave room for the query, document, and scoring suffix.')
+        document_ids = tokenizer.encode(pair['document'], add_special_tokens=False)[:available]
+        if full_length_only and len(document_ids) < available:
+            continue
+        dataset.append({'input_ids': query_ids + document_ids + suffix_ids, 'labels': float(pair['label'])})
+    return dataset
 
-    avg_speedup /= len(comparisons)
-    print('-' * 100)
-    print(f'{"Average":15} {avg_speedup:.2f}x')
-    print('=' * 100)
 
-    print('\nInterpretation:')
-    print('  - Speedup > 1.0x means foreach is faster')
-    print('  - Memory diff shows additional memory used by foreach (usually minimal)')
-    if device_name == 'cpu':
-        print('  - NOTE: On CPU, foreach falls back to regular loops (minimal difference expected)')
-        print('  - Real speedups (1.1x-1.5x) are observed on CUDA GPUs')
+class StepTimer(TrainerCallback):
+    def __init__(self, warmup_steps: int, accumulation_steps: int):
+        self.warmup_steps = warmup_steps
+        self.micro_events = [
+            [torch.cuda.Event(enable_timing=True) for _ in range(3)] for _ in range(accumulation_steps)
+        ]
+        self.start, self.optimizer_start, self.optimizer_end, self.end = [
+            torch.cuda.Event(enable_timing=True) for _ in range(4)
+        ]
+        self.timings = {'forward_ms': [], 'backward_ms': [], 'optimizer_ms': [], 'total_ms': [], 'wall_ms': []}
+        self.losses = []
+        self.step_losses = []
+        self.micro_step = 0
+        self.warmup_seconds = 0.0
+        self.started = self.previous_end = 0.0
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        self.started = self.previous_end = time.perf_counter()
+
+    def on_step_begin(self, args, state, control, **kwargs):
+        self.micro_step = 0
+        self.step_losses.clear()
+        self.start.record()
+
+    def on_pre_optimizer_step(self, args, state, control, **kwargs):
+        self.optimizer_start.record()
+
+    def on_optimizer_step(self, args, state, control, **kwargs):
+        self.optimizer_end.record()
+
+    def on_step_end(self, args, state, control, **kwargs):
+        self.end.record()
+        torch.cuda.synchronize()
+        finished = time.perf_counter()
+        loss = torch.stack(self.step_losses).mean().item()
+        if not math.isfinite(loss):
+            raise FloatingPointError(f'Non-finite loss at step {state.global_step}: {loss}')
+        if state.global_step == self.warmup_steps:
+            self.warmup_seconds = finished - self.started
+            torch.cuda.reset_peak_memory_stats()
+        if state.global_step > self.warmup_steps:
+            events = self.micro_events[: self.micro_step]
+            self.timings['forward_ms'].append(sum(start.elapsed_time(end) for start, end, _ in events))
+            self.timings['backward_ms'].append(sum(end.elapsed_time(backward) for _, end, backward in events))
+            self.timings['optimizer_ms'].append(self.optimizer_start.elapsed_time(self.optimizer_end))
+            self.timings['total_ms'].append(self.start.elapsed_time(self.end))
+            self.timings['wall_ms'].append((finished - self.previous_end) * 1000.0)
+            self.losses.append(loss)
+        self.previous_end = time.perf_counter()
+
+
+class BenchmarkTrainer(Trainer):
+    def __init__(self, *args, timer: StepTimer, **kwargs):
+        super().__init__(*args, callbacks=[timer], **kwargs)
+        self.timer = timer
+        self.model_accepts_loss_kwargs = False
+
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
+        start, end, _ = self.timer.micro_events[self.timer.micro_step]
+        start.record()
+        labels = inputs.pop('labels')
+        outputs = model(**inputs, use_cache=False)
+        loss = binary_cross_entropy_with_logits(outputs.logits.flatten().float(), labels.float())
+        end.record()
+        self.timer.step_losses.append(loss.detach())
+        return (loss, outputs) if return_outputs else loss
+
+    def training_step(self, model, inputs, num_items_in_batch=None):
+        loss = super().training_step(model, inputs, num_items_in_batch)
+        self.timer.micro_events[self.timer.micro_step][2].record()
+        self.timer.micro_step += 1
+        return loss
+
+
+def benchmark_case(model, tokenizer, dataset, optimizer_cls, foreach: bool, args):
+    def collate(features):
+        batch = tokenizer.pad(features, padding='max_length', max_length=args.sequence_length, return_tensors='pt')
+        if args.full_length_only:
+            batch.pop('attention_mask', None)
+        return batch
+
+    optimizer = optimizer_cls(model.parameters(), lr=args.lr, foreach=foreach)
+    timer = StepTimer(args.warmup_steps, args.accumulation_steps)
+    training_args = TrainingArguments(
+        output_dir=str(args.output.parent / 'foreach-training'),
+        per_device_train_batch_size=args.batch_size,
+        gradient_accumulation_steps=args.accumulation_steps,
+        max_steps=args.warmup_steps + args.steps,
+        learning_rate=args.lr,
+        lr_scheduler_type='constant',
+        max_grad_norm=0.0,
+        bf16=True,
+        gradient_checkpointing=args.gradient_checkpointing,
+        gradient_checkpointing_kwargs={'use_reentrant': False},
+        dataloader_drop_last=True,
+        logging_strategy='no',
+        logging_nan_inf_filter=False,
+        save_strategy='no',
+        report_to='none',
+        disable_tqdm=True,
+        seed=42,
+        data_seed=42,
+    )
+    trainer = BenchmarkTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=dataset,
+        data_collator=collate,
+        optimizers=(optimizer, None),
+        timer=timer,
+    )
+    trainer.train()
+    trainer.accelerator.unwrap_model(model, keep_fp32_wrapper=False)
+    if len(timer.losses) != args.steps:
+        raise RuntimeError('Trainer did not complete the requested number of measured optimizer updates.')
+    tensor_states = [value for state in optimizer.state.values() for value in state.values() if torch.is_tensor(value)]
+    return {
+        'optimizer': optimizer_cls.__name__,
+        'mode': 'foreach' if foreach else 'per_param',
+        'foreach': foreach,
+        'batch_size': args.batch_size,
+        'accumulation_steps': args.accumulation_steps,
+        'effective_batch_size': args.batch_size * args.accumulation_steps,
+        'sequence_length': args.sequence_length,
+        'mean_ms': {name: statistics.mean(values) for name, values in timer.timings.items()},
+        'std_ms': {name: statistics.pstdev(values) for name, values in timer.timings.items()},
+        'median_ms': {name: statistics.median(values) for name, values in timer.timings.items()},
+        'pairs_per_second': (
+            args.batch_size * args.accumulation_steps * 1000.0 / statistics.mean(timer.timings['wall_ms'])
+        ),
+        'peak_allocated_mib': torch.cuda.max_memory_allocated() / 1024**2,
+        'peak_reserved_mib': torch.cuda.max_memory_reserved() / 1024**2,
+        'warmup_seconds': timer.warmup_seconds,
+        'first_timed_loss': timer.losses[0],
+        'final_loss': timer.losses[-1],
+        'state_dtypes': sorted({str(value.dtype) for value in tensor_states}),
+        'losses': timer.losses,
+    }
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Benchmark foreach optimizer variants')
-    parser.add_argument(
-        '--device',
-        type=str,
-        default='auto',
-        choices=['auto', 'cpu', 'cuda'],
-        help='Device to run benchmarks on',
-    )
-    parser.add_argument('--model-type', type=str, default='mlp', choices=['mlp', 'mlp_large', 'conv', 'transformer'])
-    parser.add_argument('--num-steps', type=int, default=100, help='Number of benchmark steps')
-    parser.add_argument('--warmup-steps', type=int, default=10, help='Number of warmup steps')
-    parser.add_argument('--batch-size', type=int, default=64, help='Batch size')
-    parser.add_argument('--all-models', action='store_true', help='Run benchmarks on all model types')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model', default=MODEL_ID)
+    parser.add_argument('--revision', default=MODEL_REVISION)
+    parser.add_argument('--cache-dir', type=Path, default=Path('.cache/huggingface'))
+    parser.add_argument('--local-files-only', action='store_true')
+    parser.add_argument('--pairs-file', type=Path, required=True)
+    parser.add_argument('--optimizers', nargs='+', choices=OPTIMIZERS, default=OPTIMIZERS)
+    parser.add_argument('--modes', nargs='+', choices=['per_param', 'foreach'], default=['per_param', 'foreach'])
+    parser.add_argument('--batch-size', type=int, default=4)
+    parser.add_argument('--accumulation-steps', type=int, default=1)
+    parser.add_argument('--sequence-length', type=int, default=256)
+    parser.add_argument('--full-length-only', action='store_true')
+    parser.add_argument('--steps', type=int, default=30)
+    parser.add_argument('--warmup-steps', type=int, default=10)
+    parser.add_argument('--lr', type=float, default=1e-4)
+    parser.add_argument('--gradient-checkpointing', action='store_true')
+    parser.add_argument('--output', type=Path, default=Path('.cache/foreach-qwen.json'))
     args = parser.parse_args()
+    if not torch.cuda.is_available():
+        raise RuntimeError('This benchmark requires CUDA.')
+    if min(args.batch_size, args.accumulation_steps, args.steps, args.warmup_steps) < 1:
+        raise ValueError('Batch size, accumulation, timed steps, and warmup steps must be positive.')
 
-    if args.device == 'auto':
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    else:
-        device = torch.device(args.device)
-
-    print('=' * 100)
-    print('PyTorch Optimizer Foreach Benchmark')
-    print('=' * 100)
-    print(f'Device: {device}')
-    if device.type == 'cuda':
-        print(f'GPU: {torch.cuda.get_device_name(device)}')
-        print(f'CUDA Version: {torch.version.cuda}')
-    print(f'PyTorch Version: {torch.__version__}')
-    if device.type == 'cpu':
-        print(f'CPU Threads: {torch.get_num_threads()}')
-    print('=' * 100)
-
-    if device.type == 'cpu':
-        print('\nWARNING: Running on CPU. Foreach operations fall back to regular loops.')
-        print('         For real speedup measurements, run on CUDA GPU.')
-        print()
-
-    model_types = ['mlp', 'conv', 'transformer'] if args.all_models else [args.model_type]
-    all_comparisons = {}
-
-    for model_type in model_types:
-        print(f'\n{"=" * 100}')
-        print(f'Benchmarking: {model_type.upper()} Model')
-        print('=' * 100)
-
-        _, comparisons = run_benchmarks(
-            device=device,
-            model_type=model_type,
-            num_steps=args.num_steps,
-            warmup_steps=args.warmup_steps,
-            batch_size=args.batch_size,
-            verbose=True,
-        )
-        all_comparisons[model_type] = comparisons
-        print_summary(comparisons, str(device))
-
-    if len(model_types) > 1:
-        print('\n' + '=' * 100)
-        print('OVERALL SUMMARY ACROSS ALL MODELS')
-        print('=' * 100)
-
-        optimizer_speedups: dict[str, list[float]] = {}
-        for _, comparisons in all_comparisons.items():
-            for comp in comparisons:
-                if comp.optimizer_name not in optimizer_speedups:
-                    optimizer_speedups[comp.optimizer_name] = []
-                optimizer_speedups[comp.optimizer_name].append(comp.speedup)
-
-        print(f'{"Optimizer":15} {"Avg Speedup":>12} {"Min":>10} {"Max":>10}')
-        print('-' * 50)
-        for opt_name, speedups in optimizer_speedups.items():
-            avg = sum(speedups) / len(speedups)
-            print(f'{opt_name:15} {avg:>10.2f}x {min(speedups):>8.2f}x {max(speedups):>8.2f}x')
-
-        overall_avg = sum(sum(s) for s in optimizer_speedups.values()) / sum(
-            len(s) for s in optimizer_speedups.values()
-        )
-        print('-' * 50)
-        print(f'{"Overall":15} {overall_avg:>10.2f}x')
-        print('=' * 100)
+    logging.disable_progress_bar()
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.model, revision=args.revision, cache_dir=args.cache_dir, padding_side='left',
+        local_files_only=args.local_files_only,
+    )
+    model = AutoModelForSequenceClassification.from_pretrained(
+        args.model, revision=args.revision, cache_dir=args.cache_dir, dtype=torch.bfloat16,
+        attn_implementation='flash_attention_2', local_files_only=args.local_files_only,
+    )
+    initial_state = {name: value.detach().clone() for name, value in model.state_dict().items()}
+    model.cuda()
+    dataset = prepare_dataset(tokenizer, args.pairs_file, args.sequence_length, args.full_length_only)
+    effective_batch_size = args.batch_size * args.accumulation_steps
+    pairs_used = len(dataset) // effective_batch_size * effective_batch_size
+    if pairs_used == 0:
+        raise ValueError('The pairs file must contain at least one complete effective batch.')
+    dataset = dataset[:pairs_used]
+    report = {
+        'model': args.model,
+        'revision': args.revision,
+        'architecture': model.__class__.__name__,
+        'trainable_parameters': sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad),
+        'dtype': 'bfloat16 parameters, gradients, and optimizer states; float32 BCE loss',
+        'gpu': torch.cuda.get_device_name(),
+        'python': sys.executable,
+        'torch': torch.__version__,
+        'trainer': 'transformers.Trainer',
+        'attention': 'flash_attention_2',
+        'full_length_only': args.full_length_only,
+        'pairs_used': pairs_used,
+        'gradient_checkpointing': args.gradient_checkpointing,
+        'warmup_steps': args.warmup_steps,
+        'timed_steps': args.steps,
+        'lr': args.lr,
+        'seed': 42,
+        'pairs_file': str(args.pairs_file),
+        'results': [],
+    }
+    print(json.dumps({key: value for key, value in report.items() if key != 'results'}), flush=True)
+    for optimizer_name in args.optimizers:
+        for mode in args.modes:
+            model.zero_grad(set_to_none=True)
+            model.load_state_dict(initial_state)
+            gc.collect()
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats()
+            row = benchmark_case(model, tokenizer, dataset, load_optimizer(optimizer_name), mode == 'foreach', args)
+            report['results'].append(row)
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(report, indent=2), encoding='utf-8')
+            print(json.dumps({key: value for key, value in row.items() if key != 'losses'}), flush=True)
 
 
 if __name__ == '__main__':

@@ -1,60 +1,67 @@
 # PyTorch Optimizer Foreach Benchmark
 
-**Environment**
-- Device: `cuda`
-- GPU: NVIDIA GeForce GTX 1060 6GB
-- CUDA Version: 12.8
-- PyTorch Version: 2.8.0+cu128
+`examples/benchmark_foreach.py` compares per-parameter and foreach updates during full training of
+[`tomaarsen/Qwen3-Reranker-0.6B-seq-cls`](https://huggingface.co/tomaarsen/Qwen3-Reranker-0.6B-seq-cls)
+with Transformers `Trainer`. It trains all 595,777,536 parameters using binary relevance labels.
+Parameters, gradients, and optimizer state use BF16; BCE-with-logits loss uses FP32. There are no FP32 master weights.
+The benchmark uses FlashAttention 2 and requires a CUDA PyTorch installation, Transformers, Accelerate, and a
+compatible FlashAttention 2 extension in the Python environment running it.
 
-## MLP Model (Batch size: 64)
+## Run the benchmark
 
-Parameters: 29,375,488
+Provide JSONL records with `query`, `document`, and a binary `label`:
 
-| Optimizer     | Foreach | Avg Time  | Std      | Peak Mem   | Loss     |
-|---------------|---------|-----------|----------|------------|----------|
-| AdaFactor     | No      | 35.421 ms | 8.907 ms | 329.58 MB  | 0.000321 |
-| AdaFactor     | Yes     | 27.109 ms | 0.247 ms | 577.85 MB  | 0.003894 |
-| GrokFastAdamW | No      | 30.360 ms | 0.110 ms | 609.55 MB  | 0.000673 |
-| GrokFastAdamW | Yes     | 27.240 ms | 0.159 ms | 801.66 MB  | 0.000565 |
-| Amos          | No      | 22.081 ms | 0.239 ms | 273.39 MB  | 0.419085 |
-| Amos          | Yes     | 20.077 ms | 0.217 ms | 465.53 MB  | 0.369267 |
-| Lion          | No      | 20.296 ms | 0.108 ms | 369.43 MB  | 0.006918 |
-| Lion          | Yes     | 17.292 ms | 0.096 ms | 465.48 MB  | 0.006869 |
-| Tiger         | No      | 14.876 ms | 0.092 ms | 369.43 MB  | 0.629746 |
-| Tiger         | Yes     | 13.438 ms | 0.099 ms | 465.48 MB  | 0.556300 |
-| Adan          | No      | 40.456 ms | 0.363 ms | 705.61 MB  | 0.447540 |
-| Adan          | Yes     | 40.706 ms | 6.065 ms | 1025.78 MB | 0.438211 |
-| ADOPT         | No      | 21.104 ms | 0.085 ms | 497.49 MB  | 0.005070 |
-| ADOPT         | Yes     | 22.725 ms | 0.160 ms | 689.60 MB  | 0.001950 |
-| AdaBelief     | No      | 28.131 ms | 0.109 ms | 497.49 MB  | 0.000009 |
-| AdaBelief     | Yes     | 21.932 ms | 0.284 ms | 689.60 MB  | 0.000006 |
-| StableAdamW   | No      | 30.821 ms | 0.787 ms | 497.48 MB  | 0.121176 |
-| StableAdamW   | Yes     | 28.764 ms | 0.388 ms | 577.54 MB  | 0.000000 |
-| Lamb          | No      | 31.722 ms | 1.081 ms | 497.51 MB  | 0.692506 |
-| Lamb          | Yes     | 28.144 ms | 0.428 ms | 577.58 MB  | 0.700553 |
-| LARS          | No      | 20.467 ms | 0.231 ms | 353.93 MB  | 0.977978 |
-| LARS          | Yes     | 18.902 ms | 0.094 ms | 353.93 MB  | 0.978091 |
-| SignSGD       | No      | 14.069 ms | 0.112 ms | 369.43 MB  | 0.679428 |
-| SignSGD       | Yes     | 12.682 ms | 0.123 ms | 465.48 MB  | 0.661502 |
-| SGDW          | No      | 13.339 ms | 0.148 ms | 353.93 MB  | 0.994222 |
-| SGDW          | Yes     | 10.332 ms | 0.119 ms | 353.93 MB  | 0.996546 |
+```json
+{"query": "What causes rainfall?", "document": "Rain forms when atmospheric water condenses.", "label": 1}
+{"query": "What causes rainfall?", "document": "Copper conducts electricity.", "label": 0}
+```
 
-## Foreach vs Regular Summary (CUDA)
+```bash
+python -m examples.benchmark_foreach \
+    --pairs-file train-pairs.jsonl \
+    --batch-size 16 \
+    --gradient-checkpointing \
+    --full-length-only \
+    --warmup-steps 10 \
+    --steps 20 \
+    --output .cache/foreach-qwen.json
+```
 
-| Optimizer     | Speedup      | Time (foreach) | Time (regular) | Memory Diff | Mem Diff % |
-|---------------|--------------|----------------|----------------|-------------|------------|
-| AdaFactor     | 1.31x        | 27.109 ms      | 35.421 ms      | +248.27 MB  | +75.3%     |
-| GrokFastAdamW | 1.11x        | 27.240 ms      | 30.360 ms      | +192.11 MB  | +31.5%     |
-| Amos          | 1.10x        | 20.077 ms      | 22.081 ms      | +192.15 MB  | +70.3%     |
-| Lion          | 1.17x        | 17.292 ms      | 20.296 ms      | +96.05 MB   | +26.0%     |
-| Tiger         | 1.11x        | 13.438 ms      | 14.876 ms      | +96.06 MB   | +26.0%     |
-| Adan          | 1.01x slower | 40.706 ms      | 40.456 ms      | +320.17 MB  | +45.4%     |
-| ADOPT         | 1.08x slower | 22.725 ms      | 21.104 ms      | +192.11 MB  | +38.6%     |
-| AdaBelief     | 1.28x        | 21.932 ms      | 28.131 ms      | +192.11 MB  | +38.6%     |
-| StableAdamW   | 1.07x        | 28.764 ms      | 30.821 ms      | +80.06 MB   | +16.1%     |
-| Lamb          | 1.13x        | 28.144 ms      | 31.722 ms      | +80.07 MB   | +16.1%     |
-| LARS          | 1.08x        | 18.902 ms      | 20.467 ms      | +0.00 MB    | +0.0%      |
-| SignSGD       | 1.11x        | 12.682 ms      | 14.069 ms      | +96.06 MB   | +26.0%     |
-| SGDW          | 1.29x        | 10.332 ms      | 13.339 ms      | +0.00 MB    | +0.0%      |
+By default, this runs AdaBound, AdaMax, AdaMod, DiffGrad, PAdam, RAdam, and Yogi with both update paths.
+Use `--optimizers radam yogi` to select cases, or `--accumulation-steps 4` to increase the effective batch size.
+The default sequence length is 256 tokens. `--full-length-only` selects documents that fill the available token
+budget so training uses dense attention. Omit it to retain shorter documents and exercise padded attention.
+The query and classification suffix are preserved when truncating documents. Incomplete effective batches are dropped.
 
-Average speedup (foreach vs regular): **1.13x**
+Each case restores the same initial checkpoint and seed. CUDA events measure forward, backward, optimizer,
+and total GPU time. Wall time includes data loading and Trainer work between updates; the timer synchronizes
+after each update. Warmup updates are excluded. JSON output also contains timing variability, pair throughput,
+peak allocated/reserved GPU memory, optimizer-state dtypes, and measured losses.
+
+## Qwen3 training results
+
+The measurements below use an RTX 5060 8 GB, local Python 3.12, PyTorch 2.14.1+cu132, Transformers 5.18.0,
+and FlashAttention 2.8.3. Model revision: `6a5829f5079c66e78d911e06fe21931cc00232f7`.
+The input contains SciFact train queries with judged positives and seeded unjudged negatives. After selecting
+full-length examples and dropping the incomplete batch, 1,680 pairs remain. Batch size is 16, sequence length is
+256, learning rate is 1e-4, and gradient checkpointing uses `use_reentrant=False`.
+Each case uses 10 warmup updates followed by 20 measured updates.
+
+| Optimizer | Per-param update (ms) | Foreach update (ms) | Per-param step (ms) | Foreach step (ms) | Step change |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| AdaBound | 65.75 | 85.15 | 791.30 | 813.49 | +2.8% |
+| AdaMax | 36.43 | 50.27 | 766.65 | 781.43 | +1.9% |
+| AdaMod | 69.63 | 84.41 | 803.54 | 817.20 | +1.7% |
+| DiffGrad | 75.08 | 94.87 | 807.85 | 828.56 | +2.6% |
+| PAdam | 40.54 | 56.84 | 774.95 | 791.04 | +2.1% |
+| RAdam | 42.09 | 50.16 | 776.37 | 784.12 | +1.0% |
+| Yogi | 57.01 | 75.55 | 790.85 | 809.35 | +2.3% |
+
+Foreach takes 1.0–2.8% longer per full training step on this workload. All measured losses are finite.
+An additional Trainer smoke run with RAdam foreach at batch 64 completed with finite losses and 5,746 MiB
+peak allocated GPU memory.
+
+These measurements assess training throughput and finite losses. They do not evaluate ranking quality or
+convergence. Forward and backward dominate the full training step, and foreach performance depends on tensor
+shapes and hardware. Cases run sequentially on a desktop GPU without locked clocks, so small timing differences
+should be interpreted alongside the variability recorded in the JSON output.
