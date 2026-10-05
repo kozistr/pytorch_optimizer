@@ -9,12 +9,12 @@ from torch.optim import Optimizer
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.foreach_utils import (
+from pytorch_optimizer.optimizer.utils.foreach import (
     foreach_add_,
     foreach_addcdiv_,
     group_tensors_by_device_and_dtype,
 )
-from pytorch_optimizer.optimizer.shampoo_utils import (
+from pytorch_optimizer.optimizer.utils.matrix import (
     NewtonSchulzWeights,
     get_newton_schulz_weights,
     zero_power_via_newton_schulz_5,

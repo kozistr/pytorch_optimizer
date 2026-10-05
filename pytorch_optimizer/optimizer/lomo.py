@@ -7,10 +7,11 @@ import torch
 from torch import nn
 from torch.distributed import ReduceOp, all_reduce
 
+from pytorch_optimizer.base.compatibility import is_deepspeed_zero3_enabled
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Defaults, ParamGroup
 from pytorch_optimizer.optimizer.fp16 import DynamicLossScaler
-from pytorch_optimizer.optimizer.utils import has_overflow, is_deepspeed_zero3_enabled
+from pytorch_optimizer.optimizer.utils.precision import has_overflow
 
 
 class LOMO(BaseOptimizer):

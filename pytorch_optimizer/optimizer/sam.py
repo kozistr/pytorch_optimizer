@@ -13,7 +13,7 @@ from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, OptimizerType, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
-from pytorch_optimizer.optimizer.utils import disable_running_stats, enable_running_stats
+from pytorch_optimizer.optimizer.utils.model import disable_running_stats, enable_running_stats
 
 
 def get_global_gradient_norm(param_groups: list[ParamGroup], device: torch.device) -> torch.Tensor:

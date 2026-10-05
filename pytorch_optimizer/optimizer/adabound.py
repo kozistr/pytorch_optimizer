@@ -5,7 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.foreach_utils import foreach_scalar_div_, group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_scalar_div_, group_tensors_by_device_and_dtype
 
 
 class AdaBound(BaseOptimizer):
@@ -137,6 +137,7 @@ class AdaBound(BaseOptimizer):
         else:
             torch._foreach_clamp_min_(updates, lower_bound)
             torch._foreach_clamp_max_(updates, upper_bound)
+
         torch._foreach_mul_(updates, exp_avgs)
 
         torch._foreach_sub_(params, updates)

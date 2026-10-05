@@ -6,7 +6,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.shampoo_utils import zero_power_via_newton_schulz_5
+from pytorch_optimizer.optimizer.utils.matrix import zero_power_via_newton_schulz_5
 
 
 class LMONorm(IntEnum):

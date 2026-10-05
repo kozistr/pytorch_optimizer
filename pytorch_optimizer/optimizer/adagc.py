@@ -5,7 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils import get_global_gradient_norm
+from pytorch_optimizer.optimizer.utils.gradient import get_global_gradient_norm
 
 
 class AdaGC(BaseOptimizer):
