@@ -24,6 +24,17 @@ Select optimizers with `--optimizers radam yogi adamw`.
 Select update modes with `--modes per_param foreach compiled fused`.
 Read the results in `.cache/optimizer-benchmark.json`.
 
+Benchmark the Muon family on the same CUDA training workload:
+
+```bash
+python -m examples.benchmark --pairs-file train-pairs.jsonl \
+    --optimizers muon adamuon adago normuon --modes per_param foreach compiled \
+    --batch-size 16 --full-length-only --gradient-checkpointing --steps 20
+```
+
+Muon family foreach updates batch equal-shaped matrices for Newton-Schulz orthogonalization.
+The compiled mode also compiles their momentum, normalization, and parameter updates.
+
 ## Results
 
 The recorded runs use these settings:

@@ -63,12 +63,20 @@ COPT_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
             'adamw_lr': 5e-1,
             'adamw_betas': (0.9, 0.98),
             'adamw_wd': 1e-2,
+            'foreach': True,
         },
         7,
     ),
     (
         'adago',
-        {'lr': 5e-1, 'use_adjusted_lr': True, 'adamw_lr': 5e-1, 'adamw_betas': (0.9, 0.98), 'adamw_wd': 1e-2},
+        {
+            'lr': 5e-1,
+            'use_adjusted_lr': True,
+            'adamw_lr': 5e-1,
+            'adamw_betas': (0.9, 0.98),
+            'adamw_wd': 1e-2,
+            'foreach': True,
+        },
         7,
     ),
 ]
