@@ -5,18 +5,29 @@ import math
 import statistics
 import sys
 import time
+from inspect import signature
 from pathlib import Path
 
 import torch
+from torch._dynamo.utils import counters
 from torch.nn.functional import binary_cross_entropy_with_logits
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainerCallback, TrainingArguments
 from transformers.utils import logging
 
-from pytorch_optimizer import load_optimizer
+from pytorch_optimizer import create_optimizer, load_optimizer
+from pytorch_optimizer.base.optimizer import BaseOptimizer
+from pytorch_optimizer.optimizer import OPTIMIZERS
 
 MODEL_ID = 'tomaarsen/Qwen3-Reranker-0.6B-seq-cls'
 MODEL_REVISION = '6a5829f5079c66e78d911e06fe21931cc00232f7'
-OPTIMIZERS = ['adabound', 'adamax', 'adamod', 'diffgrad', 'padam', 'radam', 'yogi']
+DEFAULT_OPTIMIZERS = [
+    *sorted(
+        name for name, optimizer_class in OPTIMIZERS.items()
+        if issubclass(optimizer_class, BaseOptimizer) and optimizer_class._supports_compiled_foreach
+    ),
+    'adamw',
+]
+MODES = ['per_param', 'foreach', 'compiled', 'fused']
 
 
 def prepare_dataset(tokenizer, pairs_file: Path, sequence_length: int, full_length_only: bool):
@@ -68,6 +79,8 @@ class StepTimer(TrainerCallback):
 
         self.warmup_seconds = 0.0
         self.started = self.previous_end = 0.0
+        self.graphs_at_start = counters['stats']['unique_graphs']
+        self.graphs_after_warmup = self.graphs_at_start
 
     def on_train_begin(self, args, state, control, **kwargs):
         self.started = self.previous_end = time.perf_counter()
@@ -95,6 +108,7 @@ class StepTimer(TrainerCallback):
 
         if state.global_step == self.warmup_steps:
             self.warmup_seconds = finished - self.started
+            self.graphs_after_warmup = counters['stats']['unique_graphs']
             torch.cuda.reset_peak_memory_stats()
 
         if state.global_step > self.warmup_steps:
@@ -137,7 +151,7 @@ class BenchmarkTrainer(Trainer):
         return loss
 
 
-def benchmark_case(model, tokenizer, dataset, optimizer_cls, foreach: bool, args):
+def benchmark_case(model, tokenizer, dataset, optimizer_name: str, mode: str, args):
     def collate(features):
         batch = tokenizer.pad(features, padding='max_length', max_length=args.sequence_length, return_tensors='pt')
 
@@ -146,11 +160,32 @@ def benchmark_case(model, tokenizer, dataset, optimizer_cls, foreach: bool, args
 
         return batch
 
-    optimizer = optimizer_cls(model.parameters(), lr=args.lr, foreach=foreach)
+    optimizer_cls = load_optimizer(optimizer_name)
+    parameters = signature(optimizer_cls).parameters
+    result = {'optimizer': optimizer_cls.__name__, 'optimizer_name': optimizer_name, 'mode': mode}
+
+    if mode in ('foreach', 'fused') and mode not in parameters:
+        return {**result, 'status': 'unsupported', 'reason': f'The optimizer has no {mode} implementation.'}
+
+    options = {}
+    if 'foreach' in parameters:
+        options['foreach'] = mode in ('foreach', 'compiled')
+    if 'fused' in parameters:
+        options['fused'] = mode == 'fused'
+    if mode == 'compiled' and 'capturable' in parameters:
+        options['capturable'] = True
+
+    try:
+        optimizer = create_optimizer(model, optimizer_name, lr=args.lr, compile=mode == 'compiled', **options)
+    except NotImplementedError as error:
+        if mode != 'fused':
+            raise
+        return {**result, 'status': 'unsupported', 'reason': str(error)}
+
     timer = StepTimer(args.warmup_steps, args.accumulation_steps)
 
     training_args = TrainingArguments(
-        output_dir=str(args.output.parent / 'foreach-training'),
+        output_dir=str(args.output.parent / 'benchmark-training'),
         per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=args.accumulation_steps,
         max_steps=args.warmup_steps + args.steps,
@@ -188,9 +223,12 @@ def benchmark_case(model, tokenizer, dataset, optimizer_cls, foreach: bool, args
     tensor_states = [value for state in optimizer.state.values() for value in state.values() if torch.is_tensor(value)]
 
     return {
-        'optimizer': optimizer_cls.__name__,
-        'mode': 'foreach' if foreach else 'per_param',
-        'foreach': foreach,
+        **result,
+        'status': 'ok',
+        'implementation': f'{optimizer_cls.__module__}.{optimizer_cls.__name__}',
+        'foreach': options.get('foreach', False),
+        'compiled': mode == 'compiled',
+        'fused': mode == 'fused',
         'batch_size': args.batch_size,
         'accumulation_steps': args.accumulation_steps,
         'effective_batch_size': args.batch_size * args.accumulation_steps,
@@ -204,6 +242,8 @@ def benchmark_case(model, tokenizer, dataset, optimizer_cls, foreach: bool, args
         'peak_allocated_mib': torch.cuda.max_memory_allocated() / 1024**2,
         'peak_reserved_mib': torch.cuda.max_memory_reserved() / 1024**2,
         'warmup_seconds': timer.warmup_seconds,
+        'graphs_during_warmup': timer.graphs_after_warmup - timer.graphs_at_start,
+        'graphs_during_measurement': counters['stats']['unique_graphs'] - timer.graphs_after_warmup,
         'first_timed_loss': timer.losses[0],
         'final_loss': timer.losses[-1],
         'state_dtypes': sorted({str(value.dtype) for value in tensor_states}),
@@ -218,8 +258,8 @@ def main():
     parser.add_argument('--cache-dir', type=Path, default=Path('.cache/huggingface'))
     parser.add_argument('--local-files-only', action='store_true')
     parser.add_argument('--pairs-file', type=Path, required=True)
-    parser.add_argument('--optimizers', nargs='+', choices=OPTIMIZERS, default=OPTIMIZERS)
-    parser.add_argument('--modes', nargs='+', choices=['per_param', 'foreach'], default=['per_param', 'foreach'])
+    parser.add_argument('--optimizers', nargs='+', choices=sorted(OPTIMIZERS), default=DEFAULT_OPTIMIZERS)
+    parser.add_argument('--modes', nargs='+', choices=MODES, default=MODES)
     parser.add_argument('--batch-size', type=int, default=4)
     parser.add_argument('--accumulation-steps', type=int, default=1)
     parser.add_argument('--sequence-length', type=int, default=256)
@@ -228,7 +268,7 @@ def main():
     parser.add_argument('--warmup-steps', type=int, default=10)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--gradient-checkpointing', action='store_true')
-    parser.add_argument('--output', type=Path, default=Path('.cache/foreach-qwen.json'))
+    parser.add_argument('--output', type=Path, default=Path('.cache/optimizer-benchmark.json'))
 
     args = parser.parse_args()
 
@@ -266,7 +306,7 @@ def main():
         'revision': args.revision,
         'architecture': model.__class__.__name__,
         'trainable_parameters': sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad),
-        'dtype': 'bfloat16 parameters, gradients, and optimizer states; float32 BCE loss',
+        'dtype': 'bfloat16 parameters, gradients, and moments; float32 BCE loss and native step counters',
         'gpu': torch.cuda.get_device_name(),
         'python': sys.executable,
         'torch': torch.__version__,
@@ -294,7 +334,9 @@ def main():
             torch.cuda.empty_cache()
             torch.cuda.reset_peak_memory_stats()
 
-            row = benchmark_case(model, tokenizer, dataset, load_optimizer(optimizer_name), mode == 'foreach', args)
+            row = benchmark_case(
+                model, tokenizer, dataset, optimizer_name, mode, args,
+            )
             report['results'].append(row)
 
             args.output.parent.mkdir(parents=True, exist_ok=True)
