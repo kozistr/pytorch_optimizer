@@ -5,6 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.foreach_utils import foreach_scalar_div_, group_tensors_by_device_and_dtype
 
 
 class AdaBound(BaseOptimizer):
@@ -22,6 +23,7 @@ class AdaBound(BaseOptimizer):
         ams_bound: Use the running maximum of the second moment to bound adaptive updates.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
 
@@ -38,6 +40,7 @@ class AdaBound(BaseOptimizer):
         ams_bound: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -47,6 +50,7 @@ class AdaBound(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
@@ -58,6 +62,7 @@ class AdaBound(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'ams_bound': ams_bound,
             'eps': eps,
+            'foreach': foreach,
         }
 
         super().__init__(params, defaults)
@@ -86,6 +91,87 @@ class AdaBound(BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 if group['ams_bound']:
                     state['max_exp_avg_sq'] = torch.zeros_like(p)
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state_dict: dict[str, list[torch.Tensor]],
+        step_size: float,
+        lower_bound: float,
+        upper_bound: float,
+    ) -> None:
+        beta1, beta2 = group['betas']
+        exp_avgs, exp_avg_sqs = state_dict['exp_avg'], state_dict['exp_avg_sq']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(
+            params=params,
+            grads=grads,
+            lr=group['lr'],
+            weight_decay=group['weight_decay'],
+            weight_decouple=group['weight_decouple'],
+            fixed_decay=group['fixed_decay'],
+        )
+
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+        torch._foreach_mul_(exp_avg_sqs, beta2)
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
+
+        de_noms = self.apply_ams_bound_foreach(
+            group['ams_bound'], exp_avg_sqs, state_dict.get('max_exp_avg_sq', []), group['eps']
+        )
+
+        updates = de_noms
+        foreach_scalar_div_(updates, step_size)
+        torch._foreach_clamp_min_(updates, lower_bound)
+        torch._foreach_clamp_max_(updates, upper_bound)
+        torch._foreach_mul_(updates, exp_avgs)
+
+        torch._foreach_sub_(params, updates)
+
+    def _step_per_param(self, group: ParamGroup, step_size: float, lower_bound: float, upper_bound: float) -> None:
+        beta1, beta2 = group['betas']
+
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+
+            self.maximize_gradient(grad, maximize=self.maximize)
+
+            state = self.state[p]
+
+            self.apply_weight_decay(
+                p=p,
+                grad=grad,
+                lr=group['lr'],
+                weight_decay=group['weight_decay'],
+                weight_decouple=group['weight_decouple'],
+                fixed_decay=group['fixed_decay'],
+            )
+
+            exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
+            p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
+
+            exp_avg.lerp_(grad, weight=1.0 - beta1)
+            exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+
+            de_nom = self.apply_ams_bound(
+                ams_bound=group['ams_bound'],
+                exp_avg_sq=exp_avg_sq,
+                max_exp_avg_sq=state.get('max_exp_avg_sq', None),
+                eps=group['eps'],
+            )
+
+            update = torch.full_like(de_nom, fill_value=step_size)
+            update.div_(de_nom).clamp_(min=lower_bound, max=upper_bound).mul_(exp_avg)
+
+            p.add_(-update)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -117,41 +203,16 @@ class AdaBound(BaseOptimizer):
                 bias_correction1=bias_correction1,
             )
 
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                grad = p.grad
-
-                self.maximize_gradient(grad, maximize=self.maximize)
-
-                state = self.state[p]
-
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
-
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                p, grad, exp_avg, exp_avg_sq = self.view_as_real(p, grad, exp_avg, exp_avg_sq)
-
-                exp_avg.lerp_(grad, weight=1.0 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
-
-                de_nom = self.apply_ams_bound(
-                    ams_bound=group['ams_bound'],
-                    exp_avg_sq=exp_avg_sq,
-                    max_exp_avg_sq=state.get('max_exp_avg_sq', None),
-                    eps=group['eps'],
-                )
-
-                update = torch.full_like(de_nom, fill_value=step_size)
-                update.div_(de_nom).clamp_(min=lower_bound, max=upper_bound).mul_(exp_avg)
-
-                p.add_(-update)
+            if self.can_use_foreach(group, group.get('foreach')):
+                state_keys = ['exp_avg', 'exp_avg_sq']
+                if group['ams_bound']:
+                    state_keys.append('max_exp_avg_sq')
+                params, grads, state_dict = self.collect_trainable_params(group, self.state, state_keys=state_keys)
+                for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    self._step_foreach(
+                        group, tensors['params'], tensors['grads'], tensors, step_size, lower_bound, upper_bound
+                    )
+            else:
+                self._step_per_param(group, step_size, lower_bound, upper_bound)
 
         return loss

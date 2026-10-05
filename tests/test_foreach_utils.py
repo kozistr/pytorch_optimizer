@@ -1,8 +1,10 @@
+import pytest
 import torch
 
 from pytorch_optimizer.optimizer.foreach_utils import (
     foreach_rsqrt,
     foreach_rsqrt_,
+    foreach_scalar_div_,
     group_tensors_by_device_and_dtype,
     has_foreach_support,
 )
@@ -73,6 +75,22 @@ class TestGroupTensorsByDeviceAndDtype:
 
 
 class TestForeachOperations:
+    @pytest.mark.parametrize('dtype', [torch.float32, torch.bfloat16, torch.float16])
+    @pytest.mark.parametrize('scalar', [0.0, 0.001234])
+    def test_scalar_division_preserves_storage_and_precision(self, dtype, scalar, device):
+        tensors = (
+            torch.tensor([1e-5, 0.2, 2.0], dtype=dtype, device=device),
+            torch.full((2, 3), 0.3, dtype=dtype, device=device).t(),
+        )
+        expected = [torch.full_like(tensor, scalar).div_(tensor) for tensor in tensors]
+        pointers = [tensor.data_ptr() for tensor in tensors]
+
+        foreach_scalar_div_(tensors, scalar)
+
+        for tensor, reference, pointer in zip(tensors, expected, pointers):
+            torch.testing.assert_close(tensor, reference)
+            assert tensor.data_ptr() == pointer
+
     def test_outplace_rsqrt_by_version(self):
         tensors = [torch.empty((1,)).fill_(4.0)]
         tensors = foreach_rsqrt(tensors)

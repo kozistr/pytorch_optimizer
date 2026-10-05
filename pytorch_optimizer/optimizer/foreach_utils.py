@@ -74,6 +74,19 @@ def group_tensors_by_device_and_dtype(
     return list(groups.values())
 
 
+def foreach_scalar_div_(tensors: Sequence[torch.Tensor], scalar: float) -> None:
+    """Divide a scalar by tensors in place without allocating full-size numerators.
+
+    Args:
+        tensors: Nonempty tensors sharing a device and dtype, overwritten with their quotients.
+        scalar: Numerator, rounded to the tensors' dtype before division.
+
+    """
+    numerator = torch.full((), fill_value=scalar, dtype=tensors[0].dtype, device=tensors[0].device)
+    for tensor in tensors:
+        torch.div(numerator, tensor, out=tensor)
+
+
 def foreach_rsqrt(
     tensors: list[torch.Tensor] | tuple[torch.Tensor, ...],
 ) -> Sequence[torch.Tensor]:  # pragma: no cover

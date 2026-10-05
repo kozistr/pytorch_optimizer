@@ -33,15 +33,22 @@ from pytorch_optimizer import (
     LARS,
     SGDW,
     AdaBelief,
+    AdaBound,
     AdaFactor,
+    AdaMax,
+    AdaMod,
     Adan,
     Amos,
+    DiffGrad,
     GrokFastAdamW,
     Lamb,
     Lion,
+    PAdam,
+    RAdam,
     SignSGD,
     StableAdamW,
     Tiger,
+    Yogi,
 )
 
 OPTIMIZERS_CONFIG = [
@@ -58,6 +65,13 @@ OPTIMIZERS_CONFIG = [
     (LARS, {'lr': 1e-2}),
     (SignSGD, {'lr': 1e-2, 'momentum': 0.9}),
     (SGDW, {'lr': 1e-2, 'momentum': 0.9}),
+    (AdaBound, {'lr': 1e-3}),
+    (AdaMax, {'lr': 1e-3}),
+    (AdaMod, {'lr': 1e-3}),
+    (DiffGrad, {'lr': 1e-3}),
+    (PAdam, {'lr': 1e-3}),
+    (RAdam, {'lr': 1e-3}),
+    (Yogi, {'lr': 1e-3}),
 ]
 
 

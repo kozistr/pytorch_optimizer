@@ -5,6 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.foreach_utils import foreach_scalar_div_, group_tensors_by_device_and_dtype
 
 
 class AdaMod(BaseOptimizer):
@@ -19,6 +20,7 @@ class AdaMod(BaseOptimizer):
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
 
@@ -32,6 +34,7 @@ class AdaMod(BaseOptimizer):
         fixed_decay: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -40,6 +43,7 @@ class AdaMod(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
@@ -48,6 +52,7 @@ class AdaMod(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'eps': eps,
+            'foreach': foreach,
             **kwargs,
         }
         super().__init__(params, defaults)
@@ -74,6 +79,86 @@ class AdaMod(BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['exp_avg_lr'] = torch.zeros_like(p)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
+        exp_avg_lrs: list[torch.Tensor],
+        step_size: float,
+    ) -> None:
+        beta1, beta2, beta3 = group['betas']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(
+            params=params,
+            grads=grads,
+            lr=group['lr'],
+            weight_decay=group['weight_decay'],
+            weight_decouple=group['weight_decouple'],
+            fixed_decay=group['fixed_decay'],
+        )
+
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+        torch._foreach_mul_(exp_avg_sqs, beta2)
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
+
+        de_noms = torch._foreach_sqrt(exp_avg_sqs)
+        torch._foreach_add_(de_noms, group['eps'])
+
+        updates = de_noms
+        foreach_scalar_div_(updates, step_size)
+        torch._foreach_lerp_(exp_avg_lrs, updates, weight=1.0 - beta3)
+        torch._foreach_minimum_(updates, exp_avg_lrs)
+        torch._foreach_mul_(updates, exp_avgs)
+
+        torch._foreach_sub_(params, updates)
+
+    def _step_per_param(self, group: ParamGroup, step_size: float) -> None:
+        beta1, beta2, beta3 = group['betas']
+
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+
+            self.maximize_gradient(grad, maximize=self.maximize)
+
+            state = self.state[p]
+
+            exp_avg, exp_avg_sq, exp_avg_lr = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_lr']
+
+            p, grad, exp_avg, exp_avg_sq, exp_avg_lr = self.view_as_real(p, grad, exp_avg, exp_avg_sq, exp_avg_lr)
+
+            self.apply_weight_decay(
+                p=p,
+                grad=grad,
+                lr=group['lr'],
+                weight_decay=group['weight_decay'],
+                weight_decouple=group['weight_decouple'],
+                fixed_decay=group['fixed_decay'],
+            )
+
+            exp_avg.lerp_(grad, weight=1.0 - beta1)
+            exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+
+            de_nom = exp_avg_sq.sqrt().add_(group['eps'])
+
+            update = torch.full_like(de_nom, fill_value=step_size)
+            update.div_(de_nom)
+
+            exp_avg_lr.lerp_(update, weight=1.0 - beta3)
+
+            torch.min(update, exp_avg_lr, out=update)
+            update.mul_(exp_avg)
+
+            p.add_(-update)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -85,7 +170,7 @@ class AdaMod(BaseOptimizer):
             self.init_group(group)
             group['step'] += 1
 
-            beta1, beta2, beta3 = group['betas']
+            beta1, beta2, _ = group['betas']
 
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
@@ -96,42 +181,21 @@ class AdaMod(BaseOptimizer):
                 bias_correction1=bias_correction1,
             )
 
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                grad = p.grad
-
-                self.maximize_gradient(grad, maximize=self.maximize)
-
-                state = self.state[p]
-
-                exp_avg, exp_avg_sq, exp_avg_lr = state['exp_avg'], state['exp_avg_sq'], state['exp_avg_lr']
-
-                p, grad, exp_avg, exp_avg_sq, exp_avg_lr = self.view_as_real(p, grad, exp_avg, exp_avg_sq, exp_avg_lr)
-
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
+            if self.can_use_foreach(group, group.get('foreach')):
+                params, grads, state_dict = self.collect_trainable_params(
+                    group, self.state, state_keys=['exp_avg', 'exp_avg_sq', 'exp_avg_lr']
                 )
-
-                exp_avg.lerp_(grad, weight=1.0 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
-
-                de_nom = exp_avg_sq.sqrt().add_(group['eps'])
-
-                update = torch.full_like(de_nom, fill_value=step_size)
-                update.div_(de_nom)
-
-                exp_avg_lr.lerp_(update, weight=1.0 - beta3)
-
-                torch.min(update, exp_avg_lr, out=update)
-                update.mul_(exp_avg)
-
-                p.add_(-update)
+                for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    self._step_foreach(
+                        group,
+                        tensors['params'],
+                        tensors['grads'],
+                        tensors['exp_avg'],
+                        tensors['exp_avg_sq'],
+                        tensors['exp_avg_lr'],
+                        step_size,
+                    )
+            else:
+                self._step_per_param(group, step_size)
 
         return loss

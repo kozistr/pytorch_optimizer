@@ -3,6 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.foreach_utils import group_tensors_by_device_and_dtype
 
 
 class AdaMax(BaseOptimizer):
@@ -17,6 +18,7 @@ class AdaMax(BaseOptimizer):
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
 
@@ -30,6 +32,7 @@ class AdaMax(BaseOptimizer):
         fixed_decay: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -38,6 +41,7 @@ class AdaMax(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
@@ -46,6 +50,7 @@ class AdaMax(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'eps': eps,
+            'foreach': foreach,
             **kwargs,
         }
 
@@ -75,6 +80,80 @@ class AdaMax(BaseOptimizer):
                 if group.get('adanorm'):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
+        return not group.get('adanorm') and self.can_use_foreach(group, group.get('foreach'))
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_infs: list[torch.Tensor],
+        step_size: float,
+    ) -> None:
+        beta1, beta2 = group['betas']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(
+            params=params,
+            grads=grads,
+            lr=group['lr'],
+            weight_decay=group['weight_decay'],
+            weight_decouple=group['weight_decouple'],
+            fixed_decay=group['fixed_decay'],
+        )
+
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+        torch._foreach_mul_(exp_infs, beta2)
+
+        grad_abs = torch._foreach_abs(grads)
+        torch._foreach_add_(grad_abs, group['eps'])
+        torch._foreach_maximum_(exp_infs, grad_abs)
+
+        torch._foreach_addcdiv_(params, exp_avgs, exp_infs, value=-step_size)
+
+    def _step_per_param(self, group: ParamGroup, step_size: float) -> None:
+        beta1, beta2 = group['betas']
+
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+
+            self.maximize_gradient(grad, maximize=self.maximize)
+
+            state = self.state[p]
+
+            exp_avg, exp_inf = state['exp_avg'], state['exp_inf']
+
+            p, grad, exp_avg, exp_inf = self.view_as_real(p, grad, exp_avg, exp_inf)
+
+            self.apply_weight_decay(
+                p=p,
+                grad=grad,
+                lr=group['lr'],
+                weight_decay=group['weight_decay'],
+                weight_decouple=group['weight_decouple'],
+                fixed_decay=group['fixed_decay'],
+            )
+
+            s_grad = self.get_adanorm_gradient(
+                grad=grad,
+                adanorm=group.get('adanorm', False),
+                exp_grad_norm=state.get('exp_grad_adanorm', None),
+                r=group.get('adanorm_r', None),
+            )
+
+            exp_avg.lerp_(s_grad, weight=1.0 - beta1)
+
+            torch.maximum(exp_inf.mul_(beta2), grad.abs().add_(group['eps']), out=exp_inf)
+
+            p.addcdiv_(exp_avg, exp_inf, value=-step_size)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -86,7 +165,7 @@ class AdaMax(BaseOptimizer):
             self.init_group(group)
             group['step'] += 1
 
-            beta1, beta2 = group['betas']
+            beta1, _ = group['betas']
 
             bias_correction1: float = self.debias(beta1, group['step'])
 
@@ -96,40 +175,15 @@ class AdaMax(BaseOptimizer):
                 bias_correction1=bias_correction1,
             )
 
-            for p in group['params']:
-                if p.grad is None:
-                    continue
-
-                grad = p.grad
-
-                self.maximize_gradient(grad, maximize=self.maximize)
-
-                state = self.state[p]
-
-                exp_avg, exp_inf = state['exp_avg'], state['exp_inf']
-
-                p, grad, exp_avg, exp_inf = self.view_as_real(p, grad, exp_avg, exp_inf)
-
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
+            if self._can_use_foreach(group):
+                params, grads, state_dict = self.collect_trainable_params(
+                    group, self.state, state_keys=['exp_avg', 'exp_inf']
                 )
-
-                s_grad = self.get_adanorm_gradient(
-                    grad=grad,
-                    adanorm=group.get('adanorm', False),
-                    exp_grad_norm=state.get('exp_grad_adanorm', None),
-                    r=group.get('adanorm_r', None),
-                )
-
-                exp_avg.lerp_(s_grad, weight=1.0 - beta1)
-
-                torch.maximum(exp_inf.mul_(beta2), grad.abs().add_(group['eps']), out=exp_inf)
-
-                p.addcdiv_(exp_avg, exp_inf, value=-step_size)
+                for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    self._step_foreach(
+                        group, tensors['params'], tensors['grads'], tensors['exp_avg'], tensors['exp_inf'], step_size
+                    )
+            else:
+                self._step_per_param(group, step_size)
 
         return loss
