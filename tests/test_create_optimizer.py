@@ -1,4 +1,5 @@
 import warnings
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -110,16 +111,25 @@ class TestCreateOptimizer:
 
             assert 0 < counter.frame_count == frames
 
-        if optimizer_name == 'yogi' and foreach:
-            model = TrainingModel(dtype=torch.bfloat16)
+    @pytest.mark.parametrize('foreach', [False, True])
+    def test_create_optimizer_compile_wiring(self, foreach):
+        model = TrainingModel(dtype=torch.bfloat16)
+
+        with patch('torch.compile', side_effect=lambda step, **_: step) as compile_step:
             optimizer = create_optimizer(
                 model, 'yogi', lr=0.01, betas=(0.5, 0.5), initial_accumulator=0.494140625,
-                foreach=True, compile=True, compile_kwargs={'disable': True},
+                foreach=foreach, compile=True, compile_kwargs={'dynamic': False},
             )
 
-            for parameter in model.parameters():
-                parameter.grad = torch.full_like(parameter, 0.703125)
+        step = optimizer._apply_update_foreach.__wrapped__ if foreach else optimizer.step.__func__
+        compile_step.assert_called_once_with(step, dynamic=False)
 
+        for parameter in model.parameters():
+            parameter.grad = torch.full_like(parameter, 0.703125)
+
+        for lr in (0.01, 0.02, torch.tensor(0.03)):
+            for group in optimizer.param_groups:
+                group['lr'] = lr
             optimizer.step()
 
             # Rounded gradient squares match the stored moments, so their sign updates are zero.
@@ -127,6 +137,8 @@ class TestCreateOptimizer:
                 torch.testing.assert_close(
                     optimizer.state[parameter]['exp_avg_sq'], torch.full_like(parameter, 0.494140625)
                 )
+
+        torch.testing.assert_close(lr, torch.tensor(0.03))
 
 
 class TestOptionalIntegrations:
