@@ -6,6 +6,7 @@ from torch.distributed import all_reduce
 from torch.nn.utils import clip_grad_norm_
 
 from pytorch_optimizer.base.type import ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import has_foreach_support
 
 
 def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: float = 1e-8) -> None:
@@ -105,40 +106,33 @@ def get_global_gradient_norm(
     param_groups: list[ParamGroup] | None,
     device: torch.device | None = None,
     *,
-    weight_adaptive: bool | None = False,
+    weight_adaptive: bool = False,
 ) -> torch.Tensor:
     """Return the sum of squared L2 gradient norms across parameter groups.
 
     Args:
         param_groups: Optimizer parameter groups, or None for no parameters.
         device: Output device. Defaults to the first parameter's device, or CPU for empty groups.
-        weight_adaptive: Weight gradients by absolute parameter values. None uses each group's `adaptive` option.
+        weight_adaptive: Weight gradients by absolute parameter values for groups with `adaptive=True`.
 
     Returns:
         torch.Tensor: Squared global norm as a single element float32 tensor.
 
     """
-    gradients: dict[tuple[torch.device, torch.dtype, torch.layout], list[torch.Tensor]] = {}
-    for group in param_groups or []:
-        adaptive = group.get('adaptive', False) if weight_adaptive is None else weight_adaptive
-        for p in group.get('params', []) or []:
-            if device is None:
-                device = p.device
+    param_groups = param_groups or []
+    device = device or next((p.device for group in param_groups for p in group['params']), torch.device('cpu'))
+    grads: list[torch.Tensor] = []
+    for group in param_groups:
+        adaptive = weight_adaptive and group.get('adaptive', False)
+        for p in group['params']:
             if p.grad is None:
                 continue
 
-            grad = p.grad * p.abs() if adaptive else p.grad
-            gradients.setdefault((grad.device, grad.dtype, grad.layout), []).append(grad)
+            grads.append(p.grad * p.abs() if adaptive else p.grad)
 
-    global_grad_norm = torch.zeros(1, dtype=torch.float32, device=device or torch.device('cpu'))
-    for grads in gradients.values():
-        if len(grads) == 1:
-            norm = grads[0].norm().to(dtype=torch.float32).square_()
-            global_grad_norm.add_(norm.to(global_grad_norm.device))
-            continue
+    if not grads:
+        return torch.zeros(1, dtype=torch.float32, device=device)
 
-        norms = torch._foreach_norm(grads) if grads[0].layout == torch.strided else [grad.norm() for grad in grads]
-        squared_norms = torch.stack(norms).to(dtype=torch.float32).square_()
-        global_grad_norm.add_(squared_norms.sum().to(global_grad_norm.device))
-
-    return global_grad_norm
+    norms = torch._foreach_norm(grads) if has_foreach_support(grads) else [grad.norm() for grad in grads]
+    squared_norms = torch.stack([norm.to(device) for norm in norms]).float().square_()
+    return squared_norms.sum().reshape(1)

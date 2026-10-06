@@ -83,7 +83,7 @@ class SAM(BaseOptimizer):
 
     @torch.no_grad()
     def first_step(self, zero_grad: bool = False):
-        grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=None)
+        grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=True)
         grad_norm.sqrt_().squeeze_(0).add_(self.perturb_eps)
 
         for group in self.param_groups:
@@ -277,13 +277,13 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
     @torch.no_grad()
     def grad_norm(self, by: str | None = None, weight_adaptive: bool = False) -> torch.Tensor:
-        if not by:
-            return get_global_gradient_norm(self.param_groups, weight_adaptive=weight_adaptive).sqrt_().squeeze(0)
+        if not by and not weight_adaptive:
+            return get_global_gradient_norm(self.param_groups).sqrt_().squeeze(0)
 
         return torch.norm(
             torch.stack(
                 [
-                    ((torch.abs(p) if weight_adaptive else 1.0) * self.state[p][by]).norm(p=2)
+                    ((torch.abs(p) if weight_adaptive else 1.0) * (p.grad if not by else self.state[p][by])).norm(p=2)
                     for group in self.param_groups
                     for p in group['params']
                     if p.grad is not None
@@ -416,7 +416,7 @@ class WSAM(BaseOptimizer):
 
     @torch.no_grad()
     def first_step(self, zero_grad: bool = False):
-        grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=None).sqrt_().squeeze_(0)
+        grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=True).sqrt_().squeeze_(0)
 
         for group in self.param_groups:
             scale = group['rho'] / (grad_norm + group['sam_eps'])
@@ -740,7 +740,7 @@ class LookSAM(BaseOptimizer):
         if self.get_step() % self.k != 0:
             return
 
-        grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=None)
+        grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=True)
         grad_norm.sqrt_().squeeze_(0).add_(self.perturb_eps)
 
         for group in self.param_groups:
@@ -916,7 +916,7 @@ class FriendlySAM(BaseOptimizer):
                     grad.sub_(momentum, alpha=group['sigma'])
                     momentum.lerp_(grad, weight=1.0 - group['lmbda'])
 
-        grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=None)
+        grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=True)
         grad_norm.sqrt_().squeeze_(0).add_(self.perturb_eps)
 
         for group in self.param_groups:
