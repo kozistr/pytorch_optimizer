@@ -79,7 +79,16 @@ class Conda(BaseOptimizer):
 
             if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
-                state['exp_avg_sq'] = torch.zeros_like(p)
+
+                shape = list(p.shape)
+                if p.dim() == 2:
+                    rank = min(shape)
+                    if group['projection_type'] in ('left', 'full', 'reverse_std'):
+                        shape[0] = rank
+                    if group['projection_type'] in ('right', 'full', 'reverse_std'):
+                        shape[1] = rank
+
+                state['exp_avg_sq'] = p.new_zeros(shape)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

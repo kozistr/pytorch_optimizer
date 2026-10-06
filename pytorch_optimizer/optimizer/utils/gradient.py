@@ -20,6 +20,9 @@ def normalize_gradient(x: torch.Tensor, use_channels: bool = False, epsilon: flo
     """
     size: int = x.dim()
     if size > 1 and use_channels:
+        if math.prod(x.shape[1:]) <= 1:
+            return
+
         s = x.std(dim=tuple(range(1, size)), keepdim=True).add_(epsilon)
         x.div_(s)
     elif torch.numel(x) > 2:
@@ -31,7 +34,7 @@ def clip_grad_norm(
     parameters: ParamsT | torch.Tensor,
     max_norm: float = 0.0,
     sync: bool = False,
-) -> torch.Tensor | float:
+) -> torch.Tensor:
     """Compute the global L2 gradient norm and optionally clip gradients in place.
 
     Args:
@@ -40,7 +43,7 @@ def clip_grad_norm(
         sync: Sum squared norms across the distributed process group for sharded gradients.
 
     Returns:
-        torch.Tensor | float: Global gradient norm before clipping.
+        torch.Tensor: Global gradient norm before clipping.
 
     """
     if parameters is None:
@@ -61,12 +64,12 @@ def clip_grad_norm(
         # also need to get the norms from all the other sharded works in FSDP
         all_reduce(norm_sq)
 
-    grad_norm: float = math.sqrt(norm_sq)
+    grad_norm = norm_sq.sqrt_().squeeze_(0)
     if max_norm > 0:  # pragma: no cover
-        clip_coefficient = max_norm / (grad_norm + 1e-6)
+        clip_coefficient = (max_norm / (grad_norm + 1e-6)).clamp_(max=1.0)
         for p in parameters:
             if p.grad is not None:
-                p.grad.detach().mul_(clip_coefficient)
+                p.grad.detach().mul_(clip_coefficient.to(p.grad.device))
 
     return grad_norm
 

@@ -126,8 +126,12 @@ class Shampoo(BaseOptimizer):
 
                 order: int = grad.ndimension()
                 original_size: int = grad.size()
+                statistics_grad = grad
                 for dim_id, dim in enumerate(grad.size()):
                     pre_cond, inv_pre_cond = state[f'pre_cond_{dim_id}'], state[f'inv_pre_cond_{dim_id}']
+
+                    unfolded_grad = statistics_grad.movedim(dim_id, 0).reshape(dim, -1)
+                    pre_cond.add_(unfolded_grad @ unfolded_grad.t())
 
                     grad = grad.transpose_(0, dim_id).contiguous()
                     transposed_size = grad.size()
@@ -135,7 +139,6 @@ class Shampoo(BaseOptimizer):
                     grad = grad.view(dim, -1)
                     grad_t = grad.t()
 
-                    pre_cond.add_(grad @ grad_t)
                     if group['step'] % self.preconditioning_compute_steps == 0:
                         inv_pre_cond.copy_(compute_power_svd(pre_cond, 2 * order))
 

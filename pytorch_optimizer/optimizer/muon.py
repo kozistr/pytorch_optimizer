@@ -551,6 +551,17 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
                 for p in group['params']:
                     grad = p.grad
 
+                    self.maximize_gradient(grad, maximize=self.maximize)
+
+                    self.apply_weight_decay(
+                        p,
+                        grad=grad,
+                        lr=group['lr'],
+                        weight_decay=group['weight_decay'],
+                        weight_decouple=group['weight_decouple'],
+                        fixed_decay=False,
+                    )
+
                     state = self.state[p]
                     exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
 
@@ -1349,23 +1360,32 @@ def prepare_muon_parameters(
         Optimizer: Optimizer with orthogonal update and AdamW parameter groups.
 
     """
-    muon_parameters: list[torch.Tensor] = []
-    non_muon_params: list[torch.Tensor] = []
+    muon_parameters: dict[int, torch.Tensor] = {}
+    non_muon_params: dict[int, torch.Tensor] = {}
 
-    for _, module in model.named_modules():
+    for module_name, module in model.named_modules():
         for name, param in module.named_parameters(recurse=False):
+            if not param.requires_grad:
+                continue
+
+            full_name = f'{module_name}.{name}' if module_name else name
             if (
                 isinstance(module, (nn.Linear, nn.Conv1d, nn.LSTM, nn.Conv2d))
                 and param.ndim >= 2
-                and 'head' not in name
+                and 'head' not in full_name
             ):
-                muon_parameters.append(param)
+                muon_parameters[id(param)] = param
             else:
-                non_muon_params.append(param)
+                non_muon_params[id(param)] = param
 
     param_groups: ParamsT = [
-        {'params': muon_parameters, 'lr': lr, 'weight_decay': weight_decay, 'use_muon': True},
-        {'params': non_muon_params, 'lr': adamw_lr, 'weight_decay': adamw_wd, 'use_muon': False},
+        {
+            'params': [p for key, p in muon_parameters.items() if key not in non_muon_params],
+            'lr': lr,
+            'weight_decay': weight_decay,
+            'use_muon': True,
+        },
+        {'params': list(non_muon_params.values()), 'lr': adamw_lr, 'weight_decay': adamw_wd, 'use_muon': False},
     ]
 
     optimizer_name = optimizer_name.lower()

@@ -658,29 +658,31 @@ def get_optimizer_parameters(
         ParamsT: Nonempty parameter groups with the requested weight decay or zero weight decay.
 
     """
-    banned_parameter_patterns: set[str] = set()
+    banned_parameter_ids: set[int] = set()
 
     if isinstance(model_or_parameter, nn.Module):
         for module_name, module in model_or_parameter.named_modules():
-            for param_name, _ in module.named_parameters(recurse=False):
+            for param_name, param in module.named_parameters(recurse=False):
                 full_param_name: str = f'{module_name}.{param_name}' if module_name else param_name
                 if any(
                     banned in pattern
                     for banned in wd_ban_list
                     for pattern in (full_param_name, module._get_name(), f'{module._get_name()}.{param_name}')
                 ):
-                    banned_parameter_patterns.add(full_param_name)
+                    banned_parameter_ids.add(id(param))
 
         model_or_parameter = list(model_or_parameter.named_parameters())
     else:
-        banned_parameter_patterns.update(wd_ban_list)
+        banned_parameter_ids.update(
+            id(p) for n, p in model_or_parameter if any(pattern in n for pattern in wd_ban_list)
+        )
 
     groups = [
         {
             'params': [
                 p
                 for n, p in model_or_parameter
-                if p.requires_grad and not any(nd in n for nd in banned_parameter_patterns)
+                if p.requires_grad and id(p) not in banned_parameter_ids
             ],
             'weight_decay': weight_decay,
         },
@@ -688,7 +690,7 @@ def get_optimizer_parameters(
             'params': [
                 p
                 for n, p in model_or_parameter
-                if p.requires_grad and any(nd in n for nd in banned_parameter_patterns)
+                if p.requires_grad and id(p) in banned_parameter_ids
             ],
             'weight_decay': 0.0,
         },

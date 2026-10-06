@@ -88,7 +88,8 @@ class CPUOffloadOptimizer:  # pragma: no cover
     def step(self, closure: Closure = None) -> Loss:
         loss = None
         if closure is not None:
-            loss = closure()
+            with torch.enable_grad():
+                loss = closure()
 
         for p_cuda, grad_d2h_event in self.queue.items():
             grad_d2h_event.synchronize()
@@ -99,6 +100,7 @@ class CPUOffloadOptimizer:  # pragma: no cover
                 p_cuda.copy_(p_cpu, non_blocking=True)
 
         self.queue.clear()
+        torch.cuda.current_stream().wait_stream(self.stream)
 
         return loss
 

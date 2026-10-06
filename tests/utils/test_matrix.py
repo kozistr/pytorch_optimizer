@@ -80,8 +80,8 @@ def test_compute_power():
     x = compute_power_schur_newton(torch.zeros((1,)), p=1)
     assert torch.tensor([1000000.0]) == x
 
-    x = compute_power_schur_newton(torch.zeros((1, 2)), p=1)
-    assert torch.tensor([1.0]) == x
+    x = compute_power_schur_newton(torch.tensor([[4.0]]), p=2, ridge_epsilon=0.0)
+    torch.testing.assert_close(x, torch.tensor([[0.5]]))
 
     x = compute_power_schur_newton(torch.ones((2, 2)), p=1)
     assert np.sum(x.numpy() - np.asarray([[252206.4062, -252205.8750], [-252205.8750, 252206.4062]])) < 200

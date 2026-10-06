@@ -209,10 +209,12 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
                     continue
 
                 if p16.grad is not None:
+                    if p32.grad is None:
+                        p32.grad = torch.empty_like(p32)
                     p32.grad.copy_(p16.grad)
                     p32.grad.mul_(multiply_grads)
                 else:
-                    p32.grad = torch.zeros_like(p16, dtype=torch.float)
+                    p32.grad = None
 
             self.needs_sync = False
 
@@ -223,7 +225,8 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
             return
 
         for p32 in self.fp32_params:
-            p32.grad.mul_(c)
+            if p32.grad is not None:
+                p32.grad.mul_(c)
 
     def update_main_grads(self) -> None:
         self.sync_fp16_grads_to_fp32()
@@ -271,16 +274,17 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
         for p16 in self.fp16_params:
             p16.grad = None
         for p32 in self.fp32_params:
-            p32.grad.zero_()
+            p32.grad = None
         self.needs_sync = False
 
     def get_lr(self) -> float:
         """Return the base optimizer learning rate."""
-        return self.optimizer.get_lr()
+        return self.optimizer.param_groups[0]['lr']
 
     def set_lr(self, lr: float):
         """Set the base optimizer learning rate."""
-        self.optimizer.set_lr(lr)
+        for group in self.optimizer.param_groups:
+            group['lr'] = lr
 
     @property
     def loss_scale(self) -> float:
