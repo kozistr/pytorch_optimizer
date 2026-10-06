@@ -21,10 +21,10 @@ class LayerWiseGrafting(IntEnum):
 
 
 class Graft:
-    """Identity graft that leaves Shampoo updates unchanged."""
+    """Identity graft with momentum for Shampoo warm-up updates."""
 
-    def __init__(self, *args):
-        pass
+    def __init__(self, var: torch.Tensor):
+        self.momentum: torch.Tensor = torch.zeros_like(var)
 
     def add_statistics(self, grad: torch.Tensor, beta2: float) -> None:
         """Accept gradient statistics without accumulating them."""
@@ -33,29 +33,18 @@ class Graft:
         """Return the gradient unchanged."""
         return grad
 
-    def update_momentum(self, update: torch.Tensor, beta1: float) -> torch.Tensor:
-        """Return the update unchanged."""
-        return update
+    def update_momentum(self, update: torch.Tensor, beta1: float, weight: float = 1.0) -> torch.Tensor:
+        """Accumulate and return the momentum update."""
+        self.momentum.mul_(beta1).add_(update, alpha=weight)
+        return self.momentum
 
 
 class SGDGraft(Graft):
     """SGD momentum as a layer wise update scale reference."""
 
-    def __init__(self, var: torch.Tensor):
-        super().__init__(var)
-        self.momentum: torch.Tensor = torch.zeros_like(var)
-
-    def update_momentum(self, update: torch.Tensor, beta1: float) -> torch.Tensor:
-        """Accumulate and return the momentum update."""
-        self.momentum.mul_(beta1).add_(update)
-        return self.momentum
-
 
 class SQRTNGraft(Graft):
     """Sign based layer wise update scale reference."""
-
-    def __init__(self, var: torch.Tensor):
-        super().__init__(var)
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         """Return the elementwise gradient sign."""

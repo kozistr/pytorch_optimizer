@@ -162,7 +162,7 @@ class ScalableShampoo(BaseOptimizer):
     Compute matrix inverse roots with SVD or coupled Schur-Newton iteration on the
     parameter device. Grafting uses the update norm of SGD, AdaGrad, or RMSProp.
 
-    Reference: https://github.com/google-research/google-research/blob/master/scalable_shampoo/pytorch/shampoo.py
+    Reference: https://github.com/google-research/google-research/blob/master/scalable_shampoo/optax/distributed_shampoo.py
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -308,6 +308,8 @@ class ScalableShampoo(BaseOptimizer):
 
             is_precondition_step: bool = self.is_precondition_step(group['step'])
             pre_conditioner_multiplier: float = 1.0 if group['decoupled_learning_rate'] else group['lr']
+            momentum_multiplier: float = group['lr'] if group['decoupled_learning_rate'] else 1.0
+            w: float = (1.0 - beta1) if group['moving_average_for_momentum'] else 1.0
 
             for p in group['params']:
                 if p.grad is None:
@@ -327,9 +329,12 @@ class ScalableShampoo(BaseOptimizer):
                 if group['step'] % self.preconditioning_compute_steps == 0:
                     pre_conditioner.compute_pre_conditioners()
 
-                graft_grad: torch.Tensor = graft.precondition_gradient(grad * pre_conditioner_multiplier)
-                shampoo_grad: torch.Tensor = (
-                    pre_conditioner.preconditioned_grad(grad) if is_precondition_step else grad
+                graft_grad: torch.Tensor = graft.precondition_gradient(grad).mul(pre_conditioner_multiplier)
+                shampoo_grad: torch.Tensor = pre_conditioner.preconditioned_grad(grad)
+                shampoo_grad = (
+                    shampoo_grad.mul(pre_conditioner_multiplier)
+                    if len(pre_conditioner.pre_conditioners) > 0
+                    else graft_grad.clone()
                 )
 
                 if self.graft_type != LayerWiseGrafting.NONE:
@@ -358,19 +363,15 @@ class ScalableShampoo(BaseOptimizer):
                             fixed_decay=False,
                         )
 
-                state['momentum'].mul_(beta1).add_(shampoo_grad)
-                graft_momentum = graft.update_momentum(grad, beta1)
+                state['momentum'].mul_(beta1).add_(shampoo_grad, alpha=w)
+                graft_momentum = graft.update_momentum(graft_grad, beta1, w)
 
                 momentum_update = state['momentum'] if is_precondition_step else graft_momentum
 
                 if group['nesterov']:
-                    w: float = (1.0 - beta1) if group['moving_average_for_momentum'] else 1.0
-
                     wd_update = shampoo_grad if is_precondition_step else graft_grad
-                    wd_update.mul_(w)
+                    momentum_update = momentum_update.mul(beta1).add_(wd_update, alpha=w)
 
-                    momentum_update.mul_(beta1).add_(wd_update)
-
-                p.add_(momentum_update, alpha=-group['lr'])
+                p.add_(momentum_update, alpha=-momentum_multiplier)
 
         return loss

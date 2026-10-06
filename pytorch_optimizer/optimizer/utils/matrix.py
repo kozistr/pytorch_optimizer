@@ -144,7 +144,7 @@ def compute_power_schur_newton(
     if shape[0] == 1:
         return (mat_g + ridge_epsilon * mat_g.clamp_min(1e-16)).pow(-1.0 / p)
 
-    mat_g.diagonal().add_(power_iteration(mat_g) * ridge_epsilon)
+    mat_g = mat_g + power_iteration(mat_g) * ridge_epsilon * identity
 
     z = (1 + p) / (2 * torch.linalg.norm(mat_g))
 
@@ -196,7 +196,8 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
         torch.Tensor: Matrix inverse root in the input data type.
 
     """
-    u, s, vh = torch.linalg.svd(matrix.to(torch.float32), full_matrices=False)
+    dtype = torch.float64 if matrix.dtype == torch.float64 else torch.float32
+    u, s, vh = torch.linalg.svd(matrix.to(dtype), full_matrices=False)
     s.pow_(-1.0 / power)
     return ((u * s.unsqueeze(-2)) @ vh).to(matrix.dtype)
 

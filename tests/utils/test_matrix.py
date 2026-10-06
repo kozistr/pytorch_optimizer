@@ -38,7 +38,9 @@ def test_power_iteration(num_iters, dtype, device, monkeypatch):
 @pytest.mark.parametrize('batch', [False, True])
 @pytest.mark.parametrize('power', [2, 4])
 def test_compute_power_svd(batch, power, device):
-    matrix = torch.tensor([[5.0, 1.0, 0.5], [1.0, 4.0, 0.0], [0.5, 0.0, 3.0]], device=device, dtype=torch.float64)
+    matrix = torch.tensor(
+        [[1.0, 1.0, 0.0], [1.0, 1.0 + 1e-10, 0.0], [0.0, 0.0, 3.0]], device=device, dtype=torch.float64
+    )
     if batch:
         matrix = torch.stack([matrix, 2.0 * matrix])
     original = matrix.clone()
@@ -68,12 +70,16 @@ def test_compute_power_converges(size):
 
 def test_compute_power_regularization(device, monkeypatch):
     matrix = torch.tensor([[4.0, 1.0], [1.0, 3.0]], dtype=torch.float64, device=device)
-    expected = matrix + 0.1 * torch.eye(2, dtype=matrix.dtype, device=device)
+    original = matrix.clone()
+    identity = torch.eye(2, dtype=matrix.dtype, device=device)
+    damped = matrix + 0.1 * identity
+    expected = identity * (3.0 / (2.0 * torch.linalg.norm(damped))).sqrt()
     monkeypatch.setattr('pytorch_optimizer.optimizer.utils.matrix.power_iteration', lambda _: matrix.new_tensor(5.0))
 
-    compute_power_schur_newton(matrix, p=2, ridge_epsilon=0.02, max_iters=0)
+    result = compute_power_schur_newton(matrix, p=2, ridge_epsilon=0.02, max_iters=0)
 
-    torch.testing.assert_close(matrix, expected)
+    torch.testing.assert_close(result, expected)
+    torch.testing.assert_close(matrix, original, rtol=0.0, atol=0.0)
 
 
 def test_compute_power():
