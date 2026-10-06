@@ -1,9 +1,56 @@
+import math
+
 import numpy as np
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer.utils.matrix import compute_power_schur_newton, zero_power_via_newton_schulz_5
+from pytorch_optimizer.optimizer.utils.matrix import (
+    compute_power_schur_newton,
+    compute_power_svd,
+    power_iteration,
+    zero_power_via_newton_schulz_5,
+)
 from pytorch_optimizer.optimizer.utils.shape import merge_small_dims
+
+
+@pytest.mark.parametrize('num_iters', [0, 1, 2, 5, 100])
+@pytest.mark.parametrize('dtype', [torch.float32, torch.float64])
+def test_power_iteration(num_iters, dtype, device, monkeypatch):
+    eigenvalues = torch.tensor([5.0, 3.0, 0.0], dtype=dtype, device=device)
+    matrix = eigenvalues.diag().T
+    original = matrix.clone()
+    initial = torch.tensor([1.0, 2.0, 3.0], dtype=dtype, device=device)
+    monkeypatch.setattr(torch, 'randn', lambda *_args, **_kwargs: initial.clone())
+
+    vector = initial.double() * eigenvalues.double().pow(num_iters)
+    expected = (vector.square() * eigenvalues).sum()
+    if num_iters > 0:
+        expected.div_(vector.square().sum())
+
+    result = power_iteration(matrix, num_iters=num_iters)
+
+    torch.testing.assert_close(result, expected.to(dtype))
+    torch.testing.assert_close(matrix, original)
+    assert result.dtype == dtype
+    assert result.device == matrix.device
+
+
+@pytest.mark.parametrize('batch', [False, True])
+@pytest.mark.parametrize('power', [2, 4])
+def test_compute_power_svd(batch, power, device):
+    matrix = torch.tensor([[5.0, 1.0, 0.5], [1.0, 4.0, 0.0], [0.5, 0.0, 3.0]], device=device, dtype=torch.float64)
+    if batch:
+        matrix = torch.stack([matrix, 2.0 * matrix])
+    original = matrix.clone()
+
+    eigenvalues, eigenvectors = torch.linalg.eigh(matrix)
+    expected = (eigenvectors * eigenvalues.pow(-1.0 / power).unsqueeze(-2)) @ eigenvectors.mT
+
+    result = compute_power_svd(matrix, power)
+
+    torch.testing.assert_close(result, expected, atol=1e-6, rtol=1e-6)
+    torch.testing.assert_close(matrix, original)
+    assert result.dtype == matrix.dtype
 
 
 @pytest.mark.parametrize('size', [2, 8])
@@ -17,6 +64,16 @@ def test_compute_power_converges(size):
     result = compute_power_schur_newton(matrix, p=2, ridge_epsilon=0.0, error_tolerance=1e-12)
 
     torch.testing.assert_close(result, expected, rtol=1e-6, atol=1e-6)
+
+
+def test_compute_power_regularization(device, monkeypatch):
+    matrix = torch.tensor([[4.0, 1.0], [1.0, 3.0]], dtype=torch.float64, device=device)
+    expected = matrix + 0.1 * torch.eye(2, dtype=matrix.dtype, device=device)
+    monkeypatch.setattr('pytorch_optimizer.optimizer.utils.matrix.power_iteration', lambda _: matrix.new_tensor(5.0))
+
+    compute_power_schur_newton(matrix, p=2, ridge_epsilon=0.02, max_iters=0)
+
+    torch.testing.assert_close(matrix, expected)
 
 
 def test_compute_power():
@@ -91,3 +148,39 @@ def test_zero_power_via_newton_schulz_5():
 
     with pytest.raises(ValueError):
         zero_power_via_newton_schulz_5(x, weights=[(1.0, 2.0)])
+
+
+@pytest.mark.parametrize('shape', [(2, 3), (3, 2), (2, 2, 3), (2, 3, 2)])
+@pytest.mark.parametrize('num_steps', [0, 1, 5])
+@pytest.mark.parametrize('safety_factor', [1.0, 1.5])
+def test_newton_schulz_singular_values(shape, num_steps, safety_factor, device):
+    matrix = torch.arange(1, math.prod(shape) + 1, dtype=torch.float64, device=device)
+    matrix = matrix.reshape(*shape[:-2], shape[-1], shape[-2]).mT
+    original = matrix.clone()
+    weights = [(3.4445, -4.7750, 2.0315), (2.8366, -3.0525, 1.2012)]
+
+    u, s, vh = torch.linalg.svd(matrix, full_matrices=False)
+    s.div_(torch.linalg.vector_norm(matrix, dim=(-2, -1), keepdim=False).unsqueeze(-1) * safety_factor)
+    for index in range(num_steps):
+        w0, w1, w2 = weights[min(index, len(weights) - 1)]
+        s = w0 * s + w1 * s.pow(3) + w2 * s.pow(5)
+    expected = (u * s.unsqueeze(-2)) @ vh
+
+    result = zero_power_via_newton_schulz_5(
+        matrix, num_steps=num_steps, safety_factor=safety_factor, weights=weights, dtype=matrix.dtype
+    )
+
+    torch.testing.assert_close(result, expected)
+    torch.testing.assert_close(matrix, original)
+    assert result.shape == matrix.shape
+
+
+@pytest.mark.parametrize('helper', [power_iteration, zero_power_via_newton_schulz_5])
+@pytest.mark.skipif(not torch._dynamo.is_dynamo_supported(), reason='torch.compile is unavailable in this runtime')
+def test_matrix_helpers_compile(helper, device):
+    matrix = torch.tensor([[5.0, 1.0], [1.0, 3.0]], dtype=torch.float64, device=device)
+    kwargs = {} if helper is power_iteration else {'dtype': matrix.dtype}
+    expected = torch.linalg.eigvalsh(matrix)[-1] if helper is power_iteration else helper(matrix, **kwargs)
+    compiled = torch.compile(helper, backend='eager', fullgraph=True)
+
+    torch.testing.assert_close(compiled(matrix, **kwargs), expected)
