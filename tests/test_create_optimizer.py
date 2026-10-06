@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from torch import nn
 from torch._dynamo.testing import CompileCounterWithBackend
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
@@ -29,6 +30,23 @@ def _get_optimizer_kwargs(optimizer_name):
 
 
 class TestCreateOptimizer:
+    def test_muon_tied_parameters_and_head(self):
+        model = nn.Module()
+        model.body = nn.Linear(2, 2)
+        model.frozen = nn.Linear(2, 2).requires_grad_(False)
+        model.embedding = nn.Embedding(4, 2)
+        model.projection = nn.Linear(2, 4, bias=False)
+        model.projection.weight = model.embedding.weight
+        model.head = nn.Linear(2, 1, bias=False)
+
+        optimizer = create_optimizer(model, 'muon')
+        groups = {group['use_muon']: group['params'] for group in optimizer.param_groups}
+
+        assert [id(p) for p in groups[True]] == [id(model.body.weight)]
+        assert {id(p) for p in groups[False]} == {
+            id(model.body.bias), id(model.embedding.weight), id(model.head.weight)
+        }
+
     @pytest.mark.parametrize(
         'optimizer_name',
         [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_CREATE_OPTIMIZER],

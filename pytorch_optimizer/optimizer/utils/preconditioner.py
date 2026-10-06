@@ -70,8 +70,11 @@ class PreConditioner:
             )
 
             shapes = self.partitioner.shapes_for_pre_conditioners()
-            self.statistics = [self.matrix_eps * torch.eye(shape[0], device=var.device) for shape in shapes if shape]
-            self.pre_conditioners = [torch.eye(shape[0], device=var.device) for shape in shapes if shape]
+            dtype = torch.float64 if var.dtype == torch.float64 else torch.float32
+            self.statistics = [
+                self.matrix_eps * torch.eye(shape[0], device=var.device, dtype=dtype) for shape in shapes if shape
+            ]
+            self.pre_conditioners = [torch.eye(shape[0], device=var.device, dtype=dtype) for shape in shapes if shape]
 
             filtered_shape: list[tuple] = [tuple(shape) for shape in shapes if shape is not None]
             self.is_same_shapes = bool(filtered_shape) and len(set(filtered_shape)) == 1
@@ -105,7 +108,7 @@ class PreConditioner:
         if len(self.statistics) == 0:
             return
 
-        reshaped_grad: torch.Tensor = torch.reshape(grad, self.transformed_shape)
+        reshaped_grad = grad.to(dtype=self.statistics[0].dtype).reshape(self.transformed_shape)
         partitioned_grads: list[torch.Tensor] = self.partitioner.partition(reshaped_grad)
 
         for j, partitioned_grad in enumerate(partitioned_grads):
@@ -168,7 +171,7 @@ class PreConditioner:
         if len(self.pre_conditioners) == 0:
             return grad
 
-        reshaped_grad = torch.reshape(grad, self.transformed_shape)
+        reshaped_grad = grad.to(dtype=self.pre_conditioners[0].dtype).reshape(self.transformed_shape)
         partitioned_grads = self.partitioner.partition(reshaped_grad)
 
         # fmt: off
@@ -184,4 +187,4 @@ class PreConditioner:
 
         merged_grad = self.partitioner.merge_partitions(pre_cond_partitioned_grads)
 
-        return merged_grad.reshape(self.original_shape)
+        return merged_grad.reshape(self.original_shape).to(dtype=grad.dtype)

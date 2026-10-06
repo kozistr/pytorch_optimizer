@@ -2,6 +2,8 @@ import pytest
 import torch
 
 from pytorch_optimizer.optimizer.utils.galore import GaLoreProjector
+from tests.fixtures import make_parameter
+from tests.utils import build_optimizer
 
 
 class TestGaLoreProjector:
@@ -50,3 +52,19 @@ class TestGaLoreProjector:
         projector = GaLoreProjector(projection_type='std', rank=1)
         with pytest.raises(ValueError):
             projector.get_orthogonal_matrix(sample_tensor, projection_type='std')
+
+
+def test_conda_projected_second_moment():
+    parameter = make_parameter((4, 3), grad=1.0)
+    optimizer = build_optimizer('conda', [parameter], lr=0.1, betas=(0.0, 0.0), projection_type='full')
+    reference = GaLoreProjector(rank=None, projection_type='full')
+    projected = reference.project(parameter.grad.clone(), 1)
+    expected = -0.1 * reference.project_back(projected / (projected.abs() + 1e-8))
+
+    optimizer.init_group(optimizer.param_groups[0])
+    torch.testing.assert_close(optimizer.state[parameter]['exp_avg_sq'], torch.zeros_like(projected))
+
+    optimizer.step()
+
+    torch.testing.assert_close(optimizer.state[parameter]['exp_avg_sq'], projected.square())
+    torch.testing.assert_close(parameter, expected)

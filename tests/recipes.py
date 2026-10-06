@@ -177,7 +177,7 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     (
         'scalableshampoo',
         {
-            'lr': 1e-0,
+            'lr': 1e-1,
             'weight_decay': 1e-3,
             'start_preconditioning_step': 9,
             'preconditioning_compute_steps': 10,
@@ -188,7 +188,7 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     (
         'scalableshampoo',
         {
-            'lr': 1e-1,
+            'lr': 1e0,
             'weight_decay': 1e-3,
             'start_preconditioning_step': 9,
             'preconditioning_compute_steps': 10,

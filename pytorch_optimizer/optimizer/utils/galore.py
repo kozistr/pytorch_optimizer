@@ -162,13 +162,13 @@ class GaLoreProjector:
         if self.projection_type == 'std':
             return (
                 torch.matmul(low_rank_grad, self.ortho_matrix)
-                if low_rank_grad.shape[0] >= low_rank_grad.shape[1]
+                if low_rank_grad.shape[1] == self.ortho_matrix.shape[0]
                 else torch.matmul(self.ortho_matrix, low_rank_grad)
             ) * self.scale
         if self.projection_type == 'reverse_std':
             return (
                 torch.matmul(self.ortho_matrix, low_rank_grad)
-                if low_rank_grad.shape[0] > low_rank_grad.shape[1]
+                if low_rank_grad.shape[0] == self.ortho_matrix.shape[1]
                 else torch.matmul(low_rank_grad, self.ortho_matrix)
             ) * self.scale
         if self.projection_type == 'right':
@@ -182,7 +182,7 @@ class GaLoreProjector:
         if self.projection_type == 'random':
             return (
                 torch.matmul(low_rank_grad, self.ortho_matrix)
-                if low_rank_grad.shape[0] >= low_rank_grad.shape[1]
+                if low_rank_grad.shape[1] == self.ortho_matrix.shape[0]
                 else torch.matmul(self.ortho_matrix, low_rank_grad)
             ) * self.scale
 

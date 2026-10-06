@@ -49,6 +49,14 @@ class TestOverflowUtils:
 
 
 class TestGradientUtils:
+    def test_normalize_singleton_channels(self):
+        gradient = torch.tensor([[1.0], [2.0], [3.0]])
+        expected = gradient.clone()
+
+        normalize_gradient(gradient, use_channels=True)
+
+        torch.testing.assert_close(gradient, expected)
+
     def test_normalized_gradient(self):
         x = torch.arange(0, 10, dtype=torch.float32)
         normalize_gradient(x)
@@ -148,7 +156,7 @@ class TestMiscUtils:
         if not torch.cuda.is_available():
             pytest.skip('need GPU to run a test')
 
-        params = [make_parameter(grad=None)]
+        params = [make_parameter(grad=None, device='cuda')]
 
         opt = CPUOffloadOptimizer(params, load_optimizer('adamw'), fused=False, offload_gradients=True)
 

@@ -43,14 +43,7 @@ class Lookahead(BaseOptimizer):
         self.state: State = defaultdict(dict)
 
         for group in self.param_groups:
-            if 'counter' not in group:
-                group['counter'] = 0
-
-            for p in group['params']:
-                state = self.state[p]
-                state['slow_params'] = p.detach().clone()
-                if self.pullback_momentum == 'pullback':
-                    state['slow_momentum'] = torch.zeros_like(p)
+            self.init_group(group)
 
         self.defaults: Defaults = {
             'lookahead_alpha': alpha,
@@ -77,8 +70,17 @@ class Lookahead(BaseOptimizer):
         self.optimizer.zero_grad(set_to_none=set_to_none)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
-        if 'step' not in group:
-            group['step'] = 0
+        group.setdefault('counter', 0)
+        for p in group.get('params', []):
+            state = self.state[p]
+            if 'slow_params' not in state:
+                state['slow_params'] = p.detach().clone()
+                if self.pullback_momentum == 'pullback':
+                    state['slow_momentum'] = torch.zeros_like(p)
+
+    def add_param_group(self, param_group: ParamGroup) -> None:
+        self.optimizer.add_param_group(param_group)
+        self.init_group(self.param_groups[-1])
 
     def backup_and_load_cache(self) -> None:
         """Back up fast weights and load slow weights for evaluation."""

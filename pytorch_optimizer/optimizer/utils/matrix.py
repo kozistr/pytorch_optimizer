@@ -102,7 +102,7 @@ def power_iteration(mat_g: torch.Tensor, num_iters: int = 100) -> torch.Tensor:
 
     for _ in range(num_iters):
         torch.mv(mat_g, v, out=mat_v)
-        mat_v.div_(torch.linalg.vector_norm(mat_v))
+        mat_v.div_(torch.linalg.vector_norm(mat_v).clamp_min_(torch.finfo(mat_v.dtype).tiny))
         v, mat_v = mat_v, v
 
     torch.mv(mat_g, v, out=mat_v)
@@ -142,9 +142,9 @@ def compute_power_schur_newton(
 
     identity = torch.eye(shape[0], dtype=mat_g.dtype, device=mat_g.device)
     if shape[0] == 1:
-        return identity
+        return (mat_g + ridge_epsilon * mat_g.clamp_min(1e-16)).pow(-1.0 / p)
 
-    mat_g.diagonal().add_(power_iteration(mat_g) * ridge_epsilon)
+    mat_g = mat_g + power_iteration(mat_g) * ridge_epsilon * identity
 
     z = (1 + p) / (2 * torch.linalg.norm(mat_g))
 
@@ -173,8 +173,9 @@ def compute_power_schur_newton(
         # This is the main bottleneck that slows Scalable Shampoo.
         # Because it is handled on the Python side so values need to be on the CPU
         # while XLA devices (e.g. TPU) don't seem to be affected.
-        if torch.logical_or(error > prev_error * max_error_ratio, error <= error_tolerance):
-            break
+        diverged = error > prev_error * max_error_ratio
+        if torch.logical_or(diverged, error <= error_tolerance):
+            return torch.where(diverged, mat_root, new_mat_root)
 
         mat_root.copy_(new_mat_root)
         mat_m, new_mat_m = new_mat_m, mat_m
@@ -195,7 +196,8 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
         torch.Tensor: Matrix inverse root in the input data type.
 
     """
-    u, s, vh = torch.linalg.svd(matrix.to(torch.float32), full_matrices=False)
+    dtype = torch.float64 if matrix.dtype == torch.float64 else torch.float32
+    u, s, vh = torch.linalg.svd(matrix.to(dtype), full_matrices=False)
     s.pow_(-1.0 / power)
     return ((u * s.unsqueeze(-2)) @ vh).to(matrix.dtype)
 
@@ -258,6 +260,9 @@ def zero_power_via_newton_schulz_5(
 
         return x.mT if transpose else x
 
+    if x.ndim > 2:
+        x = x.flatten(0, -3)
+
     mm_fn = torch.baddbmm if x.ndim > 2 else torch.addmm
     gram_fn = torch.bmm if x.ndim > 2 else torch.mm
 
@@ -271,4 +276,5 @@ def zero_power_via_newton_schulz_5(
         mm_fn(x, b, x, beta=w0, alpha=1.0, out=c)
         x, c = c, x
 
+    x = x.reshape(*g.shape[:-2], *x.shape[-2:])
     return x.mT if transpose else x

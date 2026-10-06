@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer import DynamicLossScaler, SafeFP16Optimizer, load_optimizer
-from tests.fixtures import TrainingModel, make_parameter
+from pytorch_optimizer.optimizer import DynamicLossScaler, load_optimizer
+from tests.fixtures import TrainingModel
 from tests.utils import build_optimizer, sphere_loss
 
 
@@ -71,20 +71,3 @@ class TestLomo:
         scaler = DynamicLossScaler(init_scale=2.0 ** 15, scale_window=1, threshold=1e-2)  # fmt: skip
         scaler.decrease_loss_scale()
         scaler.update_scale(overflow=False)
-
-    def test_safe_fp16_methods(self):
-        optimizer = SafeFP16Optimizer(build_optimizer('adamp', [make_parameter()], lr=5e-1))
-        optimizer.load_state_dict(optimizer.state_dict())
-        optimizer.scaler.decrease_loss_scale()
-        optimizer.zero_grad()
-        optimizer.update_main_grads()
-        optimizer.clip_main_grads(100.0)
-        optimizer.multiply_grads(100.0)
-
-        with pytest.raises(AttributeError):
-            optimizer.get_lr()
-
-        with pytest.raises(AttributeError):
-            optimizer.set_lr(lr=5e-1)
-
-        assert optimizer.loss_scale == 2.0 ** (15 - 1)

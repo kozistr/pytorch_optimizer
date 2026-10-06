@@ -22,6 +22,7 @@ from pytorch_optimizer import (
     load_optimizer,
 )
 from pytorch_optimizer.base.exception import NoClosureError, NoSparseGradientError
+from pytorch_optimizer.optimizer import SafeFP16Optimizer
 from tests.fixtures import TrainingModel, build_model, make_parameter, make_sparse_parameters
 from tests.utils import Trainer, build_optimizer, tensor_to_numpy
 
@@ -58,7 +59,37 @@ def test_load_wrapper_optimizer(wrapper_optimizer_instance):
     optimizer.load_state_dict(state)
 
 
+class TestSafeFP16Optimizer:
+    def test_safe_fp16_methods(self):
+        optimizer = SafeFP16Optimizer(build_optimizer('adamp', [make_parameter()], lr=5e-1))
+        optimizer.load_state_dict(optimizer.state_dict())
+        optimizer.scaler.decrease_loss_scale()
+        optimizer.zero_grad()
+        optimizer.update_main_grads()
+        optimizer.clip_main_grads(100.0)
+        optimizer.multiply_grads(100.0)
+
+        assert optimizer.get_lr() == 5e-1
+        optimizer.set_lr(lr=0.1)
+        assert optimizer.get_lr() == 0.1
+
+        assert optimizer.loss_scale == 2.0 ** (15 - 1)
+
 class TestLookahead:
+    def test_added_parameter_group(self):
+        parameter = make_parameter(grad=1.0)
+        added = make_parameter(grad=1.0)
+        optimizer = Lookahead(build_optimizer('sgd', [parameter], lr=0.1), k=2)
+        optimizer.add_param_group({'params': [added]})
+        optimizer.init_group(optimizer.param_groups[-1])
+
+        for _ in range(2):
+            optimizer.step()
+
+        torch.testing.assert_close(added, torch.full_like(added, -0.1))
+        torch.testing.assert_close(optimizer.state[added]['slow_params'], added)
+        assert optimizer.param_groups[-1]['counter'] == 0
+
     @pytest.mark.parametrize('pullback_momentum', PULLBACK_MOMENTUM)
     def test_lookahead(self, pullback_momentum, environment):
         x_data, y_data = environment
