@@ -363,7 +363,11 @@ class ScalableShampoo(BaseOptimizer):
                             fixed_decay=False,
                         )
 
-                state['momentum'].mul_(beta1).add_(shampoo_grad, alpha=w)
+                if group['moving_average_for_momentum']:
+                    state['momentum'].lerp_(shampoo_grad, weight=w)
+                else:
+                    state['momentum'].mul_(beta1).add_(shampoo_grad)
+
                 graft_momentum = graft.update_momentum(graft_grad, beta1, w)
 
                 momentum_update = state['momentum'] if is_precondition_step else graft_momentum
