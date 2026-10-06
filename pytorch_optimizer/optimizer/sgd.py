@@ -5,6 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.gradient import get_global_gradient_norm
 
 
 class AccSGD(BaseOptimizer):
@@ -336,17 +337,15 @@ class ASGD(BaseOptimizer):
     def get_norms_by_group(group: ParamGroup, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
         """Compute global parameter and gradient L2 norms for a parameter group."""
         p_norm = torch.zeros(1, dtype=torch.float32, device=device)
-        g_norm = torch.zeros(1, dtype=torch.float32, device=device)
 
         for p in group['params']:
             if p.grad is None:
                 continue
 
             p_norm.add_(p.norm().pow(2))
-            g_norm.add_(p.grad.norm().pow(2))
 
         p_norm.sqrt_()
-        g_norm.sqrt_()
+        g_norm = get_global_gradient_norm([group], device).sqrt_()
 
         return p_norm, g_norm
 

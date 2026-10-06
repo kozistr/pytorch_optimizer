@@ -13,33 +13,8 @@ from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, OptimizerType, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
+from pytorch_optimizer.optimizer.utils.gradient import get_global_gradient_norm
 from pytorch_optimizer.optimizer.utils.model import disable_running_stats, enable_running_stats
-
-
-def get_global_gradient_norm(param_groups: list[ParamGroup], device: torch.device) -> torch.Tensor:
-    """Compute the global L2 gradient norm for SAM perturbations.
-
-    Args:
-        param_groups: Optimizer groups. Adaptive groups weight gradients by the absolute parameter values.
-        device: Device for the returned norm.
-
-    Returns:
-        torch.Tensor: Scalar gradient norm, or zero if no gradients are present.
-
-    """
-    norms: list[torch.Tensor] = []
-    for group in param_groups or []:
-        params: list[torch.Tensor] = group.get('params', []) or []
-        adaptive: bool = group.get('adaptive', False)
-        for p in params:
-            if p.grad is not None:
-                norm = ((torch.abs(p) if adaptive else 1.0) * p.grad).norm(p=2).to(device)
-                norms.append(norm)
-
-    if not norms:
-        return torch.tensor(0.0, device=device)
-
-    return torch.norm(torch.stack(norms), p=2)
 
 
 class SAM(BaseOptimizer):
@@ -108,9 +83,8 @@ class SAM(BaseOptimizer):
 
     @torch.no_grad()
     def first_step(self, zero_grad: bool = False):
-        device = self.param_groups[0]['params'][0].device
-
-        grad_norm = get_global_gradient_norm(self.param_groups, device).add_(self.perturb_eps)
+        grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=True)
+        grad_norm.sqrt_().squeeze_(0).add_(self.perturb_eps)
 
         for group in self.param_groups:
             scale = group['rho'] / grad_norm
@@ -303,6 +277,9 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
     @torch.no_grad()
     def grad_norm(self, by: str | None = None, weight_adaptive: bool = False) -> torch.Tensor:
+        if not by and not weight_adaptive:
+            return get_global_gradient_norm(self.param_groups).sqrt_().squeeze(0)
+
         return torch.norm(
             torch.stack(
                 [
@@ -439,9 +416,7 @@ class WSAM(BaseOptimizer):
 
     @torch.no_grad()
     def first_step(self, zero_grad: bool = False):
-        device = self.param_groups[0]['params'][0].device
-
-        grad_norm = get_global_gradient_norm(self.param_groups, device)
+        grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=True).sqrt_().squeeze_(0)
 
         for group in self.param_groups:
             scale = group['rho'] / (grad_norm + group['sam_eps'])
@@ -765,9 +740,8 @@ class LookSAM(BaseOptimizer):
         if self.get_step() % self.k != 0:
             return
 
-        device = self.param_groups[0]['params'][0].device
-
-        grad_norm = get_global_gradient_norm(self.param_groups, device).add_(self.perturb_eps)
+        grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=True)
+        grad_norm.sqrt_().squeeze_(0).add_(self.perturb_eps)
 
         for group in self.param_groups:
             scale = group['rho'] / grad_norm
@@ -942,9 +916,8 @@ class FriendlySAM(BaseOptimizer):
                     grad.sub_(momentum, alpha=group['sigma'])
                     momentum.lerp_(grad, weight=1.0 - group['lmbda'])
 
-        device = self.param_groups[0]['params'][0].device
-
-        grad_norm = get_global_gradient_norm(self.param_groups, device).add_(self.perturb_eps)
+        grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=True)
+        grad_norm.sqrt_().squeeze_(0).add_(self.perturb_eps)
 
         for group in self.param_groups:
             scale = group['rho'] / grad_norm
