@@ -102,10 +102,11 @@ def power_iteration(mat_g: torch.Tensor, num_iters: int = 100) -> torch.Tensor:
 
     for _ in range(num_iters):
         torch.mv(mat_g, v, out=mat_v)
-        v.copy_(mat_v)
-        v.div_(torch.linalg.norm(v))
+        mat_v.div_(torch.linalg.vector_norm(mat_v))
+        v, mat_v = mat_v, v
 
-    return (v.t() @ mat_g @ v).clamp_min_(1e-16)
+    torch.mv(mat_g, v, out=mat_v)
+    return torch.dot(v, mat_v).clamp_min_(1e-16)
 
 
 @torch.inference_mode()
@@ -143,7 +144,7 @@ def compute_power_schur_newton(
     if shape[0] == 1:
         return identity
 
-    mat_g += power_iteration(mat_g) * identity * ridge_epsilon
+    mat_g.diagonal().add_(power_iteration(mat_g) * ridge_epsilon)
 
     z = (1 + p) / (2 * torch.linalg.norm(mat_g))
 
@@ -196,7 +197,7 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
     """
     u, s, vh = torch.linalg.svd(matrix.to(torch.float32), full_matrices=False)
     s.pow_(-1.0 / power)
-    return (u @ (s.diag() if len(matrix.shape) == 2 else s.diag_embed()) @ vh).to(matrix.dtype)
+    return ((u * s.unsqueeze(-2)) @ vh).to(matrix.dtype)
 
 
 def zero_power_via_newton_schulz_5(
@@ -244,7 +245,10 @@ def zero_power_via_newton_schulz_5(
         else x.to(dtype=dtype, copy=True, memory_format=torch.contiguous_format)
     )
 
-    x.div_(x.norm(2, dim=(-2, -1), keepdim=True).mul_(safety_factor).clamp_min_(eps))
+    norm = x.norm(2, dim=(-2, -1), keepdim=True)
+    if safety_factor != 1.0:
+        norm.mul_(safety_factor)
+    x.div_(norm.clamp_min_(eps))
 
     if is_dtensor:  # pragma: no cover
         for w0, w1, w2 in coeff_sequence:
