@@ -5,7 +5,6 @@ from torch import nn
 from torch.nn.functional import binary_cross_entropy_with_logits
 
 from pytorch_optimizer.optimizer import get_optimizer_parameters, load_optimizer
-from pytorch_optimizer.optimizer.sam import get_global_gradient_norm
 from pytorch_optimizer.optimizer.utils import (
     CPUOffloadOptimizer,
     StochasticAccumulator,
@@ -14,6 +13,7 @@ from pytorch_optimizer.optimizer.utils import (
     copy_stochastic,
     disable_running_stats,
     enable_running_stats,
+    get_global_gradient_norm,
     has_overflow,
     is_valid_parameters,
     normalize_gradient,
