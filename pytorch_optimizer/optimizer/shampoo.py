@@ -374,7 +374,10 @@ class ScalableShampoo(BaseOptimizer):
 
                 if group['nesterov']:
                     wd_update = shampoo_grad if is_precondition_step else graft_grad
-                    momentum_update = momentum_update.mul(beta1).add_(wd_update, alpha=w)
+                    if group['moving_average_for_momentum']:
+                        momentum_update = momentum_update.lerp(wd_update, weight=w)
+                    else:
+                        momentum_update = momentum_update.mul(beta1).add_(wd_update)
 
                 p.add_(momentum_update, alpha=-momentum_multiplier)
 
