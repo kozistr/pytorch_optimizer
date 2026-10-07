@@ -9,6 +9,27 @@ from tests.utils import build_optimizer
 
 
 class TestFlashAdamw:
+    def test_relative_weight_decay(self):
+        param = nn.Parameter(torch.ones(1))
+        param.grad = torch.zeros_like(param)
+        optimizer = build_optimizer('flashadamw', [param], lr=0.0, weight_decay=0.2, decouple_lr=True, quantize=False)
+
+        optimizer.step()
+        torch.testing.assert_close(param, torch.ones_like(param), rtol=0.0, atol=0.0)
+
+        group = optimizer.param_groups[0]
+        group.update(lr=0.1, initial_lr=0.1)
+        optimizer.step()
+        torch.testing.assert_close(param, torch.tensor([0.8]))
+
+        group['lr'] = 0.05
+        optimizer.step()
+        torch.testing.assert_close(param, torch.tensor([0.72]))
+
+        group['initial_lr'] = 0.0
+        with pytest.raises(ValueError, match='initial_lr must be positive'):
+            optimizer.step()
+
     def test_flash_adamw_quantized_state_and_compressed_state_dict(self):
         param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
         param.grad = torch.tensor([0.2, -0.3, 0.4])
