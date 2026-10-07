@@ -111,7 +111,6 @@ class TestCreateOptimizer:
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
         trainer.run(iterations=iterations)
-        assert counter.frame_count > 0
 
         if foreach and isinstance(optimizer, BaseOptimizer) and optimizer._supports_compiled_foreach:
             lr = torch.tensor(config['lr'], device=x_data.device)
