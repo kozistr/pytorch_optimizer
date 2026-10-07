@@ -66,7 +66,10 @@ class DASH(BaseOptimizer):
     ):
         self.validate_learning_rate(lr)
         self.validate_betas(betas)
-        self.validate_range(betas[1] if grafting_beta is None else grafting_beta, 'grafting_beta', 0.0, 1.0)
+
+        if grafting_beta is not None:
+            self.validate_range(grafting_beta, 'grafting_beta', 0.0, 1.0)
+
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_range(momentum, 'momentum', 0.0, 1.0)
         self.validate_non_negative(eps, 'eps')
@@ -202,7 +205,7 @@ class DASH(BaseOptimizer):
 
         return scale.to(dtype).mul_(2.0)
 
-    def inverse_root(self, matrix: torch.Tensor, root: int, group: ParamGroup) -> torch.Tensor:
+    def compute_inverse_root(self, matrix: torch.Tensor, root: int, group: ParamGroup) -> torch.Tensor:
         """Compute regularized batched inverse roots without modifying the statistics."""
         regularized = matrix.clone()
         regularized.diagonal(dim1=-2, dim2=-1).add_(group['matrix_eps'])
@@ -260,7 +263,7 @@ class DASH(BaseOptimizer):
 
             if not inverse_roots or step % group['precondition_frequency'] == 0:
                 inverse_roots[:] = [
-                    self.inverse_root(statistic, 2 if one_sided else 4, group) for statistic in statistics
+                    self.compute_inverse_root(statistic, 2 if one_sided else 4, group) for statistic in statistics
                 ]
 
             update = inverse_roots[0][:batch] @ grad
