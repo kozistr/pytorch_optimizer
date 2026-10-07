@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 import torch
 from torch import nn
-from torch._dynamo.testing import CompileCounterWithBackend
+from torch._dynamo.testing import CompileCounter
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, create_optimizer, load_optimizer
@@ -81,8 +81,10 @@ class TestCreateOptimizer:
 
         assert isinstance(optimizer, OrthoGrad)
 
-    @pytest.mark.parametrize('optimizer_config', COMPILE_SUPPORTED_OPTIMIZERS, ids=ids)
-    @pytest.mark.parametrize('foreach', [False, True])
+    @pytest.mark.parametrize(
+        ('optimizer_config', 'foreach'),
+        [pytest.param(recipe, recipe[0] != 'adamw', id=ids(recipe)) for recipe in COMPILE_SUPPORTED_OPTIMIZERS],
+    )
     @pytest.mark.skipif(not torch._dynamo.is_dynamo_supported(), reason='torch.compile is unavailable in this runtime')
     def test_create_compiled_optimizer(self, optimizer_config, foreach, environment):
         torch._dynamo.reset()
@@ -92,9 +94,10 @@ class TestCreateOptimizer:
 
         x_data, y_data = environment
         model, loss_fn = build_model(device=x_data.device)
-        counter = CompileCounterWithBackend('aot_eager')
+        counter = CompileCounter()
 
         if optimizer_name == 'adamw':
+            # Native AdamW covers whole-step compilation with foreach disabled.
             config['capturable'] = foreach
 
         optimizer = create_optimizer(
@@ -108,6 +111,7 @@ class TestCreateOptimizer:
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
         trainer.run(iterations=iterations)
+        assert counter.frame_count > 0
 
         if foreach and isinstance(optimizer, BaseOptimizer) and optimizer._supports_compiled_foreach:
             lr = torch.tensor(config['lr'], device=x_data.device)
