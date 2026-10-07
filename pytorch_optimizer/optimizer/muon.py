@@ -67,7 +67,6 @@ class MuonBase(BaseOptimizer):
                 shapes: dict[tuple[int, int], list[int]] = {}
                 for index, p in enumerate(tensors['params']):
                     rows, columns = p.size(0), p.numel() // p.size(0)
-                    # Moonlight scaling depends on the original matrix orientation.
                     shape = (rows, columns) if group['use_adjusted_lr'] else (min(rows, columns), max(rows, columns))
                     shapes.setdefault(shape, []).append(index)
 

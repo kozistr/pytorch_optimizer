@@ -80,6 +80,8 @@ optimizer = create_optimizer(model, 'tiger', lr=1e-3, compile=True)
 ```
 
 The factory selects the batched update path automatically for supported optimizers.
+Matrix updates can batch compatible flattened shapes, including convolution weights and tall/wide pairs,
+while preserving learning-rate scaling.
 The compiler chooses which operations to fuse; no separate fusion setting is required.
 State initialization, step counters, and scalar bookkeeping stay eager on these paths.
 The update receives tensor learning rates on each parameter device, so changing the rate does not require recompilation.
@@ -90,20 +92,6 @@ Use `compile=False` (the default) for eager execution.
 Use eager execution on Python 3.15 because PyTorch disables compilation for that version.
 Pass `torch.compile()` options through `compile_kwargs`.
 Run with `TORCH_LOGS=graph_breaks,recompiles` to inspect graph breaks and recompilation.
-
-### Muon and AdaMuon
-
-Use the same compilation option for Muon and AdaMuon:
-
-```python
-optimizer = create_optimizer(model, 'muon', lr=0.02, compile=True)
-```
-
-Replace `'muon'` with `'adamuon'` for the adaptive variant. The factory groups matrix weights for orthogonalized
-updates and uses AdamW groups for other parameters. Both update paths are compiled. Matrices with compatible
-flattened shapes are batched automatically, including convolution weights and tall/wide pairs. Adjusted
-learning rates preserve separate batches for different orientations. Newton-Schulz matrix multiplications
-use the compiler's selected matrix kernels. Surrounding elementwise operations can be fused automatically.
 
 ### Advanced execution controls
 
