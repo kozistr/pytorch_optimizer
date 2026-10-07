@@ -171,7 +171,8 @@ class FlashAdamW(BaseOptimizer):
         betas: Coefficients used for computing running averages of gradient and squared gradient.
         eps: Term added to the denominator to improve numerical stability.
         weight_decay: Weight decay coefficient.
-        decouple_lr: Scale weight decay by `lr / initial_lr` instead of `lr`.
+        decouple_lr: Scale weight decay by `lr / initial_lr` instead of `lr`. Requires a positive
+            `initial_lr` when applying nonzero weight decay at a positive learning rate.
         quantize: Store Adam moments as grouped 8-bit values plus fp16 scales.
         compress_state_dict: Save quantized states in checkpoints when `quantize` is enabled.
         master_weight_bits: Effective master weight precision for bf16/fp16 parameters. Supports `None`, `24`, and
@@ -315,6 +316,11 @@ class FlashAdamW(BaseOptimizer):
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2: float = self.debias(beta2, group['step'])
 
+            weight_decay = group['weight_decay']
+            if group['decouple_lr'] and weight_decay > 0.0 and group['lr'] > 0.0:
+                self.validate_positive(group['initial_lr'], 'initial_lr')
+                weight_decay /= group['initial_lr']
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -336,10 +342,9 @@ class FlashAdamW(BaseOptimizer):
                     param,
                     grad=grad,
                     lr=group['lr'],
-                    weight_decay=group['weight_decay'],
+                    weight_decay=weight_decay,
                     weight_decouple=True,
                     fixed_decay=False,
-                    ratio=1.0 / group['initial_lr'] if group['decouple_lr'] else None,
                 )
 
                 exp_avg.lerp_(grad, weight=1.0 - beta1)
