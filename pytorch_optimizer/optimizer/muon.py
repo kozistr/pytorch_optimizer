@@ -64,11 +64,13 @@ class MuonBase(BaseOptimizer):
 
         for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
             if group['use_muon']:
-                shapes: dict[tuple[int, ...], list[int]] = {}
+                shapes: dict[tuple[int, int], list[int]] = {}
                 for index, p in enumerate(tensors['params']):
-                    shapes.setdefault(tuple(p.shape), []).append(index)
+                    rows, columns = p.size(0), p.numel() // p.size(0)
+                    shape = (rows, columns) if group['use_adjusted_lr'] else (min(rows, columns), max(rows, columns))
+                    shapes.setdefault(shape, []).append(index)
 
-                batches = [
+                batches = [tensors] if len(shapes) == 1 else [
                     {key: [values[index] for index in indices] for key, values in tensors.items() if key != 'indices'}
                     for indices in shapes.values()
                 ]
@@ -119,11 +121,16 @@ class MuonBase(BaseOptimizer):
     @staticmethod
     def _orthogonalize(group: ParamGroup, updates: list[torch.Tensor]) -> list[torch.Tensor]:
         matrices = [update.reshape(update.size(0), -1) for update in updates]
-        matrix = matrices[0] if len(matrices) == 1 else torch.stack(matrices)
+        transposed = [matrix.size(0) > matrix.size(1) for matrix in matrices]
+        matrix = matrices[0] if len(matrices) == 1 else torch.stack([
+            matrix.mT if transpose else matrix for matrix, transpose in zip(matrices, transposed)
+        ])
 
         result = zero_power_via_newton_schulz_5(matrix, num_steps=group['ns_steps'], weights=group['ns_coeffs'])
 
-        return [result] if len(matrices) == 1 else list(result.unbind())
+        return [result] if len(matrices) == 1 else [
+            update.mT if transpose else update for update, transpose in zip(result.unbind(), transposed)
+        ]
 
     def _momentum_updates(
         self, group: ParamGroup, grads: list[torch.Tensor], buffers: list[torch.Tensor]
@@ -171,7 +178,7 @@ class Muon(MuonBase):
         adamw_wd: Weight decay for parameters in the AdamW groups.
         adamw_eps: Numerical stability constant for the AdamW groups.
         maximize: Maximize the objective instead of minimizing it.
-        foreach: Batch tensor updates and equal-shaped orthogonalization. `False` disables batching; `None` enables it.
+        foreach: Batch tensor updates and compatible matrix shapes. `False` disables batching; `None` enables it.
 
     Examples:
         ```python
@@ -601,7 +608,7 @@ class AdaMuon(MuonBase):
         adamw_wd: Weight decay for parameters in the AdamW groups.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
-        foreach: Batch tensor updates and equal-shaped orthogonalization. `False` disables batching; `None` enables it.
+        foreach: Batch tensor updates and compatible matrix shapes. `False` disables batching; `None` enables it.
 
     Examples:
         ```python
@@ -841,7 +848,7 @@ class AdaGO(MuonBase):
         adamw_wd: Weight decay for parameters in the AdamW groups.
         adamw_eps: Numerical stability constant for the AdamW groups.
         maximize: Maximize the objective instead of minimizing it.
-        foreach: Batch tensor updates and equal-shaped orthogonalization. `False` disables batching; `None` enables it.
+        foreach: Batch tensor updates and compatible matrix shapes. `False` disables batching; `None` enables it.
 
     Examples:
         ```python
@@ -1100,7 +1107,7 @@ class NorMuon(MuonBase):
         adamw_eps: Numerical stability constant for the AdamW groups.
         eps: Term added to the denominator of the row wise normalization.
         maximize: Maximize the objective instead of minimizing it.
-        foreach: Batch tensor updates and equal-shaped orthogonalization. `False` disables batching; `None` enables it.
+        foreach: Batch tensor updates and compatible matrix shapes. `False` disables batching; `None` enables it.
 
     Examples:
         ```python

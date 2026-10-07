@@ -5,6 +5,7 @@ from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class Lion(BaseOptimizer):
@@ -21,6 +22,8 @@ class Lion(BaseOptimizer):
         maximize: Maximize the objective instead of minimizing it.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -116,11 +119,7 @@ class Lion(BaseOptimizer):
 
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta2)
 
-        if isinstance(lr, torch.Tensor):
-            torch._foreach_mul_(updates, -lr)
-            torch._foreach_add_(params, updates)
-        else:
-            torch._foreach_add_(params, updates, alpha=-lr)
+        foreach_add_(params, updates, alpha=-lr)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         beta1, beta2 = group['betas']
@@ -184,8 +183,8 @@ class Lion(BaseOptimizer):
 
             if self._can_use_foreach(group):
                 params, grads, state_dict = self.collect_trainable_params(group, self.state, state_keys=['exp_avg'])
-                if params:
-                    self._step_foreach(group, params, grads, state_dict['exp_avg'])
+                for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    self._step_foreach(group, tensors['params'], tensors['grads'], tensors['exp_avg'])
             else:
                 self._step_per_param(group)
 

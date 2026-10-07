@@ -5,6 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 from pytorch_optimizer.optimizer.utils.gradient import get_global_gradient_norm
 
 
@@ -130,10 +131,12 @@ class SGDW(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-4,
+        lr: float | torch.Tensor = 1e-4,
         momentum: float = 0.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -183,11 +186,31 @@ class SGDW(BaseOptimizer):
 
         return self.can_use_foreach(group, group.get('foreach'))
 
+    def _init_momentum_buffers(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor] | tuple[torch.Tensor, ...],
+    ) -> tuple[list[torch.Tensor], list[bool]]:
+        buffers, first_steps = [], []
+        if group['momentum'] > 0.0:
+            for p, grad in zip(params, grads):
+                state = self.state[p]
+                first_step = 'momentum_buffer' not in state
+                if first_step:
+                    state['momentum_buffer'] = torch.empty_like(grad)
+                buffers.append(state['momentum_buffer'])
+                first_steps.append(first_step)
+
+        return buffers, first_steps
+
     def _step_foreach(
         self,
         group: ParamGroup,
         params: list[torch.Tensor],
         grads: list[torch.Tensor] | tuple[torch.Tensor, ...],
+        buffers: list[torch.Tensor],
+        first_steps: list[bool],
     ) -> None:
         lr, momentum, dampening = group['lr'], group['momentum'], group['dampening']
 
@@ -204,24 +227,20 @@ class SGDW(BaseOptimizer):
         )
 
         if momentum > 0.0:
-            buffers, existing_buffers, existing_grads = [], [], []
-            for p, grad in zip(params, grads):
-                state = self.state[p]
-                buf = state.get('momentum_buffer')
-                if buf is None:
-                    state['momentum_buffer'] = buf = grad.clone()
-                else:
-                    existing_buffers.append(buf)
-                    existing_grads.append(grad)
-                buffers.append(buf)
+            new_buffers = [buf for buf, first in zip(buffers, first_steps) if first]
+            new_grads = [grad for grad, first in zip(grads, first_steps) if first]
+            if new_buffers:
+                torch._foreach_copy_(new_buffers, new_grads)
 
+            existing_buffers = [buf for buf, first in zip(buffers, first_steps) if not first]
+            existing_grads = [grad for grad, first in zip(grads, first_steps) if not first]
             if existing_buffers:
                 torch._foreach_mul_(existing_buffers, momentum)
                 torch._foreach_add_(existing_buffers, existing_grads, alpha=1.0 - dampening)
 
             grads = torch._foreach_add(grads, buffers, alpha=momentum) if group['nesterov'] else buffers
 
-        torch._foreach_add_(params, grads, alpha=-lr)
+        foreach_add_(params, grads, alpha=-lr)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         momentum = group['momentum']
@@ -268,8 +287,9 @@ class SGDW(BaseOptimizer):
 
             if self._can_use_foreach(group):
                 params, grads, _ = self.collect_trainable_params(group, self.state)
-                if params:
-                    self._step_foreach(group, params, grads)
+                for tensors in group_tensors_by_device_and_dtype(params, grads):
+                    buffers, first_steps = self._init_momentum_buffers(group, tensors['params'], tensors['grads'])
+                    self._step_foreach(group, tensors['params'], tensors['grads'], buffers, first_steps)
             else:
                 self._step_per_param(group)
 
@@ -415,10 +435,12 @@ class SignSGD(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -464,7 +486,7 @@ class SignSGD(BaseOptimizer):
                 state['momentum_buffer'] = torch.zeros_like(p)
 
     def _can_use_foreach(self, group: ParamGroup) -> bool:
-        if group.get('foreach') is False or group['momentum'] == 0.0:
+        if group.get('foreach') is False:
             return False
 
         return self.can_use_foreach(group, group.get('foreach'))
@@ -490,10 +512,12 @@ class SignSGD(BaseOptimizer):
             fixed_decay=False,
         )
 
-        torch._foreach_lerp_(momentum_buffers, grads, weight=1.0 - group['momentum'])
+        if group['momentum'] > 0.0:
+            torch._foreach_lerp_(momentum_buffers, grads, weight=1.0 - group['momentum'])
+            grads = momentum_buffers
 
-        updates = [buf.sign() for buf in momentum_buffers]
-        torch._foreach_add_(params, updates, alpha=-lr)
+        updates = torch._foreach_sign(grads)
+        foreach_add_(params, updates, alpha=-lr)
 
     def _step_per_param(self, group: ParamGroup) -> None:
         momentum = group['momentum']
@@ -537,11 +561,12 @@ class SignSGD(BaseOptimizer):
             group['step'] += 1
 
             if self._can_use_foreach(group):
+                state_keys = ['momentum_buffer'] if group['momentum'] > 0.0 else []
                 params, grads, state_dict = self.collect_trainable_params(
-                    group, self.state, state_keys=['momentum_buffer']
+                    group, self.state, state_keys=state_keys
                 )
-                if params:
-                    self._step_foreach(group, params, grads, state_dict['momentum_buffer'])
+                for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    self._step_foreach(group, tensors['params'], tensors['grads'], tensors.get('momentum_buffer', []))
             else:
                 self._step_per_param(group)
 

@@ -454,12 +454,11 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
 ]
 
 COMPILE_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
-    ('lion', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     ('adamw', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     ('stableadamw', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     *{
         name: (name, options.copy(), iterations)
-        for name, options, iterations in OPTIMIZER_RECIPES
+        for name, options, iterations in reversed(OPTIMIZER_RECIPES)
         if name in OPTIMIZERS
         and issubclass(OPTIMIZERS[name], BaseOptimizer)
         and OPTIMIZERS[name]._supports_compiled_foreach
