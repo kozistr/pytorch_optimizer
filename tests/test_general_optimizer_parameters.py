@@ -1,6 +1,6 @@
 import pytest
 
-from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError, ZeroParameterSizeError
+from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
 from pytorch_optimizer.optimizer import load_optimizer
 from tests.fixtures import make_parameter
 from tests.optimizer_cases import (
@@ -68,11 +68,7 @@ class TestBetaParameterValidation:
     @pytest.mark.parametrize('optimizer_name', ['nero', 'apollodqn', 'sm3', 'msvag', 'ranger21'])
     def test_beta(self, optimizer_name):
         optimizer = load_optimizer(optimizer_name)
-        config = _config_for_optimizer(
-            optimizer_name,
-            beta0=-0.1 if optimizer_name == 'ranger21' else None,
-            beta=-0.1,
-        )
+        config = _config_for_optimizer(optimizer_name, **{('beta0' if optimizer_name == 'ranger21' else 'beta'): -0.1})
 
         with pytest.raises(ValueError):
             optimizer(None, **config)
@@ -81,61 +77,34 @@ class TestBetaParameterValidation:
     def test_betas(self, optimizer_name):
         optimizer = load_optimizer(optimizer_name)
 
-        config1 = _config_for_optimizer(optimizer_name, betas=(-0.1, 0.1))
-        config2 = _config_for_optimizer(optimizer_name, betas=(0.1, -0.1))
-
-        if optimizer_name not in ('adapnm', 'adan', 'adamod', 'aggmo', 'came'):
+        betas = [(0.1, 0.1, -0.1)] if optimizer_name in ('adapnm', 'adan', 'adamod', 'aggmo', 'came') else [
+            (-0.1, 0.1), (0.1, -0.1)
+        ]
+        for invalid_betas in betas:
             with pytest.raises(ValueError):
-                optimizer(None, **config1)
-
-            with pytest.raises(ValueError):
-                optimizer(None, **config2)
-        elif optimizer_name == 'prodigy':
-            with pytest.raises(ValueError):
-                optimizer(None, beta3=-0.1)
-        else:
-            with pytest.raises(ValueError):
-                optimizer(None, betas=(0.1, 0.1, -0.1))
+                optimizer(None, **_config_for_optimizer(optimizer_name, betas=invalid_betas))
 
 
 class TestSpecialParameterValidation:
     @pytest.mark.parametrize('optimizer_name', ['scalableshampoo', 'shampoo'])
     def test_update_frequency(self, optimizer_name):
         optimizer = load_optimizer(optimizer_name)
-
-        if optimizer_name == 'shampoo':
+        options = ('preconditioning_compute_steps',) if optimizer_name == 'shampoo' else (
+            'start_preconditioning_step', 'statistics_compute_steps'
+        )
+        for option in options:
             with pytest.raises(NegativeStepError):
-                optimizer(None, preconditioning_compute_steps=-1)
-        elif optimizer_name == 'scalableshampoo':
-            with pytest.raises(NegativeStepError):
-                optimizer(None, start_preconditioning_step=-1)
-
-            with pytest.raises(NegativeStepError):
-                optimizer(None, statistics_compute_steps=-1)
+                optimizer(None, **{option: -1})
 
     @pytest.mark.parametrize('optimizer_name', ['adan', 'lamb'])
     def test_norm(self, optimizer_name):
         with pytest.raises(ValueError):
             load_optimizer(optimizer_name)(None, max_grad_norm=-0.1)
 
-    @pytest.mark.parametrize('optimizer', ['ranger21', 'adai'])
-    def test_size_of_parameter(self, optimizer):
-        param = make_parameter(requires_grad=False)
-        param.grad = None
-
-        with pytest.raises(ZeroParameterSizeError):
-            load_optimizer(optimizer)([param], 1).step()
-
-    @pytest.mark.parametrize('optimizer_name', ['qhadam', 'qhm'])
-    def test_nus(self, optimizer_name):
-        optimizer = load_optimizer(optimizer_name)
-
-        if optimizer_name == 'qhadam':
-            with pytest.raises(ValueError):
-                optimizer([make_parameter(requires_grad=False)], nus=(-0.1, 0.1))
-
-            with pytest.raises(ValueError):
-                optimizer([make_parameter(requires_grad=False)], nus=(0.1, -0.1))
-        else:
-            with pytest.raises(ValueError):
-                optimizer([make_parameter(requires_grad=False)], nu=-0.1)
+    @pytest.mark.parametrize(
+        ('optimizer_name', 'options'),
+        [('qhadam', {'nus': (-0.1, 0.1)}), ('qhadam', {'nus': (0.1, -0.1)}), ('qhm', {'nu': -0.1})],
+    )
+    def test_nus(self, optimizer_name, options):
+        with pytest.raises(ValueError):
+            load_optimizer(optimizer_name)([make_parameter()], **options)

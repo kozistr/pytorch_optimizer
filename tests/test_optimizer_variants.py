@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 import torch
 
-from tests.fixtures import build_model, make_parameter
+from tests.fixtures import build_model
 from tests.optimizer_cases import FOREACH_OPTIMIZERS, GRADIENT_OPTIONS, MAXIMIZE_OPTIMIZERS, SKIP_CAPABILITY_PROBE
 from tests.utils import Trainer, build_optimizer, build_optimizer_parameters, ids
 
@@ -125,68 +125,25 @@ class TestMaximize:
         torch.testing.assert_close(params[0], params[1])
 
 
-class TestAdaNorm:
-    @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
-    def test_adanorm_optimizer(self, optimizer_config, environment):
-        x_data, y_data = environment
-        model, loss_fn = build_model(device=x_data.device)
+@pytest.mark.parametrize(
+    ('optimizer_config', 'options', 'threshold'),
+    [
+        pytest.param(recipe, options, threshold, id=f'{variant}-{ids(recipe)}')
+        for variant, recipes, options, threshold in (
+            ('adanorm', ADANORM_SUPPORTED_OPTIMIZERS, {'adanorm': True}, 1.75),
+            ('adam_debias', ADAMD_SUPPORTED_OPTIMIZERS, {'adam_debias': True}, 2.0),
+            ('cautious', COPT_SUPPORTED_OPTIMIZERS, {'cautious': True}, 1.5),
+            ('stable_adamw', STABLE_ADAMW_SUPPORTED_OPTIMIZERS, {}, 1.5),
+        )
+        for recipe in recipes
+    ],
+)
+def test_variant_training(optimizer_config, options, threshold, environment):
+    optimizer_name, config, iterations = optimizer_config
+    x_data, y_data = environment
+    model, loss_fn = build_model(device=x_data.device)
+    parameters, config = build_optimizer_parameters(model.parameters(), optimizer_name, config)
+    optimizer = build_optimizer(optimizer_name, parameters, **config, **options)
 
-        optimizer_name, config, num_iterations = optimizer_config
-        optimizer = build_optimizer(optimizer_name, model.parameters(), **config, adanorm=True)
-
-        trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
-        trainer.run(iterations=num_iterations, threshold=1.75)
-
-    @pytest.mark.parametrize('optimizer_config', ADANORM_SUPPORTED_OPTIMIZERS, ids=ids)
-    def test_adanorm_variant(self, optimizer_config):
-        param = make_parameter()
-        param.grad = torch.ones(1, 1)
-
-        optimizer_name, _ = optimizer_config[:2]
-
-        optimizer = build_optimizer(optimizer_name, [param], adanorm=True)
-        optimizer.step()
-
-        param.grad = torch.zeros(1, 1)
-        optimizer.step()
-
-
-class TestAdamDebias:
-    @pytest.mark.parametrize('optimizer_config', ADAMD_SUPPORTED_OPTIMIZERS, ids=ids)
-    def test_adamd_variant(self, optimizer_config, environment):
-        x_data, y_data = environment
-        model, loss_fn = build_model(device=x_data.device)
-
-        optimizer_name, config, num_iterations = optimizer_config
-        optimizer = build_optimizer(optimizer_name, model.parameters(), **config, adam_debias=True)
-
-        create_graph = optimizer_name in ('adahessian',)
-        trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
-        trainer.run(iterations=num_iterations, create_graph=create_graph, threshold=2.0)
-
-
-class TestCautious:
-    @pytest.mark.parametrize('optimizer_config', COPT_SUPPORTED_OPTIMIZERS, ids=ids)
-    def test_cautious_variant(self, optimizer_config, environment):
-        x_data, y_data = environment
-        model, loss_fn = build_model(device=x_data.device)
-
-        optimizer_name, config, num_iterations = optimizer_config
-        parameters, config = build_optimizer_parameters(model.parameters(), optimizer_name, config)
-        optimizer = build_optimizer(optimizer_name, parameters, **config, cautious=True)
-
-        trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
-        trainer.run(iterations=num_iterations, threshold=1.5)
-
-
-class TestStableAdamW:
-    @pytest.mark.parametrize('optimizer_config', STABLE_ADAMW_SUPPORTED_OPTIMIZERS, ids=ids)
-    def test_stable_adamw_variant(self, optimizer_config, environment):
-        x_data, y_data = environment
-        model, loss_fn = build_model(device=x_data.device)
-
-        optimizer_name, config, num_iterations = optimizer_config
-        optimizer = build_optimizer(optimizer_name, model.parameters(), **config)
-
-        trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
-        trainer.run(iterations=num_iterations, threshold=1.5)
+    trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
+    trainer.run(iterations=iterations, create_graph=optimizer_name == 'adahessian', threshold=threshold)

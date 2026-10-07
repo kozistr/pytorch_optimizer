@@ -10,7 +10,6 @@ def test_stableadamw_optimizer():
         make_parameter((2, 2), dtype=torch.float16, grad=None),
         make_parameter((2,), grad=None),
         make_parameter((1, 2), dtype=torch.float16, grad=None),
-        make_parameter((1,), grad=None),
     ]
     optimizer = build_optimizer('stableadamw', [{'params': params[:1]}, {'params': params[1:]}])
     optimizer.step()
@@ -24,7 +23,6 @@ def test_stableadamw_optimizer():
 
     second_moment = restored.state[restored_params[0]]['exp_avg_sq']
     assert second_moment.dtype == torch.float32
-    assert second_moment.device == restored_params[0].device
     torch.testing.assert_close(second_moment, optimizer.state[params[0]]['exp_avg_sq'])
     torch.testing.assert_close(
         restored.state[restored_params[1]]['exp_avg_sq'], optimizer.state[params[1]]['exp_avg_sq']

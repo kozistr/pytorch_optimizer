@@ -13,8 +13,9 @@ def test_spectral_sphere_methods():
 
     x = torch.full((2, 2), 10.0)
     theta = torch.full((2, 2), 0.01)
-    _ = solve_lambda_with_bisection(x, theta)
+    assert solve_lambda_with_bisection(x, theta) == 0.0
 
     x = torch.tensor([[5.0, 1.0], [1.0, 5.0]])
     theta = torch.tensor([[1.5, 0.0], [0.0, -2.8]])
-    _ = solve_lambda_with_bisection(x, theta, initial_guess=0.18, initial_step=0.012, msign_steps=0)
+    result = solve_lambda_with_bisection(x, theta, initial_guess=0.18, initial_step=0.012, msign_steps=0)
+    assert result == pytest.approx(6.5 / 10.09, rel=torch.finfo(torch.bfloat16).eps)

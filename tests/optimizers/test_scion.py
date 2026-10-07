@@ -6,53 +6,42 @@ from tests.fixtures import make_parameter
 from tests.utils import build_optimizer
 
 
-class TestScion:
-    @pytest.mark.parametrize('lmo_type', list(range(9)))
-    def test_build_lmo_types(self, lmo_type):
-        build_lmo_norm(lmo_type)
+@pytest.mark.parametrize('optimizer_name', ['scion', 'scionlight'])
+def test_parameter_initialization(optimizer_name):
+    matrix, bias = make_parameter(), make_parameter((1,))
+    build_optimizer(optimizer_name, [matrix, bias]).init()
 
-    def test_scion_lmo_types(self):
-        params = [make_parameter(), make_parameter((1,))]
+    torch.testing.assert_close(matrix.abs(), torch.ones_like(matrix))
+    torch.testing.assert_close(bias, torch.zeros_like(bias))
 
-        build_optimizer('scion', params).init()
-        build_optimizer('scionlight', params).init()
 
-        grad_1d = torch.ones(1)
-        grad_2d = torch.ones(1, 1)
-        grad_4d = torch.ones(1, 1, 1, 1)
-        grad_5d = torch.ones(1, 1, 1, 1, 1)
+@pytest.mark.parametrize(
+    ('norm_type', 'options', 'shape', 'initial'),
+    [
+        (0, {}, (1, 1), 1.0),
+        (1, {}, (1,), 0.0),
+        (1, {}, (1, 1), 1.0),
+        (1, {}, (1, 1, 1, 1), 1.0),
+        (2, {'max_scale': True}, (1, 1), 1.0),
+        (3, {}, (1, 1, 1, 1), 1.0),
+        (4, {'zero_init': True}, (1, 1), 0.0),
+        (4, {}, (1, 1), 1.0),
+        (5, {}, (1,), 0.0),
+        (6, {'normalized': True, 'transpose': True}, (1, 1), 1.0),
+        (7, {'normalized': True, 'transpose': True}, (1, 1), 1.0),
+    ],
+)
+def test_lmo_norms(norm_type, options, shape, initial):
+    norm = build_lmo_norm(norm_type, **options)
+    gradient = torch.ones(shape)
 
-        norm = build_lmo_norm(norm_type=0)
-        norm.init(grad_2d)
-        norm.lmo(grad_2d)
+    torch.testing.assert_close(norm.init(gradient.clone()).abs(), torch.full_like(gradient, initial))
+    assert torch.isfinite(norm.lmo(gradient)).all()
 
-        norm = build_lmo_norm(norm_type=1, max_scale=True)
-        for grad in (grad_1d, grad_2d, grad_4d):
-            norm.init(grad)
-            norm.lmo(grad)
 
+def test_auto_rejects_unsupported_dimensions():
+    norm = build_lmo_norm(1)
+    gradient = torch.ones(1, 1, 1, 1, 1)
+    for method in (norm.init, norm.lmo):
         with pytest.raises(NotImplementedError):
-            norm.init(grad_5d)
-
-        with pytest.raises(NotImplementedError):
-            norm.lmo(grad_5d)
-
-        norm = build_lmo_norm(norm_type=2, max_scale=True)
-        norm.init(grad_2d)
-        norm.lmo(grad_2d)
-
-        norm = build_lmo_norm(norm_type=4, zero_init=True)
-        norm.init(grad_2d)
-        norm.lmo(grad_2d)
-
-        norm = build_lmo_norm(norm_type=4, zero_init=False)
-        norm.init(grad_2d)
-        norm.lmo(grad_2d)
-
-        norm = build_lmo_norm(norm_type=6, normalized=True, transpose=True)
-        norm.init(grad_2d)
-        norm.lmo(grad_2d)
-
-        norm = build_lmo_norm(norm_type=7, normalized=True, transpose=True)
-        norm.init(grad_2d)
-        norm.lmo(grad_2d)
+            method(gradient)

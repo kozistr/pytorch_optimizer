@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from pytorch_optimizer.optimizer.utils.foreach import (
@@ -34,16 +35,19 @@ class TestGroupTensorsByDeviceAndDtype:
     def test_empty_parameters(self):
         assert group_tensors_by_device_and_dtype([], []) == []
 
-    def test_single_group(self):
-        params = [torch.randn(1), torch.randn(2)]
-        grads = [torch.randn(1), torch.randn(2)]
+    @pytest.mark.parametrize('with_state', [False, True])
+    def test_single_group(self, with_state):
+        params = [torch.zeros(1), torch.zeros(2)]
+        grads = [torch.ones_like(param) for param in params]
+        state = {'exp_avg': [torch.zeros_like(param) for param in params]} if with_state else {}
 
-        groups = group_tensors_by_device_and_dtype(params, grads)
+        group, = group_tensors_by_device_and_dtype(params, grads, state)
 
-        assert len(groups) == 1
-        assert len(groups[0]['params']) == 2
-        assert len(groups[0]['grads']) == 2
-        assert groups[0]['indices'] == [0, 1]
+        assert group['params'] is params
+        assert group['grads'] is grads
+        assert group['indices'] == [0, 1]
+        if with_state:
+            assert group['exp_avg'] is state['exp_avg']
 
     def test_multiple_groups_by_dtype(self):
         params = [
@@ -63,27 +67,14 @@ class TestGroupTensorsByDeviceAndDtype:
                 assert group['grads'][position] is grads[index]
                 assert group['exp_avg'][position] is state_lists['exp_avg'][index]
 
-    def test_with_state_lists(self):
-        params = [torch.randn(1), torch.randn(2)]
-        grads = [torch.randn(1), torch.randn(2)]
-        state_lists = {'exp_avg': [torch.randn(1), torch.randn(2)], 'exp_avg_sq': [torch.randn(1), torch.randn(2)]}
-
-        groups = group_tensors_by_device_and_dtype(params, grads, state_lists)
-
-        assert len(groups) == 1
-        assert 'exp_avg' in groups[0]
-        assert 'exp_avg_sq' in groups[0]
-        assert len(groups[0]['exp_avg']) == 2
-        assert len(groups[0]['exp_avg_sq']) == 2
-
 
 class TestForeachOperations:
     def test_outplace_rsqrt_by_version(self):
-        tensors = [torch.empty((1,)).fill_(4.0)]
+        tensors = [torch.tensor([4.0])]
         tensors = foreach_rsqrt(tensors)
         assert tensors[0].item() == 0.5
 
     def test_inplace_rsqrt_by_version(self):
-        tensors = [torch.empty((1,)).fill_(4.0)]
+        tensors = [torch.tensor([4.0])]
         foreach_rsqrt_(tensors)
         assert tensors[0].item() == 0.5

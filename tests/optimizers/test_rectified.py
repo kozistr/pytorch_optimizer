@@ -7,14 +7,13 @@ from tests.utils import build_optimizer
 
 @pytest.mark.parametrize('optimizer_name', ['adabelief', 'radam', 'lamb', 'diffgrad', 'ranger'])
 def test_rectified_optimizer(optimizer_name):
-    param = make_parameter()
+    param = make_parameter(grad=1.0)
 
     parameters = {'n_sma_threshold': 1000, 'degenerated_to_sgd': False}
-    if optimizer_name not in ('adabelief', 'radam', 'ranger'):
+    if optimizer_name not in ('radam', 'ranger'):
         parameters.update({'rectify': True})
 
     optimizer = build_optimizer(optimizer_name, [param], **parameters)
-    optimizer.zero_grad()
-
-    param.grad = torch.zeros(1, 1)
     optimizer.step()
+
+    torch.testing.assert_close(param, torch.zeros_like(param))

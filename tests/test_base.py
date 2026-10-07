@@ -9,8 +9,6 @@ from tests.utils import build_optimizer
 
 
 class TestValidationMethods:
-    """Tests for validation methods."""
-
     @pytest.mark.parametrize('range_type', ['[]', '[)', '(]', '()'])
     def test_validate_range(self, range_type):
         with pytest.raises(ValueError):
@@ -37,8 +35,6 @@ class TestValidationMethods:
 
 
 class TestHessianMethods:
-    """Tests for Hessian-related methods."""
-
     def test_set_hessian(self, param_groups):
         hessian = [torch.zeros(2, 1)]
         with pytest.raises(ValueError):
@@ -66,25 +62,28 @@ class TestHessianMethods:
 
 
 class TestGradientMethods:
-    """Tests for gradient-related methods."""
+    @pytest.mark.parametrize(
+        ('gradient', 'expected', 'expected_norm'), [(0.0, 0.0, 1.9), (1.0, 1.95, 1.95), (4.0, 4.0, 2.1)]
+    )
+    def test_adanorm_gradient(self, gradient, expected, expected_norm):
+        grad = torch.tensor([gradient])
+        norm = torch.tensor([2.0])
+        result = BaseOptimizer.get_adanorm_gradient(grad, True, norm, r=None)
+
+        torch.testing.assert_close(result, torch.tensor([expected]))
+        torch.testing.assert_close(norm, torch.tensor([expected_norm]))
 
     @pytest.mark.parametrize('maximize', [True, False])
     def test_maximize_gradient(self, maximize: bool):
         grad = torch.ones(1)
-        expected = -grad if maximize else grad
         BaseOptimizer.maximize_gradient(grad, maximize)
 
-        torch.testing.assert_close(grad, expected)
+        torch.testing.assert_close(grad, torch.tensor([-1.0 if maximize else 1.0]))
 
 
 def test_can_use_foreach():
-    expected = BaseOptimizer.can_use_foreach({}, foreach=False)
-    assert expected is False
-
-    params, grads, state_dict = BaseOptimizer.collect_trainable_params({'params': []}, {}, None)
-    assert len(params) == 0
-    assert len(grads) == 0
-    assert len(state_dict) == 0
+    assert BaseOptimizer.can_use_foreach({}, foreach=False) is False
+    assert BaseOptimizer.collect_trainable_params({'params': []}, {}, None) == ([], [], {})
 
 
 def test_compile_foreach():

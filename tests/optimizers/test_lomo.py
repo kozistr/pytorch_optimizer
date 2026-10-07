@@ -71,3 +71,4 @@ class TestLomo:
         scaler = DynamicLossScaler(init_scale=2.0 ** 15, scale_window=1, threshold=1e-2)  # fmt: skip
         scaler.decrease_loss_scale()
         scaler.update_scale(overflow=False)
+        assert scaler.loss_scale == 2.0 ** 15

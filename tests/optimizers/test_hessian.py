@@ -9,10 +9,7 @@ from tests.utils import build_optimizer, sphere_loss
 def test_hessian_optimizer(optimizer_name):
     param = make_parameter()
 
-    parameters = {'hessian_distribution': 'gaussian', 'num_samples': 2}
-
-    optimizer = build_optimizer(optimizer_name, [param], **parameters)
-    optimizer.zero_grad(set_to_none=True)
+    optimizer = build_optimizer(optimizer_name, [param], hessian_distribution='gaussian', num_samples=2)
 
     (param.grad,) = torch.autograd.grad(sphere_loss(param), param, create_graph=True)
     optimizer.step()
@@ -20,3 +17,5 @@ def test_hessian_optimizer(optimizer_name):
 
     sphere_loss(param).backward()
     optimizer.step(hessian=torch.zeros_like(param).unsqueeze(0))
+
+    torch.testing.assert_close(optimizer.state[param]['hessian'], torch.zeros_like(param))

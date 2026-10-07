@@ -35,7 +35,8 @@ class TestSm3:
         torch.testing.assert_close(param, expected)
 
     def test_sm3_rank0(self):
-        optimizer = build_optimizer('sm3', [make_parameter(())])
+        param = make_parameter((), grad=1.0)
+        optimizer = build_optimizer('sm3', [param], lr=0.1)
         optimizer.step()
 
-        assert str(optimizer) == 'SM3'
+        torch.testing.assert_close(param, torch.tensor(-0.1))

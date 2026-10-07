@@ -12,6 +12,8 @@ class TestGrokfast:
         for param in model.parameters():
             param.grad = torch.ones_like(param)
         gradfilter_ma(model, None, window_size=1, filter_type=filter_type, warmup=False)
+        for param in model.parameters():
+            torch.testing.assert_close(param.grad, torch.full_like(param, 6.0))
 
     def test_grokfast_ma_invalid(self):
         with pytest.raises(NotImplementedError):

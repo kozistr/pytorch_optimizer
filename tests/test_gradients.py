@@ -27,21 +27,19 @@ class TestGradientAvailability:
             if name not in SKIP_NO_GRADIENT_TEST
         ],
     )
-    def test_no_gradients(self, optimizer_name):
-        p1 = make_parameter(requires_grad=True)
-        p2 = make_parameter(requires_grad=False)
-        p3 = make_parameter(requires_grad=True)
-        p4 = make_parameter(requires_grad=False)
-        params = [{'params': [p1, p2]}, {'params': [p3]}, {'params': [p4]}]
-
+    def test_missing_and_frozen_gradients(self, optimizer_name):
+        active = make_parameter()
+        inactive = make_parameter(grad=None)
+        frozen = make_parameter(requires_grad=False)
+        params = [{'params': [active, inactive]}, {'params': [frozen]}]
         optimizer = build_optimizer(optimizer_name, params, **GRADIENT_OPTIONS.get(optimizer_name, {}))
-        optimizer.zero_grad()
-
-        loss = sphere_loss(p1 + p3)
-        p1.grad, p3.grad = torch.autograd.grad(loss, [p1, p3], create_graph=True)
+        (active.grad,) = torch.autograd.grad(sphere_loss(active), active, create_graph=True)
 
         optimizer.step(lambda: 0.1)
         optimizer.zero_grad(set_to_none=True)
+
+        torch.testing.assert_close([inactive, frozen], [torch.zeros_like(inactive), torch.zeros_like(frozen)])
+        assert all(param.grad is None for param in (active, inactive, frozen))
 
 
 class TestSparseGradients:
@@ -65,25 +63,14 @@ class TestSparseGradients:
         opt_dense = build_optimizer(sparse_optimizer, [weight], **params)
         opt_sparse = build_optimizer(sparse_optimizer, [weight_sparse], **params)
 
-        opt_dense.step()
-        opt_sparse.step()
-        assert torch.allclose(weight, weight_sparse)
+        for row in (0, 1, 0):
+            weight.grad = torch.arange(1.0, 6.0).view_as(weight)
+            weight.grad[row] = 0.0
+            weight_sparse.grad = weight.grad.to_sparse()
 
-        weight.grad = torch.rand_like(weight)
-        weight.grad[1] = 0.0
-        weight_sparse.grad = weight.grad.to_sparse()
-
-        opt_dense.step()
-        opt_sparse.step()
-        assert torch.allclose(weight, weight_sparse)
-
-        weight.grad = torch.rand_like(weight)
-        weight.grad[0] = 0.0
-        weight_sparse.grad = weight.grad.to_sparse()
-
-        opt_dense.step()
-        opt_sparse.step()
-        assert torch.allclose(weight, weight_sparse)
+            opt_dense.step()
+            opt_sparse.step()
+            torch.testing.assert_close(weight, weight_sparse)
 
     @pytest.mark.parametrize(
         'sparse_optimizer',

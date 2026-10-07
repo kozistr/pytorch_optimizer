@@ -6,3 +6,5 @@ def test_adabound_zero_lr():
     optimizer = build_optimizer('adabound', [make_parameter()], lr=0.0)
     optimizer.param_groups[0]['lr'] = 1e-3
     optimizer.step()
+
+    assert optimizer.base_lrs == [1e-3]
