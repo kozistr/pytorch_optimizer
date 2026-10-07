@@ -9,6 +9,7 @@ class FAdam(BaseOptimizer):
     """Natural gradient Adam using diagonal empirical Fisher information.
 
     The adaptive stabilizer is `min(eps, eps_2 * RMS(grad)) ** (2 * p)`.
+    Checkpoint loading preserves the saved momentum and Fisher state dtypes.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -66,6 +67,12 @@ class FAdam(BaseOptimizer):
 
     def __str__(self) -> str:
         return 'FAdam'
+
+    def _restore_state_types(self, value, saved_value):
+        if isinstance(saved_value, torch.Tensor) and saved_value.is_floating_point():
+            return saved_value.to(device=value.device)
+
+        return super()._restore_state_types(value, saved_value)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
