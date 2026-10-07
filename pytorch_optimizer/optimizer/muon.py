@@ -594,6 +594,9 @@ class AdaMuon(MuonBase):
     such as embeddings, classifier heads, biases, and gains. Pass higher dimensional
     weights directly. The orthogonal update uses a flattened matrix view.
 
+    The default shape scaling gives the adaptive update an RMS of 0.2 before multiplication
+    by the learning rate. `use_adjusted_lr=True` selects Moonlight scaling instead.
+
     Args:
         params: Parameter group dictionaries with a `use_muon` flag for each group.
         lr: Learning rate.
@@ -739,8 +742,9 @@ class AdaMuon(MuonBase):
         torch._foreach_add_(de_noms, group['eps'])
         torch._foreach_div_(updates, de_noms)
 
-        torch._foreach_mul_(updates, 0.2 * math.sqrt(params[0].numel()))
         norms = [update.norm().add_(group['eps']) for update in updates]
+        rows = params[0].size(0)
+        torch._foreach_mul_(updates, math.sqrt(min(rows, params[0].numel() // rows)))
         torch._foreach_div_(updates, norms)
 
         updates = [update.reshape(p.shape) for p, update in zip(params, updates)]
@@ -805,7 +809,8 @@ class AdaMuon(MuonBase):
                     update.div_((v / bias_correction2).sqrt_().add_(group['eps']))
                     update = update.reshape(p.size())
 
-                    update.mul_(0.2 * math.sqrt(p.numel())).div_(update.norm().add_(group['eps']))
+                    scale = math.sqrt(min(p.size(0), p.numel() // p.size(0)))
+                    update.mul_(scale / update.norm().add_(group['eps']))
 
                     lr = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
 
