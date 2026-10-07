@@ -131,7 +131,7 @@ class FAdam(BaseOptimizer):
                 grad_nat = grad / fim_base
 
                 rms = grad_nat.pow(2).mean().sqrt_()
-                divisor = max(1, rms) / group['clip']
+                divisor = max(1, rms / group['clip'])
                 grad_nat.div_(divisor)
 
                 momentum.lerp_(grad_nat, weight=1.0 - beta1)
@@ -139,7 +139,7 @@ class FAdam(BaseOptimizer):
                 grad_weights = p / fim_base
 
                 rms = torch.pow(grad_weights, 2).mean().sqrt_()
-                divisor = max(1, rms) / group['clip']
+                divisor = max(1, rms / group['clip'])
                 grad_weights.div_(divisor)
 
                 grad_weights.mul_(group['weight_decay']).add_(momentum)
