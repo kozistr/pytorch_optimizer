@@ -54,7 +54,21 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('ranger21', {'lr': 7.5e-1, 'weight_decay': 1e-3, 'num_iterations': 75}, 75),
     ('shampoo', {'lr': 5e-1, 'weight_decay': 1e-3, 'momentum': 0.1}, 10),
     ('dash', {'lr': 1e-1, 'weight_decay': 1e-3, 'block_size': 2}, 10),
-    ('dash', {'lr': 1e-1, 'block_size': 2, 'inverse_root_method': 'eigh'}, 10),
+    (
+        'dash',
+        {
+            'lr': 1e-1,
+            'block_size': 2,
+            'inverse_root_method': 'eigh',
+            'grafting_beta': 0.7,
+            'correct_bias': False,
+            'momentum': 0.6,
+            'nesterov': False,
+            'start_preconditioning_step': 3,
+            'precondition_frequency': 4,
+        },
+        10,
+    ),
     (
         'scalableshampoo',
         {

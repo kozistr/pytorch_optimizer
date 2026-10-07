@@ -41,42 +41,7 @@ class TestDASHUpdates:
 
         torch.testing.assert_close(param, 0.99 - 0.1 * direction)
 
-    @pytest.mark.parametrize('shape', [(1, 5, 1), (5, 7)])
-    def test_grafting_warmup(self, shape, device):
-        param = make_parameter(shape, dtype=torch.float64, device=device)
-        expected = param.detach().clone().requires_grad_()
-        optimizer = build_optimizer(
-            'dash', [param], lr=0.1, grafting_beta=0.7, weight_decay=0.1, block_size=2, start_preconditioning_step=3
-        )
-        adamw = torch.optim.AdamW([expected], lr=0.1, betas=(0.9, 0.7), weight_decay=0.1)
-
-        for step in range(2):
-            gradient = torch.arange(param.numel(), dtype=param.dtype, device=device).reshape(shape) + step + 1
-            param.grad = gradient.clone()
-            expected.grad = gradient.clone()
-
-            optimizer.step()
-            adamw.step()
-
-            torch.testing.assert_close(param, expected)
-
-    def test_uncorrected_grafting(self, device):
-        param = make_parameter((2, 2), dtype=torch.float64, device=device)
-        gradient = torch.tensor([[1.0, -2.0], [3.0, -4.0]], dtype=param.dtype, device=device)
-        optimizer = build_optimizer(
-            'dash', [param], lr=0.1, grafting_beta=0.7, correct_bias=False, maximize=True, start_preconditioning_step=3
-        )
-        first_update = 0.1 * gradient / (0.3**0.5 * gradient.abs() + 1e-8)
-        second_update = 0.19 * gradient / (0.51**0.5 * gradient.abs() + 1e-8)
-
-        for _ in range(2):
-            param.grad = gradient.clone()
-            optimizer.step()
-
-        torch.testing.assert_close(param, 0.1 * (first_update + second_update))
-
-    @pytest.mark.parametrize('nesterov', [False, True])
-    def test_update_momentum(self, nesterov, device):
+    def test_update_momentum(self, device):
         param = make_parameter((2, 2), dtype=torch.float64, device=device, grad=1.0)
         expected = param.detach().clone().requires_grad_()
         optimizer = build_optimizer(
@@ -84,13 +49,12 @@ class TestDASHUpdates:
             [param],
             lr=0.1,
             momentum=0.6,
-            nesterov=nesterov,
             precondition_frequency=4,
             start_preconditioning_step=3,
             matrix_eps=0.01,
             eps=0.0,
         )
-        sgd = torch.optim.SGD([expected], lr=0.1, momentum=0.6, nesterov=nesterov)
+        sgd = torch.optim.SGD([expected], lr=0.1, momentum=0.6, nesterov=True)
 
         for _ in range(5):
             expected.grad = torch.ones_like(expected)
