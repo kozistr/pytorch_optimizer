@@ -113,8 +113,8 @@ class MuonBase(BaseOptimizer):
             torch._foreach_lerp_(exp_avg_sqs, torch._foreach_mul(grads, grads), weight=1.0 - beta2)
 
             de_noms = torch._foreach_sqrt(exp_avg_sqs)
-            torch._foreach_add_(de_noms, group['eps'])
             torch._foreach_div_(de_noms, bias_correction2**0.5)
+            torch._foreach_add_(de_noms, group['eps'])
 
             foreach_addcdiv_(params, torch._foreach_div(exp_avgs, bias_correction1), de_noms, -group['lr'])
 
@@ -362,7 +362,7 @@ class Muon(MuonBase):
                     exp_avg.lerp_(grad, weight=1.0 - beta1)
                     exp_avg_sq.lerp_(grad.square(), weight=1.0 - beta2)
 
-                    de_nom = exp_avg_sq.sqrt().add_(group['eps']).div_(bias_correction2_sq)
+                    de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
                     p.addcdiv_(exp_avg / bias_correction1, de_nom, value=-group['lr'])
 
@@ -580,7 +580,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
                     exp_avg.lerp_(grad, weight=1.0 - beta1)
                     exp_avg_sq.lerp_(grad.square(), weight=1.0 - beta2)
 
-                    de_nom = exp_avg_sq.sqrt().add_(group['eps']).div_(bias_correction2_sq)
+                    de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
                     p.addcdiv_(exp_avg / bias_correction1, de_nom, value=-group['lr'])
 
@@ -821,7 +821,7 @@ class AdaMuon(MuonBase):
                     exp_avg.lerp_(grad, weight=1.0 - beta1)
                     exp_avg_sq.lerp_(grad.square(), weight=1.0 - beta2)
 
-                    de_nom = exp_avg_sq.sqrt().add_(group['eps']).div_(math.sqrt(bias_correction2))
+                    de_nom = exp_avg_sq.sqrt().div_(math.sqrt(bias_correction2)).add_(group['eps'])
 
                     p.addcdiv_(exp_avg / bias_correction1, de_nom, value=-group['lr'])
 
@@ -1078,7 +1078,7 @@ class AdaGO(MuonBase):
                     exp_avg.lerp_(grad, weight=1.0 - beta1)
                     exp_avg_sq.lerp_(grad.square(), weight=1.0 - beta2)
 
-                    de_nom = exp_avg_sq.sqrt().add_(group['eps']).div_(bias_correction2_sq)
+                    de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
                     p.addcdiv_(exp_avg / bias_correction1, de_nom, value=-group['lr'])
 
@@ -1338,7 +1338,7 @@ class NorMuon(MuonBase):
                     exp_avg.lerp_(grad, weight=1.0 - beta1)
                     exp_avg_sq.lerp_(grad.square(), weight=1.0 - beta2)
 
-                    de_nom = exp_avg_sq.sqrt().add_(group['eps']).div_(bias_correction2_sq)
+                    de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
                     p.addcdiv_(exp_avg / bias_correction1, de_nom, value=-group['lr'])
 
