@@ -186,7 +186,7 @@ class DASH(BaseOptimizer):
                     state['blocks'].append(block_state)
 
     @staticmethod
-    def matrix_scale(matrix: torch.Tensor, group: ParamGroup) -> torch.Tensor:
+    def scale_matrix(matrix: torch.Tensor, group: ParamGroup) -> torch.Tensor:
         """Estimate batched matrix scales using the reference's bfloat16 power iteration."""
         dtype = matrix.dtype
         matrix = matrix.to(torch.bfloat16)
@@ -215,7 +215,7 @@ class DASH(BaseOptimizer):
 
             return (vectors * values.unsqueeze(-2)) @ vectors.transpose(-2, -1)
 
-        scale = self.matrix_scale(regularized, group).clamp_min_(torch.finfo(matrix.dtype).tiny)
+        scale = self.scale_matrix(regularized, group).clamp_min_(torch.finfo(matrix.dtype).tiny)
         if root == 4:
             regularized = compute_power_newton_db(regularized, scale, group['newton_steps'], inverse=False)
             scale.sqrt_()
