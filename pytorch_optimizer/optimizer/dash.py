@@ -146,6 +146,7 @@ class DASH(BaseOptimizer):
                 raise NoComplexParameterError(str(self))
 
             state = self.state[p]
+
             if len(state) == 0:
                 state['step'] = 0
                 state['blocks'] = []
