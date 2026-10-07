@@ -47,6 +47,7 @@ from pytorch_optimizer.optimizer.bcos import BCOS
 from pytorch_optimizer.optimizer.came import CAME
 from pytorch_optimizer.optimizer.conda import Conda
 from pytorch_optimizer.optimizer.dadapt import DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptLion, DAdaptSGD
+from pytorch_optimizer.optimizer.dash import DASH
 from pytorch_optimizer.optimizer.demo import DeMo
 from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.dual_adam import DualAdam
@@ -127,6 +128,7 @@ __all__ = [
     'BCOS',
     'BSAM',
     'CAME',
+    'DASH',
     'FOCUS',
     'FTRL',
     'GSAM',
@@ -326,6 +328,7 @@ OPTIMIZER_LIST: list[OptimizerType] = [
     BSAM,
     CAME,
     Conda,
+    DASH,
     DAdaptAdaGrad,
     DAdaptAdam,
     DAdaptAdan,
