@@ -119,6 +119,7 @@ class DASH(BaseOptimizer):
     def partition(grad: torch.Tensor, block_size: int) -> Iterator[tuple[tuple[int, int, int, int], torch.Tensor]]:
         """Yield up to four batches of equal-sized blocks and their matrix bounds."""
         rows, cols = grad.shape
+
         row_start = 0
         for row_size in (rows // block_size * block_size, rows % block_size):
             col_start = 0
@@ -135,6 +136,9 @@ class DASH(BaseOptimizer):
             row_start += row_size
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
@@ -148,15 +152,17 @@ class DASH(BaseOptimizer):
             state = self.state[p]
 
             if len(state) == 0:
-                state['step'] = 0
                 state['blocks'] = []
+
                 shape = p.squeeze().shape
                 state['shape'] = (shape[0], math.prod(shape[1:])) if len(shape) > 1 else (p.numel(), 1)
                 state['one_sided'] = len(shape) < 2
+
                 dtype = torch.float64 if p.dtype == torch.float64 else torch.float32
 
                 for _, block in self.partition(p.grad.reshape(state['shape']), group['block_size']):
                     batch, rows, cols = block.shape
+
                     sizes = (
                         [(batch, rows, rows)]
                         if state['one_sided']
@@ -168,7 +174,7 @@ class DASH(BaseOptimizer):
                     block_state = {
                         'exp_avg_sq': torch.zeros_like(block, dtype=dtype),
                         'statistics': [torch.zeros(size, device=p.device, dtype=dtype) for size in sizes],
-                        'inverse_roots': [torch.zeros(size, device=p.device, dtype=dtype) for size in sizes],
+                        'inverse_roots': [],
                     }
 
                     if group['betas'][0] > 0.0:
@@ -182,17 +188,19 @@ class DASH(BaseOptimizer):
     @staticmethod
     def matrix_scale(matrix: torch.Tensor, group: ParamGroup) -> torch.Tensor:
         """Estimate batched matrix scales using the reference's bfloat16 power iteration."""
-        low_precision = matrix.to(torch.bfloat16)
+        dtype = matrix.dtype
+        matrix = matrix.to(torch.bfloat16)
 
         if group['matrix_scaling'] == 'frobenius':
-            return torch.linalg.vector_norm(low_precision, dim=(-2, -1), keepdim=True).to(matrix.dtype)
+            return torch.linalg.vector_norm(matrix, dim=(-2, -1), keepdim=True).to(dtype)
 
-        low_precision.diagonal(dim1=-2, dim2=-1).add_(1e-6)
+        matrix.diagonal(dim1=-2, dim2=-1).add_(1e-6)
+
         scale = batched_power_iteration(
-            low_precision, num_iters=group['power_iteration_steps'], num_vectors=group['power_iteration_vectors']
+            matrix, num_iters=group['power_iteration_steps'], num_vectors=group['power_iteration_vectors']
         )
 
-        return scale.to(matrix.dtype).mul_(2.0)
+        return scale.to(dtype).mul_(2.0)
 
     def inverse_root(self, matrix: torch.Tensor, root: int, group: ParamGroup) -> torch.Tensor:
         """Compute regularized batched inverse roots without modifying the statistics."""
@@ -210,16 +218,25 @@ class DASH(BaseOptimizer):
         scale = self.matrix_scale(regularized, group).clamp_min_(torch.finfo(matrix.dtype).tiny)
         if root == 4:
             regularized = compute_power_newton_db(regularized, scale, group['newton_steps'], inverse=False)
-            scale = scale.sqrt()
+            scale.sqrt_()
 
         return compute_power_newton_db(regularized, scale, group['newton_steps'], inverse=True)
 
     def update_block(
-        self, grad: torch.Tensor, state: dict, step: int, one_sided: bool, group: ParamGroup
+        self,
+        grad: torch.Tensor,
+        state: dict,
+        one_sided: bool,
+        group: ParamGroup,
     ) -> torch.Tensor:
         """Update statistics and return a grafted, optionally momentum-filtered block batch."""
         beta1, beta2 = group['betas']
         grafting_beta = beta2 if group['grafting_beta'] is None else group['grafting_beta']
+        step = group['step']
+
+        bias1 = self.debias(beta1, step) if group['correct_bias'] else 1.0
+        bias2 = self.debias(grafting_beta, step) if group['correct_bias'] else 1.0
+
         batch = grad.shape[0]
         grad = grad.to(state['exp_avg_sq'].dtype)
 
@@ -232,20 +249,19 @@ class DASH(BaseOptimizer):
         if beta1 > 0.0:
             grad = state['exp_avg'].lerp_(grad, weight=1.0 - beta1)
 
-        bias1 = self.debias(beta1, step) if group['correct_bias'] else 1.0
-        bias2 = self.debias(grafting_beta, step) if group['correct_bias'] else 1.0
-        denom = state['exp_avg_sq'].div(bias2).sqrt_().add_(group['eps'])
-        graft = grad.div(bias1).div_(denom.clamp_min_(torch.finfo(denom.dtype).tiny))
-        del denom
+        graft = grad.div(bias1).div_(
+            state['exp_avg_sq'].div(bias2).sqrt_().add_(group['eps']).clamp_min_(torch.finfo(grad.dtype).tiny)
+        )
 
         start = group['start_preconditioning_step']
         if step >= start:
             graft_norm = torch.linalg.vector_norm(graft, dim=(1, 2), keepdim=True)
             del graft
 
-            if step == start or step % group['precondition_frequency'] == 0:
-                for statistic, inverse_root in zip(statistics, inverse_roots):
-                    inverse_root.copy_(self.inverse_root(statistic, 2 if one_sided else 4, group))
+            if not inverse_roots or step % group['precondition_frequency'] == 0:
+                inverse_roots[:] = [
+                    self.inverse_root(statistic, 2 if one_sided else 4, group) for statistic in statistics
+                ]
 
             update = inverse_roots[0][:batch] @ grad
             if not one_sided:
@@ -270,28 +286,36 @@ class DASH(BaseOptimizer):
 
         for group in self.param_groups:
             self.init_group(group)
+            group['step'] += 1
+
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 state = self.state[p]
-                state['step'] += 1
+
                 grad = p.grad.reshape(state['shape'])
-                grad = -grad if self.maximize else grad
+                self.maximize_gradient(grad, self.maximize)
+
                 matrix = p.reshape(state['shape'])
 
                 for (bounds, block), block_state in zip(self.partition(grad, group['block_size']), state['blocks']):
-                    direction = self.update_block(block, block_state, state['step'], state['one_sided'], group)
+                    direction = self.update_block(block, block_state, state['one_sided'], group)
+
                     row, col, rows, cols = bounds
+
                     height, width = block.shape[1:]
+
                     direction = direction.to(p.dtype).reshape(rows // height, cols // width, height, width)
                     direction = direction.transpose(1, 2)
+
                     region = matrix[row : row + rows, col : col + cols]
                     region = region.view(rows // height, height, cols // width, width)
 
                     self.apply_weight_decay(
                         region, None, group['lr'], group['weight_decay'], weight_decouple=True, fixed_decay=False
                     )
+
                     region.add_(direction, alpha=-group['lr'])
 
                 if matrix.data_ptr() != p.data_ptr():

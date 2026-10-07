@@ -53,13 +53,15 @@ def test_batched_power_iteration(vectors, dtype, device):
     torch.testing.assert_close(matrices, original, atol=0.0, rtol=0.0)
 
 
-@pytest.mark.parametrize(('num_iters', 'value'), [(1, 0.6875), (3, 0.9752996308188813)])
+@pytest.mark.parametrize(('num_iters', 'value'), [(1, 0.6875), (3, 0.9752996308188813), (20, 1.0)])
 @pytest.mark.parametrize('inverse', [False, True])
 def test_compute_power_newton_db(num_iters, value, inverse, device):
-    matrix = torch.diag(torch.tensor([1.0, 4.0], dtype=torch.float64, device=device)).unsqueeze(0)
+    matrix = torch.tensor([[[2.5, -1.5], [-1.5, 2.5]]], dtype=torch.float64, device=device)
     original = matrix.clone()
     scale = torch.tensor([[[4.0]]], dtype=matrix.dtype, device=device)
-    expected = torch.diag(torch.tensor([value, 0.5 if inverse else 2.0], dtype=matrix.dtype, device=device))
+    other = 0.5 if inverse else 2.0
+    diagonal, off_diagonal = (value + other) / 2.0, (value - other) / 2.0
+    expected = torch.tensor([[diagonal, off_diagonal], [off_diagonal, diagonal]], dtype=matrix.dtype, device=device)
 
     result = compute_power_newton_db(matrix, scale, num_iters, inverse)
 
