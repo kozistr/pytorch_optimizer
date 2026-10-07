@@ -83,6 +83,7 @@ class DASH(BaseOptimizer):
         self.validate_positive(power_iteration_vectors, 'power_iteration_vectors')
 
         self.maximize = maximize
+
         defaults: Defaults = {
             'lr': lr,
             'betas': betas,
