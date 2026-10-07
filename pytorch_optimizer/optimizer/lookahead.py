@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from collections.abc import Callable
 
 import torch
@@ -33,8 +33,9 @@ class Lookahead(BaseOptimizer):
 
         self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
 
-        self._optimizer_step_pre_hooks: dict[int, Callable] = {}
-        self._optimizer_step_post_hooks: dict[int, Callable] = {}
+        self._optimizer_step_pre_hooks: dict[int, Callable] = OrderedDict()
+        self._optimizer_step_post_hooks: dict[int, Callable] = OrderedDict()
+        self._patch_step_function()
 
         self.alpha = alpha
         self.k = k

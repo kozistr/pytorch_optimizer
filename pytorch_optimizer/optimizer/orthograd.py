@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from collections.abc import Callable
 
 import torch
@@ -16,8 +17,9 @@ class OrthoGrad(BaseOptimizer):
     """
 
     def __init__(self, optimizer: OptimizerInstanceOrClass, **kwargs) -> None:
-        self._optimizer_step_pre_hooks: dict[int, Callable] = {}
-        self._optimizer_step_post_hooks: dict[int, Callable] = {}
+        self._optimizer_step_pre_hooks: dict[int, Callable] = OrderedDict()
+        self._optimizer_step_post_hooks: dict[int, Callable] = OrderedDict()
+        self._patch_step_function()
         self.eps: float = 1e-30
 
         self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)

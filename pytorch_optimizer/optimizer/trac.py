@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from collections.abc import Callable, Sequence
 
 import torch
@@ -119,8 +120,9 @@ class TRAC(BaseOptimizer):
         self.validate_non_negative(s_prev, 's_prev')
         self.validate_non_negative(eps, 'eps')
 
-        self._optimizer_step_pre_hooks: dict[int, Callable] = {}
-        self._optimizer_step_post_hooks: dict[int, Callable] = {}
+        self._optimizer_step_pre_hooks: dict[int, Callable] = OrderedDict()
+        self._optimizer_step_post_hooks: dict[int, Callable] = OrderedDict()
+        self._patch_step_function()
 
         self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
 

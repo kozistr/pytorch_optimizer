@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from collections.abc import Callable
 
 import torch
@@ -566,8 +566,9 @@ class ScheduleFreeWrapper(BaseOptimizer):
 
         self.optimizer: Optimizer = self.load_optimizer(optimizer, **kwargs)
 
-        self._optimizer_step_pre_hooks: dict[int, Callable] = {}
-        self._optimizer_step_post_hooks: dict[int, Callable] = {}
+        self._optimizer_step_pre_hooks: dict[int, Callable] = OrderedDict()
+        self._optimizer_step_post_hooks: dict[int, Callable] = OrderedDict()
+        self._patch_step_function()
 
         self.state: State = defaultdict(dict)
         self.defaults: Defaults = self.optimizer.defaults

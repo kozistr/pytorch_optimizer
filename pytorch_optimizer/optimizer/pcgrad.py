@@ -1,4 +1,5 @@
 import random
+from collections import OrderedDict
 from collections.abc import Callable, Iterable
 from copy import deepcopy
 
@@ -31,6 +32,7 @@ class PCGrad(BaseOptimizer):
     """Wrap an optimizer with gradient projection for conflicting task objectives.
 
     Learning rate schedulers and checkpoints use the wrapped optimizer's parameter groups and state.
+    Checkpoint hooks receive the wrapped optimizer.
 
     Args:
         optimizer: Optimizer instance.
@@ -44,9 +46,10 @@ class PCGrad(BaseOptimizer):
         self.optimizer = optimizer
         self.reduction = reduction
 
-        self._optimizer_step_pre_hooks: dict[int, Callable] = {}
-        self._optimizer_step_post_hooks: dict[int, Callable] = {}
+        self._optimizer_step_pre_hooks: dict[int, Callable] = OrderedDict()
+        self._optimizer_step_post_hooks: dict[int, Callable] = OrderedDict()
         self.defaults: Defaults = self.optimizer.defaults
+        self._patch_step_function()
 
     @property
     def param_groups(self):
@@ -64,6 +67,18 @@ class PCGrad(BaseOptimizer):
 
     def load_state_dict(self, state_dict: State) -> None:
         self.optimizer.load_state_dict(state_dict)
+
+    def register_state_dict_pre_hook(self, hook: Callable, prepend: bool = False):
+        return self.optimizer.register_state_dict_pre_hook(hook, prepend=prepend)
+
+    def register_state_dict_post_hook(self, hook: Callable, prepend: bool = False):
+        return self.optimizer.register_state_dict_post_hook(hook, prepend=prepend)
+
+    def register_load_state_dict_pre_hook(self, hook: Callable, prepend: bool = False):
+        return self.optimizer.register_load_state_dict_pre_hook(hook, prepend=prepend)
+
+    def register_load_state_dict_post_hook(self, hook: Callable, prepend: bool = False):
+        return self.optimizer.register_load_state_dict_post_hook(hook, prepend=prepend)
 
     @torch.no_grad()
     def init_group(self):

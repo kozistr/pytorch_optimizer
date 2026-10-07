@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from collections.abc import Callable
 
 import torch
@@ -64,8 +65,9 @@ class Magma(BaseOptimizer):
         self.validate_range(momentum_beta, 'momentum_beta', 0.0, 1.0, range_type='[]')
         self.validate_range(alignment_ema, 'alignment_ema', 0.0, 1.0, range_type='[]')
 
-        self._optimizer_step_pre_hooks: dict[int, Callable] = {}
-        self._optimizer_step_post_hooks: dict[int, Callable] = {}
+        self._optimizer_step_pre_hooks: dict[int, Callable] = OrderedDict()
+        self._optimizer_step_post_hooks: dict[int, Callable] = OrderedDict()
+        self._patch_step_function()
 
         if isinstance(optimizer, Optimizer):
             self.optimizer = optimizer
