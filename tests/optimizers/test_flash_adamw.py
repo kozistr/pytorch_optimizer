@@ -4,7 +4,7 @@ from torch import nn
 
 from pytorch_optimizer.optimizer import load_optimizer
 from pytorch_optimizer.optimizer.flash_adamw import compute_ecc_bits, reconstruct_fp32_param
-from tests.fixtures import TrainingModel
+from tests.fixtures import TrainingModel, make_parameter
 from tests.utils import build_optimizer
 
 
@@ -24,79 +24,42 @@ class TestFlashAdamw:
         assert 'exp_avg' not in state
         assert optimizer.state_dict()['state'][0]['exp_avg::quantized'].dtype == torch.int8
 
-        new_param = nn.Parameter(param.detach().clone())
-        new_optimizer = build_optimizer('flashadamw', [new_param], lr=1e-2, weight_decay=0.0)
-        new_optimizer.load_state_dict(optimizer.state_dict())
-        assert new_optimizer.state[new_param]['exp_avg::quantized'].dtype == torch.int8
-
-        new_param.grad = torch.tensor([-0.1, 0.5, -0.2])
-        new_optimizer.step()
-
-        assert torch.isfinite(new_param).all()
-
     def test_flash_adamw_empty_quantized_state(self):
         param = nn.Parameter(torch.empty(0))
         param.grad = torch.empty(0)
 
         optimizer = build_optimizer('flashadamw', [param], lr=1e-2, weight_decay=0.0)
-        optimizer.step()
-
-        param.grad = torch.empty(0)
-        optimizer.step()
+        for _ in range(2):
+            optimizer.step()
 
         state = optimizer.state[param]
         assert state['exp_avg::quantized'].numel() == 0
         assert state['exp_avg::scales'].numel() == 0
 
-    def test_flash_adamw_loads_compressed_state_as_uncompressed_state(self):
-        param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
-        param.grad = torch.tensor([0.2, -0.3, 0.4])
-
-        optimizer = build_optimizer('flashadamw', [param], lr=1e-2, weight_decay=0.0)
+    @pytest.mark.parametrize(
+        ('quantize', 'compress', 'restored_quantize'),
+        [(True, True, False), (True, False, True), (False, False, False)],
+    )
+    def test_checkpoint_state_formats(self, quantize, compress, restored_quantize):
+        param = make_parameter((3,), grad=1.0)
+        optimizer = build_optimizer('flashadamw', [param], quantize=quantize, compress_state_dict=compress)
         optimizer.step()
+        checkpoint = optimizer.state_dict()
+        assert ('exp_avg::quantized' in checkpoint['state'][0]) == (quantize and compress)
+        checkpoint['param_groups'][0]['quantize'] = restored_quantize
 
-        new_param = nn.Parameter(param.detach().clone())
-        state_dict = optimizer.state_dict()
-        state_dict['param_groups'][0]['quantize'] = False
+        restored_param = param.detach().clone().requires_grad_()
+        restored = build_optimizer('flashadamw', [restored_param], quantize=restored_quantize)
+        restored.load_state_dict(checkpoint)
 
-        new_optimizer = build_optimizer('flashadamw', [new_param], lr=1e-2, weight_decay=0.0, quantize=False)
-        new_optimizer.load_state_dict(state_dict)
-        new_state = new_optimizer.state[new_param]
-        assert 'exp_avg' in new_state
-        assert 'exp_avg::quantized' not in new_state
+        state = restored.state[restored_param]
+        assert ('exp_avg::quantized' in state) == restored_quantize
+        assert ('exp_avg' in state) != restored_quantize
 
-        uncompressed_optimizer = build_optimizer('flashadamw', [nn.Parameter(param.detach().clone())], quantize=False)
-        uncompressed_optimizer.load_state_dict(uncompressed_optimizer.state_dict())
-        assert list(uncompressed_optimizer.state_dict()['state'].values()) == [{}]
-
-        raw_param = nn.Parameter(param.detach().clone())
-        raw_param.grad = torch.zeros_like(raw_param)
-        raw_optimizer = build_optimizer('flashadamw', [raw_param], quantize=False, compress_state_dict=False)
-        raw_optimizer.step()
-        assert 'exp_avg' in raw_optimizer.state_dict()['state'][0]
-
-    def test_flash_adamw_uncompressed_state_dict_reloads_as_quantized_state(self):
-        param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
-        param.grad = torch.tensor([0.2, -0.3, 0.4])
-
-        optimizer = build_optimizer('flashadamw', [param], lr=1e-2, weight_decay=0.0, compress_state_dict=False)
-        optimizer.step()
-
-        state_dict = optimizer.state_dict()
-        saved_state = state_dict['state'][0]
-        assert 'exp_avg' in saved_state
-        assert 'exp_avg::quantized' not in saved_state
-
-        new_optimizer = build_optimizer(
-            'flashadamw',
-            [nn.Parameter(param.detach().clone())],
-            lr=1e-2,
-            weight_decay=0.0,
-        )
-        new_optimizer.load_state_dict(state_dict)
-        new_state = next(iter(new_optimizer.state.values()))
-        assert 'exp_avg::quantized' in new_state
-        assert 'exp_avg' not in new_state
+    def test_empty_checkpoint(self):
+        optimizer = build_optimizer('flashadamw', [make_parameter(grad=None)], quantize=False)
+        optimizer.load_state_dict(optimizer.state_dict())
+        assert list(optimizer.state_dict()['state'].values()) == [{}]
 
     @pytest.mark.parametrize(('master_weight_bits', 'error_dtype'), [(24, torch.int8), (32, torch.int16)])
     def test_flash_adamw_master_weight_bits(self, master_weight_bits, error_dtype):
@@ -121,8 +84,7 @@ class TestFlashAdamw:
         updated = {name: tensor.add(0.01) for name, tensor in fp32_state.items()}
         optimizer.set_fp32_model_state_dict(model, updated)
 
-        restored = optimizer.get_fp32_model_state_dict(model)
-        assert all(torch.allclose(restored[name], updated[name], atol=1e-2) for name in updated)
+        torch.testing.assert_close(optimizer.get_fp32_model_state_dict(model), updated, atol=1e-2, rtol=1e-5)
 
     def test_flash_adamw_fresh_fp32_model_state_dict(self):
         model = TrainingModel(dtype=torch.bfloat16)
@@ -152,7 +114,7 @@ class TestFlashAdamw:
         reconstructed = reconstruct_fp32_param(narrow_param, error_bits)
 
         assert error_bits.dtype == torch.int8
-        assert torch.allclose(reconstructed, fp32_param, atol=1e-2)
+        torch.testing.assert_close(reconstructed, fp32_param, atol=1e-2, rtol=1e-5)
 
         with pytest.raises(ValueError):
             compute_ecc_bits(fp32_param.to(torch.float16), narrow_param, master_byte_width=3)

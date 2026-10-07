@@ -18,15 +18,11 @@ INVALID_OPTIMIZER_NAMES: tuple[str, ...] = (
 )
 
 
-INVALID_LR_SCHEDULER_NAMES = ['dummy']
-
-
-@pytest.mark.parametrize('components', [OPTIMIZER_LIST, LOSS_FUNCTION_LIST, list(LR_SCHEDULER_LIST.values())])
-def test_top_level_component_exports(components):
+def test_top_level_component_exports():
     namespace = {}
     exec('from pytorch_optimizer import *', namespace)  # noqa: S102
 
-    for component in components:
+    for component in (*OPTIMIZER_LIST, *LOSS_FUNCTION_LIST, *LR_SCHEDULER_LIST.values()):
         assert getattr(pytorch_optimizer, component.__name__) is component
         assert namespace[component.__name__] is component
 
@@ -39,18 +35,15 @@ def test_load_optimizer_invalid(invalid_optimizer_names):
         load_optimizer(invalid_optimizer_names)
 
 
-@pytest.mark.parametrize('invalid_lr_scheduler_names', INVALID_LR_SCHEDULER_NAMES)
-def test_load_lr_scheduler_invalid(invalid_lr_scheduler_names):
+def test_load_lr_scheduler_invalid():
     with pytest.raises(NotImplementedError):
-        load_lr_scheduler(invalid_lr_scheduler_names)
+        load_lr_scheduler('dummy')
 
 
 def test_get_supported_optimizers():
     supported = get_supported_optimizers()
 
-    assert supported == sorted(set(supported))
-    assert set(supported) == {optimizer.__name__.lower() for optimizer in OPTIMIZER_LIST}
-    assert len(supported) == len(OPTIMIZER_LIST)
+    assert supported == sorted(optimizer.__name__.lower() for optimizer in OPTIMIZER_LIST)
     for name in supported:
         assert load_optimizer(name).__name__.lower() == name
 
@@ -65,9 +58,7 @@ def test_get_supported_optimizers():
 def test_get_supported_lr_schedulers():
     supported = get_supported_lr_schedulers()
 
-    assert supported == sorted(set(supported))
-    assert set(supported) == {str(name).lower() for name in LR_SCHEDULER_LIST}
-    assert len(supported) == len(LR_SCHEDULER_LIST)
+    assert supported == sorted(str(name).lower() for name in LR_SCHEDULER_LIST)
     for name, scheduler in LR_SCHEDULER_LIST.items():
         assert load_lr_scheduler(str(name)) is scheduler
 
@@ -82,9 +73,7 @@ def test_get_supported_lr_schedulers():
 def test_get_supported_loss_functions():
     supported = get_supported_loss_functions()
 
-    assert supported == sorted(set(supported))
-    assert set(supported) == {loss_function.__name__.lower() for loss_function in LOSS_FUNCTION_LIST}
-    assert len(supported) == len(LOSS_FUNCTION_LIST)
+    assert supported == sorted(loss_function.__name__.lower() for loss_function in LOSS_FUNCTION_LIST)
     for loss_function in LOSS_FUNCTION_LIST:
         assert LOSS_FUNCTIONS[loss_function.__name__.lower()] is loss_function
 

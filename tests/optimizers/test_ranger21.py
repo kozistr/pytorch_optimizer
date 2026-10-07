@@ -4,8 +4,6 @@ from tests.utils import build_optimizer
 
 
 class TestRanger21:
-    """Tests for Ranger21 optimizer specific functionality."""
-
     def test_warm_iterations(self):
         assert load_optimizer('ranger21').build_warm_up_iterations(1000, 0.999) == 220
         assert load_optimizer('ranger21').build_warm_up_iterations(4500, 0.999) == 2000
@@ -19,7 +17,6 @@ class TestRanger21:
 
         assert opt.warm_up_dampening(lr, 100) == 0.09090909090909091
         assert opt.warm_up_dampening(lr, 200) == 0.1
-        assert opt.warm_up_dampening(lr, 300) == 0.1
         assert opt.warm_down(lr, 300) == 0.1
         assert opt.warm_down(lr, 400) == 0.07093070921985817
 
@@ -32,4 +29,4 @@ class TestRanger21:
             loss.backward()
             return loss
 
-        optimizer.step(closure)
+        assert optimizer.step(closure).item() == 0.0

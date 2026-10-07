@@ -26,6 +26,8 @@ class TestSoap:
         for _ in range(2):
             optimizer.step()
 
+        torch.testing.assert_close(parameters, [torch.zeros_like(param) for param in parameters])
+
     def test_soap_merge_dims_channel_last(self):
         param = make_parameter((1, 1, 2, 2), grad=1.0)
         optimizer = build_optimizer(

@@ -53,10 +53,6 @@ def ids(v) -> str:
     return f'{v[0]}_{v[1:]}'
 
 
-def tensor_to_numpy(x: torch.Tensor) -> np.ndarray:
-    return x.detach().cpu().numpy()
-
-
 def sphere_loss(x: torch.Tensor) -> torch.Tensor:
     return x.pow(2).sum()
 
@@ -125,21 +121,16 @@ class Trainer:
 
     def assert_loss_decreased(
         self,
-        init_loss: torch.Tensor,
+        init_loss: float,
         final_loss: torch.Tensor,
         threshold: float,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> None:
         for p in self.model.parameters():
             assert torch.isfinite(p).all(), 'Model parameters became nonfinite during training'
 
-        init_loss_np = tensor_to_numpy(init_loss)
-        final_loss_np = tensor_to_numpy(final_loss)
-
-        assert init_loss_np > threshold * final_loss_np, (
-            f'Loss did not decrease enough: {init_loss_np:.4f} > {threshold} * {final_loss_np:.4f}'
+        assert init_loss > threshold * final_loss.item(), (
+            f'Loss did not decrease enough: {init_loss:.4f} > {threshold} * {final_loss.item():.4f}'
         )
-
-        return init_loss_np, final_loss_np
 
     def run(
         self,
@@ -148,15 +139,16 @@ class Trainer:
         closure_fn=None,
         threshold: float = 1.5,
         use_amp: bool = False,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        init_loss, loss = None, None
+    ) -> None:
+        init_loss = None
         for _ in range(iterations):
             self.optimizer.zero_grad()
 
             with torch.autocast(self.x_data.device.type, dtype=torch.bfloat16, enabled=use_amp):
                 loss = self.compute_loss()
 
-            init_loss = init_loss or loss
+            if init_loss is None:
+                init_loss = loss.item()
 
             if create_graph:
                 parameters = [p for p in self.model.parameters() if p.requires_grad]
@@ -171,10 +163,10 @@ class Trainer:
             else:
                 self.optimizer.step()
 
-        return self.assert_loss_decreased(init_loss, loss, threshold)
+        self.assert_loss_decreased(init_loss, loss, threshold)
 
-    def run_sam_style(self, iterations: int = 3, threshold: float = 2.0) -> tuple[np.ndarray, np.ndarray]:
-        init_loss, loss = None, None
+    def run_sam_style(self, iterations: int = 3, threshold: float = 2.0) -> None:
+        init_loss = None
         for _ in range(iterations):
             loss = self.compute_loss(swap_args=True)
             loss.backward()
@@ -183,17 +175,18 @@ class Trainer:
             self.compute_loss(swap_args=True).backward()
             self.optimizer.second_step(zero_grad=True)
 
-            init_loss = init_loss or loss
+            if init_loss is None:
+                init_loss = loss.item()
 
-        return self.assert_loss_decreased(init_loss, loss, threshold)
+        self.assert_loss_decreased(init_loss, loss, threshold)
 
-    def run_with_closure(self, iterations: int = 3, threshold: float = 2.0) -> tuple[np.ndarray, np.ndarray]:
+    def run_with_closure(self, iterations: int = 3, threshold: float = 2.0) -> None:
         def closure():
             first_loss = self.compute_loss(swap_args=True)
             first_loss.backward()
             return first_loss
 
-        init_loss, loss = None, None
+        init_loss = None
         for _ in range(iterations):
             loss = self.compute_loss(swap_args=True)
             loss.backward()
@@ -201,32 +194,32 @@ class Trainer:
             self.optimizer.step(closure)
             self.optimizer.zero_grad()
 
-            init_loss = init_loss or loss
+            if init_loss is None:
+                init_loss = loss.item()
 
-        return self.assert_loss_decreased(init_loss, loss, threshold)
+        self.assert_loss_decreased(init_loss, loss, threshold)
 
-    def run_wsam_with_closure(self, iterations: int = 10, threshold: float = 1.5) -> tuple[np.ndarray, np.ndarray]:
+    def run_wsam_with_closure(self, iterations: int = 10, threshold: float = 1.5) -> None:
         def closure():
             _loss = self.compute_loss()
             _loss.backward()
             return _loss
 
-        init_loss, loss = None, None
+        init_loss = None
         for _ in range(iterations):
             loss = self.optimizer.step(closure)
             self.optimizer.zero_grad()
 
-            init_loss = init_loss or loss
+            if init_loss is None:
+                init_loss = loss.item()
 
-        return self.assert_loss_decreased(init_loss, loss, threshold)
+        self.assert_loss_decreased(init_loss, loss, threshold)
 
 
-class LRSchedulerAssertions:
-    @staticmethod
-    def assert_lr_sequence(scheduler, expected_lrs, decimals: int = 7) -> None:
-        for expected_lr in expected_lrs:
-            if isinstance(scheduler, LRScheduler):
-                scheduler.optimizer.step()
-            scheduler.step()
-            lr = scheduler.get_lr() if hasattr(scheduler, 'last_lr') else scheduler.get_last_lr()
-            np.testing.assert_almost_equal(expected_lr, lr, decimals)
+def assert_lr_sequence(scheduler, expected_lrs, decimals: int = 7) -> None:
+    for expected_lr in expected_lrs:
+        if isinstance(scheduler, LRScheduler):
+            scheduler.optimizer.step()
+        scheduler.step()
+        lr = scheduler.get_lr() if hasattr(scheduler, 'last_lr') else scheduler.get_last_lr()
+        np.testing.assert_almost_equal(expected_lr, lr, decimals)

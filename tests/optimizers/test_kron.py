@@ -33,9 +33,7 @@ def test_kron_optimizer(probability):
 class TestPSGDUtils:
     def test_damped_pair_vg(self):
         x = torch.zeros(2)
-        y = damped_pair_vg(x)[1]
-
-        torch.testing.assert_close(x, y)
+        torch.testing.assert_close(damped_pair_vg(x)[1], x)
 
     def test_norm_lower_bound(self):
         x = torch.zeros(1)
@@ -53,6 +51,7 @@ class TestPSGDUtils:
     def test_woodbury_identity(self):
         x = torch.FloatTensor([[1]])
         woodbury_identity(x, x, x)
+        torch.testing.assert_close(x, torch.tensor([[0.5]]))
 
     def test_triu_with_diagonal_and_above(self):
         x = torch.FloatTensor([[1, 2], [3, 4]])
@@ -61,12 +60,7 @@ class TestPSGDUtils:
 
     def test_update_precondition_dense(self):
         q = torch.FloatTensor([[1]])
-        dxs = [q] * 1
-        dgs = [q] * 1
-
-        y = update_precondition_dense(q, dxs, dgs)
-
-        torch.testing.assert_close(y, q)
+        torch.testing.assert_close(update_precondition_dense(q, [q], [q]), q)
 
     def test_initialize_q_expressions(self):
         x = torch.zeros(1)

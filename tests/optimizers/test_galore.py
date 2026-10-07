@@ -7,8 +7,6 @@ from tests.utils import build_optimizer
 
 
 class TestGaLoreProjector:
-    """Tests for GaLore projector methods."""
-
     @pytest.fixture
     def sample_tensor(self):
         return torch.tensor([[1.0, 2.0], [3.0, 4.0]], dtype=torch.float32)
@@ -39,9 +37,11 @@ class TestGaLoreProjector:
         with pytest.raises(ValueError):
             full_projector.project_back(sample_tensor)
 
-    def test_left_projection_with_random_matrix(self, sample_tensor):
-        projector = GaLoreProjector(projection_type='left', rank=1)
-        projector.get_orthogonal_matrix(sample_tensor, projection_type='left', from_random_matrix=True)
+    def test_left_projection_with_random_matrix(self, sample_tensor, monkeypatch):
+        monkeypatch.setattr(torch, 'randn', torch.ones)
+        projector = GaLoreProjector(projection_type='left', rank=2)
+        basis = projector.get_orthogonal_matrix(sample_tensor, projection_type='left', from_random_matrix=True)
+        torch.testing.assert_close(basis, torch.full_like(sample_tensor, 2.0**-0.5))
 
     def test_left_projection_without_rank(self, sample_tensor):
         projector = GaLoreProjector(projection_type='left', rank=None)

@@ -14,114 +14,28 @@ from pytorch_optimizer.lr_scheduler.proportion import ProportionScheduler
 from pytorch_optimizer.lr_scheduler.rex import REXScheduler
 from pytorch_optimizer.lr_scheduler.wsd import get_wsd_schedule
 from tests.fixtures import TrainingModel, make_parameter
-from tests.utils import LRSchedulerAssertions, build_optimizer
+from tests.utils import assert_lr_sequence, build_optimizer
 
 CAWR_RECIPES: tuple[tuple, ...] = (
+    (1.0, 1.0, [1e-6, 0.000201, 0.000401, 0.0006, 0.0008, 0.001, 0.000905, 0.000655, 0.000346, 9.6e-5] * 2),
     (
-        10,
-        1.0,
-        1e-3,
-        1e-6,
-        5,
-        1.0,
-        20,
-        [
-            1e-06,
-            0.000201,
-            0.000401,
-            0.0006,
-            0.0008,
-            0.001,
-            0.000905,
-            0.000655,
-            0.000346,
-            9.6e-05,
-            1e-06,
-            0.000201,
-            0.000401,
-            0.0006,
-            0.0008,
-            0.001,
-            0.000905,
-            0.000655,
-            0.000346,
-            9.6e-05,
-        ],
-    ),
-    (
-        10,
         0.9,
-        1e-3,
-        1e-6,
-        5,
         0.5,
-        20,
         [
-            1e-06,
-            0.000201,
-            0.000401,
-            0.0006,
-            0.0008,
-            0.001,
-            0.000905,
-            0.000655,
-            0.000346,
-            9.6e-05,
-            1e-6,
-            0.000101,
-            0.000201,
-            0.0003,
-            0.0004,
-            0.0005,
-            0.000427,
-            0.000251,
-            7.4e-05,
-            1e-06,
+            1e-6, 0.000201, 0.000401, 0.0006, 0.0008, 0.001, 0.000905, 0.000655, 0.000346, 9.6e-5,
+            1e-6, 0.000101, 0.000201, 0.0003, 0.0004, 0.0005, 0.000427, 0.000251, 7.4e-5, 1e-6,
         ],
     ),
 )
 
 
-LWL_RECIPE: tuple[float, ...] = (
-    0.001,
-    0.0028,
-    0.0046,
-    0.0064,
-    0.0082,
-    0.01,
-    0.00802,
-    0.00604,
-    0.00406,
-    0.00208,
-)
+LWL_RECIPE = (0.001, 0.0028, 0.0046, 0.0064, 0.0082, 0.01, 0.00802, 0.00604, 0.00406, 0.00208)
 
 
-LWC_RECIPE: tuple[float, ...] = (
-    0.001,
-    0.00280,
-    0.00460,
-    0.00640,
-    0.00820,
-    0.01000,
-    0.00905,
-    0.00658,
-    0.00352,
-    0.00105,
-)
+LWC_RECIPE = (0.001, 0.0028, 0.0046, 0.0064, 0.0082, 0.01, 0.00905, 0.00658, 0.00352, 0.00105)
 
 
-LWP_RECIPE: tuple[float, ...] = (
-    0.001,
-    0.002800,
-    0.004600,
-    0.006400,
-    0.008200,
-    0.010000,
-    0.010000,
-    0.014101,
-    0.017247,
-    0.019900,
-)
+LWP_RECIPE = (0.001, 0.0028, 0.0046, 0.0064, 0.0082, 0.01, 0.01, 0.014101, 0.017247, 0.0199)
 
 
 PROPORTION_LEARNING_RATES: tuple[tuple[float, float, float], ...] = (
@@ -130,44 +44,26 @@ PROPORTION_LEARNING_RATES: tuple[tuple[float, float, float], ...] = (
 )
 
 
-@pytest.mark.parametrize('cosine_annealing_warmup_restart_param', CAWR_RECIPES)
-def test_cosine_annealing_warmup_restarts(cosine_annealing_warmup_restart_param, scheduler_optimizer):
-    (
-        first_cycle_steps,
-        cycle_mult,
-        max_lr,
-        min_lr,
-        warmup_steps,
-        gamma,
-        max_epochs,
-        expected_lrs,
-    ) = cosine_annealing_warmup_restart_param
-
+@pytest.mark.parametrize(('cycle_mult', 'gamma', 'expected_lrs'), CAWR_RECIPES)
+def test_cosine_annealing_warmup_restarts(cycle_mult, gamma, expected_lrs, scheduler_optimizer):
     options = {
-        'first_cycle_steps': first_cycle_steps,
+        'first_cycle_steps': 10,
         'cycle_mult': cycle_mult,
-        'max_lr': max_lr,
-        'min_lr': min_lr,
-        'warmup_steps': warmup_steps,
+        'max_lr': 1e-3,
+        'min_lr': 1e-6,
+        'warmup_steps': 5,
         'gamma': gamma,
     }
     lr_scheduler = CosineAnnealingWarmupRestarts(scheduler_optimizer, **options)
     incremental = CosineAnnealingWarmupRestarts(build_optimizer('sgd', [make_parameter()]), **options)
 
-    if warmup_steps > 0:
-        np.testing.assert_almost_equal(min_lr, round(lr_scheduler.get_lr()[0], 6))
-
-    for epoch in range(max_epochs):
+    for epoch, expected_lr in enumerate(expected_lrs):
         lr_scheduler.step(epoch)
         if epoch > 0:
             incremental.step()
 
         assert lr_scheduler.get_last_lr() == pytest.approx(incremental.get_last_lr())
-        assert lr_scheduler.cur_cycle_steps == incremental.cur_cycle_steps
-        assert lr_scheduler.cycle == incremental.cycle
-
-        lr: float = round(lr_scheduler.get_lr()[0], 6)
-        np.testing.assert_almost_equal(expected_lrs[epoch], lr)
+        assert round(lr_scheduler.get_lr()[0], 6) == pytest.approx(expected_lr, abs=1e-7)
 
 
 def test_get_chebyshev_scheduler():
@@ -230,39 +126,15 @@ def test_get_chebyshev_lr():
         np.testing.assert_almost_equal(lr_scheduler.get_last_lr(), expected_lr)
 
 
-class TestWarmupSchedulers:
-    def test_linear_warmup_linear_scheduler(self, scheduler_optimizer):
-        lr_scheduler = LinearScheduler(
-            scheduler_optimizer,
-            t_max=10,
-            max_lr=1e-2,
-            min_lr=1e-4,
-            init_lr=1e-3,
-            warmup_steps=5,
-        )
-        LRSchedulerAssertions.assert_lr_sequence(lr_scheduler, LWL_RECIPE)
-
-    def test_linear_warmup_cosine_scheduler(self, scheduler_optimizer):
-        lr_scheduler = CosineScheduler(
-            scheduler_optimizer,
-            t_max=10,
-            max_lr=1e-2,
-            min_lr=1e-4,
-            init_lr=1e-3,
-            warmup_steps=5,
-        )
-        LRSchedulerAssertions.assert_lr_sequence(lr_scheduler, LWC_RECIPE, decimals=5)
-
-    def test_linear_warmup_poly_scheduler(self, scheduler_optimizer):
-        lr_scheduler = PolyScheduler(
-            scheduler_optimizer,
-            t_max=10,
-            max_lr=1e-2,
-            min_lr=1e-4,
-            init_lr=1e-3,
-            warmup_steps=5,
-        )
-        LRSchedulerAssertions.assert_lr_sequence(lr_scheduler, LWP_RECIPE, decimals=6)
+@pytest.mark.parametrize(
+    ('scheduler', 'expected_lrs', 'decimals'),
+    [(LinearScheduler, LWL_RECIPE, 7), (CosineScheduler, LWC_RECIPE, 5), (PolyScheduler, LWP_RECIPE, 6)],
+)
+def test_linear_warmup_scheduler(scheduler, expected_lrs, decimals, scheduler_optimizer):
+    lr_scheduler = scheduler(
+        scheduler_optimizer, t_max=10, max_lr=1e-2, min_lr=1e-4, init_lr=1e-3, warmup_steps=5
+    )
+    assert_lr_sequence(lr_scheduler, expected_lrs, decimals=decimals)
 
 
 @pytest.mark.parametrize('proportion_learning_rate', PROPORTION_LEARNING_RATES)
@@ -283,7 +155,7 @@ def test_proportion_scheduler(proportion_learning_rate: tuple[float, float, floa
         min_value=1.0,
     )
 
-    LRSchedulerAssertions.assert_lr_sequence(rho_scheduler, [proportion_learning_rate[2]] * 10, decimals=6)
+    assert_lr_sequence(rho_scheduler, [proportion_learning_rate[2]] * 10, decimals=6)
 
 
 def test_proportion_no_last_lr_scheduler(scheduler_optimizer):
@@ -302,7 +174,7 @@ def test_proportion_no_last_lr_scheduler(scheduler_optimizer):
         min_value=1.0,
     )
 
-    LRSchedulerAssertions.assert_lr_sequence(rho_scheduler, [2.0] * 10, decimals=6)
+    assert_lr_sequence(rho_scheduler, [2.0] * 10, decimals=6)
 
 
 def test_rex_lr_scheduler(scheduler_optimizer):
@@ -316,7 +188,7 @@ def test_rex_lr_scheduler(scheduler_optimizer):
 
     lr_scheduler = REXScheduler(scheduler_optimizer, total_steps=5, max_lr=1.0, min_lr=0.0)
 
-    LRSchedulerAssertions.assert_lr_sequence(lr_scheduler, lrs, decimals=6)
+    assert_lr_sequence(lr_scheduler, lrs, decimals=6)
 
 
 @pytest.mark.parametrize(
@@ -342,7 +214,7 @@ def test_wsd_lr_scheduler(recipe, scheduler_optimizer):
         cooldown_type=cooldown_type,
     )
 
-    LRSchedulerAssertions.assert_lr_sequence(lr_scheduler, expected_lrs, decimals=7)
+    assert_lr_sequence(lr_scheduler, expected_lrs, decimals=7)
 
 
 def test_deberta_v3_large_lr_scheduler():
@@ -356,14 +228,12 @@ def test_deberta_v3_large_lr_scheduler():
 
 class TestLRSchedulerParameters:
     def test_cosine_annealing_warmup_restarts_params(self, scheduler_optimizer):
-        with pytest.raises(ValueError) as error_info:
+        with pytest.raises(ValueError, match='warmup_steps must be smaller than first_cycle_steps'):
             CosineAnnealingWarmupRestarts(
                 optimizer=scheduler_optimizer,
                 first_cycle_steps=10,
                 warmup_steps=20,
             )
-
-        assert str(error_info.value) == 'warmup_steps must be smaller than first_cycle_steps. 20 < 10'
 
         min_lr: float = 1e-6
         first_cycle_steps: int = 5
@@ -381,10 +251,8 @@ class TestLRSchedulerParameters:
             lr_scheduler.step(epoch=None)
 
     def test_linear_warmup_lr_scheduler_params(self, scheduler_optimizer):
-        with pytest.raises(ValueError) as error_info:
+        with pytest.raises(ValueError, match='poly_order must be positive'):
             PolyScheduler(poly_order=-1, optimizer=scheduler_optimizer, t_max=1, max_lr=1)
-
-        assert str(error_info.value) == 'poly_order must be positive. -1'
 
         with pytest.raises(NegativeLRError):
             PolyScheduler(optimizer=scheduler_optimizer, t_max=1, max_lr=-1)

@@ -57,21 +57,15 @@ class TestShampooUtils:
 
     def test_pre_conditioner(self):
         var = torch.zeros((16, 4))
-        grad = torch.zeros((16, 4))
 
         pre_conditioner = PreConditioner(var, 0.9, 0, 4, 1, 64, True, 0)
-        pre_conditioner.add_statistics(grad)
+        pre_conditioner.add_statistics(torch.zeros_like(var))
         statistics = [statistic.clone() for statistic in pre_conditioner.statistics]
         pre_conditioner.compute_pre_conditioners()
 
         for statistic, original in zip(pre_conditioner.statistics, statistics):
             torch.testing.assert_close(statistic, original, rtol=0.0, atol=0.0)
 
-    @pytest.mark.parametrize('pre_conditioner_type', [0, 1, 2, 3])
-    def test_pre_conditioner_type(self, pre_conditioner_type):
-        var = torch.zeros((4, 4, 32))
-        if pre_conditioner_type in (0, 1, 2):
-            PreConditioner(var, 0.9, 0, 128, 1, 8192, True, pre_conditioner_type=pre_conditioner_type)
-        else:
-            with pytest.raises(ValueError):
-                PreConditioner(var, 0.9, 0, 128, 1, 8192, True, pre_conditioner_type=pre_conditioner_type)
+    def test_invalid_pre_conditioner_type(self):
+        with pytest.raises(ValueError):
+            PreConditioner(torch.zeros((4, 4, 32)), 0.9, 0, 128, 1, 8192, True, pre_conditioner_type=3)

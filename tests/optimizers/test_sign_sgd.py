@@ -17,7 +17,7 @@ class TestSignSgd:
         param.grad = torch.tensor([-0.1])
         optimizer.step()
 
-        assert torch.allclose(optimizer.state[param]['momentum_buffer'], torch.tensor([0.08]))
+        torch.testing.assert_close(optimizer.state[param]['momentum_buffer'], torch.tensor([0.08]))
 
     @pytest.mark.parametrize('foreach', [False, True])
     @pytest.mark.parametrize(
@@ -38,7 +38,7 @@ class TestSignSgd:
         param.grad = torch.tensor([0.0])
         optimizer.step()
 
-        assert torch.allclose(param, torch.tensor([expected]))
+        torch.testing.assert_close(param, torch.tensor([expected]))
 
     @pytest.mark.parametrize(('optimizer_name', 'kwargs'), [('signsgd', {'momentum': 0.1}), ('tiger', {'beta': 0.1})])
     def test_sign_based_foreach_parity(self, optimizer_name, kwargs):

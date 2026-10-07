@@ -73,7 +73,7 @@ class TestCapabilityDetection:
 
         monkeypatch.setattr(torch.optim.SGD, 'step', random_step)
 
-        torch_state = torch.random.get_rng_state().clone()
+        torch_state = torch.random.get_rng_state()
         numpy_state = np.random.get_state()
 
         assert supports_gradient('sgd', kind)

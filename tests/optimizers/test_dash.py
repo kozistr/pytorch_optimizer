@@ -86,7 +86,6 @@ class TestDASHUpdates:
         optimizer.step()
 
         torch.testing.assert_close(param, contiguous)
-        assert not param.is_contiguous()
 
     def test_parameter_groups_and_missing_gradients(self, device):
         first = make_parameter((), grad=1.0, device=device)

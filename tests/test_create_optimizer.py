@@ -21,7 +21,7 @@ def ignore_factory_warnings():
 
 
 def _get_optimizer_kwargs(optimizer_name):
-    kwargs = {'eps': 1e-8, 'k': 7}
+    kwargs = {}
     if optimizer_name == 'ranger21':
         kwargs['num_iterations'] = 1
     elif optimizer_name == 'bsam':
@@ -55,8 +55,6 @@ class TestCreateOptimizer:
         optimizer = create_optimizer(
             TrainingModel(),
             optimizer_name=optimizer_name,
-            use_lookahead=False,
-            use_orthograd=False,
             **_get_optimizer_kwargs(optimizer_name),
         )
 
@@ -69,7 +67,6 @@ class TestCreateOptimizer:
             TrainingModel(),
             optimizer_name=optimizer_name,
             use_lookahead=True,
-            use_orthograd=False,
             **_get_optimizer_kwargs(optimizer_name),
         )
 
@@ -79,9 +76,7 @@ class TestCreateOptimizer:
         optimizer = create_optimizer(
             TrainingModel(),
             optimizer_name='adamp',
-            use_lookahead=False,
             use_orthograd=True,
-            **_get_optimizer_kwargs('adamp'),
         )
 
         assert isinstance(optimizer, OrthoGrad)
@@ -155,8 +150,6 @@ class TestCreateOptimizer:
                 torch.testing.assert_close(
                     optimizer.state[parameter]['exp_avg_sq'], torch.full_like(parameter, 0.494140625)
                 )
-
-        torch.testing.assert_close(lr, torch.tensor(0.03))
 
 
 class TestOptionalIntegrations:

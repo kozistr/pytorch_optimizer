@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 import torch
 from torch import nn
-from torch.nn.functional import binary_cross_entropy_with_logits
 
 from pytorch_optimizer.optimizer import get_optimizer_parameters, load_optimizer
 from pytorch_optimizer.optimizer.utils import (
@@ -22,7 +21,6 @@ from pytorch_optimizer.optimizer.utils import (
     unit_norm,
 )
 from tests.fixtures import TrainingModel, make_parameter
-from tests.utils import build_optimizer
 
 
 class TestVersionUtils:
@@ -31,10 +29,7 @@ class TestVersionUtils:
             parse_pytorch_version('a.s.d.f')
 
     def test_parse_version(self):
-        pytorch_version: list[int] = parse_pytorch_version(torch.__version__)
-
-        assert len(pytorch_version) == 3
-        assert pytorch_version == [2, 14, 0]
+        assert parse_pytorch_version('2.14.0+cpu') == [2, 14, 0]
 
     def test_compare_versions(self):
         assert compare_versions('2.9.1', '2.4.0') >= 0
@@ -57,26 +52,14 @@ class TestGradientUtils:
 
         torch.testing.assert_close(gradient, expected)
 
-    def test_normalized_gradient(self):
-        x = torch.arange(0, 10, dtype=torch.float32)
-        normalize_gradient(x)
+    @pytest.mark.parametrize('use_channels', [False, True])
+    def test_normalized_gradient(self, use_channels):
+        gradient = torch.arange(10.0).view(1, 10)
+        expected = gradient / gradient.std()
 
-        np.testing.assert_allclose(
-            x.numpy(),
-            np.asarray([0.0000, 0.3303, 0.6606, 0.9909, 1.3212, 1.6514, 1.9817, 2.3120, 2.6423, 2.9726]),
-            rtol=1e-4,
-            atol=1e-4,
-        )
+        normalize_gradient(gradient, use_channels=use_channels)
 
-        x = torch.arange(0, 10, dtype=torch.float32)
-        normalize_gradient(x.view(1, 10), use_channels=True)
-
-        np.testing.assert_allclose(
-            x.numpy(),
-            np.asarray([0.0000, 0.3303, 0.6606, 0.9909, 1.3212, 1.6514, 1.9817, 2.3120, 2.6423, 2.9726]),
-            rtol=1e-4,
-            atol=1e-4,
-        )
+        torch.testing.assert_close(gradient, expected)
 
     def test_clip_grad_norm(self):
         x = torch.arange(0, 10, dtype=torch.float32, requires_grad=True)
@@ -93,39 +76,24 @@ class TestGradientUtils:
 
 
 class TestNormUtils:
-    def test_unit_norm(self):
-        x = torch.arange(0, 10, dtype=torch.float32)
-
-        np.testing.assert_approx_equal(unit_norm(x).numpy(), 16.8819, significant=5)
-        np.testing.assert_approx_equal(unit_norm(x.view(1, 10)).numpy().reshape(-1)[0], 16.8819, significant=5)
-        np.testing.assert_approx_equal(unit_norm(x.view(1, 10, 1, 1)).numpy().reshape(-1)[0], 16.8819, significant=5)
-        np.testing.assert_approx_equal(
-            unit_norm(x.view(1, 10, 1, 1, 1, 1)).numpy().reshape(-1)[0], 16.8819, significant=5
-        )
+    @pytest.mark.parametrize('shape', [(10,), (1, 10), (1, 10, 1, 1), (1, 10, 1, 1, 1, 1)])
+    def test_unit_norm(self, shape):
+        x = torch.arange(10.0).view(shape)
+        torch.testing.assert_close(unit_norm(x).squeeze(), torch.tensor(285.0**0.5))
 
 
 class TestParameterUtils:
-    def test_get_optimizer_parameters(self):
-        model: nn.Module = TrainingModel()
-        wd_ban_list: list[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight', 'LayerNorm']
+    @pytest.mark.parametrize('use_model', [False, True])
+    def test_get_optimizer_parameters(self, use_model):
+        model = TrainingModel()
+        parameters = model if use_model else list(model.named_parameters())
+        groups = get_optimizer_parameters(parameters, weight_decay=1e-3)
 
-        before_parameters = list(model.named_parameters())
-
-        _ = get_optimizer_parameters(before_parameters, weight_decay=1e-3, wd_ban_list=wd_ban_list)
-        after_parameters = get_optimizer_parameters(model, weight_decay=1e-3, wd_ban_list=wd_ban_list)
-
-        for before, after in zip(before_parameters, after_parameters):
-            layer_name: str = before[0]
-            if layer_name.find('bias') != -1 or layer_name.find('LayerNorm') != -1:
-                assert after['weight_decay'] == 0.0
-
-    def test_is_valid_parameters(self):
-        model: nn.Module = TrainingModel()
-        wd_ban_list: list[str] = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-
-        after_parameters = get_optimizer_parameters(model, weight_decay=1e-3, wd_ban_list=wd_ban_list)
-
-        assert is_valid_parameters(after_parameters)
+        assert is_valid_parameters(groups)
+        assert [group['weight_decay'] for group in groups] == [1e-3, 0.0]
+        assert [[id(param) for param in group['params']] for group in groups] == [
+            [id(model.fc1.weight), id(model.fc2.weight)], [id(model.fc1.bias), id(model.fc2.bias)]
+        ]
 
 
 class TestRunningStats:
@@ -170,15 +138,6 @@ class TestMiscUtils:
         state_dict = opt.state_dict()
         opt.load_state_dict(state_dict)
 
-    def test_orthograd_name(self):
-        optimizer = build_optimizer('orthograd', [make_parameter()])
-        optimizer.zero_grad()
-
-        _ = optimizer.param_groups
-        _ = optimizer.state
-
-        assert str(optimizer).lower() == 'orthograd'
-
     def test_copy_stochastic(self):
         n: int = 512
 
@@ -195,17 +154,13 @@ class TestMiscUtils:
         np.testing.assert_almost_equal(1.0002, result.to(dtype=torch.float32).mean().item(), decimal=4)
 
     def test_stochastic_accumulation_hook(self):
-        model = TrainingModel().bfloat16()
-        x = torch.randn(1, 2, dtype=torch.bfloat16)
-
+        model = TrainingModel(dtype=torch.bfloat16)
         StochasticAccumulator.assign_hooks(model)
-
-        optimizer = build_optimizer('orthograd', model.parameters())
-
         for _ in range(2):
-            binary_cross_entropy_with_logits(model(x), x[:, :1]).backward()
+            sum(param.sum() for param in model.parameters()).backward()
 
         StochasticAccumulator.reassign_grad_buffer(model)
 
-        optimizer.step()
-        optimizer.zero_grad()
+        for param in model.parameters():
+            torch.testing.assert_close(param.grad, torch.full_like(param, 2.0))
+            assert not hasattr(param, 'acc_grad')
