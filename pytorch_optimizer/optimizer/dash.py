@@ -7,6 +7,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.matrix import batched_power_iteration, compute_power_newton_db
 
 
 class DASH(BaseOptimizer):
@@ -185,57 +186,11 @@ class DASH(BaseOptimizer):
             return torch.linalg.vector_norm(low_precision, dim=(-2, -1), keepdim=True).to(matrix.dtype)
 
         low_precision.diagonal(dim1=-2, dim2=-1).add_(1e-6)
-        vectors = torch.randn(
-            (*matrix.shape[:2], group['power_iteration_vectors']), device=matrix.device, dtype=torch.bfloat16
+        scale = batched_power_iteration(
+            low_precision, num_iters=group['power_iteration_steps'], num_vectors=group['power_iteration_vectors']
         )
-        tiny = torch.finfo(vectors.dtype).tiny
-        vectors.div_(torch.linalg.vector_norm(vectors, dim=1, keepdim=True).clamp_min_(tiny))
 
-        product = torch.empty_like(vectors)
-        for _ in range(group['power_iteration_steps']):
-            torch.bmm(low_precision, vectors, out=product)
-            torch.div(product, torch.linalg.vector_norm(product, dim=1, keepdim=True).clamp_min_(tiny), out=vectors)
-
-        torch.bmm(low_precision, vectors, out=product)
-
-        return (vectors * product).sum(dim=1).amax(dim=1).to(matrix.dtype).view(-1, 1, 1).mul_(2.0)
-
-    @staticmethod
-    def newton_db(matrix: torch.Tensor, scale: torch.Tensor, steps: int, inverse: bool) -> torch.Tensor:
-        """Compute a batched square root or inverse square root with fixed Newton-DB iterations."""
-        y = matrix / scale
-        correction = y.mul(-0.5)
-        correction.diagonal(dim1=-2, dim2=-1).add_(1.5)
-        z = correction.clone()
-
-        if steps > 1 or not inverse:
-            y = y @ correction
-
-        scratch = torch.empty_like(y)
-        for _ in range(1, steps - 1):
-            torch.bmm(z, y, out=correction)
-            correction.mul_(-0.5).diagonal(dim1=-2, dim2=-1).add_(1.5)
-
-            torch.bmm(y, correction, out=scratch)
-            y, scratch = scratch, y
-
-            torch.bmm(correction, z, out=scratch)
-            z, scratch = scratch, z
-
-        if steps > 1:
-            torch.bmm(z, y, out=correction)
-            correction.mul_(-0.5).diagonal(dim1=-2, dim2=-1).add_(1.5)
-
-            if inverse:
-                torch.bmm(correction, z, out=scratch)
-            else:
-                torch.bmm(y, correction, out=scratch)
-
-            result = scratch
-        else:
-            result = z if inverse else y
-
-        return result.div_(scale.sqrt()) if inverse else result.mul_(scale.sqrt())
+        return scale.to(matrix.dtype).mul_(2.0)
 
     def inverse_root(self, matrix: torch.Tensor, root: int, group: ParamGroup) -> torch.Tensor:
         """Compute regularized batched inverse roots without modifying the statistics."""
@@ -252,10 +207,10 @@ class DASH(BaseOptimizer):
 
         scale = self.matrix_scale(regularized, group).clamp_min_(torch.finfo(matrix.dtype).tiny)
         if root == 4:
-            regularized = self.newton_db(regularized, scale, group['newton_steps'], inverse=False)
+            regularized = compute_power_newton_db(regularized, scale, group['newton_steps'], inverse=False)
             scale = scale.sqrt()
 
-        return self.newton_db(regularized, scale, group['newton_steps'], inverse=True)
+        return compute_power_newton_db(regularized, scale, group['newton_steps'], inverse=True)
 
     def update_block(
         self, grad: torch.Tensor, state: dict, step: int, one_sided: bool, group: ParamGroup

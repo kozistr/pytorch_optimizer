@@ -61,3 +61,11 @@ Use these helpers to find registered components, manage gradients, and offload o
 ::: pytorch_optimizer.optimizer.utils.copy_stochastic
     :docstring:
     :members:
+
+::: pytorch_optimizer.optimizer.utils.batched_power_iteration
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.optimizer.utils.compute_power_newton_db
+    :docstring:
+    :members:

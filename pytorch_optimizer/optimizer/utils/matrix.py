@@ -109,6 +109,84 @@ def power_iteration(mat_g: torch.Tensor, num_iters: int = 100) -> torch.Tensor:
     return torch.dot(v, mat_v).clamp_min_(1e-16)
 
 
+@torch.no_grad()
+def batched_power_iteration(matrix: torch.Tensor, num_iters: int = 10, num_vectors: int = 16) -> torch.Tensor:
+    """Estimate the largest eigenvalue of each positive semidefinite matrix in a batch.
+
+    Args:
+        matrix: Batch of symmetric positive semidefinite matrices with shape `(batch_size, size, size)`.
+        num_iters: Number of power iterations.
+        num_vectors: Number of parallel starting vectors per matrix.
+
+    Returns:
+        torch.Tensor: Largest Rayleigh quotient per matrix, with shape `(batch_size, 1, 1)` and the input data type.
+
+    """
+    vectors = torch.randn((*matrix.shape[:2], num_vectors), device=matrix.device, dtype=matrix.dtype)
+    tiny = torch.finfo(vectors.dtype).tiny
+    vectors.div_(torch.linalg.vector_norm(vectors, dim=1, keepdim=True).clamp_min_(tiny))
+
+    product = torch.empty_like(vectors)
+    for _ in range(num_iters):
+        torch.bmm(matrix, vectors, out=product)
+        torch.div(product, torch.linalg.vector_norm(product, dim=1, keepdim=True).clamp_min_(tiny), out=vectors)
+
+    torch.bmm(matrix, vectors, out=product)
+
+    return (vectors * product).sum(dim=1).amax(dim=1).view(-1, 1, 1)
+
+
+@torch.no_grad()
+def compute_power_newton_db(
+    matrix: torch.Tensor, scale: torch.Tensor, num_iters: int = 10, inverse: bool = True
+) -> torch.Tensor:
+    """Compute batched square roots or inverse square roots with Newton-Denman-Beavers iterations.
+
+    Args:
+        matrix: Batch of symmetric positive definite matrices with shape `(batch_size, size, size)`.
+        scale: Positive normalization factors with shape `(batch_size, 1, 1)` that bound the largest eigenvalues.
+        num_iters: Positive number of Newton-Denman-Beavers iterations.
+        inverse: Return inverse square roots when `True`, or square roots otherwise.
+
+    Returns:
+        torch.Tensor: Approximate matrix roots with the same shape and data type as `matrix`.
+
+    """
+    y = matrix / scale
+    correction = y.mul(-0.5)
+    correction.diagonal(dim1=-2, dim2=-1).add_(1.5)
+    z = correction.clone()
+
+    if num_iters > 1 or not inverse:
+        y = y @ correction
+
+    scratch = torch.empty_like(y)
+    for _ in range(1, num_iters - 1):
+        torch.bmm(z, y, out=correction)
+        correction.mul_(-0.5).diagonal(dim1=-2, dim2=-1).add_(1.5)
+
+        torch.bmm(y, correction, out=scratch)
+        y, scratch = scratch, y
+
+        torch.bmm(correction, z, out=scratch)
+        z, scratch = scratch, z
+
+    if num_iters > 1:
+        torch.bmm(z, y, out=correction)
+        correction.mul_(-0.5).diagonal(dim1=-2, dim2=-1).add_(1.5)
+
+        if inverse:
+            torch.bmm(correction, z, out=scratch)
+        else:
+            torch.bmm(y, correction, out=scratch)
+
+        result = scratch
+    else:
+        result = z if inverse else y
+
+    return result.div_(scale.sqrt()) if inverse else result.mul_(scale.sqrt())
+
+
 @torch.inference_mode()
 def compute_power_schur_newton(
     mat_g: torch.Tensor,

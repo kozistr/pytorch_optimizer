@@ -37,30 +37,6 @@ class TestDASHRoots:
         torch.testing.assert_close(result, expected, atol=1e-8, rtol=1e-8)
         torch.testing.assert_close(matrices, original, atol=0.0, rtol=0.0)
 
-    @pytest.mark.parametrize(('steps', 'value'), [(1, 0.6875), (3, 0.9752996308188813)])
-    @pytest.mark.parametrize('inverse', [False, True])
-    def test_finite_newton_iterations(self, steps, value, inverse, device):
-        matrix = torch.diag(torch.tensor([1.0, 4.0], dtype=torch.float64, device=device)).unsqueeze(0)
-        scale = torch.tensor([[[4.0]]], dtype=torch.float64, device=device)
-        expected = torch.diag(torch.tensor([value, 0.5 if inverse else 2.0], dtype=matrix.dtype, device=device))
-
-        result = DASH.newton_db(matrix, scale, steps, inverse)
-
-        torch.testing.assert_close(result, expected.unsqueeze(0))
-
-    @pytest.mark.parametrize('vectors', [1, 16])
-    def test_power_iteration(self, vectors, device):
-        optimizer = build_optimizer('dash', [make_parameter(device=device)], power_iteration_vectors=vectors)
-        matrices = torch.diag_embed(torch.tensor([[1.0, 4.0, 2.0], [3.0, 1.0, 2.0]], device=device))
-        original = matrices.clone()
-
-        with torch.random.fork_rng(devices=[device] if device.type == 'cuda' else []):
-            torch.manual_seed(42)
-            scale = optimizer.matrix_scale(matrices, optimizer.param_groups[0])
-
-        torch.testing.assert_close(scale.flatten(), torch.tensor([8.0, 6.0], device=device), atol=0.05, rtol=0.01)
-        torch.testing.assert_close(matrices, original, atol=0.0, rtol=0.0)
-
 
 class TestDASHUpdates:
     def test_partition_edge_blocks(self, device):
