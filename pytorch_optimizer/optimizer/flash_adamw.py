@@ -102,7 +102,7 @@ def materialize_state(state: dict[str, Any], name: str) -> torch.Tensor:
     """Return an optimizer state tensor, decompressing it if needed."""
     if _quantized_key(name) in state:
         return dequantize_state(state[_quantized_key(name)], state[_scales_key(name)], *_state_spec(name))
-    return state[name].to(torch.float32)
+    return state[name].to(dtype=torch.promote_types(state[name].dtype, torch.float32))
 
 
 def store_state(state: dict[str, Any], name: str, tensor: torch.Tensor, quantize: bool, dtype: torch.dtype) -> None:
@@ -163,6 +163,7 @@ class FlashAdamW(BaseOptimizer):
 
     Supports compressed checkpoints and low precision parameters through a portable
     PyTorch implementation of FlashOptim style updates.
+    Float64 parameters retain their precision, with float64 arithmetic for unquantized moments.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -320,19 +321,19 @@ class FlashAdamW(BaseOptimizer):
 
                 state = self.state[p]
 
-                grad = p.grad.to(torch.float32)
+                grad = p.grad.to(dtype=torch.float64 if p.dtype == torch.float64 else torch.float32)
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
                 self.maybe_check_numerics(p, group['lr'], group['master_byte_width'])
 
-                exp_avg = materialize_state(state, 'exp_avg')
-                exp_avg_sq = materialize_state(state, 'exp_avg_sq')
+                exp_avg = materialize_state(state, 'exp_avg').to(dtype=grad.dtype)
+                exp_avg_sq = materialize_state(state, 'exp_avg_sq').to(dtype=grad.dtype)
 
-                param_fp32 = self.get_param_fp32(p, state)
+                param = p if p.dtype == torch.float64 else self.get_param_fp32(p, state)
 
                 self.apply_weight_decay(
-                    param_fp32,
+                    param,
                     grad=grad,
                     lr=group['lr'],
                     weight_decay=group['weight_decay'],
@@ -345,9 +346,9 @@ class FlashAdamW(BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
 
                 denominator = exp_avg_sq.div(bias_correction2).sqrt_().add_(group['eps'])
-                param_fp32.addcdiv_(exp_avg.div(bias_correction1), denominator, value=-group['lr'])
+                param.addcdiv_(exp_avg.div(bias_correction1), denominator, value=-group['lr'])
 
-                self.set_param_fp32(p, state, param_fp32, group['master_byte_width'])
+                self.set_param_fp32(p, state, param, group['master_byte_width'])
                 store_state(state, 'exp_avg', exp_avg, group['quantize'], p.dtype)
                 store_state(state, 'exp_avg_sq', exp_avg_sq, group['quantize'], p.dtype)
 

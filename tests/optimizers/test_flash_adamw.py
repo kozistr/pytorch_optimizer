@@ -9,6 +9,32 @@ from tests.utils import build_optimizer
 
 
 class TestFlashAdamw:
+    @pytest.mark.parametrize('quantize', [False, True])
+    def test_float64_parameters_with_zero_lr(self, quantize):
+        param = nn.Parameter(torch.tensor([1.0000000001], dtype=torch.float64))
+        param.grad = torch.ones_like(param)
+        expected = param.detach().clone()
+        optimizer = build_optimizer('flashadamw', [param], lr=0.0, weight_decay=0.0, quantize=quantize)
+
+        optimizer.step()
+
+        torch.testing.assert_close(param, expected, rtol=0.0, atol=0.0)
+
+    def test_float64_updates_match_adamw(self):
+        param = nn.Parameter(torch.tensor([1.0000000001, -2.0000000001], dtype=torch.float64))
+        reference = param.detach().clone().requires_grad_()
+        options = {'lr': 0.01, 'weight_decay': 0.1}
+        optimizer = build_optimizer('flashadamw', [param], quantize=False, **options)
+        reference_optimizer = build_optimizer('adamw', [reference], **options)
+
+        for gradient in (0.1000000001, -0.2000000001, 0.3000000001):
+            param.grad = torch.full_like(param, gradient)
+            reference.grad = param.grad.clone()
+            optimizer.step()
+            reference_optimizer.step()
+
+            torch.testing.assert_close(param, reference, rtol=0.0, atol=1e-15)
+
     def test_flash_adamw_quantized_state_and_compressed_state_dict(self):
         param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
         param.grad = torch.tensor([0.2, -0.3, 0.4])
