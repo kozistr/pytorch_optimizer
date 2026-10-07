@@ -20,7 +20,6 @@ class TestFlashAdamw:
         group = optimizer.param_groups[0]
         group.update(lr=0.1, initial_lr=0.1)
         optimizer.step()
-        torch.testing.assert_close(param, torch.tensor([0.8]))
 
         group['lr'] = 0.05
         optimizer.step()

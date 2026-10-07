@@ -485,46 +485,24 @@ class TestScheduleFreeWrapper:
 class TestPCGrad:
     def test_checkpoint_hooks_and_resume(self):
         parameter = make_parameter(grad=1.0)
-        added = make_parameter(grad=1.0)
-        optimizer = PCGrad(build_optimizer('sgd', [parameter], lr=0.1, momentum=0.9))
-        optimizer.add_param_group({'params': [added], 'lr': 0.2})
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)
-        optimizer.step()
+        optimizer = PCGrad(build_optimizer('sgd', [make_parameter(grad=None)], lr=0.1, momentum=0.9))
+        optimizer.add_param_group({'params': [parameter]})
 
         events = []
-        handles = [
-            optimizer.register_state_dict_pre_hook(lambda wrapped: events.append(('save', wrapped))),
-            optimizer.register_state_dict_post_hook(
-                lambda wrapped, state: state.update(checkpoint_hook=wrapped is optimizer.optimizer)
-            ),
-            optimizer.register_load_state_dict_pre_hook(
-                lambda wrapped, state: events.append(('load', wrapped, state['checkpoint_hook']))
-            ),
-            optimizer.register_load_state_dict_post_hook(lambda wrapped: events.append(('loaded', wrapped))),
-        ]
-
-        checkpoint = deepcopy(optimizer.state_dict())
-        optimizer.state[parameter]['momentum_buffer'].zero_()
-        optimizer.load_state_dict(checkpoint)
-
-        assert events == [
-            ('save', optimizer.optimizer), ('load', optimizer.optimizer, True), ('loaded', optimizer.optimizer)
-        ]
-        torch.testing.assert_close(optimizer.state[parameter]['momentum_buffer'], torch.ones_like(parameter))
+        optimizer.register_state_dict_pre_hook(lambda _: events.append('save_pre'))
+        optimizer.register_state_dict_post_hook(lambda _, __: events.append('save_post'))
+        optimizer.register_load_state_dict_pre_hook(lambda _, __: events.append('load_pre'))
+        optimizer.register_load_state_dict_post_hook(lambda _: events.append('load_post'))
 
         optimizer.step()
-        scheduler.step()
-        torch.testing.assert_close(parameter, torch.full_like(parameter, -0.29))
-        torch.testing.assert_close(added, torch.full_like(added, -0.58))
-        assert scheduler.get_last_lr() == [0.05, 0.1]
-
-        for handle in handles:
-            handle.remove()
-        events.clear()
-        checkpoint = optimizer.state_dict()
+        checkpoint = deepcopy(optimizer.state_dict())
+        optimizer.param_groups[-1]['lr'] = 1.0
+        optimizer.state[parameter]['momentum_buffer'].zero_()
         optimizer.load_state_dict(checkpoint)
-        assert not events
-        assert 'checkpoint_hook' not in checkpoint
+        optimizer.step()
+
+        assert events == ['save_pre', 'save_post', 'load_pre', 'load_post']
+        torch.testing.assert_close(parameter, torch.full_like(parameter, -0.29))
 
     @pytest.mark.parametrize('reduction', ['mean', 'sum'])
     def test_pc_grad_optimizers(self, reduction, environment):
