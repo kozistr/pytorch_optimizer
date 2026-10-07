@@ -4,6 +4,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class Tiger(BaseOptimizer):
@@ -21,10 +22,12 @@ class Tiger(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         beta: float = 0.965,
         weight_decay: float = 0.01,
         weight_decouple: bool = True,
@@ -100,7 +103,7 @@ class Tiger(BaseOptimizer):
 
         updates = torch._foreach_sign(exp_avgs)
 
-        torch._foreach_add_(params, updates, alpha=-group['lr'])
+        foreach_add_(params, updates, alpha=-group['lr'])
 
     def _step_per_param(self, group: ParamGroup) -> None:
         beta = group['beta']
@@ -142,8 +145,8 @@ class Tiger(BaseOptimizer):
 
             if self._can_use_foreach(group):
                 params, grads, state_dict = self.collect_trainable_params(group, self.state, state_keys=['exp_avg'])
-                if params:
-                    self._step_foreach(group, params, grads, state_dict['exp_avg'])
+                for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    self._step_foreach(group, tensors['params'], tensors['grads'], tensors['exp_avg'])
             else:
                 self._step_per_param(group)
 
