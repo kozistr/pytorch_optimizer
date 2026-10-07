@@ -24,7 +24,7 @@ class SOAP(BaseOptimizer):
         precondition_1d: Whether to precondition 1D gradients.
         correct_bias: Whether to correct bias in Adam.
         normalize_gradient: Whether to normalize the gradients.
-        data_format: Tensor layout for dimension merging: `'channels_first'` or `'channels_last'`.
+        data_format: Tensor layout for dimension merging: `'channels_first'` (NCHW) or `'channels_last'` (NHWC).
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
 
@@ -77,6 +77,13 @@ class SOAP(BaseOptimizer):
 
     def __str__(self) -> str:
         return 'SOAP'
+
+    def merge_dims(self, grad: torch.Tensor, max_precondition_dim: int) -> torch.Tensor:
+        """Merge dimensions after converting channels-last tensors to channels-first."""
+        if self.data_format == 'channels_last' and grad.dim() == 4:
+            grad = grad.permute(0, 3, 1, 2)
+
+        return grad.reshape(merge_small_dims(grad.size(), max_precondition_dim))
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -137,7 +144,7 @@ class SOAP(BaseOptimizer):
             if do_permute:
                 permuted_shape = grad.permute(0, 3, 1, 2).shape
 
-            grad = grad.reshape(merge_small_dims(grad.size(), max_precondition_dim))
+            grad = self.merge_dims(grad, max_precondition_dim)
 
         for mat in state['Q']:
             if len(mat) > 0:
@@ -181,7 +188,7 @@ class SOAP(BaseOptimizer):
 
         exp_avg_sq = state['exp_avg_sq']
         if merge_dims:
-            exp_avg_sq = exp_avg_sq.reshape(merge_small_dims(exp_avg_sq.size(), max_precondition_dim))
+            exp_avg_sq = self.merge_dims(exp_avg_sq, max_precondition_dim)
 
         matrices = []
         for ind, (m, o) in enumerate(zip(state['GG'], state['Q'])):
@@ -215,8 +222,8 @@ class SOAP(BaseOptimizer):
 
         return matrices
 
-    @staticmethod
     def init_pre_conditioner(
+        self,
         grad,
         state,
         precondition_frequency: int = 10,
@@ -233,7 +240,7 @@ class SOAP(BaseOptimizer):
                 state['GG'].append(torch.zeros(grad.shape[0], grad.shape[0], device=grad.device, dtype=grad.dtype))
         else:
             if merge_dims:
-                grad = grad.reshape(merge_small_dims(grad.size(), max_precondition_dim))
+                grad = self.merge_dims(grad, max_precondition_dim)
 
             for sh in grad.shape:
                 if sh > max_precondition_dim:
@@ -262,7 +269,7 @@ class SOAP(BaseOptimizer):
                 )
         else:
             if merge_dims:
-                grad = grad.reshape(merge_small_dims(grad.size(), max_precondition_dim))
+                grad = self.merge_dims(grad, max_precondition_dim)
 
             for idx, dim in enumerate(grad.shape):
                 if dim <= max_precondition_dim:
