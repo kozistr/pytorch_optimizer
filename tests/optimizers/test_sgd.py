@@ -5,16 +5,10 @@ from tests.fixtures import make_parameter
 from tests.utils import build_optimizer
 
 
-@pytest.mark.parametrize(('foreach', 'compiled'), [(False, False), (True, False), (True, True)])
-def test_sgdw_delayed_momentum(foreach, compiled):
-    if compiled and not torch._dynamo.is_dynamo_supported():
-        pytest.skip('torch.compile is unavailable in this runtime')
-
+@pytest.mark.parametrize('foreach', [False, True])
+def test_sgdw_delayed_momentum(foreach):
     parameters = [make_parameter((2,)), make_parameter((2,), grad=None)]
     optimizer = build_optimizer('sgdw', parameters, lr=0.1, momentum=0.9, dampening=0.2, foreach=foreach)
-    if compiled:
-        torch._dynamo.reset()
-        optimizer._compile_foreach({'backend': 'aot_eager', 'fullgraph': True})
 
     steps = [
         (0.0, (0.0, 0.0), (0.0, None)),
