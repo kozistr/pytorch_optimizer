@@ -5,6 +5,8 @@ import pytest
 import torch
 
 from pytorch_optimizer.optimizer.utils.matrix import (
+    batched_power_iteration,
+    compute_power_newton_db,
     compute_power_schur_newton,
     compute_power_svd,
     power_iteration,
@@ -33,6 +35,39 @@ def test_power_iteration(num_iters, dtype, device, monkeypatch):
     torch.testing.assert_close(matrix, original)
     assert result.dtype == dtype
     assert result.device == matrix.device
+
+
+@pytest.mark.parametrize('vectors', [1, 16])
+@pytest.mark.parametrize('dtype', [torch.float32, torch.bfloat16])
+def test_batched_power_iteration(vectors, dtype, device):
+    matrices = torch.diag_embed(torch.tensor([[1.0, 4.0, 2.0], [3.0, 1.0, 2.0]], dtype=dtype, device=device))
+    original = matrices.clone()
+
+    with torch.random.fork_rng(devices=[device] if device.type == 'cuda' else []):
+        torch.manual_seed(42)
+        result = batched_power_iteration(matrices, num_vectors=vectors)
+
+    expected = torch.tensor([4.0, 3.0], dtype=dtype, device=device).view(-1, 1, 1)
+
+    torch.testing.assert_close(result, expected, atol=0.025, rtol=0.01)
+    torch.testing.assert_close(matrices, original, atol=0.0, rtol=0.0)
+
+
+@pytest.mark.parametrize(('num_iters', 'value'), [(1, 0.6875), (3, 0.9752996308188813), (20, 1.0)])
+@pytest.mark.parametrize('inverse', [False, True])
+def test_compute_power_newton_db(num_iters, value, inverse, device):
+    matrix = torch.tensor([[[2.5, -1.5], [-1.5, 2.5]]], dtype=torch.float64, device=device)
+    original = matrix.clone()
+    scale = torch.tensor([[[4.0]]], dtype=matrix.dtype, device=device)
+    other = 0.5 if inverse else 2.0
+    diagonal, off_diagonal = (value + other) / 2.0, (value - other) / 2.0
+    expected = torch.tensor([[diagonal, off_diagonal], [off_diagonal, diagonal]], dtype=matrix.dtype, device=device)
+
+    result = compute_power_newton_db(matrix, scale, num_iters, inverse)
+
+    torch.testing.assert_close(result, expected.unsqueeze(0))
+    torch.testing.assert_close(matrix, original, atol=0.0, rtol=0.0)
+    torch.testing.assert_close(scale, torch.full_like(scale, 4.0), atol=0.0, rtol=0.0)
 
 
 @pytest.mark.parametrize('batch', [False, True])

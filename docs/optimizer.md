@@ -208,6 +208,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.DASH
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.DeMo
     :docstring:
     :members:
