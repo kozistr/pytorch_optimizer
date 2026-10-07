@@ -1,5 +1,5 @@
 import random
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from copy import deepcopy
 
 import numpy as np
@@ -8,6 +8,7 @@ from torch import nn
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.optimizer import BaseOptimizer
+from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, State
 
 
 def flatten_grad(grads: list[torch.Tensor]) -> torch.Tensor:
@@ -29,6 +30,8 @@ def un_flatten_grad(grads: torch.Tensor, shapes: list[int]) -> list[torch.Tensor
 class PCGrad(BaseOptimizer):
     """Wrap an optimizer with gradient projection for conflicting task objectives.
 
+    Learning rate schedulers and checkpoints use the wrapped optimizer's parameter groups and state.
+
     Args:
         optimizer: Optimizer instance.
         reduction: Reduction method for gradients.
@@ -41,15 +44,36 @@ class PCGrad(BaseOptimizer):
         self.optimizer = optimizer
         self.reduction = reduction
 
+        self._optimizer_step_pre_hooks: dict[int, Callable] = {}
+        self._optimizer_step_post_hooks: dict[int, Callable] = {}
+        self.defaults: Defaults = self.optimizer.defaults
+
+    @property
+    def param_groups(self):
+        return self.optimizer.param_groups
+
+    @property
+    def state(self) -> State:
+        return self.optimizer.state
+
+    def add_param_group(self, param_group: ParamGroup) -> None:
+        self.optimizer.add_param_group(param_group)
+
+    def state_dict(self) -> State:
+        return self.optimizer.state_dict()
+
+    def load_state_dict(self, state_dict: State) -> None:
+        self.optimizer.load_state_dict(state_dict)
+
     @torch.no_grad()
     def init_group(self):
         self.zero_grad()
 
-    def zero_grad(self):
-        return self.optimizer.zero_grad(set_to_none=True)
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        self.optimizer.zero_grad(set_to_none=set_to_none)
 
-    def step(self):
-        return self.optimizer.step()
+    def step(self, closure: Closure = None) -> Loss:
+        return self.optimizer.step(closure)
 
     def set_grad(self, grads: list[torch.Tensor], has_grads: list[torch.Tensor] | None = None) -> None:
         idx: int = 0
