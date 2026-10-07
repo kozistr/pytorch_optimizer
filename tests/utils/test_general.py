@@ -74,6 +74,15 @@ class TestGradientUtils:
     def test_get_global_gradient_norm(self):
         np.testing.assert_approx_equal(get_global_gradient_norm(None, torch.device('cpu')).item(), 0.0)
 
+        parameter = nn.Parameter(torch.full((4,), 2.0, dtype=torch.float16))
+        parameter.grad = torch.full_like(parameter, 32768.0)
+        groups = [{'params': [parameter], 'adaptive': True}]
+
+        torch.testing.assert_close(get_global_gradient_norm(groups), torch.tensor([2.0**32]))
+        torch.testing.assert_close(
+            get_global_gradient_norm(groups, weight_adaptive=True), torch.tensor([2.0**34])
+        )
+
 
 class TestNormUtils:
     @pytest.mark.parametrize('shape', [(10,), (1, 10), (1, 10, 1, 1), (1, 10, 1, 1, 1, 1)])

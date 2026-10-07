@@ -483,6 +483,25 @@ class TestScheduleFreeWrapper:
 
 
 class TestPCGrad:
+    def test_checkpoint_hooks_and_resume(self):
+        parameter = make_parameter(grad=1.0)
+        optimizer = PCGrad(build_optimizer('sgd', [make_parameter(grad=None)], lr=0.1, momentum=0.9))
+        optimizer.add_param_group({'params': [parameter]})
+
+        optimizer.register_state_dict_pre_hook(lambda _: None)
+        optimizer.register_state_dict_post_hook(lambda _, __: None)
+        optimizer.register_load_state_dict_pre_hook(lambda _, __: None)
+        optimizer.register_load_state_dict_post_hook(lambda _: None)
+
+        optimizer.step()
+        checkpoint = deepcopy(optimizer.state_dict())
+        optimizer.param_groups[-1]['lr'] = 1.0
+        optimizer.state[parameter]['momentum_buffer'].zero_()
+        optimizer.load_state_dict(checkpoint)
+        optimizer.step()
+
+        torch.testing.assert_close(parameter, torch.full_like(parameter, -0.29))
+
     @pytest.mark.parametrize('reduction', ['mean', 'sum'])
     def test_pc_grad_optimizers(self, reduction, environment):
         torch.manual_seed(42)
