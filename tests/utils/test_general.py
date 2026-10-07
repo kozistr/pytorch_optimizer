@@ -74,6 +74,26 @@ class TestGradientUtils:
     def test_get_global_gradient_norm(self):
         np.testing.assert_approx_equal(get_global_gradient_norm(None, torch.device('cpu')).item(), 0.0)
 
+    @pytest.mark.parametrize(
+        ('adaptive', 'gradient_type'), [(False, 'dense'), (False, 'mixed'), (False, 'sparse'), (True, 'dense')]
+    )
+    def test_global_gradient_norm_fp16_overflow(self, adaptive, gradient_type):
+        param = make_parameter((16,), dtype=torch.float16, grad=32768.0)
+        with torch.no_grad():
+            param.fill_(2.0)
+        params = [param]
+        if gradient_type == 'mixed':
+            params.append(make_parameter((1,), grad=1.0))
+
+        expected = sum(
+            (p.grad.float() * p.detach().abs() if adaptive else p.grad.float()).square().sum() for p in params
+        ).reshape(1)
+        if gradient_type == 'sparse':
+            param.grad = param.grad.to_sparse()
+        actual = get_global_gradient_norm([{'params': params, 'adaptive': adaptive}], weight_adaptive=adaptive)
+
+        torch.testing.assert_close(actual, expected)
+
 
 class TestNormUtils:
     @pytest.mark.parametrize('shape', [(10,), (1, 10), (1, 10, 1, 1), (1, 10, 1, 1, 1, 1)])

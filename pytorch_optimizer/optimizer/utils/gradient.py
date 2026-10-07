@@ -131,11 +131,21 @@ def get_global_gradient_norm(
             if p.grad is None:
                 continue
 
-            grads.append(p.grad * p.abs() if adaptive else p.grad)
+            grad = p.grad
+            if adaptive:
+                if grad.dtype in (torch.float16, torch.bfloat16):
+                    grad = grad.float()
+                grad = grad * p.abs()
+
+            grads.append(grad)
 
     if not grads:
         return torch.zeros(1, dtype=torch.float32, device=device)
 
-    norms = torch._foreach_norm(grads) if has_foreach_support(grads) else [grad.norm() for grad in grads]
+    norms = (
+        torch._foreach_norm(grads)
+        if has_foreach_support(grads) and grads[0].dtype not in (torch.float16, torch.bfloat16)
+        else [(grad.float() if grad.dtype in (torch.float16, torch.bfloat16) else grad).norm() for grad in grads]
+    )
     squared_norms = torch.stack([norm.to(device) for norm in norms]).float().square_()
     return squared_norms.sum().reshape(1)
