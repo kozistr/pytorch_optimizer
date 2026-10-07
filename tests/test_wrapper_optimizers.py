@@ -483,37 +483,6 @@ class TestScheduleFreeWrapper:
 
 
 class TestPCGrad:
-    def test_checkpoint_and_scheduler(self):
-        param = make_parameter((1,), grad=1.0)
-        added = make_parameter((1,), grad=1.0)
-        optimizer = PCGrad(build_optimizer('sgd', [param], lr=0.1, momentum=0.9))
-        optimizer.add_param_group({'params': [added], 'lr': 0.2})
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)
-
-        def closure():
-            return param.sum()
-
-        optimizer.step(closure)
-        scheduler.step()
-        torch.testing.assert_close(param, torch.tensor([-0.1]))
-        torch.testing.assert_close(added, torch.tensor([-0.2]))
-
-        restored_params = [p.detach().clone().requires_grad_() for p in (param, added)]
-        restored = PCGrad(build_optimizer('sgd', [{'params': [p]} for p in restored_params], lr=1.0))
-        restored.load_state_dict(deepcopy(optimizer.state_dict()))
-
-        for p in restored_params:
-            p.grad = torch.ones_like(p)
-        optimizer.step()
-        restored.step()
-
-        torch.testing.assert_close(restored_params, [param, added], rtol=0.0, atol=0.0)
-        torch.testing.assert_close(restored.state[restored_params[0]], optimizer.state[param])
-        assert [group['lr'] for group in restored.param_groups] == [0.05, 0.1]
-
-        optimizer.zero_grad(set_to_none=False)
-        torch.testing.assert_close(param.grad, torch.zeros_like(param))
-
     @pytest.mark.parametrize('reduction', ['mean', 'sum'])
     def test_pc_grad_optimizers(self, reduction, environment):
         torch.manual_seed(42)

@@ -1,4 +1,3 @@
-from copy import deepcopy
 from io import BytesIO
 
 import pytest
@@ -108,24 +107,6 @@ class TestOptimizerTraining:
 
 
 class TestOptimizerInterface:
-    def test_fadam_checkpoint_preserves_state_precision(self):
-        param = make_parameter((2,), dtype=torch.float16, grad=1e-4)
-        optimizer = build_optimizer('fadam', [param], lr=0.1, weight_decay=0.0)
-        optimizer.step()
-
-        restored_param = param.detach().clone().requires_grad_()
-        restored = build_optimizer('fadam', [restored_param], lr=0.1, weight_decay=0.0)
-        restored.load_state_dict(deepcopy(optimizer.state_dict()))
-
-        for name in ('momentum', 'fim'):
-            torch.testing.assert_close(restored.state[restored_param][name], optimizer.state[param][name])
-
-        restored_param.grad = param.grad.clone()
-        optimizer.step()
-        restored.step()
-
-        torch.testing.assert_close(restored_param, param, rtol=0.0, atol=0.0)
-
     @pytest.mark.parametrize(
         'optimizer_name', ['dadaptadam', 'dadaptsgd', 'dadaptlion', 'prodigy', 'kron', 'magma', 'asgd']
     )

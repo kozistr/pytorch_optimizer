@@ -69,26 +69,6 @@ optimizer = create_optimizer(
 
 Check the [optimizer reference](optimizer.md) for options and arguments specific to each optimizer.
 
-## Project conflicting task gradients
-
-Wrap an optimizer with `PCGrad` for models trained on multiple task losses.
-Compute one scalar loss per task and pass the losses to `pc_backward()` before updating parameters:
-
-```python
-from pytorch_optimizer import PCGrad
-
-optimizer = PCGrad(torch.optim.AdamW(model.parameters(), lr=1e-3))
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10)
-
-optimizer.zero_grad()
-optimizer.pc_backward([task_loss_1, task_loss_2])
-optimizer.step()
-scheduler.step()
-```
-
-Save and restore the optimizer with `optimizer.state_dict()` and `optimizer.load_state_dict()`.
-These methods forward to the wrapped optimizer. Save the scheduler state separately if you use a scheduler.
-
 ## Compile optimizer steps
 
 Set `compile=True` to let PyTorch optimize and automatically fuse optimizer updates on CPU or GPU.
