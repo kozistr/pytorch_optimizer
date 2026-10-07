@@ -39,43 +39,82 @@ For GPU tests, run `python -m pytest --device=cuda` with a CUDA-enabled PyTorch 
 
 ## Tests
 
-Add `(optimizer_name, options, iterations)` to `OPTIMIZER_RECIPES` in [tests/recipes.py](tests/recipes.py) to test
-optimizer convergence.
-Add focused cases in `tests/optimizers/test_<module>.py` for behavior that training recipes do not check.
-These cases include numerical updates, checkpoint restoration, and edge cases.
-Keep shared validation, variant, wrapper, loss, and scheduler cases in their existing `tests/test_*.py` modules.
+**Add a test or recipe only for uncovered implementation changes or a demonstrated regression.**
+An implementation change does not require a new test or recipe.
+Reuse existing tests for refactors and performance changes when they check the behavior and preserve 100% coverage.
 
-Reuse the model and parameter builders in [tests/fixtures.py](tests/fixtures.py).
-Reuse the helpers in [tests/utils.py](tests/utils.py).
-Use a parameter for tests that call optimizer methods.
-Use the shared model for forward passes or APIs that accept a model.
-Group related cases in pytest classes if they share setup.
+### Decide whether to add a case
 
-Use small, deterministic inputs.
-Compare results with known values or a trusted reference.
-A focused update test can use a parameter:
+Before editing tests:
 
-```python
-import torch
+1. Read the relevant shared tests, focused tests, and recipes.
+2. Run the existing suite with `uv run just test` against the implementation change.
+3. Run `uv run coverage report -m` to locate uncovered implementation lines.
+4. Identify any incorrect result or failure that existing assertions would miss.
 
-from tests.fixtures import make_parameter
-from tests.utils import build_optimizer
+For a regression, demonstrate that the case fails without the fix and passes with it.
+Line coverage alone does not prove correctness.
+A demonstrated regression can justify a case without increasing coverage.
 
+Identify the uncovered lines or regression for each proposed addition.
+Explain why existing tests do not already cover the gap.
+Extend an existing case when its purpose remains clear.
+Otherwise, add the smallest focused case that closes the gap.
+Leave tests and recipes unchanged when you find no gap.
 
-def test_sgd_update():
-    param = make_parameter((2,), grad=1.0)
-    optimizer = build_optimizer('sgd', [param], lr=0.1)
+### Use shared tests and recipes
 
-    optimizer.step()
+The shared tests already cover training, validation, variants, checkpoints, wrappers, and optimizer interfaces.
+Check their assertions before adding those checks to `tests/optimizers/test_<module>.py`.
+Keep shared cases in their existing `tests/test_*.py` modules.
+Run shared interface checks once per optimizer.
+Reuse capability detection from [tests/optimizer_cases.py](tests/optimizer_cases.py).
+Do not maintain separate optimizer name lists for shared checks.
 
-    torch.testing.assert_close(param, torch.tensor([-0.1, -0.1]))
-```
+Add one baseline `(optimizer_name, options, iterations)` recipe for a new optimizer in
+[tests/recipes.py](tests/recipes.py).
+For an existing optimizer, change or add a recipe only when a specific coverage gap or regression requires training.
+Do not add a recipe for each modified optimizer, option, dtype, or variant.
+Inspect `TRAINING_CASES` in [tests/test_optimizers.py](tests/test_optimizers.py) first.
+Existing recipes already generate dtype and foreach variants.
+Use the shared runner for model-based optimizers when their update protocol fits.
+Do not add standalone convergence or smoke tests that the shared runner already covers.
 
-- Use `load_optimizer()` for constructor validation.
-- Use `create_optimizer()` to test the public factory API.
-- Check expected exceptions with `pytest.raises`.
-- Parametrize the options that each optimizer supports.
-- Check existing cases before you add a test to avoid duplicate assertions.
+### Keep focused cases small
+
+- Give each case an assertion that detects the identified failure.
+- Test observable results.
+  Do not add assertions about helper call counts or private batch layouts to test an optimization.
+- Measure speed with benchmarks. Keep timing thresholds out of ordinary unit tests.
+- Parametrize only combinations that expose distinct gaps.
+  Avoid Cartesian products without a reason for each combination.
+- Reuse models and parameter builders from [tests/fixtures.py](tests/fixtures.py).
+  Reuse helpers from [tests/utils/](tests/utils/).
+- Use `build_optimizer()` for ordinary setup.
+  Use `load_optimizer()` for constructor validation.
+  Use `create_optimizer()` for factory tests.
+- Use a parameter when the test only calls optimizer methods.
+  Use a model when the tested API requires one.
+- Add shapes or model features only when the identified gap requires them.
+- Use small, deterministic inputs and the minimum meaningful training iterations.
+- Compare numerical results with `torch.testing.assert_close()`. Use known values or a trusted reference.
+- Check expected exceptions with `pytest.raises()`.
+- Group related cases in pytest classes when they share setup.
+- Keep variant, scheduler, and loss case data beside their tests.
+- Copy recipe options before modification.
+  Do not retain model instances or optimizer state in shared case data.
+- Preserve random state in probes and propagate unexpected failures.
+  Keep protocol exclusions explicit.
+- Avoid session-wide performance overrides.
+
+### Review test additions
+
+Run the required checks and inspect the final coverage report.
+Remove additions that repeat existing checks without detecting a distinct failure
+or covering missing implementation code.
+Preserve existing regression assertions and 100% implementation coverage.
+Report test results and coverage in the pull request.
+For each added case or recipe, identify the gap it closes and why the existing suite was insufficient.
 
 ## Documentation
 
