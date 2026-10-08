@@ -38,6 +38,7 @@ jobs:
         with:
           python-version: 3.12
           enable-cache: true
+          save-cache: ${{ github.ref == 'refs/heads/main' }}
           prune-cache: false
 
       - name: Install dependencies
@@ -60,6 +61,7 @@ jobs:
         with:
           python-version: 3.12
           enable-cache: true
+          save-cache: ${{ github.ref == 'refs/heads/main' }}
           prune-cache: false
 
       - name: Install dependencies
@@ -81,6 +83,7 @@ jobs:
         with:
           python-version: 3.12
           enable-cache: true
+          save-cache: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build documentation
         run: uv run --no-project --python 3.12 --with-requirements docs/requirements-docs.txt zensical build --strict
@@ -101,6 +104,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
+        save-cache: ${{ github.ref == 'refs/heads/main' }}
         prune-cache: false
 
     - name: Install dependencies
