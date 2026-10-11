@@ -116,7 +116,7 @@ class MuonBase(BaseOptimizer):
             torch._foreach_div_(de_noms, bias_correction2**0.5)
             torch._foreach_add_(de_noms, group['eps'])
 
-            foreach_addcdiv_(params, torch._foreach_div(exp_avgs, bias_correction1), de_noms, -group['lr'])
+            foreach_addcdiv_(params, exp_avgs, de_noms, -group['lr'] / bias_correction1)
 
     @staticmethod
     def _orthogonalize(group: ParamGroup, updates: list[torch.Tensor]) -> list[torch.Tensor]:
@@ -364,7 +364,7 @@ class Muon(MuonBase):
 
                     de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
-                    p.addcdiv_(exp_avg / bias_correction1, de_nom, value=-group['lr'])
+                    p.addcdiv_(exp_avg, de_nom, value=-group['lr'] / bias_correction1)
 
         return loss
 
@@ -582,7 +582,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
 
                     de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
-                    p.addcdiv_(exp_avg / bias_correction1, de_nom, value=-group['lr'])
+                    p.addcdiv_(exp_avg, de_nom, value=-group['lr'] / bias_correction1)
 
         return loss
 
@@ -823,7 +823,7 @@ class AdaMuon(MuonBase):
 
                     de_nom = exp_avg_sq.sqrt().div_(math.sqrt(bias_correction2)).add_(group['eps'])
 
-                    p.addcdiv_(exp_avg / bias_correction1, de_nom, value=-group['lr'])
+                    p.addcdiv_(exp_avg, de_nom, value=-group['lr'] / bias_correction1)
 
         return loss
 
@@ -1080,7 +1080,7 @@ class AdaGO(MuonBase):
 
                     de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
-                    p.addcdiv_(exp_avg / bias_correction1, de_nom, value=-group['lr'])
+                    p.addcdiv_(exp_avg, de_nom, value=-group['lr'] / bias_correction1)
 
         return loss
 
@@ -1340,7 +1340,7 @@ class NorMuon(MuonBase):
 
                     de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
-                    p.addcdiv_(exp_avg / bias_correction1, de_nom, value=-group['lr'])
+                    p.addcdiv_(exp_avg, de_nom, value=-group['lr'] / bias_correction1)
 
         return loss
 

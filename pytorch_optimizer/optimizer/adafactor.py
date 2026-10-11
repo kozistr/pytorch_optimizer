@@ -196,7 +196,7 @@ class AdaFactor(BaseOptimizer):
         if self.maximize:
             torch._foreach_neg_(grads)
 
-        rms_values = self.get_rms(params)
+        rms_values = self.get_rms(params) if group['scale_parameter'] else 1.0
         lrs = self.get_lr(relative_step_size, rms_values, group['scale_parameter'])
 
         updates = torch._foreach_pow(grads, 2)
@@ -258,10 +258,7 @@ class AdaFactor(BaseOptimizer):
 
             torch._foreach_lerp_(exp_avgs, updates, weight=1.0 - beta1)
 
-            if is_dtype_different:
-                updates = [exp_avg.to(grads[0].dtype) for exp_avg in exp_avgs]
-            else:
-                torch._foreach_copy_(updates, exp_avgs)
+            updates = [exp_avg.to(grads[0].dtype) for exp_avg in exp_avgs] if is_dtype_different else exp_avgs
 
         self.apply_weight_decay_foreach(
             params=params,
@@ -324,7 +321,7 @@ class AdaFactor(BaseOptimizer):
                     update = exp_avg.to(grad.dtype)
                 else:
                     exp_avg.lerp_(update, weight=1.0 - beta1)
-                    update = exp_avg.clone()
+                    update = exp_avg.clone() if group.get('cautious') else exp_avg
 
                 if group.get('cautious'):
                     self.apply_cautious(update, grad)
@@ -338,7 +335,7 @@ class AdaFactor(BaseOptimizer):
                 fixed_decay=group['fixed_decay'],
             )
 
-            p.add_(-update)
+            p.sub_(update)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

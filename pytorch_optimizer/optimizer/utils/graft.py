@@ -67,7 +67,7 @@ class AdaGradGraft(SGDGraft):
 
     def add_statistics(self, grad: torch.Tensor, _) -> None:
         """Accumulate squared gradients for AdaGrad scaling."""
-        self.statistics.add_(grad.pow(2))
+        self.statistics.addcmul_(grad, grad)
 
     def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
         """Scale gradients by the inverse root of accumulated squared gradients."""

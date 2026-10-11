@@ -130,17 +130,16 @@ class Adan(BaseOptimizer):
             torch._foreach_neg_(grads)
 
         if isinstance(clip_global_grad_norm, torch.Tensor):
-            clip_global_grad_norm = clip_global_grad_norm.item()
+            clip_global_grad_norm = clip_global_grad_norm.reshape(())
 
-        torch._foreach_mul_(grads, clip_global_grad_norm)
+        if isinstance(clip_global_grad_norm, torch.Tensor) or clip_global_grad_norm != 1.0:
+            torch._foreach_mul_(grads, clip_global_grad_norm)
 
-        grad_diffs = torch._foreach_add(prev_grads, grads)
+        grad_diffs = prev_grads
+        torch._foreach_add_(grad_diffs, grads)
 
-        torch._foreach_mul_(exp_avgs, beta1)
-        torch._foreach_add_(exp_avgs, grads, alpha=1.0 - beta1)
-
-        torch._foreach_mul_(exp_avg_diffs, beta2)
-        torch._foreach_add_(exp_avg_diffs, grad_diffs, alpha=1.0 - beta2)
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+        torch._foreach_lerp_(exp_avg_diffs, grad_diffs, weight=1.0 - beta2)
 
         torch._foreach_mul_(grad_diffs, beta2)
         torch._foreach_add_(grad_diffs, grads)
@@ -152,16 +151,17 @@ class Adan(BaseOptimizer):
         torch._foreach_div_(de_noms, bias_correction3_sq)
         torch._foreach_add_(de_noms, group['eps'])
 
-        if group['weight_decouple']:
+        if group['weight_decay'] != 0.0 and group['weight_decouple']:
             torch._foreach_mul_(params, 1.0 - lr * group['weight_decay'])
 
         torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-lr / bias_correction1)
         torch._foreach_addcdiv_(params, exp_avg_diffs, de_noms, value=-lr * beta2 / bias_correction2)
 
-        if not group['weight_decouple']:
+        if group['weight_decay'] != 0.0 and not group['weight_decouple']:
             torch._foreach_div_(params, 1.0 + lr * group['weight_decay'])
 
-        torch._foreach_copy_(prev_grads, torch._foreach_neg(grads))
+        torch._foreach_copy_(prev_grads, grads)
+        torch._foreach_neg_(prev_grads)
 
     def _step_per_param(self, group: ParamGroup, clip_global_grad_norm: torch.Tensor | float) -> None:
         beta1, beta2, beta3 = group['betas']
@@ -209,13 +209,13 @@ class Adan(BaseOptimizer):
 
             de_nom = exp_avg_sq.sqrt().div_(bias_correction3_sq).add_(group['eps'])
 
-            if group['weight_decouple']:
+            if group['weight_decay'] != 0.0 and group['weight_decouple']:
                 p.mul_(1.0 - group['lr'] * group['weight_decay'])
 
             p.addcdiv_(exp_avg, de_nom, value=-group['lr'] / bias_correction1)
             p.addcdiv_(exp_avg_diff, de_nom, value=-group['lr'] * beta2 / bias_correction2)
 
-            if not group['weight_decouple']:
+            if group['weight_decay'] != 0.0 and not group['weight_decouple']:
                 p.div_(1.0 + group['lr'] * group['weight_decay'])
 
             grad.neg_()

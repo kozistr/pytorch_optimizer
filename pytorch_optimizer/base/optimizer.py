@@ -171,7 +171,7 @@ class BaseOptimizer(ABC, Optimizer):
 
             h_zs = torch.autograd.grad(grads, params, grad_outputs=zs, retain_graph=i < num_samples - 1)
             for h_z, z, p in zip(h_zs, zs, params):
-                state[p]['hessian'].add_(h_z * z, alpha=alpha / num_samples)
+                state[p]['hessian'].addcmul_(h_z, z, value=alpha / num_samples)
 
     @staticmethod
     def apply_weight_decay(
@@ -195,6 +195,9 @@ class BaseOptimizer(ABC, Optimizer):
             ratio: Optional scaling factor for decoupled weight decay.
 
         """
+        if weight_decay == 0.0:
+            return
+
         if weight_decouple:
             p.mul_(1.0 - weight_decay * (1.0 if fixed_decay else lr) * (ratio if ratio is not None else 1.0))
         elif weight_decay > 0.0 and grad is not None:
@@ -427,7 +430,8 @@ class BaseOptimizer(ABC, Optimizer):
 
         c_factors = [c_factor.unsqueeze(-2).rsqrt() for c_factor in exp_avg_sq_col]
 
-        torch._foreach_copy_(output, torch._foreach_mul(r_factors, c_factors))
+        for r_factor, c_factor, update in zip(r_factors, c_factors, output):
+            torch.mul(r_factor, c_factor, out=update)
 
     @staticmethod
     def apply_cautious(update: torch.Tensor, grad: torch.Tensor) -> None:
