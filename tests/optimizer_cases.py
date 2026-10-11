@@ -22,6 +22,7 @@ MODEL_OPTIMIZERS = optimizers_with_argument('model')
 
 
 GRADIENT_OPTIONS = {
+    'adan': {'weight_decay': 1e-3},
     'lookahead': {'k': 1},
     'ranger21': {'lookahead_merge_time': 1},
     'lamb': {'pre_norm': True},

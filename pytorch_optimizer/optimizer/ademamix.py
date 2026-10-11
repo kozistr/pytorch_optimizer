@@ -222,11 +222,14 @@ class AdEMAMix(BaseOptimizer):
 
                 de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
 
-                update = exp_avg.clone()
                 if group.get('cautious'):
+                    update = exp_avg.clone()
                     self.apply_cautious(update, grad)
+                    update.div_(bias_correction1)
+                else:
+                    update = exp_avg.div(bias_correction1)
 
-                update.div_(bias_correction1).add_(exp_avg_slow, alpha=alpha_t).div_(de_nom)
+                update.add_(exp_avg_slow, alpha=alpha_t).div_(de_nom)
 
                 if group.get('stable_adamw'):
                     update.div_(self.get_stable_adamw_rms(grad, exp_avg_sq))
@@ -369,8 +372,7 @@ class SimplifiedAdEMAMix(BaseOptimizer):
         de_noms = torch._foreach_sqrt(exp_avg_sqs)
         torch._foreach_add_(de_noms, [den_sum * group['eps'] for den_sum in den_sums])
 
-        updates = torch._foreach_mul(grads, group['alpha'])
-        torch._foreach_add_(updates, exp_avgs)
+        updates = torch._foreach_add(exp_avgs, grads, alpha=group['alpha'])
         torch._foreach_div_(updates, de_noms)
         torch._foreach_div_(updates, den_sums)
 
@@ -433,7 +435,7 @@ class SimplifiedAdEMAMix(BaseOptimizer):
 
                 de_nom = exp_avg_sq.sqrt().add_(math.sqrt(state['den_sum']) * group['eps'])
 
-                update = (group['alpha'] * grad + exp_avg).div_(de_nom).div_(math.sqrt(state['den_sum']))
+                update = exp_avg.add(grad, alpha=group['alpha']).div_(de_nom).div_(math.sqrt(state['den_sum']))
 
                 p.add_(update, alpha=-group['lr'])
 

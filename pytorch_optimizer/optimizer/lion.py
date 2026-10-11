@@ -157,9 +157,7 @@ class Lion(BaseOptimizer):
                 r=group.get('adanorm_r', None),
             )
 
-            update = exp_avg.clone()
-
-            update.lerp_(grad, weight=1.0 - beta1).sign_()
+            update = exp_avg.lerp(grad, weight=1.0 - beta1).sign_()
             exp_avg.lerp_(s_grad, weight=1.0 - beta2)
 
             if group.get('cautious'):
