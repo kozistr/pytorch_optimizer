@@ -53,7 +53,6 @@ class MSVAG(BaseOptimizer):
             if len(state) == 0:
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
-                state['s'] = torch.zeros_like(p)
 
     @staticmethod
     def get_rho(beta_power: float, beta: float) -> float:
@@ -99,12 +98,12 @@ class MSVAG(BaseOptimizer):
                 rho: float = self.get_rho(beta_power, beta)
 
                 m_p2 = m.pow(2)
-                s = (v - m_p2).div_(1.0 - rho)
+                s = v.sub_(m_p2).div_(1.0 - rho)
 
-                factor = m_p2.div(m_p2 + rho * s)
+                factor = m_p2.div_(s.mul_(rho).add_(m_p2))
                 torch.nan_to_num(factor, nan=0.0, out=factor)
                 factor.clamp_(0.0, 1.0)
 
-                p.add_(m * factor, alpha=-group['lr'])
+                p.addcmul_(m, factor, value=-group['lr'])
 
         return loss

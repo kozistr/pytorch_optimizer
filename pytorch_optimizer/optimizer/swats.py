@@ -156,8 +156,7 @@ class SWATS(BaseOptimizer):
                     eps=group['eps'],
                 )
 
-                perturb = exp_avg.clone()
-                perturb.div_(de_nom).mul_(-step_size)
+                perturb = exp_avg.div(de_nom).mul_(-step_size)
 
                 p.add_(perturb)
 

@@ -182,7 +182,7 @@ class AdamS(BaseOptimizer):
                 )
 
                 exp_avg_sq_hat = state['max_exp_avg_sq'] if group['ams_bound'] else state['exp_avg_sq']
-                de_nom = (exp_avg_sq_hat / bias_correction2).sqrt().add_(group['eps'])
+                de_nom = exp_avg_sq_hat.div(bias_correction2).sqrt_().add_(group['eps'])
 
                 p.addcdiv_(state['exp_avg'], de_nom, value=-step_size)
 

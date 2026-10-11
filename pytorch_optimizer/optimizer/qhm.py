@@ -3,6 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class QHM(BaseOptimizer):
@@ -17,19 +18,24 @@ class QHM(BaseOptimizer):
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
+            Defaults to `False`.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         momentum: float = 0.0,
         nu: float = 1.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         maximize: bool = False,
+        foreach: bool | None = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -38,6 +44,7 @@ class QHM(BaseOptimizer):
         self.validate_nus(nu)
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
@@ -46,6 +53,7 @@ class QHM(BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
+            'foreach': foreach,
         }
 
         super().__init__(params, defaults)
@@ -70,6 +78,25 @@ class QHM(BaseOptimizer):
             if len(state) == 0:
                 state['momentum_buffer'] = torch.zeros_like(p)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        momentum_buffers: list[torch.Tensor],
+    ) -> None:
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+
+        torch._foreach_lerp_(momentum_buffers, grads, weight=1.0 - group['momentum'])
+
+        foreach_add_(params, momentum_buffers, alpha=-group['lr'] * group['nu'])
+        foreach_add_(params, grads, alpha=-group['lr'] * (1.0 - group['nu']))
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -80,6 +107,14 @@ class QHM(BaseOptimizer):
         for group in self.param_groups:
             self.init_group(group)
             group['step'] += 1
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state_dict = self.collect_trainable_params(
+                    group, self.state, state_keys=['momentum_buffer']
+                )
+                for batch in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch['momentum_buffer'])
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -106,7 +141,11 @@ class QHM(BaseOptimizer):
 
                 buf.lerp_(grad, weight=1.0 - group['momentum'])
 
-                p.add_(buf, alpha=-group['lr'] * group['nu'])
-                p.add_(grad, alpha=-group['lr'] * (1.0 - group['nu']))
+                if isinstance(group['lr'], torch.Tensor):
+                    p.add_(buf * (-group['lr'] * group['nu']))
+                    p.add_(grad * (-group['lr'] * (1.0 - group['nu'])))
+                else:
+                    p.add_(buf, alpha=-group['lr'] * group['nu'])
+                    p.add_(grad, alpha=-group['lr'] * (1.0 - group['nu']))
 
         return loss

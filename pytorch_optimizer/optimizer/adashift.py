@@ -115,11 +115,12 @@ class AdaShift(BaseOptimizer):
                 exp_avg_sq = state['exp_avg_sq']
                 exp_avg_sq.lerp_(reduced_grad_sq, weight=1.0 - beta2)
 
-                update = exp_avg.clone()
                 if group.get('cautious'):
+                    update = exp_avg.clone()
                     self.apply_cautious(update, grad)
-
-                update.div_(exp_avg_sq.div(bias_correction).sqrt_().add_(group['eps']))
+                    update.div_(exp_avg_sq.div(bias_correction).sqrt_().add_(group['eps']))
+                else:
+                    update = exp_avg.div(exp_avg_sq.div(bias_correction).sqrt_().add_(group['eps']))
 
                 p.add_(update, alpha=-group['lr'])
 
