@@ -62,6 +62,21 @@ class TestHessianMethods:
 
 
 class TestGradientMethods:
+    @pytest.mark.parametrize('shapes', [[(2, 3, 4)] * 8, [(2, 3, 4), (2, 4, 3)] * 4])
+    def test_approximate_sq_grad_batch(self, shapes, device):
+        rows = [torch.arange(1.0, 2 * m + 1, device=device).reshape(2, m) + i for i, (_, m, _) in enumerate(shapes)]
+        cols = [torch.arange(1.0, 2 * n + 1, device=device).reshape(2, n) + i for i, (_, _, n) in enumerate(shapes)]
+        outputs = [torch.empty(shape, device=device) for shape in shapes]
+        expected = [
+            (row / row.mean(dim=-1, keepdim=True)).rsqrt().unsqueeze(-1) * col.rsqrt().unsqueeze(-2)
+            for row, col in zip(rows, cols)
+        ]
+
+        BaseOptimizer.approximate_sq_grad(rows, cols, outputs)
+
+        for output, reference in zip(outputs, expected):
+            torch.testing.assert_close(output, reference)
+
     @pytest.mark.parametrize(
         ('gradient', 'expected', 'expected_norm'), [(0.0, 0.0, 1.9), (1.0, 1.95, 1.95), (4.0, 4.0, 2.1)]
     )

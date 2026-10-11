@@ -18,7 +18,12 @@ from pytorch_optimizer.base.type import (
     ParamsT,
     State,
 )
-from pytorch_optimizer.optimizer.utils.foreach import compile_foreach_step, foreach_rsqrt_
+from pytorch_optimizer.optimizer.utils.foreach import (
+    compile_foreach_step,
+    foreach_rsqrt,
+    foreach_rsqrt_,
+    has_foreach_support,
+)
 
 
 class BaseOptimizer(ABC, Optimizer):
@@ -422,13 +427,33 @@ class BaseOptimizer(ABC, Optimizer):
             torch.mul(r_factor, c_factor, out=output)
             return
 
+        # Packing small, matching moments saves launches; large moments favor direct writes.
+        if (
+            len(output) >= 8
+            and (exp_avg_sq_row[0].numel() + exp_avg_sq_col[0].numel()) * output[0].element_size() <= 4096
+            and all(
+                row.shape == exp_avg_sq_row[0].shape
+                and col.shape == exp_avg_sq_col[0].shape
+                and update.shape == output[0].shape
+                for row, col, update in zip(exp_avg_sq_row, exp_avg_sq_col, output)
+            )
+            and has_foreach_support([*exp_avg_sq_row, *exp_avg_sq_col, *output])
+        ):
+            rows = torch.stack(exp_avg_sq_row)
+            cols = torch.stack(exp_avg_sq_col)
+            rows.div_(rows.mean(dim=-1, keepdim=True)).rsqrt_()
+            cols.rsqrt_()
+            products = rows.unsqueeze(-1) * cols.unsqueeze(-2)
+            torch._foreach_copy_(output, products.unbind())
+            return
+
         row_means = [r.mean(dim=-1, keepdim=True) for r in exp_avg_sq_row]
 
         r_factors = torch._foreach_div(exp_avg_sq_row, row_means)
         foreach_rsqrt_(r_factors)
         r_factors = [r_factor.unsqueeze(-1) for r_factor in r_factors]
 
-        c_factors = [c_factor.unsqueeze(-2).rsqrt() for c_factor in exp_avg_sq_col]
+        c_factors = [c_factor.unsqueeze(-2) for c_factor in foreach_rsqrt(exp_avg_sq_col)]
 
         for r_factor, c_factor, update in zip(r_factors, c_factors, output):
             torch.mul(r_factor, c_factor, out=update)
