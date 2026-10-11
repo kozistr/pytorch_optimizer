@@ -199,7 +199,7 @@ class Prodigy(BaseOptimizer):
                     de_nom.add_(d * group['eps'])
                     p.addcdiv_(exp_avg, de_nom, value=-d_lr)
                 else:
-                    update = exp_avg.clone().atan2_(de_nom)
+                    update = exp_avg.atan2(de_nom)
                     p.add_(update, alpha=-d_lr)
 
         return loss

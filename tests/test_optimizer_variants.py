@@ -49,7 +49,7 @@ COPT_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('lion', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
     ('ademamix', {'lr': 1e0}, 2),
     ('laprop', {'lr': 1e0}, 2),
-    ('adamp', {'lr': 1e0}, 2),
+    ('adamp', {'lr': 5e-1, 'nesterov': True}, 5),
     ('adopt', {'lr': 1e1}, 3),
     ('adashift', {'lr': 1e0, 'keep_num': 1}, 5),
     ('mars', {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3}, 3),

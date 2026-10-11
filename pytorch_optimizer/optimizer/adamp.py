@@ -169,9 +169,7 @@ class SGDP(BaseOptimizer):
 
                 buf.mul_(momentum).add_(grad, alpha=1.0 - group['dampening'])
 
-                d_p = buf.clone()
-                if group['nesterov']:
-                    d_p = d_p.mul_(momentum).add_(grad)
+                d_p = buf.mul(momentum).add_(grad) if group['nesterov'] else buf.clone()
 
                 wd_ratio: float = 1.0
                 if len(p.shape) > 1:
@@ -331,15 +329,16 @@ class AdamP(BaseOptimizer):
 
                 inv_de_nom = exp_avg_sq.sqrt().add_(group['eps']).reciprocal_().mul_(bias_correction2_sq)
 
-                perturb = exp_avg.clone()
-
                 if group.get('cautious'):
+                    perturb = exp_avg.clone()
                     self.apply_cautious(perturb, grad)
-
-                if group['nesterov']:
-                    perturb.lerp_(grad, weight=1.0 - beta1).mul_(inv_de_nom)
-                else:
+                    if group['nesterov']:
+                        perturb.lerp_(grad, weight=1.0 - beta1)
                     perturb.mul_(inv_de_nom)
+                elif group['nesterov']:
+                    perturb = exp_avg.lerp(grad, weight=1.0 - beta1).mul_(inv_de_nom)
+                else:
+                    perturb = exp_avg.mul(inv_de_nom)
 
                 wd_ratio: float = 1.0
                 if len(p.shape) > 1:

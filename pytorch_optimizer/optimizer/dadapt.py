@@ -882,7 +882,7 @@ class DAdaptLion(BaseOptimizer):
 
                 exp_avg, s = state['exp_avg'], state['s']
 
-                update = exp_avg.clone().lerp_(grad, weight=1.0 - beta1).sign_()
+                update = exp_avg.lerp(grad, weight=1.0 - beta1).sign_()
                 p.add_(update, alpha=-d_lr)
 
                 exp_avg.mul_(beta2).add_(grad, alpha=(1.0 - beta2) * d_lr)

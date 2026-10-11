@@ -83,3 +83,30 @@ Each run includes 2 warmup updates and 3 timed updates.
 The runs use unlocked GPU clocks, so small timing differences vary between runs.
 Compiled updates in low precision can change rounding.
 The model revision is `6a5829f5079c66e78d911e06fe21931cc00232f7`.
+
+## Optimizer-only microbenchmark
+
+Use the lightweight benchmark to measure updates with fixed gradients without downloading a model.
+Run it with the system Python interpreter that has CUDA-enabled PyTorch installed:
+
+```bash
+python -m examples.benchmark_optimizer_step --output .cache/optimizer-performance/current.json
+python -m examples.benchmark_optimizer_step --optimizers qhm --modes per_param foreach \
+    --dtypes float32 bfloat16 --output .cache/optimizer-performance/qhm.json
+```
+
+The workloads contain 64 tensors with 4,096 elements each (`many_small`) or four 2,048-by-2,048 tensors (`few_large`).
+The report records median synchronized wall time, CUDA event time, individual timing samples, resident allocation,
+temporary allocation, and peak allocation. Memory measurements exclude the caching allocator's reserved memory.
+Initialization and warmup are excluded from timings. These results measure optimizer updates, not training throughput.
+
+`auto` preserves constructor defaults. Other modes explicitly select per-parameter, foreach, compiled foreach, or fused
+updates and report unsupported modes. Compiled mode requires a working TorchInductor/Triton installation.
+QHM and AggMo support `foreach=True` and compiled foreach updates through `create_optimizer()`.
+For example, use `create_optimizer(model, 'aggmo', foreach=True, compile=True)`.
+Both default to `foreach=False`, since batching can be slower for large tensors on this GPU.
+The report records constructor options; SGDP uses Nesterov momentum to exercise its optimized update path.
+
+To compare against an earlier implementation, save its optimizer module files in a separate directory before editing,
+then pass `--reference-root PATH`. Reference files use their original filenames, such as `msvag.py` and `dadapt.py`.
+Reference and current implementations run in the same process with matching seeds and options.

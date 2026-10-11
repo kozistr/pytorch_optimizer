@@ -132,7 +132,8 @@ class AdamG(BaseOptimizer):
                 r.lerp_(self.s(v), weight=1.0 - beta3)
                 m.mul_(beta1).addcmul_(r, grad, value=1.0 - beta1)
 
-                update = (m / bias_correction1) / (v / bias_correction2).sqrt_().add_(group['eps'])
+                de_nom = v.div(bias_correction2).sqrt_().add_(group['eps'])
+                update = m.div(bias_correction1).div_(de_nom)
 
                 p.add_(update, alpha=-step_size)
 
