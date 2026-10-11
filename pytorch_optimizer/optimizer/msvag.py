@@ -104,6 +104,6 @@ class MSVAG(BaseOptimizer):
                 torch.nan_to_num(factor, nan=0.0, out=factor)
                 factor.clamp_(0.0, 1.0)
 
-                p.add_(m.mul_(factor), alpha=-group['lr'])
+                p.addcmul_(m, factor, value=-group['lr'])
 
         return loss
