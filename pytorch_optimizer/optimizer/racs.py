@@ -124,7 +124,9 @@ class RACS(BaseOptimizer):
                 s_sq = s.add(group['eps']).sqrt_().unsqueeze(1)
                 q_sq = q.add(group['eps']).sqrt_().unsqueeze(0)
 
-                grad_hat = grad / (s_sq * q_sq)
+                grad_hat = grad_p2
+                torch.mul(s_sq, q_sq, out=grad_hat)
+                torch.div(grad, grad_hat, out=grad_hat)
 
                 grad_hat_norm = torch.norm(grad_hat)
                 threshold = (

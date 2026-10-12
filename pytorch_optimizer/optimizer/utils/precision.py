@@ -59,14 +59,12 @@ class StochasticAccumulator:
     @staticmethod
     def stochastic_grad_accum(p: torch.Tensor) -> None:
         if hasattr(p, 'acc_grad'):
-            acc_grad_fp32 = p.acc_grad.clone().to(torch.float32)
+            acc_grad_fp32 = p.acc_grad.to(torch.float32, copy=True)
             acc_grad_fp32.add_(p.grad.to(torch.float32))
 
             copy_stochastic(p.acc_grad, acc_grad_fp32)
-
-            del acc_grad_fp32
         else:
-            p.acc_grad = p.grad.clone().to(torch.bfloat16)  # ty: ignore[invalid-assignment]
+            p.acc_grad = p.grad.to(torch.bfloat16, copy=True)  # ty: ignore[invalid-assignment]
 
         del p.grad
 

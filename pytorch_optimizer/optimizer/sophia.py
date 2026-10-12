@@ -148,7 +148,9 @@ class SophiaH(BaseOptimizer):
                 if 'hessian' in state and update_hessian:
                     hessian_moment.lerp_(state['hessian'], weight=1.0 - beta2)
 
-                update = (momentum / torch.clip(hessian_moment, min=group['eps'])).clamp_(-group['p'], group['p'])
+                update = hessian_moment.clamp(min=group['eps'])
+                torch.div(momentum, update, out=update)
+                update.clamp_(-group['p'], group['p'])
 
                 p.add_(update, alpha=-group['lr'])
 

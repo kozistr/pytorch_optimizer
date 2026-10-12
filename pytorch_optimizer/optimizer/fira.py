@@ -120,7 +120,8 @@ class Fira(BaseOptimizer):
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
-                norm_grad = exp_avg / de_nom
+                norm_grad = de_nom
+                torch.div(exp_avg, de_nom, out=norm_grad)
 
                 if 'rank' in group and p.dim() == 2:
                     sub_grad = state['projector'].project_back(grad)
@@ -131,7 +132,9 @@ class Fira(BaseOptimizer):
                     if norm_dim == 1:
                         scaling_factor = scaling_factor.unsqueeze(1)
 
-                    scaling_grad = full_grad.sub(sub_grad).mul_(scaling_factor)
+                    scaling_grad = sub_grad
+                    torch.sub(full_grad, sub_grad, out=scaling_grad)
+                    scaling_grad.mul_(scaling_factor)
 
                     if 'scaling_grad' in state:
                         scaling_grad_norm = torch.norm(scaling_grad)

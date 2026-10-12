@@ -285,7 +285,8 @@ class APOLLO(BaseOptimizer):
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
-                norm_grad = exp_avg / de_nom
+                norm_grad = de_nom
+                torch.div(exp_avg, de_nom, out=norm_grad)
                 if 'rank' in group and p.dim() > 1:
                     if group['scale_type'] == 'channel':
                         norm_dim: int = 0 if norm_grad.shape[0] < norm_grad.shape[1] else 1
@@ -295,7 +296,8 @@ class APOLLO(BaseOptimizer):
                     else:
                         scaling_factor = torch.norm(norm_grad) / (torch.norm(grad) + 1e-8)
 
-                    scaling_grad = grad * scaling_factor
+                    scaling_grad = norm_grad
+                    torch.mul(grad, scaling_factor, out=scaling_grad)
 
                     scaling_grad_norm = torch.norm(scaling_grad)
                     if 'scaling_grad' in state:
@@ -312,7 +314,7 @@ class APOLLO(BaseOptimizer):
 
                     state['scaling_grad'] = scaling_grad_norm
 
-                    norm_grad = scaling_grad * np.sqrt(group['scale'])
+                    norm_grad = scaling_grad.mul_(np.sqrt(group['scale']))
                     norm_grad = state['projector'].project_back(norm_grad)
 
                 p.add_(norm_grad, alpha=-step_size)

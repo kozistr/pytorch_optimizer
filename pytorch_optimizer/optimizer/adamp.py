@@ -56,7 +56,8 @@ def projection(
 
         if cosine_sim.max() < delta / math.sqrt(view_func(p).size()[1]):
             p_n = p / view_func(p).norm(dim=1).view(expand_size).add_(eps)
-            perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(expand_size)
+            radial = view_func(p_n * perturb).sum(dim=1).view(expand_size)
+            perturb.sub_(p_n.mul_(radial))
             wd = wd_ratio
             return perturb, wd
 
@@ -338,7 +339,7 @@ class AdamP(BaseOptimizer):
                 elif group['nesterov']:
                     perturb = exp_avg.lerp(grad, weight=1.0 - beta1).mul_(inv_de_nom)
                 else:
-                    perturb = exp_avg.mul(inv_de_nom)
+                    perturb = inv_de_nom.mul_(exp_avg)
 
                 wd_ratio: float = 1.0
                 if len(p.shape) > 1:

@@ -244,10 +244,7 @@ class GrokFastAdamW(BaseOptimizer):
         torch._foreach_div_(de_noms, bias_correction2_sq)
         torch._foreach_clamp_min_(de_noms, group['eps'])
 
-        updates = torch._foreach_div(exp_avgs, bias_correction1)
-        torch._foreach_div_(updates, de_noms)
-
-        torch._foreach_add_(params, updates, alpha=-group['lr'])
+        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-group['lr'] / bias_correction1)
 
     def _step_per_param(self, group: ParamGroup, should_grokfast: bool) -> None:
         beta1, beta2 = group['betas']
@@ -291,9 +288,7 @@ class GrokFastAdamW(BaseOptimizer):
 
             de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).clamp_(min=group['eps'])
 
-            update = exp_avg.div(bias_correction1).div_(de_nom)
-
-            p.add_(update, alpha=-group['lr'])
+            p.addcdiv_(exp_avg, de_nom, value=-group['lr'] / bias_correction1)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
