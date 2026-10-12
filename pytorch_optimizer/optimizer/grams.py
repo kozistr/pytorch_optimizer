@@ -102,7 +102,6 @@ class Grams(BaseOptimizer):
 
         updates = torch._foreach_div(exp_avgs, bias_correction1)
         torch._foreach_div_(updates, de_noms)
-        del de_noms
         torch._foreach_abs_(updates)
         torch._foreach_mul_(updates, torch._foreach_sign(grads))
 

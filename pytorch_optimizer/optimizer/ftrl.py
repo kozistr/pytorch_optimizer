@@ -106,7 +106,6 @@ class FTRL(BaseOptimizer):
         new_zs = torch._foreach_add(zs, grads)
         torch._foreach_mul_(sigmas, params)
         torch._foreach_sub_(new_zs, sigmas)
-        del sigmas
 
         de_noms = torch._foreach_sqrt(new_ns)
         torch._foreach_add_(de_noms, group['beta'])

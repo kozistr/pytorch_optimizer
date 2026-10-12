@@ -259,7 +259,6 @@ class DASH(BaseOptimizer):
         start = group['start_preconditioning_step']
         if step >= start:
             graft_norm = torch.linalg.vector_norm(graft, dim=(1, 2), keepdim=True)
-            del graft
 
             if not inverse_roots or step % group['precondition_frequency'] == 0:
                 inverse_roots[:] = [

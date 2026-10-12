@@ -63,8 +63,6 @@ class StochasticAccumulator:
             acc_grad_fp32.add_(p.grad.to(torch.float32))
 
             copy_stochastic(p.acc_grad, acc_grad_fp32)
-
-            del acc_grad_fp32
         else:
             p.acc_grad = p.grad.to(torch.bfloat16, copy=True)  # ty: ignore[invalid-assignment]
 

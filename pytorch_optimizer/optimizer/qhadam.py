@@ -122,7 +122,6 @@ class QHAdam(BaseOptimizer):
         avg_grad_rms = torch._foreach_mul(exp_avg_sqs, nu2)
         if nu2 != 1.0:
             torch._foreach_add_(avg_grad_rms, grad_p2, alpha=1.0 - nu2)
-        del grad_p2, grad_sq
 
         torch._foreach_sqrt_(avg_grad_rms)
         torch._foreach_add_(avg_grad_rms, group['eps'])

@@ -106,7 +106,6 @@ class EXAdam(BaseOptimizer):
         d2 = torch._foreach_mul(exp_avgs, exp_avgs)
         denominators = torch._foreach_add(d2, group['eps'])
         torch._foreach_div_(d2, denominators)
-        del denominators
         torch._foreach_mul_(d2, 1.0 - bias_correction1)
         torch._foreach_add_(d2, 1.0)
 
@@ -114,7 +113,6 @@ class EXAdam(BaseOptimizer):
         torch._foreach_mul_(updates, d1)
         torch._foreach_mul_(d1, torch._foreach_div(grads, bias_correction1))
         torch._foreach_add_(updates, d1)
-        del d1
 
         torch._foreach_mul_(d2, torch._foreach_div(exp_avg_sqs, bias_correction2))
         torch._foreach_sqrt_(d2)
@@ -183,7 +181,6 @@ class EXAdam(BaseOptimizer):
                 exp_avg_p2 = exp_avg.pow(2)
                 d2 = exp_avg_p2.add(group['eps'])
                 torch.div(exp_avg_p2, d2, out=d2)
-                del exp_avg_p2
                 d2.mul_(1.0 - bias_correction1).add_(1.0)
 
                 update = exp_avg.div(bias_correction1).mul_(d1)
