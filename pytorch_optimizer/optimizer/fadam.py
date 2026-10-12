@@ -125,25 +125,31 @@ class FAdam(BaseOptimizer):
                 fim.mul_(curr_beta2).addcmul_(grad, grad, value=1.0 - curr_beta2)
 
                 rms_grad = grad.pow(2).mean().sqrt_()
-                curr_eps = min(group['eps'], group['eps_2'] * rms_grad) if rms_grad > 0 else group['eps']
+                scaled_eps = group['eps_2'] * rms_grad
+                eps_dtype = torch.promote_types(fim.dtype, torch.float32)
+                eps_power = torch.where(
+                    (rms_grad > 0) & (scaled_eps < group['eps']),
+                    scaled_eps.pow(2.0 * group['p']).to(fim.dtype).to(eps_dtype),
+                    group['eps'] ** (2.0 * group['p']),
+                )
 
-                fim_base = fim.pow(group['p']).add_(curr_eps ** (2.0 * group['p']))
-                grad_nat = grad / fim_base
+                fim_base = fim.pow(group['p']).to(eps_dtype).add_(eps_power).to(fim.dtype)
+                update = grad / fim_base
 
-                rms = grad_nat.pow(2).mean().sqrt_()
-                divisor = max(1, rms / group['clip'])
-                grad_nat.div_(divisor)
+                rms = update.pow(2).mean().sqrt_()
+                divisor = (rms / group['clip']).clamp_min_(1)
+                update.div_(divisor)
 
-                momentum.lerp_(grad_nat, weight=1.0 - beta1)
+                momentum.lerp_(update, weight=1.0 - beta1)
 
-                grad_weights = p / fim_base
+                torch.div(p, fim_base, out=update)
 
-                rms = torch.pow(grad_weights, 2).mean().sqrt_()
-                divisor = max(1, rms / group['clip'])
-                grad_weights.div_(divisor)
+                rms = torch.pow(update, 2).mean().sqrt_()
+                divisor = (rms / group['clip']).clamp_min_(1)
+                update.div_(divisor)
 
-                grad_weights.mul_(group['weight_decay']).add_(momentum)
+                update.mul_(group['weight_decay']).add_(momentum)
 
-                p.add_(grad_weights, alpha=-group['lr'])
+                p.add_(update, alpha=-group['lr'])
 
         return loss

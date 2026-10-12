@@ -118,7 +118,8 @@ class GaLore(BaseOptimizer):
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
 
-                norm_grad = exp_avg / de_nom
+                norm_grad = de_nom
+                torch.div(exp_avg, de_nom, out=norm_grad)
 
                 if 'rank' in group and p.dim() == 2:
                     norm_grad = state['projector'].project_back(norm_grad)

@@ -133,8 +133,6 @@ class AdamG(BaseOptimizer):
                 m.mul_(beta1).addcmul_(r, grad, value=1.0 - beta1)
 
                 de_nom = v.div(bias_correction2).sqrt_().add_(group['eps'])
-                update = m.div(bias_correction1).div_(de_nom)
-
-                p.add_(update, alpha=-step_size)
+                p.addcdiv_(m, de_nom, value=-step_size / bias_correction1)
 
         return loss

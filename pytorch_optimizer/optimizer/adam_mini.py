@@ -133,7 +133,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         m.lerp_(grad, weight=1.0 - beta1)
         v.mul_(beta2).addcmul_(grad, grad.conj(), value=1.0 - beta2)
 
-        h = (v.sqrt() / bias_correction2_sq).add_(eps)
+        h = v.sqrt().div_(bias_correction2_sq).add_(eps)
 
         # PyTorch 2.1 CPU addcdiv does not support mixed precision inputs.
         if p.device.type == 'cpu' and p.dtype != m.dtype:
@@ -169,7 +169,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         tmp_lr = torch.mean(grad * grad, dim=1).to(m.device)
         v.lerp_(tmp_lr.to(dtype=v.dtype), weight=1.0 - beta2)
 
-        h = (v.sqrt() / bias_correction2_sq).add_(eps)
+        h = v.sqrt().div_(bias_correction2_sq).add_(eps)
 
         update = (1 / (h * bias_correction1)).view(head, 1).mul(m)
 
@@ -208,7 +208,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         tmp_lr = torch.mean(grad * grad, dim=2).to(m.device)
         v.lerp_(tmp_lr.to(dtype=v.dtype), weight=1.0 - beta2)
 
-        h = (v.sqrt() / bias_correction2_sq).add_(eps)
+        h = v.sqrt().div_(bias_correction2_sq).add_(eps)
 
         update = m / (h * bias_correction1).unsqueeze(-1)
 
@@ -266,7 +266,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         m.lerp_(grad, weight=1.0 - beta1)
         v.lerp_(tmp_lr.to(dtype=v.dtype), weight=1.0 - beta2)
 
-        h = (v.sqrt() / bias_correction2_sq).add_(eps)
+        h = v.sqrt().div_(bias_correction2_sq).add_(eps)
 
         stepsize = (1 / bias_correction1) / h
 

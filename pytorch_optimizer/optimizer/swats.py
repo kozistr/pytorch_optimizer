@@ -135,8 +135,7 @@ class SWATS(BaseOptimizer):
                     buf = state['momentum_buffer']
                     buf.mul_(beta1).add_(grad)
 
-                    update = buf.clone()
-                    update.mul_(1.0 - beta1)
+                    update = buf.mul(1.0 - beta1)
 
                     if group['nesterov']:
                         update.add_(buf, alpha=beta1)
@@ -156,7 +155,9 @@ class SWATS(BaseOptimizer):
                     eps=group['eps'],
                 )
 
-                perturb = exp_avg.div(de_nom).mul_(-step_size)
+                perturb = de_nom
+                torch.div(exp_avg, de_nom, out=perturb)
+                perturb.mul_(-step_size)
 
                 p.add_(perturb)
 

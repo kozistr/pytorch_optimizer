@@ -122,7 +122,8 @@ class PID(BaseOptimizer):
                     d_buf.mul_(group['momentum'])
 
                     if group['step'] > 1:
-                        d_buf.add_(grad - g_buf, alpha=1.0 - group['momentum'])
+                        torch.sub(grad, g_buf, out=g_buf)
+                        d_buf.add_(g_buf, alpha=1.0 - group['momentum'])
 
                     g_buf.copy_(grad)
 

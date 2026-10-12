@@ -168,7 +168,8 @@ class ADOPT(BaseOptimizer):
 
             de_nom = exp_avg_sq.sqrt().clamp_(min=group['eps'])
 
-            normed_grad = grad.div(de_nom)
+            normed_grad = de_nom
+            torch.div(grad, de_nom, out=normed_grad)
             if self.clip_lambda is not None:
                 clip = self.clip_lambda(group['step'])
                 normed_grad.clamp_(-clip, clip)

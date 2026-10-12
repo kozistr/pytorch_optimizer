@@ -164,26 +164,26 @@ class GaLoreProjector:
                 torch.matmul(low_rank_grad, self.ortho_matrix)
                 if low_rank_grad.shape[1] == self.ortho_matrix.shape[0]
                 else torch.matmul(self.ortho_matrix, low_rank_grad)
-            ) * self.scale
+            ).mul_(self.scale)
         if self.projection_type == 'reverse_std':
             return (
                 torch.matmul(self.ortho_matrix, low_rank_grad)
                 if low_rank_grad.shape[0] == self.ortho_matrix.shape[1]
                 else torch.matmul(low_rank_grad, self.ortho_matrix)
-            ) * self.scale
+            ).mul_(self.scale)
         if self.projection_type == 'right':
-            return torch.matmul(low_rank_grad, self.ortho_matrix) * self.scale
+            return torch.matmul(low_rank_grad, self.ortho_matrix).mul_(self.scale)
         if self.projection_type == 'left':
-            return torch.matmul(self.ortho_matrix, low_rank_grad) * self.scale
+            return torch.matmul(self.ortho_matrix, low_rank_grad).mul_(self.scale)
         if self.projection_type == 'full':
             if not isinstance(self.ortho_matrix, tuple):
                 raise ValueError('self.ortho_matrix is not tuple')
-            return torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1] * self.scale
+            return (torch.matmul(self.ortho_matrix[0], low_rank_grad) @ self.ortho_matrix[1]).mul_(self.scale)
         if self.projection_type == 'random':
             return (
                 torch.matmul(low_rank_grad, self.ortho_matrix)
                 if low_rank_grad.shape[1] == self.ortho_matrix.shape[0]
                 else torch.matmul(self.ortho_matrix, low_rank_grad)
-            ) * self.scale
+            ).mul_(self.scale)
 
         raise NotImplementedError
