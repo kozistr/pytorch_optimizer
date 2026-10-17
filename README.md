@@ -105,7 +105,7 @@ The compiler chooses which operations to fuse; no separate fusion setting is req
 See the [compilation guide](https://pytorch-optimizers.readthedocs.io/en/latest/getting-started/#compile-optimizer-steps)
 for CUDA foreach settings and graph diagnostics.
 
-Muon and MuonClip also support [FSDP2 training](docs/getting-started.md#train-muon-with-fsdp2) across GPUs and nodes.
+Muon, MuonClip, and AdaMuon also support [FSDP2 training](docs/getting-started.md#train-muon-with-fsdp2) across GPUs and nodes.
 
 ## Discover Available Components
 

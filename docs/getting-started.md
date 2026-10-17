@@ -174,7 +174,9 @@ Replace `HOST` with a hostname or IP reachable from both nodes:
 torchrun --nnodes=2 --nproc-per-node=2 --rdzv-backend=c10d --rdzv-endpoint=HOST:29400 --rdzv-id=muon train.py
 ```
 
-`MuonClip` uses the same setup. Label its query/key groups and reduce per-head attention maxima over
+For `AdaMuon`, use `'adamuon'` in `create_optimizer()` with the same setup.
+
+`MuonClip` also uses the same setup. Label its query/key groups and reduce per-head attention maxima over
 all accumulation microbatches and data-parallel ranks with `ReduceOp.MAX` before calling
 `step(attention_max_logits=...)`.
 

@@ -46,7 +46,9 @@ def _check_sharded_muon(_rank, optimizer_name, foreach, ns_method):
         for p, expected in zip(sharded, reference):
             torch.testing.assert_close(p.full_tensor(), expected, atol=1e-7, rtol=1e-6)
             for key, state in optimizer.state[p].items():
-                torch.testing.assert_close(state.full_tensor(), expected_optimizer.state[expected][key])
+                torch.testing.assert_close(
+                    state.full_tensor(), expected_optimizer.state[expected][key].reshape(state.shape)
+                )
                 assert state.placements == p.placements
                 assert state.to_local().shape == p.to_local().shape
 
@@ -59,6 +61,8 @@ class TestMuon:
             ('muon', True, 'gram_newton_schulz'),
             ('muonclip', False, 'gram_newton_schulz'),
             ('muonclip', True, 'newton_schulz'),
+            ('adamuon', False, 'newton_schulz'),
+            ('adamuon', True, 'newton_schulz'),
         ],
     )
     @pytest.mark.skipif(not torch.distributed.is_gloo_available(), reason='Gloo is unavailable')
