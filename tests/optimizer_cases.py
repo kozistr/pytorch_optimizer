@@ -56,7 +56,7 @@ def supports_gradient(optimizer_name: str, kind: str) -> bool:
         options = {**GRADIENT_OPTIONS.get(optimizer_name, {})}
         if optimizer_name == 'madgrad':
             options['momentum'] = 0.0
-        if optimizer_name in ('muon', 'adamuon', 'adago', 'normuon'):
+        if optimizer_name in ('muon', 'muonclip', 'adamuon', 'adago', 'normuon'):
             options['use_muon'] = True
 
         optimizer = build_optimizer(optimizer_name, [param], **options)

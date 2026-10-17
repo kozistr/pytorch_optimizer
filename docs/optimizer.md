@@ -376,6 +376,10 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.MuonClip
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Nero
     :docstring:
     :members:

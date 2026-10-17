@@ -356,3 +356,94 @@ def zero_power_via_newton_schulz_5(
 
     x = x.reshape(*g.shape[:-2], *x.shape[-2:])
     return x.mT if transpose else x
+
+
+def zero_power_via_gram_newton_schulz(
+    g: torch.Tensor,
+    num_steps: int = 5,
+    eps: float = 1e-7,
+    safety_factor: float = 1.0,
+    weights: NewtonSchulzWeights = (3.4445, -4.7750, 2.0315),
+    dtype: torch.dtype = torch.float16,
+    reset_steps: tuple[int, ...] = (2,),
+) -> torch.Tensor:
+    """Approximate a matrix's polar factor with restarted Gram Newton-Schulz iterations.
+
+    Reference:
+        https://dao-lab.ai/blog/2026/gram-newton-schulz/
+
+    Args:
+        g: Matrix or batch of matrices with at least two dimensions.
+        num_steps: Number of Newton-Schulz iterations.
+        eps: Lower bound for the input normalization denominator.
+        safety_factor: Multiplier for the input norm before iteration.
+        weights: Coefficient preset, tuple, or schedule. Reuse the final tuple when the schedule is shorter.
+        dtype: Data type for the iteration and output. Normalize in float32 before casting.
+        reset_steps: Iteration counts after which to reconstruct the Gram matrix for stability.
+
+    Returns:
+        torch.Tensor: Transformed matrix with the same shape as `g`.
+
+    Raises:
+        ValueError: The input has fewer than two dimensions or the coefficients are invalid.
+
+    """
+    if g.ndim < 2:
+        raise ValueError(f'input must be over 2-dimensional. got {g.ndim}D.')
+
+    weight_schedule = get_newton_schulz_weights(weights)
+    transpose = g.size(-2) > g.size(-1)
+
+    matrix = (g.mT if transpose else g).float()
+
+    norm = matrix.norm(2, dim=(-2, -1), keepdim=True)
+    if safety_factor != 1.0:
+        norm.mul_(safety_factor)
+
+    x = torch.empty_like(matrix, dtype=dtype, memory_format=torch.contiguous_format)
+    torch.div(matrix, norm.clamp_min_(eps), out=x)
+    if num_steps <= 0:
+        return x.mT if transpose else x
+
+    if x.ndim > 2:
+        x = x.flatten(0, -3)
+
+    mm_fn = torch.baddbmm if x.ndim > 2 else torch.addmm
+    gram_fn = torch.bmm if x.ndim > 2 else torch.mm
+
+    gram = torch.empty((*x.shape[:-1], x.size(-2)), device=x.device, dtype=x.dtype)
+    polynomial_buffer = torch.empty_like(gram)
+    factor = torch.empty_like(gram)
+    scratch = torch.empty_like(gram)
+    rectangular = torch.empty_like(x)
+
+    gram_fn(x, x.mT, out=gram)
+
+    factor_initialized: bool = False
+
+    for index in range(num_steps):
+        if index in reset_steps and factor_initialized:
+            gram_fn(factor, x, out=rectangular)
+            x, rectangular = rectangular, x
+            gram_fn(x, x.mT, out=gram)
+            factor_initialized = False
+
+        w0, w1, w2 = weight_schedule[min(index, len(weight_schedule) - 1)]
+        polynomial = polynomial_buffer if factor_initialized else factor
+        mm_fn(gram, gram, gram, beta=w1, alpha=w2, out=polynomial)
+        if factor_initialized:
+            mm_fn(factor, factor, polynomial, beta=w0, out=scratch)
+            factor, scratch = scratch, factor
+
+        if index + 1 < num_steps and index + 1 not in reset_steps:
+            mm_fn(gram, gram, polynomial, beta=w0, out=scratch)
+            mm_fn(scratch, polynomial, scratch, beta=w0, out=gram)
+
+        if not factor_initialized:
+            factor.diagonal(dim1=-2, dim2=-1).add_(w0)
+            factor_initialized = True
+
+    gram_fn(factor, x, out=rectangular)
+    x = rectangular.reshape(*g.shape[:-2], *rectangular.shape[-2:])
+
+    return x.mT if transpose else x

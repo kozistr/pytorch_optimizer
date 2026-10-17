@@ -78,7 +78,15 @@ from pytorch_optimizer.optimizer.madgrad import MADGRAD
 from pytorch_optimizer.optimizer.magma import Magma
 from pytorch_optimizer.optimizer.mars import MARS
 from pytorch_optimizer.optimizer.msvag import MSVAG
-from pytorch_optimizer.optimizer.muon import AdaGO, AdaMuon, DistributedMuon, Muon, NorMuon, prepare_muon_parameters
+from pytorch_optimizer.optimizer.muon import (
+    AdaGO,
+    AdaMuon,
+    DistributedMuon,
+    Muon,
+    MuonClip,
+    NorMuon,
+    prepare_muon_parameters,
+)
 from pytorch_optimizer.optimizer.nero import Nero
 from pytorch_optimizer.optimizer.novograd import NovoGrad
 from pytorch_optimizer.optimizer.orthograd import OrthoGrad
@@ -229,6 +237,7 @@ __all__ = [
     'Lookahead',
     'Magma',
     'Muon',
+    'MuonClip',
     'NAdam',
     'Nero',
     'NorMuon',
@@ -365,6 +374,7 @@ OPTIMIZER_LIST: list[OptimizerType] = [
     MARS,
     MSVAG,
     Muon,
+    MuonClip,
     Nero,
     NorMuon,
     NovoGrad,
@@ -609,7 +619,7 @@ def create_optimizer(
         optimizer = optimizer_class(parameters, max_lr=lr, **kwargs)
     elif optimizer_name in ('lomo', 'adalomo', 'adammini'):
         optimizer = optimizer_class(model, lr=lr, **kwargs)
-    elif optimizer_name in ('muon', 'adamuon', 'adago', 'normuon'):
+    elif optimizer_name in ('muon', 'muonclip', 'adamuon', 'adago', 'normuon'):
         warn(f'highly recommend you to manually create the {optimizer_name} manually.', UserWarning, stacklevel=1)
 
         optimizer = prepare_muon_parameters(model, optimizer_name, lr=lr, **kwargs)
