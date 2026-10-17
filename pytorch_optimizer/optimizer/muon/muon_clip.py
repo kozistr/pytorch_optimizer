@@ -4,7 +4,7 @@ import torch
 
 from pytorch_optimizer.base.type import Betas, Closure, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.muon.muon import Muon
-from pytorch_optimizer.optimizer.utils.matrix import NewtonSchulzWeights
+from pytorch_optimizer.optimizer.utils.matrix import DTensor, NewtonSchulzWeights, has_dtensor
 
 
 class MuonClip(Muon):
@@ -138,6 +138,16 @@ class MuonClip(Muon):
                     raise ValueError('the first parameter dimension must be divisible by the attention head count.')
 
                 row_scales = scales.to(device=p.device, dtype=p.dtype).repeat_interleave(p.size(0) // logits.numel())
-                p.mul_(row_scales.view(-1, *([1] * (p.ndim - 1))))
+                row_scales = row_scales.view(-1, *([1] * (p.ndim - 1)))
+                if has_dtensor and isinstance(p, DTensor):
+                    row_scales = DTensor.from_local(row_scales, device_mesh=p.device_mesh)
+                    placements = [
+                        placement if placement.is_shard() and placement.dim == 0 else replicated
+                        for placement, replicated in zip(p.placements, row_scales.placements)
+                    ]
+                    row_scales = row_scales.redistribute(placements=placements)
+                    p.to_local().mul_(row_scales.to_local())
+                else:
+                    p.mul_(row_scales)
 
         return loss

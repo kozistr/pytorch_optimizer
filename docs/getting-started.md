@@ -125,6 +125,61 @@ optimizer = create_optimizer(model, 'adamw', lr=1e-3, fused=True)
 Check the optimizer and PyTorch version for supported devices and dtypes.
 Compilation alone does not require a `fused` argument. Benchmark after compilation warmup to compare performance.
 
+## Train Muon with FSDP2
+
+FSDP2 splits model parameters, gradients, and optimizer states across GPUs to save memory.
+Use CUDA-enabled PyTorch with FSDP2 support. Each process uses one GPU.
+
+In your training script, initialize distributed training, then create the optimizer **after** sharding the model:
+
+```python
+import os
+
+import torch
+import torch.distributed as dist
+from torch.distributed.fsdp import fully_shard
+
+from pytorch_optimizer import create_optimizer
+
+local_rank = int(os.environ['LOCAL_RANK'])
+torch.cuda.set_device(local_rank)
+dist.init_process_group('nccl')
+
+model = YourModel().cuda(local_rank)
+fully_shard(model)
+optimizer = create_optimizer(model, 'muon', lr=0.02, foreach=True)
+
+for inputs, targets in train_loader:
+    optimizer.zero_grad()
+    loss = loss_fn(model(inputs.cuda(local_rank)), targets.cuda(local_rank))
+    loss.backward()
+    optimizer.step()
+dist.destroy_process_group()
+```
+
+Use your usual model and loss function. Build `train_loader` with `DistributedSampler` after initializing
+the process group so each rank receives different data. For large models, call `fully_shard()` on each
+transformer block before sharding the root model. Keep optimizer steps eager (`compile=False`, the default).
+
+Run on one node with two GPUs:
+
+```shell
+torchrun --standalone --nproc-per-node=2 train.py
+```
+
+For two nodes with two GPUs each, run the same command on both nodes.
+Replace `HOST` with a hostname or IP reachable from both nodes:
+
+```shell
+torchrun --nnodes=2 --nproc-per-node=2 --rdzv-backend=c10d --rdzv-endpoint=HOST:29400 --rdzv-id=muon train.py
+```
+
+For `AdaMuon`, use `'adamuon'` in `create_optimizer()` with the same setup.
+
+`MuonClip` also uses the same setup. Label its query/key groups and reduce per-head attention maxima over
+all accumulation microbatches and data-parallel ranks with `ReduceOp.MAX` before calling
+`step(attention_max_logits=...)`.
+
 ## Discover components
 
 Filter component names with wildcard patterns:

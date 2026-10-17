@@ -8,8 +8,10 @@ from pytorch_optimizer.base.type import Betas, Closure, Loss, ParamGroup, Params
 from pytorch_optimizer.optimizer.muon.base import MuonBase, get_adjusted_lr
 from pytorch_optimizer.optimizer.utils.foreach import foreach_add_
 from pytorch_optimizer.optimizer.utils.matrix import (
+    DTensor,
     NewtonSchulzWeights,
     get_newton_schulz_weights,
+    has_dtensor,
     zero_power_via_newton_schulz_5,
 )
 
@@ -20,6 +22,7 @@ class AdaMuon(MuonBase):
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
     such as embeddings, classifier heads, biases, and gains. Pass higher dimensional
     weights directly. The orthogonal update uses a flattened matrix view.
+    Supports FSDP2 DTensor parameters with eager optimizer steps.
 
     The default shape scaling gives the adaptive update an RMS of 0.2 before multiplication
     by the learning rate. `use_adjusted_lr=True` selects Moonlight scaling instead.
@@ -142,10 +145,19 @@ class AdaMuon(MuonBase):
             if len(state) == 0:
                 if group['use_muon']:
                     state['m'] = torch.zeros_like(p)
-                    state['v'] = torch.zeros_like(p.flatten())
+                    state['v'] = torch.zeros_like(p if has_dtensor and isinstance(p, DTensor) else p.flatten())
                 else:
                     state['exp_avg'] = torch.zeros_like(p)
                     state['exp_avg_sq'] = torch.zeros_like(p)
+
+    @staticmethod
+    def _update_norm(update: torch.Tensor, eps: float) -> torch.Tensor:
+        if has_dtensor and isinstance(update, DTensor):
+            norm = update.norm(dtype=torch.float32).full_tensor().to(update.dtype)
+            norm = DTensor.from_local(norm, device_mesh=update.device_mesh)
+        else:
+            norm = update.norm()
+        return norm.add_(eps)
 
     def _step_muon_foreach(
         self,
@@ -160,7 +172,10 @@ class AdaMuon(MuonBase):
 
         torch._foreach_lerp_(moments, grads, weight=1.0 - beta1)
 
-        updates = [update.flatten() for update in self._orthogonalize(group, moments)]
+        updates = [
+            update.reshape(variance.shape)
+            for update, variance in zip(self._orthogonalize(group, moments), variances)
+        ]
 
         torch._foreach_mul_(variances, beta2)
         torch._foreach_addcmul_(variances, updates, updates, value=1.0 - beta2)
@@ -169,7 +184,7 @@ class AdaMuon(MuonBase):
         torch._foreach_add_(de_noms, group['eps'])
         torch._foreach_div_(updates, de_noms)
 
-        norms = [update.norm().add_(group['eps']) for update in updates]
+        norms = [self._update_norm(update, group['eps']) for update in updates]
         rows = params[0].size(0)
         torch._foreach_mul_(updates, math.sqrt(min(rows, params[0].numel() // rows)))
         torch._foreach_div_(updates, norms)
@@ -218,7 +233,7 @@ class AdaMuon(MuonBase):
                 )
 
                 if group['use_muon']:
-                    m = state['m']
+                    m, v = state['m'], state['v']
                     m.lerp_(grad, weight=1.0 - beta1)
 
                     update = m
@@ -228,16 +243,15 @@ class AdaMuon(MuonBase):
 
                     update = zero_power_via_newton_schulz_5(
                         update, num_steps=group['ns_steps'], weights=group['ns_coeffs']
-                    ).flatten()
+                    ).reshape(v.shape)
 
-                    v = state['v']
                     v.mul_(beta2).addcmul_(update, update, value=1.0 - beta2)
 
                     update.div_((v / bias_correction2).sqrt_().add_(group['eps']))
                     update = update.reshape(p.size())
 
                     scale = math.sqrt(min(p.size(0), p.numel() // p.size(0)))
-                    update.mul_(scale / update.norm().add_(group['eps']))
+                    update.mul_(scale / self._update_norm(update, group['eps']))
 
                     lr = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
 

@@ -5,9 +5,71 @@ from pytorch_optimizer.optimizer import load_optimizer
 from pytorch_optimizer.optimizer.utils.matrix import zero_power_via_newton_schulz_5
 from tests.fixtures import make_parameter
 from tests.utils import build_optimizer
+from tests.utils.distributed import run_distributed
+
+
+def _check_sharded_muon(_rank, optimizer_name, foreach, ns_method):
+    dtensor = pytest.importorskip('torch.distributed.tensor')
+    mesh = torch.distributed.device_mesh.init_device_mesh('cpu', (2,))
+    shapes = [(3, 2), (2, 3), (3, 2, 1), (6, 2), (1, 2), (3, 2), (3,)]
+    reference = [make_parameter(shape, grad=None) for shape in shapes]
+    with torch.no_grad():
+        for p in reference:
+            p.copy_(torch.arange(p.numel()).reshape(p.shape) / 10.0)
+    sharded = [
+        dtensor.distribute_tensor(p.detach(), mesh, [dtensor.Shard(1 if index == 5 else 0)]).requires_grad_()
+        for index, p in enumerate(reference)
+    ]
+
+    def groups(params):
+        return [
+            {'params': params[:3], 'use_muon': True},
+            {'params': [params[3], params[5]], 'use_muon': True, 'qk_clip': 'query', 'attention_name': 'attn'},
+            {'params': [params[4]], 'use_muon': True, 'qk_clip': 'query', 'attention_name': 'one_head'},
+            {'params': [params[6]], 'use_muon': False},
+        ]
+
+    options = {'foreach': foreach, 'ns_method': ns_method, 'weight_decay': 0.1}
+    optimizer = build_optimizer(optimizer_name, groups(sharded), **options)
+    expected_optimizer = build_optimizer(optimizer_name, groups(reference), **options)
+    logits = {'attn': torch.tensor([400.0, 100.0, 1600.0]), 'one_head': torch.tensor([400.0])}
+    step_options = {'attention_max_logits': logits} if optimizer_name == 'muonclip' else {}
+
+    for step in range(2):
+        for p, expected in zip(sharded, reference):
+            grad = (torch.arange(p.numel()).reshape(p.shape) - 2.0).roll(step, dims=0) / 10.0
+            p.grad = dtensor.distribute_tensor(grad, mesh, p.placements)
+            expected.grad = grad.clone()
+        optimizer.step(**step_options)
+        expected_optimizer.step(**step_options)
+
+        for p, expected in zip(sharded, reference):
+            torch.testing.assert_close(p.full_tensor(), expected, atol=1e-7, rtol=1e-6)
+            for key, state in optimizer.state[p].items():
+                torch.testing.assert_close(
+                    state.full_tensor(), expected_optimizer.state[expected][key].reshape(state.shape)
+                )
+                assert state.placements == p.placements
+                assert state.to_local().shape == p.to_local().shape
 
 
 class TestMuon:
+    @pytest.mark.parametrize(
+        ('optimizer_name', 'foreach', 'ns_method'),
+        [
+            ('muon', False, 'newton_schulz'),
+            ('muon', True, 'gram_newton_schulz'),
+            ('muonclip', False, 'gram_newton_schulz'),
+            ('muonclip', True, 'newton_schulz'),
+            ('adamuon', False, 'newton_schulz'),
+            ('adamuon', True, 'newton_schulz'),
+        ],
+    )
+    @pytest.mark.skipif(not torch.distributed.is_gloo_available(), reason='Gloo is unavailable')
+    def test_sharded_updates(self, optimizer_name, foreach, ns_method, tmp_path):
+        pytest.importorskip('torch.distributed.tensor')
+        run_distributed(_check_sharded_muon, tmp_path / 'store', optimizer_name, foreach, ns_method)
+
     @pytest.mark.parametrize('optimizer_name', ['Muon', 'MuonClip', 'AdaMuon', 'AdaGO', 'NorMuon'])
     def test_muon_high_dimensions(self, optimizer_name):
         matrices = [make_parameter(shape, grad=1.0) for shape in ((1, 1, 1), (1, 1, 2, 2), (4, 1))]
