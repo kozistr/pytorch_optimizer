@@ -395,9 +395,11 @@ def zero_power_via_gram_newton_schulz(
     transpose = g.size(-2) > g.size(-1)
 
     matrix = (g.mT if transpose else g).float()
+
     norm = matrix.norm(2, dim=(-2, -1), keepdim=True)
     if safety_factor != 1.0:
         norm.mul_(safety_factor)
+
     x = torch.empty_like(matrix, dtype=dtype, memory_format=torch.contiguous_format)
     torch.div(matrix, norm.clamp_min_(eps), out=x)
     if num_steps <= 0:
@@ -408,6 +410,7 @@ def zero_power_via_gram_newton_schulz(
 
     mm_fn = torch.baddbmm if x.ndim > 2 else torch.addmm
     gram_fn = torch.bmm if x.ndim > 2 else torch.mm
+
     gram = torch.empty((*x.shape[:-1], x.size(-2)), device=x.device, dtype=x.dtype)
     polynomial_buffer = torch.empty_like(gram)
     factor = torch.empty_like(gram)
@@ -415,7 +418,8 @@ def zero_power_via_gram_newton_schulz(
     rectangular = torch.empty_like(x)
 
     gram_fn(x, x.mT, out=gram)
-    factor_initialized = False
+
+    factor_initialized: bool = False
 
     for index in range(num_steps):
         if index in reset_steps and factor_initialized:
