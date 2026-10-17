@@ -28,7 +28,7 @@ def build_optimizer(name: str, params: ParamsT | nn.Module, **options) -> Optimi
     }
     options = {**defaults.get(name, {}), **options}
     use_muon = options.pop('use_muon', False)
-    if name in ('muon', 'adamuon', 'adago', 'normuon'):
+    if name in ('muon', 'muonclip', 'adamuon', 'adago', 'normuon'):
         params = list(params) if isinstance(params, Iterable) else params
         params = [
             {**group, 'use_muon': group.get('use_muon', use_muon)}
@@ -65,7 +65,7 @@ def build_optimizer_parameters(parameters, optimizer_name, config):
     parameters = list(parameters)
     if optimizer_name == 'alig':
         config.update({'projection_fn': lambda: l2_projection(parameters, max_norm=1)})
-    elif optimizer_name in ('muon', 'adamuon', 'adago', 'normuon'):
+    elif optimizer_name in ('muon', 'muonclip', 'adamuon', 'adago', 'normuon'):
         hidden_weights = [p for p in parameters if p.ndim >= 2]
         hidden_gains_biases = [p for p in parameters if p.ndim < 2]
 

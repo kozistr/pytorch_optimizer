@@ -33,6 +33,7 @@ from pytorch_optimizer.optimizer.utils.matrix import (
     get_newton_schulz_weights,
     has_dtensor,
     power_iteration,
+    zero_power_via_gram_newton_schulz,
     zero_power_via_newton_schulz_5,
 )
 from pytorch_optimizer.optimizer.utils.model import (
@@ -94,5 +95,6 @@ __all__ = [
     'reg_noise',
     'to_real',
     'unit_norm',
+    'zero_power_via_gram_newton_schulz',
     'zero_power_via_newton_schulz_5',
 ]

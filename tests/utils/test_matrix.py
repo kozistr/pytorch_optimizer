@@ -10,6 +10,7 @@ from pytorch_optimizer.optimizer.utils.matrix import (
     compute_power_schur_newton,
     compute_power_svd,
     power_iteration,
+    zero_power_via_gram_newton_schulz,
     zero_power_via_newton_schulz_5,
 )
 from pytorch_optimizer.optimizer.utils.shape import merge_small_dims
@@ -156,12 +157,18 @@ def test_zero_power_via_newton_schulz_5():
     for weights in ('invalid', [], [(1.0, 2.0)]):
         with pytest.raises(ValueError):
             zero_power_via_newton_schulz_5(x, weights=weights)
+        with pytest.raises(ValueError):
+            zero_power_via_gram_newton_schulz(x, weights=weights)
+
+    with pytest.raises(ValueError):
+        zero_power_via_gram_newton_schulz(x[0])
 
 
 @pytest.mark.parametrize('shape', [(2, 3), (3, 2), (2, 2, 3), (2, 3, 2)])
 @pytest.mark.parametrize('num_steps', [0, 1, 5])
 @pytest.mark.parametrize('safety_factor', [1.0, 1.5])
-def test_newton_schulz_singular_values(shape, num_steps, safety_factor, device):
+@pytest.mark.parametrize('helper', [zero_power_via_newton_schulz_5, zero_power_via_gram_newton_schulz])
+def test_newton_schulz_singular_values(shape, num_steps, safety_factor, helper, device):
     matrix = torch.arange(1, math.prod(shape) + 1, dtype=torch.float64, device=device)
     matrix = matrix.reshape(*shape[:-2], shape[-1], shape[-2]).mT
     original = matrix.clone()
@@ -174,7 +181,7 @@ def test_newton_schulz_singular_values(shape, num_steps, safety_factor, device):
         s = w0 * s + w1 * s.pow(3) + w2 * s.pow(5)
     expected = (u * s.unsqueeze(-2)) @ vh
 
-    result = zero_power_via_newton_schulz_5(
+    result = helper(
         matrix, num_steps=num_steps, safety_factor=safety_factor, weights=weights, dtype=matrix.dtype
     )
 
@@ -182,7 +189,26 @@ def test_newton_schulz_singular_values(shape, num_steps, safety_factor, device):
     torch.testing.assert_close(matrix, original)
 
 
-@pytest.mark.parametrize('helper', [power_iteration, zero_power_via_newton_schulz_5])
+@pytest.mark.parametrize('reset_steps', [(), (1, 3)])
+def test_gram_newton_schulz_restarts(reset_steps, device):
+    matrix = torch.arange(1, 25, dtype=torch.float64, device=device).reshape(2, 2, 2, 3).mT
+    expected = zero_power_via_newton_schulz_5(matrix, dtype=matrix.dtype)
+    result = zero_power_via_gram_newton_schulz(matrix, reset_steps=reset_steps, dtype=matrix.dtype)
+    torch.testing.assert_close(result, expected)
+
+
+def test_gram_newton_schulz_half_precision(device):
+    matrix = torch.tensor([[[1e8, 0.0, 0.0], [0.0, 2e8, 0.0]], [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]], device=device)
+    original = matrix.clone()
+    expected = zero_power_via_newton_schulz_5(matrix, dtype=torch.float64).half()
+    result = zero_power_via_gram_newton_schulz(matrix)
+    torch.testing.assert_close(result, expected, rtol=1e-2, atol=1e-2)
+    torch.testing.assert_close(matrix, original)
+
+
+@pytest.mark.parametrize(
+    'helper', [power_iteration, zero_power_via_newton_schulz_5, zero_power_via_gram_newton_schulz]
+)
 @pytest.mark.skipif(not torch._dynamo.is_dynamo_supported(), reason='torch.compile is unavailable in this runtime')
 def test_matrix_helpers_compile(helper, device):
     matrix = torch.tensor([[5.0, 1.0], [1.0, 3.0]], dtype=torch.float64, device=device)
