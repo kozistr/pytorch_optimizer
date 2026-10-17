@@ -378,7 +378,7 @@ def zero_power_via_gram_newton_schulz(
         eps: Lower bound for the input normalization denominator.
         safety_factor: Multiplier for the input norm before iteration.
         weights: Coefficient preset, tuple, or schedule. Reuse the final tuple when the schedule is shorter.
-        dtype: Data type for the iteration and output. Normalize in at least float32 before casting.
+        dtype: Data type for the iteration and output. Normalize in float32 before casting.
         reset_steps: Iteration counts after which to reconstruct the Gram matrix for stability.
 
     Returns:
@@ -394,7 +394,7 @@ def zero_power_via_gram_newton_schulz(
     weight_schedule = get_newton_schulz_weights(weights)
     transpose = g.size(-2) > g.size(-1)
 
-    matrix = (g.mT if transpose else g).to(dtype=torch.float64 if dtype == torch.float64 else torch.float32)
+    matrix = (g.mT if transpose else g).float()
     norm = matrix.norm(2, dim=(-2, -1), keepdim=True)
     if safety_factor != 1.0:
         norm.mul_(safety_factor)
