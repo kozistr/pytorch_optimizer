@@ -15,6 +15,7 @@ class Muon(MuonBase):
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
     such as embeddings, classifier heads, biases, and gains. Pass higher dimensional
     weights directly. The orthogonal update uses a flattened matrix view.
+    Supports FSDP2 DTensor parameters with eager optimizer steps.
 
     Args:
         params: Parameter group dictionaries with a `use_muon` flag for each group.

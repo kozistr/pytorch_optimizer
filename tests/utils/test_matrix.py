@@ -14,6 +14,7 @@ from pytorch_optimizer.optimizer.utils.matrix import (
     zero_power_via_newton_schulz_5,
 )
 from pytorch_optimizer.optimizer.utils.shape import merge_small_dims
+from tests.utils.distributed import run_distributed
 
 
 @pytest.mark.parametrize('num_iters', [0, 1, 2, 5, 100])
@@ -162,6 +163,35 @@ def test_zero_power_via_newton_schulz_5():
 
     with pytest.raises(ValueError):
         zero_power_via_gram_newton_schulz(x[0])
+
+
+def _check_dtensor_newton_schulz(_rank):
+    dtensor = pytest.importorskip('torch.distributed.tensor')
+    mesh = torch.distributed.device_mesh.init_device_mesh('cpu', (1, 2))
+    cases = [
+        ((3, 2), dtensor.Shard(0), 5),
+        ((2, 3), dtensor.Shard(1), 0),
+        ((2, 3, 2), dtensor.Shard(0), 3),
+        ((1, 2), dtensor.Replicate(), 1),
+    ]
+    helpers = [(zero_power_via_newton_schulz_5, torch.float64), (zero_power_via_gram_newton_schulz, torch.float32)]
+    for helper, dtype in helpers:
+        for shape, placement, num_steps in cases:
+            matrix = torch.arange(math.prod(shape), dtype=dtype).reshape(shape) / 10.0
+            original = matrix.clone()
+            sharded = dtensor.distribute_tensor(matrix, mesh, [dtensor.Replicate(), placement])
+            options = {'num_steps': num_steps, 'safety_factor': 1.5, 'eps': 1e-5, 'dtype': dtype}
+            expected = helper(matrix, **options)
+            result = helper(sharded, **options)
+            torch.testing.assert_close(result.full_tensor(), expected, atol=0.0, rtol=0.0)
+            torch.testing.assert_close(sharded.full_tensor(), original, atol=0.0, rtol=0.0)
+            assert result.placements == sharded.placements
+
+
+@pytest.mark.skipif(not torch.distributed.is_gloo_available(), reason='Gloo is unavailable')
+def test_dtensor_newton_schulz(tmp_path):
+    pytest.importorskip('torch.distributed.tensor')
+    run_distributed(_check_dtensor_newton_schulz, tmp_path / 'store')
 
 
 @pytest.mark.parametrize('shape', [(2, 3), (3, 2), (2, 2, 3), (2, 3, 2)])

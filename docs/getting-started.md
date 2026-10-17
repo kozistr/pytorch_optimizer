@@ -125,6 +125,66 @@ optimizer = create_optimizer(model, 'adamw', lr=1e-3, fused=True)
 Check the optimizer and PyTorch version for supported devices and dtypes.
 Compilation alone does not require a `fused` argument. Benchmark after compilation warmup to compare performance.
 
+## Train Muon with FSDP2
+
+`Muon` and `MuonClip` support FSDP2 (`fully_shard`) with eager optimizer steps, including `foreach=True`.
+Create the optimizer after sharding the model and call `step()` on every rank in the device mesh.
+Choose an FSDP2-compatible PyTorch version for your devices.
+
+For example, save this as `train.py`:
+
+```python
+import os
+from collections import OrderedDict
+
+import torch
+import torch.distributed as dist
+from torch import nn
+from torch.distributed.device_mesh import init_device_mesh
+from torch.distributed.fsdp import fully_shard
+
+from pytorch_optimizer import Muon
+
+local_rank = int(os.environ['LOCAL_RANK'])
+torch.cuda.set_device(local_rank)
+dist.init_process_group('nccl')
+device = torch.device('cuda', local_rank)
+mesh = init_device_mesh('cuda', (dist.get_world_size(),))
+
+torch.manual_seed(42)
+model = nn.Sequential(OrderedDict([
+    ('body', nn.Linear(16, 32)),
+    ('activation', nn.ReLU()),
+    ('head', nn.Linear(32, 16)),
+])).to(device)
+fully_shard(model.body, mesh=mesh)
+fully_shard(model.head, mesh=mesh)
+fully_shard(model, mesh=mesh)
+
+optimizer = Muon([
+    {'params': [model.body.weight], 'use_muon': True},
+    {'params': [model.body.bias, *model.head.parameters()], 'use_muon': False},
+], lr=0.02, weight_decay=0.01, foreach=True)
+torch.manual_seed(43 + dist.get_rank())
+inputs = torch.randn(8, 16, device=device)
+optimizer.zero_grad()
+loss = model(inputs).square().mean()
+loss.backward()
+optimizer.step()
+dist.destroy_process_group()
+```
+
+Launch on every node with the same rendezvous settings. Replace `HOST` with the rendezvous node's hostname:
+
+```shell
+torchrun --nnodes=2 --nproc-per-node=8 --rdzv-backend=c10d --rdzv-id=muon-training --rdzv-endpoint=HOST:29400 train.py
+```
+
+For `MuonClip`, label query/key parameter groups as described in its optimizer reference.
+Reduce the per-head maximum attention logits over all accumulation microbatches and data-parallel ranks
+with `ReduceOp.MAX` before passing them to `step(attention_max_logits=...)`.
+Use the data-parallel process group corresponding to the model's device mesh for this reduction.
+
 ## Discover components
 
 Filter component names with wildcard patterns:

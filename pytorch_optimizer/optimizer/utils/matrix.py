@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import torch
 
 DTensor = torch.Tensor
@@ -280,6 +282,11 @@ def compute_power_svd(matrix: torch.Tensor, power: float) -> torch.Tensor:
     return ((u * s.unsqueeze(-2)) @ vh).to(matrix.dtype)
 
 
+def _orthogonalize_dtensor(g: torch.Tensor, helper: Callable[..., torch.Tensor], **kwargs) -> torch.Tensor:
+    result = helper(g.full_tensor(), **kwargs)
+    return DTensor.from_local(result, device_mesh=g.device_mesh).redistribute(placements=g.placements)
+
+
 def zero_power_via_newton_schulz_5(
     g: torch.Tensor,
     num_steps: int = 5,
@@ -312,31 +319,29 @@ def zero_power_via_newton_schulz_5(
     if g.ndim < 2:
         raise ValueError(f'input must be over 2-dimensional. got {g.ndim}D.')
 
-    is_dtensor: bool = has_dtensor and isinstance(g, DTensor)
+    if has_dtensor and isinstance(g, DTensor):
+        return _orthogonalize_dtensor(
+            g.to(dtype=dtype),
+            zero_power_via_newton_schulz_5,
+            num_steps=num_steps,
+            eps=eps,
+            safety_factor=safety_factor,
+            weights=weights,
+            dtype=dtype,
+        )
+
     weight_schedule = get_newton_schulz_weights(weights)
 
     coeff_sequence = [weight_schedule[min(i, len(weight_schedule) - 1)] for i in range(num_steps)]
 
     transpose: bool = g.size(-2) > g.size(-1)
     x = g.mT if transpose else g
-    x = (
-        x.to(dtype=dtype, copy=True)
-        if is_dtensor
-        else x.to(dtype=dtype, copy=True, memory_format=torch.contiguous_format)
-    )
+    x = x.to(dtype=dtype, copy=True, memory_format=torch.contiguous_format)
 
     norm = x.norm(2, dim=(-2, -1), keepdim=True)
     if safety_factor != 1.0:
         norm.mul_(safety_factor)
     x.div_(norm.clamp_min_(eps))
-
-    if is_dtensor:  # pragma: no cover
-        for w0, w1, w2 in coeff_sequence:
-            a = x @ x.mT
-            b = w1 * a + w2 * (a @ a)
-            x = w0 * x + (b @ x)
-
-        return x.mT if transpose else x
 
     if x.ndim > 2:
         x = x.flatten(0, -3)
@@ -390,6 +395,18 @@ def zero_power_via_gram_newton_schulz(
     """
     if g.ndim < 2:
         raise ValueError(f'input must be over 2-dimensional. got {g.ndim}D.')
+
+    if has_dtensor and isinstance(g, DTensor):
+        return _orthogonalize_dtensor(
+            g.float(),
+            zero_power_via_gram_newton_schulz,
+            num_steps=num_steps,
+            eps=eps,
+            safety_factor=safety_factor,
+            weights=weights,
+            dtype=dtype,
+            reset_steps=reset_steps,
+        )
 
     weight_schedule = get_newton_schulz_weights(weights)
     transpose = g.size(-2) > g.size(-1)

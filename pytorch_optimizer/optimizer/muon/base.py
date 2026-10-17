@@ -5,7 +5,12 @@ import torch
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import ParamGroup
 from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, foreach_addcdiv_, group_tensors_by_device_and_dtype
-from pytorch_optimizer.optimizer.utils.matrix import zero_power_via_gram_newton_schulz, zero_power_via_newton_schulz_5
+from pytorch_optimizer.optimizer.utils.matrix import (
+    DTensor,
+    has_dtensor,
+    zero_power_via_gram_newton_schulz,
+    zero_power_via_newton_schulz_5,
+)
 
 
 def get_adjusted_lr(
@@ -36,7 +41,7 @@ def get_adjusted_lr(
 
 
 class MuonBase(BaseOptimizer):
-    """Shared batched updates for local Muon optimizers."""
+    """Shared updates for Muon optimizers."""
 
     _supports_compiled_foreach = True
     _muon_state_keys: tuple[str, ...]
@@ -108,6 +113,9 @@ class MuonBase(BaseOptimizer):
     @staticmethod
     def _orthogonalize(group: ParamGroup, updates: list[torch.Tensor]) -> list[torch.Tensor]:
         matrices = [update.reshape(update.size(0), -1) for update in updates]
+        if len(matrices) > 1 and any(has_dtensor and isinstance(matrix, DTensor) for matrix in matrices):
+            return [MuonBase._orthogonalize(group, [matrix])[0] for matrix in matrices]
+
         transposed = [matrix.size(0) > matrix.size(1) for matrix in matrices]
         matrix = matrices[0] if len(matrices) == 1 else torch.stack([
             matrix.mT if transpose else matrix for matrix, transpose in zip(matrices, transposed)
