@@ -6,6 +6,7 @@ from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcdiv_, group_tensors_by_device_and_dtype
 from pytorch_optimizer.optimizer.utils.gradient import get_global_gradient_norm
 
 
@@ -24,6 +25,8 @@ class Adan(BaseOptimizer):
         maximize: Maximize the objective instead of minimizing it.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -118,13 +121,12 @@ class Adan(BaseOptimizer):
         exp_avg_diffs: list[torch.Tensor],
         prev_grads: list[torch.Tensor],
         clip_global_grad_norm: torch.Tensor | float,
+        step_size: float | torch.Tensor,
+        diff_step_size: float | torch.Tensor,
+        bias_correction3_sq: float | torch.Tensor,
     ) -> None:
         beta1, beta2, beta3 = group['betas']
         lr = group['lr']
-
-        bias_correction1: float = self.debias(beta1, group['step'])
-        bias_correction2: float = self.debias(beta2, group['step'])
-        bias_correction3_sq: float = math.sqrt(self.debias(beta3, group['step']))
 
         if self.maximize:
             torch._foreach_neg_(grads)
@@ -154,8 +156,8 @@ class Adan(BaseOptimizer):
         if group['weight_decay'] != 0.0 and group['weight_decouple']:
             torch._foreach_mul_(params, 1.0 - lr * group['weight_decay'])
 
-        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-lr / bias_correction1)
-        torch._foreach_addcdiv_(params, exp_avg_diffs, de_noms, value=-lr * beta2 / bias_correction2)
+        foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
+        foreach_addcdiv_(params, exp_avg_diffs, de_noms, value=-diff_step_size)
 
         if group['weight_decay'] != 0.0 and not group['weight_decouple']:
             torch._foreach_div_(params, 1.0 + lr * group['weight_decay'])
@@ -240,16 +242,23 @@ class Adan(BaseOptimizer):
                 params, grads, state_dict = self.collect_trainable_params(
                     group, self.state, state_keys=['exp_avg', 'exp_avg_sq', 'exp_avg_diff', 'previous_grad']
                 )
-                if params:
+                beta1, beta2, beta3 = group['betas']
+                step_size = group['lr'] / self.debias(beta1, group['step'])
+                diff_step_size = group['lr'] * beta2 / self.debias(beta2, group['step'])
+                bias_correction3_sq = math.sqrt(self.debias(beta3, group['step']))
+                for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
                     self._step_foreach(
                         group,
-                        params,
-                        grads,
-                        state_dict['exp_avg'],
-                        state_dict['exp_avg_sq'],
-                        state_dict['exp_avg_diff'],
-                        state_dict['previous_grad'],
+                        tensors['params'],
+                        tensors['grads'],
+                        tensors['exp_avg'],
+                        tensors['exp_avg_sq'],
+                        tensors['exp_avg_diff'],
+                        tensors['previous_grad'],
                         clip_global_grad_norm,
+                        step_size,
+                        diff_step_size,
+                        bias_correction3_sq,
                     )
             else:
                 self._step_per_param(group, clip_global_grad_norm)

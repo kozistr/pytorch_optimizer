@@ -6,7 +6,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import foreach_rsqrt
+from pytorch_optimizer.optimizer.utils.foreach import foreach_rsqrt, foreach_rsqrt_, group_tensors_by_device_and_dtype
 
 
 class AdaFactor(BaseOptimizer):
@@ -33,6 +33,8 @@ class AdaFactor(BaseOptimizer):
         maximize: Maximize the objective instead of minimizing it.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -187,11 +189,11 @@ class AdaFactor(BaseOptimizer):
         exp_avg_sq_cols: list[torch.Tensor],
         exp_avg_sqs: list[torch.Tensor],
         exp_avg_sq_hats: list[torch.Tensor],
-        beta1: float,
-        beta2_t: float,
-        relative_step_size: float,
+        beta2_t: float | torch.Tensor,
+        relative_step_size: float | torch.Tensor,
     ) -> None:
-        bias_correction2: float = 1.0 - beta2_t
+        beta1 = group['betas'][0]
+        bias_correction2 = 1.0 - beta2_t
 
         if self.maximize:
             torch._foreach_neg_(grads)
@@ -218,13 +220,20 @@ class AdaFactor(BaseOptimizer):
                 row_means.append(factored_update.mean(dim=-1))
                 col_means.append(factored_update.mean(dim=-2))
 
-            torch._foreach_lerp_(exp_avg_sq_rows, row_means, weight=bias_correction2)
-            torch._foreach_lerp_(exp_avg_sq_cols, col_means, weight=bias_correction2)
+            row_weights = (
+                [bias_correction2] * len(row_means) if isinstance(beta2_t, torch.Tensor) else bias_correction2
+            )
+            col_weights = (
+                [bias_correction2] * len(col_means) if isinstance(beta2_t, torch.Tensor) else bias_correction2
+            )
+            torch._foreach_lerp_(exp_avg_sq_rows, row_means, row_weights)
+            torch._foreach_lerp_(exp_avg_sq_cols, col_means, col_weights)
 
             self.approximate_sq_grad(exp_avg_sq_rows, exp_avg_sq_cols, factored_updates)
 
         if non_factored_updates:
-            torch._foreach_lerp_(exp_avg_sqs, non_factored_updates, weight=bias_correction2)
+            weights = [bias_correction2] * len(exp_avg_sqs) if isinstance(beta2_t, torch.Tensor) else bias_correction2
+            torch._foreach_lerp_(exp_avg_sqs, non_factored_updates, weights)
 
             non_factored_updates = foreach_rsqrt(exp_avg_sqs)
 
@@ -240,7 +249,8 @@ class AdaFactor(BaseOptimizer):
             inv_updates = torch._foreach_reciprocal(updates)
             torch._foreach_maximum_(exp_avg_sq_hats, inv_updates)
 
-            updates = foreach_rsqrt(torch._foreach_div(exp_avg_sq_hats, bias_correction2))
+            updates = torch._foreach_div(exp_avg_sq_hats, bias_correction2)
+            foreach_rsqrt_(updates)
 
         torch._foreach_mul_(updates, grads)
 
@@ -360,22 +370,22 @@ class AdaFactor(BaseOptimizer):
             )
 
             if self._can_use_foreach(group):
-                params, grads, state_dict = self.collect_trainable_params(
-                    group,
-                    self.state,
-                    state_keys=['exp_avg', 'exp_avg_sq_row', 'exp_avg_sq_col', 'exp_avg_sq', 'exp_avg_sq_hat'],
-                )
-                if params:
+                params, grads, _ = self.collect_trainable_params(group, self.state)
+                batches = group_tensors_by_device_and_dtype(params, grads)
+                for tensors in batches:
+                    state_lists = {
+                        key: [self.state[p][key] for p in tensors['params'] if key in self.state[p]]
+                        for key in ['exp_avg', 'exp_avg_sq_row', 'exp_avg_sq_col', 'exp_avg_sq', 'exp_avg_sq_hat']
+                    }
                     self._step_foreach(
                         group,
-                        params,
-                        grads,
-                        state_dict['exp_avg'],
-                        state_dict['exp_avg_sq_row'],
-                        state_dict['exp_avg_sq_col'],
-                        state_dict['exp_avg_sq'],
-                        state_dict['exp_avg_sq_hat'],
-                        beta1,
+                        tensors['params'],
+                        tensors['grads'],
+                        state_lists['exp_avg'],
+                        state_lists['exp_avg_sq_row'],
+                        state_lists['exp_avg_sq_col'],
+                        state_lists['exp_avg_sq'],
+                        state_lists['exp_avg_sq_hat'],
                         beta2_t,
                         relative_step_size,
                     )

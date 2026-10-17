@@ -5,6 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class AdaBelief(BaseOptimizer):
@@ -26,6 +27,8 @@ class AdaBelief(BaseOptimizer):
         maximize: Maximize the objective instead of minimizing it.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -112,12 +115,11 @@ class AdaBelief(BaseOptimizer):
         grads: list[torch.Tensor],
         exp_avgs: list[torch.Tensor],
         exp_avg_vars: list[torch.Tensor],
-        step_size: float,
+        step_size: float | torch.Tensor,
+        bias_correction2_sq: float | torch.Tensor,
     ) -> None:
         beta1, beta2 = group['betas']
         lr = group['lr']
-
-        bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
         if self.maximize:
             torch._foreach_neg_(grads)
@@ -143,7 +145,7 @@ class AdaBelief(BaseOptimizer):
         torch._foreach_div_(de_noms, bias_correction2_sq)
         torch._foreach_add_(de_noms, group['eps'])
 
-        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
+        foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
 
     def _step_per_param(self, group: ParamGroup, step_size: float, n_sma: float) -> None:
         beta1, beta2 = group['betas']
@@ -239,9 +241,16 @@ class AdaBelief(BaseOptimizer):
                 params, grads, state_dict = self.collect_trainable_params(
                     group, self.state, state_keys=['exp_avg', 'exp_avg_var']
                 )
-                if params:
+                bias_correction2_sq = math.sqrt(self.debias(beta2, group['step']))
+                for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
                     self._step_foreach(
-                        group, params, grads, state_dict['exp_avg'], state_dict['exp_avg_var'], step_size
+                        group,
+                        tensors['params'],
+                        tensors['grads'],
+                        tensors['exp_avg'],
+                        tensors['exp_avg_var'],
+                        step_size,
+                        bias_correction2_sq,
                     )
             else:
                 self._step_per_param(group, step_size, n_sma)

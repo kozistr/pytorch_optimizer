@@ -1,9 +1,9 @@
-
 import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class LARS(BaseOptimizer):
@@ -23,6 +23,8 @@ class LARS(BaseOptimizer):
         maximize: Maximize the objective instead of minimizing it.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -80,16 +82,6 @@ class LARS(BaseOptimizer):
                     state['momentum_buffer'] = torch.zeros_like(p)
 
     def _can_use_foreach(self, group: ParamGroup) -> bool:
-        """Check tensor compatibility and options for batched updates.
-
-        Disable batched updates when using Nesterov momentum.
-        """
-        if group.get('foreach') is False:
-            return False
-
-        if group.get('nesterov'):
-            return False
-
         return self.can_use_foreach(group, group.get('foreach'))
 
     def _step_foreach(
@@ -107,19 +99,14 @@ class LARS(BaseOptimizer):
         masked_grads = [g for g, m in zip(grads, masks) if m]
 
         if masked_params:
-            param_norms = torch._foreach_norm(masked_params)
-            grad_norms = torch._foreach_norm(masked_grads)
-
-            trust_ratios = []
-            for pn, gn in zip(param_norms, grad_norms):
-                one = torch.ones_like(pn)
-                denominator = gn + group['weight_decay'] * pn
-                trust_ratio = torch.where(
-                    pn > 0.0,
-                    torch.where(denominator > 0.0, (group['trust_coefficient'] * pn / denominator), one),
-                    one,
-                )
-                trust_ratios.append(trust_ratio)
+            param_norms = torch.stack(torch._foreach_norm(masked_params))
+            grad_norms = torch.stack(torch._foreach_norm(masked_grads))
+            denominator = grad_norms + group['weight_decay'] * param_norms
+            trust_ratios = torch.where(
+                param_norms > 0.0,
+                torch.where(denominator > 0.0, group['trust_coefficient'] * param_norms / denominator, 1.0),
+                1.0,
+            ).unbind()
 
             torch._foreach_add_(masked_grads, masked_params, alpha=group['weight_decay'])
             torch._foreach_mul_(masked_grads, trust_ratios)
@@ -127,9 +114,12 @@ class LARS(BaseOptimizer):
         if group['momentum'] > 0.0:
             torch._foreach_mul_(momentum_buffers, group['momentum'])
             torch._foreach_add_(momentum_buffers, grads, alpha=1.0 - group['dampening'])
-            torch._foreach_copy_(grads, momentum_buffers)
+            if group['nesterov']:
+                torch._foreach_add_(grads, momentum_buffers, alpha=group['momentum'])
+            else:
+                torch._foreach_copy_(grads, momentum_buffers)
 
-        torch._foreach_add_(params, grads, alpha=-group['lr'])
+        foreach_add_(params, grads, alpha=-group['lr'])
 
     def _step_per_param(self, group: ParamGroup) -> None:
         for p in group['params']:
@@ -180,12 +170,12 @@ class LARS(BaseOptimizer):
             self.init_group(group)
             group['step'] += 1
 
-            if self._can_use_foreach(group) and group['momentum'] > 0.0:
+            if self._can_use_foreach(group):
                 params, grads, state_dict = self.collect_trainable_params(
-                    group, self.state, state_keys=['momentum_buffer']
+                    group, self.state, state_keys=['momentum_buffer'] if group['momentum'] > 0.0 else []
                 )
-                if params:
-                    self._step_foreach(group, params, grads, state_dict['momentum_buffer'])
+                for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    self._step_foreach(group, tensors['params'], tensors['grads'], tensors.get('momentum_buffer', []))
             else:
                 self._step_per_param(group)
 

@@ -101,14 +101,14 @@ def compile_foreach_step(step: Callable, compile_kwargs: dict | None = None) -> 
         return tensor
 
     @wraps(step)
-    def update(group: dict, params: list[torch.Tensor], *args) -> None:
+    def update(group: dict, params: list[torch.Tensor], *args):
         device = params[0].device
         group = {**group, 'lr': scalar_tensor(group['lr'], device, -1)}
         args = tuple(
             scalar_tensor(value, device, index) if isinstance(value, (float, torch.Tensor)) else value
             for index, value in enumerate(args)
         )
-        compiled_step(group, params, *args)
+        return compiled_step(group, params, *args)
 
     return update
 
