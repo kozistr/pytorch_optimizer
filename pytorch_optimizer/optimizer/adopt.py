@@ -128,12 +128,11 @@ class ADOPT(BaseOptimizer):
         torch._foreach_clamp_min_(de_noms, eps)
 
         normed_grads = torch._foreach_div(grads, de_noms)
-        if isinstance(clip, torch.Tensor):
-            for normed_grad in normed_grads:
-                normed_grad.clamp_(min=-clip, max=clip)
-        elif clip is not None:
-            torch._foreach_clamp_min_(normed_grads, -clip)
-            torch._foreach_clamp_max_(normed_grads, clip)
+        if clip is not None:
+            lower = [-clip] * len(normed_grads) if isinstance(clip, torch.Tensor) else -clip
+            upper = [clip] * len(normed_grads) if isinstance(clip, torch.Tensor) else clip
+            torch._foreach_maximum_(normed_grads, lower)
+            torch._foreach_minimum_(normed_grads, upper)
 
         torch._foreach_lerp_(exp_avgs, normed_grads, weight=1.0 - beta1)
 

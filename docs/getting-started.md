@@ -72,9 +72,8 @@ Check the [optimizer reference](optimizer.md) for options and arguments specific
 ## Compile optimizer steps
 
 Set `compile=True` to let PyTorch optimize and automatically fuse optimizer updates on CPU or GPU.
-Optimizers with dedicated compiled foreach updates include AdaBelief, AdaBound, AdaFactor, AdaMax, AdaMod, AdaMuon,
-Adan, ADOPT, DiffGrad, Lamb, LARS, Lion, Muon, PAdam, RAdam, Ranger, Ranger21, SGDW, SignSGD, Tiger, and Yogi.
-Native PyTorch AdamW and StableAdamW are also tested:
+Optimizers with dedicated compiled foreach updates include AdaBound, AdaMax, AdaMod, AdaMuon, DiffGrad, Lion,
+Muon, PAdam, RAdam, SGDW, SignSGD, Tiger, and Yogi. Native PyTorch AdamW and StableAdamW are also tested:
 
 ```python
 optimizer = create_optimizer(model, 'tiger', lr=1e-3, compile=True)
@@ -87,14 +86,11 @@ The compiler chooses which operations to fuse; no separate fusion setting is req
 State initialization, step counters, and scalar bookkeeping stay eager on these paths.
 The update receives tensor learning rates on each parameter device, so changing the rate does not require recompilation.
 Groups with unsupported options or complex parameters use eager per-parameter updates.
-Ranger and Ranger21 retain per-parameter eager updates by default; use `foreach=True` for batched eager updates.
-The factory enables their batched paths when you request compilation.
 Other optimizers and optimizer wrappers compile the whole step. Graph breaks and recompilation can vary by optimizer.
 
 Use `compile=False` (the default) for eager execution.
 Use eager execution on Python 3.15 because PyTorch disables compilation for that version.
 Pass `torch.compile()` options through `compile_kwargs`.
-For fixed model shapes, benchmark `compile_kwargs={'dynamic': False}` as well as the default dynamic compilation.
 Run with `TORCH_LOGS=graph_breaks,recompiles` to inspect graph breaks and recompilation.
 
 ### Advanced execution controls

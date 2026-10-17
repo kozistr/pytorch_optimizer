@@ -244,12 +244,10 @@ class AdaFactor(BaseOptimizer):
 
         for offset, update in zip(non_factored_offsets, non_factored_updates):
             updates[offset] = update
-        del factored_updates, non_factored_updates
 
         if group['ams_bound']:
             inv_updates = torch._foreach_reciprocal(updates)
             torch._foreach_maximum_(exp_avg_sq_hats, inv_updates)
-            del inv_updates
 
             updates = torch._foreach_div(exp_avg_sq_hats, bias_correction2)
             foreach_rsqrt_(updates)
@@ -270,7 +268,6 @@ class AdaFactor(BaseOptimizer):
 
             torch._foreach_lerp_(exp_avgs, updates, weight=1.0 - beta1)
 
-            del updates
             updates = [exp_avg.to(grads[0].dtype) for exp_avg in exp_avgs] if is_dtype_different else exp_avgs
 
         self.apply_weight_decay_foreach(

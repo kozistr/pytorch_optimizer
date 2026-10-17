@@ -140,7 +140,6 @@ class AdaBelief(BaseOptimizer):
         torch._foreach_mul_(exp_avg_vars, beta2)
         torch._foreach_addcmul_(exp_avg_vars, grad_residuals, grad_residuals, value=1.0 - beta2)
         torch._foreach_add_(exp_avg_vars, group['eps'])
-        del grad_residuals
 
         de_noms = torch._foreach_sqrt(exp_avg_vars)
         torch._foreach_div_(de_noms, bias_correction2_sq)
@@ -187,7 +186,6 @@ class AdaBelief(BaseOptimizer):
 
             grad_residual = grad - exp_avg
             exp_avg_var.mul_(beta2).addcmul_(grad_residual, grad_residual, value=1.0 - beta2).add_(group['eps'])
-            del grad_residual
 
             de_nom = self.apply_ams_bound(
                 ams_bound=group['ams_bound'],
