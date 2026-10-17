@@ -94,9 +94,10 @@ from pytorch_optimizer import create_optimizer
 optimizer = create_optimizer(model, 'tiger', lr=1e-3, compile=True)
 ```
 
-Optimizers with a dedicated compiled foreach path include AdaBound, AdaMax, AdaMod, AdaMuon, DiffGrad, Lion, Muon,
-PAdam, RAdam, SGDW, SignSGD, Tiger, and Yogi. These paths keep state initialization and step counters eager
-and pass learning rates to compiled updates as tensors. Native PyTorch AdamW and StableAdamW are also tested.
+Optimizers with a dedicated compiled foreach path include AdaBelief, AdaBound, AdaFactor, AdaMax, AdaMod, AdaMuon,
+Adan, ADOPT, DiffGrad, Lamb, LARS, Lion, Muon, PAdam, RAdam, Ranger, Ranger21, SGDW, SignSGD, Tiger, and Yogi.
+These paths keep state initialization and step counters eager and pass learning rates to compiled updates as tensors.
+Native PyTorch AdamW and StableAdamW are also tested.
 Use `compile=False` (the default) for eager execution.
 
 The library selects the batched update path automatically for supported optimizers.

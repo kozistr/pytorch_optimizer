@@ -4,6 +4,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 from pytorch_optimizer.optimizer.utils.gradient import get_global_gradient_norm
 
 
@@ -31,6 +32,8 @@ class Lamb(BaseOptimizer):
         maximize: Maximize the objective instead of minimizing it.
 
     """
+
+    _supports_compiled_foreach = True
 
     clamp: float = 10.0
 
@@ -128,7 +131,7 @@ class Lamb(BaseOptimizer):
         grad_norm: torch.Tensor | float,
         exp_avgs: list[torch.Tensor],
         exp_avg_sqs: list[torch.Tensor],
-        step_size: float,
+        step_size: float | torch.Tensor,
     ) -> None:
         beta1, beta2 = group['betas']
         eps = group['eps']
@@ -167,16 +170,11 @@ class Lamb(BaseOptimizer):
         if not group['weight_decouple'] and group['weight_decay'] > 0.0:
             torch._foreach_add_(updates, params, alpha=group['weight_decay'])
 
-        weight_norms = torch._foreach_norm(params)
-        torch._foreach_clamp_max_(weight_norms, self.clamp)
-
-        p_norms = torch._foreach_norm(updates)
-
-        trust_ratios = torch._foreach_div(weight_norms, torch._foreach_add(p_norms, eps))
-        trust_ratios = [
-            torch.where((wn != 0) & (pn != 0), ratio, torch.ones_like(ratio))
-            for wn, pn, ratio in zip(weight_norms, p_norms, trust_ratios)
-        ]
+        weight_norms = torch.stack(torch._foreach_norm(params)).clamp_(max=self.clamp)
+        p_norms = torch.stack(torch._foreach_norm(updates))
+        trust_ratios = torch.where(
+            (weight_norms != 0) & (p_norms != 0), weight_norms / (p_norms + eps), 1.0
+        ).unbind()
 
         for p, wn, pn, trust_ratio in zip(params, weight_norms, p_norms, trust_ratios):
             state = self.state[p]
@@ -187,7 +185,7 @@ class Lamb(BaseOptimizer):
         if not group['adam']:
             torch._foreach_mul_(updates, trust_ratios)
 
-        torch._foreach_add_(params, updates, alpha=-step_size)
+        foreach_add_(params, updates, alpha=-step_size)
 
     @torch.no_grad()
     def get_global_gradient_norm(self) -> torch.Tensor | float:
@@ -257,7 +255,8 @@ class Lamb(BaseOptimizer):
             else:
                 update.add_(exp_avg, alpha=-step_size)
         else:
-            update = exp_avg / exp_avg_sq.sqrt().add_(group['eps'])
+            update = exp_avg_sq.sqrt().add_(group['eps'])
+            torch.div(exp_avg, update, out=update)
             if not group['weight_decouple'] and group['weight_decay'] > 0.0:
                 update.add_(p, alpha=group['weight_decay'])
 
@@ -319,9 +318,15 @@ class Lamb(BaseOptimizer):
                 params, grads, state_dict = self.collect_trainable_params(
                     group, self.state, state_keys=['exp_avg', 'exp_avg_sq']
                 )
-                if params:
+                for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
                     self._step_foreach(
-                        group, params, grads, grad_norm, state_dict['exp_avg'], state_dict['exp_avg_sq'], step_size
+                        group,
+                        tensors['params'],
+                        tensors['grads'],
+                        grad_norm,
+                        tensors['exp_avg'],
+                        tensors['exp_avg_sq'],
+                        step_size,
                     )
             else:
                 for p in group['params']:

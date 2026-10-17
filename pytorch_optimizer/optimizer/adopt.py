@@ -6,6 +6,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class ADOPT(BaseOptimizer):
@@ -24,6 +25,8 @@ class ADOPT(BaseOptimizer):
         maximize: Maximize the objective instead of minimizing it.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -98,6 +101,8 @@ class ADOPT(BaseOptimizer):
         grads: list[torch.Tensor],
         exp_avgs: list[torch.Tensor],
         exp_avg_sqs: list[torch.Tensor],
+        first_step: bool,
+        clip: float | torch.Tensor | None,
     ) -> None:
         beta1, beta2 = group['betas']
         lr = group['lr']
@@ -115,7 +120,7 @@ class ADOPT(BaseOptimizer):
             fixed_decay=group['fixed_decay'],
         )
 
-        if group['step'] == 1:
+        if first_step:
             torch._foreach_addcmul_(exp_avg_sqs, grads, grads)
             return
 
@@ -123,14 +128,16 @@ class ADOPT(BaseOptimizer):
         torch._foreach_clamp_min_(de_noms, eps)
 
         normed_grads = torch._foreach_div(grads, de_noms)
-        if self.clip_lambda is not None:
-            clip: float = self.clip_lambda(group['step'])
+        if isinstance(clip, torch.Tensor):
+            for normed_grad in normed_grads:
+                normed_grad.clamp_(min=-clip, max=clip)
+        elif clip is not None:
             torch._foreach_clamp_min_(normed_grads, -clip)
             torch._foreach_clamp_max_(normed_grads, clip)
 
         torch._foreach_lerp_(exp_avgs, normed_grads, weight=1.0 - beta1)
 
-        torch._foreach_add_(params, exp_avgs, alpha=-lr)
+        foreach_add_(params, exp_avgs, alpha=-lr)
 
         torch._foreach_mul_(exp_avg_sqs, beta2)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
@@ -204,8 +211,17 @@ class ADOPT(BaseOptimizer):
                 params, grads, state_dict = self.collect_trainable_params(
                     group, self.state, state_keys=['exp_avg', 'exp_avg_sq']
                 )
-                if params:
-                    self._step_foreach(group, params, grads, state_dict['exp_avg'], state_dict['exp_avg_sq'])
+                clip = self.clip_lambda(group['step']) if self.clip_lambda is not None and group['step'] > 1 else None
+                for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    self._step_foreach(
+                        group,
+                        tensors['params'],
+                        tensors['grads'],
+                        tensors['exp_avg'],
+                        tensors['exp_avg_sq'],
+                        group['step'] == 1,
+                        clip,
+                    )
             else:
                 self._step_per_param(group)
 
