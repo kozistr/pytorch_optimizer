@@ -127,63 +127,56 @@ Compilation alone does not require a `fused` argument. Benchmark after compilati
 
 ## Train Muon with FSDP2
 
-`Muon` and `MuonClip` support FSDP2 (`fully_shard`) with eager optimizer steps, including `foreach=True`.
-Create the optimizer after sharding the model and call `step()` on every rank in the device mesh.
-Choose an FSDP2-compatible PyTorch version for your devices.
+FSDP2 splits model parameters, gradients, and optimizer states across GPUs to save memory.
+Use CUDA-enabled PyTorch with FSDP2 support. Each process uses one GPU.
 
-For example, save this as `train.py`:
+In your training script, initialize distributed training, then create the optimizer **after** sharding the model:
 
 ```python
 import os
-from collections import OrderedDict
 
 import torch
 import torch.distributed as dist
-from torch import nn
-from torch.distributed.device_mesh import init_device_mesh
 from torch.distributed.fsdp import fully_shard
 
-from pytorch_optimizer import Muon
+from pytorch_optimizer import create_optimizer
 
 local_rank = int(os.environ['LOCAL_RANK'])
 torch.cuda.set_device(local_rank)
 dist.init_process_group('nccl')
-device = torch.device('cuda', local_rank)
-mesh = init_device_mesh('cuda', (dist.get_world_size(),))
 
-torch.manual_seed(42)
-model = nn.Sequential(OrderedDict([
-    ('body', nn.Linear(16, 32)),
-    ('activation', nn.ReLU()),
-    ('head', nn.Linear(32, 16)),
-])).to(device)
-fully_shard(model.body, mesh=mesh)
-fully_shard(model.head, mesh=mesh)
-fully_shard(model, mesh=mesh)
+model = YourModel().cuda(local_rank)
+fully_shard(model)
+optimizer = create_optimizer(model, 'muon', lr=0.02, foreach=True)
 
-optimizer = Muon([
-    {'params': [model.body.weight], 'use_muon': True},
-    {'params': [model.body.bias, *model.head.parameters()], 'use_muon': False},
-], lr=0.02, weight_decay=0.01, foreach=True)
-torch.manual_seed(43 + dist.get_rank())
-inputs = torch.randn(8, 16, device=device)
-optimizer.zero_grad()
-loss = model(inputs).square().mean()
-loss.backward()
-optimizer.step()
+for inputs, targets in train_loader:
+    optimizer.zero_grad()
+    loss = loss_fn(model(inputs.cuda(local_rank)), targets.cuda(local_rank))
+    loss.backward()
+    optimizer.step()
 dist.destroy_process_group()
 ```
 
-Launch on every node with the same rendezvous settings. Replace `HOST` with the rendezvous node's hostname:
+Use your usual model and loss function. Build `train_loader` with `DistributedSampler` after initializing
+the process group so each rank receives different data. For large models, call `fully_shard()` on each
+transformer block before sharding the root model. Keep optimizer steps eager (`compile=False`, the default).
+
+Run on one node with two GPUs:
 
 ```shell
-torchrun --nnodes=2 --nproc-per-node=8 --rdzv-backend=c10d --rdzv-id=muon-training --rdzv-endpoint=HOST:29400 train.py
+torchrun --standalone --nproc-per-node=2 train.py
 ```
 
-For `MuonClip`, label query/key parameter groups as described in its optimizer reference.
-Reduce the per-head maximum attention logits over all accumulation microbatches and data-parallel ranks
-with `ReduceOp.MAX` before passing them to `step(attention_max_logits=...)`.
-Use the data-parallel process group corresponding to the model's device mesh for this reduction.
+For two nodes with two GPUs each, run the same command on both nodes.
+Replace `HOST` with a hostname or IP reachable from both nodes:
+
+```shell
+torchrun --nnodes=2 --nproc-per-node=2 --rdzv-backend=c10d --rdzv-endpoint=HOST:29400 --rdzv-id=muon train.py
+```
+
+`MuonClip` uses the same setup. Label its query/key groups and reduce per-head attention maxima over
+all accumulation microbatches and data-parallel ranks with `ReduceOp.MAX` before calling
+`step(attention_max_logits=...)`.
 
 ## Discover components
 
