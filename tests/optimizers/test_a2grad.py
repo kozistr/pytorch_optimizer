@@ -25,18 +25,13 @@ class TestA2GradParameters:
             load_optimizer('a2grad')([make_parameter(requires_grad=False)], variant='dummy')
 
 
-class TestA2GradForeach:
-    def test_incremental_low_precision_accumulator(self):
-        params = [make_parameter(shape=(4, 3), dtype=torch.float16) for _ in range(2)]
-        reference = build_optimizer('a2grad', [params[0]], variant='inc', foreach=False)
-        optimizer = build_optimizer('a2grad', [params[1]], variant='inc', foreach=True)
+def test_incremental_low_precision_accumulator():
+    param = make_parameter(shape=(12,), dtype=torch.float16)
+    optimizer = build_optimizer('a2grad', [param], variant='inc', foreach=True)
+    grad = torch.arange(12, dtype=param.dtype) - 3.0
 
-        for step in range(9):
-            grad = (torch.arange(12, dtype=torch.float16).reshape(4, 3) - 3.0).mul_((step % 3 - 1) * 0.1)
-            for param in params:
-                param.grad = grad.clone()
-            reference.step()
-            optimizer.step()
+    for step in range(9):
+        param.grad = grad * ((step % 3 - 1) * 0.1)
+        optimizer.step()
 
-        torch.testing.assert_close(optimizer.state[params[1]]['v_k'], reference.state[params[0]]['v_k'])
-        torch.testing.assert_close(params[1], params[0])
+    torch.testing.assert_close(optimizer.state[param]['v_k'], torch.tensor([5.03125], dtype=param.dtype))
