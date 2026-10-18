@@ -18,7 +18,7 @@ class A2Grad(BaseOptimizer):
         params: Parameters to optimize or dictionaries defining parameter groups.
         lr: Learning rate. No needed.
         beta: Coefficient controlling the adaptive gradient scale.
-        lips: Lipschitz constant.
+        lips: Positive Lipschitz constant.
         rho: Represents the degree of weighting decrease, a constant smoothing factor between 0 and 1.
         variant: Variant of A2Grad optimizer. One of 'uni', 'inc', or 'exp'.
         maximize: Maximize the objective instead of minimizing it.
@@ -39,7 +39,7 @@ class A2Grad(BaseOptimizer):
         **kwargs,
     ):
         self.validate_learning_rate(lr)
-        self.validate_non_negative(lips, 'lips')
+        self.validate_positive(lips, 'lips')
         self.validate_non_negative(rho, 'rho')
         self.validate_options(variant, 'variant', ['uni', 'inc', 'exp'])
 
@@ -150,7 +150,7 @@ class A2Grad(BaseOptimizer):
             gamma_k: float = 2.0 * group['lips'] / (group['step'] + 1)
             alpha_k_1: float = 2.0 / (group['step'] + 3)
 
-            if group['lips'] != 0.0 and self.can_use_foreach(group, group.get('foreach', self.foreach)):
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
                 state_keys = ['avg_grad', 'v_k', 'x_k'] + (['v_kk'] if self.variant == 'exp' else [])
                 params, grads, state_dict = self.collect_trainable_params(group, self.state, state_keys=state_keys)
                 for batch in group_tensors_by_device_and_dtype(params, grads, state_dict):
