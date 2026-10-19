@@ -91,6 +91,27 @@ class TestBinaryCE:
 
 
 class TestDiceAndJaccard:
+    @pytest.mark.parametrize('criterion', [DiceLoss, JaccardLoss])
+    @pytest.mark.parametrize('mode', ['binary', 'multiclass', 'multilabel'])
+    def test_transposed_spatial_inputs(self, criterion, mode):
+        channels = 1 if mode == 'binary' else 3
+        y_pred = torch.linspace(0.1, 0.9, 2 * channels * 3 * 4).reshape(2, channels, 3, 4)
+        if mode == 'multiclass':
+            y_pred = y_pred / y_pred.sum(dim=1, keepdim=True)
+        y_true = torch.arange(24).reshape(2, 3, 4) % 3 if mode == 'multiclass' else (y_pred > 0.5).long()
+        y_pred = y_pred.transpose(-1, -2).requires_grad_()
+        y_true = y_true.transpose(-1, -2)
+        reference = y_pred.detach().contiguous().requires_grad_()
+        loss_fn = criterion(mode=mode, from_logits=False)
+
+        expected = loss_fn(reference, y_true.contiguous())
+        actual = loss_fn(y_pred, y_true)
+
+        torch.testing.assert_close(actual, expected)
+        torch.testing.assert_close(
+            torch.autograd.grad(actual, y_pred)[0], torch.autograd.grad(expected, reference)[0]
+        )
+
     def test_soft_dice_score(self):
         y_pred = torch.tensor([1.0, 1.0, 1.0]).view(1, 1, 1, -1)
         y_true = torch.tensor(([1, 0, 1])).view(1, 1, 1, -1)

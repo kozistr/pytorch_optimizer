@@ -78,7 +78,7 @@ class JaccardLoss(_Loss):
         Args:
             y_pred: Predictions with shape `(N, C, ...)`. Use logits when `from_logits=True`.
             y_true: Class indices with shape `(N, ...)` for multiclass mode. Binary masks matching the predictions for
-                multilabel mode. Binary mode also accepts `(N, ...)`.
+                multilabel mode. Binary mode also accepts `(N, ...)`. Inputs may be non-contiguous.
 
         Returns:
             torch.Tensor: Scalar loss averaged over the selected channels.
@@ -96,19 +96,19 @@ class JaccardLoss(_Loss):
         dims: tuple[int, ...] = (0, 2)
 
         if self.mode == 'binary':
-            y_true = y_true.view(bs, 1, -1)
-            y_pred = y_pred.view(bs, 1, -1)
+            y_true = y_true.reshape(bs, 1, -1)
+            y_pred = y_pred.reshape(bs, 1, -1)
 
         if self.mode == 'multiclass':
-            y_true = y_true.view(bs, -1)
-            y_pred = y_pred.view(bs, num_classes, -1)
+            y_true = y_true.reshape(bs, -1)
+            y_pred = y_pred.reshape(bs, num_classes, -1)
 
             y_true = one_hot(y_true, num_classes)
             y_true = y_true.permute(0, 2, 1)
 
         if self.mode == 'multilabel':
-            y_true = y_true.view(bs, num_classes, -1)
-            y_pred = y_pred.view(bs, num_classes, -1)
+            y_true = y_true.reshape(bs, num_classes, -1)
+            y_pred = y_pred.reshape(bs, num_classes, -1)
 
         scores = soft_jaccard_score(
             y_pred, y_true.type(y_pred.dtype), label_smooth=self.label_smooth, eps=self.eps, dims=dims
