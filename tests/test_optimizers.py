@@ -102,7 +102,7 @@ class TestOptimizerTraining:
         optimizer = build_optimizer(optimizer_name, model.parameters(), **config, foreach=foreach)
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
-        trainer.run(iterations=iterations)
+        trainer.run(iterations=iterations, create_graph=should_use_create_graph(optimizer_name))
 
 
 class TestOptimizerInterface:

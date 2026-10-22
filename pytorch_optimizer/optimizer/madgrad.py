@@ -4,12 +4,19 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+from collections.abc import Callable
 
 import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import (
+    compile_foreach_step,
+    foreach_add_,
+    foreach_addcmul_,
+    group_tensors_by_device_and_dtype,
+)
 
 
 class MADGRAD(BaseOptimizer):
@@ -23,18 +30,23 @@ class MADGRAD(BaseOptimizer):
         weight_decay: Weight decay coefficient.
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
+            Float16 updates remain eager when compilation is requested.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         eps: float = 1e-6,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -43,9 +55,12 @@ class MADGRAD(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
+        self._compiled_step_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
+            'foreach': foreach,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'momentum': momentum,
@@ -56,6 +71,9 @@ class MADGRAD(BaseOptimizer):
 
     def __str__(self) -> str:
         return 'MADGRAD'
+
+    def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -89,9 +107,48 @@ class MADGRAD(BaseOptimizer):
         """Compute the cube root accumulator, treating zero denominators as inactive coordinates."""
         rms = grad_sum_sq.pow(1.0 / 3.0).add_(eps)
         if eps == 0.0:
-            rms[rms == 0] = float('inf')
+            rms.masked_fill_(rms == 0, float('inf'))
 
         return rms
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        lr: float | torch.Tensor,
+        step_scale: float | torch.Tensor,
+    ) -> None:
+        momentum, eps = group['momentum'], group['eps']
+        grad_sum_sqs, sums = state['grad_sum_sq'], state['s']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        if not group['weight_decouple']:
+            self.apply_weight_decay_foreach(params, grads, lr, group['weight_decay'], False, False)
+
+        if momentum == 0.0:
+            rms = [self.compute_rms(moment, eps) for moment in grad_sum_sqs]
+            x0s = [param.addcdiv(total, denominator) for param, total, denominator in zip(params, sums, rms)]
+        else:
+            x0s = state['x0']
+
+        foreach_addcmul_(grad_sum_sqs, grads, grads, value=step_scale)
+        rms = [self.compute_rms(moment, eps) for moment in grad_sum_sqs]
+        foreach_add_(sums, grads, alpha=step_scale)
+
+        old_params = [p.clone() for p in params] if group['weight_decouple'] and group['weight_decay'] > 0.0 else []
+
+        updates = torch._foreach_addcdiv(x0s, sums, rms, value=-1.0)
+        if momentum == 0.0:
+            torch._foreach_copy_(params, updates)
+        else:
+            torch._foreach_lerp_(params, updates, weight=1.0 - momentum)
+
+        if old_params:
+            foreach_add_(params, old_params, alpha=-lr * group['weight_decay'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -110,6 +167,21 @@ class MADGRAD(BaseOptimizer):
             lr: float = group['lr'] + eps if group['lr'] != 0.0 else 0.0
 
             _lambda = lr * math.pow(self.state['k'] + 1, 0.5)
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                keys = ['grad_sum_sq', 's'] + (['x0'] if momentum > 0.0 else [])
+                params, grads, state = self.collect_trainable_params(group, self.state, state_keys=keys)
+
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    update = (
+                        self._compiled_step_foreach
+                        if self._compiled_step_foreach is not None and batch['params'][0].dtype != torch.float16
+                        else self._step_foreach
+                    )
+
+                    update(group, batch['params'], batch['grads'], batch, lr, _lambda)
+
+                continue
 
             for p in group['params']:
                 if p.grad is None:

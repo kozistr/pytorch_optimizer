@@ -11,7 +11,7 @@ from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, create_optimizer, 
 from tests.fixtures import TrainingModel, build_model
 from tests.optimizer_cases import SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
 from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS
-from tests.utils import Trainer, ids
+from tests.utils import Trainer, ids, should_use_create_graph
 
 
 @pytest.fixture(autouse=True)
@@ -110,7 +110,7 @@ class TestCreateOptimizer:
         )
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
-        trainer.run(iterations=iterations)
+        trainer.run(iterations=iterations, create_graph=should_use_create_graph(optimizer_name))
 
         if foreach and isinstance(optimizer, BaseOptimizer) and optimizer._supports_compiled_foreach:
             lr = torch.tensor(config['lr'], device=x_data.device)
@@ -121,6 +121,11 @@ class TestCreateOptimizer:
                 lr.mul_(0.99)
                 expected_lr = lr.clone()
                 frames = counter.frame_count
+                if should_use_create_graph(optimizer_name):
+                    params = tuple(model.parameters())
+                    gradients = torch.autograd.grad(trainer.compute_loss(), params, create_graph=True)
+                    for param, grad in zip(params, gradients):
+                        param.grad = grad
                 optimizer.step()
 
                 torch.testing.assert_close(lr, expected_lr)
