@@ -72,12 +72,12 @@ Check the [optimizer reference](optimizer.md) for options and arguments specific
 ## Compile optimizer steps
 
 Set `compile=True` to let PyTorch optimize and automatically fuse optimizer updates on CPU or GPU.
-Optimizers with dedicated compiled foreach updates include AccSGD, AdaBound, AdaDelta, AdaHessian, Adai, AdaMax, AdaMod,
-AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC, AdamG, AdamS, AdamWSN, Aida, Amos, Ano, ASGD,
-AvaGrad, BCOS, DiffGrad, DualAdam, EXAdam, FAdam, FOCUS, Fromage, Gravity, GrokFastAdamW, Kate, LaProp,
-Lion, MADGRAD, MSVAG, Muon, Nero, NovoGrad, PAdam, PID, PNM, RAdam, ROSE, ScheduleFreeAdamW, ScheduleFreeRAdam,
-ScheduleFreeSGD, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, StableAdamW, TAM, Tiger, VSGD, and
-Yogi. Native PyTorch AdamW is also tested:
+Optimizers with dedicated compiled foreach updates include AccSGD, AdaBound, AdaDelta, AdaGC, AdaHessian, Adai,
+AdaMax, AdaMod, AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC, AdamG, AdamS, AdamWSN, Aida, Amos,
+Ano, ASGD, AvaGrad, BCOS, CAME, DiffGrad, DualAdam, EXAdam, FAdam, FOCUS, Fromage, Gravity, GrokFastAdamW, Kate,
+LaProp, Lion, MADGRAD, MSVAG, Muon, Nero, NovoGrad, PAdam, PID, PNM, RAdam, ROSE, ScheduleFreeAdamW,
+ScheduleFreeRAdam, ScheduleFreeSGD, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, StableAdamW, TAM,
+Tiger, VSGD, and Yogi. Native PyTorch AdamW is also tested:
 
 ```python
 optimizer = create_optimizer(model, 'laprop', lr=1e-3, compile=True)

@@ -105,6 +105,10 @@ class TestMaximize:
         params[1].grad = torch.full_like(params[1], -0.5)
 
         options = GRADIENT_OPTIONS.get(optimizer_name, {}).copy()
+        iterations = 1
+        if optimizer_name == 'adagc':
+            options['warmup_steps'] = 2
+            iterations = 2
         if optimizer_name in FOREACH_OPTIMIZERS:
             options['foreach'] = foreach
         if optimizer_name == 'kron':
@@ -122,7 +126,11 @@ class TestMaximize:
                 options = {'hessian': [torch.ones_like(optimizer.param_groups[0]['params'][0])]} if (
                     optimizer_name in ('adahessian', 'sophiah')
                 ) else {}
-                optimizer.step(lambda: 0.1, **options)
+                param = optimizer.param_groups[0]['params'][0]
+                grad = param.grad.clone()
+                for _ in range(iterations):
+                    param.grad = grad.clone()
+                    optimizer.step(lambda: 0.1, **options)
 
         torch.testing.assert_close(params[0], params[1])
 
