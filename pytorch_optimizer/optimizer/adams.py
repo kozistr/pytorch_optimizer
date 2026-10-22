@@ -1,10 +1,16 @@
 import math
+from collections.abc import Callable
 
 import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError, ZeroParameterSizeError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import (
+    compile_foreach_step,
+    foreach_addcdiv_,
+    group_tensors_by_device_and_dtype,
+)
 
 
 class AdamS(BaseOptimizer):
@@ -20,13 +26,16 @@ class AdamS(BaseOptimizer):
         ams_bound: Use the running maximum of the second moment to bound adaptive updates.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 1e-4,
         weight_decouple: bool = True,
@@ -34,6 +43,7 @@ class AdamS(BaseOptimizer):
         ams_bound: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -42,9 +52,12 @@ class AdamS(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
+        self._compiled_update_moments: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
+            'foreach': foreach,
             'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
@@ -58,6 +71,10 @@ class AdamS(BaseOptimizer):
 
     def __str__(self) -> str:
         return 'AdamS'
+
+    def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        self._compiled_update_moments = compile_foreach_step(self._update_moments_foreach, compile_kwargs)
+        super()._compile_foreach(compile_kwargs)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -86,6 +103,51 @@ class AdamS(BaseOptimizer):
                 if group.get('adanorm'):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
 
+    def _update_moments_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        bias_correction2: float | torch.Tensor,
+    ) -> torch.Tensor:
+        beta1, beta2 = group['betas']
+        if self.maximize:
+            torch._foreach_neg_(grads)
+        if not group['weight_decouple']:
+            self.apply_weight_decay_foreach(
+                params, grads, group['lr'], group['weight_decay'], False, group['fixed_decay']
+            )
+        torch._foreach_lerp_(state['exp_avg'], grads, weight=1.0 - beta1)
+        torch._foreach_mul_(state['exp_avg_sq'], beta2)
+        torch._foreach_addcmul_(state['exp_avg_sq'], grads, grads, value=1.0 - beta2)
+        moments = state['exp_avg_sq']
+        if group['ams_bound']:
+            torch._foreach_maximum_(state['max_exp_avg_sq'], moments)
+            moments = state['max_exp_avg_sq']
+        return torch.stack([moment.sum() / bias_correction2 for moment in moments]).sum()
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        bias_correction2: float | torch.Tensor,
+        mean_square: torch.Tensor,
+        step_size: float | torch.Tensor,
+    ) -> None:
+        exp_avg_sq_hat_mean = mean_square.to(dtype=torch.promote_types(mean_square.dtype, torch.float32)).sqrt()
+        exp_avg_sq_hat_mean.add_(self.defaults['eps'])
+        if group['weight_decouple'] and group['weight_decay'] > 0.0:
+            decay = group['weight_decay'] * (1.0 if group['fixed_decay'] else group['lr'])
+            torch._foreach_mul_(params, 1.0 - decay / exp_avg_sq_hat_mean)
+        moments = state['max_exp_avg_sq'] if group['ams_bound'] else state['exp_avg_sq']
+        de_noms = torch._foreach_div(moments, bias_correction2)
+        torch._foreach_sqrt_(de_noms)
+        torch._foreach_add_(de_noms, group['eps'])
+        foreach_addcdiv_(params, state['exp_avg'], de_noms, value=-step_size)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -94,7 +156,8 @@ class AdamS(BaseOptimizer):
                 loss = closure()
 
         param_size: int = 0
-        exp_avg_sq_hat_sum: float = 0.0
+        exp_avg_sq_hat_sum: float | torch.Tensor = 0.0
+        foreach_batches: list[list[dict]] = []
 
         for group in self.param_groups:
             self.init_group(group)
@@ -103,6 +166,23 @@ class AdamS(BaseOptimizer):
             beta1, beta2 = group['betas']
 
             bias_correction2: float = self.debias(beta2, group['step'])
+
+            batches = []
+            if not group.get('adanorm') and self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state = self.collect_trainable_params(
+                    group, self.state,
+                    state_keys=['exp_avg', 'exp_avg_sq'] + (['max_exp_avg_sq'] if group['ams_bound'] else []),
+                )
+                batches = group_tensors_by_device_and_dtype(params, grads, state)
+            foreach_batches.append(batches)
+            if batches:
+                param_size += sum(p.numel() for p in params)
+                update_moments = self._compiled_update_moments or self._update_moments_foreach
+                for batch in batches:
+                    exp_avg_sq_hat_sum += update_moments(
+                        group, batch['params'], batch['grads'], batch, bias_correction2
+                    )
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -149,9 +229,9 @@ class AdamS(BaseOptimizer):
         if param_size == 0:
             raise ZeroParameterSizeError
 
-        exp_avg_sq_hat_mean: float = math.sqrt(exp_avg_sq_hat_sum / param_size) + self.defaults['eps']
+        mean_square = exp_avg_sq_hat_sum / param_size
 
-        for group in self.param_groups:
+        for group, batches in zip(self.param_groups, foreach_batches):
             beta1, beta2 = group['betas']
 
             bias_correction1: float = self.debias(beta1, group['step'])
@@ -163,6 +243,15 @@ class AdamS(BaseOptimizer):
                 bias_correction1=bias_correction1,
             )
 
+            if batches:
+                for batch in batches:
+                    self._step_foreach(
+                        group, batch['params'], batch['grads'], batch,
+                        bias_correction2, mean_square, step_size,
+                    )
+                continue
+
+            exp_avg_sq_hat_mean = math.sqrt(mean_square) + self.defaults['eps']
             for p in group['params']:
                 if p.grad is None:
                     continue

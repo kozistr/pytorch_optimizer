@@ -1,4 +1,5 @@
 import math
+from collections.abc import Callable
 
 import torch
 
@@ -6,10 +7,17 @@ from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGr
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
+from pytorch_optimizer.optimizer.utils.foreach import (
+    compile_foreach_step,
+    foreach_add_,
+    group_tensors_by_device_and_dtype,
+)
 
 
 class Adai(BaseOptimizer):
     """SGD with gradient dependent momentum and optional stable weight decay.
+
+    Compiled foreach updates keep float16 and bfloat16 arithmetic eager to preserve update rounding.
 
     Args:
         params: Parameters to optimize or dictionaries defining parameter groups.
@@ -22,13 +30,16 @@ class Adai(BaseOptimizer):
         dampening: Dampening factor for momentum.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.1, 0.99),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
@@ -37,6 +48,7 @@ class Adai(BaseOptimizer):
         dampening: float = 1.0,
         eps: float = 1e-3,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -45,9 +57,13 @@ class Adai(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
+        self._compiled_update_moments: Callable | None = None
+        self._compiled_step_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
+            'foreach': foreach,
             'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
@@ -62,6 +78,10 @@ class Adai(BaseOptimizer):
 
     def __str__(self) -> str:
         return 'Adai'
+
+    def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        self._compiled_update_moments = compile_foreach_step(self._update_moments_foreach, compile_kwargs)
+        self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -85,6 +105,55 @@ class Adai(BaseOptimizer):
                 state['exp_avg_sq'] = torch.zeros_like(p)
                 state['beta1_prod'] = torch.ones_like(p)
 
+    def _update_moments_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
+        bias_correction2: float | torch.Tensor,
+    ) -> torch.Tensor:
+        if self.maximize:
+            torch._foreach_neg_(grads)
+        if group.get('use_gc'):
+            for grad in grads:
+                centralize_gradient(grad, gc_conv_only=False)
+        if not group['stable_weight_decay']:
+            self.apply_weight_decay_foreach(
+                params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+            )
+        torch._foreach_mul_(exp_avg_sqs, group['betas'][1])
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - group['betas'][1])
+        return torch.stack([moment.sum() / bias_correction2 for moment in exp_avg_sqs]).sum()
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        bias_correction2: float | torch.Tensor,
+        exp_avg_sq_hat_mean: torch.Tensor,
+    ) -> None:
+        beta0 = group['betas'][0]
+        if group['stable_weight_decay']:
+            self.apply_weight_decay_foreach(
+                params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+            )
+
+        beta1s = torch._foreach_div(state['exp_avg_sq'], bias_correction2)
+        torch._foreach_div_(beta1s, exp_avg_sq_hat_mean)
+        torch._foreach_pow_(beta1s, 1.0 / (3.0 - 2.0 * group['dampening']))
+        torch._foreach_mul_(beta1s, beta0)
+        beta1s = [(1.0 - beta1).clamp_(0.0, 1.0 - group['eps']) for beta1 in beta1s]
+        beta3s = [(1.0 - beta1).pow_(group['dampening']) for beta1 in beta1s]
+        torch._foreach_mul_(state['beta1_prod'], beta1s)
+        torch._foreach_mul_(state['exp_avg'], beta1s)
+        torch._foreach_addcmul_(state['exp_avg'], beta3s, grads)
+        updates = torch._foreach_div(state['exp_avg'], [1.0 - product for product in state['beta1_prod']])
+        torch._foreach_mul_(updates, math.pow(beta0, 1.0 - group['dampening']))
+        foreach_add_(params, updates, alpha=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -93,7 +162,8 @@ class Adai(BaseOptimizer):
                 loss = closure()
 
         param_size: int = 0
-        exp_avg_sq_hat_sum: float = 0.0
+        exp_avg_sq_hat_sum: float | torch.Tensor = 0.0
+        foreach_batches: list[list[dict]] = []
 
         for group in self.param_groups:
             self.init_group(group)
@@ -102,6 +172,27 @@ class Adai(BaseOptimizer):
             _, beta2 = group['betas']
 
             bias_correction2: float = self.debias(beta2, group['step'])
+
+            batches = []
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state = self.collect_trainable_params(
+                    group, self.state, state_keys=['exp_avg', 'exp_avg_sq', 'beta1_prod']
+                )
+                batches = group_tensors_by_device_and_dtype(params, grads, state)
+            foreach_batches.append(batches)
+            if batches:
+                param_size += sum(p.numel() for p in params)
+                for batch in batches:
+                    update_moments = (
+                        self._compiled_update_moments
+                        if self._compiled_update_moments is not None
+                        and batch['params'][0].dtype not in (torch.float16, torch.bfloat16)
+                        else self._update_moments_foreach
+                    )
+                    exp_avg_sq_hat_sum += update_moments(
+                        group, batch['params'], batch['grads'], batch['exp_avg_sq'], bias_correction2
+                    )
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -138,11 +229,23 @@ class Adai(BaseOptimizer):
 
         exp_avg_sq_hat_mean = (exp_avg_sq_hat_sum / param_size).clamp_min_(self.defaults['eps'])
 
-        for group in self.param_groups:
+        for group, batches in zip(self.param_groups, foreach_batches):
             beta0, beta2 = group['betas']
 
-            beta0_dp: float = math.pow(beta0, 1.0 - group['dampening'])
             bias_correction2: float = self.debias(beta2, group['step'])
+
+            if batches:
+                for batch in batches:
+                    update = (
+                        self._compiled_step_foreach
+                        if self._compiled_step_foreach is not None
+                        and batch['params'][0].dtype not in (torch.float16, torch.bfloat16)
+                        else self._step_foreach
+                    )
+                    update(
+                        group, batch['params'], batch['grads'], batch, bias_correction2, exp_avg_sq_hat_mean
+                    )
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -175,7 +278,7 @@ class Adai(BaseOptimizer):
                 beta1_prod.mul_(beta1)
 
                 exp_avg.mul_(beta1).addcmul_(beta3, grad)
-                exp_avg_hat = exp_avg.div(1.0 - beta1_prod).mul_(beta0_dp)
+                exp_avg_hat = exp_avg.div(1.0 - beta1_prod).mul_(math.pow(beta0, 1.0 - group['dampening']))
 
                 p.add_(exp_avg_hat, alpha=-group['lr'])
 
