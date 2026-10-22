@@ -3,6 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class FOCUS(BaseOptimizer):
@@ -15,17 +16,21 @@ class FOCUS(BaseOptimizer):
         gamma: Controls the strength of the attraction.
         weight_decay: Weight decay coefficient.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-2,
+        lr: float | torch.Tensor = 1e-2,
         betas: Betas = (0.9, 0.999),
         gamma: float = 0.1,
         weight_decay: float = 0.0,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -34,8 +39,11 @@ class FOCUS(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
 
         self.maximize = maximize
+        self.foreach = foreach
 
-        defaults: Defaults = {'lr': lr, 'betas': betas, 'gamma': gamma, 'weight_decay': weight_decay}
+        defaults: Defaults = {
+            'lr': lr, 'betas': betas, 'gamma': gamma, 'weight_decay': weight_decay, 'foreach': foreach,
+        }
 
         super().__init__(params, defaults)
 
@@ -60,6 +68,33 @@ class FOCUS(BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['pbar'] = torch.zeros_like(p)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        bias_correction2: float | torch.Tensor,
+    ) -> None:
+        beta1, beta2 = group['betas']
+        exp_avgs, pbars = state['exp_avg'], state['pbar']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+        torch._foreach_lerp_(pbars, params, weight=1.0 - beta2)
+        pbar_hats = torch._foreach_div(pbars, bias_correction2)
+
+        if group['weight_decay'] > 0.0:
+            foreach_add_(params, pbar_hats, alpha=-group['lr'] * group['weight_decay'])
+
+        updates = torch._foreach_sub(params, pbar_hats)
+        torch._foreach_sign_(updates)
+        torch._foreach_mul_(updates, group['gamma'])
+        torch._foreach_add_(updates, torch._foreach_sign(exp_avgs))
+        foreach_add_(params, updates, alpha=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -76,6 +111,12 @@ class FOCUS(BaseOptimizer):
             bias_correction2: float = self.debias(beta2, group['step'])
 
             weight_decay: float = group['weight_decay']
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state = self.collect_trainable_params(group, self.state, state_keys=['exp_avg', 'pbar'])
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch, bias_correction2)
+                continue
 
             for p in group['params']:
                 if p.grad is None:

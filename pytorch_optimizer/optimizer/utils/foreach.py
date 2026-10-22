@@ -159,6 +159,27 @@ def foreach_add_(tensors: list[torch.Tensor], updates: list[torch.Tensor], alpha
     torch._foreach_add_(tensors, scaled_updates)
 
 
+def foreach_lerp_(
+    tensors: list[torch.Tensor], ends: Sequence[torch.Tensor], weight: float | torch.Tensor
+) -> None:
+    """Interpolate tensors with a scalar or a compilable tensor weight.
+
+    Args:
+        tensors: Tensors to update in place.
+        ends: Interpolation targets.
+        weight: Interpolation weight, applied with promoted arithmetic for tensor values.
+
+    """
+    if not isinstance(weight, torch.Tensor):
+        torch._foreach_lerp_(tensors, ends, weight=weight)
+        return
+
+    dtype = torch.promote_types(tensors[0].dtype, weight.dtype)
+    updates = [tensor.to(dtype=dtype) for tensor in tensors]
+    torch._foreach_lerp_(updates, [end.to(dtype=dtype) for end in ends], [weight.to(dtype=dtype)] * len(tensors))
+    torch._foreach_copy_(tensors, updates)
+
+
 def foreach_scalar_div_(tensors: Sequence[torch.Tensor], scalar: float | torch.Tensor) -> None:
     """Divide a scalar by tensors in place without allocating full-size numerators.
 
