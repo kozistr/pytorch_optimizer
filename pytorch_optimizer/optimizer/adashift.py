@@ -6,6 +6,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class AdaShift(BaseOptimizer):
@@ -19,18 +20,22 @@ class AdaShift(BaseOptimizer):
         reduce_func: Function applied to squared gradients to reduce correlation. If None, no function is applied.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         keep_num: int = 10,
         reduce_func: Callable | None = torch.max,
         eps: float = 1e-10,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -40,8 +45,9 @@ class AdaShift(BaseOptimizer):
 
         self.reduce_func: Callable = reduce_func if reduce_func is not None else lambda x: x
         self.maximize = maximize
+        self.foreach = foreach
 
-        defaults: Defaults = {'lr': lr, 'betas': betas, 'keep_num': keep_num, 'eps': eps, **kwargs}
+        defaults: Defaults = {'lr': lr, 'betas': betas, 'keep_num': keep_num, 'eps': eps, 'foreach': foreach, **kwargs}
 
         super().__init__(params, defaults)
 
@@ -70,6 +76,39 @@ class AdaShift(BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        offsets: list[torch.Tensor],
+        bias_correction: float | torch.Tensor,
+        first_grad_weight: float | torch.Tensor,
+        last_grad_weight: float | torch.Tensor,
+    ) -> None:
+        beta1, beta2 = group['betas']
+        exp_avgs = state['exp_avg']
+        if offsets:
+            foreach_add_(exp_avgs, offsets, alpha=-first_grad_weight)
+        torch._foreach_mul_(exp_avgs, beta1)
+        foreach_add_(exp_avgs, grads, alpha=last_grad_weight)
+
+        if not offsets:
+            return
+
+        reduced = [self.reduce_func(offset.square()) for offset in offsets]
+        torch._foreach_lerp_(state['exp_avg_sq'], reduced, weight=1.0 - beta2)
+        de_noms = torch._foreach_div(state['exp_avg_sq'], bias_correction)
+        torch._foreach_sqrt_(de_noms)
+        torch._foreach_add_(de_noms, group['eps'])
+        updates = [exp_avg.clone() for exp_avg in exp_avgs] if group.get('cautious') else exp_avgs
+        if group.get('cautious'):
+            for update, grad in zip(updates, grads):
+                self.apply_cautious(update, grad)
+        updates = torch._foreach_div(updates, de_noms)
+        foreach_add_(params, updates, alpha=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -88,6 +127,28 @@ class AdaShift(BaseOptimizer):
             last_grad_weight: float = 1.0 / exp_weight_sum
 
             bias_correction: float = self.debias(beta2, max(1, group['step'] - group['keep_num']))
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, _ = self.collect_trainable_params(group, self.state)
+                offsets = []
+                for p, grad in zip(params, grads):
+                    self.maximize_gradient(grad, maximize=self.maximize)
+                    queue = self.state[p]['grad_queue']
+                    offsets.append(queue[0] if len(queue) == group['keep_num'] else None)
+                    queue.append(grad.clone())
+                for ready in (False, True):
+                    indices = [i for i, offset in enumerate(offsets) if (offset is not None) == ready]
+                    selected = [params[i] for i in indices]
+                    selected_grads = [grads[i] for i in indices]
+                    state = {key: [self.state[p][key] for p in selected] for key in ['exp_avg', 'exp_avg_sq']}
+                    if ready:
+                        state['offsets'] = [offsets[i] for i in indices]
+                    for batch in group_tensors_by_device_and_dtype(selected, selected_grads, state):
+                        self._step_foreach(
+                            group, batch['params'], batch['grads'], batch, batch.get('offsets', []),
+                            bias_correction, first_grad_weight, last_grad_weight,
+                        )
+                continue
 
             for p in group['params']:
                 if p.grad is None:

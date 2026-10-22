@@ -73,9 +73,10 @@ Check the [optimizer reference](optimizer.md) for options and arguments specific
 
 Set `compile=True` to let PyTorch optimize and automatically fuse optimizer updates on CPU or GPU.
 Optimizers with dedicated compiled foreach updates include AccSGD, AdaBound, AdaDelta, AdaMax, AdaMod,
-AdaMuon, AdaNorm, AdaPNM, AdaSmooth, AdaTAM, AdamC, AdamG, Ano, BCOS, DiffGrad, DualAdam, FOCUS, Gravity,
-Kate, LaProp, Lion, MSVAG, Muon, PAdam, PID, PNM, RAdam, SGDW, SRMM, SignSGD, TAM, Tiger, and Yogi. Native
-PyTorch AdamW and StableAdamW are also tested:
+AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC, AdamG, Amos, Ano, BCOS, DiffGrad, DualAdam,
+EXAdam, FOCUS, Fromage, Gravity, GrokFastAdamW, Kate, LaProp, Lion, MSVAG, Muon, Nero, NovoGrad, PAdam, PID,
+PNM, RAdam, SGDSaI, SGDW, SRMM, SignSGD, StableAdamW, TAM, Tiger, VSGD, and Yogi. Native PyTorch AdamW is
+also tested:
 
 ```python
 optimizer = create_optimizer(model, 'laprop', lr=1e-3, compile=True)
