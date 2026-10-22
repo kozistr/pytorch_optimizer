@@ -10,6 +10,7 @@ from pytorch_optimizer.optimizer.utils.foreach import (
     compile_foreach_step,
     foreach_add_,
     foreach_addcdiv_,
+    foreach_lerp_,
     group_tensors_by_device_and_dtype,
 )
 
@@ -296,10 +297,12 @@ class SimplifiedAdEMAMix(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-4,
+        lr: float | torch.Tensor = 1e-4,
         betas: Betas = (0.99, 0.95),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -385,7 +388,8 @@ class SimplifiedAdEMAMix(BaseOptimizer):
         grads: list[torch.Tensor],
         exp_avgs: list[torch.Tensor],
         exp_avg_sqs: list[torch.Tensor],
-        beta1: float,
+        beta1: float | torch.Tensor,
+        den_sums: torch.Tensor,
     ) -> None:
         beta2 = group['betas'][1]
 
@@ -396,25 +400,18 @@ class SimplifiedAdEMAMix(BaseOptimizer):
             params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
         )
 
-        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+        foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
         torch._foreach_mul_(exp_avg_sqs, beta2)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
 
-        den_sums: list[float] = []
-        for p in params:
-            state = self.state[p]
-            state['num_sum'] = beta1 * state['num_sum'] + 1.0
-            state['den_sum'] = beta2 * state['den_sum'] + (1.0 - beta2)
-            den_sums.append(math.sqrt(state['den_sum']))
-
         de_noms = torch._foreach_sqrt(exp_avg_sqs)
-        torch._foreach_add_(de_noms, [den_sum * group['eps'] for den_sum in den_sums])
+        torch._foreach_add_(de_noms, (den_sums * group['eps']).unbind())
 
         updates = torch._foreach_add(exp_avgs, grads, alpha=group['alpha'])
         torch._foreach_div_(updates, de_noms)
-        torch._foreach_div_(updates, den_sums)
+        torch._foreach_div_(updates, den_sums.unbind())
 
-        torch._foreach_add_(params, updates, alpha=-group['lr'])
+        foreach_add_(params, updates, alpha=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -439,8 +436,15 @@ class SimplifiedAdEMAMix(BaseOptimizer):
                     group, self.state, state_keys=['exp_avg', 'exp_avg_sq']
                 )
                 for batch in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    den_sums = []
+                    for p in batch['params']:
+                        state = self.state[p]
+                        state['num_sum'] = beta1 * state['num_sum'] + 1.0
+                        state['den_sum'] = beta2 * state['den_sum'] + (1.0 - beta2)
+                        den_sums.append(math.sqrt(state['den_sum']))
+                    den_sums = torch.tensor(den_sums, device=batch['params'][0].device, dtype=torch.float32)
                     self._step_foreach(
-                        group, batch['params'], batch['grads'], batch['exp_avg'], batch['exp_avg_sq'], beta1
+                        group, batch['params'], batch['grads'], batch['exp_avg'], batch['exp_avg_sq'], beta1, den_sums
                     )
                 continue
 

@@ -5,6 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 def closest_smaller_divisor_of_n_to_k(n: int, k: int) -> int:
@@ -35,6 +36,7 @@ class AdamWSN(BaseOptimizer):
             matrices and the full size for vectors.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     Examples:
         ```python
@@ -50,10 +52,12 @@ class AdamWSN(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -61,6 +65,7 @@ class AdamWSN(BaseOptimizer):
         subset_size: int = -1,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -69,9 +74,11 @@ class AdamWSN(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
+            'foreach': foreach,
             'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
@@ -125,6 +132,37 @@ class AdamWSN(BaseOptimizer):
                 else:
                     state['exp_avg_sq'] = torch.zeros_like(grad)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        subsets: list[int],
+        step_size: float | torch.Tensor,
+    ) -> None:
+        beta1, beta2 = group['betas']
+        exp_avgs, exp_avg_sqs = state['exp_avg'], state['exp_avg_sq']
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        squares = (
+            [grad.view(-1, subset).square().sum(dim=1, keepdim=True) for grad, subset in zip(grads, subsets)]
+            if group.get('sn') else torch._foreach_pow(grads, 2)
+        )
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+        torch._foreach_lerp_(exp_avg_sqs, squares, weight=1.0 - beta2)
+        de_noms = torch._foreach_sqrt(exp_avg_sqs)
+        torch._foreach_add_(de_noms, group['eps'])
+        if group.get('sn'):
+            updates = [
+                (moment.view(-1, subset) / de_nom).reshape_as(p)
+                for p, moment, subset, de_nom in zip(params, exp_avgs, subsets, de_noms)
+            ]
+            foreach_add_(params, updates, alpha=-step_size)
+        else:
+            foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -142,6 +180,19 @@ class AdamWSN(BaseOptimizer):
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
             step_size: float = group['lr'] * bias_correction2_sq / bias_correction1
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state = self.collect_trainable_params(
+                    group, self.state, state_keys=['exp_avg', 'exp_avg_sq']
+                )
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    subsets = [self.state[p].get('subset_size', p.numel()) for p in batch['params']]
+                    self._step_foreach(group, batch['params'], batch['grads'], batch, subsets, step_size)
+                    self.apply_weight_decay_foreach(
+                        batch['params'], batch['grads'], group['lr'], group['weight_decay'],
+                        group['weight_decouple'], group['fixed_decay'],
+                    )
+                continue
 
             for p in group['params']:
                 if p.grad is None:

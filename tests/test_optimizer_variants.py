@@ -42,6 +42,7 @@ ADAMD_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('avagrad', {'lr': 1e1, 'weight_decay': 1e-3}, 5),
     ('adahessian', {'lr': 5e0, 'weight_decay': 1e-3}, 5),
     ('aida', {'lr': 1e1, 'weight_decay': 1e-3, 'rectify': True}, 10),
+    ('aida', {'lr': 1e1, 'weight_decay': 1e-3, 'rectify': True, 'foreach': False}, 10),
 ]
 
 COPT_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [

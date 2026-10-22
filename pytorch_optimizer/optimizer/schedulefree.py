@@ -16,6 +16,22 @@ from pytorch_optimizer.base.type import (
     ParamsT,
     State,
 )
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, foreach_lerp_, group_tensors_by_device_and_dtype
+
+
+def _apply_schedule_free_update(
+    params: list[torch.Tensor],
+    grads: list[torch.Tensor],
+    zs: list[torch.Tensor],
+    lr: float | torch.Tensor,
+    checkpoint: float | torch.Tensor,
+    momentum: float,
+    weight_decay: float,
+) -> None:
+    BaseOptimizer.apply_weight_decay_foreach(params, grads, lr, weight_decay, False, False)
+    foreach_lerp_(params, zs, weight=checkpoint)
+    foreach_add_(params, grads, alpha=lr * (momentum * (1.0 - checkpoint) - 1.0))
+    foreach_add_(zs, grads, alpha=-lr)
 
 
 class ScheduleFreeSGD(BaseOptimizer):
@@ -34,13 +50,16 @@ class ScheduleFreeSGD(BaseOptimizer):
         warmup_steps: Number of linear learning rate warmup steps.
         eps: Term added to denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1.0,
+        lr: float | torch.Tensor = 1.0,
         momentum: float = 0.9,
         weight_decay: float = 0.0,
         r: float = 0.0,
@@ -48,6 +67,7 @@ class ScheduleFreeSGD(BaseOptimizer):
         warmup_steps: int = 0,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -56,9 +76,11 @@ class ScheduleFreeSGD(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
+            'foreach': foreach,
             'momentum': momentum,
             'weight_decay': weight_decay,
             'r': r,
@@ -116,6 +138,19 @@ class ScheduleFreeSGD(BaseOptimizer):
             if len(state) == 0:
                 state['z'] = p.clone()
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        zs: list[torch.Tensor],
+        lr: float | torch.Tensor,
+        checkpoint: float | torch.Tensor,
+    ) -> None:
+        if self.maximize:
+            torch._foreach_neg_(grads)
+        _apply_schedule_free_update(params, grads, zs, lr, checkpoint, group['momentum'], group['weight_decay'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -139,6 +174,15 @@ class ScheduleFreeSGD(BaseOptimizer):
             weight_sum = group['weight_sum'] = group['weight_sum'] + weight
 
             checkpoint: float = weight / weight_sum if weight_sum != 0.0 else 0.0
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state = self.collect_trainable_params(group, self.state, state_keys=['z'])
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        group, batch['params'], batch['grads'], batch['z'],
+                        lr, checkpoint,
+                    )
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -189,13 +233,16 @@ class ScheduleFreeAdamW(BaseOptimizer):
         ams_bound: Use the running maximum of the second moment to bound adaptive updates.
         eps: Term added to denominator for numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 2.5e-3,
+        lr: float | torch.Tensor = 2.5e-3,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,
         r: float = 0.0,
@@ -205,6 +252,7 @@ class ScheduleFreeAdamW(BaseOptimizer):
         ams_bound: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -215,9 +263,11 @@ class ScheduleFreeAdamW(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
+            'foreach': foreach,
             'betas': betas,
             'weight_decay': weight_decay,
             'r': r,
@@ -278,6 +328,32 @@ class ScheduleFreeAdamW(BaseOptimizer):
             if len(state) == 0:
                 state['z'] = p.clone()
                 state['exp_avg_sq'] = torch.zeros_like(p)
+                if group['ams_bound']:
+                    state['max_exp_avg_sq'] = torch.zeros_like(p)
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        lr: float | torch.Tensor,
+        checkpoint: float | torch.Tensor,
+        bias_correction2: float | torch.Tensor,
+    ) -> None:
+        beta2 = group['betas'][1]
+        if self.maximize:
+            torch._foreach_neg_(grads)
+        torch._foreach_mul_(state['exp_avg_sq'], beta2)
+        torch._foreach_addcmul_(state['exp_avg_sq'], grads, grads, value=1.0 - beta2)
+        corrected = torch._foreach_div(state['exp_avg_sq'], bias_correction2)
+        de_noms = self.apply_ams_bound_foreach(
+            group['ams_bound'], corrected, state.get('max_exp_avg_sq', []), group['eps']
+        )
+        torch._foreach_div_(grads, de_noms)
+        _apply_schedule_free_update(
+            params, grads, state['z'], lr, checkpoint, group['betas'][0], group['weight_decay']
+        )
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -307,6 +383,16 @@ class ScheduleFreeAdamW(BaseOptimizer):
 
             if group['decoupling_c'] > 0:
                 checkpoint = min(1.0, checkpoint * (1.0 - beta1) * group['decoupling_c'])
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                keys = ['z', 'exp_avg_sq'] + (['max_exp_avg_sq'] if group['ams_bound'] else [])
+                params, grads, state = self.collect_trainable_params(group, self.state, state_keys=keys)
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        group, batch['params'], batch['grads'], batch,
+                        lr, checkpoint, bias_correction2,
+                    )
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -367,13 +453,16 @@ class ScheduleFreeRAdam(BaseOptimizer):
             training.
         eps: Term added to denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 2.5e-3,
+        lr: float | torch.Tensor = 2.5e-3,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,
         r: float = 0.0,
@@ -381,6 +470,7 @@ class ScheduleFreeRAdam(BaseOptimizer):
         silent_sgd_phase: bool = True,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -390,9 +480,11 @@ class ScheduleFreeRAdam(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
+            'foreach': foreach,
             'betas': betas,
             'weight_decay': weight_decay,
             'silent_sgd_phase': silent_sgd_phase,
@@ -450,6 +542,31 @@ class ScheduleFreeRAdam(BaseOptimizer):
                 state['z'] = p.clone()
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        lr: float | torch.Tensor,
+        checkpoint: float | torch.Tensor,
+        bias_correction2_sq: float | torch.Tensor,
+        rectified: bool,
+    ) -> None:
+        beta2 = group['betas'][1]
+        if self.maximize:
+            torch._foreach_neg_(grads)
+        torch._foreach_mul_(state['exp_avg_sq'], beta2)
+        torch._foreach_addcmul_(state['exp_avg_sq'], grads, grads, value=1.0 - beta2)
+        if rectified:
+            de_noms = torch._foreach_sqrt(state['exp_avg_sq'])
+            torch._foreach_div_(de_noms, bias_correction2_sq)
+            torch._foreach_add_(de_noms, group['eps'])
+            torch._foreach_div_(grads, de_noms)
+        _apply_schedule_free_update(
+            params, grads, state['z'], lr, checkpoint, group['betas'][0], group['weight_decay']
+        )
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -487,6 +604,15 @@ class ScheduleFreeRAdam(BaseOptimizer):
             checkpoint: float = weight / weight_sum if weight_sum != 0.0 else 0.0
 
             adaptive_y_lr: float = lr * (beta1 * (1.0 - checkpoint) - 1.0)
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state = self.collect_trainable_params(group, self.state, state_keys=['z', 'exp_avg_sq'])
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        group, batch['params'], batch['grads'], batch,
+                        lr, checkpoint, bias_correction2_sq, n_sma > 4.0,
+                    )
+                continue
 
             for p in group['params']:
                 if p.grad is None:

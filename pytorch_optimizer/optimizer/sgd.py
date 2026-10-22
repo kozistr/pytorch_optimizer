@@ -354,13 +354,16 @@ class ASGD(BaseOptimizer):
         dampening: Scale of the local smoothness bound on the learning rate.
         eps: Term added to denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-2,
+        lr: float | torch.Tensor = 1e-2,
         amplifier: float = 0.02,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -369,6 +372,7 @@ class ASGD(BaseOptimizer):
         dampening: float = 1.0,
         eps: float = 1e-5,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -377,9 +381,11 @@ class ASGD(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
+            'foreach': foreach,
             'amplifier': amplifier,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
@@ -402,16 +408,31 @@ class ASGD(BaseOptimizer):
         """Compute global parameter and gradient L2 norms for a parameter group."""
         p_norm = torch.zeros(1, dtype=torch.float32, device=device)
 
-        for p in group['params']:
-            if p.grad is None:
-                continue
-
-            p_norm.add_(p.norm().pow(2))
+        if BaseOptimizer.can_use_foreach(group, group.get('foreach')):
+            params = [p for p in group['params'] if p.grad is not None]
+            grads = [p.grad for p in params]
+            for batch in group_tensors_by_device_and_dtype(params, grads):
+                squares = [norm.square().float() for norm in torch._foreach_norm(batch['params'])]
+                p_norm.add_(torch.stack(squares).sum())
+        else:
+            for p in group['params']:
+                if p.grad is not None:
+                    p_norm.add_(p.norm().pow(2))
 
         p_norm.sqrt_()
         g_norm = get_global_gradient_norm([group], device).sqrt_()
 
         return p_norm, g_norm
+
+    def _step_foreach(
+        self, group: ParamGroup, params: list[torch.Tensor], grads: list[torch.Tensor]
+    ) -> None:
+        if self.maximize:
+            torch._foreach_neg_(grads)
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+        foreach_add_(params, grads, alpha=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -440,6 +461,12 @@ class ASGD(BaseOptimizer):
 
             group['prev_param_norm'].copy_(group['curr_param_norm'])
             group['prev_grad_norm'].copy_(group['curr_grad_norm'])
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, _ = self.collect_trainable_params(group, self.state)
+                for batch in group_tensors_by_device_and_dtype(params, grads):
+                    self._step_foreach(group, batch['params'], batch['grads'])
+                continue
 
             for p in group['params']:
                 if p.grad is None:
