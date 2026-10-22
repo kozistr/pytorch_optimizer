@@ -1,11 +1,16 @@
 import math
+from collections.abc import Sequence
 
 import torch
 
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import (
+    foreach_addcmul_,
+    foreach_lerp_,
+    group_tensors_by_device_and_dtype,
+)
 
 
 class StableAdamW(BaseOptimizer):
@@ -24,6 +29,8 @@ class StableAdamW(BaseOptimizer):
         maximize: Maximize the objective instead of minimizing it.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -108,14 +115,11 @@ class StableAdamW(BaseOptimizer):
         grads: list[torch.Tensor],
         exp_avgs: list[torch.Tensor],
         exp_avg_sqs: list[torch.Tensor],
-        kahan_comps: list[torch.Tensor],
-    ) -> None:
-        beta1, beta2 = group['betas']
+        beta1_comp: float | torch.Tensor,
+        beta2_hat: float | torch.Tensor,
+    ) -> Sequence[torch.Tensor]:
         eps = group['eps']
         lr = group['lr']
-
-        beta1_comp: float = 1.0 - self.debias_beta(beta1, group['step'])
-        beta2_hat: float = self.debias_beta(beta2, group['step'])
 
         eps_p2: float = math.pow(eps, 2)
 
@@ -127,11 +131,11 @@ class StableAdamW(BaseOptimizer):
                 params, grads, lr, group['weight_decay'], weight_decouple=False, fixed_decay=False
             )
 
-        torch._foreach_lerp_(exp_avgs, grads, weight=beta1_comp)
+        foreach_lerp_(exp_avgs, grads, weight=beta1_comp)
 
         stats_grads = [grad.float() for grad in grads] if params[0].dtype == torch.float16 else grads
         torch._foreach_mul_(exp_avg_sqs, beta2_hat)
-        torch._foreach_addcmul_(exp_avg_sqs, stats_grads, stats_grads, value=1.0 - beta2_hat)
+        foreach_addcmul_(exp_avg_sqs, stats_grads, stats_grads, value=1.0 - beta2_hat)
 
         step_sizes: list[torch.Tensor] = [
             -lr / self.get_stable_adamw_rms(grad, exp_avg_sq, eps=eps_p2)
@@ -147,18 +151,10 @@ class StableAdamW(BaseOptimizer):
         de_noms = [de_nom.to(dtype=step_size.dtype) for de_nom, step_size in zip(de_noms, step_sizes)]
         torch._foreach_div_(de_noms, step_sizes)
 
-        if group['kahan_sum'] and params[0].dtype in (torch.float16, torch.bfloat16):
-            torch._foreach_addcdiv_(kahan_comps, exp_avgs, de_noms)
-
-            with torch.no_grad():
-                torch._foreach_copy_(grads, params)
-
-            torch._foreach_add_(params, kahan_comps)
-
-            torch._foreach_sub_(grads, params)
-            torch._foreach_add_(kahan_comps, grads)
-        else:
+        if not (group['kahan_sum'] and params[0].dtype in (torch.float16, torch.bfloat16)):
             torch._foreach_addcdiv_(params, exp_avgs, de_noms)
+
+        return de_noms
 
     def _step_per_param(self, group: ParamGroup) -> None:
         beta1, beta2 = group['betas']
@@ -228,18 +224,26 @@ class StableAdamW(BaseOptimizer):
             group['step'] += 1
 
             if self._can_use_foreach(group):
+                beta1, beta2 = group['betas']
                 params, grads, state_dict = self.collect_trainable_params(
                     group, self.state, state_keys=['exp_avg', 'exp_avg_sq', 'kahan_comp']
                 )
                 for batch in group_tensors_by_device_and_dtype(params, grads, state_dict):
-                    self._step_foreach(
+                    de_noms = self._step_foreach(
                         group,
                         batch['params'],
                         batch['grads'],
                         batch['exp_avg'],
                         batch['exp_avg_sq'],
-                        batch['kahan_comp'],
+                        1.0 - self.debias_beta(beta1, group['step']),
+                        self.debias_beta(beta2, group['step']),
                     )
+                    if group['kahan_sum'] and batch['params'][0].dtype in (torch.float16, torch.bfloat16):
+                        torch._foreach_addcdiv_(batch['kahan_comp'], batch['exp_avg'], de_noms)
+                        torch._foreach_copy_(batch['grads'], batch['params'])
+                        torch._foreach_add_(batch['params'], batch['kahan_comp'])
+                        torch._foreach_sub_(batch['grads'], batch['params'])
+                        torch._foreach_add_(batch['kahan_comp'], batch['grads'])
             else:
                 self._step_per_param(group)
 

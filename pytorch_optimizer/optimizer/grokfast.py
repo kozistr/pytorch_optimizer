@@ -8,6 +8,7 @@ from torch import nn
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 FILTER_TYPE = Literal['mean', 'sum']
 
@@ -129,10 +130,12 @@ class GrokFastAdamW(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-4,
+        lr: float | torch.Tensor = 1e-4,
         betas: Betas = (0.9, 0.99),
         grokfast: bool = True,
         grokfast_alpha: float = 0.98,
@@ -157,7 +160,7 @@ class GrokFastAdamW(BaseOptimizer):
         self.maximize = maximize
 
         if grokfast and normalize_lr:
-            lr /= 1.0 + grokfast_lamb
+            lr = lr / (1.0 + grokfast_lamb)
 
         defaults: Defaults = {
             'lr': lr,
@@ -214,11 +217,10 @@ class GrokFastAdamW(BaseOptimizer):
         exp_avg_sqs: list[torch.Tensor],
         grok_exp_avgs: list[torch.Tensor],
         should_grokfast: bool,
+        bias_correction1: float | torch.Tensor,
+        bias_correction2_sq: float | torch.Tensor,
     ) -> None:
         beta1, beta2 = group['betas']
-
-        bias_correction1: float = self.debias(beta1, group['step'])
-        bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
         if self.maximize:
             torch._foreach_neg_(grads)
@@ -233,8 +235,9 @@ class GrokFastAdamW(BaseOptimizer):
         )
 
         if should_grokfast:
-            torch._foreach_lerp_(grok_exp_avgs, grads, weight=1.0 - group['grokfast_alpha'])
-            torch._foreach_add_(grads, grok_exp_avgs, alpha=group['grokfast_lamb'])
+            for average, grad in zip(grok_exp_avgs, grads):
+                average.lerp_(grad, weight=1.0 - group['grokfast_alpha'])
+                grad.add_(average, alpha=group['grokfast_lamb'])
 
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
         torch._foreach_mul_(exp_avg_sqs, beta2)
@@ -244,7 +247,7 @@ class GrokFastAdamW(BaseOptimizer):
         torch._foreach_div_(de_noms, bias_correction2_sq)
         torch._foreach_clamp_min_(de_noms, group['eps'])
 
-        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-group['lr'] / bias_correction1)
+        foreach_addcdiv_(params, exp_avgs, de_noms, value=-group['lr'] / bias_correction1)
 
     def _step_per_param(self, group: ParamGroup, should_grokfast: bool) -> None:
         beta1, beta2 = group['betas']
@@ -311,15 +314,18 @@ class GrokFastAdamW(BaseOptimizer):
                     self.state,
                     state_keys=['exp_avg', 'exp_avg_sq', 'grok_exp_avg'],
                 )
-                if params:
+                beta1, beta2 = group['betas']
+                for batch in group_tensors_by_device_and_dtype(params, grads, state_dict):
                     self._step_foreach(
                         group,
-                        params,
-                        grads,
-                        state_dict['exp_avg'],
-                        state_dict['exp_avg_sq'],
-                        state_dict['grok_exp_avg'],
+                        batch['params'],
+                        batch['grads'],
+                        batch['exp_avg'],
+                        batch['exp_avg_sq'],
+                        batch['grok_exp_avg'],
                         should_grokfast,
+                        self.debias(beta1, group['step']),
+                        math.sqrt(self.debias(beta2, group['step'])),
                     )
             else:
                 self._step_per_param(group, should_grokfast)

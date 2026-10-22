@@ -95,10 +95,11 @@ optimizer = create_optimizer(model, 'laprop', lr=1e-3, compile=True)
 ```
 
 Optimizers with a dedicated compiled foreach path include AccSGD, AdaBound, AdaDelta, AdaMax, AdaMod, AdaMuon,
-AdaNorm, AdaPNM, AdaSmooth, AdaTAM, AdamC, AdamG, Ano, BCOS, DiffGrad, DualAdam, FOCUS, Gravity, Kate, LaProp,
-Lion, MSVAG, Muon, PAdam, PID, PNM, RAdam, SGDW, SRMM, SignSGD, TAM, Tiger, and Yogi. These paths keep state
-initialization and step counters eager and pass learning rates to compiled updates as tensors. Native PyTorch
-AdamW and StableAdamW are also tested. Use `compile=False` (the default) for eager execution.
+AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC, AdamG, Amos, Ano, BCOS, DiffGrad, DualAdam, EXAdam, FOCUS,
+Fromage, Gravity, GrokFastAdamW, Kate, LaProp, Lion, MSVAG, Muon, Nero, NovoGrad, PAdam, PID, PNM, RAdam,
+SGDSaI, SGDW, SRMM, SignSGD, StableAdamW, TAM, Tiger, VSGD, and Yogi. These paths keep state initialization
+and step counters eager and pass learning rates to compiled updates as tensors. Native PyTorch AdamW is also
+tested. Use `compile=False` (the default) for eager execution.
 
 The library selects the batched update path automatically for supported optimizers.
 The compiler chooses which operations to fuse; no separate fusion setting is required.

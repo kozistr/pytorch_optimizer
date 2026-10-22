@@ -5,6 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class NovoGrad(BaseOptimizer):
@@ -20,13 +21,16 @@ class NovoGrad(BaseOptimizer):
         grad_averaging: Scale new gradient contributions by `1 - beta1`.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.95, 0.98),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
@@ -34,6 +38,7 @@ class NovoGrad(BaseOptimizer):
         grad_averaging: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -42,9 +47,11 @@ class NovoGrad(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
+            'foreach': foreach,
             'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
@@ -74,6 +81,42 @@ class NovoGrad(BaseOptimizer):
             if torch.is_complex(p):
                 raise NoComplexParameterError(str(self))
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        first_update: bool,
+        step_size: float | torch.Tensor,
+    ) -> None:
+        beta1, beta2 = group['betas']
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        if not first_update:
+            squares = [grad.pow(2).sum() for grad in grads]
+            torch._foreach_lerp_(state['grads_ema'], squares, weight=1.0 - beta2)
+
+        de_noms = torch._foreach_sqrt(state['grads_ema'])
+        torch._foreach_add_(de_noms, group['eps'])
+        torch._foreach_div_(grads, de_noms)
+
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+
+        moments = state['moments']
+        if first_update:
+            torch._foreach_copy_(moments, grads)
+        else:
+            if group['grad_averaging']:
+                torch._foreach_mul_(grads, 1.0 - beta1)
+            torch._foreach_mul_(moments, beta1)
+            torch._foreach_add_(moments, grads)
+
+        foreach_add_(params, moments, alpha=-step_size)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -89,7 +132,22 @@ class NovoGrad(BaseOptimizer):
 
             step_size: float = group['lr']
             if group.get('adam_debias', False):
-                step_size *= math.sqrt(self.debias(beta2, group['step']))
+                step_size = step_size * math.sqrt(self.debias(beta2, group['step']))
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, _ = self.collect_trainable_params(group, self.state)
+                first_updates = [not self.state[p] for p in params]
+                for p, grad, first in zip(params, grads, first_updates):
+                    if first:
+                        self.state[p]['grads_ema'] = grad.pow(2).sum()
+                        self.state[p]['moments'] = torch.zeros_like(p)
+                for first in (True, False):
+                    selected = [p for p, initial in zip(params, first_updates) if initial == first]
+                    selected_grads = [p.grad for p in selected]
+                    state = {key: [self.state[p][key] for p in selected] for key in ['grads_ema', 'moments']}
+                    for batch in group_tensors_by_device_and_dtype(selected, selected_grads, state):
+                        self._step_foreach(group, batch['params'], batch['grads'], batch, first, step_size)
+                continue
 
             for p in group['params']:
                 if p.grad is None:

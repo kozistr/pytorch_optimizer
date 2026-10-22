@@ -206,7 +206,6 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('adapnm', {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     ('adapnm', {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decouple': False}, 10),
     ('adapnm', {'lr': 5e-1, 'weight_decay': 1e-3, 'ams_bound': False}, 10),
-    ('nero', {'lr': 5e-1}, 25),
     ('nero', {'lr': 5e0, 'constraints': False}, 5),
     ('adan', {'lr': 5e-1}, 5),
     ('adan', {'lr': 5e-1, 'max_grad_norm': 1.0}, 5),

@@ -4,6 +4,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 def channel_view(x: torch.Tensor) -> torch.Tensor:
@@ -41,17 +42,21 @@ class Nero(BaseOptimizer):
         constraints: Center and normalize weights with more than one dimension after each update.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 0.01,
+        lr: float | torch.Tensor = 0.01,
         beta: float = 0.999,
         constraints: bool = True,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -59,8 +64,9 @@ class Nero(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
-        defaults: Defaults = {'lr': lr, 'beta': beta, 'constraints': constraints, 'eps': eps}
+        defaults: Defaults = {'lr': lr, 'beta': beta, 'constraints': constraints, 'eps': eps, 'foreach': foreach}
 
         super().__init__(params, defaults)
 
@@ -95,6 +101,39 @@ class Nero(BaseOptimizer):
                 if state['scale'] == 0.0:
                     state['scale'] = 0.01
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
+        scales: list[torch.Tensor],
+        bias_correction: float | torch.Tensor,
+    ) -> None:
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        norms = [neuron_norm(grad) for grad in grads]
+        torch._foreach_mul_(exp_avg_sqs, group['beta'])
+        torch._foreach_addcmul_(exp_avg_sqs, norms, norms, value=1.0 - group['beta'])
+
+        de_noms = torch._foreach_div(exp_avg_sqs, bias_correction)
+        torch._foreach_sqrt_(de_noms)
+        torch._foreach_add_(de_noms, group['eps'])
+        updates = torch._foreach_div(grads, de_noms)
+        for update in updates:
+            update.nan_to_num_(nan=0.0)
+        torch._foreach_mul_(updates, scales)
+        foreach_add_(params, updates, alpha=-group['lr'])
+
+        if group['constraints']:
+            constrained = [p for p in params if p.dim() > 1]
+            if constrained:
+                torch._foreach_sub_(constrained, [neuron_mean(p) for p in constrained])
+                norms = [neuron_norm(p) for p in constrained]
+                torch._foreach_add_(norms, group['eps'])
+                torch._foreach_div_(constrained, norms)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -107,6 +146,15 @@ class Nero(BaseOptimizer):
             group['step'] += 1
 
             bias_correction: float = self.debias(group['beta'], group['step'])
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state = self.collect_trainable_params(group, self.state, state_keys=['exp_avg_sq'])
+                state['scale'] = [torch.as_tensor(self.state[p]['scale'], device=p.device) for p in params]
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        group, batch['params'], batch['grads'], batch['exp_avg_sq'], batch['scale'], bias_correction
+                    )
+                continue
 
             for p in group['params']:
                 if p.grad is None:
