@@ -115,24 +115,31 @@ class MADGRAD(BaseOptimizer):
     ) -> None:
         momentum, eps = group['momentum'], group['eps']
         grad_sum_sqs, sums = state['grad_sum_sq'], state['s']
+
         if self.maximize:
             torch._foreach_neg_(grads)
+
         if not group['weight_decouple']:
             self.apply_weight_decay_foreach(params, grads, lr, group['weight_decay'], False, False)
+
         if momentum == 0.0:
             rms = [self.compute_rms(moment, eps) for moment in grad_sum_sqs]
             x0s = [param.addcdiv(total, denominator) for param, total, denominator in zip(params, sums, rms)]
         else:
             x0s = state['x0']
+
         foreach_addcmul_(grad_sum_sqs, grads, grads, value=step_scale)
         rms = [self.compute_rms(moment, eps) for moment in grad_sum_sqs]
         foreach_add_(sums, grads, alpha=step_scale)
+
         old_params = [p.clone() for p in params] if group['weight_decouple'] and group['weight_decay'] > 0.0 else []
+
         updates = torch._foreach_addcdiv(x0s, sums, rms, value=-1.0)
         if momentum == 0.0:
             torch._foreach_copy_(params, updates)
         else:
             torch._foreach_lerp_(params, updates, weight=1.0 - momentum)
+
         if old_params:
             foreach_add_(params, old_params, alpha=-lr * group['weight_decay'])
 
