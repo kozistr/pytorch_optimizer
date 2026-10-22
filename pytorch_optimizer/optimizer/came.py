@@ -144,6 +144,7 @@ class CAME(BaseOptimizer):
         """Write a factored inverse root second moment approximation to `output`."""
         r_factor: torch.Tensor = (exp_avg_sq_row / exp_avg_sq_row.mean(dim=-1, keepdim=True)).rsqrt_().unsqueeze(-1)
         c_factor: torch.Tensor = exp_avg_sq_col.unsqueeze(-2).rsqrt()
+
         torch.mul(r_factor, c_factor, out=output)
 
     def _step_foreach(
@@ -155,25 +156,32 @@ class CAME(BaseOptimizer):
     ) -> None:
         beta1, beta2, beta3 = group['betas']
         factored = 'exp_avg_sq_row' in state
+
         if self.maximize:
             torch._foreach_neg_(grads)
+
         self.apply_weight_decay_foreach(
             params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
         )
 
         updates = torch._foreach_mul(grads, grads)
         torch._foreach_add_(updates, self.eps1)
+
         if factored:
             rows, cols = state['exp_avg_sq_row'], state['exp_avg_sq_col']
+
             torch._foreach_mul_(rows, beta2)
             torch._foreach_add_(rows, [update.mean(dim=-1) for update in updates], alpha=1.0 - beta2)
+
             torch._foreach_mul_(cols, beta2)
             torch._foreach_add_(cols, [update.mean(dim=-2) for update in updates], alpha=1.0 - beta2)
+
             for row, col, update in zip(rows, cols, updates):
                 self.approximate_sq_grad(row, col, update)
         else:
             torch._foreach_mul_(state['exp_avg_sq'], beta2)
             torch._foreach_add_(state['exp_avg_sq'], updates, alpha=1.0 - beta2)
+
             updates = [moment.rsqrt() for moment in state['exp_avg_sq']]
 
         if group['ams_bound']:
@@ -182,24 +190,32 @@ class CAME(BaseOptimizer):
             foreach_rsqrt_(updates)
 
         torch._foreach_mul_(updates, grads)
+
         clipping = [(self.get_rms(update) / self.clip_threshold).clamp_(min=1.0) for update in updates]
         torch._foreach_div_(updates, clipping)
+
         torch._foreach_lerp_(state['exp_avg'], updates, weight=1.0 - beta1)
 
         if factored:
             residuals = torch._foreach_sub(updates, state['exp_avg'])
             torch._foreach_pow_(residuals, 2)
             torch._foreach_add_(residuals, self.eps2)
+
             rows, cols = state['exp_avg_res_row'], state['exp_avg_res_col']
+
             torch._foreach_mul_(rows, beta3)
             torch._foreach_add_(rows, [res.mean(dim=-1) for res in residuals], alpha=1.0 - beta3)
+
             torch._foreach_mul_(cols, beta3)
             torch._foreach_add_(cols, [res.mean(dim=-2) for res in residuals], alpha=1.0 - beta3)
+
             for row, col, update in zip(rows, cols, updates):
                 self.approximate_sq_grad(row, col, update)
+
             torch._foreach_mul_(updates, state['exp_avg'])
         else:
             updates = state['exp_avg']
+
         foreach_add_(params, updates, alpha=-group['lr'])
 
     @torch.no_grad()
@@ -221,17 +237,23 @@ class CAME(BaseOptimizer):
                         ['exp_avg_sq_row', 'exp_avg_sq_col', 'exp_avg_res_row', 'exp_avg_res_col']
                         if factored else ['exp_avg_sq']
                     ) + (['exp_avg_sq_hat'] if group['ams_bound'] else [])
+
                     active = {'params': [p for p in group['params'] if self.get_options(p.shape) == factored]}
                     params, grads, state = self.collect_trainable_params(active, self.state, state_keys=keys)
+
                     for batch in group_tensors_by_device_and_dtype(params, grads, state):
                         rms = torch._foreach_norm(batch['params'])
                         torch._foreach_div_(rms, [math.sqrt(param.numel()) for param in batch['params']])
+
                         for param, value in zip(batch['params'], rms):
                             self.state[param]['RMS'] = value
+
                         update = self._step_foreach
                         if self._compiled_step_foreach is not None and batch['params'][0].dtype != torch.float16:
                             update = self._compiled_step_foreach
+
                         update(group, batch['params'], batch['grads'], batch)
+
                 continue
 
             for p in group['params']:

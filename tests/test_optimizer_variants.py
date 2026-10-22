@@ -109,10 +109,13 @@ class TestMaximize:
         if optimizer_name == 'adagc':
             options['warmup_steps'] = 2
             iterations = 2
+
         if optimizer_name in FOREACH_OPTIMIZERS:
             options['foreach'] = foreach
+
         if optimizer_name == 'kron':
             options.update(pre_conditioner_update_probability=1.0, balance_prob=0.0)
+
         ascent = build_optimizer(optimizer_name, [params[0]], maximize=True, **options)
         descent = build_optimizer(optimizer_name, [params[1]], maximize=False, **options)
 
@@ -126,8 +129,10 @@ class TestMaximize:
                 options = {'hessian': [torch.ones_like(optimizer.param_groups[0]['params'][0])]} if (
                     optimizer_name in ('adahessian', 'sophiah')
                 ) else {}
+
                 param = optimizer.param_groups[0]['params'][0]
                 grad = param.grad.clone()
+
                 for _ in range(iterations):
                     param.grad = grad.clone()
                     optimizer.step(lambda: 0.1, **options)
