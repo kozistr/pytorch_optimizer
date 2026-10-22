@@ -1,10 +1,16 @@
 import math
+from collections.abc import Callable
 
 import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import (
+    compile_foreach_step,
+    foreach_addcdiv_,
+    group_tensors_by_device_and_dtype,
+)
 from pytorch_optimizer.optimizer.utils.gradient import get_global_gradient_norm
 
 
@@ -24,13 +30,17 @@ class AdaGC(BaseOptimizer):
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations after warmup. `None` enables them for supported parameter groups.
+            Float16 updates remain eager when compilation is requested.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         beta: float = 0.98,
         lambda_abs: float = 1.0,
@@ -41,6 +51,7 @@ class AdaGC(BaseOptimizer):
         fixed_decay: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -53,9 +64,12 @@ class AdaGC(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
+        self._compiled_step_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
+            'foreach': foreach,
             'betas': betas,
             'beta': beta,
             'lambda_abs': lambda_abs,
@@ -72,6 +86,9 @@ class AdaGC(BaseOptimizer):
 
     def __str__(self) -> str:
         return 'AdaGC'
+
+    def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -94,12 +111,52 @@ class AdaGC(BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(grad)
                 state['exp_avg_sq'] = torch.zeros_like(grad)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        bias_correction2_sq: float | torch.Tensor,
+        step_size: float | torch.Tensor,
+    ) -> None:
+        beta1, beta2 = group['betas']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+
+        norms = torch._foreach_clamp_min(torch._foreach_norm(grads), group['eps'])
+        ratios = torch._foreach_clamp_min(state['gamma'], group['eps'])
+        torch._foreach_mul_(ratios, group['lambda_rel'])
+        torch._foreach_div_(ratios, norms)
+        torch._foreach_clamp_max_(ratios, 1.0)
+        clipped_grads = torch._foreach_mul(grads, ratios)
+
+        torch._foreach_lerp_(state['gamma'], torch._foreach_norm(clipped_grads), weight=1.0 - group['beta'])
+
+        torch._foreach_lerp_(state['exp_avg'], clipped_grads, weight=1.0 - beta1)
+        torch._foreach_mul_(state['exp_avg_sq'], beta2)
+        torch._foreach_addcmul_(state['exp_avg_sq'], clipped_grads, clipped_grads, value=1.0 - beta2)
+
+        de_noms = torch._foreach_sqrt(state['exp_avg_sq'])
+        torch._foreach_div_(de_noms, bias_correction2_sq)
+        torch._foreach_add_(de_noms, group['eps'])
+
+        foreach_addcdiv_(params, state['exp_avg'], de_noms, value=-step_size)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
+
+        can_cache_norm = all(group['weight_decouple'] or group['weight_decay'] == 0.0 for group in self.param_groups)
+        global_norm = None
 
         for group in self.param_groups:
             self.init_group(group)
@@ -109,6 +166,30 @@ class AdaGC(BaseOptimizer):
 
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
+
+            if (
+                self.can_use_foreach(group, group.get('foreach', self.foreach))
+                and group['step'] >= group['warmup_steps']
+                and all('gamma' in self.state[p] for p in group['params'] if p.grad is not None)
+            ):
+                params, grads, state = self.collect_trainable_params(
+                    group, self.state, state_keys=['exp_avg', 'exp_avg_sq', 'gamma']
+                )
+
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    update = self._step_foreach
+                    if self._compiled_step_foreach is not None and batch['params'][0].dtype != torch.float16:
+                        update = self._compiled_step_foreach
+
+                    update(
+                        group, batch['params'], batch['grads'], batch, bias_correction2_sq,
+                        group['lr'] / bias_correction1,
+                    )
+
+                continue
+
+            grad_norm = None
+            warmup_scale: float | torch.Tensor = 1.0
 
             for p in group['params']:
                 if p.grad is None:
@@ -133,14 +214,18 @@ class AdaGC(BaseOptimizer):
                 gamma = state.get('gamma')
 
                 if gamma is None or group['step'] < group['warmup_steps']:
-                    grad_norm = get_global_gradient_norm(self.param_groups).sqrt_().add_(group['eps'])
+                    if grad_norm is None or not can_cache_norm:
+                        if not can_cache_norm or global_norm is None:
+                            global_norm = get_global_gradient_norm(self.param_groups).sqrt_()
 
-                    h_t = min(group['lambda_abs'] / grad_norm, 1.0)
-                    g_hat = grad.mul(h_t)
+                        grad_norm = global_norm.add(group['eps'])
+                        warmup_scale = min(group['lambda_abs'] / grad_norm, 1.0)
+
+                    g_hat = grad.mul(warmup_scale)
 
                     g_hat_norm = g_hat.norm()
 
-                    state['gamma'] = g_hat_norm if gamma is None else gamma.copy_(min(gamma, g_hat_norm))
+                    state['gamma'] = g_hat_norm if gamma is None else torch.minimum(gamma, g_hat_norm, out=gamma)
                 else:
                     h_t = (
                         group['lambda_rel'] * gamma.clamp_min(group['eps']) / grad.norm().clamp_min(group['eps'])
@@ -153,6 +238,7 @@ class AdaGC(BaseOptimizer):
                 exp_avg_sq.mul_(beta2).addcmul_(g_hat, g_hat, value=1.0 - beta2)
 
                 de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
+
                 p.addcdiv_(exp_avg, de_nom, value=-group['lr'] / bias_correction1)
 
         return loss
