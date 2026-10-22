@@ -5,6 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
 
 
 class PNM(BaseOptimizer):
@@ -19,6 +20,7 @@ class PNM(BaseOptimizer):
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
 
@@ -32,6 +34,7 @@ class PNM(BaseOptimizer):
         fixed_decay: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -40,6 +43,7 @@ class PNM(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
@@ -47,6 +51,7 @@ class PNM(BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
+            'foreach': foreach,
         }
 
         super().__init__(params, defaults)
@@ -72,6 +77,33 @@ class PNM(BaseOptimizer):
                 state['pos_momentum'] = torch.zeros_like(p)
                 state['neg_momentum'] = torch.zeros_like(p)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        beta1_p2: float,
+        noise_norm: float,
+    ) -> None:
+        beta2 = group['betas'][1]
+        pos_momentums, neg_momentums = state['pos_momentum'], state['neg_momentum']
+        if group['step'] % 2 == 0:
+            pos_momentums, neg_momentums = neg_momentums, pos_momentums
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+
+        torch._foreach_lerp_(pos_momentums, grads, weight=1.0 - beta1_p2)
+        updates = torch._foreach_mul(pos_momentums, 1.0 + beta2)
+        torch._foreach_add_(updates, neg_momentums, alpha=-beta2)
+        torch._foreach_mul_(updates, 1.0 / noise_norm)
+        torch._foreach_add_(params, updates, alpha=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -87,6 +119,14 @@ class PNM(BaseOptimizer):
 
             beta1_p2: float = beta1 ** 2  # fmt: skip
             noise_norm: float = math.sqrt((1 + beta2) ** 2 + beta2 ** 2)  # fmt: skip
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state = self.collect_trainable_params(
+                    group, self.state, state_keys=['pos_momentum', 'neg_momentum']
+                )
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch, beta1_p2, noise_norm)
+                continue
 
             for p in group['params']:
                 if p.grad is None:

@@ -3,6 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
 
 
 class PID(BaseOptimizer):
@@ -19,6 +20,7 @@ class PID(BaseOptimizer):
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
 
@@ -34,6 +36,7 @@ class PID(BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -43,6 +46,7 @@ class PID(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
@@ -53,6 +57,7 @@ class PID(BaseOptimizer):
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
+            'foreach': foreach,
         }
 
         super().__init__(params, defaults)
@@ -79,6 +84,40 @@ class PID(BaseOptimizer):
                 state['i_buffer'] = torch.zeros_like(p)
                 state['d_buffer'] = torch.zeros_like(p)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+    ) -> None:
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+
+        if group['momentum'] > 0.0:
+            g_bufs, i_bufs, d_bufs = state['grad_buffer'], state['i_buffer'], state['d_buffer']
+            momentum = group['momentum']
+            if params[0].device.type == 'cpu' and params[0].dtype in (torch.float16, torch.bfloat16):
+                momentum = torch.tensor(momentum, dtype=torch.float32, device=params[0].device)
+            torch._foreach_mul_(i_bufs, momentum)
+            torch._foreach_add_(i_bufs, grads, alpha=1.0 - group['dampening'])
+            torch._foreach_mul_(d_bufs, momentum)
+
+            if group['step'] > 1:
+                torch._foreach_sub_(g_bufs, grads)
+                torch._foreach_neg_(g_bufs)
+                torch._foreach_add_(d_bufs, g_bufs, alpha=1.0 - group['momentum'])
+
+            torch._foreach_copy_(g_bufs, grads)
+            torch._foreach_add_(grads, i_bufs, alpha=group['integral'])
+            torch._foreach_add_(grads, d_bufs, alpha=group['derivative'])
+
+        torch._foreach_add_(params, grads, alpha=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -89,6 +128,13 @@ class PID(BaseOptimizer):
         for group in self.param_groups:
             self.init_group(group)
             group['step'] += 1
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                state_keys = ['grad_buffer', 'i_buffer', 'd_buffer'] if group['momentum'] > 0.0 else []
+                params, grads, state = self.collect_trainable_params(group, self.state, state_keys=state_keys)
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch)
+                continue
 
             for p in group['params']:
                 if p.grad is None:

@@ -86,6 +86,19 @@ def test_can_use_foreach():
     assert BaseOptimizer.collect_trainable_params({'params': []}, {}, None) == ([], [], {})
 
 
+@pytest.mark.parametrize(('dtype', 'fixed_decay'), [(torch.float16, False), (torch.bfloat16, True)])
+def test_foreach_weight_decay_low_precision(dtype, fixed_decay):
+    param = make_parameter(shape=(2, 2), requires_grad=False, dtype=dtype).T
+    param.copy_(torch.tensor([[0.28125, 0.5625], [0.40625, 0.34375]]))
+    expected = param.clone().mul_(1.0 - 0.03 * (1.0 if fixed_decay else 0.0125))
+
+    BaseOptimizer.apply_weight_decay_foreach(
+        [param], [], lr=0.0125, weight_decay=0.03, weight_decouple=True, fixed_decay=fixed_decay
+    )
+
+    torch.testing.assert_close(param, expected, rtol=0.0, atol=0.0)
+
+
 def test_compile_foreach():
     optimizer = build_optimizer('radam', [make_parameter()])
     step = optimizer._step_foreach
