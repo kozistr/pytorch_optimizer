@@ -163,10 +163,6 @@ class AdamWSN(BaseOptimizer):
         else:
             foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
 
-        self.apply_weight_decay_foreach(
-            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
-        )
-
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -192,6 +188,10 @@ class AdamWSN(BaseOptimizer):
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     subsets = [self.state[p].get('subset_size', p.numel()) for p in batch['params']]
                     self._step_foreach(group, batch['params'], batch['grads'], batch, subsets, step_size)
+                    self.apply_weight_decay_foreach(
+                        batch['params'], batch['grads'], group['lr'], group['weight_decay'],
+                        group['weight_decouple'], group['fixed_decay'],
+                    )
                 continue
 
             for p in group['params']:
