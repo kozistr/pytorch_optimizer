@@ -3,7 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class PID(BaseOptimizer):
@@ -24,10 +24,12 @@ class PID(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         momentum: float = 0.0,
         dampening: float = 0.0,
         derivative: float = 10.0,
@@ -90,6 +92,7 @@ class PID(BaseOptimizer):
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
         state: dict[str, list[torch.Tensor]],
+        first_step: bool,
     ) -> None:
         if self.maximize:
             torch._foreach_neg_(grads)
@@ -101,13 +104,11 @@ class PID(BaseOptimizer):
         if group['momentum'] > 0.0:
             g_bufs, i_bufs, d_bufs = state['grad_buffer'], state['i_buffer'], state['d_buffer']
             momentum = group['momentum']
-            if params[0].device.type == 'cpu' and params[0].dtype in (torch.float16, torch.bfloat16):
-                momentum = torch.tensor(momentum, dtype=torch.float32, device=params[0].device)
             torch._foreach_mul_(i_bufs, momentum)
             torch._foreach_add_(i_bufs, grads, alpha=1.0 - group['dampening'])
             torch._foreach_mul_(d_bufs, momentum)
 
-            if group['step'] > 1:
+            if not first_step:
                 torch._foreach_sub_(g_bufs, grads)
                 torch._foreach_neg_(g_bufs)
                 torch._foreach_add_(d_bufs, g_bufs, alpha=1.0 - group['momentum'])
@@ -116,7 +117,7 @@ class PID(BaseOptimizer):
             torch._foreach_add_(grads, i_bufs, alpha=group['integral'])
             torch._foreach_add_(grads, d_bufs, alpha=group['derivative'])
 
-        torch._foreach_add_(params, grads, alpha=-group['lr'])
+        foreach_add_(params, grads, alpha=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -133,7 +134,7 @@ class PID(BaseOptimizer):
                 state_keys = ['grad_buffer', 'i_buffer', 'd_buffer'] if group['momentum'] > 0.0 else []
                 params, grads, state = self.collect_trainable_params(group, self.state, state_keys=state_keys)
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
-                    self._step_foreach(group, batch['params'], batch['grads'], batch)
+                    self._step_foreach(group, batch['params'], batch['grads'], batch, group['step'] == 1)
                 continue
 
             for p in group['params']:

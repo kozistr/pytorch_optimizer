@@ -3,7 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class AdaDelta(BaseOptimizer):
@@ -22,10 +22,12 @@ class AdaDelta(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1.0,
+        lr: float | torch.Tensor = 1.0,
         rho: float = 0.9,
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
@@ -106,7 +108,7 @@ class AdaDelta(BaseOptimizer):
 
         torch._foreach_mul_(acc_deltas, rho)
         torch._foreach_addcmul_(acc_deltas, deltas, deltas, value=1.0 - rho)
-        torch._foreach_add_(params, deltas, alpha=-group['lr'])
+        foreach_add_(params, deltas, alpha=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

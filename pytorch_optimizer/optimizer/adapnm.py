@@ -5,7 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class AdaPNM(BaseOptimizer):
@@ -25,10 +25,12 @@ class AdaPNM(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999, 1.0),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -95,13 +97,11 @@ class AdaPNM(BaseOptimizer):
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
         state: dict[str, list[torch.Tensor]],
-        bias_correction2_sq: float,
-        step_size: float,
+        bias_correction2_sq: float | torch.Tensor,
+        step_size: float | torch.Tensor,
     ) -> None:
         beta1, beta2, beta3 = group['betas']
         exp_avgs, neg_exp_avgs = state['exp_avg'], state['neg_exp_avg']
-        if group['step'] % 2 == 0:
-            exp_avgs, neg_exp_avgs = neg_exp_avgs, exp_avgs
         exp_avg_sqs = state['exp_avg_sq']
 
         if self.maximize:
@@ -123,7 +123,7 @@ class AdaPNM(BaseOptimizer):
         updates = torch._foreach_mul(exp_avgs, 1.0 + beta3)
         torch._foreach_add_(updates, neg_exp_avgs, alpha=-beta3)
         torch._foreach_mul_(updates, 1.0 / math.sqrt((1 + beta3) ** 2 + beta3 ** 2))
-        torch._foreach_addcdiv_(params, updates, de_noms, value=-step_size)
+        foreach_addcdiv_(params, updates, de_noms, value=-step_size)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -153,6 +153,8 @@ class AdaPNM(BaseOptimizer):
                 if group['ams_bound']:
                     state_keys.append('max_exp_avg_sq')
                 params, grads, state = self.collect_trainable_params(group, self.state, state_keys=state_keys)
+                if group['step'] % 2 == 0:
+                    state['exp_avg'], state['neg_exp_avg'] = state['neg_exp_avg'], state['exp_avg']
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     self._step_foreach(group, batch['params'], batch['grads'], batch, bias_correction2_sq, step_size)
                 continue

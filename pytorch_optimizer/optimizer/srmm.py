@@ -3,7 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, foreach_lerp_, group_tensors_by_device_and_dtype
 
 
 class SRMM(BaseOptimizer):
@@ -19,10 +19,12 @@ class SRMM(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 0.01,
+        lr: float | torch.Tensor = 0.01,
         beta: float = 0.5,
         memory_length: int | None = 100,
         maximize: bool = False,
@@ -71,16 +73,16 @@ class SRMM(BaseOptimizer):
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
         state: dict[str, list[torch.Tensor]],
-        w_t: float,
+        w_t: float | torch.Tensor,
     ) -> None:
         mov_avg_grads, mov_avg_params = state['mov_avg_grad'], state['mov_avg_param']
 
         if self.maximize:
             torch._foreach_neg_(grads)
 
-        torch._foreach_lerp_(mov_avg_grads, grads, weight=w_t)
-        torch._foreach_lerp_(mov_avg_params, params, weight=w_t)
-        torch._foreach_add_(mov_avg_params, mov_avg_grads, alpha=-group['lr'])
+        foreach_lerp_(mov_avg_grads, grads, weight=w_t)
+        foreach_lerp_(mov_avg_params, params, weight=w_t)
+        foreach_add_(mov_avg_params, mov_avg_grads, alpha=-group['lr'])
         torch._foreach_copy_(params, mov_avg_params)
 
     @torch.no_grad()

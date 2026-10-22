@@ -3,7 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, foreach_lerp_, group_tensors_by_device_and_dtype
 
 
 class Gravity(BaseOptimizer):
@@ -19,10 +19,12 @@ class Gravity(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-2,
+        lr: float | torch.Tensor = 1e-2,
         alpha: float = 0.01,
         beta: float = 0.9,
         maximize: bool = False,
@@ -66,7 +68,7 @@ class Gravity(BaseOptimizer):
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
         vs: list[torch.Tensor],
-        beta_t: float,
+        beta_t: float | torch.Tensor,
     ) -> None:
         if self.maximize:
             torch._foreach_neg_(grads)
@@ -77,8 +79,8 @@ class Gravity(BaseOptimizer):
         torch._foreach_add_(de_noms, 1.0)
         zetas = torch._foreach_div(grads, de_noms)
 
-        torch._foreach_lerp_(vs, zetas, weight=1.0 - beta_t)
-        torch._foreach_add_(params, vs, alpha=-group['lr'])
+        foreach_lerp_(vs, zetas, weight=1.0 - beta_t)
+        foreach_add_(params, vs, alpha=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

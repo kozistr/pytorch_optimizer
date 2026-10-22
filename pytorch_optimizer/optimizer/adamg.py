@@ -5,7 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class AdamG(BaseOptimizer):
@@ -26,10 +26,12 @@ class AdamG(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1.0,
+        lr: float | torch.Tensor = 1.0,
         betas: Betas = (0.95, 0.999, 0.95),
         p: float = 0.2,
         q: float = 0.24,
@@ -98,9 +100,9 @@ class AdamG(BaseOptimizer):
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
         state: dict[str, list[torch.Tensor]],
-        bias_correction1: float,
-        bias_correction2: float,
-        step_size: float,
+        bias_correction1: float | torch.Tensor,
+        bias_correction2: float | torch.Tensor,
+        step_size: float | torch.Tensor,
     ) -> None:
         beta1, beta2, beta3 = group['betas']
         ms, vs, rs = state['m'], state['v'], state['r']
@@ -123,7 +125,7 @@ class AdamG(BaseOptimizer):
         de_noms = torch._foreach_div(vs, bias_correction2)
         torch._foreach_sqrt_(de_noms)
         torch._foreach_add_(de_noms, group['eps'])
-        torch._foreach_addcdiv_(params, ms, de_noms, value=-step_size / bias_correction1)
+        foreach_addcdiv_(params, ms, de_noms, value=-step_size / bias_correction1)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -141,7 +143,12 @@ class AdamG(BaseOptimizer):
             bias_correction1: float = self.debias(beta1, group['step'])
             bias_correction2: float = self.debias(beta2, group['step'])
 
-            step_size: float = min(group['lr'], 1.0 / math.sqrt(group['step']))
+            max_step_size = 1.0 / math.sqrt(group['step'])
+            step_size = (
+                group['lr'].clamp_max(max_step_size)
+                if isinstance(group['lr'], torch.Tensor)
+                else min(group['lr'], max_step_size)
+            )
 
             if self.can_use_foreach(group, group.get('foreach', self.foreach)):
                 params, grads, state = self.collect_trainable_params(group, self.state, state_keys=['m', 'v', 'r'])

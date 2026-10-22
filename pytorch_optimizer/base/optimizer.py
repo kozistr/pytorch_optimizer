@@ -578,13 +578,6 @@ class BaseOptimizer(ABC, Optimizer):
         else:
             factor = 1.0 - weight_decay * lr
 
-        if (
-            isinstance(factor, float)
-            and params[0].device.type == 'cpu'
-            and params[0].dtype in (torch.float16, torch.bfloat16)
-        ):
-            factor = torch.tensor(factor, dtype=torch.float32, device=params[0].device)
-
         torch._foreach_mul_(params, factor)
 
     @staticmethod

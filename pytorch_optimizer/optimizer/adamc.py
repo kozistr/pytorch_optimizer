@@ -5,7 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class AdamC(BaseOptimizer):
@@ -27,10 +27,12 @@ class AdamC(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -48,7 +50,7 @@ class AdamC(BaseOptimizer):
 
         self.maximize = maximize
         self.foreach = foreach
-        self.max_lr: float = lr
+        self.max_lr: float | torch.Tensor = lr
 
         defaults: Defaults = {
             'lr': lr,
@@ -97,9 +99,9 @@ class AdamC(BaseOptimizer):
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
         state: dict[str, list[torch.Tensor]],
-        bias_correction1: float,
-        bias_correction2_sq: float,
-        wd_step_size: float,
+        bias_correction1: float | torch.Tensor,
+        bias_correction2_sq: float | torch.Tensor,
+        wd_step_size: float | torch.Tensor,
     ) -> None:
         beta1, beta2 = group['betas']
         exp_avgs, exp_avg_sqs = state['exp_avg'], state['exp_avg_sq']
@@ -120,7 +122,7 @@ class AdamC(BaseOptimizer):
         )
         torch._foreach_div_(de_noms, bias_correction2_sq)
         updates = torch._foreach_div(exp_avgs, bias_correction1)
-        torch._foreach_addcdiv_(params, updates, de_noms, value=-group['lr'])
+        foreach_addcdiv_(params, updates, de_noms, value=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

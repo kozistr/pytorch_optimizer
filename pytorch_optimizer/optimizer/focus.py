@@ -3,7 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class FOCUS(BaseOptimizer):
@@ -20,10 +20,12 @@ class FOCUS(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-2,
+        lr: float | torch.Tensor = 1e-2,
         betas: Betas = (0.9, 0.999),
         gamma: float = 0.1,
         weight_decay: float = 0.0,
@@ -72,7 +74,7 @@ class FOCUS(BaseOptimizer):
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
         state: dict[str, list[torch.Tensor]],
-        bias_correction2: float,
+        bias_correction2: float | torch.Tensor,
     ) -> None:
         beta1, beta2 = group['betas']
         exp_avgs, pbars = state['exp_avg'], state['pbar']
@@ -85,13 +87,13 @@ class FOCUS(BaseOptimizer):
         pbar_hats = torch._foreach_div(pbars, bias_correction2)
 
         if group['weight_decay'] > 0.0:
-            torch._foreach_add_(params, pbar_hats, alpha=-group['lr'] * group['weight_decay'])
+            foreach_add_(params, pbar_hats, alpha=-group['lr'] * group['weight_decay'])
 
         updates = torch._foreach_sub(params, pbar_hats)
         torch._foreach_sign_(updates)
         torch._foreach_mul_(updates, group['gamma'])
         torch._foreach_add_(updates, torch._foreach_sign(exp_avgs))
-        torch._foreach_add_(params, updates, alpha=-group['lr'])
+        foreach_add_(params, updates, alpha=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

@@ -3,7 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_scalar_div_, group_tensors_by_device_and_dtype
 
 
 class AdaSmooth(BaseOptimizer):
@@ -22,10 +22,12 @@ class AdaSmooth(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.5, 0.99),
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
@@ -107,10 +109,10 @@ class AdaSmooth(BaseOptimizer):
         torch._foreach_pow_(weights, 2)
         torch._foreach_lerp_(exp_avg_sqs, torch._foreach_mul(grads, grads), weights)
 
-        updates = [torch.full_like(value, fill_value=group['lr']) for value in exp_avg_sqs]
         de_noms = torch._foreach_add(exp_avg_sqs, group['eps'])
         torch._foreach_sqrt_(de_noms)
-        torch._foreach_div_(updates, de_noms)
+        updates = de_noms
+        foreach_scalar_div_(updates, group['lr'])
         torch._foreach_mul_(updates, grads)
 
         torch._foreach_copy_(prev_params, params)

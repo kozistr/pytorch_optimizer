@@ -2,11 +2,13 @@ import pytest
 import torch
 
 from pytorch_optimizer.optimizer.utils.foreach import (
+    foreach_lerp_,
     foreach_rsqrt,
     foreach_rsqrt_,
     group_tensors_by_device_and_dtype,
     has_foreach_support,
 )
+from tests.fixtures import make_parameter
 
 
 class TestHasForeachSupport:
@@ -69,6 +71,17 @@ class TestGroupTensorsByDeviceAndDtype:
 
 
 class TestForeachOperations:
+    def test_tensor_weight_lerp(self):
+        param = make_parameter((2,), dtype=torch.bfloat16, requires_grad=False)
+        param.copy_(torch.tensor([1.0, 3.0]))
+        end = torch.tensor([4.0, -2.0], dtype=param.dtype)
+        weight = torch.tensor(0.3)
+        expected = torch.lerp(param.float(), end.float(), weight).to(param.dtype)
+
+        foreach_lerp_([param], [end], weight)
+
+        torch.testing.assert_close(param, expected, rtol=0.0, atol=0.0)
+
     def test_outplace_rsqrt_by_version(self):
         tensors = [torch.tensor([4.0])]
         tensors = foreach_rsqrt(tensors)
