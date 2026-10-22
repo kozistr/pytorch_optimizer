@@ -94,8 +94,8 @@ from pytorch_optimizer import create_optimizer
 optimizer = create_optimizer(model, 'laprop', lr=1e-3, compile=True)
 ```
 
-Optimizers with a dedicated compiled foreach path include AccSGD, AdaBound, AdaDelta, AdaMax, AdaMod,
-AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC, AdamG, AdamWSN, Aida, Amos, Ano, ASGD,
+Optimizers with a dedicated compiled foreach path include AccSGD, AdaBound, AdaDelta, Adai, AdaMax, AdaMod,
+AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC, AdamG, AdamS, AdamWSN, Aida, Amos, Ano, ASGD,
 AvaGrad, BCOS, DiffGrad, DualAdam, EXAdam, FAdam, FOCUS, Fromage, Gravity, GrokFastAdamW, Kate, LaProp,
 Lion, MSVAG, Muon, Nero, NovoGrad, PAdam, PID, PNM, RAdam, ROSE, ScheduleFreeAdamW, ScheduleFreeRAdam,
 ScheduleFreeSGD, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, StableAdamW, TAM, Tiger, VSGD, and
