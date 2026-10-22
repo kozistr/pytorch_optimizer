@@ -3,6 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, HutchinsonG, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class AdaHessian(BaseOptimizer):
@@ -24,13 +25,16 @@ class AdaHessian(BaseOptimizer):
         hessian_distribution: Type of distribution used to initialize the Hutchinson trace estimator.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-1,
+        lr: float | torch.Tensor = 1e-1,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -41,6 +45,7 @@ class AdaHessian(BaseOptimizer):
         hessian_distribution: HutchinsonG = 'rademacher',
         eps: float = 1e-16,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -53,9 +58,11 @@ class AdaHessian(BaseOptimizer):
         self.num_samples = num_samples
         self.distribution = hessian_distribution
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
+            'foreach': foreach,
             'betas': betas,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
@@ -91,6 +98,32 @@ class AdaHessian(BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_hessian_diag_sq'] = torch.zeros_like(p)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        bias_correction2: float | torch.Tensor,
+        step_size: float | torch.Tensor,
+    ) -> None:
+        beta1, beta2 = group['betas']
+        if self.maximize:
+            torch._foreach_neg_(grads)
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+        torch._foreach_lerp_(state['exp_avg'], grads, weight=1.0 - beta1)
+        if 'hessian' in state:
+            torch._foreach_mul_(state['exp_hessian_diag_sq'], beta2)
+            torch._foreach_addcmul_(
+                state['exp_hessian_diag_sq'], state['hessian'], state['hessian'], value=1.0 - beta2
+            )
+        de_noms = torch._foreach_div(state['exp_hessian_diag_sq'], bias_correction2)
+        torch._foreach_pow_(de_noms, group['hessian_power'] / 2.0)
+        torch._foreach_add_(de_noms, group['eps'])
+        foreach_addcdiv_(params, state['exp_avg'], de_noms, value=-step_size)
+
     @torch.no_grad()
     def step(self, closure: Closure = None, hessian: list[torch.Tensor] | None = None) -> Loss:
         loss: Loss = None
@@ -124,6 +157,16 @@ class AdaHessian(BaseOptimizer):
             bias_correction2: float = self.debias(beta2, group['step'])
 
             step_size: float = self.apply_adam_debias(group.get('adam_debias', False), group['lr'], bias_correction1)
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                keys = ['exp_avg', 'exp_hessian_diag_sq'] + (['hessian'] if update_hessian else [])
+                params, grads, state = self.collect_trainable_params(group, self.state, state_keys=keys)
+                if not update_hessian or len(state['hessian']) == len(params):
+                    for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                        self._step_foreach(
+                            group, batch['params'], batch['grads'], batch, bias_correction2, step_size
+                        )
+                    continue
 
             for p in group['params']:
                 if p.grad is None:
