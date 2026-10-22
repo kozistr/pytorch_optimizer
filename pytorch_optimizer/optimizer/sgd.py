@@ -20,6 +20,7 @@ class AccSGD(BaseOptimizer):
         constant: Any small constant under 1.
         weight_decay: Weight decay coefficient.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
 
@@ -32,6 +33,7 @@ class AccSGD(BaseOptimizer):
         constant: float = 0.7,
         weight_decay: float = 0.0,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -41,6 +43,7 @@ class AccSGD(BaseOptimizer):
         self.validate_boundary(constant, boundary=1.0, bound_type='upper')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
@@ -48,6 +51,7 @@ class AccSGD(BaseOptimizer):
             'xi': xi,
             'constant': constant,
             'weight_decay': weight_decay,
+            'foreach': foreach,
         }
 
         super().__init__(params, defaults)
@@ -72,6 +76,33 @@ class AccSGD(BaseOptimizer):
             if len(state) == 0:
                 state['momentum_buffer'] = p.clone()
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        buffers: list[torch.Tensor],
+        large_lr: float,
+        beta: float,
+        zeta: float,
+    ) -> None:
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(params, grads, group['lr'], group['weight_decay'], False, False)
+
+        factors = [(1.0 / beta) - 1.0, beta]
+        if params[0].device.type == 'cpu' and params[0].dtype in (torch.float16, torch.bfloat16):
+            factors = [torch.tensor(value, dtype=torch.float32, device=params[0].device) for value in factors]
+
+        torch._foreach_mul_(buffers, factors[0])
+        torch._foreach_add_(buffers, grads, alpha=-large_lr)
+        torch._foreach_add_(buffers, params)
+        torch._foreach_mul_(buffers, factors[1])
+
+        torch._foreach_add_(params, grads, alpha=-group['lr'])
+        torch._foreach_lerp_(params, buffers, weight=1.0 - zeta)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -87,6 +118,16 @@ class AccSGD(BaseOptimizer):
             alpha: float = 1.0 - (group['xi'] * (group['constant'] ** 2) / group['kappa'])
             beta: float = 1.0 - alpha
             zeta: float = group['constant'] / (group['constant'] + beta)
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state = self.collect_trainable_params(
+                    group, self.state, state_keys=['momentum_buffer']
+                )
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        group, batch['params'], batch['grads'], batch['momentum_buffer'], large_lr, beta, zeta
+                    )
+                continue
 
             for p in group['params']:
                 if p.grad is None:

@@ -4,6 +4,15 @@ from torch.nn.functional import normalize
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+
+
+def _get_alignment_foreach(moments: list[torch.Tensor], grads: list[torch.Tensor]) -> tuple[torch.Tensor, ...]:
+    """Compute gradient-momentum alignment along dimension zero."""
+    return torch._foreach_mul(
+        [normalize(moment, p=2.0, dim=0) for moment in moments],
+        [normalize(grad, p=2.0, dim=0) for grad in grads],
+    )
 
 
 class TAM(BaseOptimizer):
@@ -19,6 +28,7 @@ class TAM(BaseOptimizer):
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
 
@@ -33,6 +43,7 @@ class TAM(BaseOptimizer):
         fixed_decay: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -42,12 +53,14 @@ class TAM(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
             'momentum': momentum,
             'decay_rate': decay_rate,
             'weight_decay': weight_decay,
+            'foreach': foreach,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'eps': eps,
@@ -77,6 +90,36 @@ class TAM(BaseOptimizer):
                 state['momentum_buffer'] = grad.clone()
                 self.maximize_gradient(state['momentum_buffer'], maximize=self.maximize)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+    ) -> None:
+        ss, buffers = state['s'], state['momentum_buffer']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        correlations = _get_alignment_foreach(buffers, grads)
+        torch._foreach_lerp_(ss, correlations, weight=1.0 - group['decay_rate'])
+        ds = torch._foreach_add(ss, 1.0)
+        torch._foreach_div_(ds, 2.0)
+        torch._foreach_add_(ds, group['eps'])
+        torch._foreach_mul_(ds, grads)
+
+        momentum = group['momentum']
+        if params[0].device.type == 'cpu' and params[0].dtype in (torch.float16, torch.bfloat16):
+            momentum = torch.tensor(momentum, dtype=torch.float32, device=params[0].device)
+        torch._foreach_mul_(buffers, momentum)
+        torch._foreach_add_(buffers, ds)
+
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+        torch._foreach_add_(params, buffers, alpha=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -90,6 +133,14 @@ class TAM(BaseOptimizer):
 
             momentum: float = group['momentum']
             decay_rate: float = group['decay_rate']
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state = self.collect_trainable_params(
+                    group, self.state, state_keys=['s', 'momentum_buffer']
+                )
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch)
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -137,6 +188,7 @@ class AdaTAM(BaseOptimizer):
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
 
@@ -151,6 +203,7 @@ class AdaTAM(BaseOptimizer):
         fixed_decay: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -160,12 +213,14 @@ class AdaTAM(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'decay_rate': decay_rate,
             'weight_decay': weight_decay,
+            'foreach': foreach,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'eps': eps,
@@ -195,6 +250,42 @@ class AdaTAM(BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(grad)
                 state['exp_avg_sq'] = torch.zeros_like(grad)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+    ) -> None:
+        beta1, beta2 = group['betas']
+        ss, exp_avgs, exp_avg_sqs = state['s'], state['exp_avg'], state['exp_avg_sq']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+
+        correlations = _get_alignment_foreach(exp_avgs, grads)
+        torch._foreach_lerp_(ss, correlations, weight=1.0 - group['decay_rate'])
+        ds = torch._foreach_add(ss, 1.0)
+        torch._foreach_div_(ds, 2.0)
+        torch._foreach_add_(ds, group['eps'])
+        torch._foreach_mul_(ds, grads)
+
+        if params[0].device.type == 'cpu' and params[0].dtype in (torch.float16, torch.bfloat16):
+            beta1 = torch.tensor(beta1, dtype=torch.float32, device=params[0].device)
+            beta2 = torch.tensor(beta2, dtype=torch.float32, device=params[0].device)
+        torch._foreach_mul_(exp_avgs, beta1)
+        torch._foreach_add_(exp_avgs, ds)
+        torch._foreach_mul_(exp_avg_sqs, beta2)
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - group['betas'][1])
+
+        de_noms = torch._foreach_sqrt(exp_avg_sqs)
+        torch._foreach_add_(de_noms, group['eps'])
+        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -208,6 +299,14 @@ class AdaTAM(BaseOptimizer):
 
             beta1, beta2 = group['betas']
             decay_rate: float = group['decay_rate']
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state = self.collect_trainable_params(
+                    group, self.state, state_keys=['s', 'exp_avg', 'exp_avg_sq']
+                )
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch)
+                continue
 
             for p in group['params']:
                 if p.grad is None:
