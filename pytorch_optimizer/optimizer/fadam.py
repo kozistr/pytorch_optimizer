@@ -3,6 +3,11 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import (
+    foreach_add_,
+    foreach_addcmul_,
+    group_tensors_by_device_and_dtype,
+)
 
 
 class FAdam(BaseOptimizer):
@@ -23,13 +28,16 @@ class FAdam(BaseOptimizer):
         fim_dtype: Data type of the Fisher information diagonal.
         maximize: Maximize the objective instead of minimizing it.
         eps_2: Gradient RMS multiplier for the adaptive epsilon.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.1,
         clip: float = 1.0,
@@ -39,6 +47,7 @@ class FAdam(BaseOptimizer):
         fim_dtype: torch.dtype = torch.float32,
         maximize: bool = False,
         eps_2: float = 0.01,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -52,9 +61,11 @@ class FAdam(BaseOptimizer):
         self.momentum_dtype = momentum_dtype
         self.fim_dtype = fim_dtype
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
+            'foreach': foreach,
             'betas': betas,
             'weight_decay': weight_decay,
             'clip': clip,
@@ -95,6 +106,46 @@ class FAdam(BaseOptimizer):
                 state['momentum'] = torch.zeros_like(p, dtype=self.momentum_dtype)
                 state['fim'] = torch.zeros_like(p, dtype=self.fim_dtype)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        curr_beta2: float | torch.Tensor,
+    ) -> None:
+        momenta, fims = state['momentum'], state['fim']
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        torch._foreach_mul_(fims, curr_beta2)
+        foreach_addcmul_(fims, grads, grads, value=1.0 - curr_beta2)
+        eps_powers = []
+        for grad, fim in zip(grads, fims):
+            eps_dtype = torch.promote_types(fim.dtype, torch.float32)
+            rms_grad = grad.square().mean().sqrt_()
+            scaled_eps = group['eps_2'] * rms_grad
+            eps_powers.append(torch.where(
+                (rms_grad > 0) & (scaled_eps < group['eps']),
+                scaled_eps.pow(2.0 * group['p']).to(fim.dtype).to(eps_dtype),
+                group['eps'] ** (2.0 * group['p']),
+            ))
+        bases = [base.to(power.dtype) for base, power in zip(torch._foreach_pow(fims, group['p']), eps_powers)]
+        torch._foreach_add_(bases, eps_powers)
+        bases = [base.to(fim.dtype) for base, fim in zip(bases, fims)]
+
+        updates = torch._foreach_div(grads, bases)
+        divisors = [(update.square().mean().sqrt_() / group['clip']).clamp_min_(1) for update in updates]
+        torch._foreach_div_(updates, divisors)
+        torch._foreach_lerp_(momenta, updates, weight=1.0 - group['betas'][0])
+
+        updates = torch._foreach_div(params, bases)
+        divisors = [(update.square().mean().sqrt_() / group['clip']).clamp_min_(1) for update in updates]
+        torch._foreach_div_(updates, divisors)
+        torch._foreach_mul_(updates, group['weight_decay'])
+        torch._foreach_add_(updates, momenta)
+        foreach_add_(params, updates, alpha=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -109,6 +160,12 @@ class FAdam(BaseOptimizer):
             beta1, beta2 = group['betas']
 
             curr_beta2: float = self.debias_beta(beta2, group['step'])
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                params, grads, state = self.collect_trainable_params(group, self.state, state_keys=['momentum', 'fim'])
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch, curr_beta2)
+                continue
 
             for p in group['params']:
                 if p.grad is None:
