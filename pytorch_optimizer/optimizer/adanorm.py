@@ -5,6 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class AdaNorm(BaseOptimizer):
@@ -21,13 +22,16 @@ class AdaNorm(BaseOptimizer):
         ams_bound: Use the running maximum of the second moment to bound adaptive updates.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.99),
         r: float = 0.95,
         weight_decay: float = 0.0,
@@ -36,6 +40,7 @@ class AdaNorm(BaseOptimizer):
         ams_bound: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -44,12 +49,14 @@ class AdaNorm(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self.foreach = foreach
 
         defaults: Defaults = {
             'lr': lr,
             'betas': betas,
             'r': r,
             'weight_decay': weight_decay,
+            'foreach': foreach,
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'ams_bound': ams_bound,
@@ -87,6 +94,47 @@ class AdaNorm(BaseOptimizer):
                 if group['ams_bound']:
                     state['max_exp_avg_var'] = torch.zeros_like(p)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        bias_correction2_sq: float | torch.Tensor,
+        step_size: float | torch.Tensor,
+    ) -> None:
+        beta1, beta2 = group['betas']
+        exp_avgs, exp_avg_vars = state['exp_avg'], state['exp_avg_var']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+
+        norms = torch.stack(torch._foreach_norm(grads))
+        averages = torch.cat(state['exp_grad_norm'])
+        r = group['r'] if group['r'] is not None else 0.95
+        averages.mul_(r).add_(norms, alpha=1.0 - r)
+        torch._foreach_copy_(state['exp_grad_norm'], averages.split(1))
+
+        rescale = (norms > 0) & (averages > norms)
+        multipliers = torch.where(rescale, averages, 1.0).unbind()
+        divisors = torch.where(rescale, norms, 1.0).unbind()
+        scaled_grads = torch._foreach_mul(grads, multipliers)
+        torch._foreach_div_(scaled_grads, divisors)
+
+        torch._foreach_lerp_(exp_avgs, scaled_grads, weight=1.0 - beta1)
+        torch._foreach_mul_(exp_avg_vars, beta2)
+        torch._foreach_addcmul_(exp_avg_vars, grads, grads, value=1.0 - beta2)
+
+        de_noms = self.apply_ams_bound_foreach(
+            group['ams_bound'], exp_avg_vars, state.get('max_exp_avg_var', []), group['eps']
+        )
+        torch._foreach_div_(de_noms, bias_correction2_sq)
+        foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -108,6 +156,15 @@ class AdaNorm(BaseOptimizer):
                 step_size=group['lr'],
                 bias_correction1=bias_correction1,
             )
+
+            if self.can_use_foreach(group, group.get('foreach', self.foreach)):
+                state_keys = ['exp_avg', 'exp_avg_var', 'exp_grad_norm']
+                if group['ams_bound']:
+                    state_keys.append('max_exp_avg_var')
+                params, grads, state = self.collect_trainable_params(group, self.state, state_keys=state_keys)
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch, bias_correction2_sq, step_size)
+                continue
 
             for p in group['params']:
                 if p.grad is None:
