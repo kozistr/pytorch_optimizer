@@ -5,7 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 Mode = Literal['g', 'm', 'c']
 
@@ -29,10 +29,12 @@ class BCOS(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         beta: float = 0.9,
         beta2: float | None = None,
         mode: Mode = 'c',
@@ -148,7 +150,7 @@ class BCOS(BaseOptimizer):
 
         de_noms = torch._foreach_sqrt(vs)
         torch._foreach_add_(de_noms, group['eps'])
-        torch._foreach_addcdiv_(params, directions, de_noms, value=-group['lr'])
+        foreach_addcdiv_(params, directions, de_noms, value=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

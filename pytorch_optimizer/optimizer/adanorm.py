@@ -5,7 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class AdaNorm(BaseOptimizer):
@@ -26,10 +26,12 @@ class AdaNorm(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.99),
         r: float = 0.95,
         weight_decay: float = 0.0,
@@ -98,8 +100,8 @@ class AdaNorm(BaseOptimizer):
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
         state: dict[str, list[torch.Tensor]],
-        bias_correction2_sq: float,
-        step_size: float,
+        bias_correction2_sq: float | torch.Tensor,
+        step_size: float | torch.Tensor,
     ) -> None:
         beta1, beta2 = group['betas']
         exp_avgs, exp_avg_vars = state['exp_avg'], state['exp_avg_var']
@@ -131,7 +133,7 @@ class AdaNorm(BaseOptimizer):
             group['ams_bound'], exp_avg_vars, state.get('max_exp_avg_var', []), group['eps']
         )
         torch._foreach_div_(de_noms, bias_correction2_sq)
-        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
+        foreach_addcdiv_(params, exp_avgs, de_noms, value=-step_size)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

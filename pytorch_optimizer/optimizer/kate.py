@@ -3,7 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class Kate(BaseOptimizer):
@@ -22,10 +22,12 @@ class Kate(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         delta: float = 0.0,
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -104,7 +106,7 @@ class Kate(BaseOptimizer):
 
         updates = torch._foreach_mul(ms, grads)
         torch._foreach_div_(updates, bs)
-        torch._foreach_add_(params, updates, alpha=-group['lr'])
+        foreach_add_(params, updates, alpha=-group['lr'])
         torch._foreach_sqrt_(bs)
 
     @torch.no_grad()

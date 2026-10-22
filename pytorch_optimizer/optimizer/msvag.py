@@ -3,7 +3,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcmul_, group_tensors_by_device_and_dtype
 
 
 class MSVAG(BaseOptimizer):
@@ -18,10 +18,12 @@ class MSVAG(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-2,
+        lr: float | torch.Tensor = 1e-2,
         beta: float = 0.9,
         maximize: bool = False,
         foreach: bool | None = None,
@@ -71,8 +73,8 @@ class MSVAG(BaseOptimizer):
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
         state: dict[str, list[torch.Tensor]],
-        beta_power: float,
-        rho: float,
+        beta_power: float | torch.Tensor,
+        rho: float | torch.Tensor,
     ) -> None:
         beta = group['beta']
         exp_avgs, exp_avg_sqs = state['exp_avg'], state['exp_avg_sq']
@@ -98,7 +100,7 @@ class MSVAG(BaseOptimizer):
             factor.nan_to_num_(nan=0.0)
         torch._foreach_clamp_min_(factors, 0.0)
         torch._foreach_clamp_max_(factors, 1.0)
-        torch._foreach_addcmul_(params, ms, factors, value=-group['lr'])
+        foreach_addcmul_(params, ms, factors, value=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

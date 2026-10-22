@@ -4,7 +4,7 @@ from torch.nn.functional import normalize
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 def _get_alignment_foreach(moments: list[torch.Tensor], grads: list[torch.Tensor]) -> tuple[torch.Tensor, ...]:
@@ -32,10 +32,12 @@ class TAM(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         momentum: float = 0.9,
         decay_rate: float = 0.9,
         weight_decay: float = 0.0,
@@ -110,15 +112,13 @@ class TAM(BaseOptimizer):
         torch._foreach_mul_(ds, grads)
 
         momentum = group['momentum']
-        if params[0].device.type == 'cpu' and params[0].dtype in (torch.float16, torch.bfloat16):
-            momentum = torch.tensor(momentum, dtype=torch.float32, device=params[0].device)
         torch._foreach_mul_(buffers, momentum)
         torch._foreach_add_(buffers, ds)
 
         self.apply_weight_decay_foreach(
             params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
         )
-        torch._foreach_add_(params, buffers, alpha=-group['lr'])
+        foreach_add_(params, buffers, alpha=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -192,10 +192,12 @@ class AdaTAM(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         decay_rate: float = 0.9,
         weight_decay: float = 0.0,
@@ -274,17 +276,14 @@ class AdaTAM(BaseOptimizer):
         torch._foreach_add_(ds, group['eps'])
         torch._foreach_mul_(ds, grads)
 
-        if params[0].device.type == 'cpu' and params[0].dtype in (torch.float16, torch.bfloat16):
-            beta1 = torch.tensor(beta1, dtype=torch.float32, device=params[0].device)
-            beta2 = torch.tensor(beta2, dtype=torch.float32, device=params[0].device)
         torch._foreach_mul_(exp_avgs, beta1)
         torch._foreach_add_(exp_avgs, ds)
         torch._foreach_mul_(exp_avg_sqs, beta2)
-        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - group['betas'][1])
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
 
         de_noms = torch._foreach_sqrt(exp_avg_sqs)
         torch._foreach_add_(de_noms, group['eps'])
-        torch._foreach_addcdiv_(params, exp_avgs, de_noms, value=-group['lr'])
+        foreach_addcdiv_(params, exp_avgs, de_noms, value=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

@@ -3,7 +3,12 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.foreach import (
+    foreach_addcdiv_,
+    foreach_addcmul_,
+    foreach_lerp_,
+    group_tensors_by_device_and_dtype,
+)
 
 
 class DualAdam(BaseOptimizer):
@@ -23,10 +28,12 @@ class DualAdam(BaseOptimizer):
 
     """
 
+    _supports_compiled_foreach = True
+
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         switch_rate: float = 1e-2,
         weight_decay: float = 0.0,
@@ -87,9 +94,9 @@ class DualAdam(BaseOptimizer):
         params: list[torch.Tensor],
         grads: list[torch.Tensor],
         state: dict[str, list[torch.Tensor]],
-        bias_correction1: float,
-        bias_correction2: float,
-        inverse_adam_rate: float,
+        bias_correction1: float | torch.Tensor,
+        bias_correction2: float | torch.Tensor,
+        inverse_adam_rate: float | torch.Tensor,
         use_inverse_adam: bool,
     ) -> None:
         beta1, beta2 = group['betas']
@@ -113,10 +120,10 @@ class DualAdam(BaseOptimizer):
 
         if use_inverse_adam:
             updates = torch._foreach_reciprocal(de_noms)
-            torch._foreach_lerp_(updates, de_noms, weight=inverse_adam_rate)
-            torch._foreach_addcmul_(params, exp_avg_hats, updates, value=-group['lr'])
+            foreach_lerp_(updates, de_noms, weight=inverse_adam_rate)
+            foreach_addcmul_(params, exp_avg_hats, updates, value=-group['lr'])
         else:
-            torch._foreach_addcdiv_(params, exp_avg_hats, de_noms, value=-group['lr'])
+            foreach_addcdiv_(params, exp_avg_hats, de_noms, value=-group['lr'])
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:

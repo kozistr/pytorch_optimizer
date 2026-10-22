@@ -229,3 +229,29 @@ def foreach_rsqrt_(tensors: list[torch.Tensor] | tuple[torch.Tensor, ...]) -> No
     else:
         torch._foreach_sqrt_(tensors)
         torch._foreach_reciprocal_(tensors)
+
+
+def foreach_addcmul_(
+    tensors: list[torch.Tensor],
+    lefts: Sequence[torch.Tensor],
+    rights: Sequence[torch.Tensor],
+    value: float | torch.Tensor,
+) -> None:
+    """Apply a product update with a scalar or a compilable tensor multiplier.
+
+    Args:
+        tensors: Parameters to update in place.
+        lefts: Left product operands.
+        rights: Right product operands.
+        value: Multiplier, applied with promoted arithmetic for tensor values.
+
+    """
+    if not isinstance(value, torch.Tensor):
+        torch._foreach_addcmul_(tensors, lefts, rights, value=value)
+        return
+
+    dtype = torch.promote_types(tensors[0].dtype, value.dtype)
+    updates = torch._foreach_mul(
+        [left.to(dtype=dtype) for left in lefts], [right.to(dtype=dtype) for right in rights]
+    )
+    foreach_add_(tensors, updates, alpha=value)
