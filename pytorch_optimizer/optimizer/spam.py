@@ -1,4 +1,5 @@
 import math
+from collections.abc import Callable
 
 import torch
 from torch.nn import Parameter, ParameterList
@@ -8,6 +9,12 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, LRScheduler
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import (
+    compile_foreach_step,
+    foreach_add_,
+    foreach_lerp_,
+    group_tensors_by_device_and_dtype,
+)
 
 
 class CosineDecay:
@@ -316,13 +323,16 @@ class StableSPAM(BaseOptimizer):
         update_proj_gap: Steps between momentum resets.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them when supported. Defaults to `False`.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         gamma1: float = 0.7,
         gamma2: float = 0.9,
@@ -333,6 +343,7 @@ class StableSPAM(BaseOptimizer):
         update_proj_gap: int = 1000,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -350,13 +361,24 @@ class StableSPAM(BaseOptimizer):
         self.maximize = maximize
 
         self.total_step: int = 0
+        self._compiled_step_foreach: Callable | None = None
 
-        defaults: Defaults = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps, **kwargs}
+        defaults: Defaults = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'eps': eps,
+            'foreach': foreach,
+            **kwargs,
+        }
 
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
         return 'StableSPAM'
+
+    def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
 
     def state_dict(self) -> dict:
         state = super().state_dict()
@@ -395,6 +417,53 @@ class StableSPAM(BaseOptimizer):
                 state['v_norm_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
                 state['m_max_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        beta1: float,
+        bias_correction1: float,
+        bias_correction2_sq: float,
+        theta_t: float,
+        norm_weight: float,
+        norm_correction1: float,
+        norm_correction2: float,
+    ) -> None:
+        if self.maximize:
+            torch._foreach_neg_(grads)
+        self.apply_weight_decay_foreach(params, grads, group['lr'], group['weight_decay'], True, False)
+
+        updates = []
+        for index, grad in enumerate(grads):
+            m_max = state['m_max_t'][index]
+            max_grad = grad.abs().max()
+            m_max.lerp_(max_grad, weight=1.0 - self.theta)
+            m_max_hat = m_max / theta_t
+            clipped = torch.where(grad.abs() > m_max_hat, grad / max_grad * m_max_hat, grad)
+            grad_norm = torch.linalg.norm(clipped)
+            active = grad_norm > 0
+
+            m_norm, v_norm = state['m_norm_t'][index], state['v_norm_t'][index]
+            new_m_norm = m_norm.clone()
+            foreach_lerp_([new_m_norm], [grad_norm.reshape_as(m_norm)], weight=norm_weight)
+            m_norm.copy_(torch.where(active, new_m_norm, m_norm))
+            v_norm.copy_(torch.where(active, v_norm.lerp(grad_norm.square(), weight=1.0 - self.gamma2), v_norm))
+            c_norm = (m_norm / norm_correction1) / ((v_norm / norm_correction2).sqrt().add_(group['eps']))
+            grad.copy_(torch.where(active, clipped / torch.where(active, grad_norm, 1.0) * c_norm, clipped))
+
+            exp_avg, exp_avg_sq = state['exp_avg'][index], state['exp_avg_sq'][index]
+            new_exp_avg = exp_avg.clone()
+            foreach_lerp_([new_exp_avg], [grad], weight=1.0 - beta1)
+            exp_avg.copy_(torch.where(active, new_exp_avg, exp_avg))
+            new_exp_avg_sq = exp_avg_sq.mul(group['betas'][1]).addcmul_(grad, grad, value=1.0 - group['betas'][1])
+            exp_avg_sq.copy_(torch.where(active, new_exp_avg_sq, exp_avg_sq))
+            de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
+            updates.append(torch.where(active, exp_avg / de_nom, 0.0))
+
+        foreach_add_(params, updates, alpha=-group['lr'] / bias_correction1)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -426,7 +495,30 @@ class StableSPAM(BaseOptimizer):
 
             step_size: float = group['lr'] / bias_correction1
 
-            theta_t: float = 1.0 - self.theta ** self.total_step
+            theta_t: float = 1.0 - self.theta**self.total_step
+
+            if self.can_use_foreach(group, group.get('foreach')):
+                params, grads, state = self.collect_trainable_params(
+                    group, self.state, ['exp_avg', 'exp_avg_sq', 'm_norm_t', 'v_norm_t', 'm_max_t']
+                )
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    update = self._step_foreach
+                    if self._compiled_step_foreach is not None and batch['params'][0].dtype != torch.float16:
+                        update = self._compiled_step_foreach
+                    update(
+                        group,
+                        batch['params'],
+                        batch['grads'],
+                        batch,
+                        beta1,
+                        bias_correction1,
+                        bias_correction2_sq,
+                        theta_t,
+                        1.0 - self.gamma1 * scale,
+                        1.0 - (self.gamma1 * scale) ** self.total_step,
+                        1.0 - self.gamma2**self.total_step,
+                    )
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -468,7 +560,7 @@ class StableSPAM(BaseOptimizer):
                 v_norm_t.lerp_(grad_norm.pow(2), weight=1.0 - self.gamma2)
 
                 m_norm_hat = m_norm_t / (1.0 - (self.gamma1 * scale) ** self.total_step)
-                v_norm_hat = v_norm_t / (1.0 - self.gamma2 ** self.total_step)
+                v_norm_hat = v_norm_t / (1.0 - self.gamma2**self.total_step)
 
                 c_norm_t = m_norm_hat.div_(v_norm_hat.sqrt_().add_(group['eps']))
 

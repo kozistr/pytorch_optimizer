@@ -5,12 +5,18 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+from collections.abc import Callable
 
 import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import (
+    compile_foreach_step,
+    foreach_add_,
+    group_tensors_by_device_and_dtype,
+)
 from pytorch_optimizer.optimizer.utils.gradient import get_global_gradient_norm
 from pytorch_optimizer.optimizer.utils.precision import to_real
 
@@ -281,13 +287,16 @@ class DAdaptAdam(BaseOptimizer):
         bias_correction: Apply bias correction to the moment estimates.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1.0,
+        lr: float | torch.Tensor = 1.0,
         betas: Betas = (0.9, 0.999),
         d0: float = 1e-6,
         growth_rate: float = float('inf'),
@@ -297,6 +306,7 @@ class DAdaptAdam(BaseOptimizer):
         bias_correction: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -305,6 +315,7 @@ class DAdaptAdam(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self._compiled_update_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
@@ -316,6 +327,7 @@ class DAdaptAdam(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'bias_correction': bias_correction,
             'step': 0,
+            'foreach': foreach,
             'eps': eps,
         }
 
@@ -345,6 +357,52 @@ class DAdaptAdam(BaseOptimizer):
                 state['s'] = torch.zeros_like(p)
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
+
+    def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        super()._compile_foreach(compile_kwargs)
+        self._compiled_update_foreach = compile_foreach_step(self._apply_update_foreach, compile_kwargs)
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        d_lr: float | torch.Tensor,
+        statistics: tuple[torch.Tensor, torch.Tensor],
+    ) -> None:
+        numerator_acc, sk_l1 = statistics
+        beta1, beta2 = group['betas']
+        if self.maximize:
+            torch._foreach_neg_(grads)
+        de_noms = torch._foreach_sqrt(state['exp_avg_sq'])
+        torch._foreach_add_(de_noms, group['eps'])
+        for grad, s, de_nom in zip(grads, state['s'], de_noms):
+            value = torch.dot(grad.flatten(), s.div(de_nom).flatten())
+            foreach_add_([numerator_acc], [value], alpha=d_lr)
+
+        torch._foreach_mul_(state['exp_avg'], beta1)
+        foreach_add_(state['exp_avg'], grads, alpha=d_lr * (1.0 - beta1))
+        torch._foreach_mul_(state['exp_avg_sq'], beta2)
+        torch._foreach_addcmul_(state['exp_avg_sq'], grads, grads, value=1.0 - beta2)
+        torch._foreach_mul_(state['s'], math.sqrt(beta2))
+        foreach_add_(state['s'], grads, alpha=d_lr * (1.0 - math.sqrt(beta2)))
+        for s in state['s']:
+            sk_l1.add_(s.abs().sum())
+
+    def _apply_update_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        d_lr: float | torch.Tensor,
+    ) -> None:
+        de_noms = torch._foreach_sqrt(state['exp_avg_sq'])
+        torch._foreach_add_(de_noms, group['eps'])
+        if group['weight_decouple']:
+            self.apply_weight_decay_foreach(params, grads, d_lr, group['weight_decay'], True, group['fixed_decay'])
+        torch._foreach_addcdiv_(params, state['exp_avg'], de_noms, value=-1.0)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -383,6 +441,19 @@ class DAdaptAdam(BaseOptimizer):
 
             group['step'] += 1
 
+            if self.can_use_foreach(group, group.get('foreach')):
+                params, grads, state = self.collect_trainable_params(group, self.state, ['exp_avg', 'exp_avg_sq', 's'])
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        {**group, 'betas': (beta1, beta2)},
+                        batch['params'],
+                        batch['grads'],
+                        batch,
+                        d_lr,
+                        (numerator_acc, sk_l1),
+                    )
+                continue
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -417,6 +488,13 @@ class DAdaptAdam(BaseOptimizer):
         for group in self.param_groups:
             group['numerator_weighted'] = numerator_weighted
             group['d'] = d
+
+            if self.can_use_foreach(group, group.get('foreach')):
+                params, grads, state = self.collect_trainable_params(group, self.state, ['exp_avg', 'exp_avg_sq'])
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    update = self._compiled_update_foreach or self._apply_update_foreach
+                    update(group, batch['params'], batch['grads'], batch, d_lr)
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -455,13 +533,16 @@ class DAdaptSGD(BaseOptimizer):
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1.0,
+        lr: float | torch.Tensor = 1.0,
         momentum: float = 0.9,
         d0: float = 1e-6,
         growth_rate: float = float('inf'),
@@ -469,6 +550,7 @@ class DAdaptSGD(BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -476,6 +558,7 @@ class DAdaptSGD(BaseOptimizer):
         self.validate_non_negative(weight_decay, 'weight_decay')
 
         self.maximize = maximize
+        self._compiled_update_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
@@ -486,6 +569,7 @@ class DAdaptSGD(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'step': 0,
+            'foreach': foreach,
         }
 
         super().__init__(params, defaults)
@@ -515,6 +599,41 @@ class DAdaptSGD(BaseOptimizer):
                 state['s'] = torch.zeros_like(p)
                 state['x0'] = p.clone()
 
+    def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        super()._compile_foreach(compile_kwargs)
+        self._compiled_update_foreach = compile_foreach_step(self._apply_update_foreach, compile_kwargs)
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        d_lr: float | torch.Tensor,
+        statistics: tuple[torch.Tensor, torch.Tensor],
+    ) -> None:
+        numerator_weighted, sk_sq = statistics
+        if self.maximize:
+            torch._foreach_neg_(grads)
+        if group['weight_decouple']:
+            self.apply_weight_decay_foreach(params, grads, d_lr, group['weight_decay'], True, group['fixed_decay'])
+        for grad, s in zip(grads, state['s']):
+            value = torch.dot(grad.flatten(), s.flatten())
+            foreach_add_([numerator_weighted], [value], alpha=d_lr)
+        foreach_add_(state['s'], grads, alpha=d_lr)
+        for s in state['s']:
+            sk_sq.add_(s.pow(2).sum())
+
+    def _apply_update_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+    ) -> None:
+        torch._foreach_copy_(state['z'], torch._foreach_sub(state['x0'], state['s']))
+        torch._foreach_lerp_(params, state['z'], weight=1.0 - group['momentum'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -542,6 +661,19 @@ class DAdaptSGD(BaseOptimizer):
 
         for group in self.param_groups:
             self.init_group(group)
+
+            if self.can_use_foreach(group, group.get('foreach')):
+                params, grads, state = self.collect_trainable_params(group, self.state, ['s'])
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        group,
+                        batch['params'],
+                        batch['grads'],
+                        batch,
+                        d_lr,
+                        (numerator_weighted, sk_sq),
+                    )
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -577,6 +709,13 @@ class DAdaptSGD(BaseOptimizer):
 
             group['numerator_weighted'] = numerator_weighted
             group['d'] = d
+
+            if self.can_use_foreach(group, group.get('foreach')):
+                params, grads, state = self.collect_trainable_params(group, self.state, ['z', 'x0', 's'])
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    update = self._compiled_update_foreach or self._apply_update_foreach
+                    update(group, batch['params'], batch['grads'], batch)
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -778,19 +917,23 @@ class DAdaptLion(BaseOptimizer):
         weight_decouple: Apply weight decay to parameters instead of adding it to the gradient.
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1.0,
+        lr: float | torch.Tensor = 1.0,
         betas: Betas = (0.9, 0.999),
         d0: float = 1e-6,
         weight_decay: float = 0.0,
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -807,6 +950,7 @@ class DAdaptLion(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'step': 0,
+            'foreach': foreach,
         }
 
         super().__init__(params, defaults)
@@ -835,6 +979,36 @@ class DAdaptLion(BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['s'] = torch.zeros_like(p)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        d_lr: float | torch.Tensor,
+        statistics: tuple[torch.Tensor, torch.Tensor],
+    ) -> None:
+        numerator_accumulator, sk_l1 = statistics
+        beta1, beta2 = group['betas']
+        beta2_sq = math.sqrt(beta2)
+        if self.maximize:
+            torch._foreach_neg_(grads)
+        self.apply_weight_decay_foreach(
+            params, grads, d_lr, group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+        updates = torch._foreach_lerp(state['exp_avg'], grads, weight=1.0 - beta1)
+        torch._foreach_sign_(updates)
+        foreach_add_(params, updates, alpha=-d_lr)
+        torch._foreach_mul_(state['exp_avg'], beta2)
+        foreach_add_(state['exp_avg'], grads, alpha=(1.0 - beta2) * d_lr)
+        for update, s in zip(updates, state['s']):
+            value = torch.dot(update.flatten(), s.flatten())
+            foreach_add_([numerator_accumulator], [value], alpha=d_lr)
+        torch._foreach_mul_(state['s'], beta2_sq)
+        foreach_add_(state['s'], updates, alpha=(1.0 - beta2_sq) * d_lr)
+        for s in state['s']:
+            sk_l1.add_(s.abs().sum())
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -860,6 +1034,19 @@ class DAdaptLion(BaseOptimizer):
 
         for group in self.param_groups:
             self.init_group(group)
+
+            if self.can_use_foreach(group, group.get('foreach')):
+                params, grads, state = self.collect_trainable_params(group, self.state, ['exp_avg', 's'])
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        {**group, 'betas': (beta1, beta2)},
+                        batch['params'],
+                        batch['grads'],
+                        batch,
+                        d_lr,
+                        (numerator_accumulator, sk_l1),
+                    )
+                continue
 
             for p in group['params']:
                 if p.grad is None:

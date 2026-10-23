@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from tests.fixtures import make_parameter
@@ -10,3 +11,20 @@ def test_spam_optimizer():
     optimizer.step()
 
     torch.testing.assert_close(param, torch.zeros_like(param))
+
+
+@pytest.mark.parametrize('foreach', [False, True])
+def test_stablespam_zero_gradient_preserves_moments(foreach):
+    parameter = make_parameter(grad=1.0)
+    optimizer = build_optimizer('stablespam', [parameter], foreach=foreach)
+    optimizer.step()
+    expected = parameter.detach().clone()
+    names = ('exp_avg', 'exp_avg_sq', 'm_norm_t', 'v_norm_t')
+    moments = {name: optimizer.state[parameter][name].clone() for name in names}
+
+    parameter.grad.zero_()
+    optimizer.step()
+
+    torch.testing.assert_close(parameter, expected)
+    torch.testing.assert_close(parameter.grad, torch.zeros_like(parameter))
+    torch.testing.assert_close({name: optimizer.state[parameter][name] for name in names}, moments)

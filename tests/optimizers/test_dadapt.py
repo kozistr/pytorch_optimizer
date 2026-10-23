@@ -7,6 +7,22 @@ from tests.utils import build_optimizer
 
 class TestDadapt:
     @pytest.mark.parametrize(
+        ('optimizer_name', 'expected'),
+        [('dadaptadam', 0.8 - 0.005 / (0.00025 ** 0.5 + 1e-8)), ('dadaptsgd', 0.81)],
+    )
+    def test_decoupled_weight_decay(self, optimizer_name, expected):
+        parameter = make_parameter(grad=0.5)
+        with torch.no_grad():
+            parameter.fill_(1.0)
+        optimizer = build_optimizer(
+            optimizer_name, [parameter], lr=1.0, d0=0.1,
+            weight_decay=0.2, weight_decouple=True, fixed_decay=True, foreach=True,
+        )
+        optimizer.step()
+
+        torch.testing.assert_close(parameter, torch.full_like(parameter, expected))
+
+    @pytest.mark.parametrize(
         'optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan', 'DAdaptLion', 'Prodigy']
     )
     def test_2nd_stage_gradient(self, optimizer_name):

@@ -6,6 +6,7 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 from pytorch_optimizer.optimizer.utils.matrix import zero_power_via_newton_schulz_5
 
 MARS_TYPE = Literal['adamw', 'lion', 'shampoo']
@@ -31,13 +32,16 @@ class MARS(BaseOptimizer):
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
         cautious: Mask momentum updates that disagree with the gradient sign.
+        foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 3e-3,
+        lr: float | torch.Tensor = 3e-3,
         betas: Betas = (0.95, 0.99),
         gamma: float = 0.025,
         mars_type: MARS_TYPE = 'adamw',
@@ -52,6 +56,7 @@ class MARS(BaseOptimizer):
         cautious: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -82,6 +87,7 @@ class MARS(BaseOptimizer):
             'ams_bound': ams_bound,
             'cautious': cautious,
             'eps': eps,
+            'foreach': foreach,
             **kwargs,
         }
 
@@ -191,6 +197,54 @@ class MARS(BaseOptimizer):
 
         return update.div_(de_nom)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        mixed: bool,
+        bias_correction1: float,
+        bias_correction2_sq: float,
+    ) -> None:
+        beta1, beta2 = group['betas']
+        exp_avgs, exp_avg_sqs = state['exp_avg'], state['exp_avg_sq']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        corrections = grads
+        if mixed:
+            corrections = torch._foreach_sub(grads, state['last_grad'])
+            torch._foreach_mul_(corrections, group['gamma'] * beta1 / (1.0 - beta1))
+            torch._foreach_add_(corrections, grads)
+            norms = [norm.clamp_min(1.0) for norm in torch._foreach_norm(corrections)]
+            torch._foreach_div_(corrections, norms)
+
+        torch._foreach_lerp_(exp_avgs, corrections, weight=1.0 - beta1)
+        updates = [value.clone() for value in exp_avgs]
+        if group['cautious']:
+            for update, grad in zip(updates, grads):
+                self.apply_cautious(update, grad)
+
+        if mixed and group['mars_type'] == 'lion':
+            torch._foreach_sign_(updates)
+        else:
+            torch._foreach_mul_(exp_avg_sqs, beta2)
+            torch._foreach_addcmul_(exp_avg_sqs, corrections, corrections, value=1.0 - beta2)
+            de_noms = self.apply_ams_bound_foreach(
+                group['ams_bound'], exp_avg_sqs, state.get('max_exp_avg_sq', []), group['eps']
+            )
+            torch._foreach_div_(de_noms, bias_correction2_sq)
+            torch._foreach_mul_(de_noms, bias_correction1)
+            torch._foreach_div_(updates, de_noms)
+
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+        foreach_add_(params, updates, alpha=-group['lr'])
+        torch._foreach_copy_(state['last_grad'], grads)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -201,6 +255,37 @@ class MARS(BaseOptimizer):
         for group in self.param_groups:
             self.init_group(group)
             group['step'] += 1
+
+            if group['mars_type'] != 'shampoo' and self.can_use_foreach(group, group.get('foreach')):
+                keys = ['exp_avg', 'exp_avg_sq', 'last_grad']
+                if group['ams_bound']:
+                    keys.append('max_exp_avg_sq')
+                for mixed in (True, False):
+                    params = [
+                        p
+                        for p in group['params']
+                        if p.grad is not None and (group['optimize_1d'] or p.ndim >= 2) == mixed
+                    ]
+                    update_group = {
+                        **group,
+                        'params': params,
+                        'lr': group['lr'] * (1.0 if mixed else group['lr_1d_factor']),
+                        'betas': group['betas'] if mixed else group['betas_1d'],
+                        'weight_decay': group['weight_decay'] if mixed else group['weight_decay_1d'],
+                    }
+                    params, grads, state = self.collect_trainable_params(update_group, self.state, keys)
+                    beta1, beta2 = update_group['betas']
+                    for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                        self._step_foreach(
+                            update_group,
+                            batch['params'],
+                            batch['grads'],
+                            batch,
+                            mixed,
+                            self.debias(beta1, group['step']),
+                            math.sqrt(self.debias(beta2, group['step'])),
+                        )
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -255,9 +340,7 @@ class MARS(BaseOptimizer):
                     grad,
                     lr=step_size,
                     weight_decay=(
-                        group['weight_decay']
-                        if group['optimize_1d'] or is_grad_2d
-                        else group['weight_decay_1d']
+                        group['weight_decay'] if group['optimize_1d'] or is_grad_2d else group['weight_decay_1d']
                     ),
                     weight_decouple=group['weight_decouple'],
                     fixed_decay=group['fixed_decay'],
