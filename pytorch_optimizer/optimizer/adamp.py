@@ -8,6 +8,7 @@ from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 def channel_view(x: torch.Tensor) -> torch.Tensor:
@@ -64,6 +65,60 @@ def projection(
     return perturb, wd
 
 
+def projection_foreach(
+    params: list[torch.Tensor],
+    grads: list[torch.Tensor],
+    updates: list[torch.Tensor],
+    group: ParamGroup,
+) -> list[torch.Tensor]:
+    """Project updates with device-side channel and layer selection."""
+    ratios = []
+
+    for p, grad, update in zip(params, grads, updates):
+        ratio = p.new_ones(())
+
+        if p.dim() > 1:
+            shape = [-1] + [1] * (p.dim() - 1)
+            channel = cosine_similarity_by_view(grad, p, group['eps'], channel_view).max() < (
+                group['delta'] / math.sqrt(channel_view(p).size(1))
+            )
+            layer = cosine_similarity_by_view(grad, p, group['eps'], layer_view).max() < (
+                group['delta'] / math.sqrt(p.numel())
+            )
+
+            norm = torch.where(
+                channel, channel_view(p).norm(dim=1).view(shape), p.norm().reshape([1] * p.dim())
+            ).add_(group['eps'])
+            p_n = p / norm
+            radial = torch.where(
+                channel,
+                channel_view(p_n * update).sum(dim=1).view(shape),
+                (p_n * update).sum(),
+            )
+
+            update.sub_(torch.where(channel | layer, p_n * radial, 0.0))
+            ratio = torch.where(channel | layer, group['wd_ratio'], ratio)
+
+        ratios.append(ratio)
+
+    return ratios
+
+
+def apply_projection_weight_decay(
+    params: list[torch.Tensor], grads: list[torch.Tensor], ratios: list[torch.Tensor], group: ParamGroup
+) -> None:
+    """Apply weight decay after projected updates have been formed."""
+    if group['weight_decay'] == 0.0:
+        return
+
+    if group['weight_decouple']:
+        decay = group['weight_decay'] * (1.0 if group['fixed_decay'] else group['lr'])
+        factors = [1.0 - decay * ratio for ratio in ratios]
+        torch._foreach_mul_(params, factors)
+    else:
+        torch._foreach_add_(grads, params, alpha=group['weight_decay'])
+
+
 class SGDP(BaseOptimizer):
     """SGD with projected updates for scale invariant weights.
 
@@ -81,13 +136,16 @@ class SGDP(BaseOptimizer):
         nesterov: Use Nesterov momentum.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them when supported. Defaults to `False`.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         momentum: float = 0.0,
         dampening: float = 0.0,
         weight_decay: float = 0.0,
@@ -98,6 +156,7 @@ class SGDP(BaseOptimizer):
         nesterov: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -118,6 +177,7 @@ class SGDP(BaseOptimizer):
             'wd_ratio': wd_ratio,
             'nesterov': nesterov,
             'eps': eps,
+            'foreach': foreach,
         }
 
         super().__init__(params, defaults)
@@ -141,6 +201,31 @@ class SGDP(BaseOptimizer):
             if len(state) == 0:
                 state['momentum'] = torch.zeros_like(grad)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        buffers: list[torch.Tensor],
+    ) -> None:
+        momentum = group['momentum']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        torch._foreach_mul_(buffers, momentum)
+        torch._foreach_add_(buffers, grads, alpha=1.0 - group['dampening'])
+
+        if group['nesterov']:
+            updates = torch._foreach_mul(buffers, momentum)
+            torch._foreach_add_(updates, grads)
+        else:
+            updates = [buffer.clone() for buffer in buffers]
+
+        ratios = projection_foreach(params, grads, updates, group)
+        apply_projection_weight_decay(params, grads, [ratio / (1.0 - momentum) for ratio in ratios], group)
+        foreach_add_(params, updates, alpha=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -153,6 +238,14 @@ class SGDP(BaseOptimizer):
             group['step'] += 1
 
             momentum = group['momentum']
+
+            if self.can_use_foreach(group, group.get('foreach')):
+                params, grads, state_dict = self.collect_trainable_params(group, self.state, ['momentum'])
+
+                for batch in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch['momentum'])
+
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -214,13 +307,16 @@ class AdamP(BaseOptimizer):
         nesterov: Use Nesterov momentum.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them when supported. Defaults to `False`.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,
         weight_decouple: bool = True,
@@ -230,6 +326,7 @@ class AdamP(BaseOptimizer):
         nesterov: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -250,6 +347,7 @@ class AdamP(BaseOptimizer):
             'wd_ratio': wd_ratio,
             'nesterov': nesterov,
             'eps': eps,
+            'foreach': foreach,
             **kwargs,
         }
 
@@ -279,6 +377,53 @@ class AdamP(BaseOptimizer):
                 if group.get('adanorm'):
                     state['exp_grad_adanorm'] = torch.zeros((1,), dtype=grad.dtype, device=grad.device)
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        exp_avgs: list[torch.Tensor],
+        exp_avg_sqs: list[torch.Tensor],
+        step_size: float | torch.Tensor,
+        bias_correction2_sq: float,
+    ) -> None:
+        beta1, beta2 = group['betas']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        if group.get('use_gc'):
+            for grad in grads:
+                centralize_gradient(grad, gc_conv_only=False)
+
+        torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+        torch._foreach_mul_(exp_avg_sqs, beta2)
+        torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
+
+        inv_de_noms = torch._foreach_sqrt(exp_avg_sqs)
+        torch._foreach_add_(inv_de_noms, group['eps'])
+        torch._foreach_reciprocal_(inv_de_noms)
+        torch._foreach_mul_(inv_de_noms, bias_correction2_sq)
+
+        if group.get('cautious'):
+            updates = [exp_avg.clone() for exp_avg in exp_avgs]
+            for update, grad in zip(updates, grads):
+                self.apply_cautious(update, grad)
+
+            if group['nesterov']:
+                torch._foreach_lerp_(updates, grads, weight=1.0 - beta1)
+
+            torch._foreach_mul_(updates, inv_de_noms)
+        elif group['nesterov']:
+            updates = torch._foreach_lerp(exp_avgs, grads, weight=1.0 - beta1)
+            torch._foreach_mul_(updates, inv_de_noms)
+        else:
+            updates = torch._foreach_mul(inv_de_noms, exp_avgs)
+
+        ratios = projection_foreach(params, grads, updates, group)
+        apply_projection_weight_decay(params, grads, ratios, group)
+        foreach_add_(params, updates, alpha=-step_size)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -300,6 +445,19 @@ class AdamP(BaseOptimizer):
                 step_size=group['lr'],
                 bias_correction1=bias_correction1,
             )
+
+            if not group.get('adanorm') and self.can_use_foreach(group, group.get('foreach')):
+                params, grads, state_dict = self.collect_trainable_params(
+                    group, self.state, ['exp_avg', 'exp_avg_sq']
+                )
+
+                for batch in group_tensors_by_device_and_dtype(params, grads, state_dict):
+                    self._step_foreach(
+                        group, batch['params'], batch['grads'], batch['exp_avg'], batch['exp_avg_sq'],
+                        step_size, bias_correction2_sq,
+                    )
+
+                continue
 
             for p in group['params']:
                 if p.grad is None:

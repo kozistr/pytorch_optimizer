@@ -11,7 +11,7 @@ from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, create_optimizer, 
 from tests.fixtures import TrainingModel, build_model
 from tests.optimizer_cases import SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
 from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS
-from tests.utils import Trainer, ids, should_use_create_graph
+from tests.utils import Trainer, ids, make_closure, should_use_create_graph
 
 
 @pytest.fixture(autouse=True)
@@ -92,6 +92,9 @@ class TestCreateOptimizer:
         optimizer_name, config, iterations = optimizer_config
         config = config.copy()
 
+        if optimizer_name == 'alig':
+            config['lr'] = config.pop('max_lr')
+
         x_data, y_data = environment
         model, loss_fn = build_model(device=x_data.device)
         counter = CompileCounter()
@@ -110,12 +113,17 @@ class TestCreateOptimizer:
         )
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
-        trainer.run(iterations=iterations, create_graph=should_use_create_graph(optimizer_name))
+        trainer.run(
+            iterations=iterations,
+            create_graph=should_use_create_graph(optimizer_name),
+            closure_fn=make_closure if optimizer_name == 'alig' else None,
+        )
 
         if foreach and isinstance(optimizer, BaseOptimizer) and optimizer._supports_compiled_foreach:
             lr = torch.tensor(config['lr'], device=x_data.device)
+            lr_key = 'max_lr' if optimizer_name == 'alig' else 'lr'
             for group in optimizer.param_groups:
-                group['lr'] = lr
+                group[lr_key] = lr
 
             for _ in range(3):
                 lr.mul_(0.99)
@@ -126,7 +134,7 @@ class TestCreateOptimizer:
                     gradients = torch.autograd.grad(trainer.compute_loss(), params, create_graph=True)
                     for param, grad in zip(params, gradients):
                         param.grad = grad
-                optimizer.step()
+                optimizer.step((lambda: 1.0) if optimizer_name == 'alig' else None)
 
                 torch.testing.assert_close(lr, expected_lr)
 

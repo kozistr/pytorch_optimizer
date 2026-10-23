@@ -92,7 +92,8 @@ class TestOptimizerTraining:
 
         x_data, y_data = environment
         model, loss_fn = build_model(device=x_data.device)
-        config['lr'] = torch.tensor(config['lr'], device=x_data.device)
+        lr_key = 'max_lr' if optimizer_name == 'alig' else 'lr'
+        config[lr_key] = torch.tensor(config[lr_key], device=x_data.device)
 
         if optimizer_name == 'adamw' and foreach:
             if x_data.device.type == 'cpu':
@@ -102,7 +103,11 @@ class TestOptimizerTraining:
         optimizer = build_optimizer(optimizer_name, model.parameters(), **config, foreach=foreach)
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
-        trainer.run(iterations=iterations, create_graph=should_use_create_graph(optimizer_name))
+        trainer.run(
+            iterations=iterations,
+            create_graph=should_use_create_graph(optimizer_name),
+            closure_fn=make_closure if optimizer_name == 'alig' else None,
+        )
 
 
 class TestOptimizerInterface:
