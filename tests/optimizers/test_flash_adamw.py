@@ -57,24 +57,34 @@ class TestFlashAdamw:
         assert state['exp_avg::scales'].numel() == 0
 
     @pytest.mark.parametrize(
-        ('quantize', 'compress', 'restored_quantize'),
-        [(True, True, False), (True, False, True), (False, False, False)],
+        ('quantize', 'compress', 'restored_quantize', 'dtype'),
+        [
+            (True, True, False, torch.float32),
+            (True, False, True, torch.float32),
+            (False, False, False, torch.float32),
+            (False, False, False, torch.float64),
+        ],
     )
-    def test_checkpoint_state_formats(self, quantize, compress, restored_quantize):
-        param = make_parameter((3,), grad=1.0)
+    def test_checkpoint_state_formats(self, quantize, compress, restored_quantize, dtype):
+        param = make_parameter((3,), grad=1.0, dtype=dtype)
         optimizer = build_optimizer('flashadamw', [param], quantize=quantize, compress_state_dict=compress)
         optimizer.step()
         checkpoint = optimizer.state_dict()
         assert ('exp_avg::quantized' in checkpoint['state'][0]) == (quantize and compress)
         checkpoint['param_groups'][0]['quantize'] = restored_quantize
 
-        restored_param = param.detach().clone().requires_grad_()
+        restored_param = param.detach().to(torch.float32).clone().requires_grad_()
         restored = build_optimizer('flashadamw', [restored_param], quantize=restored_quantize)
         restored.load_state_dict(checkpoint)
 
         state = restored.state[restored_param]
         assert ('exp_avg::quantized' in state) == restored_quantize
         assert ('exp_avg' in state) != restored_quantize
+
+        restored_param.grad = torch.ones_like(restored_param)
+        restored.step()
+
+        torch.testing.assert_close(restored_param, torch.full_like(restored_param, -0.00199999), atol=1e-6, rtol=1e-5)
 
     def test_empty_checkpoint(self):
         optimizer = build_optimizer('flashadamw', [make_parameter(grad=None)], quantize=False)

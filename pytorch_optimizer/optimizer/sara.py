@@ -6,6 +6,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT, State
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 
 class SaRA(BaseOptimizer):
@@ -28,13 +29,16 @@ class SaRA(BaseOptimizer):
         ams_bound: Use the running maximum of the second moment to bound adaptive updates.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch selected-weight updates. `None` enables batching when supported.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float | None = None,
+        lr: float | torch.Tensor | None = None,
         betas: Betas = (0.9, 0.999),
         threshold: float = 1e-3,
         progressive_iter: int = -1,
@@ -43,6 +47,7 @@ class SaRA(BaseOptimizer):
         ams_bound: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -52,6 +57,8 @@ class SaRA(BaseOptimizer):
         self.validate_non_negative(lambda_rank, 'lambda_rank')
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_non_negative(eps, 'eps')
+
+        self._mask_indices: dict[torch.Tensor, torch.Tensor] = {}
 
         defaults: Defaults = {
             'lr': 1e-3 * math.exp(-350.0 * threshold) if lr is None else lr,
@@ -63,6 +70,7 @@ class SaRA(BaseOptimizer):
             'ams_bound': ams_bound,
             'eps': eps,
             'maximize': maximize,
+            'foreach': foreach,
             **kwargs,
         }
 
@@ -80,6 +88,7 @@ class SaRA(BaseOptimizer):
 
     def load_state_dict(self, state_dict: State) -> None:
         super().load_state_dict(state_dict)
+        self._mask_indices.clear()
 
         for group in self.param_groups:
             for p in group['params']:
@@ -116,6 +125,7 @@ class SaRA(BaseOptimizer):
             mask = state['mask']
             keep = p[mask].abs() < group['threshold']
 
+            self._mask_indices.pop(p, None)
             state['mask'] = mask.clone()
             state['mask'][mask] = keep
 
@@ -137,6 +147,41 @@ class SaRA(BaseOptimizer):
         torch.mm(u, vh, out=matrix)
 
         grad_mask.add_(matrix[mask].to(dtype=grad_mask.dtype), alpha=lambda_rank)
+
+    def _get_mask_indices(self, p: torch.Tensor) -> torch.Tensor:
+        indices = self._mask_indices.get(p)
+        if indices is None:
+            indices = self.state[p]['mask'].reshape(-1).nonzero().flatten()
+            self._mask_indices[p] = indices
+
+        return indices
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        step_size: float | torch.Tensor,
+        bias_correction2_sq: float | torch.Tensor,
+    ) -> None:
+        beta1, beta2 = group['betas']
+
+        if group['maximize']:
+            torch._foreach_neg_(grads)
+
+        torch._foreach_lerp_(state['exp_avg'], grads, weight=1.0 - beta1)
+        torch._foreach_mul_(state['exp_avg_sq'], beta2)
+        torch._foreach_addcmul_(state['exp_avg_sq'], grads, grads, value=1.0 - beta2)
+
+        de_noms = self.apply_ams_bound_foreach(
+            group['ams_bound'], state['exp_avg_sq'], state.get('max_exp_avg_sq', []), 0.0, 0.0
+        )
+        torch._foreach_div_(de_noms, bias_correction2_sq)
+        torch._foreach_add_(de_noms, group['eps'])
+
+        self.apply_weight_decay_foreach(params, grads, group['lr'], group['weight_decay'], True, False)
+        foreach_addcdiv_(params, state['exp_avg'], de_noms, value=-step_size)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -165,6 +210,30 @@ class SaRA(BaseOptimizer):
                 if group['lambda_rank'] > 0.0 and p.grad is not None and p.dim() == 2 and min(p.shape) > 64
             ]
             rank_param = random.choice(rank_params) if rank_params else None  # noqa: S311
+
+            if self.can_use_foreach(group, group.get('foreach')):
+                keys = ['exp_avg', 'exp_avg_sq']
+                if group['ams_bound']:
+                    keys.append('max_exp_avg_sq')
+                params, grads, state = self.collect_trainable_params(group, self.state, keys)
+                indices = [self._get_mask_indices(p) for p in params]
+                selected = [p.reshape(-1).index_select(0, index) for p, index in zip(params, indices)]
+                selected_grads = [grad.reshape(-1).index_select(0, index) for grad, index in zip(grads, indices)]
+
+                for p, grad in zip(params, selected_grads):
+                    if p is rank_param and self.state[p]['mask'].sum() > 100:
+                        self.apply_rank_constraint(p, grad, self.state[p]['mask'], group['lambda_rank'])
+
+                for batch in group_tensors_by_device_and_dtype(selected, selected_grads, state):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch, step_size, bias_correction2_sq)
+
+                for p, value, index in zip(params, selected, indices):
+                    if p.is_contiguous():
+                        p.view(-1).index_copy_(0, index, value)
+                    else:
+                        p[self.state[p]['mask']] = value
+
+                continue
 
             for p in group['params']:
                 if p.grad is None:
