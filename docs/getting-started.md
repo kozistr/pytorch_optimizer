@@ -79,7 +79,7 @@ DAdaptAdam, DAdaptLion, DAdaptSGD, DiffGrad, DualAdam, EmoFact, EmoLynx, EmoNavi
 FOCUS, Fromage, FTRL, GaLore,
 Gravity, GrokFastAdamW, Kate, LaProp, Lion, MADGRAD, MARS, MSVAG, Muon, MuonClip, Nero, NorMuon, NovoGrad,
 PAdam, PID, PNM, QHAdam, RACS, RAdam, Ranger, Ranger21, ROSE, SaRA, ScheduleFreeAdamW, ScheduleFreeRAdam,
-ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, StableAdamW, StableSPAM, TAM,
+ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, SPlus, StableAdamW, StableSPAM, TAM,
 Tiger, VSGD, and Yogi. Native
 PyTorch AdamW is also tested:
 
@@ -90,6 +90,7 @@ optimizer = create_optimizer(model, 'laprop', lr=1e-3, compile=True)
 APOLLO, Conda, Fira, and GaLore support this option for unprojected parameters.
 FlashAdamW supports it for unquantized FP32 parameters with `decouple_lr=False`.
 EmoNavi, EmoLynx, and EmoFact keep FP16 and BF16 updates eager.
+SPlus compiles nonmatrix updates and keeps matrix preconditioning eager.
 
 The factory selects the batched update path automatically for supported optimizers.
 Matrix updates can batch compatible flattened shapes, including convolution weights and tall/wide pairs,

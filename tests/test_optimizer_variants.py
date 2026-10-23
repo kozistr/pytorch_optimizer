@@ -101,7 +101,8 @@ class TestMaximize:
         ],
     )
     def test_maximize(self, optimizer_name, foreach):
-        params = [torch.full((2, 2), 2.0, requires_grad=True) for _ in range(2)]
+        shape = (2, 2, 1) if optimizer_name == 'splus' else (2, 2)
+        params = [torch.full(shape, 2.0, requires_grad=True) for _ in range(2)]
         params[0].grad = torch.full_like(params[0], 0.5)
         params[1].grad = torch.full_like(params[1], -0.5)
 
