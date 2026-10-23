@@ -101,7 +101,8 @@ DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptLion, DAdaptSGD, DiffGrad, DualAdam
 EXAdam, FAdam, Fira, FlashAdamW, FOCUS, Fromage, FTRL, GaLore,
 Gravity, GrokFastAdamW, Kate, LaProp, Lion, MADGRAD, MARS, MSVAG, Muon, MuonClip, Nero, NorMuon, NovoGrad,
 PAdam, PID, PNM, Prodigy, QHAdam, RACS, RAdam, Ranger, Ranger21, ROSE, SaRA, ScheduleFreeAdamW, ScheduleFreeRAdam,
-ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, SPlus, StableAdamW, StableSPAM, TAM,
+ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SM3, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, SPAM, SPlus,
+StableAdamW, StableSPAM, TAM,
 Tiger, VSGD, and Yogi. These paths
 keep state initialization and step counters eager and pass learning rates to compiled updates as tensors. Native
 PyTorch AdamW is also tested. Use `compile=False` (the default) for eager execution.
