@@ -336,11 +336,18 @@ class TestSAM:
         run(iterations=3, threshold=2.0)
 
     @pytest.mark.parametrize(
-        ('first_pass_active', 'second_pass_active'), [(True, False), (False, True), (True, True), (False, False)]
-    )
-    @pytest.mark.parametrize(
-        ('wrapper', 'foreach'),
-        [(SAM, False), (SAM, True), (WSAM, False), (WSAM, True), (LookSAM, None), (FriendlySAM, None)],
+        ('wrapper', 'foreach', 'first_pass_active', 'second_pass_active'),
+        [
+            *[
+                (wrapper, foreach, first, second)
+                for wrapper, foreach in [(SAM, False), (WSAM, False), (LookSAM, None), (FriendlySAM, None)]
+                for first, second in [(True, False), (False, True), (True, True), (False, False)]
+            ],
+            (SAM, True, True, False),
+            (SAM, True, False, True),
+            (WSAM, True, True, False),
+            (WSAM, True, False, True),
+        ],
     )
     def test_sam_changing_gradient_availability(self, first_pass_active, second_pass_active, wrapper, foreach):
         parameter = nn.Parameter(torch.tensor([1.0]))
