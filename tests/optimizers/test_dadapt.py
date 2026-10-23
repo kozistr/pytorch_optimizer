@@ -12,8 +12,10 @@ class TestDadapt:
     )
     def test_decoupled_weight_decay(self, optimizer_name, expected):
         parameter = make_parameter(grad=0.5)
+
         with torch.no_grad():
             parameter.fill_(1.0)
+
         optimizer = build_optimizer(
             optimizer_name, [parameter], lr=1.0, d0=0.1,
             weight_decay=0.2, weight_decouple=True, fixed_decay=True, foreach=True,

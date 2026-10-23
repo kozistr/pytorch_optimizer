@@ -373,10 +373,13 @@ class DAdaptAdam(BaseOptimizer):
     ) -> None:
         numerator_acc, sk_l1 = statistics
         beta1, beta2 = group['betas']
+
         if self.maximize:
             torch._foreach_neg_(grads)
+
         de_noms = torch._foreach_sqrt(state['exp_avg_sq'])
         torch._foreach_add_(de_noms, group['eps'])
+
         for grad, s, de_nom in zip(grads, state['s'], de_noms):
             value = torch.dot(grad.flatten(), s.div(de_nom).flatten())
             foreach_add_([numerator_acc], [value], alpha=d_lr)
@@ -385,8 +388,10 @@ class DAdaptAdam(BaseOptimizer):
         foreach_add_(state['exp_avg'], grads, alpha=d_lr * (1.0 - beta1))
         torch._foreach_mul_(state['exp_avg_sq'], beta2)
         torch._foreach_addcmul_(state['exp_avg_sq'], grads, grads, value=1.0 - beta2)
+
         torch._foreach_mul_(state['s'], math.sqrt(beta2))
         foreach_add_(state['s'], grads, alpha=d_lr * (1.0 - math.sqrt(beta2)))
+
         for s in state['s']:
             sk_l1.add_(s.abs().sum())
 
@@ -400,8 +405,10 @@ class DAdaptAdam(BaseOptimizer):
     ) -> None:
         de_noms = torch._foreach_sqrt(state['exp_avg_sq'])
         torch._foreach_add_(de_noms, group['eps'])
+
         if group['weight_decouple']:
             self.apply_weight_decay_foreach(params, grads, d_lr, group['weight_decay'], True, group['fixed_decay'])
+
         torch._foreach_addcdiv_(params, state['exp_avg'], de_noms, value=-1.0)
 
     @torch.no_grad()
@@ -443,6 +450,7 @@ class DAdaptAdam(BaseOptimizer):
 
             if self.can_use_foreach(group, group.get('foreach')):
                 params, grads, state = self.collect_trainable_params(group, self.state, ['exp_avg', 'exp_avg_sq', 's'])
+
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     self._step_foreach(
                         {**group, 'betas': (beta1, beta2)},
@@ -452,6 +460,7 @@ class DAdaptAdam(BaseOptimizer):
                         d_lr,
                         (numerator_acc, sk_l1),
                     )
+
                 continue
 
             for p in group['params']:
@@ -491,9 +500,11 @@ class DAdaptAdam(BaseOptimizer):
 
             if self.can_use_foreach(group, group.get('foreach')):
                 params, grads, state = self.collect_trainable_params(group, self.state, ['exp_avg', 'exp_avg_sq'])
+
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     update = self._compiled_update_foreach or self._apply_update_foreach
                     update(group, batch['params'], batch['grads'], batch, d_lr)
+
                 continue
 
             for p in group['params']:
@@ -613,14 +624,19 @@ class DAdaptSGD(BaseOptimizer):
         statistics: tuple[torch.Tensor, torch.Tensor],
     ) -> None:
         numerator_weighted, sk_sq = statistics
+
         if self.maximize:
             torch._foreach_neg_(grads)
+
         if group['weight_decouple']:
             self.apply_weight_decay_foreach(params, grads, d_lr, group['weight_decay'], True, group['fixed_decay'])
+
         for grad, s in zip(grads, state['s']):
             value = torch.dot(grad.flatten(), s.flatten())
             foreach_add_([numerator_weighted], [value], alpha=d_lr)
+
         foreach_add_(state['s'], grads, alpha=d_lr)
+
         for s in state['s']:
             sk_sq.add_(s.pow(2).sum())
 
@@ -664,6 +680,7 @@ class DAdaptSGD(BaseOptimizer):
 
             if self.can_use_foreach(group, group.get('foreach')):
                 params, grads, state = self.collect_trainable_params(group, self.state, ['s'])
+
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     self._step_foreach(
                         group,
@@ -673,6 +690,7 @@ class DAdaptSGD(BaseOptimizer):
                         d_lr,
                         (numerator_weighted, sk_sq),
                     )
+
                 continue
 
             for p in group['params']:
@@ -712,9 +730,11 @@ class DAdaptSGD(BaseOptimizer):
 
             if self.can_use_foreach(group, group.get('foreach')):
                 params, grads, state = self.collect_trainable_params(group, self.state, ['z', 'x0', 's'])
+
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     update = self._compiled_update_foreach or self._apply_update_foreach
                     update(group, batch['params'], batch['grads'], batch)
+
                 continue
 
             for p in group['params']:
@@ -991,21 +1011,28 @@ class DAdaptLion(BaseOptimizer):
         numerator_accumulator, sk_l1 = statistics
         beta1, beta2 = group['betas']
         beta2_sq = math.sqrt(beta2)
+
         if self.maximize:
             torch._foreach_neg_(grads)
+
         self.apply_weight_decay_foreach(
             params, grads, d_lr, group['weight_decay'], group['weight_decouple'], group['fixed_decay']
         )
+
         updates = torch._foreach_lerp(state['exp_avg'], grads, weight=1.0 - beta1)
         torch._foreach_sign_(updates)
         foreach_add_(params, updates, alpha=-d_lr)
+
         torch._foreach_mul_(state['exp_avg'], beta2)
         foreach_add_(state['exp_avg'], grads, alpha=(1.0 - beta2) * d_lr)
+
         for update, s in zip(updates, state['s']):
             value = torch.dot(update.flatten(), s.flatten())
             foreach_add_([numerator_accumulator], [value], alpha=d_lr)
+
         torch._foreach_mul_(state['s'], beta2_sq)
         foreach_add_(state['s'], updates, alpha=(1.0 - beta2_sq) * d_lr)
+
         for s in state['s']:
             sk_l1.add_(s.abs().sum())
 
@@ -1037,6 +1064,7 @@ class DAdaptLion(BaseOptimizer):
 
             if self.can_use_foreach(group, group.get('foreach')):
                 params, grads, state = self.collect_trainable_params(group, self.state, ['exp_avg', 's'])
+
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     self._step_foreach(
                         {**group, 'betas': (beta1, beta2)},
@@ -1046,6 +1074,7 @@ class DAdaptLion(BaseOptimizer):
                         d_lr,
                         (numerator_accumulator, sk_l1),
                     )
+
                 continue
 
             for p in group['params']:

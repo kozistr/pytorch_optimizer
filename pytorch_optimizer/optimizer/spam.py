@@ -433,14 +433,17 @@ class StableSPAM(BaseOptimizer):
     ) -> None:
         if self.maximize:
             torch._foreach_neg_(grads)
+
         self.apply_weight_decay_foreach(params, grads, group['lr'], group['weight_decay'], True, False)
 
         updates = []
+
         for index, grad in enumerate(grads):
             m_max = state['m_max_t'][index]
             max_grad = grad.abs().max()
             m_max.lerp_(max_grad, weight=1.0 - self.theta)
             m_max_hat = m_max / theta_t
+
             clipped = torch.where(grad.abs() > m_max_hat, grad / max_grad * m_max_hat, grad)
             grad_norm = torch.linalg.norm(clipped)
             active = grad_norm > 0
@@ -450,6 +453,7 @@ class StableSPAM(BaseOptimizer):
             foreach_lerp_([new_m_norm], [grad_norm.reshape_as(m_norm)], weight=norm_weight)
             m_norm.copy_(torch.where(active, new_m_norm, m_norm))
             v_norm.copy_(torch.where(active, v_norm.lerp(grad_norm.square(), weight=1.0 - self.gamma2), v_norm))
+
             c_norm = (m_norm / norm_correction1) / ((v_norm / norm_correction2).sqrt().add_(group['eps']))
             grad.copy_(torch.where(active, clipped / torch.where(active, grad_norm, 1.0) * c_norm, clipped))
 
@@ -459,6 +463,7 @@ class StableSPAM(BaseOptimizer):
             exp_avg.copy_(torch.where(active, new_exp_avg, exp_avg))
             new_exp_avg_sq = exp_avg_sq.mul(group['betas'][1]).addcmul_(grad, grad, value=1.0 - group['betas'][1])
             exp_avg_sq.copy_(torch.where(active, new_exp_avg_sq, exp_avg_sq))
+
             de_nom = exp_avg_sq.sqrt().div_(bias_correction2_sq).add_(group['eps'])
             updates.append(torch.where(active, exp_avg / de_nom, 0.0))
 
@@ -501,10 +506,12 @@ class StableSPAM(BaseOptimizer):
                 params, grads, state = self.collect_trainable_params(
                     group, self.state, ['exp_avg', 'exp_avg_sq', 'm_norm_t', 'v_norm_t', 'm_max_t']
                 )
+
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     update = self._step_foreach
                     if self._compiled_step_foreach is not None and batch['params'][0].dtype != torch.float16:
                         update = self._compiled_step_foreach
+
                     update(
                         group,
                         batch['params'],
@@ -518,6 +525,7 @@ class StableSPAM(BaseOptimizer):
                         1.0 - (self.gamma1 * scale) ** self.total_step,
                         1.0 - self.gamma2**self.total_step,
                     )
+
                 continue
 
             for p in group['params']:

@@ -218,11 +218,13 @@ class MARS(BaseOptimizer):
             corrections = torch._foreach_sub(grads, state['last_grad'])
             torch._foreach_mul_(corrections, group['gamma'] * beta1 / (1.0 - beta1))
             torch._foreach_add_(corrections, grads)
+
             norms = [norm.clamp_min(1.0) for norm in torch._foreach_norm(corrections)]
             torch._foreach_div_(corrections, norms)
 
         torch._foreach_lerp_(exp_avgs, corrections, weight=1.0 - beta1)
         updates = [value.clone() for value in exp_avgs]
+
         if group['cautious']:
             for update, grad in zip(updates, grads):
                 self.apply_cautious(update, grad)
@@ -232,6 +234,7 @@ class MARS(BaseOptimizer):
         else:
             torch._foreach_mul_(exp_avg_sqs, beta2)
             torch._foreach_addcmul_(exp_avg_sqs, corrections, corrections, value=1.0 - beta2)
+
             de_noms = self.apply_ams_bound_foreach(
                 group['ams_bound'], exp_avg_sqs, state.get('max_exp_avg_sq', []), group['eps']
             )
@@ -258,14 +261,17 @@ class MARS(BaseOptimizer):
 
             if group['mars_type'] != 'shampoo' and self.can_use_foreach(group, group.get('foreach')):
                 keys = ['exp_avg', 'exp_avg_sq', 'last_grad']
+
                 if group['ams_bound']:
                     keys.append('max_exp_avg_sq')
+
                 for mixed in (True, False):
                     params = [
                         p
                         for p in group['params']
                         if p.grad is not None and (group['optimize_1d'] or p.ndim >= 2) == mixed
                     ]
+
                     update_group = {
                         **group,
                         'params': params,
@@ -275,6 +281,7 @@ class MARS(BaseOptimizer):
                     }
                     params, grads, state = self.collect_trainable_params(update_group, self.state, keys)
                     beta1, beta2 = update_group['betas']
+
                     for batch in group_tensors_by_device_and_dtype(params, grads, state):
                         self._step_foreach(
                             update_group,
@@ -285,6 +292,7 @@ class MARS(BaseOptimizer):
                             self.debias(beta1, group['step']),
                             math.sqrt(self.debias(beta2, group['step'])),
                         )
+
                 continue
 
             for p in group['params']:
