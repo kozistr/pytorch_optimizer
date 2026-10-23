@@ -85,7 +85,7 @@ class AdaGO(MuonBase):
         adamw_wd: float = 0.0,
         adamw_eps: float = 1e-10,
         maximize: bool = False,
-        foreach: bool | None = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
