@@ -7,7 +7,8 @@ import torch
 from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.galore import GaLoreProjector
+from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.galore import GaLoreProjector, step_adam_foreach
 
 SCALE_TYPE = Literal['channel', 'tensor']
 
@@ -177,13 +178,17 @@ class APOLLO(BaseOptimizer):
         correct_bias: Whether to correct bias in Adam.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch unprojected parameter updates. `None` enables batching for supported groups.
 
     """
+
+    _supports_compiled_foreach = True
+    _step_foreach = staticmethod(step_adam_foreach)
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-2,
+        lr: float | torch.Tensor = 1e-2,
         betas: Betas = (0.9, 0.999),
         scale_type: SCALE_TYPE = 'tensor',
         weight_decay: float = 0.0,
@@ -192,6 +197,7 @@ class APOLLO(BaseOptimizer):
         correct_bias: bool = True,
         eps: float = 1e-6,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -210,6 +216,7 @@ class APOLLO(BaseOptimizer):
             'fixed_decay': fixed_decay,
             'correct_bias': correct_bias,
             'eps': eps,
+            'foreach': foreach,
             **kwargs,
         }
 
@@ -253,10 +260,35 @@ class APOLLO(BaseOptimizer):
             if group['correct_bias']:
                 bias_correction1: float = self.debias(beta1, group['step'])
                 bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
-                step_size *= bias_correction2_sq / bias_correction1
+                step_size = step_size * (bias_correction2_sq / bias_correction1)
+
+            use_foreach = self.can_use_foreach(group, group.get('foreach'))
+
+            if use_foreach:
+                dense_group = {
+                    **group,
+                    'params': [p for p in group['params'] if ('rank' not in group or p.dim() <= 1)],
+                }
+                params, grads, state = self.collect_trainable_params(
+                    dense_group, self.state, ['exp_avg', 'exp_avg_sq']
+                )
+
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        group,
+                        batch['params'],
+                        batch['grads'],
+                        batch['exp_avg'],
+                        batch['exp_avg_sq'],
+                        step_size,
+                        step_size,
+                        self.maximize,
+                        group['weight_decouple'],
+                        group['fixed_decay'],
+                    )
 
             for p in group['params']:
-                if p.grad is None:
+                if p.grad is None or (use_foreach and ('rank' not in group or p.dim() <= 1)):
                     continue
 
                 grad = p.grad
