@@ -91,6 +91,7 @@ class TestCreateOptimizer:
 
         optimizer_name, config, iterations = optimizer_config
         config = config.copy()
+
         if optimizer_name == 'alig':
             config['lr'] = config.pop('max_lr')
 

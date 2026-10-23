@@ -73,8 +73,10 @@ def projection_foreach(
 ) -> list[torch.Tensor]:
     """Project updates with device-side channel and layer selection."""
     ratios = []
+
     for p, grad, update in zip(params, grads, updates):
         ratio = p.new_ones(())
+
         if p.dim() > 1:
             shape = [-1] + [1] * (p.dim() - 1)
             channel = cosine_similarity_by_view(grad, p, group['eps'], channel_view).max() < (
@@ -83,6 +85,7 @@ def projection_foreach(
             layer = cosine_similarity_by_view(grad, p, group['eps'], layer_view).max() < (
                 group['delta'] / math.sqrt(p.numel())
             )
+
             norm = torch.where(
                 channel, channel_view(p).norm(dim=1).view(shape), p.norm().reshape([1] * p.dim())
             ).add_(group['eps'])
@@ -92,9 +95,12 @@ def projection_foreach(
                 channel_view(p_n * update).sum(dim=1).view(shape),
                 (p_n * update).sum(),
             )
+
             update.sub_(torch.where(channel | layer, p_n * radial, 0.0))
             ratio = torch.where(channel | layer, group['wd_ratio'], ratio)
+
         ratios.append(ratio)
+
     return ratios
 
 
@@ -104,6 +110,7 @@ def apply_projection_weight_decay(
     """Apply weight decay after projected updates have been formed."""
     if group['weight_decay'] == 0.0:
         return
+
     if group['weight_decouple']:
         decay = group['weight_decay'] * (1.0 if group['fixed_decay'] else group['lr'])
         factors = [1.0 - decay * ratio for ratio in ratios]
@@ -202,10 +209,13 @@ class SGDP(BaseOptimizer):
         buffers: list[torch.Tensor],
     ) -> None:
         momentum = group['momentum']
+
         if self.maximize:
             torch._foreach_neg_(grads)
+
         torch._foreach_mul_(buffers, momentum)
         torch._foreach_add_(buffers, grads, alpha=1.0 - group['dampening'])
+
         if group['nesterov']:
             updates = torch._foreach_mul(buffers, momentum)
             torch._foreach_add_(updates, grads)
@@ -231,8 +241,10 @@ class SGDP(BaseOptimizer):
 
             if self.can_use_foreach(group, group.get('foreach')):
                 params, grads, state_dict = self.collect_trainable_params(group, self.state, ['momentum'])
+
                 for batch in group_tensors_by_device_and_dtype(params, grads, state_dict):
                     self._step_foreach(group, batch['params'], batch['grads'], batch['momentum'])
+
                 continue
 
             for p in group['params']:
@@ -376,8 +388,10 @@ class AdamP(BaseOptimizer):
         bias_correction2_sq: float,
     ) -> None:
         beta1, beta2 = group['betas']
+
         if self.maximize:
             torch._foreach_neg_(grads)
+
         if group.get('use_gc'):
             for grad in grads:
                 centralize_gradient(grad, gc_conv_only=False)
@@ -385,6 +399,7 @@ class AdamP(BaseOptimizer):
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
         torch._foreach_mul_(exp_avg_sqs, beta2)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
+
         inv_de_noms = torch._foreach_sqrt(exp_avg_sqs)
         torch._foreach_add_(inv_de_noms, group['eps'])
         torch._foreach_reciprocal_(inv_de_noms)
@@ -394,8 +409,10 @@ class AdamP(BaseOptimizer):
             updates = [exp_avg.clone() for exp_avg in exp_avgs]
             for update, grad in zip(updates, grads):
                 self.apply_cautious(update, grad)
+
             if group['nesterov']:
                 torch._foreach_lerp_(updates, grads, weight=1.0 - beta1)
+
             torch._foreach_mul_(updates, inv_de_noms)
         elif group['nesterov']:
             updates = torch._foreach_lerp(exp_avgs, grads, weight=1.0 - beta1)
@@ -433,11 +450,13 @@ class AdamP(BaseOptimizer):
                 params, grads, state_dict = self.collect_trainable_params(
                     group, self.state, ['exp_avg', 'exp_avg_sq']
                 )
+
                 for batch in group_tensors_by_device_and_dtype(params, grads, state_dict):
                     self._step_foreach(
                         group, batch['params'], batch['grads'], batch['exp_avg'], batch['exp_avg_sq'],
                         step_size, bias_correction2_sq,
                     )
+
                 continue
 
             for p in group['params']:

@@ -100,12 +100,15 @@ class AliG(BaseOptimizer):
         buffers: list[torch.Tensor],
     ) -> None:
         step_size, momentum = group['lr'], group['momentum']
+
         if self.maximize:
             torch._foreach_neg_(grads)
 
         foreach_add_(params, grads, alpha=-step_size)
+
         if buffers:
             torch._foreach_mul_(buffers, momentum)
+
             if group['adjusted_momentum']:
                 torch._foreach_sub_(buffers, grads)
                 foreach_add_(params, buffers, alpha=step_size * momentum)
@@ -136,12 +139,15 @@ class AliG(BaseOptimizer):
                 params, grads, state_dict = self.collect_trainable_params(
                     group, self.state, state_keys=['momentum_buffer'] if momentum > 0.0 else []
                 )
+
                 for batch in group_tensors_by_device_and_dtype(params, grads, state_dict):
                     self._step_foreach(
                         {**group, 'lr': step_size}, batch['params'], batch['grads'], batch.get('momentum_buffer', [])
                     )
+
                 if self.projection_fn is not None:
                     self.projection_fn()
+
                 continue
 
             for p in group['params']:

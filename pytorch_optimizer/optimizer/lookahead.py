@@ -134,6 +134,7 @@ class Lookahead(BaseOptimizer):
     @torch.no_grad()
     def update(self, group: dict):
         params, grads, state_dict = self.collect_trainable_params(group, self.state, state_keys=['slow_params'])
+
         for batch in group_tensors_by_device_and_dtype(params, grads, state_dict):
             torch._foreach_lerp_(batch['params'], batch['slow_params'], weight=1.0 - self.alpha)
             torch._foreach_copy_(batch['slow_params'], batch['params'])
@@ -142,8 +143,10 @@ class Lookahead(BaseOptimizer):
                 for p in batch['params']:
                     if 'momentum_buffer' not in self.optimizer.state[p]:
                         self.optimizer.state[p]['momentum_buffer'] = torch.zeros_like(p)
+
                 buffers = [self.optimizer.state[p]['momentum_buffer'] for p in batch['params']]
                 slow_buffers = [self.state[p]['slow_momentum'] for p in batch['params']]
+
                 torch._foreach_lerp_(buffers, slow_buffers, weight=1.0 - self.alpha)
                 torch._foreach_copy_(slow_buffers, buffers)
             elif self.pullback_momentum == 'reset':
