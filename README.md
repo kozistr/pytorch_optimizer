@@ -97,15 +97,19 @@ optimizer = create_optimizer(model, 'laprop', lr=1e-3, compile=True)
 Optimizers with a dedicated compiled foreach path include AccSGD, AdaBound, AdaDelta, AdEMAMix, AdaFactor,
 AdaGO, AdaGC, AdaHessian, Adai, AdaMax, AdaMod, AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC,
 AdamG, AdamP, AdamS, AdamWSN, AggMo, Aida, AliG, Amos, Ano, APOLLO, ASGD, AvaGrad, BCOS, CAME, Conda,
-DAdaptAdam, DAdaptLion, DAdaptSGD, DiffGrad, DualAdam, EXAdam, FAdam, Fira, FOCUS, Fromage, FTRL, GaLore,
+DAdaptAdam, DAdaptLion, DAdaptSGD, DiffGrad, DualAdam, EmoFact, EmoLynx, EmoNavi, EXAdam, FAdam, Fira, FlashAdamW,
+FOCUS, Fromage, FTRL, GaLore,
 Gravity, GrokFastAdamW, Kate, LaProp, Lion, MADGRAD, MARS, MSVAG, Muon, MuonClip, Nero, NorMuon, NovoGrad,
-PAdam, PID, PNM, QHAdam, RACS, RAdam, Ranger, Ranger21, ROSE, ScheduleFreeAdamW, ScheduleFreeRAdam,
-ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, StableAdamW, StableSPAM, TAM,
+PAdam, PID, PNM, QHAdam, RACS, RAdam, Ranger, Ranger21, ROSE, SaRA, ScheduleFreeAdamW, ScheduleFreeRAdam,
+ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, SPlus, StableAdamW, StableSPAM, TAM,
 Tiger, VSGD, and Yogi. These paths
 keep state initialization and step counters eager and pass learning rates to compiled updates as tensors. Native
 PyTorch AdamW is also tested. Use `compile=False` (the default) for eager execution.
 
 APOLLO, Conda, Fira, and GaLore support this option for unprojected parameters.
+FlashAdamW supports it for unquantized FP32 parameters with `decouple_lr=False`.
+EmoNavi, EmoLynx, and EmoFact keep FP16 and BF16 updates eager.
+SPlus compiles nonmatrix updates and keeps matrix preconditioning eager.
 
 The library selects the batched update path automatically for supported optimizers.
 The compiler chooses which operations to fuse; no separate fusion setting is required.

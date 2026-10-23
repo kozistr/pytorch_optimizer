@@ -13,6 +13,7 @@ from pytorch_optimizer.base.exception import NoClosureError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, OptimizerType, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 from pytorch_optimizer.optimizer.utils.gradient import get_global_gradient_norm
 from pytorch_optimizer.optimizer.utils.model import disable_running_stats, enable_running_stats
 
@@ -532,6 +533,7 @@ class BSAM(BaseOptimizer):
         rho: Size of the neighborhood for computing the max loss.
         adaptive: Elementwise Adaptive SAM.
         damping: Damping to stabilize the method.
+        foreach: Batch perturbations and moment updates in eager execution. `None` enables batching when supported.
         **kwargs (dict): Parameters for optimizer.
 
     """
@@ -540,12 +542,13 @@ class BSAM(BaseOptimizer):
         self,
         params: ParamsT,
         num_data: int,
-        lr: float = 5e-1,
+        lr: float | torch.Tensor = 5e-1,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 1e-4,
         rho: float = 0.05,
         adaptive: bool = False,
         damping: float = 0.1,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -564,6 +567,7 @@ class BSAM(BaseOptimizer):
             'weight_decay': weight_decay,
             'rho': rho,
             'adaptive': adaptive,
+            'foreach': foreach,
             **kwargs,
         }
 
@@ -587,11 +591,55 @@ class BSAM(BaseOptimizer):
                 state['noisy_gradient'] = torch.zeros_like(p.grad)
                 state['momentum'] = torch.zeros_like(p)
 
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
+        compiling = torch._dynamo.is_compiling()  # ty: ignore[deprecated]
+        return not compiling and self.can_use_foreach(group, group.get('foreach'))
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        perturb: bool,
+    ) -> None:
+        if perturb:
+            if group['adaptive']:
+                updates = torch._foreach_pow(params, 2)
+                torch._foreach_mul_(updates, group['rho'])
+                torch._foreach_mul_(updates, grads)
+            else:
+                updates = torch._foreach_mul(grads, group['rho'])
+
+            torch._foreach_div_(updates, state['s'])
+            torch._foreach_add_(params, updates)
+            return
+
+        beta1, beta2 = group['betas']
+        scaled_grads = torch._foreach_mul(grads, group['weight_decay'])
+        torch._foreach_lerp_(state['momentum'], scaled_grads, weight=1.0 - beta1)
+
+        variances = torch._foreach_sqrt(state['s'])
+        torch._foreach_mul_(variances, torch._foreach_abs(grads))
+        torch._foreach_add_(variances, group['weight_decay'] + self.damping)
+        torch._foreach_pow_(variances, 2)
+        torch._foreach_lerp_(state['s'], variances, weight=1.0 - beta2)
+
+        foreach_add_(params, torch._foreach_div(state['momentum'], state['s']), alpha=-group['lr'])
+
     @torch.no_grad()
     def first_step(self):
         for group in self.param_groups:
             self.init_group(group)
             group['step'] += 1
+
+            if self._can_use_foreach(group):
+                params, _, state = self.collect_trainable_params(group, self.state, ['s'])
+                noises = [torch.normal(0.0, 1 / (self.num_data * value)) for value in state['s']]
+                for batch in group_tensors_by_device_and_dtype(params, noises):
+                    torch._foreach_add_(batch['params'], batch['grads'])
+
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -606,6 +654,16 @@ class BSAM(BaseOptimizer):
     @torch.no_grad()
     def second_step(self):
         for group in self.param_groups:
+            if self._can_use_foreach(group):
+                params, grads, state = self.collect_trainable_params(group, self.state, ['s'])
+                for p, grad in zip(params, grads):
+                    self.state[p]['noisy_gradient'] = grad.clone()
+
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch, True)
+
+                continue
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -621,6 +679,13 @@ class BSAM(BaseOptimizer):
     @torch.no_grad()
     def third_step(self):
         for group in self.param_groups:
+            if self._can_use_foreach(group):
+                params, grads, state = self.collect_trainable_params(group, self.state, ['s', 'momentum'])
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch, False)
+
+                continue
+
             beta1, beta2 = group['betas']
             weight_decay = group['weight_decay']
             for p in group['params']:
