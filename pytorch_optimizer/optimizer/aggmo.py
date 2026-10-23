@@ -18,7 +18,7 @@ class AggMo(BaseOptimizer):
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         maximize: Maximize the objective instead of minimizing it.
         foreach: Use batched tensor operations. `None` enables them for supported parameter groups.
-            CPU float16 and bfloat16 parameters use per-parameter updates. Defaults to `False`.
+            CPU float16 and bfloat16 parameters use per-parameter updates.
 
     """
 
@@ -33,7 +33,7 @@ class AggMo(BaseOptimizer):
         weight_decouple: bool = False,
         fixed_decay: bool = False,
         maximize: bool = False,
-        foreach: bool | None = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)

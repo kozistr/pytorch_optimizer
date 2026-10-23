@@ -51,6 +51,7 @@ COPT_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('ademamix', {'lr': 1e0}, 2),
     ('laprop', {'lr': 1e0}, 2),
     ('adamp', {'lr': 5e-1, 'nesterov': True}, 5),
+    ('adamp', {'lr': 5e-1, 'nesterov': True, 'foreach': True, 'weight_decay': 1e-3, 'weight_decouple': False}, 5),
     ('adopt', {'lr': 1e1}, 3),
     ('adashift', {'lr': 1e0, 'keep_num': 1}, 5),
     ('adashift', {'lr': 1e0, 'keep_num': 1, 'foreach': False}, 5),
