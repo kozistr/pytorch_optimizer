@@ -55,7 +55,7 @@ COPT_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('adopt', {'lr': 1e1}, 3),
     ('adashift', {'lr': 1e0, 'keep_num': 1}, 5),
     ('adashift', {'lr': 1e0, 'keep_num': 1, 'foreach': False}, 5),
-    ('mars', {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3}, 3),
+    ('mars', {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3, 'foreach': False}, 3),
     ('mars', {'lr': 5e-1, 'lr_1d': 5e-1, 'weight_decay': 1e-3, 'optimize_1d': True}, 3),
     (
         'muon',
