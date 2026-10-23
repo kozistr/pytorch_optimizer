@@ -7,6 +7,7 @@ from torch import nn
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_addcdiv_, group_tensors_by_device_and_dtype
 
 GROUP_SIZE: int = 32
 VALID_MASTER_WEIGHT_BITS: tuple[int | None, ...] = (None, 24, 32)
@@ -180,13 +181,16 @@ class FlashAdamW(BaseOptimizer):
         check_numerics: Raise if low precision parameter updates are unlikely to alter the master weight.
         fused: Placeholder for FlashOptim's Triton fused path. Currently unsupported in this portable backend.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch unquantized FP32 updates with ordinary weight decay. `None` enables batching when supported.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 1e-2,
         decouple_lr: bool = False,
@@ -197,6 +201,7 @@ class FlashAdamW(BaseOptimizer):
         fused: bool = False,
         maximize: bool = False,
         eps: float = 1e-8,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -223,6 +228,7 @@ class FlashAdamW(BaseOptimizer):
             'weight_decay': weight_decay,
             'decouple_lr': decouple_lr,
             'quantize': quantize,
+            'foreach': foreach,
             'master_byte_width': self.master_byte_width,
             **kwargs,
         }
@@ -300,6 +306,32 @@ class FlashAdamW(BaseOptimizer):
             for p in group['params']:
                 self.param_absmax[id(p)] = float(p.detach().abs().max().item()) if p.numel() > 0 else 0.0
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        bias_correction1: float | torch.Tensor,
+        bias_correction2: float | torch.Tensor,
+    ) -> None:
+        beta1, beta2 = group['betas']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        self.apply_weight_decay_foreach(params, grads, group['lr'], group['weight_decay'], True, False)
+
+        torch._foreach_lerp_(state['exp_avg'], grads, weight=1.0 - beta1)
+        torch._foreach_mul_(state['exp_avg_sq'], beta2)
+        torch._foreach_addcmul_(state['exp_avg_sq'], grads, grads, value=1.0 - beta2)
+
+        de_noms = torch._foreach_div(state['exp_avg_sq'], bias_correction2)
+        torch._foreach_sqrt_(de_noms)
+        torch._foreach_add_(de_noms, group['eps'])
+        numerators = torch._foreach_div(state['exp_avg'], bias_correction1)
+        foreach_addcdiv_(params, numerators, de_noms, value=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -321,8 +353,37 @@ class FlashAdamW(BaseOptimizer):
                 self.validate_positive(group['initial_lr'], 'initial_lr')
                 weight_decay /= group['initial_lr']
 
+            batched_params: set[torch.Tensor] = set()
+            if (
+                not group['quantize']
+                and not group['decouple_lr']
+                and self.can_use_foreach(group, group.get('foreach'))
+            ):
+                update_group = {
+                    **group,
+                    'params': [
+                        p
+                        for p in group['params']
+                        if p.grad is not None
+                        and p.dtype == torch.float32
+                        and 'exp_avg' in self.state[p]
+                        and 'exp_avg_sq' in self.state[p]
+                        and self.state[p]['exp_avg'].dtype == torch.float32
+                        and self.state[p]['exp_avg_sq'].dtype == torch.float32
+                    ],
+                }
+                params, grads, state = self.collect_trainable_params(
+                    update_group, self.state, ['exp_avg', 'exp_avg_sq']
+                )
+                batched_params.update(params)
+
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        group, batch['params'], batch['grads'], batch, bias_correction1, bias_correction2
+                    )
+
             for p in group['params']:
-                if p.grad is None:
+                if p.grad is None or p in batched_params:
                     continue
 
                 state = self.state[p]
