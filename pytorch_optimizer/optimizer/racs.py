@@ -5,6 +5,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class RACS(BaseOptimizer):
@@ -21,13 +22,16 @@ class RACS(BaseOptimizer):
         fixed_decay: Apply decoupled weight decay without scaling it by the learning rate.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch tensor updates. `None` enables batching when supported. Defaults to `False`.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         beta: float = 0.9,
         alpha: float = 0.05,
         gamma: float = 1.01,
@@ -36,6 +40,7 @@ class RACS(BaseOptimizer):
         fixed_decay: bool = False,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = False,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -56,6 +61,7 @@ class RACS(BaseOptimizer):
             'weight_decouple': weight_decouple,
             'fixed_decay': fixed_decay,
             'eps': eps,
+            'foreach': foreach,
         }
 
         super().__init__(params, defaults)
@@ -67,6 +73,65 @@ class RACS(BaseOptimizer):
         if 'step' not in group:
             group['step'] = 0
 
+        for p in group['params']:
+            if p.grad is None:
+                continue
+
+            grad = p.grad
+            if grad.is_sparse:
+                raise NoSparseGradientError(str(self))
+
+            if torch.is_complex(p):
+                raise NoComplexParameterError(str(self))
+
+            state = self.state[p]
+
+            if 's' not in state:
+                if grad.ndim < 2:
+                    grad = grad.reshape(len(grad), 1)
+                elif grad.ndim > 2:
+                    grad = grad.reshape(len(grad), -1)
+
+                state['s'] = torch.zeros(grad.size(0), dtype=grad.dtype, device=grad.device)
+                state['q'] = torch.ones(grad.size(1), dtype=grad.dtype, device=grad.device)
+                state['theta'] = torch.zeros((), dtype=grad.dtype, device=grad.device)
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        initialized: list[bool],
+    ) -> None:
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        grads = [grad.reshape(grad.size(0), -1) for grad in grads]
+
+        self.apply_weight_decay_foreach(
+            params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+
+        squares = torch._foreach_pow(grads, 2)
+        torch._foreach_lerp_(state['s'], [value.mean(dim=1) for value in squares], weight=1.0 - group['beta'])
+        torch._foreach_lerp_(state['q'], [value.mean(dim=0) for value in squares], weight=1.0 - group['beta'])
+
+        for p, grad, s, q, theta, has_state in zip(params, grads, state['s'], state['q'], state['theta'], initialized):
+            s_sq = s.add(group['eps']).sqrt_().unsqueeze(1)
+            q_sq = q.add(group['eps']).sqrt_().unsqueeze(0)
+
+            grad_hat = grad / (s_sq * q_sq)
+            grad_hat_norm = torch.norm(grad_hat)
+            threshold = (
+                group['gamma'] / (grad_hat_norm / (theta + group['eps'])).clamp_min(group['gamma'])
+                if has_state
+                else 1.0
+            )
+
+            theta.copy_(grad_hat_norm * threshold)
+            foreach_add_([p], [grad_hat.view_as(p)], alpha=-group['lr'] * group['alpha'] * threshold)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -75,22 +140,32 @@ class RACS(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            new_params = {p for p in group['params'] if p.grad is not None and 's' not in self.state.get(p, {})}
+
             self.init_group(group)
             group['step'] += 1
 
             beta = group['beta']
+
+            if self.can_use_foreach(group, group.get('foreach')):
+                params, grads, state = self.collect_trainable_params(group, self.state, ['s', 'q', 'theta'])
+
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        group,
+                        batch['params'],
+                        batch['grads'],
+                        batch,
+                        [p not in new_params for p in batch['params']],
+                    )
+
+                continue
 
             for p in group['params']:
                 if p.grad is None:
                     continue
 
                 grad = p.grad
-                if grad.is_sparse:
-                    raise NoSparseGradientError(str(self))
-
-                if torch.is_complex(p):
-                    raise NoComplexParameterError(str(self))
-
                 state = self.state[p]
 
                 self.maximize_gradient(grad, maximize=self.maximize)
@@ -100,11 +175,7 @@ class RACS(BaseOptimizer):
                 elif grad.ndim > 2:
                     grad = grad.reshape(len(grad), -1)
 
-                has_state = 's' in state
-                if not has_state:
-                    state['s'] = torch.zeros(grad.size(0), dtype=grad.dtype, device=grad.device)
-                    state['q'] = torch.ones(grad.size(1), dtype=grad.dtype, device=grad.device)
-                    state['theta'] = torch.zeros((), dtype=grad.dtype, device=grad.device)
+                has_state = p not in new_params
 
                 self.apply_weight_decay(
                     p=p,
@@ -256,9 +327,7 @@ class Alice(BaseOptimizer):
 
         sigma = u.T @ grad
 
-        p.lerp_(grad.pow(2).sum(dim=0) - sigma.pow(2).sum(dim=0), weight=1.0 - decay_rate).clamp_min_(
-            1e-8
-        )
+        p.lerp_(grad.pow(2).sum(dim=0) - sigma.pow(2).sum(dim=0), weight=1.0 - decay_rate).clamp_min_(1e-8)
 
         c_t = math.sqrt(m - rank) * (grad - u @ sigma) / p.sqrt() if m >= rank else torch.zeros_like(grad)
 

@@ -78,7 +78,7 @@ class Muon(MuonBase):
         adamw_wd: float = 0.0,
         adamw_eps: float = 1e-10,
         maximize: bool = False,
-        foreach: bool | None = False,
+        foreach: bool | None = None,
         ns_method: Literal['newton_schulz', 'gram_newton_schulz'] = 'newton_schulz',
         ns_reset_steps: tuple[int, ...] = (2,),
         **kwargs,

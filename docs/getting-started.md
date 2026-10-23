@@ -73,12 +73,13 @@ Check the [optimizer reference](optimizer.md) for options and arguments specific
 
 Set `compile=True` to let PyTorch optimize and automatically fuse optimizer updates on CPU or GPU.
 Optimizers with dedicated compiled foreach updates include AccSGD, AdaBound, AdaDelta, AdEMAMix, AdaFactor,
-AdaGC, AdaHessian, Adai, AdaMax, AdaMod, AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC, AdamG,
-AdamP, AdamS, AdamWSN, AggMo, Aida, AliG, Amos, Ano, APOLLO, ASGD, AvaGrad, BCOS, CAME, Conda, DAdaptAdam,
-DAdaptLion, DAdaptSGD, DiffGrad, DualAdam, EXAdam, FAdam, Fira, FOCUS, Fromage, FTRL, GaLore, Gravity,
-GrokFastAdamW, Kate, LaProp, Lion, MADGRAD, MARS, MSVAG, Muon, Nero, NovoGrad, PAdam, PID, PNM, QHAdam, RAdam,
-Ranger, Ranger21, ROSE, ScheduleFreeAdamW, ScheduleFreeRAdam, ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM,
-SignSGD, SimplifiedAdEMAMix, SophiaH, StableAdamW, StableSPAM, TAM, Tiger, VSGD, and Yogi. Native
+AdaGO, AdaGC, AdaHessian, Adai, AdaMax, AdaMod, AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC,
+AdamG, AdamP, AdamS, AdamWSN, AggMo, Aida, AliG, Amos, Ano, APOLLO, ASGD, AvaGrad, BCOS, CAME, Conda,
+DAdaptAdam, DAdaptLion, DAdaptSGD, DiffGrad, DualAdam, EXAdam, FAdam, Fira, FOCUS, Fromage, FTRL, GaLore,
+Gravity, GrokFastAdamW, Kate, LaProp, Lion, MADGRAD, MARS, MSVAG, Muon, MuonClip, Nero, NorMuon, NovoGrad,
+PAdam, PID, PNM, QHAdam, RACS, RAdam, Ranger, Ranger21, ROSE, ScheduleFreeAdamW, ScheduleFreeRAdam,
+ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, StableAdamW, StableSPAM, TAM,
+Tiger, VSGD, and Yogi. Native
 PyTorch AdamW is also tested:
 
 ```python

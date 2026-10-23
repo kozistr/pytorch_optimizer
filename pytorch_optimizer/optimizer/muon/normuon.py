@@ -88,7 +88,7 @@ class NorMuon(MuonBase):
         adamw_eps: float = 1e-10,
         eps: float = 1e-10,
         maximize: bool = False,
-        foreach: bool | None = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)

@@ -95,12 +95,13 @@ optimizer = create_optimizer(model, 'laprop', lr=1e-3, compile=True)
 ```
 
 Optimizers with a dedicated compiled foreach path include AccSGD, AdaBound, AdaDelta, AdEMAMix, AdaFactor,
-AdaGC, AdaHessian, Adai, AdaMax, AdaMod, AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC, AdamG,
-AdamP, AdamS, AdamWSN, AggMo, Aida, AliG, Amos, Ano, APOLLO, ASGD, AvaGrad, BCOS, CAME, Conda, DAdaptAdam,
-DAdaptLion, DAdaptSGD, DiffGrad, DualAdam, EXAdam, FAdam, Fira, FOCUS, Fromage, FTRL, GaLore, Gravity,
-GrokFastAdamW, Kate, LaProp, Lion, MADGRAD, MARS, MSVAG, Muon, Nero, NovoGrad, PAdam, PID, PNM, QHAdam, RAdam,
-Ranger, Ranger21, ROSE, ScheduleFreeAdamW, ScheduleFreeRAdam, ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM,
-SignSGD, SimplifiedAdEMAMix, SophiaH, StableAdamW, StableSPAM, TAM, Tiger, VSGD, and Yogi. These paths
+AdaGO, AdaGC, AdaHessian, Adai, AdaMax, AdaMod, AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC,
+AdamG, AdamP, AdamS, AdamWSN, AggMo, Aida, AliG, Amos, Ano, APOLLO, ASGD, AvaGrad, BCOS, CAME, Conda,
+DAdaptAdam, DAdaptLion, DAdaptSGD, DiffGrad, DualAdam, EXAdam, FAdam, Fira, FOCUS, Fromage, FTRL, GaLore,
+Gravity, GrokFastAdamW, Kate, LaProp, Lion, MADGRAD, MARS, MSVAG, Muon, MuonClip, Nero, NorMuon, NovoGrad,
+PAdam, PID, PNM, QHAdam, RACS, RAdam, Ranger, Ranger21, ROSE, ScheduleFreeAdamW, ScheduleFreeRAdam,
+ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, StableAdamW, StableSPAM, TAM,
+Tiger, VSGD, and Yogi. These paths
 keep state initialization and step counters eager and pass learning rates to compiled updates as tensors. Native
 PyTorch AdamW is also tested. Use `compile=False` (the default) for eager execution.
 
