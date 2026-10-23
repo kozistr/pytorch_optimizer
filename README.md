@@ -101,7 +101,7 @@ DAdaptAdam, DAdaptLion, DAdaptSGD, DiffGrad, DualAdam, EmoFact, EmoLynx, EmoNavi
 FOCUS, Fromage, FTRL, GaLore,
 Gravity, GrokFastAdamW, Kate, LaProp, Lion, MADGRAD, MARS, MSVAG, Muon, MuonClip, Nero, NorMuon, NovoGrad,
 PAdam, PID, PNM, QHAdam, RACS, RAdam, Ranger, Ranger21, ROSE, SaRA, ScheduleFreeAdamW, ScheduleFreeRAdam,
-ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, StableAdamW, StableSPAM, TAM,
+ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, SPlus, StableAdamW, StableSPAM, TAM,
 Tiger, VSGD, and Yogi. These paths
 keep state initialization and step counters eager and pass learning rates to compiled updates as tensors. Native
 PyTorch AdamW is also tested. Use `compile=False` (the default) for eager execution.
@@ -109,6 +109,7 @@ PyTorch AdamW is also tested. Use `compile=False` (the default) for eager execut
 APOLLO, Conda, Fira, and GaLore support this option for unprojected parameters.
 FlashAdamW supports it for unquantized FP32 parameters with `decouple_lr=False`.
 EmoNavi, EmoLynx, and EmoFact keep FP16 and BF16 updates eager.
+SPlus compiles nonmatrix updates and keeps matrix preconditioning eager.
 
 The library selects the batched update path automatically for supported optimizers.
 The compiler chooses which operations to fuse; no separate fusion setting is required.

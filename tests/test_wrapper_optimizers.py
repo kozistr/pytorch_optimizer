@@ -411,8 +411,8 @@ class TestWSAM:
 
 
 class TestBSAM:
-    @pytest.mark.parametrize('adaptive', [True, False])
-    def test_bsam_optimizer(self, adaptive, environment, monkeypatch):
+    @pytest.mark.parametrize(('adaptive', 'foreach'), [(False, False), (False, True), (True, True)])
+    def test_bsam_optimizer(self, adaptive, foreach, environment, monkeypatch):
         x_data, y_data = environment
         model, loss_fn = build_model(device=x_data.device)
 
@@ -424,7 +424,9 @@ class TestBSAM:
         # Use the same noise samples when comparing CPU and CUDA convergence.
         monkeypatch.setattr(torch, 'normal', sample_noise)
 
-        optimizer = BSAM(model.parameters(), lr=2e-3, num_data=len(x_data), rho=1e-5, adaptive=adaptive)
+        optimizer = BSAM(
+            model.parameters(), lr=2e-3, num_data=len(x_data), rho=1e-5, adaptive=adaptive, foreach=foreach
+        )
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
         trainer.run_with_closure(iterations=20, threshold=1.0)

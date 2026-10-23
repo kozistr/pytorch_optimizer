@@ -384,7 +384,7 @@ class AdaLOMO(BaseOptimizer):
                     p_fp32 = p.to(torch.float32)
                     p_rms = torch.norm(p_fp32, 2.0) / math.sqrt(p.numel())
 
-                    lr = self.lr * max(self.eps2, p_rms)
+                    lr = p_rms.clamp_min_(self.eps2).mul_(self.lr)
 
                     self.apply_weight_decay(
                         p_fp32,
@@ -395,7 +395,7 @@ class AdaLOMO(BaseOptimizer):
                         fixed_decay=False,
                     )
 
-                    p_fp32.add_(update, alpha=-lr)
+                    p_fp32.sub_(update.mul_(lr))
                     p.copy_(p_fp32)
 
             return x

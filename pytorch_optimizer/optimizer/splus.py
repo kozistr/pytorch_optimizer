@@ -11,6 +11,7 @@ from pytorch_optimizer.base.type import (
     ParamGroup,
     ParamsT,
 )
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
 
 
 class SPlus(BaseOptimizer):
@@ -29,13 +30,16 @@ class SPlus(BaseOptimizer):
         max_dim: Largest tensor dimension to include in matrix preconditioning.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch nonmatrix updates. `None` enables batching for supported groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-1,
+        lr: float | torch.Tensor = 1e-1,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 1e-2,
         weight_decouple: bool = True,
@@ -46,6 +50,7 @@ class SPlus(BaseOptimizer):
         max_dim: int = 10000,
         eps: float = 1e-30,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -70,6 +75,7 @@ class SPlus(BaseOptimizer):
             'nonstandard_constant': nonstandard_constant,
             'eps': eps,
             'train_mode': True,
+            'foreach': foreach,
         }
 
         super().__init__(params, defaults)
@@ -128,13 +134,41 @@ class SPlus(BaseOptimizer):
                     ]
 
     @staticmethod
-    def get_scaled_lr(shape: tuple[int, int], lr: float, nonstandard_constant: float, max_dim: int = 10000) -> float:
+    def get_scaled_lr(
+        shape: tuple[int, int], lr: float | torch.Tensor, nonstandard_constant: float, max_dim: int = 10000
+    ) -> float | torch.Tensor:
         scale: float = (
             nonstandard_constant
             if len(shape) != 2 or shape[0] > max_dim or shape[1] > max_dim
             else 2.0 / (shape[0] + shape[1])
         )
         return lr * scale
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+    ) -> None:
+        scaled_lr = group['lr'] * group['nonstandard_constant']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        if not group['weight_decouple']:
+            self.apply_weight_decay_foreach(
+                params, grads, scaled_lr, group['weight_decay'], False, group['fixed_decay']
+            )
+
+        torch._foreach_lerp_(state['momentum'], grads, weight=1.0 - group['betas'][0])
+        foreach_add_(params, torch._foreach_sign(state['momentum']), alpha=-scaled_lr)
+        torch._foreach_lerp_(state['ema'], params, weight=1.0 - group['ema_rate'])
+
+        if group['weight_decouple']:
+            self.apply_weight_decay_foreach(
+                params, grads, scaled_lr, group['weight_decay'], True, group['fixed_decay']
+            )
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -149,8 +183,16 @@ class SPlus(BaseOptimizer):
 
             beta1, beta2 = group['betas']
 
+            batched_params: set[torch.Tensor] = set()
+            if self.can_use_foreach(group, group.get('foreach')):
+                update_group = {**group, 'params': [p for p in group['params'] if p.ndim != 2]}
+                params, grads, state = self.collect_trainable_params(update_group, self.state, ['momentum', 'ema'])
+                batched_params.update(params)
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(group, batch['params'], batch['grads'], batch)
+
             for p in group['params']:
-                if p.grad is None:
+                if p.grad is None or p in batched_params:
                     continue
 
                 grad = p.grad
@@ -159,7 +201,7 @@ class SPlus(BaseOptimizer):
 
                 state = self.state[p]
 
-                scaled_lr: float = self.get_scaled_lr(
+                scaled_lr: float | torch.Tensor = self.get_scaled_lr(
                     p.shape, group['lr'], group['nonstandard_constant'], group['max_dim']
                 )
 
