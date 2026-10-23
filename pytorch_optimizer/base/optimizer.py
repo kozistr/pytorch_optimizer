@@ -204,24 +204,6 @@ class BaseOptimizer(ABC, Optimizer):
             grad.add_(p, alpha=weight_decay)
 
     @staticmethod
-    def apply_cautious_weight_decay(
-        p: torch.Tensor,
-        update: torch.Tensor,
-        lr: float,
-        weight_decay: float,
-    ) -> None:
-        """Decay parameter entries whose signs agree with the update, in place.
-
-        Args:
-            p: Parameter tensor to apply weight decay to.
-            update: Update tensor.
-            lr: Learning rate to scale the update.
-            weight_decay: Weight decay coefficient (L2 penalty).
-
-        """
-        p.copy_(torch.where(update * p >= 0, p * (1.0 - weight_decay * lr), p))
-
-    @staticmethod
     def apply_ams_bound(
         ams_bound: bool,
         exp_avg_sq: torch.Tensor,

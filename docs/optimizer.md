@@ -440,10 +440,6 @@
     :docstring:
     :members:
 
-::: pytorch_optimizer.Ranger25
-    :docstring:
-    :members:
-
 ::: pytorch_optimizer.ROSE
     :docstring:
     :members:

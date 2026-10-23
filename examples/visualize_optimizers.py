@@ -352,8 +352,6 @@ def execute_steps(
 
     if optimizer_name == 'ranger21':
         optimizer_config['num_iterations'] = num_iters
-    elif optimizer_name == 'ranger25':
-        optimizer_config['orthograd'] = False
     elif optimizer_name == 'adashift':
         optimizer_config['keep_num'] = 1
     elif optimizer_name == 'alig':
