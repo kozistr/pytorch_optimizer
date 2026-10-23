@@ -53,7 +53,6 @@ from pytorch_optimizer.optimizer.diffgrad import DiffGrad
 from pytorch_optimizer.optimizer.dual_adam import DualAdam
 from pytorch_optimizer.optimizer.emonavi import EmoFact, EmoLynx, EmoNavi
 from pytorch_optimizer.optimizer.exadam import EXAdam
-from pytorch_optimizer.optimizer.experimental.ranger25 import Ranger25
 from pytorch_optimizer.optimizer.fadam import FAdam
 from pytorch_optimizer.optimizer.fira import Fira
 from pytorch_optimizer.optimizer.flash_adamw import FlashAdamW
@@ -251,7 +250,6 @@ __all__ = [
     'RMSprop',
     'Ranger',
     'Ranger21',
-    'Ranger25',
     'RotoGrad',
     'SCIONLight',
     'SGDSaI',
@@ -388,7 +386,6 @@ OPTIMIZER_LIST: list[OptimizerType] = [
     RAdam,
     Ranger,
     Ranger21,
-    Ranger25,
     ROSE,
     SCION,
     SCIONLight,
@@ -630,7 +627,7 @@ def create_optimizer(
         optimizer = OrthoGrad(optimizer, **kwargs)
 
     if use_lookahead:
-        if optimizer_name in ('ranger', 'ranger21', 'ranger25'):
+        if optimizer_name in ('ranger', 'ranger21'):
             warn(f'{optimizer} already has a Lookahead variant.', UserWarning, stacklevel=1)
         else:
             optimizer = Lookahead(
