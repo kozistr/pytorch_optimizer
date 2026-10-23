@@ -97,10 +97,10 @@ optimizer = create_optimizer(model, 'laprop', lr=1e-3, compile=True)
 Optimizers with a dedicated compiled foreach path include AccSGD, AdaBound, AdaDelta, AdEMAMix, AdaFactor,
 AdaGO, AdaGC, AdaHessian, Adai, AdaMax, AdaMod, AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC,
 AdamG, AdamP, AdamS, AdamWSN, AggMo, Aida, AliG, Amos, Ano, APOLLO, ASGD, AvaGrad, BCOS, CAME, Conda,
-DAdaptAdam, DAdaptLion, DAdaptSGD, DiffGrad, DualAdam, EmoFact, EmoLynx, EmoNavi, EXAdam, FAdam, Fira, FlashAdamW,
-FOCUS, Fromage, FTRL, GaLore,
+DAdaptAdaGrad, DAdaptAdam, DAdaptAdan, DAdaptLion, DAdaptSGD, DiffGrad, DualAdam, EmoFact, EmoLynx, EmoNavi,
+EXAdam, FAdam, Fira, FlashAdamW, FOCUS, Fromage, FTRL, GaLore,
 Gravity, GrokFastAdamW, Kate, LaProp, Lion, MADGRAD, MARS, MSVAG, Muon, MuonClip, Nero, NorMuon, NovoGrad,
-PAdam, PID, PNM, QHAdam, RACS, RAdam, Ranger, Ranger21, ROSE, SaRA, ScheduleFreeAdamW, ScheduleFreeRAdam,
+PAdam, PID, PNM, Prodigy, QHAdam, RACS, RAdam, Ranger, Ranger21, ROSE, SaRA, ScheduleFreeAdamW, ScheduleFreeRAdam,
 ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, SPlus, StableAdamW, StableSPAM, TAM,
 Tiger, VSGD, and Yogi. These paths
 keep state initialization and step counters eager and pass learning rates to compiled updates as tensors. Native

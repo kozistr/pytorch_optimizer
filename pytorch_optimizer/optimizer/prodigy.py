@@ -1,10 +1,18 @@
 import math
+from collections.abc import Callable
 
 import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import (
+    compile_foreach_step,
+    foreach_add_,
+    foreach_addcdiv_,
+    foreach_addcmul_,
+    group_tensors_by_device_and_dtype,
+)
 
 
 class Prodigy(BaseOptimizer):
@@ -28,8 +36,11 @@ class Prodigy(BaseOptimizer):
         eps: Term added to the denominator to improve numerical stability. when eps is None, use atan2 rather than
             epsilon and division for parameter updates.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Use batched tensor operations. `None` enables them for supported CUDA parameter groups.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
@@ -47,6 +58,7 @@ class Prodigy(BaseOptimizer):
         safeguard_warmup: bool = False,
         eps: float | None = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -55,6 +67,7 @@ class Prodigy(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
+        self._compiled_update_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
@@ -71,6 +84,7 @@ class Prodigy(BaseOptimizer):
             'bias_correction': bias_correction,
             'safeguard_warmup': safeguard_warmup,
             'step': 1,
+            'foreach': foreach,
             'eps': eps,
         }
 
@@ -102,8 +116,72 @@ class Prodigy(BaseOptimizer):
                 state['exp_avg'] = torch.zeros_like(p)
                 state['exp_avg_sq'] = torch.zeros_like(p)
 
+    def _can_use_foreach(self, group: ParamGroup) -> bool:
+        return self.can_use_foreach(group, group.get('foreach')) and (
+            group.get('foreach') is not None or any(p.is_cuda for p in group['params'] if p.grad is not None)
+        )
+
+    def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        super()._compile_foreach(compile_kwargs)
+        self._compiled_update_foreach = compile_foreach_step(self._apply_update_foreach, compile_kwargs)
+
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        d: float | torch.Tensor,
+        d_lr: float | torch.Tensor,
+        statistics: tuple[torch.Tensor, torch.Tensor],
+    ) -> None:
+        d_numerator, d_de_nom = statistics
+        beta1, beta2 = group['betas']
+        beta3, d0 = group['beta3'], group['d0']
+
+        if self.maximize:
+            torch._foreach_neg_(grads)
+
+        differences = torch._foreach_sub(state['p0'], params)
+        for grad, difference in zip(grads, differences):
+            value = torch.dot(grad.flatten(), difference.flatten())
+            foreach_add_([d_numerator], [value], alpha=(d / d0) * d_lr)
+
+        torch._foreach_mul_(state['exp_avg'], beta1)
+        foreach_add_(state['exp_avg'], grads, alpha=d * (1.0 - beta1))
+        torch._foreach_mul_(state['exp_avg_sq'], beta2)
+        foreach_addcmul_(state['exp_avg_sq'], grads, grads, value=d * d * (1.0 - beta2))
+
+        torch._foreach_mul_(state['s'], beta3)
+        foreach_add_(state['s'], grads, alpha=(d / d0) * (d if group['safeguard_warmup'] else d_lr))
+
+        for s in state['s']:
+            d_de_nom.add_(s.abs().sum())
+
+    def _apply_update_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        d: float | torch.Tensor,
+        d_lr: float | torch.Tensor,
+    ) -> None:
+        self.apply_weight_decay_foreach(
+            params, grads, d_lr, group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
+
+        de_noms = torch._foreach_sqrt(state['exp_avg_sq'])
+
+        if group['eps'] is not None:
+            torch._foreach_add_(de_noms, d * group['eps'])
+            foreach_addcdiv_(params, state['exp_avg'], de_noms, value=-d_lr)
+        else:
+            updates = [exp_avg.atan2(de_nom) for exp_avg, de_nom in zip(state['exp_avg'], de_noms)]
+            foreach_add_(params, updates, alpha=-d_lr)
+
     @torch.no_grad()
-    def step(self, closure: Closure = None) -> Loss:
+    def step(self, closure: Closure = None) -> Loss:  # noqa: PLR0915
         loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
@@ -136,6 +214,19 @@ class Prodigy(BaseOptimizer):
             self.init_group(group)
 
             group['step'] += 1
+
+            if self._can_use_foreach(group):
+                params, grads, state = self.collect_trainable_params(
+                    group, self.state, ['p0', 'exp_avg', 'exp_avg_sq', 's']
+                )
+
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        {**group, 'betas': (beta1, beta2), 'beta3': beta3, 'd0': d0},
+                        batch['params'], batch['grads'], batch, d, d_lr, (d_numerator, d_de_nom),
+                    )
+
+                continue
 
             for p in group['params']:
                 if p.grad is None:
@@ -175,6 +266,15 @@ class Prodigy(BaseOptimizer):
             group['d'] = d
             group['d_max'] = d_max
             group['d_hat'] = d_hat
+
+            if self._can_use_foreach(group):
+                params, grads, state = self.collect_trainable_params(group, self.state, ['exp_avg', 'exp_avg_sq'])
+
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    update = self._compiled_update_foreach or self._apply_update_foreach
+                    update(group, batch['params'], batch['grads'], batch, d, d_lr)
+
+                continue
 
             for p in group['params']:
                 if p.grad is None:

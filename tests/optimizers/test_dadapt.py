@@ -24,6 +24,27 @@ class TestDadapt:
 
         torch.testing.assert_close(parameter, torch.full_like(parameter, expected))
 
+    @pytest.mark.parametrize('dtype', [torch.bfloat16, torch.float16])
+    def test_adan_low_precision_decay(self, dtype):
+        params = [make_parameter((2,), dtype=dtype) for _ in range(2)]
+        with torch.no_grad():
+            for param in params:
+                param.copy_(torch.tensor([0.3, 0.6], dtype=dtype))
+
+        optimizers = [
+            build_optimizer(
+                'dadaptadan', [param], lr=0.3, d0=0.1, eps=1e-6,
+                weight_decay=0.1, weight_decouple=True, foreach=foreach,
+            )
+            for param, foreach in zip(params, (False, True))
+        ]
+        for _ in range(3):
+            for param, optimizer in zip(params, optimizers):
+                param.grad = torch.full_like(param, 0.5)
+                optimizer.step()
+
+        torch.testing.assert_close(params[0], params[1], rtol=0.0, atol=0.0)
+
     @pytest.mark.parametrize(
         'optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan', 'DAdaptLion', 'Prodigy']
     )
