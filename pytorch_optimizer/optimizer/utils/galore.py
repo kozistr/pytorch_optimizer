@@ -3,7 +3,43 @@ from typing import Literal
 
 import torch
 
+from pytorch_optimizer.base.optimizer import BaseOptimizer
+from pytorch_optimizer.base.type import ParamGroup
+from pytorch_optimizer.optimizer.utils.foreach import foreach_add_
+
 PROJECTION_TYPE = Literal['std', 'reverse_std', 'right', 'left', 'full', 'random']
+
+
+def step_adam_foreach(
+    group: ParamGroup,
+    params: list[torch.Tensor],
+    grads: list[torch.Tensor],
+    exp_avgs: list[torch.Tensor],
+    exp_avg_sqs: list[torch.Tensor],
+    step_size: float | torch.Tensor,
+    decay_lr: float | torch.Tensor,
+    maximize: bool,
+    weight_decouple: bool = True,
+    fixed_decay: bool = False,
+) -> None:
+    """Update unprojected Adam moments and parameters before applying weight decay."""
+    beta1, beta2 = group['betas']
+
+    if maximize:
+        torch._foreach_neg_(grads)
+
+    torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
+    torch._foreach_mul_(exp_avg_sqs, beta2)
+    torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
+
+    de_noms = torch._foreach_sqrt(exp_avg_sqs)
+    torch._foreach_add_(de_noms, group['eps'])
+    updates = torch._foreach_div(exp_avgs, de_noms)
+    foreach_add_(params, updates, alpha=-step_size)
+
+    BaseOptimizer.apply_weight_decay_foreach(
+        params, grads, decay_lr, group['weight_decay'], weight_decouple, fixed_decay
+    )
 
 
 class GaLoreProjector:

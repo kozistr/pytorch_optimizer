@@ -5,7 +5,8 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.galore import PROJECTION_TYPE, GaLoreProjector
+from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
+from pytorch_optimizer.optimizer.utils.galore import PROJECTION_TYPE, GaLoreProjector, step_adam_foreach
 
 
 class Conda(BaseOptimizer):
@@ -21,13 +22,17 @@ class Conda(BaseOptimizer):
         projection_type: The type of the projection.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch unprojected parameter updates. `None` enables batching for supported groups.
 
     """
+
+    _supports_compiled_foreach = True
+    _step_foreach = staticmethod(step_adam_foreach)
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         weight_decay: float = 0.0,
         update_proj_gap: int = 2000,
@@ -35,6 +40,7 @@ class Conda(BaseOptimizer):
         projection_type: PROJECTION_TYPE = 'std',
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -53,8 +59,10 @@ class Conda(BaseOptimizer):
             'scale': scale,
             'projection_type': projection_type,
             'eps': eps,
+            'foreach': foreach,
             **kwargs,
         }
+
         super().__init__(params, defaults)
 
     def __str__(self) -> str:
@@ -108,8 +116,28 @@ class Conda(BaseOptimizer):
 
             step_size: float = group['lr'] * bias_correction2_sq / bias_correction1
 
+            use_foreach = self.can_use_foreach(group, group.get('foreach'))
+
+            if use_foreach:
+                dense_group = {**group, 'params': [p for p in group['params'] if p.dim() != 2]}
+                params, grads, state = self.collect_trainable_params(
+                    dense_group, self.state, ['exp_avg', 'exp_avg_sq']
+                )
+
+                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                    self._step_foreach(
+                        group,
+                        batch['params'],
+                        batch['grads'],
+                        batch['exp_avg'],
+                        batch['exp_avg_sq'],
+                        step_size,
+                        group['lr'],
+                        self.maximize,
+                    )
+
             for p in group['params']:
-                if p.grad is None:
+                if p.grad is None or (use_foreach and p.dim() != 2):
                     continue
 
                 grad = p.grad

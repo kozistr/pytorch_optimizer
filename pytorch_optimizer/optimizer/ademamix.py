@@ -61,7 +61,7 @@ class AdEMAMix(BaseOptimizer):
 
         self.maximize = maximize
         self.foreach = foreach
-        self._compiled_update_foreach: Callable | None = None
+        self._compiled_step_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
@@ -82,7 +82,7 @@ class AdEMAMix(BaseOptimizer):
         return 'AdEMAMix'
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
-        self._compiled_update_foreach = compile_foreach_step(self._apply_update_foreach, compile_kwargs)
+        self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -135,7 +135,7 @@ class AdEMAMix(BaseOptimizer):
         bias_correction1: float,
         bias_correction2_sq: float,
         alpha_t: float,
-        beta3_t: float,
+        beta3_t: float | torch.Tensor,
     ) -> None:
         beta1, beta2, _ = group['betas']
 
@@ -149,12 +149,9 @@ class AdEMAMix(BaseOptimizer):
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
         torch._foreach_mul_(exp_avg_sqs, beta2)
         torch._foreach_addcmul_(exp_avg_sqs, grads, grads, value=1.0 - beta2)
-        torch._foreach_lerp_(exp_avg_slows, grads, weight=1.0 - beta3_t)
+        foreach_lerp_(exp_avg_slows, grads, weight=1.0 - beta3_t)
 
-        update = self._apply_update_foreach
-        if self._compiled_update_foreach is not None and params[0].dtype not in (torch.float16, torch.bfloat16):
-            update = self._compiled_update_foreach
-        update(
+        self._apply_update_foreach(
             group, params, grads, exp_avgs, exp_avg_sqs, exp_avg_slows, bias_correction1, bias_correction2_sq, alpha_t
         )
 
@@ -216,8 +213,16 @@ class AdEMAMix(BaseOptimizer):
                 params, grads, state_dict = self.collect_trainable_params(
                     group, self.state, state_keys=['exp_avg', 'exp_avg_sq', 'exp_avg_slow']
                 )
+
                 for batch in group_tensors_by_device_and_dtype(params, grads, state_dict):
-                    self._step_foreach(
+                    update = self._step_foreach
+                    if self._compiled_step_foreach is not None and batch['params'][0].dtype not in (
+                        torch.float16,
+                        torch.bfloat16,
+                    ):
+                        update = self._compiled_step_foreach
+
+                    update(
                         group,
                         batch['params'],
                         batch['grads'],
@@ -229,6 +234,7 @@ class AdEMAMix(BaseOptimizer):
                         alpha_t,
                         beta3_t,
                     )
+
                 continue
 
             for p in group['params']:

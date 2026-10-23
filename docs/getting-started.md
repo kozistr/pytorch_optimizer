@@ -72,17 +72,20 @@ Check the [optimizer reference](optimizer.md) for options and arguments specific
 ## Compile optimizer steps
 
 Set `compile=True` to let PyTorch optimize and automatically fuse optimizer updates on CPU or GPU.
-Optimizers with dedicated compiled foreach updates include AccSGD, AdaBound, AdaDelta, AdaGC, AdaHessian, Adai,
-AdaMax, AdaMod, AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC, AdamG, AdamP, AdamS, AdamWSN, AggMo,
-Aida, AliG, Amos, Ano, ASGD, AvaGrad, BCOS, CAME, DAdaptAdam, DAdaptLion, DAdaptSGD, DiffGrad, DualAdam, EXAdam,
-FAdam, FOCUS, Fromage, Gravity, GrokFastAdamW, Kate, LaProp, Lion, MADGRAD, MARS, MSVAG, Muon, Nero, NovoGrad,
-PAdam, PID, PNM, QHAdam, RAdam, Ranger, ROSE, ScheduleFreeAdamW, ScheduleFreeRAdam, ScheduleFreeSGD, SGDP, SGDSaI,
-SGDW, SRMM, SignSGD, SimplifiedAdEMAMix, SophiaH, StableAdamW, StableSPAM, TAM, Tiger, VSGD, and Yogi. Native
+Optimizers with dedicated compiled foreach updates include AccSGD, AdaBound, AdaDelta, AdEMAMix, AdaFactor,
+AdaGC, AdaHessian, Adai, AdaMax, AdaMod, AdaMuon, AdaNorm, AdaPNM, AdaShift, AdaSmooth, AdaTAM, AdamC, AdamG,
+AdamP, AdamS, AdamWSN, AggMo, Aida, AliG, Amos, Ano, APOLLO, ASGD, AvaGrad, BCOS, CAME, Conda, DAdaptAdam,
+DAdaptLion, DAdaptSGD, DiffGrad, DualAdam, EXAdam, FAdam, Fira, FOCUS, Fromage, FTRL, GaLore, Gravity,
+GrokFastAdamW, Kate, LaProp, Lion, MADGRAD, MARS, MSVAG, Muon, Nero, NovoGrad, PAdam, PID, PNM, QHAdam, RAdam,
+Ranger, Ranger21, ROSE, ScheduleFreeAdamW, ScheduleFreeRAdam, ScheduleFreeSGD, SGDP, SGDSaI, SGDW, SRMM,
+SignSGD, SimplifiedAdEMAMix, SophiaH, StableAdamW, StableSPAM, TAM, Tiger, VSGD, and Yogi. Native
 PyTorch AdamW is also tested:
 
 ```python
 optimizer = create_optimizer(model, 'laprop', lr=1e-3, compile=True)
 ```
+
+APOLLO, Conda, Fira, and GaLore support this option for unprojected parameters.
 
 The factory selects the batched update path automatically for supported optimizers.
 Matrix updates can batch compatible flattened shapes, including convolution weights and tall/wide pairs,
