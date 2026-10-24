@@ -360,7 +360,7 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('muon', {'lr': 5e-1, 'weight_decay': 1e-3, 'use_adjusted_lr': True, 'adamw_lr': 5e-1, 'adamw_wd': 1e-2}, 5),
     ('muonclip', {'lr': 5e-1, 'weight_decay': 1e-3, 'adamw_lr': 5e-1, 'adamw_wd': 1e-2}, 5),
     ('adamuon', {'lr': 5e-1, 'weight_decay': 1e-3, 'adamw_lr': 5e-1, 'adamw_wd': 1e-2}, 5),
-    ('adamuon', {'lr': 5e-1, 'weight_decay': 1e-3, 'use_adjusted_lr': True, 'adamw_lr': 5e-1, 'adamw_wd': 1e-2}, 5),
+    ('adamuon', {'lr': 5e-1, 'weight_decay': 1e-3, 'use_adjusted_lr': False, 'adamw_lr': 5e-1, 'adamw_wd': 1e-2}, 5),
     ('normuon', {'lr': 5e-1, 'weight_decay': 1e-3, 'adamw_lr': 5e-1, 'adamw_wd': 1e-2, 'nesterov': True}, 5),
     (
         'normuon',

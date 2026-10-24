@@ -25,7 +25,7 @@ class AdaMuon(MuonBase):
     Supports FSDP2 DTensor parameters with eager optimizer steps.
 
     The default shape scaling gives the adaptive update an RMS of 0.2 before multiplication
-    by the learning rate. `use_adjusted_lr=True` selects Moonlight scaling instead.
+    by the learning rate. `use_adjusted_lr=False` selects Keller Jordan's scaling instead.
 
     Args:
         params: Parameter group dictionaries with a `use_muon` flag for each group.
@@ -78,7 +78,7 @@ class AdaMuon(MuonBase):
         weight_decouple: bool = True,
         ns_steps: int = 5,
         ns_coeffs: NewtonSchulzWeights = 'original',
-        use_adjusted_lr: bool = False,
+        use_adjusted_lr: bool = True,
         adamw_lr: float = 3e-4,
         adamw_betas: Betas = (0.9, 0.999),
         adamw_wd: float = 0.0,

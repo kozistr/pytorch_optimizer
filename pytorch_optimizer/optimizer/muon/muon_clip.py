@@ -31,6 +31,7 @@ class MuonClip(Muon):
         ns_coeffs: Newton-Schulz coefficients or preset name.
         ns_method: Orthogonalization method, `newton_schulz` or `gram_newton_schulz`.
         ns_reset_steps: Iteration counts after which to restart Gram Newton-Schulz.
+        use_adjusted_lr: Use the Moonlight shape adjustment, enabled by default.
         adamw_lr: Learning rate for AdamW groups.
         adamw_betas: Decay rates for the AdamW moments.
         adamw_wd: Decoupled weight decay for AdamW groups.
@@ -59,6 +60,7 @@ class MuonClip(Muon):
         adamw_eps: float = 1e-10,
         maximize: bool = False,
         foreach: bool | None = None,
+        use_adjusted_lr: bool = True,
         **kwargs,
     ):
         self.validate_positive(qk_clip_threshold, 'qk_clip_threshold')
@@ -74,6 +76,7 @@ class MuonClip(Muon):
             ns_coeffs=ns_coeffs,
             ns_method=ns_method,
             ns_reset_steps=ns_reset_steps,
+            use_adjusted_lr=use_adjusted_lr,
             adamw_lr=adamw_lr,
             adamw_betas=adamw_betas,
             adamw_wd=adamw_wd,

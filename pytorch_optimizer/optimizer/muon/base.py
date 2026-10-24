@@ -21,8 +21,8 @@ def get_adjusted_lr(
     Args:
         lr: Base learning rate.
         param_shape: Weight shape, with output features first and remaining dimensions as input features.
-        use_adjusted_lr: Use the Moonlight factor `sqrt(max(1, output / input))`. Otherwise use `0.2 *
-            sqrt(max(output, input))`.
+        use_adjusted_lr: Use the Moonlight factor `0.2 * sqrt(max(output, input))`. Otherwise use Keller Jordan's
+            factor `sqrt(max(1, output / input))`.
 
     Returns:
         float | torch.Tensor: Shape adjusted learning rate.
@@ -32,9 +32,9 @@ def get_adjusted_lr(
     input_shape = math.prod(input_shape)
 
     ratio: float = (
-        math.pow(max(1.0, output_shape / input_shape), 0.5)
+        0.2 * math.sqrt(max(output_shape, input_shape))
         if use_adjusted_lr
-        else 0.2 * math.sqrt(max(output_shape, input_shape))
+        else math.pow(max(1.0, output_shape / input_shape), 0.5)
     )
 
     return lr * ratio
@@ -59,7 +59,7 @@ class MuonBase(BaseOptimizer):
                 shapes: dict[tuple[int, int], list[int]] = {}
                 for index, p in enumerate(tensors['params']):
                     rows, columns = p.size(0), p.numel() // p.size(0)
-                    shape = (rows, columns) if group['use_adjusted_lr'] else (min(rows, columns), max(rows, columns))
+                    shape = (min(rows, columns), max(rows, columns)) if group['use_adjusted_lr'] else (rows, columns)
                     shapes.setdefault(shape, []).append(index)
 
                 batches = [tensors] if len(shapes) == 1 else [
