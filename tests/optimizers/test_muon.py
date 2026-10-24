@@ -74,6 +74,7 @@ class TestMuon:
             p.grad = (torch.arange(8).reshape(p.shape) - 3.0) / 10.0
             update = zero_power_via_newton_schulz_5(p.grad.reshape(p.size(0), -1)).float()
             expected_norms.append(0.1 * factor * update.norm())
+
         optimizer = build_optimizer(
             optimizer_name,
             [{'params': params, 'use_muon': True}],
