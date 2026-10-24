@@ -354,8 +354,12 @@ class TestSAM:
         always_active = nn.Parameter(torch.tensor([2.0]))
         options = {'model': TrainingModel(), 'gamma': 0.5} if wrapper is WSAM else {}
         optimizer = wrapper(
-            params=[parameter, always_active], base_optimizer=load_optimizer('sgd'),
-            lr=0.1, rho=0.1, foreach=foreach, **options
+            params=[parameter, always_active],
+            base_optimizer=load_optimizer('sgd'),
+            lr=0.1,
+            rho=0.1,
+            foreach=foreach,
+            **options,
         )
 
         first_loss = always_active.sum() + (parameter.sum() if first_pass_active else 0.0)
