@@ -470,6 +470,9 @@ class DAdaptAdam(BaseOptimizer):
         if self.maximize:
             torch._foreach_neg_(grads)
 
+        if not group['weight_decouple']:
+            self.apply_weight_decay_foreach(params, grads, d_lr, group['weight_decay'], False, group['fixed_decay'])
+
         de_noms = torch._foreach_sqrt(state['exp_avg_sq'])
         torch._foreach_add_(de_noms, group['eps'])
 
@@ -567,6 +570,16 @@ class DAdaptAdam(BaseOptimizer):
                 state = self.state[p]
 
                 exp_avg, exp_avg_sq, s = state['exp_avg'], state['exp_avg_sq'], state['s']
+
+                if not group['weight_decouple']:
+                    self.apply_weight_decay(
+                        p=p,
+                        grad=grad,
+                        lr=d_lr,
+                        weight_decay=group['weight_decay'],
+                        weight_decouple=False,
+                        fixed_decay=group['fixed_decay'],
+                    )
 
                 de_nom = exp_avg_sq.sqrt().add_(group['eps'])
                 numerator_acc.add_(torch.dot(grad.flatten(), s.div(de_nom).flatten()), alpha=d_lr)
@@ -721,8 +734,9 @@ class DAdaptSGD(BaseOptimizer):
         if self.maximize:
             torch._foreach_neg_(grads)
 
-        if group['weight_decouple']:
-            self.apply_weight_decay_foreach(params, grads, d_lr, group['weight_decay'], True, group['fixed_decay'])
+        self.apply_weight_decay_foreach(
+            params, grads, d_lr, group['weight_decay'], group['weight_decouple'], group['fixed_decay']
+        )
 
         for grad, s in zip(grads, state['s']):
             value = torch.dot(grad.flatten(), s.flatten())
@@ -798,7 +812,7 @@ class DAdaptSGD(BaseOptimizer):
 
                 self.apply_weight_decay(
                     p=p,
-                    grad=None,
+                    grad=grad,
                     lr=d_lr,
                     weight_decay=group['weight_decay'],
                     weight_decouple=group['weight_decouple'],
