@@ -327,8 +327,12 @@ class TestSAM:
         options = {} if use_closure else {'use_gc': True}
 
         optimizer = wrapper(
-            model.parameters(), load_optimizer(base_optimizer_name),
-            lr=5e-1, adaptive=adaptive, foreach=foreach, **options,
+            model.parameters(),
+            load_optimizer(base_optimizer_name),
+            lr=5e-1,
+            adaptive=adaptive,
+            foreach=foreach,
+            **options,
         )
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)

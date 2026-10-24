@@ -459,12 +459,20 @@ class BaseOptimizer(ABC, Optimizer):
             p.grad.copy_(g_ortho.view_as(p.grad))
 
     @staticmethod
-    def can_use_foreach(group: ParamGroup, foreach: bool | None) -> bool:
+    def can_use_foreach(
+        group: ParamGroup,
+        foreach: bool | None,
+        *,
+        dtypes: tuple[torch.dtype, ...] | None = None,
+        default_on_cuda: bool = False,
+    ) -> bool:
         """Check whether a parameter group supports batched tensor updates.
 
         Args:
             group: Parameter group to inspect.
             foreach: Set to `False` to disable batched updates. `True` and `None` check tensor compatibility.
+            dtypes: Allowed parameter dtypes. `None` allows all real dtypes.
+            default_on_cuda: Enable automatic batching only for groups with CUDA gradients. Explicit `True` allows CPU.
 
         Returns:
             bool: `True` if at least one parameter has a gradient and all such parameters
@@ -483,6 +491,12 @@ class BaseOptimizer(ABC, Optimizer):
             has_param = True
             if g.is_sparse or torch.is_complex(p):
                 return False
+
+            if dtypes is not None and p.dtype not in dtypes:
+                return False
+
+        if foreach is None and default_on_cuda:
+            return any(p.is_cuda for p in group['params'] if p.grad is not None)
 
         return has_param
 

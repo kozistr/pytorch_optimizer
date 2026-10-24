@@ -11,6 +11,7 @@ def test_spam_optimizer():
     optimizer = build_optimizer(
         'spam', [param, active], density=0.0, grad_accu_steps=0, update_proj_gap=1, foreach=True
     )
+
     optimizer.step()
 
     torch.testing.assert_close(param, torch.zeros_like(param))

@@ -18,12 +18,6 @@ from pytorch_optimizer.optimizer.utils.gradient import get_global_gradient_norm
 from pytorch_optimizer.optimizer.utils.model import disable_running_stats, enable_running_stats
 
 
-def _can_use_foreach(group: ParamGroup) -> bool:
-    return BaseOptimizer.can_use_foreach(group, group.get('foreach')) and (
-        group.get('foreach') is not None or any(p.is_cuda for p in group['params'] if p.grad is not None)
-    ) and all(p.dtype not in (torch.float16, torch.bfloat16) for p in group['params'] if p.grad is not None)
-
-
 def _get_perturbations_foreach(
     params: list[torch.Tensor], grads: list[torch.Tensor], scale: torch.Tensor, adaptive: bool
 ) -> tuple[torch.Tensor, ...]:
@@ -32,7 +26,9 @@ def _get_perturbations_foreach(
         torch._foreach_mul_(updates, grads)
     else:
         updates = torch._foreach_mul(grads, 1.0)
+
     torch._foreach_mul_(updates, scale.to(params[0]))
+
     return updates
 
 
@@ -89,6 +85,7 @@ class SAM(BaseOptimizer):
 
         if foreach is not None:
             kwargs['foreach'] = foreach
+
         defaults: Defaults = {'rho': rho, 'adaptive': adaptive, 'foreach': foreach, **kwargs}
 
         super().__init__(params, defaults)
@@ -112,18 +109,22 @@ class SAM(BaseOptimizer):
         for group in self.param_groups:
             scale = group['rho'] / grad_norm
 
-            if _can_use_foreach(group):
+            if self.can_use_foreach(
+                group, group.get('foreach'), dtypes=(torch.float32, torch.float64), default_on_cuda=True
+            ):
                 params, grads, _ = self.collect_trainable_params(group, self.state)
+
                 for batch in group_tensors_by_device_and_dtype(params, grads):
                     if self.use_gc:
                         for grad in batch['grads']:
                             centralize_gradient(grad, gc_conv_only=False)
+
                     for p in batch['params']:
                         self.state[p]['old_p'] = p.clone()
-                    updates = _get_perturbations_foreach(
-                        batch['params'], batch['grads'], scale, group['adaptive']
-                    )
+
+                    updates = _get_perturbations_foreach(batch['params'], batch['grads'], scale, group['adaptive'])
                     torch._foreach_add_(batch['params'], updates)
+
                 continue
 
             for p in group['params']:
@@ -146,11 +147,15 @@ class SAM(BaseOptimizer):
     @torch.no_grad()
     def second_step(self, zero_grad: bool = False):
         for group in self.param_groups:
-            if _can_use_foreach(group):
+            if self.can_use_foreach(
+                group, group.get('foreach'), dtypes=(torch.float32, torch.float64), default_on_cuda=True
+            ):
                 params = [p for p in group['params'] if 'old_p' in self.state[p]]
                 saved = [self.state[p].pop('old_p') for p in params]
+
                 for batch in group_tensors_by_device_and_dtype(params, saved):
                     torch._foreach_copy_(batch['params'], batch['grads'])
+
                 continue
 
             for p in group['params']:
@@ -449,8 +454,14 @@ class WSAM(BaseOptimizer):
 
         if foreach is not None:
             kwargs['foreach'] = foreach
+
         defaults: Defaults = {
-            'rho': rho, 'alpha': alpha, 'adaptive': adaptive, 'sam_eps': eps, 'foreach': foreach, **kwargs
+            'rho': rho,
+            'alpha': alpha,
+            'adaptive': adaptive,
+            'sam_eps': eps,
+            'foreach': foreach,
+            **kwargs,
         }
 
         super().__init__(params, defaults)
@@ -465,7 +476,9 @@ class WSAM(BaseOptimizer):
         pass
 
     def _can_use_foreach(self, group: ParamGroup) -> bool:
-        return group.get('foreach') is True and not is_initialized() and _can_use_foreach(group)
+        return not is_initialized() and self.can_use_foreach(
+            group, group.get('foreach') is True, dtypes=(torch.float32, torch.float64)
+        )
 
     @torch.no_grad()
     def first_step(self, zero_grad: bool = False):
@@ -476,13 +489,14 @@ class WSAM(BaseOptimizer):
 
             if self._can_use_foreach(group):
                 params, grads, _ = self.collect_trainable_params(group, self.state)
+
                 for batch in group_tensors_by_device_and_dtype(params, grads):
-                    updates = _get_perturbations_foreach(
-                        batch['params'], batch['grads'], scale, group['adaptive']
-                    )
+                    updates = _get_perturbations_foreach(batch['params'], batch['grads'], scale, group['adaptive'])
                     torch._foreach_add_(batch['params'], updates)
+
                     for p, update in zip(batch['params'], updates):
                         self.state[p]['e_w'] = update
+
                 continue
 
             for p in group['params']:
@@ -512,30 +526,39 @@ class WSAM(BaseOptimizer):
     def _mix_gradients(self, group: ParamGroup) -> None:
         if self._can_use_foreach(group):
             params, grads, old_grads = [], [], []
+
             for p in group['params']:
                 old_grad = self.state[p].pop('grad', None)
+
                 if p.grad is None:
                     continue
+
                 params.append(p)
                 grads.append(p.grad)
                 old_grads.append(torch.zeros_like(p.grad) if old_grad is None else old_grad)
+
             for batch in group_tensors_by_device_and_dtype(params, grads, {'old_grads': old_grads}):
                 if self.decouple:
                     sharpness = torch._foreach_sub(batch['grads'], batch['old_grads'])
+
                     for p, update in zip(batch['params'], sharpness):
                         self.state[p]['sharpness'] = update
+
                     torch._foreach_copy_(batch['grads'], batch['old_grads'])
                 else:
                     torch._foreach_lerp_(batch['grads'], batch['old_grads'], weight=1.0 - group['alpha'])
+
             return
 
         for p in group['params']:
             old_grad = self.state[p].pop('grad', None)
+
             if p.grad is None:
                 continue
 
             if old_grad is None:
                 old_grad = torch.zeros_like(p.grad)
+
             if not self.decouple:
                 p.grad.lerp_(old_grad, weight=1.0 - group['alpha'])
             else:
@@ -548,8 +571,10 @@ class WSAM(BaseOptimizer):
             if self._can_use_foreach(group):
                 params = [p for p in group['params'] if 'e_w' in self.state[p]]
                 perturbations = [self.state[p].pop('e_w') for p in params]
+
                 for batch in group_tensors_by_device_and_dtype(params, perturbations):
                     torch._foreach_sub_(batch['params'], batch['grads'])
+
                 continue
 
             for p in group['params']:
@@ -573,8 +598,10 @@ class WSAM(BaseOptimizer):
             for group in self.param_groups:
                 if self._can_use_foreach(group):
                     params, grads, states = self.collect_trainable_params(group, self.state, ['sharpness'])
+
                     for batch in group_tensors_by_device_and_dtype(params, grads, states):
                         foreach_add_(batch['params'], batch['sharpness'], alpha=-group['lr'] * group['alpha'])
+
                     continue
 
                 for p in group['params']:
