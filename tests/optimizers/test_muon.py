@@ -2,6 +2,7 @@ import pytest
 import torch
 
 from pytorch_optimizer.optimizer import load_optimizer
+from pytorch_optimizer.optimizer.muon import get_adjusted_lr
 from pytorch_optimizer.optimizer.utils.matrix import zero_power_via_newton_schulz_5
 from tests.fixtures import make_parameter
 from tests.utils import build_optimizer
@@ -54,6 +55,57 @@ def _check_sharded_muon(_rank, optimizer_name, foreach, ns_method):
 
 
 class TestMuon:
+    @pytest.mark.parametrize(
+        ('shape', 'keller_factor', 'moonlight_factor'),
+        [
+            ((1, 1), 1.0, 0.2),
+            ((16, 4), 2.0, 0.8),
+            ((4, 16), 1.0, 0.8),
+            ((4, 2, 8), 1.0, 0.8),
+            ((1024, 1024), 1.0, 6.4),
+            ((4096, 4096), 1.0, 12.8),
+        ],
+    )
+    def test_adjusted_lr_factors(self, shape, keller_factor, moonlight_factor):
+        torch.testing.assert_close(get_adjusted_lr(0.5, shape), 0.5 * keller_factor)
+        torch.testing.assert_close(get_adjusted_lr(0.5, shape, use_adjusted_lr=True), 0.5 * moonlight_factor)
+
+    @pytest.mark.parametrize(
+        ('optimizer_name', 'use_adjusted_lr'),
+        [('muon', None), ('muon', True), ('normuon', None), ('normuon', True)],
+    )
+    @pytest.mark.parametrize('foreach', [False, True])
+    def test_shape_scaled_updates(self, optimizer_name, use_adjusted_lr, foreach):
+        params = [make_parameter(shape) for shape in ((2, 4), (4, 2), (2, 2, 2), (4, 2))]
+        factors = [0.4] * 4 if use_adjusted_lr else [1.0, 2.0**0.5, 1.0, 2.0**0.5]
+        expected_norms = []
+        for p, factor in zip(params, factors):
+            p.grad = (torch.arange(8).reshape(p.shape) - 3.0) / 10.0
+            update = zero_power_via_newton_schulz_5(p.grad.reshape(p.size(0), -1)).float()
+            expected_norms.append(0.1 * factor * update.norm())
+        options = {} if use_adjusted_lr is None else {'use_adjusted_lr': use_adjusted_lr}
+        optimizer = build_optimizer(
+            optimizer_name,
+            [{'params': params, 'use_muon': True}],
+            lr=0.1,
+            momentum=0.0,
+            foreach=foreach,
+            **options,
+        )
+        optimizer.step()
+
+        for p, expected_norm in zip(params, expected_norms):
+            torch.testing.assert_close(p.norm(), expected_norm, rtol=1e-3, atol=1e-5)
+
+    @pytest.mark.parametrize('foreach', [False, True])
+    def test_adamuon_default_rms(self, foreach):
+        params = [make_parameter(shape, grad=1.0) for shape in ((2, 4), (4, 2), (2, 2, 2))]
+        optimizer = build_optimizer('adamuon', [{'params': params, 'use_muon': True}], lr=0.1, foreach=foreach)
+        optimizer.step()
+
+        for p in params:
+            torch.testing.assert_close(p.square().mean().sqrt(), torch.tensor(0.02), rtol=1e-2, atol=1e-5)
+
     @pytest.mark.parametrize(
         ('optimizer_name', 'foreach', 'ns_method'),
         [

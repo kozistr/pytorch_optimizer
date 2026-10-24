@@ -81,7 +81,7 @@ class NorMuon(MuonBase):
         ns_steps: int = 5,
         ns_coeffs: NewtonSchulzWeights = 'original',
         update_scale: str = 'preserve_norm',
-        use_adjusted_lr: bool = True,
+        use_adjusted_lr: bool = False,
         adamw_lr: float = 3e-4,
         adamw_betas: Betas = (0.9, 0.95),
         adamw_wd: float = 0.0,
