@@ -116,8 +116,7 @@ class SAM(BaseOptimizer):
 
                 for batch in group_tensors_by_device_and_dtype(params, grads):
                     if self.use_gc:
-                        for grad in batch['grads']:
-                            centralize_gradient(grad, gc_conv_only=False)
+                        centralize_gradient(batch['grads'], gc_conv_only=False)
 
                     for p in batch['params']:
                         self.state[p]['old_p'] = p.clone()
