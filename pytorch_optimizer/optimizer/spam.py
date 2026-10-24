@@ -1,5 +1,5 @@
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import torch
 from torch.nn import Parameter, ParameterList
@@ -12,6 +12,7 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 from pytorch_optimizer.optimizer.utils.foreach import (
     compile_foreach_step,
     foreach_add_,
+    foreach_addcdiv_,
     foreach_lerp_,
     group_tensors_by_device_and_dtype,
 )
@@ -82,13 +83,16 @@ class SPAM(BaseOptimizer):
         update_proj_gap: Number of steps between mask updates and momentum resets.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch FP32/FP64 moments and updates. `None` enables batching on CUDA.
 
     """
+
+    _supports_compiled_foreach = True
 
     def __init__(
         self,
         params: ParamsT,
-        lr: float = 1e-3,
+        lr: float | torch.Tensor = 1e-3,
         betas: Betas = (0.9, 0.999),
         density: float = 1.0,
         weight_decay: float = 0.0,
@@ -98,6 +102,7 @@ class SPAM(BaseOptimizer):
         update_proj_gap: int = 500,
         eps: float = 1e-6,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -117,7 +122,14 @@ class SPAM(BaseOptimizer):
         self.update_proj_gap = update_proj_gap
         self.maximize = maximize
 
-        defaults: Defaults = {'lr': lr, 'betas': betas, 'weight_decay': weight_decay, 'eps': eps, **kwargs}
+        defaults: Defaults = {
+            'lr': lr,
+            'betas': betas,
+            'weight_decay': weight_decay,
+            'eps': eps,
+            'foreach': foreach,
+            **kwargs,
+        }
 
         super().__init__(params, defaults)
 
@@ -220,6 +232,81 @@ class SPAM(BaseOptimizer):
         if 'step' not in group:
             group['step'] = 0
 
+    def _step_foreach(
+        self,
+        group: ParamGroup,
+        params: list[torch.Tensor],
+        grads: list[torch.Tensor],
+        state: dict[str, list[torch.Tensor]],
+        clip: bool,
+    ) -> Sequence[torch.Tensor]:
+        if clip:
+            limits = torch._foreach_mul(state['exp_avg_sq'], self.threshold)
+            clipped = [
+                torch.where(grad.square() > limit, grad.sign() * limit.sqrt(), grad)
+                for grad, limit in zip(grads, limits)
+            ]
+            torch._foreach_copy_(grads, clipped)
+
+        beta1, beta2 = group['betas']
+        torch._foreach_lerp_(state['exp_avg'], grads, weight=1.0 - beta1)
+        torch._foreach_mul_(state['exp_avg_sq'], beta2)
+        torch._foreach_addcmul_(state['exp_avg_sq'], grads, grads, value=1.0 - beta2)
+
+        de_noms = torch._foreach_sqrt(state['exp_avg_sq'])
+        torch._foreach_add_(de_noms, group['eps'])
+
+        return de_noms
+
+    def _step_group_foreach(self, group: ParamGroup, step_size: float | torch.Tensor) -> None:
+        params, full_grads, _ = self.collect_trainable_params(group, self.state)
+        grads = []
+        current_step = self.state['total_step'] + 1
+
+        for p, grad in zip(params, full_grads):
+            self.maximize_gradient(grad, maximize=self.maximize)
+            state = self.state[p]
+
+            if 'mask' in state:
+                grad = grad[state['mask']]
+
+            if 'exp_avg' not in state or current_step % self.update_proj_gap == 0:
+                state['exp_avg'] = torch.zeros_like(grad)
+                state['exp_avg_sq'] = torch.zeros_like(grad)
+
+            grads.append(grad)
+
+        states = {key: [self.state[p][key] for p in params] for key in ('exp_avg', 'exp_avg_sq')}
+
+        clip = self.threshold != 0 and current_step >= self.grad_accu_steps and (
+            self.update_proj_gap == 0 or current_step % self.update_proj_gap >= self.grad_accu_steps
+        )
+
+        for batch in group_tensors_by_device_and_dtype(params, grads, states):
+            de_noms = self._step_foreach(group, batch['params'], batch['grads'], batch, clip)
+
+            unmasked_params, unmasked_avgs, unmasked_de_noms = [], [], []
+
+            for p, exp_avg, de_nom in zip(batch['params'], batch['exp_avg'], de_noms):
+                mask = self.state[p].get('mask')
+
+                if mask is None:
+                    unmasked_params.append(p)
+                    unmasked_avgs.append(exp_avg)
+                    unmasked_de_noms.append(de_nom)
+                    continue
+
+                update = torch.zeros_like(p.grad)
+                update.masked_scatter_(mask, exp_avg / de_nom)
+                p.add_(update, alpha=-step_size)
+
+                if group['weight_decay'] > 0.0:
+                    p.copy_(torch.where(mask, p * (1.0 - group['lr'] * group['weight_decay']), p))
+
+            if unmasked_params:
+                foreach_addcdiv_(unmasked_params, unmasked_avgs, unmasked_de_noms, value=-step_size)
+                self.apply_weight_decay_foreach(unmasked_params, [], group['lr'], group['weight_decay'], True, False)
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -239,6 +326,12 @@ class SPAM(BaseOptimizer):
             bias_correction2_sq: float = math.sqrt(self.debias(beta2, group['step']))
 
             step_size: float = group['lr'] * bias_correction2_sq / bias_correction1
+
+            if self.can_use_foreach(
+                group, group.get('foreach'), dtypes=(torch.float32, torch.float64), default_on_cuda=True
+            ):
+                self._step_group_foreach(group, step_size * scale_factor)
+                continue
 
             for p in group['params']:
                 if p.grad is None:

@@ -318,16 +318,21 @@ class TestSAM:
                 optimizer.base_optimizer.state[param]['exp_avg'],
             )
 
-    @pytest.mark.parametrize('adaptive', [True, False])
+    @pytest.mark.parametrize(('adaptive', 'foreach'), [(True, True), (False, False)])
     @pytest.mark.parametrize('wrapper', [SAM, FriendlySAM, LookSAM])
     @pytest.mark.parametrize(('base_optimizer_name', 'use_closure'), [('asgd', False), ('adamw', True)])
-    def test_sam_optimizer(self, adaptive, wrapper, base_optimizer_name, use_closure, environment):
+    def test_sam_optimizer(self, adaptive, foreach, wrapper, base_optimizer_name, use_closure, environment):
         x_data, y_data = environment
         model, loss_fn = build_model(device=x_data.device)
         options = {} if use_closure else {'use_gc': True}
 
         optimizer = wrapper(
-            model.parameters(), load_optimizer(base_optimizer_name), lr=5e-1, adaptive=adaptive, **options
+            model.parameters(),
+            load_optimizer(base_optimizer_name),
+            lr=5e-1,
+            adaptive=adaptive,
+            foreach=foreach,
+            **options,
         )
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
@@ -335,15 +340,30 @@ class TestSAM:
         run(iterations=3, threshold=2.0)
 
     @pytest.mark.parametrize(
-        ('first_pass_active', 'second_pass_active'), [(True, False), (False, True), (True, True), (False, False)]
+        ('wrapper', 'foreach', 'first_pass_active', 'second_pass_active'),
+        [
+            *[
+                (wrapper, foreach, first, second)
+                for wrapper, foreach in [(SAM, False), (WSAM, False), (LookSAM, None), (FriendlySAM, None)]
+                for first, second in [(True, False), (False, True), (True, True), (False, False)]
+            ],
+            (SAM, True, True, False),
+            (SAM, True, False, True),
+            (WSAM, True, True, False),
+            (WSAM, True, False, True),
+        ],
     )
-    @pytest.mark.parametrize('wrapper', [SAM, WSAM, LookSAM, FriendlySAM])
-    def test_sam_changing_gradient_availability(self, first_pass_active, second_pass_active, wrapper):
+    def test_sam_changing_gradient_availability(self, first_pass_active, second_pass_active, wrapper, foreach):
         parameter = nn.Parameter(torch.tensor([1.0]))
         always_active = nn.Parameter(torch.tensor([2.0]))
         options = {'model': TrainingModel(), 'gamma': 0.5} if wrapper is WSAM else {}
         optimizer = wrapper(
-            params=[parameter, always_active], base_optimizer=load_optimizer('sgd'), lr=0.1, rho=0.1, **options
+            params=[parameter, always_active],
+            base_optimizer=load_optimizer('sgd'),
+            lr=0.1,
+            rho=0.1,
+            foreach=foreach,
+            **options,
         )
 
         first_loss = always_active.sum() + (parameter.sum() if first_pass_active else 0.0)
@@ -389,9 +409,9 @@ class TestSAM:
 
 
 class TestWSAM:
-    @pytest.mark.parametrize('adaptive', [True, False])
+    @pytest.mark.parametrize(('adaptive', 'foreach'), [(True, False), (False, True)])
     @pytest.mark.parametrize(('decouple', 'use_closure'), [(True, False), (False, False), (True, True)])
-    def test_wsam_optimizer(self, adaptive, decouple, use_closure, environment):
+    def test_wsam_optimizer(self, adaptive, foreach, decouple, use_closure, environment):
         x_data, y_data = environment
         model, loss_fn = build_model(device=x_data.device)
 
@@ -403,6 +423,7 @@ class TestWSAM:
             adaptive=adaptive,
             decouple=decouple,
             max_norm=100.0,
+            foreach=foreach,
         )
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)

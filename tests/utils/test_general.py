@@ -4,6 +4,7 @@ import torch
 from torch import nn
 
 from pytorch_optimizer.optimizer import get_optimizer_parameters, load_optimizer
+from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 from pytorch_optimizer.optimizer.utils import (
     CPUOffloadOptimizer,
     StochasticAccumulator,
@@ -44,6 +45,27 @@ class TestOverflowUtils:
 
 
 class TestGradientUtils:
+    @pytest.mark.parametrize('gc_conv_only', [False, True])
+    def test_centralize_gradient_batches(self, gc_conv_only, device):
+        matrix = torch.tensor([[1.0, 2.0], [3.0, 6.0]], device=device).T
+        convolution = torch.tensor([1.0, 3.0, 2.0, 6.0], device=device).reshape(2, 1, 1, 2)
+        vector = torch.tensor([1.0, 2.0], device=device)
+        gradients = [matrix, matrix * 2, convolution, convolution * 3, vector]
+
+        centered = torch.tensor([[-1.0, 1.0], [-2.0, 2.0]], device=device)
+        expected_matrix = matrix.clone() if gc_conv_only else centered
+        expected = [
+            expected_matrix,
+            expected_matrix * 2,
+            centered.reshape_as(convolution),
+            centered.reshape_as(convolution) * 3,
+            vector.clone(),
+        ]
+
+        centralize_gradient(gradients, gc_conv_only=gc_conv_only)
+
+        torch.testing.assert_close(gradients, expected)
+
     def test_normalize_singleton_channels(self):
         gradient = torch.tensor([[1.0], [2.0], [3.0]])
         expected = gradient.clone()
