@@ -8,7 +8,7 @@ from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.utils.foreach import foreach_add_, group_tensors_by_device_and_dtype
-from pytorch_optimizer.optimizer.utils.galore import GaLoreProjector, adam_update_foreach
+from pytorch_optimizer.optimizer.utils.galore import GaLoreProjector, update_unprojected_foreach
 
 SCALE_TYPE = Literal['channel', 'tensor']
 
@@ -252,7 +252,7 @@ class APOLLO(BaseOptimizer):
     """
 
     _supports_compiled_foreach = True
-    _step_foreach = staticmethod(adam_update_foreach)
+    _step_foreach = staticmethod(update_unprojected_foreach)
 
     def __init__(
         self,
