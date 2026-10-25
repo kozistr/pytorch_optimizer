@@ -1,4 +1,5 @@
 import math
+from collections import defaultdict
 
 import torch
 
@@ -56,11 +57,12 @@ class MuonBase(BaseOptimizer):
 
         for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
             if group['use_muon']:
-                shapes: dict[tuple[int, int], list[int]] = {}
+                shapes: defaultdict[tuple[int, int], list[int]] = defaultdict(list)
+
                 for index, p in enumerate(tensors['params']):
                     rows, columns = p.size(0), p.numel() // p.size(0)
                     shape = (min(rows, columns), max(rows, columns)) if group['use_adjusted_lr'] else (rows, columns)
-                    shapes.setdefault(shape, []).append(index)
+                    shapes[shape].append(index)
 
                 batches = [tensors] if len(shapes) == 1 else [
                     {key: [values[index] for index in indices] for key, values in tensors.items() if key != 'indices'}

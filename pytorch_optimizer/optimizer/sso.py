@@ -1,3 +1,4 @@
+from collections import defaultdict
 
 import torch
 from torch.nn.functional import normalize
@@ -471,10 +472,10 @@ class SpectralSphere(BaseOptimizer):
             else:
                 grads = batch['momentum_buffer']
 
-            shapes: dict[tuple, list[int]] = {}
+            shapes: defaultdict[tuple, list[int]] = defaultdict(list)
 
             for index, p in enumerate(params):
-                shapes.setdefault(p.shape, []).append(index)
+                shapes[p.shape].append(index)
 
             for indices in shapes.values():
                 weights = torch.stack([params[index] for index in indices])

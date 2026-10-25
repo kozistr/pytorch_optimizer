@@ -1,4 +1,5 @@
 import math
+from collections import defaultdict
 from enum import IntEnum
 
 import torch
@@ -23,10 +24,10 @@ class LMONorm(IntEnum):
 
 
 def _spectral_directions(grads: list[torch.Tensor], num_steps: int) -> list[torch.Tensor]:
-    groups: dict[tuple, list[int]] = {}
+    groups: defaultdict[tuple, list[int]] = defaultdict(list)
 
     for index, grad in enumerate(grads):
-        groups.setdefault((grad.device, grad.dtype, grad.shape), []).append(index)
+        groups[(grad.device, grad.dtype, grad.shape)].append(index)
 
     updates = list(grads)
 
@@ -312,10 +313,10 @@ class Auto(Norm):
 
     def lmo_foreach(self, grads: list[torch.Tensor]) -> list[torch.Tensor]:
         updates = list(grads)
-        groups: dict[int, list[int]] = {}
+        groups: defaultdict[int, list[int]] = defaultdict(list)
 
         for index, grad in enumerate(grads):
-            groups.setdefault(grad.ndim, []).append(index)
+            groups[grad.ndim].append(index)
 
         for ndim, indices in groups.items():
             if ndim in (0, 1):
