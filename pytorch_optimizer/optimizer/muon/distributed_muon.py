@@ -79,10 +79,21 @@ class DistributedMuon(Muon):  # pragma: no cover
     ):
         super().__init__(
             list(params) if params is not None else params,
-            lr=lr, momentum=momentum, weight_decay=weight_decay, weight_decouple=weight_decouple,
-            nesterov=nesterov, ns_steps=ns_steps, ns_coeffs=ns_coeffs, use_adjusted_lr=use_adjusted_lr,
-            adamw_lr=adamw_lr, adamw_betas=adamw_betas, adamw_wd=adamw_wd, adamw_eps=adamw_eps,
-            maximize=maximize, foreach=foreach, **kwargs,
+            lr=lr,
+            momentum=momentum,
+            weight_decay=weight_decay,
+            weight_decouple=weight_decouple,
+            nesterov=nesterov,
+            ns_steps=ns_steps,
+            ns_coeffs=ns_coeffs,
+            use_adjusted_lr=use_adjusted_lr,
+            adamw_lr=adamw_lr,
+            adamw_betas=adamw_betas,
+            adamw_wd=adamw_wd,
+            adamw_eps=adamw_eps,
+            maximize=maximize,
+            foreach=foreach,
+            **kwargs,
         )
         self.world_size: int = get_world_size()
         self.rank: int = get_rank()
