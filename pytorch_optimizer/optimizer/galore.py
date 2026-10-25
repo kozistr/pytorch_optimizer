@@ -6,7 +6,7 @@ from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGr
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
-from pytorch_optimizer.optimizer.utils.galore import GaLoreProjector, step_adam_foreach
+from pytorch_optimizer.optimizer.utils.galore import GaLoreProjector, adam_update_foreach
 
 
 class GaLore(BaseOptimizer):
@@ -27,7 +27,7 @@ class GaLore(BaseOptimizer):
     """
 
     _supports_compiled_foreach = True
-    _step_foreach = staticmethod(step_adam_foreach)
+    _step_foreach = staticmethod(adam_update_foreach)
 
     def __init__(
         self,

@@ -10,7 +10,7 @@ from pytorch_optimizer.optimizer.utils.foreach import foreach_add_
 PROJECTION_TYPE = Literal['std', 'reverse_std', 'right', 'left', 'full', 'random']
 
 
-def step_adam_foreach(
+def adam_update_foreach(
     group: ParamGroup,
     params: list[torch.Tensor],
     grads: list[torch.Tensor],
