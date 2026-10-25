@@ -68,6 +68,7 @@ class TestGroupTensorsByDeviceAndDtype:
 
         for group in groups:
             assert group['optional_state'] == []
+
             for position, index in enumerate(group['indices']):
                 assert group['params'][position] is params[index]
                 assert group['grads'][position] is grads[index]

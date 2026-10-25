@@ -33,6 +33,7 @@ def test_alice_switch_preserves_descent(rank, diagonals):
         'alice', [parameter], lr=0.1, betas=(0.0, 0.0, 0.0), alpha=0.5, alpha_c=0.5,
         rank=rank, leading_basis=1, update_interval=1,
     )
+
     for diagonal in diagonals:
         parameter.grad = torch.diag(torch.tensor([3.0, 2.0, 1.0]))
         optimizer.step()

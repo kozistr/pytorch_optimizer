@@ -22,11 +22,13 @@ def _check_distributed_muon(_rank, foreach):
 
     optimizer = build_optimizer('distributedmuon', groups(params), weight_decay=0.1, foreach=foreach)
     expected = build_optimizer('muon', groups(reference), weight_decay=0.1, foreach=False)
+
     for step in range(2):
         for index, (p, expected_parameter) in enumerate(zip(params, reference)):
             grad = (torch.arange(p.numel()).reshape(p.shape) + 0.1).roll(index + step, dims=-1)
             p.grad = grad.clone()
             expected_parameter.grad = grad.clone()
+
         optimizer.step()
         expected.step()
 

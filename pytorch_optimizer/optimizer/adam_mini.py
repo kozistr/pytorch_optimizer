@@ -259,6 +259,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         eps: float,
     ) -> None:
         self.init_lefts(p, state)
+
         tmp_lr = torch.sum(grad * grad)
 
         if state['reduced']:
@@ -281,15 +282,19 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
 
     def step_lefts_foreach(self, group, params, grads) -> None:
         beta1, beta2 = group['betas']
+
         states = [self.state[p] for p in params]
         moments = [state['m'] for state in states]
+
         means = torch.stack([grad.square().sum() for grad in grads]) / torch.stack([
             state['dimension'] for state in states
         ])
         variances = torch.stack([state['v_mean'] for state in states])
         variances.lerp_(means, weight=1.0 - beta2)
         torch._foreach_copy_([state['v_mean'] for state in states], variances.unbind())
+
         torch._foreach_lerp_(moments, grads, weight=1.0 - beta1)
+
         denominators = variances.sqrt_().div_(math.sqrt(self.debias(beta2, group['step']))).add_(group['eps'])
         scales = denominators.reciprocal_().div_(self.debias(beta1, group['step']))
         updates = torch._foreach_mul(moments, scales.unbind())
@@ -303,6 +308,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
                 loss = closure()
 
         batches = {}
+
         for group in self.param_groups:
             self.init_group(group)
             group['step'] += 1
@@ -382,6 +388,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
                         batch[1].append(p)
                         batch[2].append(grad)
                         continue
+
                     self.step_lefts(
                         p,
                         grad,
@@ -396,4 +403,5 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
 
         for group, params, grads in batches.values():
             self.step_lefts_foreach(group, params, grads)
+
         return loss

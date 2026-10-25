@@ -25,8 +25,10 @@ from tests.utils import Trainer, build_optimizer, build_optimizer_parameters, id
 def test_coupled_weight_decay(optimizer_name, options, foreach):
     params = [torch.ones(2, 2, requires_grad=True) for _ in range(2)]
     config = {**options, 'lr': 0.1, 'weight_decouple': False}
+
     if optimizer_name in FOREACH_OPTIMIZERS:
         config['foreach'] = foreach
+
     optimizers = [
         build_optimizer(optimizer_name, [p], **config, weight_decay=decay)
         for p, decay in zip(params, (0.1, 0.0))

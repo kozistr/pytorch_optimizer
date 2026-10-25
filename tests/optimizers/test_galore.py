@@ -78,11 +78,13 @@ def test_fira_reduced_rank_compensation(shape, projection_type):
     projector = GaLoreProjector(rank=2, scale=1.0, projection_type=projection_type)
     projected = projector.project(parameter.grad, 1)
     adaptive = projected / (projected.abs() + 1e-6)
+
     if projection_type == 'full':
         scale = adaptive.norm() / (projected.norm() + 1e-8)
     else:
         dim = 1 if projection_type == 'right' or (projection_type == 'reverse_std' and shape[0] < shape[1]) else 0
         scale = adaptive.norm(dim=dim, keepdim=True) / (projected.norm(dim=dim, keepdim=True) + 1e-8)
+
     residual = parameter.grad - projector.project_back(projected)
     expected = -0.1 * (projector.project_back(adaptive) + residual * scale)
 

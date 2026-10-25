@@ -38,6 +38,7 @@ class TransformDCT:
                     self.shape_dict[s] = sc
 
                     key = (sc, p.device, p.dtype)
+
                     if key not in self.f_dict:
                         i = torch.eye(sc)
                         self.f_dict[key] = dct(i, norm=norm).to(device=p.device, dtype=p.dtype)
@@ -367,6 +368,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
 
     def load_state_dict(self, state_dict):
         super().load_state_dict(state_dict)
+
         for group in self.param_groups:
             for p in group['params']:
                 self.state[p].setdefault('delta', torch.zeros_like(p))
@@ -407,9 +409,11 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss = None
+
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
+
         self.data_transmit = 0
         self.data_receive = 0
         params, values, indices, shapes = [], [], [], []
@@ -460,6 +464,7 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
                 state['delta'].sub_(transmit_grad)
 
                 world_size = get_world_size() if self.process_group is None else self.process_group.size()
+
                 if world_size == 1:
                     self.data_transmit += sparse_idx.nbytes + sparse_val.nbytes
                     self.data_receive += sparse_idx.nbytes + sparse_val.nbytes
@@ -475,13 +480,17 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
             sizes = [value.numel() for value in batch['grads']]
             packed_indices = torch.cat([index.reshape(-1) for index in batch['sparse_indices']])
             packed_values = torch.cat([value.reshape(-1) for value in batch['grads']])
+
             gathered_indices, gathered_values = self.demo_all_gather(packed_indices, packed_values)
+
             self.data_transmit += packed_indices.nbytes + packed_values.nbytes
             self.data_receive += sum(
                 index.nbytes + value.nbytes for index, value in zip(gathered_indices, gathered_values)
             )
+
             split_indices = [index.split(sizes) for index in gathered_indices]
             split_values = [value.split(sizes) for value in gathered_values]
+
             for offset, (p, sparse_value, original_index) in enumerate(
                 zip(batch['params'], batch['grads'], batch['indices'])
             ):
@@ -494,11 +503,14 @@ class DeMo(torch.optim.SGD, BaseOptimizer):  # pragma: no cover
                 p.grad.copy_(new_grad).sign_()
 
         decays = [group['weight_decay'] for group in self.param_groups]
+
         try:
             for group in self.param_groups:
                 group['weight_decay'] = 0.0
+
             super().step()
         finally:
             for group, decay in zip(self.param_groups, decays):
                 group['weight_decay'] = decay
+
         return loss

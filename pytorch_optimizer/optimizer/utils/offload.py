@@ -66,12 +66,14 @@ class CPUOffloadOptimizer:  # pragma: no cover
                 p_cuda.grad = None
 
         cpu_groups = []
+
         for param_group in param_groups:
             group_params = param_group.get('params', None)
             if group_params is None:
                 continue
 
             cpu_params = []
+
             for p_cuda in group_params:
                 p_cpu = torch.empty_like(p_cuda, device='cpu', pin_memory=True)
                 self.cpu_grad_buffers[p_cuda] = torch.empty_like(p_cpu, pin_memory=True)
@@ -82,6 +84,7 @@ class CPUOffloadOptimizer:  # pragma: no cover
 
                 if p_cuda.requires_grad:
                     p_cuda.register_post_accumulate_grad_hook(backward_hook)
+
             cpu_groups.append({**param_group, 'params': cpu_params})
 
         self.optimizer = optimizer_class(cpu_groups, **kwargs)
@@ -100,6 +103,7 @@ class CPUOffloadOptimizer:  # pragma: no cover
             p_cpu.grad = self.cpu_grad_buffers[p_cuda] if p_cuda in self.queue else None
 
         self.optimizer.step()
+
         with torch.cuda.stream(self.stream):
             for p_cuda in self.queue:
                 p_cuda.copy_(self.param_cuda2cpu_map[p_cuda], non_blocking=True)
@@ -115,6 +119,7 @@ class CPUOffloadOptimizer:  # pragma: no cover
                 p_cuda.grad = None
             elif p_cuda.grad is not None:
                 p_cuda.grad.zero_()
+
         self.queue.clear()
 
     @property
@@ -128,22 +133,32 @@ class CPUOffloadOptimizer:  # pragma: no cover
         if isinstance(state_dict, list):
             if len(state_dict) != len(self.param_cuda2cpu_map):
                 raise ValueError('offloaded optimizer state does not match the current parameters')
+
             merged = {'state': {}, 'param_groups': []}
             offset = 0
+
             for group in self.optimizer.state_dict()['param_groups']:
                 saved_groups = []
+
                 for index in group['params']:
                     saved = state_dict[offset]
                     saved_group = saved['param_groups'][0]
                     saved_groups.append({key: value for key, value in saved_group.items() if key != 'params'})
                     saved_key = saved_group['params'][0]
+
                     if saved_key in saved['state']:
                         merged['state'][index] = saved['state'][saved_key]
+
                     offset += 1
+
                 if saved_groups:
                     if any(saved_group != saved_groups[0] for saved_group in saved_groups[1:]):
                         raise ValueError('legacy offloaded parameter options differ within a parameter group')
+
                     group = {**saved_groups[0], 'params': group['params']}
+
                 merged['param_groups'].append(group)
+
             state_dict = merged
+
         self.optimizer.load_state_dict(state_dict)

@@ -87,6 +87,7 @@ class Adalite(BaseOptimizer):
 
             if len(state) == 0:
                 matrix = p.reshape(p.size(0), -1) if p.ndim > 2 else p
+
                 if len(p.shape) < 2:
                     state['m_avg'] = torch.zeros_like(p)
                     state['v_avg'] = torch.zeros_like(p)
@@ -116,6 +117,7 @@ class Adalite(BaseOptimizer):
                     continue
 
                 grad = p.grad
+
                 if grad.ndim > 2:
                     grad = grad.reshape(grad.size(0), -1)
 

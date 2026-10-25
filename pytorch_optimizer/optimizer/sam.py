@@ -242,6 +242,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
         super().__init__(params, defaults)
         self.param_groups = self.base_optimizer.param_groups
+
         for group in self.param_groups:
             if foreach is not None:
                 group['foreach'] = foreach
@@ -272,16 +273,20 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
             for p in group['params']:
                 self.state[p].pop('old_g', None)
+
                 if p.grad is not None:
                     self.state[p]['old_g'] = p.grad.clone()
 
             if self._can_use_foreach(group):
                 params, grads, _ = self.collect_trainable_params(group, self.state)
+
                 for batch in group_tensors_by_device_and_dtype(params, grads):
                     updates = _get_perturbations_foreach(batch['params'], batch['grads'], scale, self.adaptive)
                     torch._foreach_add_(batch['params'], updates)
+
                     for p, update in zip(batch['params'], updates):
                         self.state[p]['e_w'] = update
+
                 continue
 
             for p in group['params']:
@@ -300,8 +305,10 @@ class GSAM(BaseOptimizer):  # pragma: no cover
             if self._can_use_foreach(group):
                 params = [p for p in group['params'] if 'e_w' in self.state[p]]
                 updates = [self.state[p].pop('e_w') for p in params]
+
                 for batch in group_tensors_by_device_and_dtype(params, updates):
                     torch._foreach_sub_(batch['params'], batch['grads'])
+
                 continue
 
             for p in group['params']:
@@ -318,6 +325,7 @@ class GSAM(BaseOptimizer):  # pragma: no cover
 
                 if 'old_g' not in self.state[p]:
                     self.state[p]['old_g'] = torch.zeros_like(p)
+
                 inner_prod += torch.sum(self.state[p]['old_g'] * p.grad)
 
         new_grad_norm = self.grad_norm(by=None)
@@ -328,11 +336,13 @@ class GSAM(BaseOptimizer):  # pragma: no cover
         for group in self.param_groups:
             if self._can_use_foreach(group):
                 params, grads, state = self.collect_trainable_params(group, self.state, ['old_g'])
+
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     scale = cosine * old_grad_norm / (new_grad_norm + self.perturb_eps)
                     verticals = torch._foreach_mul(batch['grads'], -scale.to(batch['grads'][0]))
                     torch._foreach_add_(verticals, batch['old_g'])
                     torch._foreach_add_(batch['grads'], verticals, alpha=-alpha)
+
                 continue
 
             for p in group['params']:
@@ -366,8 +376,10 @@ class GSAM(BaseOptimizer):  # pragma: no cover
             for p in group['params']
             if p.grad is not None
         ]
+
         if not norms:
             return get_global_gradient_norm(self.param_groups).sqrt_().squeeze(0)
+
         return torch.stack(norms).norm(p=2)
 
     def maybe_no_sync(self):
@@ -965,6 +977,7 @@ class LookSAM(BaseOptimizer):
         if self.get_step() % self.k != 0:
             if zero_grad:
                 self.zero_grad()
+
             return
 
         grad_norm = get_global_gradient_norm(self.param_groups, weight_adaptive=True)
@@ -976,15 +989,20 @@ class LookSAM(BaseOptimizer):
             if self._can_use_foreach(group):
                 for p in group['params']:
                     self.state[p].pop('old_grad_p', None)
+
                 params, grads, _ = self.collect_trainable_params(group, self.state)
+
                 for batch in group_tensors_by_device_and_dtype(params, grads):
                     if self.use_gc:
                         centralize_gradient(batch['grads'], gc_conv_only=False)
+
                     for p, grad in zip(batch['params'], batch['grads']):
                         self.state[p]['old_p'] = p.clone()
                         self.state[p]['old_grad_p'] = grad.clone()
+
                     updates = _get_perturbations_foreach(batch['params'], batch['grads'], scale, group['adaptive'])
                     torch._foreach_add_(batch['params'], updates)
+
                 continue
 
             for p in group['params']:
@@ -1037,6 +1055,7 @@ class LookSAM(BaseOptimizer):
                     grad.add_(grad_norm / (gv.norm(p=2) + 1e-8) * gv, alpha=self.alpha)
 
         self.base_optimizer.step()
+
         for group in self.param_groups:
             group['looksam_step'] = step + 1
 
@@ -1046,14 +1065,17 @@ class LookSAM(BaseOptimizer):
     def _second_step_foreach(self, group: ParamGroup, step: int) -> None:
         saved_params = [p for p in group['params'] if 'old_p' in self.state[p]]
         saved = [self.state[p].pop('old_p') for p in saved_params]
+
         for batch in group_tensors_by_device_and_dtype(saved_params, saved):
             torch._foreach_copy_(batch['params'], batch['grads'])
 
         params, grads, previous = [], [], []
         full_step = step % self.k == 0
+
         for p in group['params']:
             old_grad = self.state[p].pop('old_grad_p', None)
             previous_grad = old_grad if full_step else self.state[p].get('gv')
+
             if p.grad is not None and previous_grad is not None:
                 params.append(p)
                 grads.append(p.grad)
@@ -1062,6 +1084,7 @@ class LookSAM(BaseOptimizer):
         for batch in group_tensors_by_device_and_dtype(params, grads, {'previous': previous}):
             norms = torch._foreach_norm(batch['grads'])
             previous_norms = torch._foreach_norm(batch['previous'])
+
             if full_step:
                 previous_units = torch._foreach_div(
                     batch['previous'], [norm.clamp_min(self.perturb_eps) for norm in previous_norms]
@@ -1069,6 +1092,7 @@ class LookSAM(BaseOptimizer):
                 units = torch._foreach_div(batch['grads'], [norm.clamp_min(self.perturb_eps) for norm in norms])
                 cosines = [product.sum() for product in torch._foreach_mul(previous_units, units)]
                 projections = torch._foreach_mul(previous_units, torch._foreach_mul(norms, cosines))
+
                 for p, gv in zip(batch['params'], torch._foreach_sub(batch['grads'], projections)):
                     self.state[p]['gv'] = gv
             else:
@@ -1218,11 +1242,14 @@ class FriendlySAM(BaseOptimizer):
 
             if self._can_use_foreach(group):
                 params, grads, _ = self.collect_trainable_params(group, self.state)
+
                 for p in params:
                     self.state[p]['old_p'] = p.clone()
+
                 for batch in group_tensors_by_device_and_dtype(params, grads):
                     updates = _get_perturbations_foreach(batch['params'], batch['grads'], scale, group['adaptive'])
                     torch._foreach_add_(batch['params'], updates)
+
                 continue
 
             for p in group['params']:
@@ -1242,15 +1269,18 @@ class FriendlySAM(BaseOptimizer):
 
     def _update_momentum_foreach(self, group: ParamGroup) -> None:
         ready = []
+
         for p in group['params']:
             if p.grad is None:
                 continue
+
             if 'momentum' in self.state[p]:
                 ready.append(p)
             else:
                 self.state[p]['momentum'] = p.grad.clone()
 
         params, grads, state = self.collect_trainable_params({**group, 'params': ready}, self.state, ['momentum'])
+
         for batch in group_tensors_by_device_and_dtype(params, grads, state):
             if group['sigma'] == 1.0 and group['lmbda'] >= 0.5:
                 torch._foreach_sub_(batch['grads'], batch['momentum'])
@@ -1267,8 +1297,10 @@ class FriendlySAM(BaseOptimizer):
             if self._can_use_foreach(group):
                 params = [p for p in group['params'] if 'old_p' in self.state[p]]
                 saved = [self.state[p].pop('old_p') for p in params]
+
                 for batch in group_tensors_by_device_and_dtype(params, saved):
                     torch._foreach_copy_(batch['params'], batch['grads'])
+
                 continue
 
             for p in group['params']:

@@ -313,6 +313,7 @@ class Alice(BaseOptimizer):
 
         u_c, _ = torch.linalg.qr(vecs, mode='complete')
         u_c = u_c[:, rank:]
+
         if u_c.size(1) < rank - leading_basis:
             remaining_indices = torch.argsort(vals, descending=True)[leading_basis:]
             u_c = torch.cat([u_c, vecs[:, remaining_indices]], dim=1)

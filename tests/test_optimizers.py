@@ -175,9 +175,11 @@ class TestOptimizerInterface:
 
         checkpoint = BytesIO()
         state_dict = optimizer.state_dict()
+
         if optimizer_name == 'apollodqn':
             for group in state_dict['param_groups']:
                 group.pop('foreach')
+
         torch.save(state_dict, checkpoint)
         checkpoint.seek(0)
 

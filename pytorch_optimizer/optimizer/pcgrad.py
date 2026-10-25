@@ -144,6 +144,7 @@ class PCGrad(BaseOptimizer):
         shared: torch.Tensor = torch.stack(has_grads).prod(0).bool()
 
         pc_grad = [grad.clone() for grad in grads]
+
         for g_i in pc_grad:
             random.shuffle(grads)
             for g_j in grads:
@@ -153,6 +154,7 @@ class PCGrad(BaseOptimizer):
                 g_i.sub_(coefficient * g_j)
 
         merged_grad = torch.stack(pc_grad).sum(dim=0)
+
         if self.reduction == 'mean':
             merged_grad = torch.where(shared, merged_grad / len(pc_grad), merged_grad)
 

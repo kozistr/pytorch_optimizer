@@ -247,6 +247,7 @@ class TestMagma:
             return 1.0
 
         optimizers[0].step(closure)
+
         for optimizer, parameter in zip(optimizers, parameters):
             parameter.grad = -torch.ones_like(parameter)
             optimizer.step()
@@ -329,12 +330,15 @@ class TestOrthoGrad:
         parameters = [
             nn.Parameter(torch.tensor(values)) for values in ([1.0, 0.0], [0.0, 2.0], [1.0, 1.0], [0.0, 0.0])
         ]
+
         for parameter, gradient in zip(parameters, ([1.0, 1.0], [3.0, 4.0], [2.0, 2.0], [0.2, -0.3])):
             parameter.grad = torch.tensor(gradient)
+
         optimizer = OrthoGrad(build_optimizer('sgd', parameters, lr=0.1), foreach=foreach)
         optimizer.step()
 
         expected = ([1.0, -0.1 * 2.0**0.5], [-0.5, 2.0], [1.0, 1.0], [-0.02, 0.03])
+
         for parameter, values in zip(parameters, expected):
             torch.testing.assert_close(parameter, torch.tensor(values))
 
@@ -365,6 +369,7 @@ class TestSAM:
         optimizer = FriendlySAM(
             [parameter], load_optimizer('sgd'), rho=0.1, sigma=sigma, lmbda=lmbda, foreach=foreach, lr=0.1
         )
+
         for gradient in ([1.0, 0.0], [0.0, 1.0]):
             parameter.grad = torch.tensor(gradient)
             optimizer.first_step(zero_grad=True)
@@ -503,8 +508,10 @@ class TestGSAM:
     @pytest.mark.parametrize('foreach', [False, True])
     def test_gsam_update(self, foreach, device):
         model = nn.Linear(2, 1, bias=False, device=device)
+
         with torch.no_grad():
             model.weight.copy_(torch.tensor([[1.0, 2.0]], device=device))
+
         base = build_optimizer('sgd', model.parameters(), lr=0.01)
         scheduler = ProportionScheduler(
             torch.optim.lr_scheduler.ConstantLR(base, factor=1.0), max_lr=0.01, max_value=0.1, min_value=0.1
@@ -730,6 +737,7 @@ class TestTRAC:
 
         if not use_closure:
             closure()
+
         optimizer.step(closure if use_closure else None)
 
         torch.testing.assert_close(parameter, torch.tensor([0.95684430, -1.94245907]))

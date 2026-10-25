@@ -234,8 +234,10 @@ class Magma(BaseOptimizer):
                 alignment_target = torch.sigmoid(cosine.float() / self.tau)
                 alignment_state = parameter_state['alignment']
                 alignment_state.lerp_(alignment_target, 1.0 - self.alignment_ema)
+
                 if parameter.device not in mask_probabilities:
                     mask_probabilities[parameter.device] = torch.tensor(self.mask_prob, device=parameter.device)
+
                 blend = alignment_state * torch.bernoulli(mask_probabilities[parameter.device])
                 parameter.lerp_(snapshot, 1.0 - blend.to(dtype=parameter.dtype))
                 continue
@@ -255,9 +257,11 @@ class Magma(BaseOptimizer):
             grad_units = torch._foreach_div(
                 batch['grads'], [norm.clamp_min(1e-8) for norm in torch._foreach_norm(batch['grads'])]
             )
+
             cosines = torch.stack([product.sum() for product in torch._foreach_mul(moment_units, grad_units)])
             targets = cosines.float().div_(self.tau).sigmoid_()
             torch._foreach_lerp_(batch['alignment'], targets.unbind(), weight=1.0 - self.alignment_ema)
+
             probabilities = torch.full_like(targets, self.mask_prob)
             blends = torch.stack(batch['alignment']) * torch.bernoulli(probabilities)
             weights = 1.0 - blends.to(batch['params'][0].dtype)

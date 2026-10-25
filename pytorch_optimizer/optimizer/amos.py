@@ -84,6 +84,7 @@ class Amos(BaseOptimizer):
             if len(state) == 0:
                 state['exp_avg_sq'] = torch.zeros((), dtype=p.dtype, device=p.device)
                 state['decay'] = torch.zeros((), dtype=p.dtype, device=p.device)
+
                 if group['momentum'] > 0.0:
                     state['exp_avg'] = torch.zeros_like(p)
 

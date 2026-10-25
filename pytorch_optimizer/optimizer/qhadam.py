@@ -112,6 +112,7 @@ class QHAdam(BaseOptimizer):
 
         weights1 = [weight.to(dtype=grads[0].dtype).reshape(()) for weight in torch._foreach_reciprocal(beta1_weights)]
         weights2 = [weight.to(dtype=grads[0].dtype).reshape(()) for weight in torch._foreach_reciprocal(beta2_weights)]
+
         for exp_avg, grad, weight in zip(exp_avgs, grads, weights1):
             exp_avg.lerp_(grad, weight=weight)
 

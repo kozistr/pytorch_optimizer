@@ -95,6 +95,7 @@ class DistributedMuon(Muon):  # pragma: no cover
             foreach=foreach,
             **kwargs,
         )
+
         self.world_size: int = get_world_size()
         self.rank: int = get_rank()
 
@@ -134,17 +135,22 @@ class DistributedMuon(Muon):  # pragma: no cover
             group['step'] += 1
 
             batched = self.can_use_foreach(group, group.get('foreach'), default_on_cuda=True)
+
             if batched:
                 owned = group['params'][self.rank::self.world_size] if group['use_muon'] else group['params']
+
                 for p in owned:
                     if group['use_muon'] and not self.state[p]:
                         self.state[p]['momentum_buffer'] = torch.zeros_like(p)
+
                 self._step_foreach_group({**group, 'params': owned})
+
                 if not group['use_muon']:
                     continue
 
             if group['use_muon']:
                 params = group['params']
+
                 if not params:
                     continue
 

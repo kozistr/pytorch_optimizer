@@ -205,10 +205,12 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
                 multiply_grads /= self.scaler.loss_scale
 
             params, grads = [], []
+
             for p16, p32 in zip(self.fp16_params, self.fp32_params):
                 if p16.requires_grad and p16.grad is not None:
                     if p32.grad is None:
                         p32.grad = torch.empty_like(p32)
+
                     params.append(p32.grad)
                     grads.append(p16.grad)
                 else:
@@ -227,6 +229,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
             return
 
         grads = [p32.grad for p32 in self.fp32_params if p32.grad is not None]
+
         for batch in group_tensors_by_device_and_dtype(grads, grads):
             torch._foreach_mul_(batch['params'], c)
 
@@ -268,6 +271,7 @@ class SafeFP16Optimizer(Optimizer):  # pragma: no cover
 
         params = [p16.data for p16 in self.fp16_params if p16.requires_grad]
         masters = [p32 for p16, p32 in zip(self.fp16_params, self.fp32_params) if p16.requires_grad]
+
         for batch in group_tensors_by_device_and_dtype(params, masters):
             torch._foreach_copy_(batch['params'], batch['grads'])
 

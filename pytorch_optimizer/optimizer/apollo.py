@@ -111,6 +111,7 @@ class ApolloDQN(BaseOptimizer):
             torch._foreach_neg_(grads)
 
         weight_decay = group['weight_decay']
+
         if weight_decay > 0.0 and group['weight_decay_type'] == 'l2':
             torch._foreach_add_(grads, params, alpha=weight_decay)
 
@@ -131,6 +132,7 @@ class ApolloDQN(BaseOptimizer):
         torch._foreach_addcmul_(hessians, squares, deltas)
 
         de_noms = torch._foreach_abs(hessians)
+
         if rebounds is not None:
             torch._foreach_maximum_(de_noms, rebounds)
             torch._foreach_add_(de_noms, eps / alpha)
@@ -166,6 +168,7 @@ class ApolloDQN(BaseOptimizer):
             )
 
             weight_decay, eps = group['weight_decay'], group['eps']
+
             if group['rebound'] == 'constant':
                 eps /= 1e-2
 
@@ -176,8 +179,10 @@ class ApolloDQN(BaseOptimizer):
                 params, grads, state = self.collect_trainable_params(
                     group, self.state, ['exp_avg_grad', 'approx_hessian', 'update']
                 )
+
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     self._step_foreach(group, batch['params'], batch['grads'], batch, current_lr, alpha, eps)
+
                 continue
 
             for p in group['params']:
@@ -392,6 +397,7 @@ class APOLLO(BaseOptimizer):
 
                 norm_grad = de_nom
                 torch.div(exp_avg, de_nom, out=norm_grad)
+
                 if 'projector' in state:
                     if group['scale_type'] == 'channel':
                         norm_dim: int = 0 if norm_grad.shape[0] < norm_grad.shape[1] else 1

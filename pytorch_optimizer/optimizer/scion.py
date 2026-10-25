@@ -24,15 +24,18 @@ class LMONorm(IntEnum):
 
 def _spectral_directions(grads: list[torch.Tensor], num_steps: int) -> list[torch.Tensor]:
     groups: dict[tuple, list[int]] = {}
+
     for index, grad in enumerate(grads):
         groups.setdefault((grad.device, grad.dtype, grad.shape), []).append(index)
 
     updates = list(grads)
+
     for indices in groups.values():
         matrices = [grads[index].reshape(grads[index].size(0), -1) for index in indices]
         matrix = matrices[0] if len(matrices) == 1 else torch.stack(matrices)
         result = zero_power_via_newton_schulz_5(matrix, num_steps)
         results = [result] if len(matrices) == 1 else result.unbind()
+
         for index, update in zip(indices, results):
             updates[index] = update.reshape(grads[index].shape)
 
@@ -310,6 +313,7 @@ class Auto(Norm):
     def lmo_foreach(self, grads: list[torch.Tensor]) -> list[torch.Tensor]:
         updates = list(grads)
         groups: dict[int, list[int]] = {}
+
         for index, grad in enumerate(grads):
             groups.setdefault(grad.ndim, []).append(index)
 

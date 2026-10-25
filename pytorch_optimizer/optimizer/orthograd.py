@@ -57,11 +57,13 @@ class OrthoGrad(BaseOptimizer):
     @torch.no_grad()
     def apply_orthogonal_gradients(self, params) -> None:
         params = list(params)
+
         if not self.can_use_foreach({'params': params}, self.foreach, default_on_cuda=True):
             super().apply_orthogonal_gradients(params, eps=self.eps)
             return
 
         params = [p for p in params if p.grad is not None]
+
         for batch in group_tensors_by_device_and_dtype(params, [p.grad for p in params]):
             dtype = torch.float64 if batch['params'][0].dtype == torch.float64 else torch.float32
             weights = [p.reshape(-1).to(dtype=dtype) for p in batch['params']]

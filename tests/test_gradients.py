@@ -63,6 +63,7 @@ class TestGradientAvailability:
         params = [torch.tensor(1.0, requires_grad=True), torch.tensor([1.0], requires_grad=True)]
         config = {**options, **({'foreach': foreach} if optimizer_name in FOREACH_OPTIMIZERS else {})}
         optimizers = [build_optimizer(optimizer_name, [p], **config) for p in params]
+
         if optimizer_name == 'schedulefree':
             for optimizer in optimizers:
                 optimizer.train()
@@ -70,6 +71,7 @@ class TestGradientAvailability:
         for gradient in (3.0, 0.1, 0.3):
             for param, optimizer in zip(params, optimizers):
                 param.grad = torch.full_like(param, gradient)
+
                 with torch.random.fork_rng(devices=[]):
                     torch.manual_seed(42)
                     optimizer.step()

@@ -1020,8 +1020,10 @@ class DAdaptAdan(BaseOptimizer):
         g_sq = torch.tensor([0.0], device=device)
         sk_sq_weighted = torch.tensor([0.0], device=device)
         sk_l1 = torch.tensor([0.0], device=device)
+
         if 'gsq_weighted' not in group:
             group['gsq_weighted'] = torch.tensor([0.0], device=device)
+
         gsq_weighted = group['gsq_weighted']
 
         for group in self.param_groups:

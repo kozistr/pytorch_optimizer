@@ -174,16 +174,19 @@ class TestMiscUtils:
             sum(p.square().sum() for p in reference[:active]).backward()
             opt.step()
             base.step()
+
             for parameter, expected in zip(params, reference):
                 torch.testing.assert_close(parameter.cpu(), expected)
 
         state_dict = deepcopy(opt.state_dict())
+
         if legacy_checkpoint:
             group = state_dict['param_groups'][0]
             state_dict = [
                 {'state': {0: state_dict['state'][index]}, 'param_groups': [{**group, 'params': [0]}]}
                 for index in group['params']
             ]
+
         restored_params = [nn.Parameter(p.detach().clone()) for p in params]
         restored = CPUOffloadOptimizer(restored_params, lr=1.0, offload_gradients=offload_gradients)
         restored.load_state_dict(state_dict)
@@ -192,6 +195,7 @@ class TestMiscUtils:
             current.zero_grad()
             sum(p.sum() for p in parameters).backward()
             current.step()
+
         torch.testing.assert_close(restored_params, params)
 
         snapshot = [p.detach().clone() for p in params]

@@ -44,8 +44,10 @@ def norm_lower_bound(a: torch.Tensor) -> torch.Tensor:
 
     x0 = a.index_select(1, i.reshape(1)).flatten().conj() @ a
     bound0 = vector_norm((x0 / vector_norm(x0).clamp_min(tiny)) @ a.H)
+
     x1 = a @ a.index_select(0, j.reshape(1)).flatten().conj()
     bound1 = vector_norm(a.H @ (x1 / vector_norm(x1).clamp_min(tiny)))
+
     return max_abs * torch.where(value0 > value1, bound0, bound1)
 
 

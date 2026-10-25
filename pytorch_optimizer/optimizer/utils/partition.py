@@ -69,8 +69,10 @@ class BlockPartitioner:
     ) -> list[list[int] | None]:
         """Build matrix shapes for each block preconditioner."""
         pre_conditioner_shapes: list[list[int] | None] = []
+
         for t in itertools.product(*split_sizes):
             t_shape: list[list[int] | None] = [[d, d] for d in t]
+
             if pre_conditioner_type == PreConditionerType.INPUT:
                 t_shape[-1] = None
             elif pre_conditioner_type == PreConditionerType.OUTPUT:

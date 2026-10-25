@@ -224,6 +224,7 @@ class TRAC(BaseOptimizer):
 
         s = self.state['trac']['s']
         h = torch.zeros((1,), device=s.device)
+
         for group in self.param_groups:
             for p in group['params']:
                 if grads[p] is None:
@@ -268,11 +269,14 @@ class TRAC(BaseOptimizer):
         updates, grads = self.backup_params_and_grads()
 
         if closure is not None:
+
             def trac_closure():
                 with torch.enable_grad():
                     loss = closure()
+
                 for p in grads:
                     grads[p] = p.grad.clone() if p.grad is not None else None
+
                 return loss
 
             loss = self.optimizer.step(trac_closure)
