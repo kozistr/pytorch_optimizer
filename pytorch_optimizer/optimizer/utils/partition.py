@@ -34,30 +34,28 @@ class BlockPartitioner:
     def __init__(self, var: torch.Tensor, rank: int, block_size: int, pre_conditioner_type: int):
         self.shape: torch.Size = var.shape
 
-        self.splits: list[tuple[int, torch.Tensor]] = []
-        self.split_sizes: list[tuple[int, torch.Tensor]] = []
+        self.splits: list[tuple[int, list[int]]] = []
+        self.split_sizes: list[tuple[int, list[int]]] = []
 
-        split_sizes: list[torch.Tensor] = []
+        split_sizes: list[list[int]] = []
 
         # We split var into smaller blocks. Here we store the metadata to make that split.
         for i, d in enumerate(self.shape):
             if block_size <= 0 or block_size >= d:
-                split_sizes.append(torch.tensor([d], dtype=torch.int32))
+                split_sizes.append([d])
                 continue
 
             # d - 1, otherwise split appends a 0-size array.
             num_split: int = (d - 1) // block_size
-            indices = (torch.arange(num_split, dtype=torch.int32) + 1) * block_size
-
-            sizes: torch.Tensor = torch.full((num_split + 1,), block_size, dtype=torch.int32)
-            sizes[-1] = d - indices[-1]
+            indices = list(range(block_size, d, block_size))
+            sizes = [block_size] * num_split + [d - num_split * block_size]
 
             self.splits.append((i, indices))
             self.split_sizes.append((i, sizes))
             split_sizes.append(sizes)
 
         self.num_splits: int = len(split_sizes)
-        self.pre_conditioner_shapes: list[list[torch.Tensor] | None] = self.build_pre_conditioner_shapes(
+        self.pre_conditioner_shapes: list[list[int] | None] = self.build_pre_conditioner_shapes(
             split_sizes,
             pre_conditioner_type,
             rank,
@@ -65,14 +63,16 @@ class BlockPartitioner:
 
     @staticmethod
     def build_pre_conditioner_shapes(
-        split_sizes: list[torch.Tensor],
+        split_sizes: list[list[int]],
         pre_conditioner_type: int,
         rank: int,
-    ) -> list[list[torch.Tensor] | None]:
+    ) -> list[list[int] | None]:
         """Build matrix shapes for each block preconditioner."""
-        pre_conditioner_shapes: list[list[torch.Tensor] | None] = []
+        pre_conditioner_shapes: list[list[int] | None] = []
+
         for t in itertools.product(*split_sizes):
-            t_shape: list[list[torch.Tensor] | None] = [[d, d] for d in t]
+            t_shape: list[list[int] | None] = [[d, d] for d in t]
+
             if pre_conditioner_type == PreConditionerType.INPUT:
                 t_shape[-1] = None
             elif pre_conditioner_type == PreConditionerType.OUTPUT:
@@ -80,7 +80,7 @@ class BlockPartitioner:
             pre_conditioner_shapes.extend(t_shape)
         return pre_conditioner_shapes
 
-    def shapes_for_pre_conditioners(self) -> list[list[torch.Tensor] | None]:
+    def shapes_for_pre_conditioners(self) -> list[list[int] | None]:
         """Return the matrix shapes of the block preconditioners."""
         return self.pre_conditioner_shapes
 
@@ -92,7 +92,7 @@ class BlockPartitioner:
 
         tensors = [x]
         for i, sizes in self.split_sizes:
-            tensors = [torch.split(t, list(sizes), dim=i) for t in tensors]
+            tensors = [torch.split(t, sizes, dim=i) for t in tensors]
             tensors = [t for tensor in tensors for t in tensor]
         return tensors
 

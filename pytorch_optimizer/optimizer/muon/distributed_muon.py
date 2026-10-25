@@ -1,21 +1,15 @@
 import math
-from typing import cast
 
 import torch
 from torch.distributed import all_gather, get_rank, get_world_size
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
-from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.muon.base import get_adjusted_lr
-from pytorch_optimizer.optimizer.utils.matrix import (
-    NewtonSchulzWeights,
-    get_newton_schulz_weights,
-    zero_power_via_newton_schulz_5,
-)
+from pytorch_optimizer.optimizer.muon.muon import Muon
+from pytorch_optimizer.optimizer.utils.matrix import NewtonSchulzWeights
 
 
-class DistributedMuon(BaseOptimizer):  # pragma: no cover
+class DistributedMuon(Muon):  # pragma: no cover
     """Distributed momentum updates with Newton-Schulz matrix orthogonalization.
 
     Set `use_muon=True` for hidden weight matrices and `use_muon=False` for AdamW groups,
@@ -38,6 +32,7 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
         adamw_wd: Weight decay for parameters in the AdamW groups.
         adamw_eps: Numerical stability constant for the AdamW groups.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch updates owned by each rank. `None` enables batching on CUDA.
 
     Examples:
         ```python
@@ -79,45 +74,30 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
         adamw_wd: float = 0.0,
         adamw_eps: float = 1e-10,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
-        self.validate_learning_rate(lr)
-        self.validate_learning_rate(adamw_lr)
-        self.validate_non_negative(weight_decay, 'weight_decay')
-        self.validate_range(momentum, 'momentum', 0.0, 1.0, range_type='[)')
-        self.validate_positive(ns_steps, 'ns_steps')
-        self.validate_betas(adamw_betas)
-        self.validate_non_negative(adamw_wd, 'adamw_wd')
-        self.validate_non_negative(adamw_eps, 'adamw_eps')
-        ns_coeffs = get_newton_schulz_weights(ns_coeffs)
-
-        self.maximize = maximize
+        super().__init__(
+            list(params) if params is not None else params,
+            lr=lr,
+            momentum=momentum,
+            weight_decay=weight_decay,
+            weight_decouple=weight_decouple,
+            nesterov=nesterov,
+            ns_steps=ns_steps,
+            ns_coeffs=ns_coeffs,
+            use_adjusted_lr=use_adjusted_lr,
+            adamw_lr=adamw_lr,
+            adamw_betas=adamw_betas,
+            adamw_wd=adamw_wd,
+            adamw_eps=adamw_eps,
+            maximize=maximize,
+            foreach=foreach,
+            **kwargs,
+        )
 
         self.world_size: int = get_world_size()
         self.rank: int = get_rank()
-
-        for group in params:
-            group = cast(ParamGroup, group)
-            if 'use_muon' not in group:
-                raise ValueError('`use_muon` must be set.')
-
-            if group['use_muon']:
-                group['lr'] = group.get('lr', lr)
-                group['momentum'] = group.get('momentum', momentum)
-                group['nesterov'] = group.get('nesterov', nesterov)
-                group['weight_decay'] = group.get('weight_decay', weight_decay)
-                group['ns_steps'] = group.get('ns_steps', ns_steps)
-                group['ns_coeffs'] = get_newton_schulz_weights(group.get('ns_coeffs', ns_coeffs))
-                group['use_adjusted_lr'] = group.get('use_adjusted_lr', use_adjusted_lr)
-            else:
-                group['lr'] = group.get('lr', adamw_lr)
-                group['betas'] = group.get('betas', adamw_betas)
-                group['eps'] = group.get('eps', adamw_eps)
-                group['weight_decay'] = group.get('weight_decay', adamw_wd)
-
-            group['weight_decouple'] = group.get('weight_decouple', weight_decouple)
-
-        super().__init__(params, kwargs)
 
     def __str__(self) -> str:
         return 'DistributedMuon'
@@ -154,14 +134,30 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
             self.init_group(group)
             group['step'] += 1
 
+            batched = self.can_use_foreach(group, group.get('foreach'), default_on_cuda=True)
+
+            if batched:
+                owned = group['params'][self.rank::self.world_size] if group['use_muon'] else group['params']
+
+                for p in owned:
+                    if group['use_muon'] and not self.state[p]:
+                        self.state[p]['momentum_buffer'] = torch.zeros_like(p)
+
+                self._step_foreach_group({**group, 'params': owned})
+
+                if not group['use_muon']:
+                    continue
+
             if group['use_muon']:
                 params = group['params']
-                padded_params = params + [torch.empty_like(params[-1])] * (
-                    self.world_size - len(params) % self.world_size
-                )
+
+                if not params:
+                    continue
+
+                padded_params = params + [torch.empty_like(params[-1]) for _ in range(-len(params) % self.world_size)]
 
                 for i in range(len(params))[:: self.world_size]:
-                    if i + self.rank < len(params):
+                    if not batched and i + self.rank < len(params):
                         p = params[i + self.rank]
 
                         grad = p.grad
@@ -182,22 +178,8 @@ class DistributedMuon(BaseOptimizer):  # pragma: no cover
                         )
 
                         buf = state['momentum_buffer']
-                        buf.lerp_(grad, weight=1.0 - group['momentum'])
-
-                        update = grad.lerp_(buf, weight=group['momentum']) if group['nesterov'] else buf
-                        if update.ndim > 2:
-                            update = update.view(len(update), -1)
-
-                        update = zero_power_via_newton_schulz_5(
-                            update, num_steps=group['ns_steps'], weights=group['ns_coeffs']
-                        )
-
-                        if group.get('cautious'):
-                            self.apply_cautious(update, grad)
-
-                        lr = get_adjusted_lr(group['lr'], p.size(), use_adjusted_lr=group['use_adjusted_lr'])
-
-                        p.add_(update.reshape(p.shape), alpha=-lr)
+                        update = self._momentum_updates(group, [grad], [buf])[0]
+                        self._apply_muon_updates(group, [p], [grad], [update])
 
                     all_gather(padded_params[i:i + self.world_size], padded_params[i + self.rank])  # fmt: skip
             else:

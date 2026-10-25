@@ -88,7 +88,7 @@ class RACS(BaseOptimizer):
 
             if 's' not in state:
                 if grad.ndim < 2:
-                    grad = grad.reshape(len(grad), 1)
+                    grad = grad.reshape(grad.numel(), 1)
                 elif grad.ndim > 2:
                     grad = grad.reshape(len(grad), -1)
 
@@ -107,11 +107,11 @@ class RACS(BaseOptimizer):
         if self.maximize:
             torch._foreach_neg_(grads)
 
-        grads = [grad.reshape(grad.size(0), -1) for grad in grads]
-
         self.apply_weight_decay_foreach(
             params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], group['fixed_decay']
         )
+
+        grads = [grad.reshape(grad.size(0) if grad.ndim else 1, -1) for grad in grads]
 
         squares = torch._foreach_pow(grads, 2)
         torch._foreach_lerp_(state['s'], [value.mean(dim=1) for value in squares], weight=1.0 - group['beta'])
@@ -170,11 +170,6 @@ class RACS(BaseOptimizer):
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
-                if grad.ndim < 2:
-                    grad = grad.reshape(len(grad), 1)
-                elif grad.ndim > 2:
-                    grad = grad.reshape(len(grad), -1)
-
                 has_state = p not in new_params
 
                 self.apply_weight_decay(
@@ -185,6 +180,11 @@ class RACS(BaseOptimizer):
                     weight_decouple=group['weight_decouple'],
                     fixed_decay=group['fixed_decay'],
                 )
+
+                if grad.ndim < 2:
+                    grad = grad.reshape(grad.numel(), 1)
+                elif grad.ndim > 2:
+                    grad = grad.reshape(len(grad), -1)
 
                 s, q = state['s'], state['q']
 
@@ -308,8 +308,18 @@ class Alice(BaseOptimizer):
         leading_indices = torch.argsort(vals, descending=True)[:leading_basis]
         u_t1 = vecs[:, leading_indices]
 
-        u_c, _ = torch.linalg.qr(torch.eye(q.shape[0], device=q.device) - u_t1 @ u_t1.T)
-        u_t2 = u_c[:, :rank - leading_basis]  # fmt: skip
+        if rank == leading_basis:
+            return u_t1.to(q.dtype)
+
+        u_c, _ = torch.linalg.qr(vecs, mode='complete')
+        u_c = u_c[:, rank:]
+
+        if u_c.size(1) < rank - leading_basis:
+            remaining_indices = torch.argsort(vals, descending=True)[leading_basis:]
+            u_c = torch.cat([u_c, vecs[:, remaining_indices]], dim=1)
+
+        indices = torch.randperm(u_c.size(1), device=q.device)[:rank - leading_basis]
+        u_t2 = u_c[:, indices]
 
         return torch.cat([u_t1, u_t2], dim=1).to(q.dtype)
 
@@ -366,8 +376,17 @@ class Alice(BaseOptimizer):
 
                 self.maximize_gradient(grad, maximize=self.maximize)
 
+                self.apply_weight_decay(
+                    p=p,
+                    grad=grad,
+                    lr=group['lr'],
+                    weight_decay=group['weight_decay'],
+                    weight_decouple=group['weight_decouple'],
+                    fixed_decay=group['fixed_decay'],
+                )
+
                 if grad.ndim < 2:
-                    grad = grad.reshape(len(grad), 1)
+                    grad = grad.reshape(grad.numel(), 1)
                 elif grad.ndim > 2:
                     grad = grad.reshape(len(grad), -1)
 
@@ -387,15 +406,6 @@ class Alice(BaseOptimizer):
 
                 rank = state['U'].size(1)
                 leading_basis = min(group['leading_basis'], rank)
-
-                self.apply_weight_decay(
-                    p=p,
-                    grad=grad,
-                    lr=group['lr'],
-                    weight_decay=group['weight_decay'],
-                    weight_decouple=group['weight_decouple'],
-                    fixed_decay=group['fixed_decay'],
-                )
 
                 q, u, m, v = state['Q'], state['U'], state['m'], state['v']
 

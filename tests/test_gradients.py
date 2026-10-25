@@ -31,7 +31,7 @@ class TestGradientAvailability:
         active = make_parameter()
         inactive = make_parameter(grad=None)
         frozen = make_parameter(requires_grad=False)
-        params = [{'params': [active, inactive]}, {'params': [frozen]}]
+        params = [{'params': []}, {'params': [active, inactive]}, {'params': [frozen]}]
         optimizer = build_optimizer(optimizer_name, params, **GRADIENT_OPTIONS.get(optimizer_name, {}))
         (active.grad,) = torch.autograd.grad(sphere_loss(active), active, create_graph=True)
 

@@ -1,4 +1,5 @@
 import math
+from collections import defaultdict
 from enum import IntEnum
 
 import torch
@@ -22,6 +23,26 @@ class LMONorm(IntEnum):
     ROW = 7
 
 
+def _spectral_directions(grads: list[torch.Tensor], num_steps: int) -> list[torch.Tensor]:
+    groups: defaultdict[tuple, list[int]] = defaultdict(list)
+
+    for index, grad in enumerate(grads):
+        groups[(grad.device, grad.dtype, grad.shape)].append(index)
+
+    updates = list(grads)
+
+    for indices in groups.values():
+        matrices = [grads[index].reshape(grads[index].size(0), -1) for index in indices]
+        matrix = matrices[0] if len(matrices) == 1 else torch.stack(matrices)
+        result = zero_power_via_newton_schulz_5(matrix, num_steps)
+        results = [result] if len(matrices) == 1 else result.unbind()
+
+        for index, update in zip(indices, results):
+            updates[index] = update.reshape(grads[index].shape)
+
+    return updates
+
+
 class Norm:
     """Identity linear minimization oracle and parameter initialization."""
 
@@ -32,6 +53,10 @@ class Norm:
     def lmo(self, grad: torch.Tensor) -> torch.Tensor:
         """Return the linear minimization oracle direction."""
         return grad.clone()
+
+    def lmo_foreach(self, grads: list[torch.Tensor]) -> list[torch.Tensor]:
+        """Compute linear minimization directions for a list of gradients."""
+        return [self.lmo(grad) for grad in grads]
 
 
 class Col(Norm):
@@ -174,6 +199,12 @@ class SpectralConv(Norm):
 
         return grad
 
+    def lmo_foreach(self, grads: list[torch.Tensor]) -> list[torch.Tensor]:
+        updates = _spectral_directions(grads, self.num_steps)
+        scales = [math.sqrt(grad.size(0) / grad.size(1)) / math.prod(grad.shape[2:]) for grad in grads]
+        torch._foreach_mul_(updates, scales)
+        return updates
+
 
 class Spectral(Norm):
     """Spectral normalization.
@@ -217,6 +248,14 @@ class Spectral(Norm):
         grad *= scale
 
         return grad
+
+    def lmo_foreach(self, grads: list[torch.Tensor]) -> list[torch.Tensor]:
+        updates = _spectral_directions(grads, self.num_steps)
+        scales = [
+            math.sqrt(grad.size(0) / grad.size(1)) if self.normalize else math.sqrt(grad.size(0)) for grad in grads
+        ]
+        torch._foreach_mul_(updates, [max(1.0, scale) for scale in scales] if self.max_scale else scales)
+        return updates
 
 
 class Sign(Norm):
@@ -271,6 +310,28 @@ class Auto(Norm):
         if ndim in (3, 4):
             return SpectralConv().lmo(grad)
         raise NotImplementedError
+
+    def lmo_foreach(self, grads: list[torch.Tensor]) -> list[torch.Tensor]:
+        updates = list(grads)
+        groups: defaultdict[int, list[int]] = defaultdict(list)
+
+        for index, grad in enumerate(grads):
+            groups[grad.ndim].append(index)
+
+        for ndim, indices in groups.items():
+            if ndim in (0, 1):
+                norm = BiasRMS()
+            elif ndim == 2:
+                norm = Spectral()
+            elif ndim in (3, 4):
+                norm = SpectralConv()
+            else:
+                raise NotImplementedError
+
+            for index, update in zip(indices, norm.lmo_foreach([grads[index] for index in indices])):
+                updates[index] = update
+
+        return updates
 
 
 def build_lmo_norm(norm_type: int, **kwargs) -> Norm:  # noqa: PLR0911
@@ -346,6 +407,7 @@ class SCION(BaseOptimizer):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, '(]')
         self.validate_positive(scale, 'scale')
+        self.validate_non_negative(weight_decay, 'weight_decay')
 
         self.foreach = foreach
         self.maximize = maximize
@@ -427,7 +489,7 @@ class SCION(BaseOptimizer):
 
         torch._foreach_lerp_(ds, grads, group['momentum'])
 
-        updates = [norm.lmo(d) for d in ds]
+        updates = norm.lmo_foreach(ds)
         torch._foreach_mul_(updates, group['scale'])
 
         if group['constraint']:
@@ -547,6 +609,7 @@ class SCIONLight(BaseOptimizer):
         self.validate_learning_rate(lr)
         self.validate_range(momentum, 'momentum', 0.0, 1.0, '(]')
         self.validate_positive(scale, 'scale')
+        self.validate_non_negative(weight_decay, 'weight_decay')
 
         self.foreach = foreach
         self.maximize = maximize
@@ -600,12 +663,6 @@ class SCIONLight(BaseOptimizer):
         if self.maximize:
             torch._foreach_neg_(grads)
 
-        updates = [norm.lmo(grad) for grad in grads]
-        torch._foreach_mul_(updates, group['scale'])
-
-        if group['constraint']:
-            torch._foreach_mul_(params, 1.0 - group['lr'])
-
         if not group['constraint'] and group['weight_decay'] > 0.0:
             self.apply_weight_decay_foreach(
                 params,
@@ -615,6 +672,12 @@ class SCIONLight(BaseOptimizer):
                 weight_decouple=group['weight_decouple'],
                 fixed_decay=False,
             )
+
+        updates = norm.lmo_foreach(grads)
+        torch._foreach_mul_(updates, group['scale'])
+
+        if group['constraint']:
+            torch._foreach_mul_(params, 1.0 - group['lr'])
 
         torch._foreach_add_(params, updates, alpha=-group['lr'])
 
@@ -637,11 +700,6 @@ class SCIONLight(BaseOptimizer):
 
             self.maximize_gradient(grad, maximize=self.maximize)
 
-            update = norm.lmo(grad).mul_(group['scale'])
-
-            if group['constraint']:
-                p.mul_(1.0 - group['lr'])
-
             if not group['constraint'] and group['weight_decay'] > 0.0:
                 self.apply_weight_decay(
                     p,
@@ -651,6 +709,11 @@ class SCIONLight(BaseOptimizer):
                     weight_decouple=group['weight_decouple'],
                     fixed_decay=False,
                 )
+
+            update = norm.lmo(grad).mul_(group['scale'])
+
+            if group['constraint']:
+                p.mul_(1.0 - group['lr'])
 
             p.add_(update, alpha=-group['lr'])
 

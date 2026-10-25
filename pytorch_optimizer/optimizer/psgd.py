@@ -127,7 +127,7 @@ class Kron(BaseOptimizer):
             update_prob = cast(torch.Tensor, update_prob(first_group.get('step', 0)))
 
         update_counter = first_group.get('update_counter', 0) + 1
-        do_update: bool = update_counter >= 1 / update_prob
+        do_update: bool = bool(update_prob > 0 and update_counter >= 1 / update_prob)
         first_group['update_counter'] = 0 if do_update else update_counter
 
         balance: bool = np.random.random() < self.balance_prob and do_update
@@ -154,6 +154,9 @@ class Kron(BaseOptimizer):
                     raise NoComplexParameterError(str(self))
 
                 self.maximize_gradient(grad, maximize=self.maximize)
+
+                if p.dim() >= 2 and not group['weight_decouple']:
+                    self.apply_weight_decay(p, grad, group['lr'], group['weight_decay'], False, False)
 
                 state = self.state[p]
 
@@ -197,7 +200,7 @@ class Kron(BaseOptimizer):
 
                 precondition_grad.mul_(torch.clamp(1.1 / (precondition_grad.square().mean().sqrt() + 1e-6), max=1.0))
 
-                if group['weight_decay'] != 0 and p.dim() >= 2:
+                if group['weight_decay'] != 0 and p.dim() >= 2 and group['weight_decouple']:
                     precondition_grad.add_(p, alpha=group['weight_decay'])
 
                 p.add_(precondition_grad, alpha=-group['lr'])

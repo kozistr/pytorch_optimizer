@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import torch
 
 
@@ -17,14 +19,14 @@ def centralize_gradient(grad: torch.Tensor | list[torch.Tensor], gc_conv_only: b
 
         return
 
-    groups: dict[tuple[torch.device, torch.dtype, torch.Size], list[torch.Tensor]] = {}
+    groups: defaultdict[tuple[torch.device, torch.dtype, torch.Size], list[torch.Tensor]] = defaultdict(list)
 
     for gradient in grad:
         if gradient.ndim <= (3 if gc_conv_only else 1):
             continue
 
         key = (gradient.device, gradient.dtype, gradient.shape)
-        groups.setdefault(key, []).append(gradient)
+        groups[key].append(gradient)
 
     for tensors in groups.values():
         if len(tensors) == 1:

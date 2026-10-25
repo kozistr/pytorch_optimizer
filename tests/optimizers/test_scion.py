@@ -37,11 +37,14 @@ def test_lmo_norms(norm_type, options, shape, initial):
 
     torch.testing.assert_close(norm.init(gradient.clone()).abs(), torch.full_like(gradient, initial))
     assert torch.isfinite(norm.lmo(gradient)).all()
+    gradients = [gradient, gradient * 2.0]
+    torch.testing.assert_close(norm.lmo_foreach(gradients), [norm.lmo(grad) for grad in gradients])
 
 
 def test_auto_rejects_unsupported_dimensions():
     norm = build_lmo_norm(1)
     gradient = torch.ones(1, 1, 1, 1, 1)
-    for method in (norm.init, norm.lmo):
+
+    for method in (norm.init, norm.lmo, lambda grad: norm.lmo_foreach([grad])):
         with pytest.raises(NotImplementedError):
             method(gradient)

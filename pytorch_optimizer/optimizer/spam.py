@@ -506,9 +506,9 @@ class StableSPAM(BaseOptimizer):
             if 'exp_avg' not in state:
                 state['exp_avg'] = torch.zeros_like(grad)
                 state['exp_avg_sq'] = torch.zeros_like(grad)
-                state['m_norm_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
-                state['v_norm_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
-                state['m_max_t'] = torch.zeros(1, device=grad.device, dtype=grad.dtype)
+                state['m_norm_t'] = torch.zeros((), device=grad.device, dtype=grad.dtype)
+                state['v_norm_t'] = torch.zeros((), device=grad.device, dtype=grad.dtype)
+                state['m_max_t'] = torch.zeros((), device=grad.device, dtype=grad.dtype)
 
     def _step_foreach(
         self,

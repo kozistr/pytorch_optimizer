@@ -1,3 +1,4 @@
+from collections import defaultdict
 
 import torch
 from torch.nn.functional import normalize
@@ -5,6 +6,7 @@ from torch.nn.functional import normalize
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Closure, Loss, ParamGroup, ParamsT
+from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
 
 
 @torch.no_grad()
@@ -55,8 +57,13 @@ def msign(x: torch.Tensor, steps: int) -> torch.Tensor:
         coef_a, coef_b, coef_c = coefficients[i] if i < 8 else coefficients[-1]
 
         a = x @ x.mT
-        b = torch.addmm(a, a, a, alpha=coef_c, beta=coef_b)
-        x = torch.addmm(x, b, x, alpha=1.0, beta=coef_a)
+
+        if x.ndim == 2:
+            b = torch.addmm(a, a, a, alpha=coef_c, beta=coef_b)
+            x = torch.addmm(x, b, x, alpha=1.0, beta=coef_a)
+        else:
+            b = torch.baddbmm(a, a, a, alpha=coef_c, beta=coef_b)
+            x = torch.baddbmm(x, b, x, alpha=1.0, beta=coef_a)
 
     return x.mT if transpose else x
 
@@ -194,6 +201,64 @@ def solve_lambda_with_bisection(
     return best_lambda
 
 
+def solve_lambda_foreach(
+    x: torch.Tensor, theta: torch.Tensor, msign_steps: int, tolerance: float, max_iterations: int
+) -> torch.Tensor:
+    """Solve independent spectral constraints for a batch of matrices."""
+
+    def evaluate(value):
+        scaled_theta = (value[:, None, None] * theta).to(theta.dtype)
+        return (theta * msign(x + scaled_theta, msign_steps)).sum(dim=(-2, -1))
+
+    previous = x.new_zeros(x.size(0))
+    previous_f = evaluate(previous)
+
+    step = torch.where(previous_f < 0, 1e-3, -1e-3)
+    found = previous_f.abs() < tolerance
+    left, right = previous.clone(), previous.clone()
+    left_f, right_f = previous_f.clone(), previous_f.clone()
+
+    for _ in range(10):
+        if found.all():
+            break
+
+        current = previous + step
+        current_f = evaluate(current)
+        crossing = ~found & ((previous_f <= 0) != (current_f <= 0))
+        ascending = previous_f <= 0
+
+        left = torch.where(crossing, torch.where(ascending, previous, current), left)
+        right = torch.where(crossing, torch.where(ascending, current, previous), right)
+        left_f = torch.where(crossing, torch.where(ascending, previous_f, current_f), left_f)
+        right_f = torch.where(crossing, torch.where(ascending, current_f, previous_f), right_f)
+
+        found |= crossing
+        previous, previous_f = current, current_f
+        step = step * 2.0
+
+    use_left = left_f.abs() < right_f.abs()
+    best = torch.where(use_left, left, right)
+    best_f = torch.where(use_left, left_f, right_f)
+    active = found & (best_f.abs() > tolerance)
+
+    for _ in range(max_iterations):
+        if not active.any():
+            break
+
+        middle = (left + right) * 0.5
+        middle_f = evaluate(middle)
+
+        improved = active & (middle_f.abs() < best_f.abs())
+        best = torch.where(improved, middle, best)
+        best_f = torch.where(improved, middle_f, best_f)
+
+        active &= middle_f.abs() > tolerance
+        left = torch.where(active & (middle_f < 0), middle, left)
+        right = torch.where(active & (middle_f >= 0), middle, right)
+
+    return best
+
+
 def compute_spectral_ball_update(
     weight: torch.Tensor,
     momentum: torch.Tensor,
@@ -264,6 +329,7 @@ class SpectralSphere(BaseOptimizer):
         solver_tolerance_f: Function value tolerance for solver.
         solver_max_iterations: Maximum iterations for solver.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch compatible spectral constraints. `None` enables batching on CUDA.
 
     """
 
@@ -280,6 +346,7 @@ class SpectralSphere(BaseOptimizer):
         solver_tolerance_f: float = 1e-8,
         solver_max_iterations: int = 100,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -301,6 +368,7 @@ class SpectralSphere(BaseOptimizer):
             'nesterov': nesterov,
             'weight_decay': weight_decay,
             'weight_decouple': weight_decouple,
+            'foreach': foreach,
             **kwargs,
         }
 
@@ -343,6 +411,10 @@ class SpectralSphere(BaseOptimizer):
             self.init_group(group)
             group['step'] += 1
 
+            if self.can_use_foreach(group, group.get('foreach'), default_on_cuda=True):
+                self._step_foreach(group)
+                continue
+
             for p in group['params']:
                 if p.grad is None:
                     continue
@@ -379,3 +451,44 @@ class SpectralSphere(BaseOptimizer):
                 p.add_(update, alpha=-group['lr'])
 
         return loss
+
+    def _step_foreach(self, group: ParamGroup) -> None:
+        params, grads, state = self.collect_trainable_params(group, self.state, ['momentum_buffer'])
+
+        for batch in group_tensors_by_device_and_dtype(params, grads, state):
+            params, grads = batch['params'], batch['grads']
+
+            if self.maximize:
+                torch._foreach_neg_(grads)
+
+            self.apply_weight_decay_foreach(
+                params, grads, group['lr'], group['weight_decay'], group['weight_decouple'], False
+            )
+
+            torch._foreach_lerp_(batch['momentum_buffer'], grads, weight=1.0 - group['momentum'])
+
+            if group['nesterov']:
+                torch._foreach_lerp_(grads, batch['momentum_buffer'], weight=group['momentum'])
+            else:
+                grads = batch['momentum_buffer']
+
+            shapes: defaultdict[tuple, list[int]] = defaultdict(list)
+
+            for index, p in enumerate(params):
+                shapes[p.shape].append(index)
+
+            for indices in shapes.values():
+                weights = torch.stack([params[index] for index in indices])
+                momentum = torch.stack([grads[index] for index in indices]).float()
+                momentum.div_(torch.linalg.vector_norm(momentum, dim=(-2, -1), keepdim=True).clamp_min_(1e-8))
+
+                u, v = power_iteration(weights, self.power_iteration_steps)
+                theta = u @ v.mT
+
+                multipliers = solve_lambda_foreach(
+                    momentum, theta, self.msign_steps, self.solver_tolerance_f, self.solver_max_iterations
+                )
+
+                scaled_theta = (multipliers[:, None, None] * theta).to(theta.dtype)
+                updates = msign(momentum + scaled_theta, self.msign_steps)
+                torch._foreach_add_([params[index] for index in indices], updates.unbind(), alpha=-group['lr'])

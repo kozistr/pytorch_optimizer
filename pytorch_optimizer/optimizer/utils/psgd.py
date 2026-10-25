@@ -31,22 +31,24 @@ def norm_lower_bound(a: torch.Tensor) -> torch.Tensor:
         torch.Tensor: Lower bound estimate of the spectral norm.
 
     """
-    max_abs = torch.max(torch.abs(a))
-    if max_abs <= 0:
-        return max_abs
+    if a.ndim < 2:
+        return vector_norm(a)
 
-    a.div_(max_abs)
+    max_abs = torch.max(torch.abs(a))
+    tiny = torch.finfo(a.real.dtype).tiny
+    a.div_(torch.where(max_abs > 0, max_abs, 1.0))
 
     aa = torch.real(a * a.conj())
     value0, i = torch.max(torch.sum(aa, dim=0), 0)
     value1, j = torch.max(torch.sum(aa, dim=1), 0)
 
-    if value0 > value1:
-        x = a[:, i].conj() @ a
-        return max_abs * vector_norm((x / vector_norm(x)) @ a.H)
+    x0 = a.index_select(1, i.reshape(1)).flatten().conj() @ a
+    bound0 = vector_norm((x0 / vector_norm(x0).clamp_min(tiny)) @ a.H)
 
-    x = a @ a[j].conj()
-    return max_abs * vector_norm(a.H @ (x / vector_norm(x)))
+    x1 = a @ a.index_select(0, j.reshape(1)).flatten().conj()
+    bound1 = vector_norm(a.H @ (x1 / vector_norm(x1).clamp_min(tiny)))
+
+    return max_abs * torch.where(value0 > value1, bound0, bound1)
 
 
 def woodbury_identity(inv_a: torch.Tensor, u: torch.Tensor, v: torch.Tensor) -> None:

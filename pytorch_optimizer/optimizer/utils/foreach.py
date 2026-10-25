@@ -65,7 +65,7 @@ def group_tensors_by_device_and_dtype(
             'params': tensor_lists[0],
             'grads': [grads[index] for index in indices],
             'indices': indices,
-            **{name: [values[index] for index in indices] for name, values in state_lists.items()},
+            **{name: [values[index] for index in indices] if values else [] for name, values in state_lists.items()},
         }
         for tensor_lists, indices in sorted(groups.values(), key=lambda group: group[1][0])
     ]

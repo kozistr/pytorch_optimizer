@@ -56,7 +56,7 @@ class LOMO(BaseOptimizer):
 
         p0: torch.Tensor = next(iter(self.model.parameters()))
 
-        self.grad_func: Callable[[Any], Any] = (
+        self.grad_func: Callable[..., Any] = (
             self.fuse_update_zero3() if hasattr(p0, 'ds_tensor') else self.fuse_update()
         )
 
@@ -67,9 +67,12 @@ class LOMO(BaseOptimizer):
 
             self.loss_scaler = DynamicLossScaler(init_scale=2 ** 16)  # fmt: skip
 
+        def update_parameter(p: torch.Tensor) -> None:
+            self.grad_func(0, [p])
+
         for _, p in self.model.named_parameters():
             if p.requires_grad:
-                p.register_hook(self.grad_func)
+                p.register_post_accumulate_grad_hook(update_parameter)
 
         defaults: Defaults = {'lr': lr}
 
@@ -84,8 +87,8 @@ class LOMO(BaseOptimizer):
 
     def fuse_update(self) -> Callable[[Any], Any]:
         @torch.no_grad()
-        def func(x: Any) -> Any:
-            for _, p in self.model.named_parameters():
+        def func(x: Any, params: list[torch.Tensor] | None = None) -> Any:
+            for p in self.model.parameters() if params is None else params:
                 if not p.requires_grad or p.grad is None:
                     continue
 
@@ -121,8 +124,8 @@ class LOMO(BaseOptimizer):
 
     def fuse_update_zero3(self) -> Callable[[Any], Any]:  # pragma: no cover
         @torch.no_grad()
-        def func(x: torch.Tensor) -> torch.Tensor:
-            for _, p in self.model.named_parameters():
+        def func(x: torch.Tensor, params: list[torch.Tensor] | None = None) -> torch.Tensor:
+            for p in self.model.parameters() if params is None else params:
                 if p.grad is None:
                     continue
 

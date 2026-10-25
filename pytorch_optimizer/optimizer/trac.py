@@ -10,21 +10,15 @@ from pytorch_optimizer.base.type import Closure, Defaults, Loss, OptimizerInstan
 
 
 def polyval(x: torch.Tensor, coef: torch.Tensor) -> torch.Tensor:
-    """Implement Horner's scheme to evaluate a polynomial.
-
-    Taken from https://discuss.pytorch.org/t/polynomial-evaluation-by-horner-rule/67124
+    """Evaluate the error-function polynomial on the unit disk.
 
     Args:
         x: Variable at which to evaluate the polynomial.
         coef: Coefficients of the polynomial, ordered from highest degree to lowest.
 
     """
-    result = coef[0].clone()
-
-    for c in coef[1:]:
-        result = (result * x) + c
-
-    return result[0]
+    powers = x.unsqueeze(-1).expand(*x.shape, coef.numel() - 1).cumprod(dim=-1)
+    return ((powers * coef[:-1].flip(0)).sum(dim=-1) + coef[-1])[0]
 
 
 class ERF1994(nn.Module):
@@ -48,6 +42,7 @@ class ERF1994(nn.Module):
         self.theta = self.k * torch.pi / self.m
         self.t = self.l * torch.tan(self.theta / 2.0)
         self.f = torch.exp(-self.t ** 2) * (self.l ** 2 + self.t ** 2)  # fmt: skip
+        self.f = torch.cat([torch.zeros_like(self.f[:1]), self.f])
         self.a = torch.fft.fft(torch.fft.fftshift(self.f)).real / self.m2
         self.a = torch.flipud(self.a[1:self.n + 1])  # fmt: skip
 
@@ -227,10 +222,9 @@ class TRAC(BaseOptimizer):
 
         deltas = {}
 
-        device = self.param_groups[0]['params'][0].device
-
         s = self.state['trac']['s']
-        h = torch.zeros((1,), device=device)
+        h = torch.zeros((1,), device=s.device)
+
         for group in self.param_groups:
             for p in group['params']:
                 if grads[p] is None:
@@ -272,14 +266,28 @@ class TRAC(BaseOptimizer):
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
-        # TODO(kozistr): backup is first to get the delta of param and grad, but it does not work.
-        with torch.enable_grad():
-            loss = self.optimizer.step(closure)
-
         updates, grads = self.backup_params_and_grads()
 
+        if closure is not None:
+
+            def trac_closure():
+                with torch.enable_grad():
+                    loss = closure()
+
+                for p in grads:
+                    grads[p] = p.grad.clone() if p.grad is not None else None
+
+                return loss
+
+            loss = self.optimizer.step(trac_closure)
+        else:
+            loss = self.optimizer.step()
+
+        if not updates:
+            return loss
+
         if 'trac' not in self.state:
-            device = self.param_groups[0]['params'][0].device
+            device = next(iter(updates)).device
 
             self.state['trac'] = {
                 'betas': torch.tensor(self.betas, device=device),

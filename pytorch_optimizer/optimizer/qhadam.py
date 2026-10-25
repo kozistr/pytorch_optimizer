@@ -110,8 +110,9 @@ class QHAdam(BaseOptimizer):
         torch._foreach_mul_(beta2_weights, beta2)
         torch._foreach_add_(beta2_weights, 1.0)
 
-        weights1 = [weight.to(dtype=grads[0].dtype) for weight in torch._foreach_reciprocal(beta1_weights)]
-        weights2 = [weight.to(dtype=grads[0].dtype) for weight in torch._foreach_reciprocal(beta2_weights)]
+        weights1 = [weight.to(dtype=grads[0].dtype).reshape(()) for weight in torch._foreach_reciprocal(beta1_weights)]
+        weights2 = [weight.to(dtype=grads[0].dtype).reshape(()) for weight in torch._foreach_reciprocal(beta2_weights)]
+
         for exp_avg, grad, weight in zip(exp_avgs, grads, weights1):
             exp_avg.lerp_(grad, weight=weight)
 
@@ -187,8 +188,8 @@ class QHAdam(BaseOptimizer):
 
                 grad_p2 = grad.pow(2)
 
-                exp_avg.lerp_(grad, weight=beta1_weight.reciprocal().to(dtype=grad.dtype))
-                exp_avg_sq.lerp_(grad_p2, weight=beta2_weight.reciprocal().to(dtype=grad.dtype))
+                exp_avg.lerp_(grad, weight=beta1_weight.reciprocal().to(dtype=grad.dtype).reshape(()))
+                exp_avg_sq.lerp_(grad_p2, weight=beta2_weight.reciprocal().to(dtype=grad.dtype).reshape(()))
 
                 avg_grad = exp_avg
                 if nu1 != 1.0:

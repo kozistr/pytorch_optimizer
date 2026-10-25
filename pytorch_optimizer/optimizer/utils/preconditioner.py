@@ -111,6 +111,16 @@ class PreConditioner:
         reshaped_grad = grad.to(dtype=self.statistics[0].dtype).reshape(self.transformed_shape)
         partitioned_grads: list[torch.Tensor] = self.partitioner.partition(reshaped_grad)
 
+        if self.is_same_shapes:
+            unfolded = torch.stack([
+                block.movedim(axis, 0).reshape(block.size(axis), -1)
+                for block in partitioned_grads
+                for axis, selected in enumerate(self.should_precondition_dims)
+                if selected
+            ])
+            self.statistics.baddbmm_(unfolded, unfolded.mT, beta=self.beta2, alpha=self.w2)
+            return
+
         for j, partitioned_grad in enumerate(partitioned_grads):
             for i, axis in enumerate(ax for ax, selected in enumerate(self.should_precondition_dims) if selected):
                 axes: list[int] = [ax for ax in range(partitioned_grad.ndim) if ax != axis]

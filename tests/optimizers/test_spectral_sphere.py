@@ -19,3 +19,22 @@ def test_spectral_sphere_methods():
     theta = torch.tensor([[1.5, 0.0], [0.0, -2.8]])
     result = solve_lambda_with_bisection(x, theta, initial_guess=0.18, initial_step=0.012, msign_steps=0)
     assert result == pytest.approx(6.5 / 10.09, rel=torch.finfo(torch.bfloat16).eps)
+
+
+def test_spectral_sphere_foreach_without_nesterov():
+    parameter = make_parameter((2, 2), grad=None)
+    parameter.grad = torch.eye(2)
+    optimizer = build_optimizer(
+        'spectralsphere',
+        [parameter],
+        lr=0.1,
+        momentum=0.0,
+        nesterov=False,
+        weight_decay=0.0,
+        msign_steps=1,
+        foreach=True,
+    )
+    optimizer.step()
+
+    coefficient = (8.2051 - 22.9019 / 2.0 + 16.4607 / 4.0) / 2.0**0.5
+    torch.testing.assert_close(parameter, -0.1 * coefficient * torch.eye(2), rtol=0.02, atol=1e-4)

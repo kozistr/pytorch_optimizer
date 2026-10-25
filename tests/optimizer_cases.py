@@ -89,8 +89,7 @@ NATIVE_OPTIMIZERS = frozenset(name for name, cls in OPTIMIZERS.items() if cls.__
 SKIP_LEARNING_RATE = NATIVE_OPTIMIZERS | (frozenset(OPTIMIZERS) - optimizers_with_argument('lr')) | {'a2grad'}
 SKIP_EPSILON = frozenset(OPTIMIZERS) - optimizers_with_argument('eps') - {'distributedmuon'}
 
-# SCION variants expose weight decay but do not validate it in their constructors.
-SKIP_WEIGHT_DECAY = (frozenset(OPTIMIZERS) - optimizers_with_argument('weight_decay')) | {'scion', 'scionlight'}
+SKIP_WEIGHT_DECAY = frozenset(OPTIMIZERS) - optimizers_with_argument('weight_decay')
 SKIP_CREATE_OPTIMIZER = NATIVE_OPTIMIZERS | {'demo', 'distributedmuon'}
 
 

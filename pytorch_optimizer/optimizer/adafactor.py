@@ -201,6 +201,15 @@ class AdaFactor(BaseOptimizer):
         rms_values = self.get_rms(params) if group['scale_parameter'] else 1.0
         lrs = self.get_lr(relative_step_size, rms_values, group['scale_parameter'])
 
+        self.apply_weight_decay_foreach(
+            params=params,
+            grads=grads,
+            lr=lrs,
+            weight_decay=group['weight_decay'],
+            weight_decouple=group['weight_decouple'],
+            fixed_decay=group['fixed_decay'],
+        )
+
         updates = torch._foreach_pow(grads, 2)
         torch._foreach_add_(updates, self.eps1)
 
@@ -270,15 +279,6 @@ class AdaFactor(BaseOptimizer):
 
             updates = [exp_avg.to(grads[0].dtype) for exp_avg in exp_avgs] if is_dtype_different else exp_avgs
 
-        self.apply_weight_decay_foreach(
-            params=params,
-            grads=grads,
-            lr=lrs,
-            weight_decay=group['weight_decay'],
-            weight_decouple=group['weight_decouple'],
-            fixed_decay=group['fixed_decay'],
-        )
-
         torch._foreach_sub_(params, updates)
 
     def _step_per_param(self, group: ParamGroup, beta1: float, beta2_t: float, relative_step_size: float) -> None:
@@ -298,6 +298,15 @@ class AdaFactor(BaseOptimizer):
             state['RMS'] = self.get_rms(p)
 
             lr = self.get_lr(relative_step_size, state['RMS'], group['scale_parameter'])
+
+            self.apply_weight_decay(
+                p=p,
+                grad=grad,
+                lr=lr,
+                weight_decay=group['weight_decay'],
+                weight_decouple=group['weight_decouple'],
+                fixed_decay=group['fixed_decay'],
+            )
 
             # NOTE(kozistr): adding `eps1` here instead of clipping max by eps1 later
             update = grad.square().add_(self.eps1)
@@ -335,15 +344,6 @@ class AdaFactor(BaseOptimizer):
 
                 if group.get('cautious'):
                     self.apply_cautious(update, grad)
-
-            self.apply_weight_decay(
-                p=p,
-                grad=None,
-                lr=lr,
-                weight_decay=group['weight_decay'],
-                weight_decouple=group['weight_decouple'],
-                fixed_decay=group['fixed_decay'],
-            )
 
             p.sub_(update)
 

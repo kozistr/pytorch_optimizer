@@ -287,6 +287,16 @@ class TestMagma:
         assert new_optimizer.state[new_parameter].keys() == optimizer.state[parameter].keys()
 
 
+class TestOrthoGrad:
+    def test_foreach_update(self):
+        parameter = nn.Parameter(torch.tensor([1.0, 0.0]))
+        parameter.grad = torch.ones_like(parameter)
+        optimizer = OrthoGrad(build_optimizer('sgd', [parameter], lr=0.1), foreach=True)
+        optimizer.step()
+
+        torch.testing.assert_close(parameter, torch.tensor([1.0, -0.1 * 2.0**0.5]))
+
+
 class TestSAM:
     @pytest.mark.parametrize('wrapper', [WSAM, LookSAM, FriendlySAM])
     def test_checkpoint_resume(self, wrapper):
@@ -294,6 +304,10 @@ class TestSAM:
 
         def build(parameters):
             options = {'model': TrainingModel()} if wrapper is WSAM else {}
+
+            if wrapper is FriendlySAM:
+                options.update(sigma=0.5, foreach=True)
+
             return wrapper(params=parameters, base_optimizer=load_optimizer('adamw'), lr=0.01, **options)
 
         optimizer = build([param])
@@ -351,6 +365,7 @@ class TestSAM:
             (SAM, True, False, True),
             (WSAM, True, True, False),
             (WSAM, True, False, True),
+            (FriendlySAM, True, False, True),
         ],
     )
     def test_sam_changing_gradient_availability(self, first_pass_active, second_pass_active, wrapper, foreach):
@@ -584,6 +599,10 @@ class TestPCGrad:
 
 
 class TestTRAC:
+    def test_empty_parameters(self):
+        optimizer = TRAC(build_optimizer('sgd', [{'params': []}], lr=0.1))
+        assert optimizer.step() is None
+
     def test_trac_optimizer(self, environment):
         x_data, y_data = environment
         model, loss_fn = build_model(device=x_data.device)
@@ -591,7 +610,7 @@ class TestTRAC:
         optimizer = TRAC(build_optimizer('adamw', model.parameters(), lr=1e0))
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
-        trainer.run(iterations=3, threshold=2.0)
+        trainer.run(iterations=60, threshold=2.0)
 
     def test_trac_optimizer_erf_imag(self):
         optimizer = TRAC(build_optimizer('adamw', [make_parameter()]))

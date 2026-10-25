@@ -57,10 +57,9 @@ class LoRARiteHelper:
         relative_epsilon: bool,
     ) -> torch.Tensor:
         eigenvalues, eigenvectors = torch.linalg.eigh(self.make_symmetric(tensor))
-        if relative_epsilon:
-            eps_root = torch.max(eigenvalues).clamp(min=0.0).mul(eps_root).item()
+        root_epsilon = eigenvalues.amax().clamp_min(0.0) * eps_root if relative_epsilon else eps_root
 
-        inverse_eigenvalues = eigenvalues.clamp(min=0.0).add(escape).add(eps_root).sqrt_().add_(eps).reciprocal_()
+        inverse_eigenvalues = eigenvalues.clamp(min=0.0).add(escape).add(root_epsilon).sqrt_().add_(eps).reciprocal_()
         inverse_root = eigenvectors.mul(inverse_eigenvalues.unsqueeze(0)) @ eigenvectors.mT
         return self.make_symmetric(inverse_root).to(tensor.dtype)
 
@@ -138,9 +137,7 @@ class LoRARiteHelper:
 
     def skip_update(self, update: torch.Tensor, skip_threshold: float) -> torch.Tensor:
         update_rms = self.inf_to_nan(self.reduce_rms(update))
-        if update_rms > skip_threshold:
-            return torch.zeros_like(update)
-        return update
+        return torch.where(update_rms > skip_threshold, 0.0, update)
 
 
 class LoRARite(BaseOptimizer):
@@ -327,8 +324,8 @@ class LoRARite(BaseOptimizer):
         param_left_2d, _ = helper.move_lora_dim_to_last(param_left, group['lora_l_dim'])
         param_right_2d, _ = helper.move_lora_dim_to_last(param_right, group['lora_r_dim'])
 
-        if group['clip_unmagnified_grad'] > 0.0 and grad_norm > group['clip_unmagnified_grad']:
-            scale = group['clip_unmagnified_grad'] / grad_norm
+        if group['clip_unmagnified_grad'] > 0.0:
+            scale = (group['clip_unmagnified_grad'] / grad_norm).clamp_max_(1.0).to(update_left.device)
             update_left = update_left * scale
             update_right = update_right * scale
 

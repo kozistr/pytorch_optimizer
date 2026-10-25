@@ -223,7 +223,7 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('adafactor', {'lr': 1e0, 'weight_decay': 1e-3, 'scale_parameter': False, 'relative_step': False}, 5),
     ('adafactor', {'lr': 1e0, 'weight_decay': 1e-3, 'ams_bound': True, 'relative_step': False}, 10),
     ('adafactor', {'lr': 5e-1, 'betas': (None, 0.999), 'weight_decay': 1e-3, 'scale_parameter': False}, 50),
-    ('apollodqn', {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
+    ('apollodqn', {'lr': 5e-1, 'weight_decay': 1e-3, 'weight_decay_type': 'decoupled'}, 10),
     ('apollodqn', {'lr': 5e-1, 'weight_decay': 1e-3, 'rebound': 'belief'}, 10),
     ('apollodqn', {'lr': 1e-2, 'weight_decay': 1e-6, 'weight_decay_type': 'stable', 'warmup_steps': 0}, 5),
     ('novograd', {'lr': 5e-1, 'weight_decay': 1e-3, 'grad_averaging': True, 'weight_decouple': True}, 10),

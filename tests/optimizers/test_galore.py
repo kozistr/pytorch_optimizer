@@ -68,3 +68,28 @@ def test_conda_projected_second_moment():
 
     torch.testing.assert_close(optimizer.state[parameter]['exp_avg_sq'], projected.square())
     torch.testing.assert_close(parameter, expected)
+
+
+def test_fira_reduced_rank_compensation():
+    parameter = make_parameter((3, 4))
+    parameter.grad = torch.arange(1.0, parameter.numel() + 1).reshape_as(parameter) / 10.0
+    projector = GaLoreProjector(rank=2, scale=1.0, projection_type='right')
+    projected = projector.project(parameter.grad, 1)
+    adaptive = projected / (projected.abs() + 1e-6)
+    scale = adaptive.norm(dim=1, keepdim=True) / (projected.norm(dim=1, keepdim=True) + 1e-8)
+    residual = parameter.grad - projector.project_back(projected)
+    expected = -0.1 * (projector.project_back(adaptive) + residual * scale)
+
+    optimizer = build_optimizer(
+        'fira',
+        [parameter],
+        lr=0.1,
+        betas=(0.0, 0.0),
+        rank=2,
+        scale=1.0,
+        update_proj_gap=2,
+        projection_type='right',
+    )
+    optimizer.step()
+
+    torch.testing.assert_close(parameter, expected)

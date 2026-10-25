@@ -798,9 +798,9 @@ class ScheduleFreeWrapper(BaseOptimizer):
 
     @staticmethod
     def swap(x: torch.Tensor, y: torch.Tensor) -> None:
-        x.view(torch.uint8).bitwise_xor_(y.view(torch.uint8))
-        y.view(torch.uint8).bitwise_xor_(x.view(torch.uint8))
-        x.view(torch.uint8).bitwise_xor_(y.view(torch.uint8))
+        saved = x.clone()
+        x.copy_(y)
+        y.copy_(saved)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
