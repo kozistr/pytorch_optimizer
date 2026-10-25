@@ -83,6 +83,11 @@ class BaseOptimizer(ABC, Optimizer):
         raise ValueError('need to pass `params` when you pass the `torch.optim.Optimizer` instance.')
 
     @staticmethod
+    def get_device_from_param_groups(param_groups: list[ParamGroup]) -> torch.device:
+        """Return the first parameter's device, defaulting to CPU when all parameter groups are empty."""
+        return next((p.device for group in param_groups for p in group['params']), torch.device('cpu'))
+
+    @staticmethod
     @torch.no_grad()
     def set_hessian(param_groups: list[ParamGroup], state: State, hessian: list[torch.Tensor]) -> None:
         """Store externally computed Hessian estimates in the optimizer state.

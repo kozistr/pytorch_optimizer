@@ -176,7 +176,7 @@ class DAdaptAdaGrad(BaseOptimizer):
                 loss = closure()
 
         group = self.param_groups[0]
-        device = next((p.device for g in self.param_groups for p in g['params']), torch.device('cpu'))
+        device = self.get_device_from_param_groups(self.param_groups)
 
         d, lr = group['d'], group['lr']
         d_lr: float = d * lr
@@ -512,7 +512,7 @@ class DAdaptAdam(BaseOptimizer):
                 loss = closure()
 
         group = self.param_groups[0]
-        device = next((p.device for g in self.param_groups for p in g['params']), torch.device('cpu'))
+        device = self.get_device_from_param_groups(self.param_groups)
 
         beta1, beta2 = group['betas']
 
@@ -751,7 +751,7 @@ class DAdaptSGD(BaseOptimizer):
                 loss = closure()
 
         group = self.param_groups[0]
-        device = next((p.device for g in self.param_groups for p in g['params']), torch.device('cpu'))
+        device = self.get_device_from_param_groups(self.param_groups)
 
         sk_sq = torch.tensor([0.0], device=device)
         if 'numerator_weighted' not in group:
@@ -1016,7 +1016,7 @@ class DAdaptAdan(BaseOptimizer):
         d, lr = group['d'], group['lr']
         d_lr = float(d * lr)
 
-        device = next((p.device for g in self.param_groups for p in g['params']), torch.device('cpu'))
+        device = self.get_device_from_param_groups(self.param_groups)
         g_sq = torch.tensor([0.0], device=device)
         sk_sq_weighted = torch.tensor([0.0], device=device)
         sk_l1 = torch.tensor([0.0], device=device)
@@ -1247,7 +1247,7 @@ class DAdaptLion(BaseOptimizer):
                 loss = closure()
 
         group = self.param_groups[0]
-        device = next((p.device for g in self.param_groups for p in g['params']), torch.device('cpu'))
+        device = self.get_device_from_param_groups(self.param_groups)
 
         if 'numerator_weighted' not in group:
             group['numerator_weighted'] = torch.tensor([0.0], device=device)
