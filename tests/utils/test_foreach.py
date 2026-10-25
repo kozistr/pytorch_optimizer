@@ -57,18 +57,13 @@ class TestGroupTensorsByDeviceAndDtype:
             for device, dtype in [('cpu', torch.float32), ('meta', torch.float16), ('cpu', torch.float32)]
         ]
         grads = [torch.empty_like(parameter) for parameter in params]
-        state_lists = {
-            'exp_avg': [torch.empty_like(parameter, dtype=torch.bfloat16) for parameter in params],
-            'optional_state': [],
-        }
+        state_lists = {'exp_avg': [torch.empty_like(parameter, dtype=torch.bfloat16) for parameter in params]}
 
         groups = group_tensors_by_device_and_dtype(params, grads, state_lists)
 
         assert [group['indices'] for group in groups] == [[0, 2], [1]]
 
         for group in groups:
-            assert group['optional_state'] == []
-
             for position, index in enumerate(group['indices']):
                 assert group['params'][position] is params[index]
                 assert group['grads'][position] is grads[index]

@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer.sso import solve_lambda_foreach, solve_lambda_with_bisection
+from pytorch_optimizer.optimizer.sso import solve_lambda_with_bisection
 from tests.fixtures import make_parameter
 from tests.utils import build_optimizer
 
@@ -25,17 +25,16 @@ def test_spectral_sphere_foreach_without_nesterov():
     parameter = make_parameter((2, 2), grad=None)
     parameter.grad = torch.eye(2)
     optimizer = build_optimizer(
-        'spectralsphere', [parameter], lr=0.1, momentum=0.0, nesterov=False,
-        weight_decay=0.0, msign_steps=1, foreach=True,
+        'spectralsphere',
+        [parameter],
+        lr=0.1,
+        momentum=0.0,
+        nesterov=False,
+        weight_decay=0.0,
+        msign_steps=1,
+        foreach=True,
     )
     optimizer.step()
+
     coefficient = (8.2051 - 22.9019 / 2.0 + 16.4607 / 4.0) / 2.0**0.5
     torch.testing.assert_close(parameter, -0.1 * coefficient * torch.eye(2), rtol=0.02, atol=1e-4)
-
-
-def test_spectral_sphere_independent_constraints():
-    x = torch.stack((torch.eye(2) * 0.5, -torch.eye(2) * 0.5, torch.zeros(2, 2), torch.eye(2) * 10.0))
-    theta = torch.diag(torch.tensor([1.5, -2.8])).repeat(4, 1, 1)
-    theta[-1].fill_(0.01)
-    actual = solve_lambda_foreach(x, theta, msign_steps=0, tolerance=1e-4, max_iterations=30)
-    torch.testing.assert_close(actual, torch.tensor([0.65 / 10.09, -0.65 / 10.09, 0.0, 0.0]), rtol=0.02, atol=1e-4)

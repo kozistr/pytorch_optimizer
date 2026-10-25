@@ -22,7 +22,7 @@ def test_parameter_initialization(optimizer_name):
         (1, {}, (1,), 0.0),
         (1, {}, (1, 1), 1.0),
         (1, {}, (1, 1, 1, 1), 1.0),
-        (2, {'max_scale': True, 'normalize': False}, (1, 1), 1.0),
+        (2, {'max_scale': True}, (1, 1), 1.0),
         (3, {}, (1, 1, 1, 1), 1.0),
         (4, {'zero_init': True}, (1, 1), 0.0),
         (4, {}, (1, 1), 1.0),

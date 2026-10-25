@@ -174,13 +174,7 @@ class TestOptimizerInterface:
             step(optimizer, model)
 
         checkpoint = BytesIO()
-        state_dict = optimizer.state_dict()
-
-        if optimizer_name == 'apollodqn':
-            for group in state_dict['param_groups']:
-                group.pop('foreach')
-
-        torch.save(state_dict, checkpoint)
+        torch.save(optimizer.state_dict(), checkpoint)
         checkpoint.seek(0)
 
         restored_model, restored = setup_optimizer()

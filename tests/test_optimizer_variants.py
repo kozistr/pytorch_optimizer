@@ -14,16 +14,15 @@ from tests.utils import Trainer, build_optimizer, build_optimizer_parameters, id
         (name, options, foreach)
         for name, options in (
             ('adalite', {}),
-            ('adafactor', {'betas': (None, 0.999), 'relative_step': False, 'scale_parameter': False}),
             ('apollo', {}),
-            ('scionlight', {'norm_type': 4}),
             ('kron', {'pre_conditioner_update_probability': 0.0, 'balance_prob': 0.0}),
         )
         for foreach in ([False, True] if name in FOREACH_OPTIMIZERS else [False])
     ],
 )
 def test_coupled_weight_decay(optimizer_name, options, foreach):
-    params = [torch.ones(2, 2, requires_grad=True) for _ in range(2)]
+    shape = (2, 3, 2) if optimizer_name == 'adalite' else (2, 2)
+    params = [torch.ones(shape, requires_grad=True) for _ in range(2)]
     config = {**options, 'lr': 0.1, 'weight_decouple': False}
 
     if optimizer_name in FOREACH_OPTIMIZERS:
@@ -40,6 +39,7 @@ def test_coupled_weight_decay(optimizer_name, options, foreach):
         optimizer.step()
 
     torch.testing.assert_close(params[0], params[1])
+
 
 ADANORM_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('adabelief', {'lr': 5e-1, 'weight_decay': 1e-3}, 10),

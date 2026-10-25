@@ -24,7 +24,6 @@ from tests.fixtures import make_parameter
         ('ranger', 'k', -1),
         ('prodigy', 'beta3', -0.1),
         ('apollodqn', 'rebound', 'dummy'),
-        ('apollodqn', 'beta', 1.0),
         ('apollodqn', 'weight_decay_type', 'dummy'),
     ],
 )

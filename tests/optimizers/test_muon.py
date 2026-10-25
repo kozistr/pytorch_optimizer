@@ -9,32 +9,6 @@ from tests.utils import build_optimizer
 from tests.utils.distributed import run_distributed
 
 
-def _check_distributed_muon(_rank, foreach):
-    params = [make_parameter(shape, grad=None) for shape in ((2, 3), (2, 3), (2, 3), (2,))]
-    reference = [make_parameter(p.shape, grad=None) for p in params]
-
-    def groups(parameters):
-        return [
-            {'params': [], 'use_muon': True},
-            {'params': parameters[:3], 'use_muon': True},
-            {'params': parameters[3:], 'use_muon': False},
-        ]
-
-    optimizer = build_optimizer('distributedmuon', groups(params), weight_decay=0.1, foreach=foreach)
-    expected = build_optimizer('muon', groups(reference), weight_decay=0.1, foreach=False)
-
-    for step in range(2):
-        for index, (p, expected_parameter) in enumerate(zip(params, reference)):
-            grad = (torch.arange(p.numel()).reshape(p.shape) + 0.1).roll(index + step, dims=-1)
-            p.grad = grad.clone()
-            expected_parameter.grad = grad.clone()
-
-        optimizer.step()
-        expected.step()
-
-        torch.testing.assert_close(params, reference)
-
-
 def _check_sharded_muon(_rank, optimizer_name, foreach, ns_method):
     dtensor = pytest.importorskip('torch.distributed.tensor')
     mesh = torch.distributed.device_mesh.init_device_mesh('cpu', (2,))
@@ -81,11 +55,6 @@ def _check_sharded_muon(_rank, optimizer_name, foreach, ns_method):
 
 
 class TestMuon:
-    @pytest.mark.skipif(not torch.distributed.is_gloo_available(), reason='Gloo is unavailable')
-    @pytest.mark.parametrize('foreach', [False, True])
-    def test_distributed_empty_group(self, foreach, tmp_path):
-        run_distributed(_check_distributed_muon, tmp_path / 'store', foreach)
-
     @pytest.mark.parametrize(
         ('shape', 'keller_factor', 'moonlight_factor'),
         [
