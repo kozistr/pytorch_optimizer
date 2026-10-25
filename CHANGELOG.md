@@ -1,3 +1,52 @@
+# v4.1.0
+
+## What's Changed
+* [Feature] Add foreach and compiled updates to adaptive optimizers by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/616
+* [Docs] Clarify guides and shrink optimizer visualizations by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/617
+* [Feature] Add foreach and compiled updates to Muon optimizers by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/618
+* Reorganize optimizer utilities and streamline Newton-Schulz updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/619
+* Reduce GPU overhead in matrix optimizer helpers by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/620
+* Consolidate and speed up global gradient norm calculations by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/621
+* Fix optimizer edge cases and speed up parameter grouping by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/622
+* [Feature] Implement DASH optimizer by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/623
+* Remove redundant test cases and simplify shared test code by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/624
+* Expand compiled optimizer updates and batch compatible Muon matrices by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/625
+* Fix optimizer scaling, layout, precision, and wrapper APIs by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/626
+* Save uv caches only on main by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/627
+* Reduce optimizer step allocations and overhead by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/628
+* [Performance] Reduce optimizer update overhead by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/629
+* Accelerate optimizer steps with batching and compilation by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/630
+* [Performance] Accelerate foreach updates and extend optimizer compilation by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/631
+* feat: Add MuonClip and Gram Newton-Schulz by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/632
+* refactor: Split Muon optimizers into a package by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/633
+* feat: Support FSDP2 in Muon, MuonClip, and AdaMuon by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/634
+* perf: Batch A2Grad updates with foreach by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/635
+* fix: Accept strided segmentation loss inputs by @ktz03 in https://github.com/kozistr/pytorch_optimizer/pull/637
+* perf: Batch and compile ten optimizer updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/638
+* perf: Batch and compile ten additional optimizers by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/639
+* perf: Batch six optimizers and compile ten by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/641
+* perf: Batch nine optimizers and compile ten by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/642
+* perf: Batch Adai and AdamS updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/643
+* perf: Batch Hessian optimizers and MADGRAD by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/645
+* perf: Batch AdaGC and CAME updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/646
+* perf: Accelerate projected and momentum updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/648
+* perf: Batch adaptive and variance-reduced updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/649
+* refactor: Remove Ranger25 by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/651
+* perf: Batch unprojected updates and fuse AdEMAMix by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/652
+* perf: Enable Muon batching and compile RACS updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/653
+* perf: Batch SaRA, FlashAdamW, and Emo updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/654
+* perf: Batch DAdaptAdaGrad, DAdaptAdan, and Prodigy by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/657
+* perf: Accelerate SAM, WSAM, SM3, and SPAM by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/658
+* fix: Correct Muon learning rate scaling by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/662
+* [Fix] Apply coupled weight decay in DAdaptAdam and DAdaptSGD by @flyingdoubleG in https://github.com/kozistr/pytorch_optimizer/pull/660
+* fix: Correct optimizer updates and finish speed audit by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/663
+
+## New Contributors
+* @ktz03 made their first contribution in https://github.com/kozistr/pytorch_optimizer/pull/637
+* @flyingdoubleG made their first contribution in https://github.com/kozistr/pytorch_optimizer/pull/660
+
+**Full Changelog**: https://github.com/kozistr/pytorch_optimizer/compare/v4.0.0...v4.1.0
+
 # v4.0.0
 
 ## What's Changed
