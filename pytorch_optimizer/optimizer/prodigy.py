@@ -188,7 +188,7 @@ class Prodigy(BaseOptimizer):
                 loss = closure()
 
         group = self.param_groups[0]
-        device = group['params'][0].device
+        device = next((p.device for g in self.param_groups for p in g['params']), torch.device('cpu'))
 
         d_de_nom = torch.tensor([0.0], device=device)
 

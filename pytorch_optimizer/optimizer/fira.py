@@ -162,7 +162,13 @@ class Fira(BaseOptimizer):
                 if 'rank' in group and p.dim() == 2:
                     sub_grad = state['projector'].project_back(grad)
 
-                    norm_dim: int = 0 if norm_grad.shape[0] < norm_grad.shape[1] else 1
+                    projection_type = group['projection_type']
+                    is_right = (
+                        projection_type == 'right'
+                        or (projection_type in ('std', 'random') and full_grad.size(0) >= full_grad.size(1))
+                        or (projection_type == 'reverse_std' and full_grad.size(0) < full_grad.size(1))
+                    )
+                    norm_dim: int | None = None if projection_type == 'full' else (1 if is_right else 0)
 
                     scaling_factor = torch.norm(norm_grad, dim=norm_dim) / (torch.norm(grad, dim=norm_dim) + 1e-8)
                     if norm_dim == 1:

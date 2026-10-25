@@ -7,6 +7,38 @@ from tests.fixtures import build_model
 from tests.optimizer_cases import FOREACH_OPTIMIZERS, GRADIENT_OPTIONS, MAXIMIZE_OPTIMIZERS, SKIP_CAPABILITY_PROBE
 from tests.utils import Trainer, build_optimizer, build_optimizer_parameters, ids
 
+
+@pytest.mark.parametrize(
+    ('optimizer_name', 'options', 'foreach'),
+    [
+        (name, options, foreach)
+        for name, options in (
+            ('adalite', {}),
+            ('adafactor', {'betas': (None, 0.999), 'relative_step': False, 'scale_parameter': False}),
+            ('apollo', {}),
+            ('scionlight', {'norm_type': 4}),
+            ('kron', {'pre_conditioner_update_probability': 0.0, 'balance_prob': 0.0}),
+        )
+        for foreach in ([False, True] if name in FOREACH_OPTIMIZERS else [False])
+    ],
+)
+def test_coupled_weight_decay(optimizer_name, options, foreach):
+    params = [torch.ones(2, 2, requires_grad=True) for _ in range(2)]
+    config = {**options, 'lr': 0.1, 'weight_decouple': False}
+    if optimizer_name in FOREACH_OPTIMIZERS:
+        config['foreach'] = foreach
+    optimizers = [
+        build_optimizer(optimizer_name, [p], **config, weight_decay=decay)
+        for p, decay in zip(params, (0.1, 0.0))
+    ]
+    params[0].grad = torch.full_like(params[0], -0.05)
+    params[1].grad = params[0].grad + 0.1 * params[1].detach()
+
+    for optimizer in optimizers:
+        optimizer.step()
+
+    torch.testing.assert_close(params[0], params[1])
+
 ADANORM_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('adabelief', {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
     ('adamp', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),

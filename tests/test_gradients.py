@@ -5,6 +5,7 @@ from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGr
 from tests.fixtures import make_parameter, make_sparse_parameters
 from tests.optimizer_cases import (
     COMPLEX_OPTIMIZERS,
+    FOREACH_OPTIMIZERS,
     GRADIENT_OPTIONS,
     SKIP_CAPABILITY_PROBE,
     SKIP_NO_GRADIENT_TEST,
@@ -31,7 +32,7 @@ class TestGradientAvailability:
         active = make_parameter()
         inactive = make_parameter(grad=None)
         frozen = make_parameter(requires_grad=False)
-        params = [{'params': [active, inactive]}, {'params': [frozen]}]
+        params = [{'params': []}, {'params': [active, inactive]}, {'params': [frozen]}]
         optimizer = build_optimizer(optimizer_name, params, **GRADIENT_OPTIONS.get(optimizer_name, {}))
         (active.grad,) = torch.autograd.grad(sphere_loss(active), active, create_graph=True)
 
@@ -40,6 +41,40 @@ class TestGradientAvailability:
 
         torch.testing.assert_close([inactive, frozen], [torch.zeros_like(inactive), torch.zeros_like(frozen)])
         assert all(param.grad is None for param in (active, inactive, frozen))
+
+    @pytest.mark.parametrize(
+        ('optimizer_name', 'options', 'foreach'),
+        [
+            (name, options, foreach)
+            for name, options in (
+                ('adanorm', {}),
+                ('amos', {}),
+                ('lamb', {'pre_norm': True}),
+                ('qhadam', {}),
+                ('stablespam', {}),
+                ('racs', {}),
+                ('alice', {'rank': 1, 'leading_basis': 1}),
+                ('schedulefree', {}),
+            )
+            for foreach in ([False, True] if name in FOREACH_OPTIMIZERS else [False])
+        ],
+    )
+    def test_scalar_matches_vector(self, optimizer_name, options, foreach):
+        params = [torch.tensor(1.0, requires_grad=True), torch.tensor([1.0], requires_grad=True)]
+        config = {**options, **({'foreach': foreach} if optimizer_name in FOREACH_OPTIMIZERS else {})}
+        optimizers = [build_optimizer(optimizer_name, [p], **config) for p in params]
+        if optimizer_name == 'schedulefree':
+            for optimizer in optimizers:
+                optimizer.train()
+
+        for gradient in (3.0, 0.1, 0.3):
+            for param, optimizer in zip(params, optimizers):
+                param.grad = torch.full_like(param, gradient)
+                with torch.random.fork_rng(devices=[]):
+                    torch.manual_seed(42)
+                    optimizer.step()
+
+            torch.testing.assert_close(params[0], params[1].squeeze(0))
 
 
 class TestSparseGradients:

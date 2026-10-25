@@ -82,8 +82,8 @@ class Amos(BaseOptimizer):
             state = self.state[p]
 
             if len(state) == 0:
-                state['exp_avg_sq'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
-                state['decay'] = torch.zeros((1,), dtype=p.dtype, device=p.device)
+                state['exp_avg_sq'] = torch.zeros((), dtype=p.dtype, device=p.device)
+                state['decay'] = torch.zeros((), dtype=p.dtype, device=p.device)
                 if group['momentum'] > 0.0:
                     state['exp_avg'] = torch.zeros_like(p)
 
@@ -96,7 +96,7 @@ class Amos(BaseOptimizer):
     @staticmethod
     def get_scale(p: torch.Tensor) -> float:
         """Return the target weight scale from the parameter shape."""
-        if len(p.shape) == 1:
+        if len(p.shape) <= 1:
             return 0.5
         if len(p.shape) == 2:
             return math.sqrt(2 / p.size(1))

@@ -8,6 +8,7 @@ from torch import nn
 
 from pytorch_optimizer import (
     BSAM,
+    GSAM,
     SAM,
     TRAC,
     WSAM,
@@ -21,6 +22,7 @@ from pytorch_optimizer import (
     load_optimizer,
 )
 from pytorch_optimizer.base.exception import NoClosureError, NoSparseGradientError
+from pytorch_optimizer.lr_scheduler import ProportionScheduler
 from pytorch_optimizer.optimizer import SafeFP16Optimizer
 from tests.fixtures import TrainingModel, build_model, make_parameter, make_sparse_parameters
 from tests.utils import Trainer, build_optimizer
@@ -56,6 +58,24 @@ def test_load_wrapper_optimizer(wrapper_optimizer_instance):
 
 
 class TestSafeFP16Optimizer:
+    def test_frozen_and_missing_gradients(self):
+        active = nn.Parameter(torch.tensor([1.0], dtype=torch.float16))
+        frozen = nn.Parameter(torch.tensor([2.0], dtype=torch.float16), requires_grad=False)
+        unused = nn.Parameter(torch.tensor([3.0], dtype=torch.float16))
+        optimizer = SafeFP16Optimizer(build_optimizer('sgd', [active, frozen, unused], lr=0.1, weight_decay=0.2))
+        active.grad = torch.tensor([optimizer.loss_scale], dtype=torch.float16)
+        optimizer.step()
+
+        torch.testing.assert_close(active, torch.tensor([0.88], dtype=torch.float16))
+        torch.testing.assert_close(frozen, torch.tensor([2.0], dtype=torch.float16))
+        torch.testing.assert_close(unused, torch.tensor([3.0], dtype=torch.float16))
+
+        optimizer.zero_grad()
+        frozen.requires_grad_(True)
+        optimizer.backward(frozen.sum())
+        optimizer.step()
+        torch.testing.assert_close(frozen, torch.tensor([1.86], dtype=torch.float16))
+
     def test_safe_fp16_methods(self):
         optimizer = SafeFP16Optimizer(build_optimizer('adamp', [make_parameter()], lr=5e-1))
         optimizer.load_state_dict(optimizer.state_dict())
@@ -217,6 +237,22 @@ class TestMagma:
         assert str(optimizer) == 'Magma'
         assert optimizer.step(closure).item() == 0.0
 
+    def test_magma_ignores_gradients_cleared_by_closure(self):
+        parameters = [make_parameter((2,), grad=None) for _ in range(2)]
+        optimizers = [Magma(build_optimizer('sgd', [p], lr=0.1), mask_prob=1.0, foreach=True) for p in parameters]
+        parameters[0].grad = torch.ones_like(parameters[0])
+
+        def closure():
+            optimizers[0].zero_grad()
+            return 1.0
+
+        optimizers[0].step(closure)
+        for optimizer, parameter in zip(optimizers, parameters):
+            parameter.grad = -torch.ones_like(parameter)
+            optimizer.step()
+
+        torch.testing.assert_close(parameters[0], parameters[1])
+
     def test_magma_accepts_optimizer_class_and_adds_param_group(self):
         parameter = make_parameter()
         optimizer = Magma(load_optimizer('sgd'), params=[parameter], lr=1e-1)
@@ -287,7 +323,58 @@ class TestMagma:
         assert new_optimizer.state[new_parameter].keys() == optimizer.state[parameter].keys()
 
 
+class TestOrthoGrad:
+    @pytest.mark.parametrize('foreach', [False, True])
+    def test_orthogonal_update(self, foreach):
+        parameters = [
+            nn.Parameter(torch.tensor(values)) for values in ([1.0, 0.0], [0.0, 2.0], [1.0, 1.0], [0.0, 0.0])
+        ]
+        for parameter, gradient in zip(parameters, ([1.0, 1.0], [3.0, 4.0], [2.0, 2.0], [0.2, -0.3])):
+            parameter.grad = torch.tensor(gradient)
+        optimizer = OrthoGrad(build_optimizer('sgd', parameters, lr=0.1), foreach=foreach)
+        optimizer.step()
+
+        expected = ([1.0, -0.1 * 2.0**0.5], [-0.5, 2.0], [1.0, 1.0], [-0.02, 0.03])
+        for parameter, values in zip(parameters, expected):
+            torch.testing.assert_close(parameter, torch.tensor(values))
+
+
 class TestSAM:
+    @pytest.mark.parametrize('foreach', [False, True])
+    def test_looksam_period_with_sgd(self, foreach):
+        parameter = nn.Parameter(torch.ones(2))
+        optimizer = LookSAM([parameter], load_optimizer('sgd'), lr=0.1, rho=0.1, k=2, foreach=foreach)
+        parameter.grad = torch.tensor([1.0, 0.0])
+        optimizer.first_step(zero_grad=True)
+        parameter.grad = torch.tensor([0.0, 1.0])
+        optimizer.second_step(zero_grad=True)
+
+        parameter.grad = torch.tensor([1.0, 0.0])
+        optimizer.first_step(zero_grad=True)
+        torch.testing.assert_close(parameter, torch.tensor([1.0, 0.9]))
+        assert parameter.grad is None
+        parameter.grad = torch.tensor([1.0, 0.0])
+        optimizer.second_step()
+        torch.testing.assert_close(parameter, torch.tensor([0.9, 0.83]))
+
+    @pytest.mark.parametrize(
+        ('foreach', 'sigma', 'lmbda'), [(False, 1.0, 0.9), (True, 1.0, 0.9), (True, 0.5, 0.9), (True, 1.0, 0.0)]
+    )
+    def test_friendly_sam_uses_raw_gradient_momentum(self, foreach, sigma, lmbda):
+        parameter = nn.Parameter(torch.zeros(2))
+        optimizer = FriendlySAM(
+            [parameter], load_optimizer('sgd'), rho=0.1, sigma=sigma, lmbda=lmbda, foreach=foreach, lr=0.1
+        )
+        for gradient in ([1.0, 0.0], [0.0, 1.0]):
+            parameter.grad = torch.tensor(gradient)
+            optimizer.first_step(zero_grad=True)
+            optimizer.second_step(zero_grad=True)
+
+        parameter.grad = torch.ones(2)
+        optimizer.first_step()
+        direction = torch.tensor([1.0 - sigma * lmbda, 1.0 - sigma * (1.0 - lmbda)])
+        torch.testing.assert_close(parameter, 0.1 * direction / direction.norm())
+
     @pytest.mark.parametrize('wrapper', [WSAM, LookSAM, FriendlySAM])
     def test_checkpoint_resume(self, wrapper):
         param = make_parameter((2,), grad=1.0)
@@ -351,6 +438,10 @@ class TestSAM:
             (SAM, True, False, True),
             (WSAM, True, True, False),
             (WSAM, True, False, True),
+            (FriendlySAM, True, True, False),
+            (FriendlySAM, True, False, True),
+            (LookSAM, True, True, False),
+            (LookSAM, True, False, True),
         ],
     )
     def test_sam_changing_gradient_availability(self, first_pass_active, second_pass_active, wrapper, foreach):
@@ -408,6 +499,47 @@ class TestSAM:
             optimizer(model=None, params=None, base_optimizer=base_optimizer, rho=-0.1, num_data=1)
 
 
+class TestGSAM:
+    @pytest.mark.parametrize('foreach', [False, True])
+    def test_gsam_update(self, foreach, device):
+        model = nn.Linear(2, 1, bias=False, device=device)
+        with torch.no_grad():
+            model.weight.copy_(torch.tensor([[1.0, 2.0]], device=device))
+        base = build_optimizer('sgd', model.parameters(), lr=0.01)
+        scheduler = ProportionScheduler(
+            torch.optim.lr_scheduler.ConstantLR(base, factor=1.0), max_lr=0.01, max_value=0.1, min_value=0.1
+        )
+        optimizer = GSAM(model.parameters(), base, model, scheduler, foreach=foreach)
+        optimizer.set_closure(
+            nn.MSELoss(), torch.tensor([[1.0, 2.0]], device=device), torch.zeros(1, 1, device=device)
+        )
+        optimizer.step()
+
+        direction = torch.tensor([[1.0, 2.0]], device=device)
+        expected = direction * (1.0 - 0.02 * (5.0 + 0.1 * 5.0**0.5))
+        torch.testing.assert_close(model.weight, expected)
+
+        optimizer.zero_grad()
+        optimizer.perturb_weights(rho=0.1)
+        optimizer.un_perturb()
+        optimizer.un_perturb()
+        torch.testing.assert_close(model.weight, expected)
+
+    @pytest.mark.parametrize('foreach', [False, True])
+    def test_gsam_new_gradient(self, foreach):
+        first, second = nn.Parameter(torch.tensor([1.0])), nn.Parameter(torch.tensor([2.0]))
+        base = build_optimizer('sgd', [first, second], lr=0.1)
+        scheduler = ProportionScheduler(torch.optim.lr_scheduler.ConstantLR(base, factor=1.0), max_lr=0.1)
+        optimizer = GSAM([first, second], base, nn.Identity(), scheduler, foreach=foreach)
+        first.grad = torch.ones_like(first)
+        optimizer.perturb_weights(rho=0.1)
+        first.grad, second.grad = None, torch.ones_like(second)
+        optimizer.gradient_decompose(alpha=0.1)
+        optimizer.un_perturb()
+        torch.testing.assert_close(first, torch.tensor([1.0]))
+        torch.testing.assert_close(second.grad, torch.tensor([1.0]))
+
+
 class TestWSAM:
     @pytest.mark.parametrize(('adaptive', 'foreach'), [(True, False), (False, True)])
     @pytest.mark.parametrize(('decouple', 'use_closure'), [(True, False), (False, False), (True, True)])
@@ -456,6 +588,9 @@ class TestBSAM:
 class TestScheduleFreeWrapper:
     def test_schedulefree_wrapper(self):
         params = [make_parameter(grad=1.0), make_parameter((1,), grad=1.0), make_parameter(grad=None)]
+        strided = make_parameter((3, 2)).t().detach().requires_grad_()
+        strided.grad = torch.ones_like(strided)
+        params.append(strided)
         optimizer = ScheduleFreeWrapper(build_optimizer('adamw', params, lr=1e-3, weight_decay=1e-3))
 
         with pytest.raises(ValueError):
@@ -584,6 +719,26 @@ class TestPCGrad:
 
 
 class TestTRAC:
+    @pytest.mark.parametrize('use_closure', [False, True])
+    def test_initial_update_uses_previous_parameters(self, use_closure):
+        parameter = nn.Parameter(torch.tensor([1.0, -2.0]))
+        optimizer = TRAC(build_optimizer('sgd', [parameter], lr=0.1), betas=(0.9,), s_prev=1.0)
+
+        def closure():
+            parameter.grad = torch.tensor([0.3, -0.4])
+            return 1.0
+
+        if not use_closure:
+            closure()
+        optimizer.step(closure if use_closure else None)
+
+        torch.testing.assert_close(parameter, torch.tensor([0.95684430, -1.94245907]))
+        torch.testing.assert_close(optimizer.state['trac'][parameter], torch.tensor([1.0, -2.0]))
+
+    def test_empty_parameters(self):
+        optimizer = TRAC(build_optimizer('sgd', [{'params': []}], lr=0.1))
+        assert optimizer.step() is None
+
     def test_trac_optimizer(self, environment):
         x_data, y_data = environment
         model, loss_fn = build_model(device=x_data.device)
@@ -591,11 +746,17 @@ class TestTRAC:
         optimizer = TRAC(build_optimizer('adamw', model.parameters(), lr=1e0))
 
         trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
-        trainer.run(iterations=3, threshold=2.0)
+        trainer.run(iterations=60, threshold=2.0)
 
-    def test_trac_optimizer_erf_imag(self):
-        optimizer = TRAC(build_optimizer('adamw', [make_parameter()]))
+    @pytest.mark.parametrize('num_coefs', [1, 128])
+    def test_trac_optimizer_erf_imag(self, num_coefs):
+        optimizer = TRAC(build_optimizer('adamw', [make_parameter()]), num_coefs=num_coefs)
         torch.testing.assert_close(optimizer.erf_imag(torch.tensor(1.0j)), torch.tensor(0.0))
+
+    def test_trac_erf_accuracy(self):
+        optimizer = TRAC(build_optimizer('adamw', [make_parameter()]))
+        actual = optimizer.erf_imag(torch.tensor([0.0, 0.5, 1.0, 2.0]))
+        torch.testing.assert_close(actual, torch.tensor([0.0, 0.61495209, 1.65042576, 18.56480241]))
 
     @pytest.mark.parametrize('checkpoint_format', ['indexed', 'legacy'])
     def test_trac_checkpoint_resumes_with_new_parameters(self, checkpoint_format):

@@ -1,7 +1,6 @@
 import random
 from collections import OrderedDict
 from collections.abc import Callable, Iterable
-from copy import deepcopy
 
 import numpy as np
 import torch
@@ -144,23 +143,18 @@ class PCGrad(BaseOptimizer):
         """
         shared: torch.Tensor = torch.stack(has_grads).prod(0).bool()
 
-        pc_grad: list[torch.Tensor] = deepcopy(grads)
-        for i, g_i in enumerate(pc_grad):
+        pc_grad = [grad.clone() for grad in grads]
+        for g_i in pc_grad:
             random.shuffle(grads)
             for g_j in grads:
-                g_i_g_j: torch.Tensor = torch.dot(g_i, g_j)
-                if g_i_g_j < 0:
-                    pc_grad[i] -= g_i_g_j * g_j / (g_j.norm() ** 2)
+                coefficient = torch.dot(g_i, g_j).clamp_max_(0.0) / g_j.square().sum().clamp_min_(
+                    torch.finfo(g_j.dtype).tiny
+                )
+                g_i.sub_(coefficient * g_j)
 
-        merged_grad: torch.Tensor = torch.zeros_like(grads[0])
-
-        shared_pc_gradients: torch.Tensor = torch.stack([g[shared] for g in pc_grad])
+        merged_grad = torch.stack(pc_grad).sum(dim=0)
         if self.reduction == 'mean':
-            merged_grad[shared] = shared_pc_gradients.mean(dim=0)
-        else:
-            merged_grad[shared] = shared_pc_gradients.sum(dim=0)
-
-        merged_grad[~shared] = torch.stack([g[~shared] for g in pc_grad]).sum(dim=0)
+            merged_grad = torch.where(shared, merged_grad / len(pc_grad), merged_grad)
 
         return merged_grad
 

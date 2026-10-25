@@ -174,7 +174,6 @@ class SOAP(BaseOptimizer):
                 q = q.to(m.dtype)
 
             q = torch.flip(q, dims=[1])
-
             matrices.append(q)
 
         return matrices
@@ -196,11 +195,12 @@ class SOAP(BaseOptimizer):
                 matrices.append([])
                 continue
 
-            est_eig = torch.diag(o.T @ m @ o)
+            matrix_product = m @ o
+            est_eig = (o * matrix_product).sum(dim=0)
             sort_idx = torch.argsort(est_eig, descending=True)
             exp_avg_sq = exp_avg_sq.index_select(ind, sort_idx)
 
-            power_iter = m @ o[:, sort_idx]
+            power_iter = matrix_product.index_select(1, sort_idx)
 
             # Compute QR decomposition
             # We cast to float32 because:

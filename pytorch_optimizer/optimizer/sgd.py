@@ -442,6 +442,9 @@ class ASGD(BaseOptimizer):
                 loss = closure()
 
         for group in self.param_groups:
+            if not group['params']:
+                continue
+
             device = group['params'][0].device
 
             if 'prev_param_norm' not in group and 'prev_grad_norm' not in group:

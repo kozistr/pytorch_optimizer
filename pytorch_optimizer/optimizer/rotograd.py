@@ -292,16 +292,16 @@ class RotateOnly(nn.Module):
 
         if self.iteration_counter in (0, self.burn_in_period):
             for i, loss in enumerate(losses):
-                self.initial_losses[i] = loss.item()
+                self.initial_losses[i] = loss.detach()
 
             if self.normalize_losses and backbone_loss is not None:
-                self.initial_backbone_loss = backbone_loss.item()
+                self.initial_backbone_loss = backbone_loss.detach()
 
         self.iteration_counter += 1
 
         for i in range(len(losses)):
             loss = losses[i] / self.initial_losses[i]
-            self.losses[i] = loss.item()
+            self.losses[i] = loss.detach()
 
             if self.normalize_losses:
                 loss.backward(**kwargs)
@@ -349,7 +349,7 @@ class RotoGrad(RotateOnly):
         heads: Task specific models consuming the latent representation.
         latent_size: Number of features in the shared representation.
         *args (tuple): Additional positional arguments, accepted without effect.
-        burn_in_period: Ignored. This variant uses the base default of 20 steps.
+        burn_in_period: Steps before refreshing the reference task losses and gradient norms.
         normalize_losses: Normalize losses when computing gradients for the task specific heads.
 
     """
@@ -368,7 +368,9 @@ class RotoGrad(RotateOnly):
         burn_in_period: int = 20,
         normalize_losses: bool = False,
     ):
-        super().__init__(backbone, heads, latent_size, burn_in_period, *args, normalize_losses=normalize_losses)
+        super().__init__(
+            backbone, heads, latent_size, *args, burn_in_period=burn_in_period, normalize_losses=normalize_losses
+        )
 
         self.initial_grads = None
         self.counter: int = 0
@@ -379,7 +381,7 @@ class RotoGrad(RotateOnly):
         grad_norms = [torch.linalg.norm(g, keepdim=True).clamp_min(1e-15) for g in self.original_grads]
         if self.initial_grads is None or self.counter == self.burn_in_period:
             self.initial_grads = grad_norms
-            conv_ratios = [torch.ones((1,)) for _ in range(len(self.initial_grads))]
+            conv_ratios = [torch.ones_like(grad) for grad in self.initial_grads]
         else:
             conv_ratios = [x / y for x, y in zip(grad_norms, self.initial_grads)]
 
@@ -400,7 +402,7 @@ class RotoGradNorm(RotoGrad):
         latent_size: Number of features in the shared representation.
         *args (tuple): Additional positional arguments, accepted without effect.
         alpha: Exponent controlling the GradNorm target training rates.
-        burn_in_period: Ignored. This variant uses the base default of 20 steps.
+        burn_in_period: Steps before refreshing the reference task losses and gradient norms.
         normalize_losses: Normalize losses when computing gradients for the task specific heads.
 
     """
@@ -433,14 +435,14 @@ class RotoGradNorm(RotoGrad):
 
         grads_norm = [torch.linalg.norm(g) for g in self.original_grads]
 
-        mean_grad = sum(g * w for g, w in zip(self.original_grads, self.weight)) / len(self.grads)
+        mean_grad = sum(g * w for g, w in zip(self.original_grads, self.weight)).detach() / len(self.grads)
 
         mean_grad_norm = torch.linalg.norm(mean_grad)
         mean_loss = sum(self.losses) / len(self.losses)
 
         for i, (loss, grad) in enumerate(zip(self.losses, grads_norm)):
             inverse_ratio_i = (loss / mean_loss) ** self.alpha
-            mean_grad_i = mean_grad_norm * float(inverse_ratio_i)
+            mean_grad_i = mean_grad_norm * inverse_ratio_i
 
             loss_grad_norm = torch.abs(grad * self.weight[i] - mean_grad_i)
             loss_grad_norm.backward()

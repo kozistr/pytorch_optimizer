@@ -22,11 +22,14 @@ def step_adam_foreach(
     weight_decouple: bool = True,
     fixed_decay: bool = False,
 ) -> None:
-    """Update unprojected Adam moments and parameters before applying weight decay."""
+    """Update unprojected Adam moments and parameters."""
     beta1, beta2 = group['betas']
 
     if maximize:
         torch._foreach_neg_(grads)
+
+    if not weight_decouple:
+        BaseOptimizer.apply_weight_decay_foreach(params, grads, decay_lr, group['weight_decay'], False, fixed_decay)
 
     torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
     torch._foreach_mul_(exp_avg_sqs, beta2)
@@ -37,9 +40,8 @@ def step_adam_foreach(
     updates = torch._foreach_div(exp_avgs, de_noms)
     foreach_add_(params, updates, alpha=-step_size)
 
-    BaseOptimizer.apply_weight_decay_foreach(
-        params, grads, decay_lr, group['weight_decay'], weight_decouple, fixed_decay
-    )
+    if weight_decouple:
+        BaseOptimizer.apply_weight_decay_foreach(params, grads, decay_lr, group['weight_decay'], True, fixed_decay)
 
 
 class GaLoreProjector:

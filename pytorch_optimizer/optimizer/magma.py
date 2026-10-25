@@ -16,6 +16,7 @@ from pytorch_optimizer.base.type import (
     ParamsT,
     State,
 )
+from pytorch_optimizer.optimizer.utils.foreach import group_tensors_by_device_and_dtype
 
 _MOMENT_KEYS = ('exp_avg', 'momentum_buffer')
 
@@ -38,6 +39,7 @@ class Magma(BaseOptimizer):
         moment_key: First moment key in the base optimizer's state. `'auto'` checks `'exp_avg'` and
             `'momentum_buffer'`. `None` uses Magma's fallback momentum.
         exclude: Parameters that bypass masking.
+        foreach: Batch alignment and masking with additional temporary memory. `None` enables batching on CUDA.
 
     Magma reads the first moment from the base optimizer when it is available,
     so it adds no additional momentum state for optimizers such as Adam. For
@@ -58,6 +60,7 @@ class Magma(BaseOptimizer):
         alignment_ema: float = 0.9,
         moment_key: str | None = 'auto',
         exclude: set[Tensor] | None = None,
+        foreach: bool | None = None,
         **kwargs,
     ) -> None:
         self.validate_range(mask_prob, 'mask_prob', 0.0, 1.0, range_type='[]')
@@ -84,6 +87,7 @@ class Magma(BaseOptimizer):
         self.momentum_beta = momentum_beta
         self.alignment_ema = alignment_ema
         self.moment_key = moment_key
+        self.foreach = foreach
         self._exclude_ids: set[int] = {id(parameter) for parameter in (exclude or set())}
         self._state: dict[int, dict[str, Tensor]] = {}
 
@@ -178,8 +182,8 @@ class Magma(BaseOptimizer):
 
     def _capture_gradients(self, saved: list[tuple[Tensor, Tensor | None, Tensor]]) -> None:
         for index, (parameter, _, snapshot) in enumerate(saved):
-            if parameter.grad is not None:
-                saved[index] = (parameter, parameter.grad.detach().clone(), snapshot)
+            gradient = parameter.grad.detach().clone() if parameter.grad is not None else None
+            saved[index] = (parameter, gradient, snapshot)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -205,6 +209,7 @@ class Magma(BaseOptimizer):
         else:
             loss = self.optimizer.step()
 
+        params, grads, snapshots, moments, alignments = [], [], [], [], []
         mask_probabilities: dict[torch.device, Tensor] = {}
         for parameter, gradient, snapshot in saved:
             if gradient is None or gradient.is_sparse:
@@ -222,20 +227,41 @@ class Magma(BaseOptimizer):
                 parameter_state['momentum'].lerp_(gradient, weight=1.0 - self.momentum_beta)
                 moment = parameter_state['momentum']
 
-            cosine = torch.nn.functional.cosine_similarity(
-                moment.flatten().unsqueeze(0), gradient.flatten().unsqueeze(0)
-            ).squeeze(0)
-            alignment_target = torch.sigmoid(cosine.float() / self.tau)
-            alignment_state = parameter_state['alignment']
-            alignment_state.lerp_(alignment_target, 1.0 - self.alignment_ema)
+            if self.foreach is False or (self.foreach is None and not parameter.is_cuda):
+                cosine = torch.nn.functional.cosine_similarity(
+                    moment.flatten().unsqueeze(0), gradient.flatten().unsqueeze(0)
+                ).squeeze(0)
+                alignment_target = torch.sigmoid(cosine.float() / self.tau)
+                alignment_state = parameter_state['alignment']
+                alignment_state.lerp_(alignment_target, 1.0 - self.alignment_ema)
+                if parameter.device not in mask_probabilities:
+                    mask_probabilities[parameter.device] = torch.tensor(self.mask_prob, device=parameter.device)
+                blend = alignment_state * torch.bernoulli(mask_probabilities[parameter.device])
+                parameter.lerp_(snapshot, 1.0 - blend.to(dtype=parameter.dtype))
+                continue
 
-            mask_probability = mask_probabilities.get(parameter.device)
-            if mask_probability is None:
-                mask_probability = torch.tensor(self.mask_prob, device=parameter.device)
-                mask_probabilities[parameter.device] = mask_probability
+            params.append(parameter)
+            grads.append(gradient)
+            snapshots.append(snapshot)
+            moments.append(moment)
+            alignments.append(parameter_state['alignment'])
 
-            blend = alignment_state * torch.bernoulli(mask_probability)
-            parameter.lerp_(snapshot, 1.0 - blend.to(dtype=parameter.dtype))
+        for batch in group_tensors_by_device_and_dtype(
+            params, grads, {'snapshot': snapshots, 'moment': moments, 'alignment': alignments}
+        ):
+            moment_units = torch._foreach_div(
+                batch['moment'], [norm.clamp_min(1e-8) for norm in torch._foreach_norm(batch['moment'])]
+            )
+            grad_units = torch._foreach_div(
+                batch['grads'], [norm.clamp_min(1e-8) for norm in torch._foreach_norm(batch['grads'])]
+            )
+            cosines = torch.stack([product.sum() for product in torch._foreach_mul(moment_units, grad_units)])
+            targets = cosines.float().div_(self.tau).sigmoid_()
+            torch._foreach_lerp_(batch['alignment'], targets.unbind(), weight=1.0 - self.alignment_ema)
+            probabilities = torch.full_like(targets, self.mask_prob)
+            blends = torch.stack(batch['alignment']) * torch.bernoulli(probabilities)
+            weights = 1.0 - blends.to(batch['params'][0].dtype)
+            torch._foreach_lerp_(batch['params'], batch['snapshot'], weights.unbind())
 
         return loss
 

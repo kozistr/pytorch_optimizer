@@ -366,7 +366,7 @@ class BaseOptimizer(ABC, Optimizer):
         exp_grad_norm.mul_(r).add_(grad_norm, alpha=1.0 - r)
 
         if grad_norm > 0 and exp_grad_norm > grad_norm:
-            return grad.mul(exp_grad_norm).div_(grad_norm)
+            return grad.mul(exp_grad_norm.reshape(())).div_(grad_norm)
 
         return grad
 

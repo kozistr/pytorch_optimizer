@@ -218,7 +218,7 @@ class AdaGC(BaseOptimizer):
                         if not can_cache_norm or global_norm is None:
                             global_norm = get_global_gradient_norm(self.param_groups).sqrt_()
 
-                        grad_norm = global_norm.add(group['eps'])
+                        grad_norm = global_norm.add(group['eps']).reshape(())
                         warmup_scale = min(group['lambda_abs'] / grad_norm, 1.0)
 
                     g_hat = grad.mul(warmup_scale)

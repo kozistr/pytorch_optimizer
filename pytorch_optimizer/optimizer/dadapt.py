@@ -176,7 +176,7 @@ class DAdaptAdaGrad(BaseOptimizer):
                 loss = closure()
 
         group = self.param_groups[0]
-        device = group['params'][0].device
+        device = next((p.device for g in self.param_groups for p in g['params']), torch.device('cpu'))
 
         d, lr = group['d'], group['lr']
         d_lr: float = d * lr
@@ -512,7 +512,7 @@ class DAdaptAdam(BaseOptimizer):
                 loss = closure()
 
         group = self.param_groups[0]
-        device = group['params'][0].device
+        device = next((p.device for g in self.param_groups for p in g['params']), torch.device('cpu'))
 
         beta1, beta2 = group['betas']
 
@@ -751,7 +751,7 @@ class DAdaptSGD(BaseOptimizer):
                 loss = closure()
 
         group = self.param_groups[0]
-        device = group['params'][0].device
+        device = next((p.device for g in self.param_groups for p in g['params']), torch.device('cpu'))
 
         sk_sq = torch.tensor([0.0], device=device)
         if 'numerator_weighted' not in group:
@@ -1016,11 +1016,12 @@ class DAdaptAdan(BaseOptimizer):
         d, lr = group['d'], group['lr']
         d_lr = float(d * lr)
 
-        g_sq = torch.tensor([0.0], device=group['params'][0].device)
-        sk_sq_weighted = torch.tensor([0.0], device=group['params'][0].device)
-        sk_l1 = torch.tensor([0.0], device=group['params'][0].device)
+        device = next((p.device for g in self.param_groups for p in g['params']), torch.device('cpu'))
+        g_sq = torch.tensor([0.0], device=device)
+        sk_sq_weighted = torch.tensor([0.0], device=device)
+        sk_l1 = torch.tensor([0.0], device=device)
         if 'gsq_weighted' not in group:
-            group['gsq_weighted'] = torch.tensor([0.0], device=group['params'][0].device)
+            group['gsq_weighted'] = torch.tensor([0.0], device=device)
         gsq_weighted = group['gsq_weighted']
 
         for group in self.param_groups:
@@ -1244,7 +1245,7 @@ class DAdaptLion(BaseOptimizer):
                 loss = closure()
 
         group = self.param_groups[0]
-        device = group['params'][0].device
+        device = next((p.device for g in self.param_groups for p in g['params']), torch.device('cpu'))
 
         if 'numerator_weighted' not in group:
             group['numerator_weighted'] = torch.tensor([0.0], device=device)

@@ -1,5 +1,3 @@
-import functools
-import operator
 from typing import cast
 
 import torch
@@ -45,7 +43,7 @@ class CPUOffloadOptimizer:  # pragma: no cover
         param_groups = cast(list[ParamGroup], param_groups)
 
         self.param_cuda2cpu_map: dict[torch.Tensor, torch.Tensor] = {}
-        self.optim_dict: dict[torch.Tensor, Optimizer] = {}
+        self.cpu_grad_buffers: dict[torch.Tensor, torch.Tensor] = {}
         self.stream = torch.cuda.Stream()
 
         self.queue = {}
@@ -54,11 +52,9 @@ class CPUOffloadOptimizer:  # pragma: no cover
             if p_cuda.grad is None:
                 return
 
-            p_cpu = self.param_cuda2cpu_map[p_cuda]
-
             self.stream.wait_stream(torch.cuda.current_stream())
             with torch.cuda.stream(self.stream):
-                p_cpu.grad.copy_(p_cuda.grad, non_blocking=True)
+                self.cpu_grad_buffers[p_cuda].copy_(p_cuda.grad, non_blocking=True)
 
             if p_cuda in self.queue:
                 del self.queue[p_cuda]
@@ -69,20 +65,26 @@ class CPUOffloadOptimizer:  # pragma: no cover
                 p_cuda.grad.record_stream(self.stream)
                 p_cuda.grad = None
 
+        cpu_groups = []
         for param_group in param_groups:
             group_params = param_group.get('params', None)
             if group_params is None:
                 continue
 
+            cpu_params = []
             for p_cuda in group_params:
                 p_cpu = torch.empty_like(p_cuda, device='cpu', pin_memory=True)
-                p_cpu.grad = torch.empty_like(p_cpu, pin_memory=True)
+                self.cpu_grad_buffers[p_cuda] = torch.empty_like(p_cpu, pin_memory=True)
 
                 p_cpu.copy_(p_cuda.detach(), non_blocking=True)
                 self.param_cuda2cpu_map[p_cuda] = p_cpu
+                cpu_params.append(p_cpu)
 
-                p_cuda.register_post_accumulate_grad_hook(backward_hook)
-                self.optim_dict[p_cuda] = optimizer_class([{**param_group, 'params': [p_cpu]}], **kwargs)
+                if p_cuda.requires_grad:
+                    p_cuda.register_post_accumulate_grad_hook(backward_hook)
+            cpu_groups.append({**param_group, 'params': cpu_params})
+
+        self.optimizer = optimizer_class(cpu_groups, **kwargs)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -91,30 +93,57 @@ class CPUOffloadOptimizer:  # pragma: no cover
             with torch.enable_grad():
                 loss = closure()
 
-        for p_cuda, grad_d2h_event in self.queue.items():
-            grad_d2h_event.synchronize()
-            self.optim_dict[p_cuda].step()
+        if self.queue:
+            next(reversed(self.queue.values())).synchronize()
 
-            p_cpu = self.param_cuda2cpu_map[p_cuda]
-            with torch.cuda.stream(self.stream):
-                p_cuda.copy_(p_cpu, non_blocking=True)
+        for p_cuda, p_cpu in self.param_cuda2cpu_map.items():
+            p_cpu.grad = self.cpu_grad_buffers[p_cuda] if p_cuda in self.queue else None
+
+        self.optimizer.step()
+        with torch.cuda.stream(self.stream):
+            for p_cuda in self.queue:
+                p_cuda.copy_(self.param_cuda2cpu_map[p_cuda], non_blocking=True)
 
         self.queue.clear()
         torch.cuda.current_stream().wait_stream(self.stream)
 
         return loss
 
-    def zero_grad(self, _: bool = True) -> None:
+    def zero_grad(self, set_to_none: bool = True) -> None:
         for p_cuda in self.param_cuda2cpu_map:
-            p_cuda.grad = None
+            if set_to_none:
+                p_cuda.grad = None
+            elif p_cuda.grad is not None:
+                p_cuda.grad.zero_()
+        self.queue.clear()
 
     @property
     def param_groups(self):
-        return functools.reduce(operator.add, (optim.param_groups for optim in self.optim_dict.values()), [])
+        return self.optimizer.param_groups
 
     def state_dict(self):
-        return [optim.state_dict() for optim in self.optim_dict.values()]
+        return self.optimizer.state_dict()
 
     def load_state_dict(self, state_dict):
-        for optim, optim_state_dict in zip(self.optim_dict.values(), state_dict):
-            optim.load_state_dict(optim_state_dict)
+        if isinstance(state_dict, list):
+            if len(state_dict) != len(self.param_cuda2cpu_map):
+                raise ValueError('offloaded optimizer state does not match the current parameters')
+            merged = {'state': {}, 'param_groups': []}
+            offset = 0
+            for group in self.optimizer.state_dict()['param_groups']:
+                saved_groups = []
+                for index in group['params']:
+                    saved = state_dict[offset]
+                    saved_group = saved['param_groups'][0]
+                    saved_groups.append({key: value for key, value in saved_group.items() if key != 'params'})
+                    saved_key = saved_group['params'][0]
+                    if saved_key in saved['state']:
+                        merged['state'][index] = saved['state'][saved_key]
+                    offset += 1
+                if saved_groups:
+                    if any(saved_group != saved_groups[0] for saved_group in saved_groups[1:]):
+                        raise ValueError('legacy offloaded parameter options differ within a parameter group')
+                    group = {**saved_groups[0], 'params': group['params']}
+                merged['param_groups'].append(group)
+            state_dict = merged
+        self.optimizer.load_state_dict(state_dict)

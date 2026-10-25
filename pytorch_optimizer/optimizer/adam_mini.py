@@ -25,6 +25,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
             num_heads. Could be unspecified for non transformer models.
         eps: Term added to the denominator to improve numerical stability.
         maximize: Maximize the objective instead of minimizing it.
+        foreach: Batch unsharded block updates. `None` enables batching on CUDA.
 
     """
 
@@ -40,6 +41,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         num_query_groups: int | None = None,
         eps: float = 1e-8,
         maximize: bool = False,
+        foreach: bool | None = None,
         **kwargs,
     ):
         self.validate_learning_rate(lr)
@@ -66,6 +68,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
         self.model_sharding = model_sharding
         self.num_embeds = num_embeds
         self.num_heads = num_heads
+        self.foreach = foreach
 
         self.embed_blocks: set[str] = {'embed', 'embd', 'wte', 'lm_head.weight', 'output.weight'}
         self.qk_blocks: set[str] = {'k_proj.weight', 'q_proj.weight', 'wq.weight', 'wk.weight'}
@@ -220,18 +223,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
 
         p.add_(update, alpha=-lr)
 
-    def step_lefts(
-        self,
-        p,
-        grad,
-        state,
-        lr: float,
-        beta1: float,
-        beta2: float,
-        bias_correction1: float,
-        bias_correction2_sq: float,
-        eps: float,
-    ) -> None:
+    def init_lefts(self, p, state) -> None:
         if len(state) == 0:
             dim = torch.tensor(p.numel(), device=p.device, dtype=torch.float32)
 
@@ -254,6 +246,19 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
             state['dimension'] = dim
             state['reduced'] = reduced
 
+    def step_lefts(
+        self,
+        p,
+        grad,
+        state,
+        lr: float,
+        beta1: float,
+        beta2: float,
+        bias_correction1: float,
+        bias_correction2_sq: float,
+        eps: float,
+    ) -> None:
+        self.init_lefts(p, state)
         tmp_lr = torch.sum(grad * grad)
 
         if state['reduced']:
@@ -274,6 +279,22 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
 
         p.add_(update, alpha=-lr)
 
+    def step_lefts_foreach(self, group, params, grads) -> None:
+        beta1, beta2 = group['betas']
+        states = [self.state[p] for p in params]
+        moments = [state['m'] for state in states]
+        means = torch.stack([grad.square().sum() for grad in grads]) / torch.stack([
+            state['dimension'] for state in states
+        ])
+        variances = torch.stack([state['v_mean'] for state in states])
+        variances.lerp_(means, weight=1.0 - beta2)
+        torch._foreach_copy_([state['v_mean'] for state in states], variances.unbind())
+        torch._foreach_lerp_(moments, grads, weight=1.0 - beta1)
+        denominators = variances.sqrt_().div_(math.sqrt(self.debias(beta2, group['step']))).add_(group['eps'])
+        scales = denominators.reciprocal_().div_(self.debias(beta1, group['step']))
+        updates = torch._foreach_mul(moments, scales.unbind())
+        torch._foreach_add_(params, updates, alpha=-group['lr'])
+
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
         loss: Loss = None
@@ -281,6 +302,7 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
             with torch.enable_grad():
                 loss = closure()
 
+        batches = {}
         for group in self.param_groups:
             self.init_group(group)
             group['step'] += 1
@@ -351,6 +373,15 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
                         group['eps'],
                     )
                 else:
+                    if (self.foreach is True or (self.foreach is None and p.is_cuda)) and not (
+                        self.model_sharding and self.world_size > 1
+                    ):
+                        self.init_lefts(p, state)
+                        key = (group['lr'], group['betas'], group['eps'], group['step'], p.device, p.dtype)
+                        batch = batches.setdefault(key, (group, [], []))
+                        batch[1].append(p)
+                        batch[2].append(grad)
+                        continue
                     self.step_lefts(
                         p,
                         grad,
@@ -363,4 +394,6 @@ class AdamMini(BaseOptimizer):  # pragma: no cover
                         group['eps'],
                     )
 
+        for group, params, grads in batches.values():
+            self.step_lefts_foreach(group, params, grads)
         return loss

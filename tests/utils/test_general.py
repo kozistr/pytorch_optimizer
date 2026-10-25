@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import pytest
 import torch
@@ -21,7 +23,7 @@ from pytorch_optimizer.optimizer.utils import (
     reg_noise,
     unit_norm,
 )
-from tests.fixtures import TrainingModel, make_parameter
+from tests.fixtures import TrainingModel
 
 
 class TestVersionUtils:
@@ -151,23 +153,53 @@ class TestMiscUtils:
         loss = reg_noise(network1, network2, int(5e4), 1e-1).detach().numpy()
         np.testing.assert_almost_equal(loss, 0.0017181)
 
-    def test_cpu_offload_optimizer(self):
+    @pytest.mark.parametrize('offload_gradients', [False, True])
+    @pytest.mark.parametrize('legacy_checkpoint', [False, True])
+    def test_cpu_offload_optimizer(self, offload_gradients, legacy_checkpoint):
         if not torch.cuda.is_available():
             pytest.skip('need GPU to run a test')
 
-        params = [make_parameter(grad=None, device='cuda')]
-
-        opt = CPUOffloadOptimizer(params, load_optimizer('adamw'), fused=False, offload_gradients=True)
+        params = [nn.Parameter(torch.tensor(values, device='cuda')) for values in ([1.0, 2.0], [-1.0])]
+        reference = [nn.Parameter(p.detach().cpu()) for p in params]
+        base = torch.optim.AdamW(reference, lr=0.1, weight_decay=0.2)
+        opt = CPUOffloadOptimizer(params, lr=0.1, weight_decay=0.2, offload_gradients=offload_gradients)
 
         with pytest.raises(ValueError):
             CPUOffloadOptimizer([], load_optimizer('adamw'))
 
+        for active in (2, 1):
+            opt.zero_grad()
+            base.zero_grad()
+            sum(p.square().sum() for p in params[:active]).backward()
+            sum(p.square().sum() for p in reference[:active]).backward()
+            opt.step()
+            base.step()
+            for parameter, expected in zip(params, reference):
+                torch.testing.assert_close(parameter.cpu(), expected)
+
+        state_dict = deepcopy(opt.state_dict())
+        if legacy_checkpoint:
+            group = state_dict['param_groups'][0]
+            state_dict = [
+                {'state': {0: state_dict['state'][index]}, 'param_groups': [{**group, 'params': [0]}]}
+                for index in group['params']
+            ]
+        restored_params = [nn.Parameter(p.detach().clone()) for p in params]
+        restored = CPUOffloadOptimizer(restored_params, lr=1.0, offload_gradients=offload_gradients)
+        restored.load_state_dict(state_dict)
+
+        for current, parameters in ((opt, params), (restored, restored_params)):
+            current.zero_grad()
+            sum(p.sum() for p in parameters).backward()
+            current.step()
+        torch.testing.assert_close(restored_params, params)
+
+        snapshot = [p.detach().clone() for p in params]
         opt.zero_grad()
-
-        _ = opt.param_groups
-
-        state_dict = opt.state_dict()
-        opt.load_state_dict(state_dict)
+        sum(p.sum() for p in params).backward()
+        opt.zero_grad(set_to_none=False)
+        opt.step()
+        torch.testing.assert_close(params, snapshot)
 
     def test_copy_stochastic(self):
         n: int = 512
