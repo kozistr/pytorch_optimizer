@@ -9,7 +9,6 @@ from collections.abc import Callable
 
 import torch
 
-from pytorch_optimizer.base.compatibility import is_compiling
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
@@ -18,6 +17,7 @@ from pytorch_optimizer.optimizer.utils.foreach import (
     compile_foreach_step,
     foreach_add_,
     group_tensors_by_device_and_dtype,
+    mask_foreach_step,
 )
 from pytorch_optimizer.optimizer.utils.gradient import get_global_gradient_norm
 from pytorch_optimizer.optimizer.utils.precision import to_real
@@ -112,14 +112,18 @@ class DAdaptAdaGrad(BaseOptimizer):
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
         super()._compile_foreach(compile_kwargs)
-        self._compiled_update_foreach = compile_foreach_step(self._apply_update_foreach, compile_kwargs, masked=True)
-        self._compiled_adaptation = compile_foreach_step(self._adapt_distance, compile_kwargs)
+
+        update = mask_foreach_step(self._apply_update_foreach)
+        self._compiled_update_foreach = compile_foreach_step(update, compile_kwargs)
+        self._compiled_adaptation = compile_foreach_step(self.get_adapt_distance, compile_kwargs)
 
     @staticmethod
-    def _adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
+    def get_adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
         sk_sq_weighted, gsq_weighted, sk_l1 = statistics
+
         active = (sk_l1 != 0).reshape(())
         estimate = ((sk_sq_weighted - gsq_weighted) / sk_l1).reshape(())
+
         return update_adaptive_distance(params[0], estimate, group['lr'], active, group['growth_rate']), active
 
     def _step_foreach(
@@ -221,7 +225,11 @@ class DAdaptAdaGrad(BaseOptimizer):
 
                 for batch in batches[id(group)]:
                     self._step_foreach(
-                        group, batch['params'], batch['grads'], batch, d_lr,
+                        group,
+                        batch['params'],
+                        batch['grads'],
+                        batch,
+                        d_lr,
                         (g_sq, sk_sq_weighted_change, sk_l1_change),
                     )
 
@@ -319,11 +327,14 @@ class DAdaptAdaGrad(BaseOptimizer):
         active = None
         if self._compiled_adaptation is not None:
             d, active = self._compiled_adaptation(
-                {**group, 'lr': lr}, [d], (sk_sq_weighted, gsq_weighted, sk_l1)
+                {**group, 'lr': lr},
+                [d],
+                (sk_sq_weighted, gsq_weighted, sk_l1),
             )
         else:
             if sk_l1 == 0:
                 return loss
+
             if lr > 0.0:
                 d_hat = (sk_sq_weighted - gsq_weighted) / sk_l1
                 d = group['d'] = max(d, min(d_hat.item(), d * group['growth_rate']))
@@ -472,18 +483,23 @@ class DAdaptAdam(BaseOptimizer):
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
         super()._compile_foreach(compile_kwargs)
-        self._compiled_update_foreach = compile_foreach_step(self._apply_update_foreach, compile_kwargs, masked=True)
-        self._compiled_adaptation = compile_foreach_step(self._adapt_distance, compile_kwargs)
+
+        update = mask_foreach_step(self._apply_update_foreach)
+        self._compiled_update_foreach = compile_foreach_step(update, compile_kwargs)
+        self._compiled_adaptation = compile_foreach_step(self.get_adapt_distance, compile_kwargs)
 
     @staticmethod
-    def _adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
+    def get_adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
         numerator_weighted, numerator_acc, sk_l1 = statistics
         beta2_sq = math.sqrt(group['betas'][1])
+
         active = (sk_l1 != 0).reshape(())
         numerator_weighted.copy_(
             torch.where(active, numerator_weighted.lerp(numerator_acc, 1.0 - beta2_sq), numerator_weighted)
         )
+
         estimate = (numerator_weighted / ((1.0 - beta2_sq) * sk_l1)).reshape(())
+
         return update_adaptive_distance(params[0], estimate, group['lr'], active, group['growth_rate']), active
 
     def _step_foreach(
@@ -629,12 +645,16 @@ class DAdaptAdam(BaseOptimizer):
         active = None
         if self._compiled_adaptation is not None:
             d, active = self._compiled_adaptation(
-                {**group, 'lr': lr, 'betas': (beta1, beta2)}, [d], (numerator_weighted, numerator_acc, sk_l1)
+                {**group, 'lr': lr, 'betas': (beta1, beta2)},
+                [d],
+                (numerator_weighted, numerator_acc, sk_l1),
             )
         else:
             if sk_l1 == 0:
                 return loss
+
             numerator_weighted.lerp_(numerator_acc, weight=1.0 - beta2_sq)
+
             if lr > 0.0:
                 d_hat = numerator_weighted / ((1.0 - beta2_sq) * sk_l1)
                 d = max(d, min(d_hat.item(), d * group['growth_rate']))
@@ -757,13 +777,15 @@ class DAdaptSGD(BaseOptimizer):
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
         super()._compile_foreach(compile_kwargs)
         self._compiled_update_foreach = compile_foreach_step(self._apply_update_foreach, compile_kwargs)
-        self._compiled_adaptation = compile_foreach_step(self._adapt_distance, compile_kwargs)
+        self._compiled_adaptation = compile_foreach_step(self.get_adapt_distance, compile_kwargs)
 
     @staticmethod
-    def _adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
+    def get_adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
         numerator_weighted, sk_sq = statistics
+
         active = (sk_sq != 0).reshape(())
         estimate = (2.0 * numerator_weighted / sk_sq.sqrt()).reshape(())
+
         return update_adaptive_distance(params[0], estimate, group['lr'], active, group['growth_rate'])
 
     def _step_foreach(
@@ -1003,17 +1025,22 @@ class DAdaptAdan(BaseOptimizer):
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
         self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
         self._compiled_moments_foreach = compile_foreach_step(self._step_moments_foreach, compile_kwargs)
-        self._compiled_update_foreach = compile_foreach_step(self._apply_update_foreach, compile_kwargs, masked=True)
-        self._compiled_adaptation = compile_foreach_step(self._adapt_distance, compile_kwargs)
+
+        update = mask_foreach_step(self._apply_update_foreach)
+        self._compiled_update_foreach = compile_foreach_step(update, compile_kwargs)
+        self._compiled_adaptation = compile_foreach_step(self.get_adapt_distance, compile_kwargs)
 
     @staticmethod
-    def _adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
+    def get_adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
         gsq_weighted, g_sq, sk_sq_weighted, sk_l1, d_lr = statistics
         beta3 = group['betas'][2]
+
         active = (sk_l1 != 0).reshape(())
         updated = gsq_weighted * beta3 + g_sq * (d_lr ** 2) * (1.0 - beta3)
         gsq_weighted.copy_(torch.where(active, updated, gsq_weighted))
+
         estimate = ((sk_sq_weighted / (1.0 - beta3) - gsq_weighted) / sk_l1).reshape(())
+
         return update_adaptive_distance(params[0], estimate, group['lr'], active, group['growth_rate']), active
 
     def _step_foreach(
@@ -1026,8 +1053,11 @@ class DAdaptAdan(BaseOptimizer):
         statistics: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
     ) -> None:
         g_sq, sk_sq_weighted, sk_l1 = statistics
+
+        compiling = torch._dynamo.is_compiling()  # ty: ignore[deprecated]
         update = (
-            self._step_moments_foreach if is_compiling()
+            self._step_moments_foreach
+            if compiling
             else self._compiled_moments_foreach or self._step_moments_foreach
         )
         grad_power, weighted_sk, sk_abs = update(group, params, grads, state, d_lr)
@@ -1078,6 +1108,7 @@ class DAdaptAdan(BaseOptimizer):
         sk_abs = torch._foreach_abs(state['s'])
 
         torch._foreach_copy_(state['previous_grad'], torch._foreach_neg(grads))
+
         return grad_power, weighted_sk, sk_abs
 
     def _apply_update_foreach(
@@ -1188,13 +1219,16 @@ class DAdaptAdan(BaseOptimizer):
         active = None
         if self._compiled_adaptation is not None:
             d, active = self._compiled_adaptation(
-                {**group, 'lr': lr, 'betas': (beta1, beta2, beta3)}, [d],
+                {**group, 'lr': lr, 'betas': (beta1, beta2, beta3)},
+                [d],
                 (gsq_weighted, g_sq, sk_sq_weighted, sk_l1, d_lr),
             )
         else:
             if sk_l1 == 0:
                 return loss
+
             gsq_weighted.mul_(beta3).add_(g_sq, alpha=(d_lr ** 2) * (1.0 - beta3))
+
             if lr > 0.0:
                 d_hat = (sk_sq_weighted / (1.0 - beta3) - gsq_weighted) / sk_l1
                 d = max(d, min(d_hat, d * growth_rate))
@@ -1210,7 +1244,10 @@ class DAdaptAdan(BaseOptimizer):
                     update = self._compiled_update_foreach or self._apply_update_foreach
                     update(
                         {**group, 'betas': (beta1, beta2, beta3), '_active': active},
-                        batch['params'], batch['grads'], batch, d_lr,
+                        batch['params'],
+                        batch['grads'],
+                        batch,
+                        d_lr,
                     )
 
                 group['k'] += 1 if active is None else active.to(torch.int64)
@@ -1296,13 +1333,15 @@ class DAdaptLion(BaseOptimizer):
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
         super()._compile_foreach(compile_kwargs)
-        self._compiled_adaptation = compile_foreach_step(self._adapt_distance, compile_kwargs)
+        self._compiled_adaptation = compile_foreach_step(self.get_adapt_distance, compile_kwargs)
 
     @staticmethod
-    def _adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
+    def get_adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
         numerator_weighted, sk_l1 = statistics
+
         active = (sk_l1 != 0).reshape(())
         estimate = (numerator_weighted / ((1.0 - math.sqrt(group['betas'][1])) * sk_l1)).reshape(())
+
         return update_adaptive_distance(params[0], estimate, group['lr'], active), active
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
@@ -1442,7 +1481,9 @@ class DAdaptLion(BaseOptimizer):
         active = None
         if self._compiled_adaptation is not None:
             d, active = self._compiled_adaptation(
-                {**group, 'lr': lr, 'betas': (beta1, beta2)}, [d], (numerator_weighted, sk_l1)
+                {**group, 'lr': lr, 'betas': (beta1, beta2)},
+                [d],
+                (numerator_weighted, sk_l1),
             )
         else:
             if sk_l1 == 0:

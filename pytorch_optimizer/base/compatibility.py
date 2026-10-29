@@ -23,11 +23,6 @@ HAS_TRANSFORMERS: bool = find_spec('transformers') is not None
 TORCH_VERSION_AT_LEAST_2_4: bool = compare_versions(torch.__version__, '2.4.0')
 TORCH_VERSION_AT_LEAST_2_8: bool = compare_versions(torch.__version__, '2.8.0')
 
-
-def is_compiling() -> bool:
-    """Check compilation with a fallback for PyTorch 2.1."""
-    return getattr(torch.compiler, 'is_compiling', torch._dynamo.is_compiling)()  # ty: ignore[deprecated]
-
 if HAS_TRANSFORMERS:  # pragma: no cover
     try:
         from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled

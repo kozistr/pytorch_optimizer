@@ -112,7 +112,12 @@ def materialize_state(state: dict[str, Any], name: str) -> torch.Tensor:
 
 
 def store_state(
-    state: dict[str, Any], name: str, tensor: torch.Tensor, quantize: bool, dtype: torch.dtype, inplace: bool = False
+    state: dict[str, Any],
+    name: str,
+    tensor: torch.Tensor,
+    quantize: bool,
+    dtype: torch.dtype,
+    inplace: bool = False,
 ) -> None:
     """Store an optimizer state tensor with optional quantization."""
     if quantize:
@@ -260,14 +265,17 @@ class FlashAdamW(BaseOptimizer):
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
         super()._compile_foreach(compile_kwargs)
+
         compile_kwargs = dict(compile_kwargs or {})
         if compile_kwargs.get('backend', 'inductor') == 'inductor':
             options = {'emulate_precision_casts': True, 'eager_numerics.division_rounding': True}
             if not options.keys() <= set(_inductor.list_options()):
                 return
+
             mode = compile_kwargs.pop('mode', None)
             mode_options = _inductor.list_mode_options(mode, compile_kwargs.get('dynamic', True)) if mode else {}
             compile_kwargs['options'] = {**mode_options, **(compile_kwargs.get('options') or {}), **options}
+
         self._compiled_step_parameter = compile_foreach_step(self._step_parameter, compile_kwargs)
 
     def maybe_check_numerics(self, p: torch.Tensor, lr: float, master_byte_width: int) -> None:
@@ -408,6 +416,7 @@ class FlashAdamW(BaseOptimizer):
             if group['decouple_lr'] and weight_decay > 0.0 and group['lr'] > 0.0:
                 self.validate_positive(group['initial_lr'], 'initial_lr')
                 weight_decay /= group['initial_lr']
+
             update_group = {**group, 'weight_decay': weight_decay}
 
             batched_params: set[torch.Tensor] = set()

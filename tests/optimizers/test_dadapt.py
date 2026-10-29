@@ -46,12 +46,16 @@ class TestDadapt:
     def test_2nd_stage_gradient(self, optimizer_name, compiled):
         params = [make_parameter(grad=grad) for grad in (None, 1.0, 1.0)]
         optimizer = build_optimizer(
-            optimizer_name, [{'params': [param]} for param in params],
-            weight_decay=0.1, weight_decouple=False,
+            optimizer_name,
+            [{'params': [param]} for param in params],
+            weight_decay=0.1,
+            weight_decouple=False,
         )
+
         if compiled:
             for group in optimizer.param_groups:
                 group['foreach'] = True
+
             with patch('torch.compile', side_effect=lambda step, **_: step):
                 optimizer._compile_foreach()
 

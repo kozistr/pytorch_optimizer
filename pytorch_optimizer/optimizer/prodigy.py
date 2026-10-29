@@ -3,7 +3,6 @@ from collections.abc import Callable
 
 import torch
 
-from pytorch_optimizer.base.compatibility import is_compiling
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
@@ -14,6 +13,7 @@ from pytorch_optimizer.optimizer.utils.foreach import (
     foreach_addcdiv_,
     foreach_addcmul_,
     group_tensors_by_device_and_dtype,
+    mask_foreach_step,
 )
 
 
@@ -129,20 +129,25 @@ class Prodigy(BaseOptimizer):
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
         self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
         self._compiled_moments_foreach = compile_foreach_step(self._step_moments_foreach, compile_kwargs)
-        self._compiled_update_foreach = compile_foreach_step(self._apply_update_foreach, compile_kwargs, masked=True)
-        self._compiled_adaptation = compile_foreach_step(self._adapt_distance, compile_kwargs)
+
+        update = mask_foreach_step(self._apply_update_foreach)
+        self._compiled_update_foreach = compile_foreach_step(update, compile_kwargs)
+        self._compiled_adaptation = compile_foreach_step(self.get_adapt_distance, compile_kwargs)
 
     @staticmethod
-    def _adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
+    def get_adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
         d_numerator, d_de_nom = statistics
         d = params[0]
+
         active = (d_de_nom != 0).reshape(())
         d_hat = (group['d_coef'] * d_numerator / d_de_nom).reshape(())
         initial = torch.as_tensor(group['d0'], device=d.device, dtype=d.dtype)
         d = torch.where(d == initial, torch.fmax(d, d_hat), d)
+
         previous_max = torch.as_tensor(group['d_max'], device=d.device, dtype=d.dtype)
         d_max = torch.where(active, torch.fmax(previous_max, d_hat), previous_max)
         d = torch.where(active, torch.minimum(d_max, d * group['growth_rate']), params[0])
+
         return d, d_max, d_hat, active
 
     def _step_foreach(
@@ -156,8 +161,11 @@ class Prodigy(BaseOptimizer):
         statistics: tuple[torch.Tensor, torch.Tensor],
     ) -> None:
         d_numerator, d_de_nom = statistics
+
+        compiling = torch._dynamo.is_compiling()  # ty: ignore[deprecated]
         update = (
-            self._step_moments_foreach if is_compiling()
+            self._step_moments_foreach
+            if compiling
             else self._compiled_moments_foreach or self._step_moments_foreach
         )
         differences, coefficient = update(group, params, grads, state, d, d_lr)
@@ -170,6 +178,7 @@ class Prodigy(BaseOptimizer):
             for grad, difference in zip(grads, differences):
                 value = torch.dot(grad.flatten(), difference.flatten())
                 foreach_add_([d_numerator], [value], alpha=coefficient)
+
             for s in state['s']:
                 d_de_nom.add_(s.abs().sum())
 
@@ -248,8 +257,11 @@ class Prodigy(BaseOptimizer):
         d, d0 = group['d'], group['d0']
         if self._compiled_adaptation is not None:
             d = torch.as_tensor(
-                d, device=device, dtype=torch.float32 if device.type == 'mps' else torch.float64
+                d,
+                device=device,
+                dtype=torch.float32 if device.type == 'mps' else torch.float64,
             ).reshape(())
+
         d_lr: float = d * group['lr'] / bias_correction
         batches: dict[int, list[dict]] = {}
 
@@ -268,7 +280,9 @@ class Prodigy(BaseOptimizer):
 
             if self._can_use_foreach(group):
                 params, grads, state = self.collect_trainable_params(
-                    group, self.state, ['p0', 'exp_avg', 'exp_avg_sq', 's']
+                    group,
+                    self.state,
+                    ['p0', 'exp_avg', 'exp_avg_sq', 's'],
                 )
                 batches[id(group)] = group_tensors_by_device_and_dtype(params, grads, state)
 
@@ -280,7 +294,12 @@ class Prodigy(BaseOptimizer):
                     )
                     update(
                         {**group, 'betas': (beta1, beta2), 'beta3': beta3, 'd0': d0},
-                        batch['params'], batch['grads'], batch, d, d_lr, (d_numerator, d_de_nom),
+                        batch['params'],
+                        batch['grads'],
+                        batch,
+                        d,
+                        d_lr,
+                        (d_numerator, d_de_nom),
                     )
 
                 continue
@@ -313,9 +332,11 @@ class Prodigy(BaseOptimizer):
         else:
             if d_de_nom == 0:
                 return loss
+
             d_hat = (group['d_coef'] * d_numerator / d_de_nom).item()
             if d == group['d0']:
                 d = max(d, d_hat)
+
             d_max = max(group['d_max'], d_hat)
             d = min(d_max, d * group['growth_rate'])
 

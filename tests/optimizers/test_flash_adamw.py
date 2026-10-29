@@ -39,9 +39,11 @@ class TestFlashAdamw:
         optimizer = build_optimizer('flashadamw', [param], lr=1e-2, weight_decay=0.0)
         if mode == 'legacy_compiler':
             monkeypatch.setattr('pytorch_optimizer.optimizer.flash_adamw._inductor.list_options', list)
+
         if mode != 'eager':
             with patch('torch.compile', side_effect=lambda step, **_: step):
                 optimizer._compile_foreach()
+
         optimizer.step()
 
         torch.testing.assert_close(param, torch.tensor([0.99, -1.99, 2.99]))
