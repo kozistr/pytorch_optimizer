@@ -28,6 +28,16 @@ class TestSoap:
 
         torch.testing.assert_close(parameters, [torch.zeros_like(param) for param in parameters])
 
+        state = optimizer.state[parameters[0]]
+        options = {key: value for key, value in params.items() if key != 'normalize_gradient'}
+        optimizer.init_pre_conditioner(parameters[0].grad, state, **options)
+        optimizer.update_pre_conditioner(
+            parameters[0].grad, state, step=1, max_precondition_dim=params['max_precondition_dim'], merge_dims=True
+        )
+        projected = optimizer.project(parameters[0].grad, state, merge_dims=True,
+                                      max_precondition_dim=params['max_precondition_dim'])
+        torch.testing.assert_close(projected, torch.zeros_like(projected))
+
     def test_soap_merge_dims_channel_last(self):
         param = make_parameter((1, 1, 2, 2), grad=1.0)
         optimizer = build_optimizer(

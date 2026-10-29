@@ -494,7 +494,7 @@ class BaseOptimizer(ABC, Optimizer):
                 continue
 
             has_param = True
-            if g.is_sparse or torch.is_complex(p):
+            if g.is_sparse or p.is_complex():
                 return False
 
             if dtypes is not None and p.dtype not in dtypes:
@@ -522,27 +522,22 @@ class BaseOptimizer(ABC, Optimizer):
             tuple: Parameters, gradients, and a dictionary of lists of available state tensors.
 
         """
-        if state_keys is None:
-            state_keys = []
-
         params: list[torch.Tensor] = []
         grads: list[torch.Tensor] = []
-        state_dict: dict[str, list[torch.Tensor]] = {key: [] for key in state_keys}
 
         for p in group['params']:
-            if p.grad is None:
+            grad = p.grad
+            if grad is None:
                 continue
 
             params.append(p)
-            grads.append(p.grad)
+            grads.append(grad)
 
-            if state_keys:
-                p_state = state[p]
-                for key in state_keys:
-                    if key in p_state:
-                        state_dict[key].append(p_state[key])
+        if not state_keys:
+            return params, grads, {}
 
-        return params, grads, state_dict
+        states = [state[p] for p in params]
+        return params, grads, {key: [values[key] for values in states if key in values] for key in state_keys}
 
     @staticmethod
     def apply_weight_decay_foreach(

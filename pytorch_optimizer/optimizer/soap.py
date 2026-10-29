@@ -1,4 +1,5 @@
 import math
+from collections import defaultdict
 from itertools import chain
 
 import torch
@@ -90,6 +91,7 @@ class SOAP(BaseOptimizer):
             group['step'] = 0
 
         _, beta2 = group['betas']
+        initialized: list[dict] = []
 
         for p in group['params']:
             if p.grad is None:
@@ -125,7 +127,26 @@ class SOAP(BaseOptimizer):
                     max_precondition_dim=group['max_precondition_dim'],
                     precondition_1d=group['precondition_1d'],
                     merge_dims=group['merge_dims'],
+                    update_basis=False,
                 )
+                initialized.append(state)
+
+        matrices = iter(self.get_orthogonal_matrix(
+            [m for state in initialized for m in state['GG']],
+            batched=[
+                group['step'] == 0 and (len(m) == 0 or state['exp_avg_sq'].numel() >= m.numel())
+                for state in initialized for m in state['GG']
+            ],
+        ))
+        for state in initialized:
+            state['Q'] = [next(matrices) for _ in state['GG']]
+        self.get_orthogonal_matrix_qr(
+            [
+                state for state in initialized
+                if group['step'] > 0 and group['step'] % state['precondition_frequency'] == 0
+            ],
+            group['max_precondition_dim'], group['merge_dims'], batched=False,
+        )
 
     def project(
         self,
@@ -158,68 +179,81 @@ class SOAP(BaseOptimizer):
         return grad
 
     @staticmethod
-    def get_orthogonal_matrix(mat: torch.Tensor) -> list[torch.Tensor]:
-        matrices: list = []
-        for m in mat:
+    def get_orthogonal_matrix(mat: list, use_qr: bool = False, batched: bool | list[bool] = True) -> list:
+        matrices: list = [[] for _ in mat]
+        groups: defaultdict[tuple, list[int]] = defaultdict(list)
+        for index, m in enumerate(mat):
             if len(m) == 0:
-                matrices.append([])
                 continue
+            batchable = batched if isinstance(batched, bool) else batched[index]
+            groups[m.device, m.dtype, m.shape, None if batchable else index].append(index)
 
-            try:
-                _, q = torch.linalg.eigh(m + 1e-30 * torch.eye(m.shape[0], device=m.device, dtype=m.dtype))
-            except Exception:  # pragma: no cover
-                _, q = torch.linalg.eigh(
-                    m.to(torch.float64) + 1e-30 * torch.eye(m.shape[0], device=m.device, dtype=torch.float64)
-                )
-                q = q.to(m.dtype)
+        for indices in groups.values():
+            batch = mat[indices[0]] if len(indices) == 1 else torch.stack([mat[index] for index in indices])
+            if use_qr:
+                q, _ = torch.linalg.qr(batch.float())
+                q = q.to(batch.dtype)
+            else:
+                try:
+                    _, q = torch.linalg.eigh(
+                        batch + 1e-30 * torch.eye(batch.size(-1), device=batch.device, dtype=batch.dtype)
+                    )
+                except Exception:  # pragma: no cover
+                    _, q = torch.linalg.eigh(
+                        batch.double() + 1e-30 * torch.eye(batch.size(-1), device=batch.device, dtype=torch.float64)
+                    )
+                    q = q.to(batch.dtype)
+                q = q.flip(-1)
 
-            q = torch.flip(q, dims=[1])
-            matrices.append(q)
+            for index, basis in zip(indices, [q] if q.ndim == 2 else q.unbind()):
+                matrices[index] = basis
 
         return matrices
 
-    def get_orthogonal_matrix_qr(self, state, max_precondition_dim: int = 10000, merge_dims: bool = False):
+    def get_orthogonal_matrix_qr(
+        self,
+        state: dict | list[dict],
+        max_precondition_dim: int = 10000,
+        merge_dims: bool = False,
+        batched: bool = True,
+    ):
         """Compute the eigenbases of the preconditioner using one round of power iteration."""
-        original_shape = state['exp_avg_sq'].shape
-        permuted_shape = original_shape
-        if self.data_format == 'channels_last' and len(original_shape) == 4:
-            permuted_shape = state['exp_avg_sq'].permute(0, 3, 1, 2).shape
-
-        exp_avg_sq = state['exp_avg_sq']
-        if merge_dims:
-            exp_avg_sq = self.merge_dims(exp_avg_sq, max_precondition_dim)
-
-        matrices = []
-        for ind, (m, o) in enumerate(zip(state['GG'], state['Q'])):
-            if len(m) == 0:
-                matrices.append([])
-                continue
-
-            matrix_product = m @ o
-            est_eig = (o * matrix_product).sum(dim=0)
-            sort_idx = torch.argsort(est_eig, descending=True)
-            exp_avg_sq = exp_avg_sq.index_select(ind, sort_idx)
-
-            power_iter = matrix_product.index_select(1, sort_idx)
-
-            # Compute QR decomposition
-            # We cast to float32 because:
-            #  - torch.linalg.qr does not have support for types like bfloat16 as of PyTorch 2.5.1
-            #  - the correctness / numerical stability of the Q orthogonality is important for the stability
-            #    of the optimizer
-            q, _ = torch.linalg.qr(power_iter.to(torch.float32))
-            q = q.to(power_iter.dtype)
-
-            matrices.append(q)
-
-        if merge_dims:
+        states = [state] if isinstance(state, dict) else state
+        power_iters: list = []
+        batchable: list[bool] = []
+        for current_state in states:
+            original_shape = current_state['exp_avg_sq'].shape
+            exp_avg_sq = current_state['exp_avg_sq']
+            permuted_shape = original_shape
             if self.data_format == 'channels_last' and len(original_shape) == 4:
-                exp_avg_sq = exp_avg_sq.reshape(permuted_shape).permute(0, 2, 3, 1)
-            else:
-                exp_avg_sq = exp_avg_sq.reshape(original_shape)
+                permuted_shape = exp_avg_sq.permute(0, 3, 1, 2).shape
+            if merge_dims:
+                exp_avg_sq = self.merge_dims(exp_avg_sq, max_precondition_dim)
 
-        state['exp_avg_sq'] = exp_avg_sq
+            for ind, (m, o) in enumerate(zip(current_state['GG'], current_state['Q'])):
+                if len(m) == 0:
+                    power_iters.append([])
+                    batchable.append(False)
+                    continue
 
+                matrix_product = m @ o
+                sort_idx = torch.argsort((o * matrix_product).sum(dim=0), descending=True)
+                exp_avg_sq = exp_avg_sq.index_select(ind, sort_idx)
+                power_iters.append(matrix_product.index_select(1, sort_idx))
+                batchable.append(batched and exp_avg_sq.numel() >= m.numel())
+
+            if merge_dims:
+                exp_avg_sq = (
+                    exp_avg_sq.reshape(permuted_shape).permute(0, 2, 3, 1)
+                    if self.data_format == 'channels_last' and len(original_shape) == 4
+                    else exp_avg_sq.reshape(original_shape)
+                )
+            current_state['exp_avg_sq'] = exp_avg_sq
+
+        matrices = self.get_orthogonal_matrix(power_iters, use_qr=True, batched=batchable)
+        bases = iter(matrices)
+        for current_state in states:
+            current_state['Q'] = [next(bases) for _ in current_state['GG']]
         return matrices
 
     def init_pre_conditioner(
@@ -260,6 +294,7 @@ class SOAP(BaseOptimizer):
         max_precondition_dim: int = 10000,
         precondition_1d: bool = False,
         merge_dims: bool = False,
+        update_basis: bool = True,
     ) -> None:
         if grad.dim() == 1:
             if precondition_1d and grad.shape[0] <= max_precondition_dim:
@@ -283,11 +318,11 @@ class SOAP(BaseOptimizer):
                         outer_product.to(state['GG'][idx].dtype), weight=1.0 - state['shampoo_beta']
                     )
 
-        if state['Q'] is None:
-            state['Q'] = self.get_orthogonal_matrix(state['GG'])
-
-        if step > 0 and step % state['precondition_frequency'] == 0:
-            state['Q'] = self.get_orthogonal_matrix_qr(state, max_precondition_dim, merge_dims)
+        if update_basis:
+            if state['Q'] is None:
+                state['Q'] = self.get_orthogonal_matrix(state['GG'], batched=False)
+            if step > 0 and step % state['precondition_frequency'] == 0:
+                self.get_orthogonal_matrix_qr(state, max_precondition_dim, merge_dims, batched=False)
 
     @torch.no_grad()
     def step(self, closure: Closure = None) -> Loss:
@@ -306,6 +341,7 @@ class SOAP(BaseOptimizer):
             beta1, beta2 = group['betas']
 
             step: int = group['step'] - 1
+            refresh_states: list[dict] = []
             step_size: float = group['lr']
             if group['correct_bias']:
                 bias_correction1: float = self.debias(beta1, step)
@@ -367,6 +403,14 @@ class SOAP(BaseOptimizer):
                     max_precondition_dim=group['max_precondition_dim'],
                     merge_dims=group['merge_dims'],
                     precondition_1d=group['precondition_1d'],
+                    update_basis=False,
+                )
+                if step % state['precondition_frequency'] == 0:
+                    refresh_states.append(state)
+
+            if refresh_states:
+                self.get_orthogonal_matrix_qr(
+                    refresh_states, group['max_precondition_dim'], group['merge_dims'],
                 )
 
         return loss

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 import torch
 from torch import nn
@@ -29,12 +31,20 @@ class TestFlashAdamw:
         with pytest.raises(ValueError, match='initial_lr must be positive'):
             optimizer.step()
 
-    def test_flash_adamw_quantized_state_and_compressed_state_dict(self):
+    @pytest.mark.parametrize('mode', ['eager', 'compiled', 'legacy_compiler'])
+    def test_flash_adamw_quantized_state_and_compressed_state_dict(self, mode, monkeypatch):
         param = nn.Parameter(torch.tensor([1.0, -2.0, 3.0]))
         param.grad = torch.tensor([0.2, -0.3, 0.4])
 
         optimizer = build_optimizer('flashadamw', [param], lr=1e-2, weight_decay=0.0)
+        if mode == 'legacy_compiler':
+            monkeypatch.setattr('pytorch_optimizer.optimizer.flash_adamw._inductor.list_options', list)
+        if mode != 'eager':
+            with patch('torch.compile', side_effect=lambda step, **_: step):
+                optimizer._compile_foreach()
         optimizer.step()
+
+        torch.testing.assert_close(param, torch.tensor([0.99, -1.99, 2.99]))
 
         state = optimizer.state[param]
         assert state['exp_avg::quantized'].dtype == torch.int8

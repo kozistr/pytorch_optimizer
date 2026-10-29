@@ -55,6 +55,8 @@ def group_tensors_by_device_and_dtype(
         return []
 
     state_lists = state_lists or {}
+    if len(params) == 1:
+        return [{'params': params, 'grads': grads, 'indices': [0], **state_lists}]
     groups = _group_tensors_by_device_and_dtype([params], with_indices=True)
 
     if len(groups) == 1:
@@ -71,18 +73,37 @@ def group_tensors_by_device_and_dtype(
     ]
 
 
-def compile_foreach_step(step: Callable, compile_kwargs: dict | None = None) -> Callable:
+def compile_foreach_step(step: Callable, compile_kwargs: dict | None = None, *, masked: bool = False) -> Callable:
     """Compile a foreach update while keeping changing scalars out of graph guards.
 
     Args:
         step: Bound foreach update accepting a parameter group, parameters, and update arguments.
         compile_kwargs: Options passed to `torch.compile`.
+        masked: Preserve parameters and coupled decay gradients when the group's tensor update mask is false.
 
     Returns:
         Callable: Update with cached FP32 scalar tensors on each parameter device.
 
     """
-    compiled_step = torch.compile(step, **{'dynamic': True, **(compile_kwargs or {})})
+    target = step
+    if masked:
+        @wraps(step)
+        def masked_step(group: dict, params: list[torch.Tensor], *args):
+            active = group.get('_active')
+            tensors = list(params) if active is not None else []
+            if active is not None and group.get('weight_decay', 0.0) > 0.0 and not group.get('weight_decouple', False):
+                tensors.extend(args[0])
+            originals = [tensor.clone() for tensor in tensors]
+            result = step(group, params, *args)
+            if active is not None:
+                torch._foreach_copy_(
+                    tensors, [torch.where(active, tensor, old) for tensor, old in zip(tensors, originals)]
+                )
+            return result
+
+        target = masked_step
+
+    compiled_step = torch.compile(target, **{'dynamic': True, **(compile_kwargs or {})})
     scalars: dict[tuple[torch.device, int], tuple[torch.Tensor, float]] = {}
 
     def scalar_tensor(value: float | torch.Tensor, device: torch.device, index: int) -> torch.Tensor:
