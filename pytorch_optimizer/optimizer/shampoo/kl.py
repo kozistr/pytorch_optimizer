@@ -56,12 +56,14 @@ class KLShampoo(BaseOptimizer):
         self.validate_betas(betas)
         if shampoo_beta is not None:
             self.validate_range(shampoo_beta, 'shampoo_beta', 0.0, 1.0)
+
         self.validate_non_negative(weight_decay, 'weight_decay')
         self.validate_positive(precondition_frequency, 'precondition_frequency')
         self.validate_positive(max_precondition_dim, 'max_precondition_dim')
         self.validate_positive(init_factor, 'init_factor')
         if max_preconditioner_value is not None:
             self.validate_positive(max_preconditioner_value, 'max_preconditioner_value')
+
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
@@ -104,6 +106,7 @@ class KLShampoo(BaseOptimizer):
         """Transform a tensor into or out of the Kronecker eigenbasis."""
         for dim, basis in enumerate(bases):
             grad = cls.mode_product(grad, basis.T if backward else basis, dim)
+
         return grad
 
     @staticmethod
@@ -114,6 +117,7 @@ class KLShampoo(BaseOptimizer):
         eigenvalues = inv_root.square().reciprocal().nan_to_num_(nan=0.0, posinf=0.0, neginf=0.0)
         eigenvalues.lerp_(estimate, weight=1.0 - beta)
         result = eigenvalues.rsqrt_().nan_to_num_(nan=0.0, posinf=0.0, neginf=0.0)
+
         return result if max_value is None else result.clamp_(max=max_value)
 
     @staticmethod
@@ -122,14 +126,20 @@ class KLShampoo(BaseOptimizer):
         q, r = torch.linalg.qr(matrix)
         signs = r.diagonal(dim1=-2, dim2=-1).sign()
         signs.masked_fill_(signs == 0, 1.0)
+
         return q * signs.unsqueeze(-2)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
+        if 'step' not in group:
+            group['step'] = 0
+
         for p in group['params']:
             if p.grad is None:
                 continue
+
             if p.grad.is_sparse:
                 raise NoSparseGradientError(str(self))
+
             if torch.is_complex(p):
                 raise NoComplexParameterError(str(self))
 
@@ -138,13 +148,13 @@ class KLShampoo(BaseOptimizer):
                 continue
 
             dtype = torch.float64 if p.dtype == torch.float64 else torch.float32
-            state['step'] = 0
             state['exp_avg'] = torch.zeros_like(p, dtype=dtype)
             state['preconditioned'] = p.ndim > 1 and max(p.shape) <= group['max_precondition_dim']
             if self._use_soap or not state['preconditioned']:
                 state['exp_avg_sq'] = torch.zeros_like(p, dtype=dtype)
 
             if state['preconditioned']:
+                state['initialized'] = False
                 state['GG'], state['Q'], state['inv_roots'] = [], [], []
                 grad = p.grad.to(dtype=dtype)
                 for dim, size in enumerate(grad.shape):
@@ -170,6 +180,7 @@ class KLShampoo(BaseOptimizer):
             for other, (basis, inv_root) in enumerate(zip(bases, inv_roots)):
                 if other == dim:
                     continue
+
                 shape = [1] * grad.ndim
                 shape[other] = -1
                 whitened = self.mode_product(whitened, basis, other) * inv_root.reshape(shape)
@@ -183,12 +194,14 @@ class KLShampoo(BaseOptimizer):
 
         state['inv_roots'] = new_inv_roots
 
-        step = state['step'] - 1
+        step = group['step'] - 1
         if step < 10 or step % group['precondition_frequency'] == 0:
             if self._use_soap:
                 momentum = self.project(state['exp_avg'], bases, backward=True)
+
             for dim, (statistic, basis) in enumerate(zip(state['GG'], bases)):
                 bases[dim] = self.qr_basis(statistic @ basis)
+
             if self._use_soap:
                 state['exp_avg'].copy_(self.project(momentum, bases))
 
@@ -202,6 +215,7 @@ class KLShampoo(BaseOptimizer):
         if self.maximize:
             grads = [grad.to(dtype=momentum.dtype) for grad, momentum in zip(grads, states['exp_avg'])]
             torch._foreach_neg_(grads)
+
         state = self.stack_states(states)
         grad = (grads[0].unsqueeze(0) if len(params) == 1 else torch.stack(grads)).to(dtype=state['exp_avg'].dtype)
         beta1, beta2 = group['betas']
@@ -219,14 +233,17 @@ class KLShampoo(BaseOptimizer):
             momentum.lerp_(grad, weight=1.0 - beta1)
             scale = state['inv_left'].unsqueeze(-1) * state['inv_right'].unsqueeze(-2)
             update = (q_left.mT @ momentum @ q_right) * (scale / scale.mul(group['eps']).add_(1.0))
+
         update = q_left @ update @ q_right.mT
 
         self.update_matrix_statistics(group, state, left_projected, right_projected, projected)
         for key in ('exp_avg', 'exp_avg_sq', 'left', 'right', 'inv_left', 'inv_right'):
             if key not in state:
                 continue
+
             value = state[key]
             torch._foreach_copy_(states[key], list(value.unbind()))
+
         self._apply_updates(group, params, list(update.unbind()))
 
     @staticmethod
@@ -242,15 +259,18 @@ class KLShampoo(BaseOptimizer):
         keys = ['q_left', 'q_right', 'left', 'right']
         if self._use_soap:
             keys.append('exp_avg')
+
         state = self.stack_states({key: states[key] for key in keys})
         q_left, q_right = state['q_left'], state['q_right']
         if self._use_soap:
             momentum = q_left @ state['exp_avg'] @ q_right.mT
+
         left_power, right_power = state['left'] @ q_left, state['right'] @ q_right
         if q_left.shape[-1] == q_right.shape[-1]:
             q_left, q_right = self.qr_basis(torch.cat((left_power, right_power))).chunk(2)
         else:
             q_left, q_right = self.qr_basis(left_power), self.qr_basis(right_power)
+
         torch._foreach_copy_(states['q_left'], list(q_left.unbind()))
         torch._foreach_copy_(states['q_right'], list(q_right.unbind()))
         if self._use_soap:
@@ -287,6 +307,7 @@ class KLShampoo(BaseOptimizer):
         grads = [grad.to(dtype=momentum.dtype) for grad, momentum in zip(grads, states['exp_avg'])]
         if self.maximize:
             torch._foreach_neg_(grads)
+
         beta1, beta2 = group['betas']
         torch._foreach_lerp_(states['exp_avg'], grads, weight=1.0 - beta1)
         torch._foreach_lerp_(states['exp_avg_sq'], torch._foreach_mul(grads, grads), weight=1.0 - beta2)
@@ -321,6 +342,7 @@ class KLShampoo(BaseOptimizer):
                 shape = [1] * update.ndim
                 shape[dim] = -1
                 scale.mul_(inv_root.reshape(shape))
+
             update.mul_(scale / scale.mul(group['eps']).add_(1.0))
 
         if state['preconditioned']:
@@ -330,16 +352,17 @@ class KLShampoo(BaseOptimizer):
         self._apply_updates(group, [p], [update])
 
     def _step_batches(self, group: ParamGroup, params: list[torch.Tensor]) -> None:
+        step = group['step'] - 1
+        refresh = step < 10 or step % group['precondition_frequency'] == 0
+
         for tensors in group_tensors_by_device_and_dtype(params, [p.grad for p in params]):
             batches: dict[tuple, list[torch.Tensor]] = defaultdict(list)
             for p in tensors['params']:
                 state = self.state[p]
-                step = state['step'] - 1
                 shape = tuple(p.shape) if state['preconditioned'] else ()
-                refresh = state['preconditioned'] and (step < 10 or step % group['precondition_frequency'] == 0)
-                batches[shape, state['exp_avg'].dtype, refresh].append(p)
+                batches[shape, state['exp_avg'].dtype].append(p)
 
-            for (shape, _, refresh), batch in batches.items():
+            for (shape, _), batch in batches.items():
                 keys = ['exp_avg', 'exp_avg_sq'] if self._use_soap or not shape else ['exp_avg']
                 states = {key: [self.state[p][key] for p in batch] for key in keys}
                 grads = [p.grad for p in batch]
@@ -353,6 +376,7 @@ class KLShampoo(BaseOptimizer):
                         ('inv_right', 'inv_roots', 1),
                     ):
                         states[key] = [self.state[p][source][axis] for p in batch]
+
                     self._get_step(self._step_foreach)(group, batch, grads, states)
                     if refresh:
                         self._get_step(self._refresh_bases)(group, batch, states)
@@ -368,6 +392,8 @@ class KLShampoo(BaseOptimizer):
 
         for group in self.param_groups:
             self.init_group(group)
+            group['step'] += 1
+
             use_foreach = self.can_use_foreach(group, group.get('foreach'))
             params = []
             for p in group['params']:
@@ -375,8 +401,8 @@ class KLShampoo(BaseOptimizer):
                     continue
 
                 state = self.state[p]
-                state['step'] += 1
-                if state['preconditioned'] and state['step'] == 1:
+                if state['preconditioned'] and not state['initialized']:
+                    state['initialized'] = True
                     continue
 
                 if use_foreach and (p.ndim == 2 or not state['preconditioned']):
@@ -387,6 +413,7 @@ class KLShampoo(BaseOptimizer):
             self._step_batches(group, params)
 
         return loss
+
 
 class KLSOAP(KLShampoo):
     """Adam updates in the eigenbases estimated by KL-Shampoo.

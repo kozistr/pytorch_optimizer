@@ -329,6 +329,7 @@ class ScalableShampoo(BaseOptimizer):
                 graft.add_statistics(grad, beta2)
                 if group['step'] % self.statistics_compute_steps == 0:
                     pre_conditioner.add_statistics(grad)
+
                 if group['step'] % self.preconditioning_compute_steps == 0:
                     pre_conditioner.compute_pre_conditioners()
 

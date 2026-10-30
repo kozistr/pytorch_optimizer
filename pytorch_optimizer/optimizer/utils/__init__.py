@@ -1,6 +1,3 @@
-from importlib import import_module
-from typing import TYPE_CHECKING
-
 from pytorch_optimizer.base.compatibility import (
     HAS_TRANSFORMERS,
     TORCH_VERSION_AT_LEAST_2_4,
@@ -14,6 +11,15 @@ from pytorch_optimizer.optimizer.utils.gradient import (
     get_global_gradient_norm,
     normalize_gradient,
     unit_norm,
+)
+from pytorch_optimizer.optimizer.utils.graft import (
+    AdaGradGraft,
+    Graft,
+    LayerWiseGrafting,
+    RMSPropGraft,
+    SGDGraft,
+    SQRTNGraft,
+    build_graft,
 )
 from pytorch_optimizer.optimizer.utils.matrix import (
     NS_COEFFICIENTS,
@@ -37,27 +43,15 @@ from pytorch_optimizer.optimizer.utils.model import (
     reg_noise,
 )
 from pytorch_optimizer.optimizer.utils.offload import CPUOffloadOptimizer
+from pytorch_optimizer.optimizer.utils.partition import BlockPartitioner, PreConditionerType
 from pytorch_optimizer.optimizer.utils.precision import (
     StochasticAccumulator,
     copy_stochastic,
     has_overflow,
     to_real,
 )
+from pytorch_optimizer.optimizer.utils.preconditioner import PreConditioner
 from pytorch_optimizer.optimizer.utils.shape import merge_small_dims
-
-if TYPE_CHECKING:
-    from pytorch_optimizer.optimizer.shampoo.utils import (
-        AdaGradGraft,
-        BlockPartitioner,
-        Graft,
-        LayerWiseGrafting,
-        PreConditioner,
-        PreConditionerType,
-        RMSPropGraft,
-        SGDGraft,
-        SQRTNGraft,
-        build_graft,
-    )
 
 __all__ = [
     'HAS_TRANSFORMERS',
@@ -104,8 +98,3 @@ __all__ = [
     'zero_power_via_gram_newton_schulz',
     'zero_power_via_newton_schulz_5',
 ]
-def __getattr__(name: str):
-    """Load Shampoo helpers lazily to avoid an import cycle through BaseOptimizer."""
-    if name in __all__:
-        return getattr(import_module('pytorch_optimizer.optimizer.shampoo.utils'), name)
-    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
