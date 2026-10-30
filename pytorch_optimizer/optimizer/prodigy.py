@@ -1,5 +1,4 @@
 import math
-from collections.abc import Callable
 
 import torch
 
@@ -7,11 +6,11 @@ from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGr
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.utils.foreach import (
-    compile_foreach_step,
     foreach_add_,
     foreach_addcdiv_,
     foreach_addcmul_,
     group_tensors_by_device_and_dtype,
+    mask_foreach_step,
 )
 
 
@@ -67,7 +66,6 @@ class Prodigy(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
-        self._compiled_update_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
@@ -123,7 +121,28 @@ class Prodigy(BaseOptimizer):
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
         super()._compile_foreach(compile_kwargs)
-        self._compiled_update_foreach = compile_foreach_step(self._apply_update_foreach, compile_kwargs)
+
+        self._compile_steps(
+            mask_foreach_step(self._apply_update_foreach),
+            self.get_adapt_distance,
+            compile_kwargs=compile_kwargs,
+        )
+
+    @staticmethod
+    def get_adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
+        d_numerator, d_de_nom = statistics
+        d = params[0]
+
+        active = (d_de_nom != 0).reshape(())
+        d_hat = (group['d_coef'] * d_numerator / d_de_nom).reshape(())
+        initial = torch.as_tensor(group['d0'], device=d.device, dtype=d.dtype)
+        d = torch.where(d == initial, torch.fmax(d, d_hat), d)
+
+        previous_max = torch.as_tensor(group['d_max'], device=d.device, dtype=d.dtype)
+        d_max = torch.where(active, torch.fmax(previous_max, d_hat), previous_max)
+        d = torch.where(active, torch.minimum(d_max, d * group['growth_rate']), params[0])
+
+        return d, d_max, d_hat, active
 
     def _step_foreach(
         self,
@@ -174,23 +193,25 @@ class Prodigy(BaseOptimizer):
         de_noms = torch._foreach_sqrt(state['exp_avg_sq'])
 
         if group['eps'] is not None:
-            torch._foreach_add_(de_noms, d * group['eps'])
+            offset = d * group['eps']
+            torch._foreach_add_(de_noms, [offset] * len(de_noms) if isinstance(offset, torch.Tensor) else offset)
             foreach_addcdiv_(params, state['exp_avg'], de_noms, value=-d_lr)
         else:
             updates = [exp_avg.atan2(de_nom) for exp_avg, de_nom in zip(state['exp_avg'], de_noms)]
             foreach_add_(params, updates, alpha=-d_lr)
 
     @torch.no_grad()
-    def step(self, closure: Closure = None) -> Loss:  # noqa: PLR0915
+    def step(self, closure: Closure = None) -> Loss:  # noqa: PLR0912, PLR0915
         loss: Loss = None
         if closure is not None:
             with torch.enable_grad():
                 loss = closure()
 
+        compiled = self._is_compiled(self.get_adapt_distance)
         group = self.param_groups[0]
         device = self.get_device_from_param_groups(self.param_groups)
 
-        d_de_nom = torch.tensor([0.0], device=device)
+        d_de_nom = torch.zeros(1, device=device)
 
         beta1, beta2 = group['betas']
         beta3: float = group['beta3'] if group['beta3'] is not None else math.sqrt(beta2)
@@ -200,10 +221,15 @@ class Prodigy(BaseOptimizer):
         bias_correction: float = (bias_correction1 / bias_correction2_sq) if group['bias_correction'] else 1.0
 
         d, d0 = group['d'], group['d0']
+        if compiled:
+            d = torch.as_tensor(d, device=device, dtype=d_de_nom.dtype).reshape(())
+
         d_lr: float = d * group['lr'] / bias_correction
+        batches: dict[int, list[dict]] = {}
+        has_scalar_update = False
 
         if 'd_numerator' not in group:
-            group['d_numerator'] = torch.tensor([0.0], device=device)
+            group['d_numerator'] = torch.zeros(1, device=device)
         elif group['d_numerator'].device != device:
             group['d_numerator'] = group['d_numerator'].to(device)  # pragma: no cover
 
@@ -217,13 +243,21 @@ class Prodigy(BaseOptimizer):
 
             if self._can_use_foreach(group):
                 params, grads, state = self.collect_trainable_params(
-                    group, self.state, ['p0', 'exp_avg', 'exp_avg_sq', 's']
+                    group,
+                    self.state,
+                    ['p0', 'exp_avg', 'exp_avg_sq', 's'],
                 )
+                batches[id(group)] = group_tensors_by_device_and_dtype(params, grads, state)
 
-                for batch in group_tensors_by_device_and_dtype(params, grads, state):
+                for batch in batches[id(group)]:
                     self._step_foreach(
                         {**group, 'betas': (beta1, beta2), 'beta3': beta3, 'd0': d0},
-                        batch['params'], batch['grads'], batch, d, d_lr, (d_numerator, d_de_nom),
+                        batch['params'],
+                        batch['grads'],
+                        batch,
+                        d,
+                        d_lr,
+                        (d_numerator, d_de_nom),
                     )
 
                 continue
@@ -232,6 +266,7 @@ class Prodigy(BaseOptimizer):
                 if p.grad is None:
                     continue
 
+                has_scalar_update = True
                 grad = p.grad
 
                 self.maximize_gradient(grad, maximize=self.maximize)
@@ -250,15 +285,23 @@ class Prodigy(BaseOptimizer):
 
                 d_de_nom.add_(s.abs().sum())
 
-        if d_de_nom == 0:
+        active = None
+        if compiled:
+            adapt = self._get_step(self.get_adapt_distance)
+            d, d_max, d_hat, active = adapt(group, [d], (d_numerator, d_de_nom))
+        else:
+            if d_de_nom == 0:
+                return loss
+
+            d_hat = (group['d_coef'] * d_numerator / d_de_nom).item()
+            if d == group['d0']:
+                d = max(d, d_hat)
+
+            d_max = max(group['d_max'], d_hat)
+            d = min(d_max, d * group['growth_rate'])
+
+        if has_scalar_update and active is not None and not active:
             return loss
-
-        d_hat = (group['d_coef'] * d_numerator / d_de_nom).item()
-        if d == group['d0']:
-            d = max(d, d_hat)
-
-        d_max = max(group['d_max'], d_hat)
-        d = min(d_max, d * group['growth_rate'])
 
         for group in self.param_groups:
             group['d_numerator'] = d_numerator
@@ -267,12 +310,10 @@ class Prodigy(BaseOptimizer):
             group['d_max'] = d_max
             group['d_hat'] = d_hat
 
-            if self._can_use_foreach(group):
-                params, grads, state = self.collect_trainable_params(group, self.state, ['exp_avg', 'exp_avg_sq'])
-
-                for batch in group_tensors_by_device_and_dtype(params, grads, state):
-                    update = self._compiled_update_foreach or self._apply_update_foreach
-                    update(group, batch['params'], batch['grads'], batch, d, d_lr)
+            if id(group) in batches:
+                for batch in batches[id(group)]:
+                    update = self._get_step(self._apply_update_foreach)
+                    update({**group, '_active': active}, batch['params'], batch['grads'], batch, d, d_lr)
 
                 continue
 

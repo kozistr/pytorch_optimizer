@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 import torch
 
@@ -40,10 +42,38 @@ class TestDadapt:
     @pytest.mark.parametrize(
         'optimizer_name', ['DAdaptAdaGrad', 'DAdaptAdam', 'DAdaptSGD', 'DAdaptAdan', 'DAdaptLion', 'Prodigy']
     )
-    def test_2nd_stage_gradient(self, optimizer_name):
+    @pytest.mark.parametrize('compiled', [False, True])
+    def test_2nd_stage_gradient(self, optimizer_name, compiled):
         params = [make_parameter(grad=grad) for grad in (None, 1.0, 1.0)]
-        optimizer = build_optimizer(optimizer_name, [{'params': [param]} for param in params])
+        optimizer = build_optimizer(
+            optimizer_name,
+            [{'params': [param]} for param in params],
+            weight_decay=0.1,
+            weight_decouple=False,
+        )
+
+        if compiled:
+            for group in optimizer.param_groups:
+                group['foreach'] = True
+
+            with patch('torch.compile', side_effect=lambda step, **_: step):
+                optimizer._compile_foreach()
+
         optimizer.step()
 
         torch.testing.assert_close(params[1], params[2])
         assert params[1].item() < 0.0
+
+        if compiled:
+            dtype = torch.float16 if optimizer_name == 'DAdaptAdan' else torch.float32
+            inactive = make_parameter(dtype=dtype)
+            with torch.no_grad():
+                inactive.fill_(1.0)
+
+            scalar_optimizer = build_optimizer(optimizer_name, [inactive], foreach=False)
+            with patch('torch.compile', side_effect=lambda step, **_: step):
+                scalar_optimizer._compile_foreach()
+
+            scalar_optimizer.step()
+
+            torch.testing.assert_close(inactive, torch.ones_like(inactive))

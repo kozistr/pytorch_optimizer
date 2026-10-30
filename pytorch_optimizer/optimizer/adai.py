@@ -1,5 +1,4 @@
 import math
-from collections.abc import Callable
 
 import torch
 
@@ -8,7 +7,6 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 from pytorch_optimizer.optimizer.utils.foreach import (
-    compile_foreach_step,
     foreach_add_,
     group_tensors_by_device_and_dtype,
 )
@@ -58,8 +56,6 @@ class Adai(BaseOptimizer):
 
         self.maximize = maximize
         self.foreach = foreach
-        self._compiled_update_moments: Callable | None = None
-        self._compiled_step_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
@@ -80,8 +76,11 @@ class Adai(BaseOptimizer):
         return 'Adai'
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
-        self._compiled_update_moments = compile_foreach_step(self._update_moments_foreach, compile_kwargs)
-        self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
+        self._compile_steps(
+            self._update_moments_foreach,
+            self._step_foreach,
+            compile_kwargs=compile_kwargs,
+        )
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -184,9 +183,8 @@ class Adai(BaseOptimizer):
                 param_size += sum(p.numel() for p in params)
                 for batch in batches:
                     update_moments = (
-                        self._compiled_update_moments
-                        if self._compiled_update_moments is not None
-                        and batch['params'][0].dtype not in (torch.float16, torch.bfloat16)
+                        self._get_step(self._update_moments_foreach)
+                        if batch['params'][0].dtype not in (torch.float16, torch.bfloat16)
                         else self._update_moments_foreach
                     )
                     exp_avg_sq_hat_sum += update_moments(
@@ -237,9 +235,8 @@ class Adai(BaseOptimizer):
             if batches:
                 for batch in batches:
                     update = (
-                        self._compiled_step_foreach
-                        if self._compiled_step_foreach is not None
-                        and batch['params'][0].dtype not in (torch.float16, torch.bfloat16)
+                        self._get_step(self._step_foreach)
+                        if batch['params'][0].dtype not in (torch.float16, torch.bfloat16)
                         else self._step_foreach
                     )
                     update(

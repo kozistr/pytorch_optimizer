@@ -1,5 +1,4 @@
 import math
-from collections.abc import Callable
 
 import torch
 
@@ -7,7 +6,6 @@ from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGr
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.utils.foreach import (
-    compile_foreach_step,
     foreach_add_,
     foreach_addcdiv_,
     foreach_lerp_,
@@ -152,7 +150,6 @@ class EmoNavi(BaseOptimizer):
 
         self.use_shadow = use_shadow
         self.maximize = maximize
-        self._compiled_step_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
@@ -172,7 +169,7 @@ class EmoNavi(BaseOptimizer):
         return 'EmoNavi'
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
-        self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
+        self._compile_steps(self._step_foreach, compile_kwargs=compile_kwargs)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -247,11 +244,11 @@ class EmoNavi(BaseOptimizer):
 
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     update = self._step_foreach
-                    if self._compiled_step_foreach is not None and batch['params'][0].dtype not in (
+                    if batch['params'][0].dtype not in (
                         torch.float16,
                         torch.bfloat16,
                     ):
-                        update = self._compiled_step_foreach
+                        update = self._get_step(self._step_foreach)
 
                     update(group, batch['params'], batch['grads'], batch, emo_drive, ratio, abs(trust), ratio > 0.0)
 
@@ -342,7 +339,6 @@ class EmoLynx(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
-        self._compiled_step_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
@@ -362,7 +358,7 @@ class EmoLynx(BaseOptimizer):
         return 'EmoLynx'
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
-        self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
+        self._compile_steps(self._step_foreach, compile_kwargs=compile_kwargs)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -433,11 +429,11 @@ class EmoLynx(BaseOptimizer):
 
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     update = self._step_foreach
-                    if self._compiled_step_foreach is not None and batch['params'][0].dtype not in (
+                    if batch['params'][0].dtype not in (
                         torch.float16,
                         torch.bfloat16,
                     ):
-                        update = self._compiled_step_foreach
+                        update = self._get_step(self._step_foreach)
 
                     update(group, batch['params'], batch['grads'], batch, emo_drive, ratio, abs(trust), ratio > 0.0)
 
@@ -524,7 +520,6 @@ class EmoFact(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
-        self._compiled_step_foreach: Callable | None = None
 
         self.lr = lr
 
@@ -546,7 +541,7 @@ class EmoFact(BaseOptimizer):
         return 'EmoFact'
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
-        self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
+        self._compile_steps(self._step_foreach, compile_kwargs=compile_kwargs)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -652,11 +647,11 @@ class EmoFact(BaseOptimizer):
 
                     for batch in group_tensors_by_device_and_dtype(params, grads, state):
                         update = self._step_foreach
-                        if self._compiled_step_foreach is not None and batch['params'][0].dtype not in (
+                        if batch['params'][0].dtype not in (
                             torch.float16,
                             torch.bfloat16,
                         ):
-                            update = self._compiled_step_foreach
+                            update = self._get_step(self._step_foreach)
 
                         update(
                             group,

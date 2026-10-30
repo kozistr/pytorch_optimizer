@@ -6,7 +6,6 @@ from pytorch_optimizer.base.exception import NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.utils.foreach import (
-    compile_foreach_step,
     foreach_addcdiv_,
     group_tensors_by_device_and_dtype,
 )
@@ -52,7 +51,6 @@ class Yogi(BaseOptimizer):
 
         self.maximize = maximize
         self.foreach = foreach
-        self._compiled_foreach = False
 
         defaults: Defaults = {
             'lr': lr,
@@ -73,10 +71,7 @@ class Yogi(BaseOptimizer):
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
         # Keep rounded gradient squares for the second-moment sign comparison.
-        self._apply_update_foreach = compile_foreach_step(  # ty: ignore[invalid-assignment]
-            self._apply_update_foreach, compile_kwargs
-        )
-        self._compiled_foreach = True
+        self._compile_steps(self._apply_update_foreach, compile_kwargs=compile_kwargs)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -132,12 +127,13 @@ class Yogi(BaseOptimizer):
         torch._foreach_lerp_(exp_avgs, grads, weight=1.0 - beta1)
 
         grad_p2 = None
-        if self._compiled_foreach:
+        if self._is_compiled(self._apply_update_foreach):
             grad_p2 = torch._foreach_mul(grads, grads)
         else:
             self._update_second_moment_foreach(exp_avg_sqs, torch._foreach_mul(grads, grads), beta2)
 
-        self._apply_update_foreach(group, params, exp_avgs, exp_avg_sqs, step_size, bias_correction2_sq, grad_p2)
+        update = self._get_step(self._apply_update_foreach)
+        update(group, params, exp_avgs, exp_avg_sqs, step_size, bias_correction2_sq, grad_p2)
 
     @staticmethod
     def _apply_update_foreach(
