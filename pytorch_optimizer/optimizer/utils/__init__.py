@@ -12,15 +12,6 @@ from pytorch_optimizer.optimizer.utils.gradient import (
     normalize_gradient,
     unit_norm,
 )
-from pytorch_optimizer.optimizer.utils.graft import (
-    AdaGradGraft,
-    Graft,
-    LayerWiseGrafting,
-    RMSPropGraft,
-    SGDGraft,
-    SQRTNGraft,
-    build_graft,
-)
 from pytorch_optimizer.optimizer.utils.matrix import (
     NS_COEFFICIENTS,
     DTensor,
@@ -43,14 +34,12 @@ from pytorch_optimizer.optimizer.utils.model import (
     reg_noise,
 )
 from pytorch_optimizer.optimizer.utils.offload import CPUOffloadOptimizer
-from pytorch_optimizer.optimizer.utils.partition import BlockPartitioner, PreConditionerType
 from pytorch_optimizer.optimizer.utils.precision import (
     StochasticAccumulator,
     copy_stochastic,
     has_overflow,
     to_real,
 )
-from pytorch_optimizer.optimizer.utils.preconditioner import PreConditioner
 from pytorch_optimizer.optimizer.utils.shape import merge_small_dims
 
 __all__ = [
@@ -58,22 +47,12 @@ __all__ = [
     'NS_COEFFICIENTS',
     'TORCH_VERSION_AT_LEAST_2_4',
     'TORCH_VERSION_AT_LEAST_2_8',
-    'AdaGradGraft',
-    'BlockPartitioner',
     'CPUOffloadOptimizer',
     'DTensor',
-    'Graft',
-    'LayerWiseGrafting',
     'NewtonSchulzWeight',
     'NewtonSchulzWeights',
-    'PreConditioner',
-    'PreConditionerType',
-    'RMSPropGraft',
-    'SGDGraft',
-    'SQRTNGraft',
     'StochasticAccumulator',
     'batched_power_iteration',
-    'build_graft',
     'clip_grad_norm',
     'compare_versions',
     'compute_power_newton_db',
