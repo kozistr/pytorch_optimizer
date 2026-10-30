@@ -7,6 +7,7 @@ import torch
 from torch.optim import Optimizer
 
 from pytorch_optimizer.base.exception import NegativeLRError, NegativeStepError
+from pytorch_optimizer.base.foreach import compile_foreach_step, foreach_rsqrt, foreach_rsqrt_
 from pytorch_optimizer.base.type import (
     Betas,
     Closure,
@@ -18,7 +19,6 @@ from pytorch_optimizer.base.type import (
     ParamsT,
     State,
 )
-from pytorch_optimizer.optimizer.utils.foreach import compile_foreach_step, foreach_rsqrt, foreach_rsqrt_
 
 
 class BaseOptimizer(ABC, Optimizer):
