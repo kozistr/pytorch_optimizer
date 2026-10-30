@@ -113,7 +113,7 @@ from pytorch_optimizer.optimizer.schedulefree import (
 )
 from pytorch_optimizer.optimizer.scion import SCION, SCIONLight
 from pytorch_optimizer.optimizer.sgd import ASGD, SGDW, VSGD, AccSGD, SGDSaI, SignSGD
-from pytorch_optimizer.optimizer.shampoo import ScalableShampoo, Shampoo
+from pytorch_optimizer.optimizer.shampoo import KLSOAP, KLShampoo, ScalableShampoo, Shampoo
 from pytorch_optimizer.optimizer.sm3 import SM3
 from pytorch_optimizer.optimizer.snsm import AdamWSN
 from pytorch_optimizer.optimizer.soap import SOAP
@@ -139,6 +139,7 @@ __all__ = [
     'FOCUS',
     'FTRL',
     'GSAM',
+    'KLSOAP',
     'LARS',
     'LBFGS',
     'LOMO',
@@ -226,6 +227,7 @@ __all__ = [
     'Grams',
     'Gravity',
     'GrokFastAdamW',
+    'KLShampoo',
     'Kate',
     'Kron',
     'LaProp',
@@ -360,6 +362,8 @@ OPTIMIZER_LIST: list[OptimizerType] = [
     Gravity,
     GrokFastAdamW,
     Kate,
+    KLSOAP,
+    KLShampoo,
     Kron,
     LARS,
     LOMO,
