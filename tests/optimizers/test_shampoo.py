@@ -1,9 +1,8 @@
 import pytest
 import torch
 
-from pytorch_optimizer.optimizer.utils.partition import BlockPartitioner
+from pytorch_optimizer.optimizer.shampoo.utils import BlockPartitioner, PreConditioner
 from pytorch_optimizer.optimizer.utils.precision import to_real
-from pytorch_optimizer.optimizer.utils.preconditioner import PreConditioner
 from tests.fixtures import make_parameter
 from tests.utils import build_optimizer
 
@@ -28,6 +27,7 @@ def test_scalable_shampoo_pre_conditioner_with_svd(pre_conditioner_type):
     for _ in range(2):
         for param in reference_params:
             param.grad = torch.ones_like(param)
+
         reference.step()
         optimizer.step()
 

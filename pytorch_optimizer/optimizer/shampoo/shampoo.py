@@ -3,10 +3,13 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.graft import LayerWiseGrafting, build_graft
+from pytorch_optimizer.optimizer.shampoo.utils import (
+    LayerWiseGrafting,
+    PreConditioner,
+    PreConditionerType,
+    build_graft,
+)
 from pytorch_optimizer.optimizer.utils.matrix import compute_power_svd
-from pytorch_optimizer.optimizer.utils.partition import PreConditionerType
-from pytorch_optimizer.optimizer.utils.preconditioner import PreConditioner
 
 
 class Shampoo(BaseOptimizer):
@@ -326,6 +329,7 @@ class ScalableShampoo(BaseOptimizer):
                 graft.add_statistics(grad, beta2)
                 if group['step'] % self.statistics_compute_steps == 0:
                     pre_conditioner.add_statistics(grad)
+
                 if group['step'] % self.preconditioning_compute_steps == 0:
                     pre_conditioner.compute_pre_conditioners()
 

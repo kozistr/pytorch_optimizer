@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 import torch
 
+from pytorch_optimizer import KLShampoo, load_optimizer
 from tests.fixtures import build_model
 from tests.optimizer_cases import FOREACH_OPTIMIZERS, GRADIENT_OPTIONS, MAXIMIZE_OPTIMIZERS, SKIP_CAPABILITY_PROBE
 from tests.utils import Trainer, build_optimizer, build_optimizer_parameters, ids
@@ -134,14 +135,17 @@ class TestMaximize:
             for foreach in ([False, True] if name in FOREACH_OPTIMIZERS else [False])
         ],
     )
-    def test_maximize(self, optimizer_name, foreach):
+    def test_maximize(self, optimizer_name, foreach, device):
         shape = (2, 2, 1) if optimizer_name == 'splus' else (2, 2)
-        params = [torch.full(shape, 2.0, requires_grad=True) for _ in range(2)]
-        params[0].grad = torch.full_like(params[0], 0.5)
-        params[1].grad = torch.full_like(params[1], -0.5)
-
+        shapes = [shape]
         options = GRADIENT_OPTIONS.get(optimizer_name, {}).copy()
         iterations = 1
+
+        if issubclass(load_optimizer(optimizer_name), KLShampoo):
+            shapes.extend([shape, ()])
+            options.update(shampoo_beta=0.5, max_preconditioner_value=None)
+            iterations = 2
+
         if optimizer_name == 'adagc':
             options['warmup_steps'] = 2
             iterations = 2
@@ -152,25 +156,35 @@ class TestMaximize:
         if optimizer_name == 'kron':
             options.update(pre_conditioner_update_probability=1.0, balance_prob=0.0)
 
-        ascent = build_optimizer(optimizer_name, [params[0]], maximize=True, **options)
-        descent = build_optimizer(optimizer_name, [params[1]], maximize=False, **options)
+        params = [
+            [torch.full(shape, 2.0, requires_grad=True, device=device) for shape in shapes]
+            for _ in range(2)
+        ]
+        for side, gradient in zip(params, (0.5, -0.5)):
+            for param in side:
+                param.grad = torch.full_like(param, gradient)
+
+        ascent = build_optimizer(optimizer_name, params[0], maximize=True, **options)
+        descent = build_optimizer(optimizer_name, params[1], maximize=False, **options)
 
         if optimizer_name.startswith('schedulefree'):
             ascent.train()
             descent.train()
 
         for optimizer in (ascent, descent):
-            with torch.random.fork_rng(devices=[]):
+            with torch.random.fork_rng(devices=[device] if device.type == 'cuda' else []):
                 torch.manual_seed(42)
                 options = {'hessian': [torch.ones_like(optimizer.param_groups[0]['params'][0])]} if (
                     optimizer_name in ('adahessian', 'sophiah')
                 ) else {}
 
-                param = optimizer.param_groups[0]['params'][0]
-                grad = param.grad.clone()
+                parameters = optimizer.param_groups[0]['params']
+                gradients = [param.grad.clone() for param in parameters]
 
                 for _ in range(iterations):
-                    param.grad = grad.clone()
+                    for param, gradient in zip(parameters, gradients):
+                        param.grad = gradient.clone()
+
                     optimizer.step(lambda: 0.1, **options)
 
         torch.testing.assert_close(params[0], params[1])

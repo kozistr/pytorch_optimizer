@@ -304,6 +304,14 @@
     :docstring:
     :members:
 
+::: pytorch_optimizer.KLShampoo
+    :docstring:
+    :members:
+
+::: pytorch_optimizer.KLSOAP
+    :docstring:
+    :members:
+
 ::: pytorch_optimizer.Kron
     :docstring:
     :members:

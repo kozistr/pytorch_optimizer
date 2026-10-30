@@ -143,6 +143,7 @@ def compile_foreach_step(step: Callable, compile_kwargs: dict | None = None) -> 
             scalar_tensor(value, device, index) if isinstance(value, (float, torch.Tensor)) else value
             for index, value in enumerate(args)
         )
+
         return compiled_step(group, params, *args)
 
     return update

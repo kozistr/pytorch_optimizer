@@ -1,8 +1,233 @@
+import itertools
+from enum import IntEnum
+
 import torch
 
 from pytorch_optimizer.optimizer.utils.matrix import compute_power_schur_newton, compute_power_svd
-from pytorch_optimizer.optimizer.utils.partition import BlockPartitioner, PreConditionerType
 from pytorch_optimizer.optimizer.utils.shape import merge_small_dims
+
+
+class LayerWiseGrafting(IntEnum):
+    """Layer wise update scale references for Shampoo.
+
+    Grafting combines the Shampoo update direction with the magnitude of an SGD,
+    AdaGrad, RMSProp, or sign based update.
+
+    Reference: https://arxiv.org/abs/2002.11803
+
+    """
+
+    NONE = 0
+    SGD = 1
+    ADAGRAD = 2
+    RMSPROP = 3
+    SQRTN = 4
+
+
+class Graft:
+    """Identity graft with momentum for Shampoo warm-up updates."""
+
+    def __init__(self, var: torch.Tensor):
+        self.momentum: torch.Tensor = torch.zeros_like(var)
+
+    def add_statistics(self, grad: torch.Tensor, beta2: float) -> None:
+        """Accept gradient statistics without accumulating them."""
+
+    def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
+        """Return the gradient unchanged."""
+        return grad
+
+    def update_momentum(self, update: torch.Tensor, beta1: float, weight: float = 1.0) -> torch.Tensor:
+        """Accumulate and return the momentum update."""
+        self.momentum.mul_(beta1).add_(update, alpha=weight)
+
+        return self.momentum
+
+
+class SGDGraft(Graft):
+    """SGD momentum as a layer wise update scale reference."""
+
+
+class SQRTNGraft(Graft):
+    """Sign based layer wise update scale reference."""
+
+    def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
+        """Return the elementwise gradient sign."""
+        return grad.sign()
+
+
+class AdaGradGraft(SGDGraft):
+    """Graft using AdaGrad with momentum.
+
+    Args:
+        var: Parameter tensor that determines the accumulator shape.
+        diagonal_eps: Small epsilon added to diagonal for numerical stability.
+
+    """
+
+    def __init__(self, var: torch.Tensor, diagonal_eps: float):
+        super().__init__(var)
+        self.diagonal_eps = diagonal_eps
+        self.statistics: torch.Tensor = torch.zeros_like(var)
+
+    def add_statistics(self, grad: torch.Tensor, _) -> None:
+        """Accumulate squared gradients for AdaGrad scaling."""
+        self.statistics.addcmul_(grad, grad)
+
+    def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
+        """Scale gradients by the inverse root of accumulated squared gradients."""
+        return grad.div(self.statistics.sqrt().add_(self.diagonal_eps))
+
+
+class RMSPropGraft(SGDGraft):
+    """Graft using RMSProp with momentum.
+
+    Args:
+        var: Parameter tensor that determines the accumulator shape.
+        diagonal_eps: Small epsilon added to diagonal for numerical stability.
+
+    """
+
+    def __init__(self, var: torch.Tensor, diagonal_eps: float):
+        super().__init__(var)
+        self.diagonal_eps = diagonal_eps
+        self.statistics: torch.Tensor = torch.zeros_like(var)
+
+    def add_statistics(self, grad: torch.Tensor, beta2: float) -> None:
+        """Update the exponential moving average of squared gradients."""
+        self.statistics.mul_(beta2).addcmul_(grad, grad, value=1.0 - beta2)
+
+    def precondition_gradient(self, grad: torch.Tensor) -> torch.Tensor:
+        """Scale gradients by the inverse root of the squared gradient moving average."""
+        return grad.div(self.statistics.sqrt().add_(self.diagonal_eps))
+
+
+def build_graft(p: torch.Tensor, graft_type: int, diagonal_eps: float = 1e-10):
+    """Construct a Shampoo graft from a `LayerWiseGrafting` value."""
+    if graft_type == LayerWiseGrafting.ADAGRAD:
+        return AdaGradGraft(p, diagonal_eps)
+
+    if graft_type == LayerWiseGrafting.RMSPROP:
+        return RMSPropGraft(p, diagonal_eps)
+
+    if graft_type == LayerWiseGrafting.SGD:
+        return SGDGraft(p)
+
+    if graft_type == LayerWiseGrafting.SQRTN:
+        return SQRTNGraft(p)
+
+    return Graft(p)
+
+
+class PreConditionerType(IntEnum):
+    """Dimensions to precondition with Shampoo.
+
+    `ALL` preconditions every dimension. `INPUT` and `OUTPUT` use one sided
+    preconditioning, treating the last dimension as output and the others as input.
+
+    """
+
+    ALL = 0
+    INPUT = 1
+    OUTPUT = 2
+
+
+class BlockPartitioner:
+    """Partition a tensor into smaller tensors for preconditioning.
+
+    For example, if a variable has shape (4096, 512), splitting the 4096 dimension into 4 blocks,
+    results in 4 smaller tensors each of shape (1024, 512).
+
+    Args:
+        var: Tensor variable.
+        rank: Number of tensor dimensions, used to determine preconditioner shapes.
+        block_size: Size of each block to partition.
+        pre_conditioner_type: Type of preconditioner used.
+
+    """
+
+    def __init__(self, var: torch.Tensor, rank: int, block_size: int, pre_conditioner_type: int):
+        self.shape: torch.Size = var.shape
+
+        self.splits: list[tuple[int, list[int]]] = []
+        self.split_sizes: list[tuple[int, list[int]]] = []
+
+        split_sizes: list[list[int]] = []
+
+        # We split var into smaller blocks. Here we store the metadata to make that split.
+        for i, d in enumerate(self.shape):
+            if block_size <= 0 or block_size >= d:
+                split_sizes.append([d])
+                continue
+
+            # d - 1, otherwise split appends a 0-size array.
+            num_split: int = (d - 1) // block_size
+            indices = list(range(block_size, d, block_size))
+            sizes = [block_size] * num_split + [d - num_split * block_size]
+
+            self.splits.append((i, indices))
+            self.split_sizes.append((i, sizes))
+            split_sizes.append(sizes)
+
+        self.num_splits: int = len(split_sizes)
+        self.pre_conditioner_shapes: list[list[int] | None] = self.build_pre_conditioner_shapes(
+            split_sizes,
+            pre_conditioner_type,
+            rank,
+        )
+
+    @staticmethod
+    def build_pre_conditioner_shapes(
+        split_sizes: list[list[int]],
+        pre_conditioner_type: int,
+        rank: int,
+    ) -> list[list[int] | None]:
+        """Build matrix shapes for each block preconditioner."""
+        pre_conditioner_shapes: list[list[int] | None] = []
+
+        for t in itertools.product(*split_sizes):
+            t_shape: list[list[int] | None] = [[d, d] for d in t]
+
+            if pre_conditioner_type == PreConditionerType.INPUT:
+                t_shape[-1] = None
+            elif pre_conditioner_type == PreConditionerType.OUTPUT:
+                t_shape = [None] * (rank - 1) + t_shape[-1:]
+
+            pre_conditioner_shapes.extend(t_shape)
+
+        return pre_conditioner_shapes
+
+    def shapes_for_pre_conditioners(self) -> list[list[int] | None]:
+        """Return the matrix shapes of the block preconditioners."""
+        return self.pre_conditioner_shapes
+
+    @torch.no_grad()
+    def partition(self, x: torch.Tensor) -> list[torch.Tensor]:
+        """Partition tensor into blocks."""
+        if x.shape != self.shape:
+            raise ValueError(f'self.shape != x.shape ({self.shape} vs {x.shape})')
+
+        tensors = [x]
+        for i, sizes in self.split_sizes:
+            tensors = [torch.split(t, sizes, dim=i) for t in tensors]
+            tensors = [t for tensor in tensors for t in tensor]
+
+        return tensors
+
+    def merge_partitions(self, partitions: list[torch.Tensor]) -> torch.Tensor:
+        """Merge partitions back to original shape."""
+        merged_partitions = partitions
+        for i, indices in reversed(self.splits):
+            n: int = len(indices) + 1
+
+            # fmt: off
+            merged_partitions: list[torch.Tensor] = [
+                torch.cat(merged_partitions[idx:idx + n], dim=i) for idx in range(0, len(merged_partitions), n)
+            ]
+
+            # fmt: on
+
+        return merged_partitions[0]
 
 
 class PreConditioner:
@@ -87,10 +312,13 @@ class PreConditioner:
         """Select dimensions to precondition from the preconditioner type."""
         if self.pre_conditioner_type == PreConditionerType.ALL or len(self.transformed_shape) <= 1:
             return [True] * len(self.transformed_shape)
+
         if self.pre_conditioner_type == PreConditionerType.INPUT:
             return [True] * (len(self.transformed_shape) - 1) + [False]
+
         if self.pre_conditioner_type == PreConditionerType.OUTPUT:
             return [False] * (len(self.transformed_shape) - 1) + [True]
+
         raise ValueError
 
     def skip_precondition(self, x: torch.Tensor) -> bool:
