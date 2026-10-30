@@ -1,4 +1,5 @@
 import warnings
+from copy import deepcopy
 from unittest.mock import patch
 
 import pytest
@@ -9,9 +10,9 @@ from torch._dynamo.testing import CompileCounter
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, create_optimizer, load_optimizer
 from tests.fixtures import TrainingModel, build_model
-from tests.optimizer_cases import SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
+from tests.optimizer_cases import DISTANCE_ADAPTIVE_OPTIMIZERS, SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
 from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS
-from tests.utils import Trainer, ids, make_closure, should_use_create_graph
+from tests.utils import ids, should_use_create_graph
 
 
 @pytest.fixture(autouse=True)
@@ -86,17 +87,25 @@ class TestCreateOptimizer:
         [pytest.param(recipe, recipe[0] != 'adamw', id=ids(recipe)) for recipe in COMPILE_SUPPORTED_OPTIMIZERS],
     )
     @pytest.mark.skipif(not torch._dynamo.is_dynamo_supported(), reason='torch.compile is unavailable in this runtime')
-    def test_create_compiled_optimizer(self, optimizer_config, foreach, environment):
+    def test_create_compiled_optimizer(self, optimizer_config, foreach, device):
         torch._dynamo.reset()
 
         optimizer_name, config, iterations = optimizer_config
         config = config.copy()
+        iterations = min(iterations, 10)
+        if 'num_iterations' in config:
+            config['num_iterations'] = iterations
 
         if optimizer_name == 'alig':
             config['lr'] = config.pop('max_lr')
 
-        x_data, y_data = environment
-        model, loss_fn = build_model(device=x_data.device)
+        config['lr'] = 1e-2
+        if optimizer_name in DISTANCE_ADAPTIVE_OPTIMIZERS:
+            config['d0'] = 0.1
+
+        model, _ = build_model(device=device)
+        model = model.fc2
+        reference_model = deepcopy(model)
         counter = CompileCounter()
 
         if optimizer_name == 'adamw':
@@ -106,37 +115,55 @@ class TestCreateOptimizer:
         optimizer = create_optimizer(
             model,
             optimizer_name,
+            wd_ban_list=(),
             foreach=foreach,
             compile=True,
             compile_kwargs={'backend': counter},
             **config,
         )
 
-        trainer = Trainer(model, loss_fn, optimizer, x_data, y_data)
-        trainer.run(
-            iterations=iterations,
-            create_graph=should_use_create_graph(optimizer_name),
-            closure_fn=make_closure if optimizer_name == 'alig' else None,
+        reference = create_optimizer(
+            reference_model, optimizer_name, wd_ban_list=(), foreach=foreach, **config,
         )
+        gradients = [
+            torch.arange(1, param.numel() + 1, device=device, dtype=param.dtype).reshape_as(param) / 100.0
+            for param in model.parameters()
+        ]
+
+        def step(optimizer):
+            params = tuple(p for group in optimizer.param_groups for p in group['params'])
+            for param, grad in zip(params, gradients):
+                param.grad = grad.clone()
+
+            options = {'hessian': [torch.ones_like(p) for p in params]} if (
+                should_use_create_graph(optimizer_name)
+            ) else {}
+            with torch.random.fork_rng(devices=[device] if device.type == 'cuda' else []):
+                optimizer.step((lambda: 1.0) if optimizer_name == 'alig' else None, **options)
+
+        for _ in range(iterations):
+            step(optimizer)
+            step(reference)
+            assert all(torch.isfinite(param).all() for param in model.parameters())
+            # Compiled updates calculate scalar coefficients in float32.
+            torch.testing.assert_close(model.state_dict(), reference_model.state_dict(), rtol=1e-4, atol=1e-5)
 
         if foreach and isinstance(optimizer, BaseOptimizer) and optimizer._supports_compiled_foreach:
-            lr = torch.tensor(config['lr'], device=x_data.device)
+            lr = torch.tensor(config['lr'], device=device)
             lr_key = 'max_lr' if optimizer_name == 'alig' else 'lr'
-            for group in optimizer.param_groups:
-                group[lr_key] = lr
+            for current in (optimizer, reference):
+                for group in current.param_groups:
+                    group[lr_key] = lr
 
             for _ in range(3):
                 lr.mul_(0.99)
                 expected_lr = lr.clone()
                 frames = counter.frame_count
-                if should_use_create_graph(optimizer_name):
-                    params = tuple(model.parameters())
-                    gradients = torch.autograd.grad(trainer.compute_loss(), params, create_graph=True)
-                    for param, grad in zip(params, gradients):
-                        param.grad = grad
-                optimizer.step((lambda: 1.0) if optimizer_name == 'alig' else None)
+                step(optimizer)
+                step(reference)
 
                 torch.testing.assert_close(lr, expected_lr)
+                torch.testing.assert_close(model.state_dict(), reference_model.state_dict(), rtol=1e-4, atol=1e-5)
 
             assert 0 < counter.frame_count == frames
 

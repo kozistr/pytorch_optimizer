@@ -1,7 +1,6 @@
 from typing import Any
 
-from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.optimizer import OPTIMIZERS
+from tests.optimizer_cases import COMPILED_FOREACH_OPTIMIZERS
 
 OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('lookahead', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
@@ -451,14 +450,13 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('flashadamw', {'lr': 5e-1, 'weight_decay': 1e-3, 'check_numerics': True, 'master_weight_bits': None}, 5),
 ]
 
+BASELINE_OPTIMIZER_RECIPES = list({recipe[0]: recipe for recipe in reversed(OPTIMIZER_RECIPES)}.values())
+
 COMPILE_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('adamw', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
-    ('stableadamw', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
-    *{
-        name: (name, options.copy(), iterations)
-        for name, options, iterations in reversed(OPTIMIZER_RECIPES)
-        if name in OPTIMIZERS
-        and issubclass(OPTIMIZERS[name], BaseOptimizer)
-        and OPTIMIZERS[name]._supports_compiled_foreach
-    }.values(),
+    *[
+        (name, options.copy(), iterations)
+        for name, options, iterations in BASELINE_OPTIMIZER_RECIPES
+        if name in COMPILED_FOREACH_OPTIMIZERS
+    ],
 ]

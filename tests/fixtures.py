@@ -44,7 +44,10 @@ def make_sparse_parameters() -> tuple[torch.Tensor, torch.Tensor]:
 
 
 def build_model(use_complex: bool = False, device: str | torch.device = 'cpu'):
-    torch.manual_seed(42)
+    if torch.device(device).type == 'cpu':
+        torch.random.default_generator.manual_seed(42)
+    else:
+        torch.manual_seed(42)
     model = TrainingModel(dtype=torch.complex64 if use_complex else torch.float32)
     return model.to(device), nn.BCEWithLogitsLoss().to(device)
 

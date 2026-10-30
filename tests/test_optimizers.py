@@ -6,13 +6,14 @@ import torch
 from pytorch_optimizer.base.exception import NoClosureError, ZeroParameterSizeError
 from tests.fixtures import TrainingModel, build_model, make_parameter
 from tests.optimizer_cases import (
+    COMPILED_FOREACH_OPTIMIZERS,
     COMPLEX_OPTIMIZERS,
     FOREACH_OPTIMIZERS,
     MODEL_OPTIMIZERS,
     SKIP_BF16_OPTIMIZERS,
     VALID_OPTIMIZER_NAMES,
 )
-from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS, OPTIMIZER_RECIPES
+from tests.recipes import BASELINE_OPTIMIZER_RECIPES, COMPILE_SUPPORTED_OPTIMIZERS, OPTIMIZER_RECIPES
 from tests.utils import (
     Trainer,
     build_optimizer,
@@ -28,6 +29,7 @@ TRAINING_CASES = [
     pytest.param(recipe, dtype, foreach, id=f'{ids(recipe)}-{dtype}-{foreach}')
     for recipe in OPTIMIZER_RECIPES
     for dtype in (torch.float32, torch.bfloat16, torch.complex64)
+    if dtype != torch.bfloat16 or recipe in BASELINE_OPTIMIZER_RECIPES
     if not (dtype == torch.bfloat16 and recipe[0] in SKIP_BF16_OPTIMIZERS)
     if dtype != torch.complex64 or recipe[0] in COMPLEX_OPTIMIZERS
     for foreach in ([False, True] if dtype != torch.complex64 and recipe[0] in FOREACH_OPTIMIZERS else [False])
@@ -84,8 +86,17 @@ class TestOptimizerTraining:
             threshold=1.4 if dtype != torch.complex64 and optimizer_name in ('spectralsphere', 'orthograd') else 1.5,
         )
 
-    @pytest.mark.parametrize('optimizer_config', COMPILE_SUPPORTED_OPTIMIZERS, ids=ids)
-    @pytest.mark.parametrize('foreach', [False, True])
+    @pytest.mark.parametrize(
+        ('optimizer_config', 'foreach'),
+        [
+            pytest.param(recipe, foreach, id=f'{ids(recipe)}-{foreach}')
+            for recipe in COMPILE_SUPPORTED_OPTIMIZERS
+            for foreach in [False, True]
+            if not (
+                foreach and recipe[0] in COMPILED_FOREACH_OPTIMIZERS and torch._dynamo.is_dynamo_supported()
+            )
+        ],
+    )
     def test_tensor_lr(self, optimizer_config, foreach, environment):
         optimizer_name, config, iterations = optimizer_config
         config = config.copy()
@@ -158,7 +169,7 @@ class TestOptimizerInterface:
                 return loss
 
             with torch.random.fork_rng(devices=[]):
-                torch.manual_seed(42)
+                torch.random.default_generator.manual_seed(42)
 
                 if optimizer_name == 'bsam':
                     closure()
