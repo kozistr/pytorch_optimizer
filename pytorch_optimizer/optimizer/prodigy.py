@@ -5,7 +5,6 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.adaptive import can_reduce_batch
 from pytorch_optimizer.optimizer.utils.foreach import (
     foreach_add_,
     foreach_addcdiv_,
@@ -121,9 +120,9 @@ class Prodigy(BaseOptimizer):
         )
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        super()._compile_foreach(compile_kwargs)
+
         self._compile_steps(
-            self._step_foreach,
-            self._step_moments_foreach,
             mask_foreach_step(self._apply_update_foreach),
             self.get_adapt_distance,
             compile_kwargs=compile_kwargs,
@@ -156,42 +155,16 @@ class Prodigy(BaseOptimizer):
         statistics: tuple[torch.Tensor, torch.Tensor],
     ) -> None:
         d_numerator, d_de_nom = statistics
-
-        compiling = torch._dynamo.is_compiling()  # ty: ignore[deprecated]
-        update = self._step_moments_foreach if compiling else self._get_step(self._step_moments_foreach)
-        differences, coefficient = update(group, params, grads, state, d, d_lr)
-
-        if can_reduce_batch(grads):
-            value = torch.cat([difference.reshape(-1) for difference in differences]).sum()
-            foreach_add_([d_numerator], [value], alpha=coefficient)
-            d_de_nom.add_(torch.cat([s.reshape(-1) for s in state['s']]).abs().sum())
-        else:
-            for grad, difference in zip(grads, differences):
-                value = torch.dot(grad.flatten(), difference.flatten())
-                foreach_add_([d_numerator], [value], alpha=coefficient)
-
-            for s in state['s']:
-                d_de_nom.add_(s.abs().sum())
-
-    def _step_moments_foreach(
-        self,
-        group: ParamGroup,
-        params: list[torch.Tensor],
-        grads: list[torch.Tensor],
-        state: dict[str, list[torch.Tensor]],
-        d: float | torch.Tensor,
-        d_lr: float | torch.Tensor,
-    ) -> tuple:
         beta1, beta2 = group['betas']
         beta3, d0 = group['beta3'], group['d0']
-        coefficient = (d / d0) * d_lr
 
         if self.maximize:
             torch._foreach_neg_(grads)
 
         differences = torch._foreach_sub(state['p0'], params)
-        if can_reduce_batch(grads):
-            torch._foreach_mul_(differences, grads)
+        for grad, difference in zip(grads, differences):
+            value = torch.dot(grad.flatten(), difference.flatten())
+            foreach_add_([d_numerator], [value], alpha=(d / d0) * d_lr)
 
         torch._foreach_mul_(state['exp_avg'], beta1)
         foreach_add_(state['exp_avg'], grads, alpha=d * (1.0 - beta1))
@@ -201,7 +174,8 @@ class Prodigy(BaseOptimizer):
         torch._foreach_mul_(state['s'], beta3)
         foreach_add_(state['s'], grads, alpha=(d / d0) * (d if group['safeguard_warmup'] else d_lr))
 
-        return differences, coefficient
+        for s in state['s']:
+            d_de_nom.add_(s.abs().sum())
 
     def _apply_update_foreach(
         self,
@@ -248,14 +222,11 @@ class Prodigy(BaseOptimizer):
 
         d, d0 = group['d'], group['d0']
         if compiled:
-            d = torch.as_tensor(
-                d,
-                device=device,
-                dtype=torch.float32 if device.type == 'mps' else torch.float64,
-            ).reshape(())
+            d = torch.as_tensor(d, device=device, dtype=d_de_nom.dtype).reshape(())
 
         d_lr: float = d * group['lr'] / bias_correction
         batches: dict[int, list[dict]] = {}
+        has_scalar_update = False
 
         if 'd_numerator' not in group:
             group['d_numerator'] = torch.zeros(1, device=device)
@@ -279,12 +250,7 @@ class Prodigy(BaseOptimizer):
                 batches[id(group)] = group_tensors_by_device_and_dtype(params, grads, state)
 
                 for batch in batches[id(group)]:
-                    update = (
-                        self._get_step(self._step_foreach)
-                        if not can_reduce_batch(batch['grads'])
-                        else self._step_foreach
-                    )
-                    update(
+                    self._step_foreach(
                         {**group, 'betas': (beta1, beta2), 'beta3': beta3, 'd0': d0},
                         batch['params'],
                         batch['grads'],
@@ -300,6 +266,7 @@ class Prodigy(BaseOptimizer):
                 if p.grad is None:
                     continue
 
+                has_scalar_update = True
                 grad = p.grad
 
                 self.maximize_gradient(grad, maximize=self.maximize)
@@ -332,6 +299,9 @@ class Prodigy(BaseOptimizer):
 
             d_max = max(group['d_max'], d_hat)
             d = min(d_max, d * group['growth_rate'])
+
+        if has_scalar_update and active is not None and not active:
+            return loss
 
         for group in self.param_groups:
             group['d_numerator'] = d_numerator

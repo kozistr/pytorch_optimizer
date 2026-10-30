@@ -1,11 +1,6 @@
 import torch
 
 
-def can_reduce_batch(tensors: list[torch.Tensor]) -> bool:
-    """Check that FP32 reductions fit a concatenation buffer of at most four MiB."""
-    return tensors[0].dtype == torch.float32 and len(tensors) > 1 and sum(t.numel() for t in tensors) <= 2 ** 20
-
-
 def update_adaptive_distance(
     d: torch.Tensor,
     estimate: torch.Tensor,

@@ -11,7 +11,7 @@ import torch
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
-from pytorch_optimizer.optimizer.utils.adaptive import can_reduce_batch, update_adaptive_distance
+from pytorch_optimizer.optimizer.utils.adaptive import update_adaptive_distance
 from pytorch_optimizer.optimizer.utils.foreach import (
     foreach_add_,
     group_tensors_by_device_and_dtype,
@@ -197,6 +197,7 @@ class DAdaptAdaGrad(BaseOptimizer):
             d = torch.as_tensor(d, device=device).reshape(())
         d_lr: float = d * lr
         batches: dict[int, list[dict]] = {}
+        has_scalar_update = False
 
         g_sq = torch.zeros(1, device=device)
         sk_sq_weighted_change = torch.zeros(1, device=device)
@@ -238,6 +239,7 @@ class DAdaptAdaGrad(BaseOptimizer):
                 if p.grad is None:
                     continue
 
+                has_scalar_update = True
                 grad = p.grad
 
                 self.maximize_gradient(grad, maximize=self.maximize)
@@ -338,6 +340,9 @@ class DAdaptAdaGrad(BaseOptimizer):
             if lr > 0.0:
                 d_hat = (sk_sq_weighted - gsq_weighted) / sk_l1
                 d = group['d'] = max(d, min(d_hat.item(), d * group['growth_rate']))
+
+        if has_scalar_update and active is not None and not active:
+            return loss
 
         for group in self.param_groups:
             group['gsq_weighted'] = gsq_weighted
@@ -574,6 +579,7 @@ class DAdaptAdam(BaseOptimizer):
         if compiled:
             d = torch.as_tensor(d, device=device).reshape(())
         batches: dict[int, list[dict]] = {}
+        has_scalar_update = False
 
         bias_correction1: float = 1.0 - beta1 ** (group['step'] + 1)
         bias_correction2_sq: float = math.sqrt(1.0 - beta2 ** (group['step'] + 1))
@@ -615,6 +621,7 @@ class DAdaptAdam(BaseOptimizer):
                 if p.grad is None:
                     continue
 
+                has_scalar_update = True
                 grad = p.grad
 
                 self.maximize_gradient(grad, maximize=self.maximize)
@@ -660,6 +667,9 @@ class DAdaptAdam(BaseOptimizer):
             if lr > 0.0:
                 d_hat = numerator_weighted / ((1.0 - beta2_sq) * sk_l1)
                 d = max(d, min(d_hat.item(), d * group['growth_rate']))
+
+        if has_scalar_update and active is not None and not active:
+            return loss
 
         for group in self.param_groups:
             group['numerator_weighted'] = numerator_weighted
@@ -1024,9 +1034,9 @@ class DAdaptAdan(BaseOptimizer):
         )
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
+        super()._compile_foreach(compile_kwargs)
+
         self._compile_steps(
-            self._step_foreach,
-            self._step_moments_foreach,
             mask_foreach_step(self._apply_update_foreach),
             self.get_adapt_distance,
             compile_kwargs=compile_kwargs,
@@ -1055,29 +1065,6 @@ class DAdaptAdan(BaseOptimizer):
         statistics: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
     ) -> None:
         g_sq, sk_sq_weighted, sk_l1 = statistics
-
-        compiling = torch._dynamo.is_compiling()  # ty: ignore[deprecated]
-        update = self._step_moments_foreach if compiling else self._get_step(self._step_moments_foreach)
-        grad_power, weighted_sk, sk_abs = update(group, params, grads, state, d_lr)
-
-        if can_reduce_batch(grads):
-            g_sq.add_(torch.cat([power.reshape(-1) for power in grad_power]).sum())
-            sk_sq_weighted.add_(torch.cat([weighted.reshape(-1) for weighted in weighted_sk]).sum())
-            sk_l1.add_(torch.cat([absolute.reshape(-1) for absolute in sk_abs]).sum())
-        else:
-            for power, weighted, absolute in zip(grad_power, weighted_sk, sk_abs):
-                g_sq.add_(power.sum())
-                sk_sq_weighted.add_(weighted.sum())
-                sk_l1.add_(absolute.sum())
-
-    def _step_moments_foreach(
-        self,
-        group: ParamGroup,
-        params: list[torch.Tensor],
-        grads: list[torch.Tensor],
-        state: dict[str, list[torch.Tensor]],
-        d_lr: float | torch.Tensor,
-    ) -> tuple:
         beta1, beta2, beta3 = group['betas']
         grad_diff = state['previous_grad']
 
@@ -1105,9 +1092,12 @@ class DAdaptAdan(BaseOptimizer):
         weighted_sk = torch._foreach_div(torch._foreach_mul(state['s'], state['s']), de_noms)
         sk_abs = torch._foreach_abs(state['s'])
 
-        torch._foreach_copy_(state['previous_grad'], torch._foreach_neg(grads))
+        for power, weighted, absolute in zip(grad_power, weighted_sk, sk_abs):
+            g_sq.add_(power.sum())
+            sk_sq_weighted.add_(weighted.sum())
+            sk_l1.add_(absolute.sum())
 
-        return grad_power, weighted_sk, sk_abs
+        torch._foreach_copy_(state['previous_grad'], torch._foreach_neg(grads))
 
     def _apply_update_foreach(
         self,
@@ -1149,6 +1139,7 @@ class DAdaptAdan(BaseOptimizer):
             d = torch.as_tensor(d, device=device).reshape(())
         d_lr = d * lr if compiled else float(d * lr)
         batches: dict[int, list[dict]] = {}
+        has_scalar_update = False
         g_sq = torch.zeros(1, device=device)
         sk_sq_weighted = torch.zeros(1, device=device)
         sk_l1 = torch.zeros(1, device=device)
@@ -1168,14 +1159,13 @@ class DAdaptAdan(BaseOptimizer):
                 batches[id(group)] = group_tensors_by_device_and_dtype(params, grads, state)
 
                 for batch in batches[id(group)]:
-                    update = (
-                        self._get_step(self._step_foreach)
-                        if not can_reduce_batch(batch['grads'])
-                        else self._step_foreach
-                    )
-                    update(
+                    self._step_foreach(
                         {**group, 'betas': (beta1, beta2, beta3)},
-                        batch['params'], batch['grads'], batch, d_lr, (g_sq, sk_sq_weighted, sk_l1),
+                        batch['params'],
+                        batch['grads'],
+                        batch,
+                        d_lr,
+                        (g_sq, sk_sq_weighted, sk_l1),
                     )
 
                 continue
@@ -1184,6 +1174,7 @@ class DAdaptAdan(BaseOptimizer):
                 if p.grad is None:
                     continue
 
+                has_scalar_update = True
                 grad = p.grad
 
                 self.maximize_gradient(grad, maximize=self.maximize)
@@ -1232,6 +1223,9 @@ class DAdaptAdan(BaseOptimizer):
             if lr > 0.0:
                 d_hat = (sk_sq_weighted / (1.0 - beta3) - gsq_weighted) / sk_l1
                 d = max(d, min(d_hat, d * growth_rate))
+
+        if has_scalar_update and active is not None and not active:
+            return loss
 
         for group in self.param_groups:
             group['step'] += 1 if active is None else active.to(torch.int64)

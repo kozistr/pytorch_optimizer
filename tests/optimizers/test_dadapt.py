@@ -63,3 +63,17 @@ class TestDadapt:
 
         torch.testing.assert_close(params[1], params[2])
         assert params[1].item() < 0.0
+
+        if compiled:
+            dtype = torch.float16 if optimizer_name == 'DAdaptAdan' else torch.float32
+            inactive = make_parameter(dtype=dtype)
+            with torch.no_grad():
+                inactive.fill_(1.0)
+
+            scalar_optimizer = build_optimizer(optimizer_name, [inactive], foreach=False)
+            with patch('torch.compile', side_effect=lambda step, **_: step):
+                scalar_optimizer._compile_foreach()
+
+            scalar_optimizer.step()
+
+            torch.testing.assert_close(inactive, torch.ones_like(inactive))
