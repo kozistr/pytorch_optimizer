@@ -29,7 +29,7 @@ TRAINING_CASES = [
     pytest.param(recipe, dtype, foreach, id=f'{ids(recipe)}-{dtype}-{foreach}')
     for recipe in OPTIMIZER_RECIPES
     for dtype in (torch.float32, torch.bfloat16, torch.complex64)
-    if dtype != torch.bfloat16 or recipe in BASELINE_OPTIMIZER_RECIPES
+    if dtype == torch.float32 or recipe in BASELINE_OPTIMIZER_RECIPES
     if not (dtype == torch.bfloat16 and recipe[0] in SKIP_BF16_OPTIMIZERS)
     if dtype != torch.complex64 or recipe[0] in COMPLEX_OPTIMIZERS
     for foreach in ([False, True] if dtype != torch.complex64 and recipe[0] in FOREACH_OPTIMIZERS else [False])

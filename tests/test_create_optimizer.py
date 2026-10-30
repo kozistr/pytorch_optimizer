@@ -7,10 +7,14 @@ import torch
 from torch import nn
 from torch._dynamo.testing import CompileCounter
 
-from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.optimizer import Lookahead, OrthoGrad, create_optimizer, load_optimizer
 from tests.fixtures import TrainingModel, build_model
-from tests.optimizer_cases import DISTANCE_ADAPTIVE_OPTIMIZERS, SKIP_CREATE_OPTIMIZER, VALID_OPTIMIZER_NAMES
+from tests.optimizer_cases import (
+    COMPILED_FOREACH_OPTIMIZERS,
+    DISTANCE_ADAPTIVE_OPTIMIZERS,
+    SKIP_CREATE_OPTIMIZER,
+    VALID_OPTIMIZER_NAMES,
+)
 from tests.recipes import COMPILE_SUPPORTED_OPTIMIZERS
 from tests.utils import ids, should_use_create_graph
 
@@ -105,53 +109,48 @@ class TestCreateOptimizer:
 
         model, _ = build_model(device=device)
         model = model.fc2
-        reference_model = deepcopy(model)
+        models = [model, deepcopy(model)]
         counter = CompileCounter()
 
         if optimizer_name == 'adamw':
             # Native AdamW covers whole-step compilation with foreach disabled.
             config['capturable'] = foreach
 
-        optimizer = create_optimizer(
-            model,
-            optimizer_name,
-            wd_ban_list=(),
-            foreach=foreach,
-            compile=True,
-            compile_kwargs={'backend': counter},
-            **config,
-        )
-
-        reference = create_optimizer(
-            reference_model, optimizer_name, wd_ban_list=(), foreach=foreach, **config,
-        )
+        optimizers = [
+            create_optimizer(
+                current, optimizer_name, wd_ban_list=(), foreach=foreach, compile=compiled,
+                compile_kwargs={'backend': counter}, **config,
+            )
+            for current, compiled in zip(models, (True, False))
+        ]
+        parameters = [list(current.parameters()) for current in models]
         gradients = [
             torch.arange(1, param.numel() + 1, device=device, dtype=param.dtype).reshape_as(param) / 100.0
             for param in model.parameters()
         ]
 
-        def step(optimizer):
-            params = tuple(p for group in optimizer.param_groups for p in group['params'])
-            for param, grad in zip(params, gradients):
-                param.grad = grad.clone()
+        def step():
+            for current, params in zip(optimizers, parameters):
+                for param, grad in zip(params, gradients):
+                    param.grad = grad.clone()
 
-            options = {'hessian': [torch.ones_like(p) for p in params]} if (
-                should_use_create_graph(optimizer_name)
-            ) else {}
-            with torch.random.fork_rng(devices=[device] if device.type == 'cuda' else []):
-                optimizer.step((lambda: 1.0) if optimizer_name == 'alig' else None, **options)
+                options = {'hessian': [torch.ones_like(p) for p in params]} if (
+                    should_use_create_graph(optimizer_name)
+                ) else {}
+                with torch.random.fork_rng(devices=[device] if device.type == 'cuda' else []):
+                    current.step((lambda: 1.0) if optimizer_name == 'alig' else None, **options)
+
+            assert all(torch.isfinite(param).all() for param in parameters[0])
+            # Compiled updates calculate scalar coefficients in float32.
+            torch.testing.assert_close(*parameters, rtol=1e-4, atol=1e-5)
 
         for _ in range(iterations):
-            step(optimizer)
-            step(reference)
-            assert all(torch.isfinite(param).all() for param in model.parameters())
-            # Compiled updates calculate scalar coefficients in float32.
-            torch.testing.assert_close(model.state_dict(), reference_model.state_dict(), rtol=1e-4, atol=1e-5)
+            step()
 
-        if foreach and isinstance(optimizer, BaseOptimizer) and optimizer._supports_compiled_foreach:
+        if optimizer_name in COMPILED_FOREACH_OPTIMIZERS:
             lr = torch.tensor(config['lr'], device=device)
             lr_key = 'max_lr' if optimizer_name == 'alig' else 'lr'
-            for current in (optimizer, reference):
+            for current in optimizers:
                 for group in current.param_groups:
                     group[lr_key] = lr
 
@@ -159,13 +158,13 @@ class TestCreateOptimizer:
                 lr.mul_(0.99)
                 expected_lr = lr.clone()
                 frames = counter.frame_count
-                step(optimizer)
-                step(reference)
+                step()
 
                 torch.testing.assert_close(lr, expected_lr)
-                torch.testing.assert_close(model.state_dict(), reference_model.state_dict(), rtol=1e-4, atol=1e-5)
 
-            assert 0 < counter.frame_count == frames
+            assert counter.frame_count == frames
+
+        assert counter.frame_count > 0
 
     @pytest.mark.parametrize('foreach', [False, True])
     def test_create_optimizer_compile_wiring(self, foreach):
