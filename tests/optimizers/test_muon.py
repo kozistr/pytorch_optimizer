@@ -9,9 +9,21 @@ from tests.utils import build_optimizer
 from tests.utils.distributed import run_distributed
 
 
-def _check_sharded_muon(_rank, optimizer_name, foreach, ns_method):
+def _check_sharded_muon(_rank):
     dtensor = pytest.importorskip('torch.distributed.tensor')
     mesh = torch.distributed.device_mesh.init_device_mesh('cpu', (2,))
+    for optimizer_name, foreach, ns_method in (
+        ('muon', False, 'newton_schulz'),
+        ('muon', True, 'gram_newton_schulz'),
+        ('muonclip', False, 'gram_newton_schulz'),
+        ('muonclip', True, 'newton_schulz'),
+        ('adamuon', False, 'newton_schulz'),
+        ('adamuon', True, 'newton_schulz'),
+    ):
+        _check_sharded_muon_case(dtensor, mesh, optimizer_name, foreach, ns_method)
+
+
+def _check_sharded_muon_case(dtensor, mesh, optimizer_name, foreach, ns_method):
     shapes = [(3, 2), (2, 3), (3, 2, 1), (6, 2), (1, 2), (3, 2), (3,)]
     reference = [make_parameter(shape, grad=None) for shape in shapes]
     with torch.no_grad():
@@ -87,21 +99,12 @@ class TestMuon:
         for p, expected_norm in zip(params, expected_norms):
             torch.testing.assert_close(p.norm(), expected_norm, rtol=1e-3, atol=1e-5)
 
-    @pytest.mark.parametrize(
-        ('optimizer_name', 'foreach', 'ns_method'),
-        [
-            ('muon', False, 'newton_schulz'),
-            ('muon', True, 'gram_newton_schulz'),
-            ('muonclip', False, 'gram_newton_schulz'),
-            ('muonclip', True, 'newton_schulz'),
-            ('adamuon', False, 'newton_schulz'),
-            ('adamuon', True, 'newton_schulz'),
-        ],
-    )
     @pytest.mark.skipif(not torch.distributed.is_gloo_available(), reason='Gloo is unavailable')
-    def test_sharded_updates(self, optimizer_name, foreach, ns_method, tmp_path):
+    def test_sharded_updates(self, tmp_path):
         pytest.importorskip('torch.distributed.tensor')
-        run_distributed(_check_sharded_muon, tmp_path / 'store', optimizer_name, foreach, ns_method)
+        num_threads = torch.get_num_threads()
+        run_distributed(_check_sharded_muon, tmp_path / 'store')
+        assert torch.get_num_threads() == num_threads
 
     @pytest.mark.parametrize('optimizer_name', ['Muon', 'MuonClip', 'AdaMuon', 'AdaGO', 'NorMuon'])
     def test_muon_high_dimensions(self, optimizer_name):

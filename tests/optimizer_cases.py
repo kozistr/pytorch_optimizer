@@ -5,6 +5,7 @@ import numpy as np
 import torch
 
 from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGradientError
+from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.optimizer import OPTIMIZERS
 from tests.utils import build_optimizer
 
@@ -16,9 +17,14 @@ def optimizers_with_argument(argument: str) -> frozenset[str]:
 
 
 FOREACH_OPTIMIZERS = optimizers_with_argument('foreach')
+COMPILED_FOREACH_OPTIMIZERS = frozenset(
+    name for name, cls in OPTIMIZERS.items()
+    if issubclass(cls, BaseOptimizer) and cls._supports_compiled_foreach
+)
 MAXIMIZE_OPTIMIZERS = optimizers_with_argument('maximize')
 BETA_OPTIMIZER_NAMES = optimizers_with_argument('betas')
 MODEL_OPTIMIZERS = optimizers_with_argument('model')
+DISTANCE_ADAPTIVE_OPTIMIZERS = optimizers_with_argument('d0')
 
 
 GRADIENT_OPTIONS = {

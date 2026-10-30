@@ -1,7 +1,6 @@
 from typing import Any
 
-from pytorch_optimizer.base.optimizer import BaseOptimizer
-from pytorch_optimizer.optimizer import OPTIMIZERS
+from tests.optimizer_cases import COMPILED_FOREACH_OPTIMIZERS
 
 OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('lookahead', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
@@ -69,138 +68,33 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
         },
         10,
     ),
-    (
-        'scalableshampoo',
-        {
-            'lr': 1e-1,
-            'weight_decay': 1e-3,
-            'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 9,
-            'graft_type': 0,
-        },
-        10,
-    ),
-    (
-        'scalableshampoo',
-        {
-            'lr': 1e-1,
-            'weight_decay': 1e-3,
-            'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 10,
-            'graft_type': 1,
-        },
-        10,
-    ),
-    (
-        'scalableshampoo',
-        {
-            'lr': 1e-1,
-            'weight_decay': 1e-3,
-            'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 10,
-            'graft_type': 2,
-        },
-        10,
-    ),
-    (
-        'scalableshampoo',
-        {
-            'lr': 1e-2,
-            'weight_decay': 1e-3,
-            'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 10,
-            'graft_type': 3,
-        },
-        10,
-    ),
-    (
-        'scalableshampoo',
-        {
-            'lr': 1e-1,
-            'weight_decay': 1e-3,
-            'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 10,
-            'graft_type': 4,
-        },
-        10,
-    ),
-    (
-        'scalableshampoo',
-        {
-            'lr': 1e-1,
-            'weight_decay': 1e-3,
-            'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 10,
-            'pre_conditioner_type': 1,
-        },
-        10,
-    ),
-    (
-        'scalableshampoo',
-        {
-            'lr': 1e-1,
-            'weight_decay': 1e-3,
-            'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 10,
-            'pre_conditioner_type': 2,
-        },
-        10,
-    ),
-    (
-        'scalableshampoo',
-        {
-            'lr': 1e-1,
-            'weight_decay': 1e-3,
-            'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 10,
-            'inverse_exponent_override': 1,
-        },
-        10,
-    ),
-    (
-        'scalableshampoo',
-        {
-            'lr': 1e-1,
-            'weight_decay': 1e-3,
-            'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 10,
-            'nesterov': False,
-        },
-        10,
-    ),
-    (
-        'scalableshampoo',
-        {
-            'lr': 1e-1,
-            'weight_decay': 1e-3,
-            'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 10,
-            'decoupled_weight_decay': True,
-        },
-        10,
-    ),
-    (
-        'scalableshampoo',
-        {
-            'lr': 1e-1,
-            'weight_decay': 1e-3,
-            'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 10,
-            'decoupled_learning_rate': False,
-        },
-        10,
-    ),
-    (
-        'scalableshampoo',
-        {
-            'lr': 1e0,
-            'weight_decay': 1e-3,
-            'start_preconditioning_step': 9,
-            'preconditioning_compute_steps': 10,
-            'moving_average_for_momentum': True,
-        },
-        10,
-    ),
+    *[
+        (
+            'scalableshampoo',
+            {
+                'lr': 1e-1,
+                'weight_decay': 1e-3,
+                'start_preconditioning_step': 9,
+                'preconditioning_compute_steps': 10,
+                **options,
+            },
+            10,
+        )
+        for options in (
+            {'preconditioning_compute_steps': 9, 'graft_type': 0},
+            {'graft_type': 1},
+            {'graft_type': 2},
+            {'lr': 1e-2, 'graft_type': 3},
+            {'graft_type': 4},
+            {'pre_conditioner_type': 1},
+            {'pre_conditioner_type': 2},
+            {'inverse_exponent_override': 1},
+            {'nesterov': False},
+            {'decoupled_weight_decay': True},
+            {'decoupled_learning_rate': False},
+            {'lr': 1e0, 'moving_average_for_momentum': True},
+        )
+    ],
     ('pnm', {'lr': 5e-1}, 25),
     ('pnm', {'lr': 5e-1, 'weight_decouple': False}, 25),
     ('adapnm', {'lr': 5e-1, 'weight_decay': 1e-3}, 10),
@@ -288,43 +182,28 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('came', {'lr': 7.5e-1, 'weight_decay': 1e-3}, 70),
     ('came', {'lr': 7.5e-1, 'weight_decay': 1e-3, 'ams_bound': True}, 70),
     ('aida', {'lr': 1e0, 'weight_decay': 1e-3, 'ams_bound': True}, 5),
-    (
-        'galore',
-        {'lr': 1e0, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 1, 'projection_type': 'std'},
-        5,
-    ),
-    (
-        'galore',
-        {
-            'lr': 1e0,
-            'weight_decay': 1e-3,
-            'rank': 2,
-            'scale': 1.0,
-            'update_proj_gap': 1,
-            'projection_type': 'reverse_std',
-        },
-        5,
-    ),
-    (
-        'galore',
-        {'lr': 5e-1, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 2, 'projection_type': 'left'},
-        5,
-    ),
-    (
-        'galore',
-        {'lr': 1e0, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 1, 'projection_type': 'right'},
-        5,
-    ),
-    (
-        'galore',
-        {'lr': 5e-1, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 2, 'projection_type': 'full'},
-        5,
-    ),
-    (
-        'galore',
-        {'lr': 1e0, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 1, 'projection_type': 'random'},
-        5,
-    ),
+    *[
+        (
+            'galore',
+            {
+                'lr': lr,
+                'weight_decay': 1e-3,
+                'rank': 2,
+                'scale': 1.0,
+                'update_proj_gap': gap,
+                'projection_type': projection,
+            },
+            5,
+        )
+        for lr, gap, projection in (
+            (1e0, 1, 'std'),
+            (1e0, 1, 'reverse_std'),
+            (5e-1, 2, 'left'),
+            (1e0, 1, 'right'),
+            (5e-1, 2, 'full'),
+            (1e0, 1, 'random'),
+        )
+    ],
     (
         'fira',
         {'lr': 5e-1, 'weight_decay': 1e-3, 'rank': 2, 'scale': 1.0, 'update_proj_gap': 2, 'projection_type': 'full'},
@@ -451,14 +330,13 @@ OPTIMIZER_RECIPES: list[tuple[str, dict[str, Any], int]] = [
     ('flashadamw', {'lr': 5e-1, 'weight_decay': 1e-3, 'check_numerics': True, 'master_weight_bits': None}, 5),
 ]
 
+BASELINE_OPTIMIZER_RECIPES = list({recipe[0]: recipe for recipe in reversed(OPTIMIZER_RECIPES)}.values())
+
 COMPILE_SUPPORTED_OPTIMIZERS: list[tuple[str, dict[str, Any], int]] = [
     ('adamw', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
-    ('stableadamw', {'lr': 5e-1, 'weight_decay': 1e-3}, 5),
-    *{
-        name: (name, options.copy(), iterations)
-        for name, options, iterations in reversed(OPTIMIZER_RECIPES)
-        if name in OPTIMIZERS
-        and issubclass(OPTIMIZERS[name], BaseOptimizer)
-        and OPTIMIZERS[name]._supports_compiled_foreach
-    }.values(),
+    *[
+        (name, options.copy(), iterations)
+        for name, options, iterations in BASELINE_OPTIMIZER_RECIPES
+        if name in COMPILED_FOREACH_OPTIMIZERS
+    ],
 ]

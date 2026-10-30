@@ -2,16 +2,22 @@ from collections.abc import Callable
 from datetime import timedelta
 from pathlib import Path
 
+import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
 
 def _run_worker(rank: int, rendezvous: str, worker: Callable, args: tuple) -> None:
-    dist.init_process_group('gloo', init_method=rendezvous, rank=rank, world_size=2, timeout=timedelta(seconds=30))
+    num_threads = torch.get_num_threads()
+    torch.set_num_threads(1)
     try:
-        worker(rank, *args)
+        dist.init_process_group('gloo', init_method=rendezvous, rank=rank, world_size=2, timeout=timedelta(seconds=30))
+        try:
+            worker(rank, *args)
+        finally:
+            dist.destroy_process_group()
     finally:
-        dist.destroy_process_group()
+        torch.set_num_threads(num_threads)
 
 
 def run_distributed(worker: Callable, rendezvous: Path, *args) -> None:

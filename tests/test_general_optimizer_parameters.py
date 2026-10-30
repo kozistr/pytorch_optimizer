@@ -24,32 +24,22 @@ def _config_for_optimizer(optimizer_name: str, **config):
 
 class TestBasicParameterValidation:
     @pytest.mark.parametrize(
-        'optimizer_name', [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_LEARNING_RATE]
+        'optimizer_name',
+        [
+            name for name in VALID_OPTIMIZER_NAMES
+            if name not in (SKIP_LEARNING_RATE & SKIP_EPSILON & SKIP_WEIGHT_DECAY)
+        ],
     )
-    def test_learning_rate(self, optimizer_name):
+    def test_basic_parameters(self, optimizer_name):
         optimizer = load_optimizer(optimizer_name)
-        config = _config_for_optimizer(optimizer_name, lr=-1e-2)
-
-        with pytest.raises(NegativeLRError):
-            optimizer(None, **config)
-
-    @pytest.mark.parametrize('optimizer_name', [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_EPSILON])
-    def test_epsilon(self, optimizer_name):
-        optimizer = load_optimizer(optimizer_name)
-        config = _config_for_optimizer(optimizer_name, eps=-1e-6)
-
-        with pytest.raises(ValueError):
-            optimizer(None, **config)
-
-    @pytest.mark.parametrize(
-        'optimizer_name', [name for name in VALID_OPTIMIZER_NAMES if name not in SKIP_WEIGHT_DECAY]
-    )
-    def test_weight_decay(self, optimizer_name):
-        optimizer = load_optimizer(optimizer_name)
-        config = _config_for_optimizer(optimizer_name, weight_decay=-1e-3)
-
-        with pytest.raises(ValueError):
-            optimizer(None, **config)
+        for option, value, excluded, error in (
+            ('lr', -1e-2, SKIP_LEARNING_RATE, NegativeLRError),
+            ('eps', -1e-6, SKIP_EPSILON, ValueError),
+            ('weight_decay', -1e-3, SKIP_WEIGHT_DECAY, ValueError),
+        ):
+            if optimizer_name not in excluded:
+                with pytest.raises(error):
+                    optimizer(None, **_config_for_optimizer(optimizer_name, **{option: value}))
 
     @pytest.mark.parametrize('optimizer_name', ['adamp', 'sgdp'])
     def test_wd_ratio(self, optimizer_name):
