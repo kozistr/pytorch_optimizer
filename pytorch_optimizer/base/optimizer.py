@@ -29,10 +29,25 @@ class BaseOptimizer(ABC, Optimizer):
     _step_foreach: Callable
 
     def __init__(self, params: ParamsT, defaults: Defaults) -> None:
+        self._compiled_steps: dict[str, Callable] = {}
         super().__init__(params, defaults)
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
-        self._step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
+        self._compile_steps(self._step_foreach, compile_kwargs=compile_kwargs)
+        self._step_foreach = self._get_step(self._step_foreach)
+
+    def _compile_steps(self, *steps: Callable, compile_kwargs: dict | None = None) -> None:
+        """Register compiled tensor updates by their method names."""
+        for step in steps:
+            self._compiled_steps[step.__name__] = compile_foreach_step(step, compile_kwargs)
+
+    def _get_step(self, step: Callable) -> Callable:
+        """Return the registered update, falling back to the eager method."""
+        return self._compiled_steps.get(step.__name__, step)
+
+    def _is_compiled(self, step: Callable) -> bool:
+        """Check whether a tensor update has a compiled implementation."""
+        return step.__name__ in self._compiled_steps
 
     def load_state_dict(self, state_dict: dict) -> None:
         """Restore state while preserving non-floating tensor types and container metadata."""

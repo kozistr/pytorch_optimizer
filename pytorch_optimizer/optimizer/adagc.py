@@ -1,5 +1,4 @@
 import math
-from collections.abc import Callable
 
 import torch
 
@@ -7,7 +6,6 @@ from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGr
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.utils.foreach import (
-    compile_foreach_step,
     foreach_addcdiv_,
     group_tensors_by_device_and_dtype,
 )
@@ -65,7 +63,6 @@ class AdaGC(BaseOptimizer):
 
         self.maximize = maximize
         self.foreach = foreach
-        self._compiled_step_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
@@ -88,7 +85,7 @@ class AdaGC(BaseOptimizer):
         return 'AdaGC'
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
-        self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
+        self._compile_steps(self._step_foreach, compile_kwargs=compile_kwargs)
 
     def init_group(self, group: ParamGroup, **kwargs) -> None:
         if 'step' not in group:
@@ -178,8 +175,8 @@ class AdaGC(BaseOptimizer):
 
                 for batch in group_tensors_by_device_and_dtype(params, grads, state):
                     update = self._step_foreach
-                    if self._compiled_step_foreach is not None and batch['params'][0].dtype != torch.float16:
-                        update = self._compiled_step_foreach
+                    if batch['params'][0].dtype != torch.float16:
+                        update = self._get_step(self._step_foreach)
 
                     update(
                         group, batch['params'], batch['grads'], batch, bias_correction2_sq,

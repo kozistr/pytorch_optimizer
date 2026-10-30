@@ -1,5 +1,4 @@
 import math
-from collections.abc import Callable
 from typing import Any
 
 import torch
@@ -9,7 +8,6 @@ from pytorch_optimizer.base.exception import NoComplexParameterError, NoSparseGr
 from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.utils.foreach import (
-    compile_foreach_step,
     foreach_addcdiv_,
     group_tensors_by_device_and_dtype,
 )
@@ -234,7 +232,6 @@ class FlashAdamW(BaseOptimizer):
         self.maximize = maximize
         self.compress_state_dict = compress_state_dict
         self.check_numerics = check_numerics
-        self._compiled_step_parameter: Callable | None = None
         self.master_byte_width = BITS_TO_BYTES[master_weight_bits]
         self.param_absmax: dict[int, float] = {}
 
@@ -276,7 +273,7 @@ class FlashAdamW(BaseOptimizer):
             mode_options = _inductor.list_mode_options(mode, compile_kwargs.get('dynamic', True)) if mode else {}
             compile_kwargs['options'] = {**mode_options, **(compile_kwargs.get('options') or {}), **options}
 
-        self._compiled_step_parameter = compile_foreach_step(self._step_parameter, compile_kwargs)
+        self._compile_steps(self._step_parameter, compile_kwargs=compile_kwargs)
 
     def maybe_check_numerics(self, p: torch.Tensor, lr: float, master_byte_width: int) -> None:
         if not self.check_numerics or p.dtype == torch.float32 or lr == 0.0:
@@ -392,7 +389,7 @@ class FlashAdamW(BaseOptimizer):
         foreach_addcdiv_([param], [exp_avg.div(bias_correction1)], [denominator], value=-group['lr'])
 
         self.set_param_fp32(p, state, param, group['master_byte_width'])
-        inplace = self._compiled_step_parameter is not None and p.dtype == torch.float32
+        inplace = self._is_compiled(self._step_parameter) and p.dtype == torch.float32
         store_state(state, 'exp_avg', exp_avg, group['quantize'], p.dtype, inplace=inplace)
         store_state(state, 'exp_avg_sq', exp_avg_sq, group['quantize'], p.dtype, inplace=inplace)
 
@@ -454,8 +451,8 @@ class FlashAdamW(BaseOptimizer):
 
                 self.maybe_check_numerics(p, group['lr'], group['master_byte_width'])
                 update = (
-                    self._compiled_step_parameter
-                    if self._compiled_step_parameter is not None and p.dtype == torch.float32
+                    self._get_step(self._step_parameter)
+                    if p.dtype == torch.float32
                     else self._step_parameter
                 )
                 update(update_group, [p], [p.grad], self.state[p], bias_correction1, bias_correction2)

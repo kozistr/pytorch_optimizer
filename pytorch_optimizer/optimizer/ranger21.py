@@ -1,5 +1,4 @@
 import math
-from collections.abc import Callable
 
 import torch
 from torch.nn.functional import softplus
@@ -10,7 +9,6 @@ from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGro
 from pytorch_optimizer.optimizer.agc import agc
 from pytorch_optimizer.optimizer.gradient_centralization import centralize_gradient
 from pytorch_optimizer.optimizer.utils.foreach import (
-    compile_foreach_step,
     foreach_addcdiv_,
     group_tensors_by_device_and_dtype,
 )
@@ -106,7 +104,6 @@ class Ranger21(BaseOptimizer):
         self.norm_loss_factor = norm_loss_factor
         self.maximize = maximize
         self.foreach = foreach
-        self._compiled_preprocess: Callable | None = None
 
         self.lookahead_step: int = 0
         self.starting_lr: float = lr
@@ -219,7 +216,7 @@ class Ranger21(BaseOptimizer):
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
         super()._compile_foreach(compile_kwargs)
-        self._compiled_preprocess = compile_foreach_step(self._preprocess_foreach, compile_kwargs)
+        self._compile_steps(self._preprocess_foreach, compile_kwargs=compile_kwargs)
 
     def _preprocess_foreach(
         self,
@@ -247,7 +244,7 @@ class Ranger21(BaseOptimizer):
 
         if self.can_use_foreach(group, group.get('foreach')):
             sums = list(state_dict['variance_ma'])
-            preprocess = self._compiled_preprocess or self._preprocess_foreach
+            preprocess = self._get_step(self._preprocess_foreach)
             for tensors in group_tensors_by_device_and_dtype(params, grads, state_dict):
                 values = preprocess(
                     group, tensors['params'], tensors['grads'], tensors['variance_ma'], bias_correction2

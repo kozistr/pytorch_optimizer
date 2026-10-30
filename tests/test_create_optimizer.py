@@ -150,7 +150,7 @@ class TestCreateOptimizer:
                 foreach=foreach, compile=True, compile_kwargs={'dynamic': False},
             )
 
-        step = optimizer._apply_update_foreach.__wrapped__ if foreach else optimizer.step.__func__
+        step = optimizer._apply_update_foreach if foreach else optimizer.step.__func__
         compile_step.assert_called_once_with(step, dynamic=False)
 
         for parameter in model.parameters():

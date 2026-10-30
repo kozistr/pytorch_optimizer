@@ -1,5 +1,4 @@
 import math
-from collections.abc import Callable
 
 import torch
 
@@ -8,7 +7,6 @@ from pytorch_optimizer.base.optimizer import BaseOptimizer
 from pytorch_optimizer.base.type import Betas, Closure, Defaults, Loss, ParamGroup, ParamsT
 from pytorch_optimizer.optimizer.utils.adaptive import can_reduce_batch
 from pytorch_optimizer.optimizer.utils.foreach import (
-    compile_foreach_step,
     foreach_add_,
     foreach_addcdiv_,
     foreach_addcmul_,
@@ -69,10 +67,6 @@ class Prodigy(BaseOptimizer):
         self.validate_non_negative(eps, 'eps')
 
         self.maximize = maximize
-        self._compiled_update_foreach: Callable | None = None
-        self._compiled_adaptation: Callable | None = None
-        self._compiled_moments_foreach: Callable | None = None
-        self._compiled_step_foreach: Callable | None = None
 
         defaults: Defaults = {
             'lr': lr,
@@ -127,12 +121,13 @@ class Prodigy(BaseOptimizer):
         )
 
     def _compile_foreach(self, compile_kwargs: dict | None = None) -> None:
-        self._compiled_step_foreach = compile_foreach_step(self._step_foreach, compile_kwargs)
-        self._compiled_moments_foreach = compile_foreach_step(self._step_moments_foreach, compile_kwargs)
-
-        update = mask_foreach_step(self._apply_update_foreach)
-        self._compiled_update_foreach = compile_foreach_step(update, compile_kwargs)
-        self._compiled_adaptation = compile_foreach_step(self.get_adapt_distance, compile_kwargs)
+        self._compile_steps(
+            self._step_foreach,
+            self._step_moments_foreach,
+            mask_foreach_step(self._apply_update_foreach),
+            self.get_adapt_distance,
+            compile_kwargs=compile_kwargs,
+        )
 
     @staticmethod
     def get_adapt_distance(group: ParamGroup, params: list[torch.Tensor], statistics: tuple):
@@ -163,11 +158,7 @@ class Prodigy(BaseOptimizer):
         d_numerator, d_de_nom = statistics
 
         compiling = torch._dynamo.is_compiling()  # ty: ignore[deprecated]
-        update = (
-            self._step_moments_foreach
-            if compiling
-            else self._compiled_moments_foreach or self._step_moments_foreach
-        )
+        update = self._step_moments_foreach if compiling else self._get_step(self._step_moments_foreach)
         differences, coefficient = update(group, params, grads, state, d, d_lr)
 
         if can_reduce_batch(grads):
@@ -242,6 +233,7 @@ class Prodigy(BaseOptimizer):
             with torch.enable_grad():
                 loss = closure()
 
+        compiled = self._is_compiled(self.get_adapt_distance)
         group = self.param_groups[0]
         device = self.get_device_from_param_groups(self.param_groups)
 
@@ -255,7 +247,7 @@ class Prodigy(BaseOptimizer):
         bias_correction: float = (bias_correction1 / bias_correction2_sq) if group['bias_correction'] else 1.0
 
         d, d0 = group['d'], group['d0']
-        if self._compiled_adaptation is not None:
+        if compiled:
             d = torch.as_tensor(
                 d,
                 device=device,
@@ -288,8 +280,8 @@ class Prodigy(BaseOptimizer):
 
                 for batch in batches[id(group)]:
                     update = (
-                        self._compiled_step_foreach
-                        if self._compiled_step_foreach is not None and not can_reduce_batch(batch['grads'])
+                        self._get_step(self._step_foreach)
+                        if not can_reduce_batch(batch['grads'])
                         else self._step_foreach
                     )
                     update(
@@ -327,8 +319,9 @@ class Prodigy(BaseOptimizer):
                 d_de_nom.add_(s.abs().sum())
 
         active = None
-        if self._compiled_adaptation is not None:
-            d, d_max, d_hat, active = self._compiled_adaptation(group, [d], (d_numerator, d_de_nom))
+        if compiled:
+            adapt = self._get_step(self.get_adapt_distance)
+            d, d_max, d_hat, active = adapt(group, [d], (d_numerator, d_de_nom))
         else:
             if d_de_nom == 0:
                 return loss
@@ -349,7 +342,7 @@ class Prodigy(BaseOptimizer):
 
             if id(group) in batches:
                 for batch in batches[id(group)]:
-                    update = self._compiled_update_foreach or self._apply_update_foreach
+                    update = self._get_step(self._apply_update_foreach)
                     update({**group, '_active': active}, batch['params'], batch['grads'], batch, d, d_lr)
 
                 continue
