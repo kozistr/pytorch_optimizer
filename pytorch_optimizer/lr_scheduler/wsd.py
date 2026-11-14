@@ -69,7 +69,7 @@ def get_wsd_scheduler_lambda(  # noqa: PLR0911
         num_warmup_steps: Number of warmup steps.
         num_stable_steps: Number of stable steps.
         num_decay_steps: Number of decay steps.
-        min_lr_ratio: Learning rate multiplier after decay, also used as the floor for cosine cooldown.
+        min_lr_ratio: Learning rate multiplier that every cooldown decays to and keeps after decay.
         num_cycles: Number of cosine cycles during decay. Used only for cosine cooldown.
         cooldown_type: Decay curve: `'cosine'`, `'1-sqrt'`, `'linear'`, or `'1-square'`.
 
@@ -84,11 +84,14 @@ def get_wsd_scheduler_lambda(  # noqa: PLR0911
                 current_step, num_warmup_steps, num_stable_steps, num_decay_steps, min_lr_ratio, num_cycles
             )
         if cooldown_type == '1-sqrt':
-            return get_1sqrt_cooldown_lr_ratio(current_step, num_warmup_steps, num_stable_steps, num_decay_steps)
+            ratio = get_1sqrt_cooldown_lr_ratio(current_step, num_warmup_steps, num_stable_steps, num_decay_steps)
+            return (1.0 - min_lr_ratio) * ratio + min_lr_ratio
         if cooldown_type == '1-square':
-            return get_1square_cooldown_lr_ratio(current_step, num_warmup_steps, num_stable_steps, num_decay_steps)
+            ratio = get_1square_cooldown_lr_ratio(current_step, num_warmup_steps, num_stable_steps, num_decay_steps)
+            return (1.0 - min_lr_ratio) * ratio + min_lr_ratio
         if cooldown_type == 'linear':
-            return get_linear_cooldown_lr_ratio(current_step, num_warmup_steps, num_stable_steps, num_decay_steps)
+            ratio = get_linear_cooldown_lr_ratio(current_step, num_warmup_steps, num_stable_steps, num_decay_steps)
+            return (1.0 - min_lr_ratio) * ratio + min_lr_ratio
     return min_lr_ratio
 
 
@@ -109,7 +112,7 @@ def get_wsd_schedule(
         num_warmup_steps: The number of warmup steps.
         num_stable_steps: The number of stable steps.
         num_decay_steps: The number of decay steps.
-        min_lr_ratio: Learning rate multiplier after decay, also used as the floor for cosine cooldown.
+        min_lr_ratio: Learning rate multiplier that every cooldown decays to and keeps after decay.
         num_cycles: Number of cosine cycles during decay. Used only for cosine cooldown.
         cooldown_type: Decay curve: `'cosine'`, `'1-sqrt'`, `'linear'`, or `'1-square'`.
         last_epoch: The index of the last epoch when resuming training.
