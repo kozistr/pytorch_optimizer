@@ -52,6 +52,8 @@ class CosineAnnealingWarmupRestarts(LRScheduler):
         super().__init__(optimizer, last_epoch)
 
         self.init_lr()
+        if last_epoch >= 0:
+            self.step(last_epoch + 1)
 
     def init_lr(self) -> None:
         self.base_lrs = []
