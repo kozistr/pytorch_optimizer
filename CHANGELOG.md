@@ -1,3 +1,18 @@
+# v4.1.1
+
+## What's Changed
+* perf: Accelerate compiled optimizer updates by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/667
+* feat: Add KL-Shampoo and KL-SOAP by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/668
+* perf: Reduce optimizer test runtime by @kozistr in https://github.com/kozistr/pytorch_optimizer/pull/669
+* fix: Restore cosine restart schedules when resuming by @AryanRG in https://github.com/kozistr/pytorch_optimizer/pull/670
+* fix: Decay every WSD cooldown to min_lr_ratio by @albertlieyingadrian in https://github.com/kozistr/pytorch_optimizer/pull/671
+
+## New Contributors
+* @AryanRG made their first contribution in https://github.com/kozistr/pytorch_optimizer/pull/670
+* @albertlieyingadrian made their first contribution in https://github.com/kozistr/pytorch_optimizer/pull/671
+
+**Full Changelog**: https://github.com/kozistr/pytorch_optimizer/compare/v4.1.0...v4.1.1
+
 # v4.1.0
 
 ## What's Changed
